@@ -14,8 +14,6 @@ import '../../core/models/calibration_option.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/plate_list.dart';
-import '../../core/models/printer_status.dart';
-import '../../core/printers/nozzle_rack.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/settings/print_options.dart';
 import '../../core/theme/dash_theme.dart';
@@ -324,7 +322,6 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               if (!_modelMode) ...[
                 _mappingSection(l10n, t),
                 const SizedBox(height: DashSpace.lg),
-                ?_nozzleRackSection(l10n, t),
               ] else ...[
                 _filamentOverrideSection(l10n, t),
                 const SizedBox(height: DashSpace.lg),
@@ -722,6 +719,12 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                       _forceColorMatch.remove(slotId);
                     }
                   }),
+                  rackChoice: _nozzleRackChoice,
+                  onRackChoice: (choice) => setState(
+                    () => _nozzleRackChoice
+                      ..clear()
+                      ..addAll(choice),
+                  ),
                 );
                 // Empty: the printer reported nothing to map to, and the web
                 // sends no mapping then — keep the stored one.
@@ -752,198 +755,6 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         ),
       ).tagged('queue_edit.mapping'),
     );
-  }
-
-  // --- Nozzle rack (H2C, printer mode) ---
-
-  /// The rack-bound filament groups of the plate about to print, lowest id
-  /// first — the unit a rack position is chosen for.
-  ///
-  /// Groups rather than slots: two slots in one group share a hotend and cannot
-  /// be pointed at different positions. Empty on every plate the server did not
-  /// annotate, which is every plate not sliced for a rack printer and every
-  /// plate at all on a server that predates the group table.
-  List<({int id, RackGroup need, List<int> slots})> _rackGroups() {
-    final slotsByGroup = <int, List<int>>{};
-    final needByGroup = <int, RackGroup>{};
-    for (final requirement in _parsedRequirements()) {
-      final id = requirement.groupId;
-      final need = requirement.group;
-      if (id == null || need == null || !need.onRack) continue;
-      needByGroup[id] = need;
-      (slotsByGroup[id] ??= []).add(requirement.slotId);
-    }
-    final ids = needByGroup.keys.toList()..sort();
-    return [
-      for (final id in ids)
-        (id: id, need: needByGroup[id]!, slots: slotsByGroup[id]!..sort()),
-    ];
-  }
-
-  /// Which rack nozzle each filament group prints from, or null when there is no
-  /// choice to offer.
-  ///
-  /// Three things have to hold, and each absence is itself the answer "leave it
-  /// to the scheduler": a specific printer is targeted (a model target cannot
-  /// name a rack, and a pick the server cannot satisfy stops the print rather
-  /// than degrading), that printer reports a rack, and the plate has groups
-  /// bound to it. So no version check is needed — an older server annotates no
-  /// groups and reports no rack, and the section simply never appears.
-  Widget? _nozzleRackSection(AppLocalizations l10n, DashTokens t) {
-    final printerId = _printerId;
-    if (printerId == null) return null;
-    final groups = _rackGroups();
-    if (groups.isEmpty) return null;
-    final rack = rackByPosition(
-      ref.watch(printerStatusOnceProvider(printerId)).valueOrNull?.nozzleRack,
-    );
-    if (rack.isEmpty) return null;
-
-    return Column(
-      children: [
-        _SectionCard(
-          title: l10n.queueEditNozzleRack,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(l10n.queueEditNozzleRackDesc, style: t.labelSoft),
-              const SizedBox(height: DashSpace.md),
-              for (final group in groups) _rackGroupRow(l10n, t, group, rack),
-            ],
-          ),
-        ),
-        const SizedBox(height: DashSpace.lg),
-      ],
-    );
-  }
-
-  Widget _rackGroupRow(
-    AppLocalizations l10n,
-    DashTokens t,
-    ({int id, RackGroup need, List<int> slots}) group,
-    Map<int, NozzleRackSlot> rack,
-  ) {
-    final taken = {
-      for (final entry in _nozzleRackChoice.entries)
-        if (entry.key != group.id) entry.value,
-    };
-    final fits = {
-      for (final entry in rack.entries)
-        if (rackSlotFits(
-          entry.value,
-          diameter: group.need.nozzleDiameter,
-          volumeType: group.need.volumeType,
-        ))
-          entry.key,
-    };
-    final positions = rack.keys.toList()..sort();
-    final needed = _nozzleLabel(
-      l10n,
-      diameter: group.need.nozzleDiameter,
-      highFlow: highFlowFromName(group.need.volumeType),
-    );
-    // A pick the live rack no longer satisfies is the one case the server does
-    // not paper over: it fails the item at dispatch, after the upload, rather
-    // than choosing something else. Say so while it can still be changed.
-    final picked = _nozzleRackChoice[group.id];
-    final stale = picked != null && !fits.contains(picked);
-    final warning = stale
-        ? l10n.queueEditRackPickStale
-        : (fits.isEmpty ? l10n.queueEditRackNoFit(needed) : null);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: DashSpace.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _Dropdown<int?>(
-            label: l10n.queueEditRackGroupLabel(
-              group.slots.map((s) => '$s').join(', '),
-              needed,
-            ),
-            value: _nozzleRackChoice[group.id],
-            placeholder: l10n.queueEditRackAuto,
-            items: [
-              (value: null, label: l10n.queueEditRackAuto, swatch: null),
-              for (final position in positions)
-                (
-                  value: position,
-                  label: _rackPositionLabel(
-                    l10n,
-                    position,
-                    rack[position]!,
-                    fits: fits.contains(position),
-                    taken: taken.contains(position),
-                  ),
-                  swatch: null,
-                ),
-            ],
-            // A position the nozzle does not fit, and one another group already
-            // holds, are both refused at dispatch — the pick is checked against
-            // the live rack there, and a stale one fails the print instead of
-            // falling back. Better to refuse it here, where it costs a tap.
-            disabled: {
-              for (final position in positions)
-                if (!fits.contains(position) || taken.contains(position))
-                  position,
-            },
-            onChanged: (picked) => setState(() {
-              if (picked == null) {
-                _nozzleRackChoice.remove(group.id);
-              } else {
-                _nozzleRackChoice[group.id] = picked;
-              }
-            }),
-          ),
-          ?inlineNote(warning, urgent: stale),
-        ],
-      ),
-    );
-  }
-
-  /// One row of the picker: the position, what it holds, and — when it cannot
-  /// be taken — which of the two reasons that is.
-  ///
-  /// The reason is in the label rather than left to the greying out: a disabled
-  /// row otherwise reads as "unavailable, no idea why", and a screen reader
-  /// announces it as dimmed and stops there. Not fitting outranks being taken,
-  /// because freeing the position would not help this group either.
-  String _rackPositionLabel(
-    AppLocalizations l10n,
-    int position,
-    NozzleRackSlot slot, {
-    required bool fits,
-    required bool taken,
-  }) {
-    final held = _rackSlotLabel(l10n, slot);
-    if (!fits) return l10n.queueEditRackPositionUnfit(position, held);
-    if (taken) return l10n.queueEditRackPositionTaken(position, held);
-    return l10n.queueEditRackPosition(position, held);
-  }
-
-  /// What one rack position holds, or the empty-dock label.
-  String _rackSlotLabel(AppLocalizations l10n, NozzleRackSlot slot) =>
-      slot.isEmpty
-      ? l10n.queueEditRackEmpty
-      : _nozzleLabel(
-          l10n,
-          diameter: slot.nozzleDiameter ?? '',
-          highFlow: highFlowFromCode(slot.nozzleType),
-        );
-
-  /// A nozzle as both sides of this screen name it: `0.4 High flow`. The flow
-  /// type is dropped when nothing states it, rather than guessed at standard.
-  String _nozzleLabel(
-    AppLocalizations l10n, {
-    required String diameter,
-    required bool? highFlow,
-  }) {
-    final size = nozzleDiameterLabel(diameter);
-    final flow = switch (highFlow) {
-      true => l10n.nozzleFlowHigh,
-      false => l10n.nozzleFlowStandard,
-      null => '',
-    };
-    return [size, flow].where((part) => part.isNotEmpty).join(' ');
   }
 
   // --- Filament override (model mode) ---
@@ -2236,7 +2047,6 @@ class _Dropdown<T> extends StatelessWidget {
     required this.items,
     required this.onChanged,
     this.placeholder = '—',
-    this.disabled,
   });
 
   final String label;
@@ -2244,10 +2054,6 @@ class _Dropdown<T> extends StatelessWidget {
   final String placeholder;
   final List<({T value, String label, Color? swatch})> items;
   final ValueChanged<T> onChanged;
-
-  /// Values shown but not selectable. Listing a choice the caller cannot honour
-  /// says why it is unavailable; leaving it out only makes the list shorter.
-  final Set<T>? disabled;
 
   @override
   Widget build(BuildContext context) {
@@ -2282,7 +2088,6 @@ class _Dropdown<T> extends StatelessWidget {
                 it.label,
                 it.swatch,
                 it.value == value,
-                disabled?.contains(it.value) ?? false,
                 () => onChanged(it.value),
               ),
           ],
@@ -2304,11 +2109,10 @@ class _Dropdown<T> extends StatelessWidget {
     String label,
     Color? swatch,
     bool selected,
-    bool disabled,
     VoidCallback onTap,
   ) {
     return MenuItemButton(
-      onPressed: disabled ? null : onTap,
+      onPressed: onTap,
       leadingIcon: swatch != null
           ? _SwatchDot(color: swatch, ring: selected ? t.accentGreenInk : null)
           : Icon(

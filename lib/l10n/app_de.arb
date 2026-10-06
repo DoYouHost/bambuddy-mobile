@@ -2983,6 +2983,12 @@
   "mappingUseSlicerHint": "Jeden Slot aus der AMS-Zuordnung wählen, die der Slicer mit diesem Druck gespeichert hat, statt nach Typ und Farbe abzugleichen.",
   "mappingReRead": "Neu einlesen",
   "mappingFtsSameInlet": "Alle Filamente dieses Drucks hängen am Eingang IN-{inlet} des Filament Track Switch. Ein Wechsel zwischen Filamenten am selben Eingang dauert länger – verschiebe eines in ein AMS am anderen Eingang, um ihn zu beschleunigen.",
+  "mappingRackPosition": "Position im Magazin",
+  "mappingRackPositionHint": "Welche Düse aus dem Magazin dieses Filament druckt. Die Positionen sind wie am Drucker nummeriert.",
+  "mappingRackNeeds": "Dieses Filament braucht eine {nozzle}-Düse.",
+  "mappingRackEmptyPosition": "Diese Position im Magazin ist leer",
+  "mappingRackWrongNozzle": "Hat eine {has}-Düse; dieses Filament braucht {needs}",
+  "mappingRackSlot": "R{position}",
   "colorFamilyRed": "Rot",
   "colorFamilyOrange": "Orange",
   "colorFamilyYellow": "Gelb",
@@ -3244,54 +3250,6 @@
     }
   },
   "queueEditForceColorMatch": "Farbübereinstimmung erzwingen",
-  "queueEditNozzleRack": "Düsenmagazin",
-  "queueEditNozzleRackDesc": "Wähle, mit welcher Düse aus dem Magazin jedes Filament gedruckt wird. Bleibt dies automatisch, wird bei Druckbeginn eine passende Position gewählt.",
-  "queueEditRackGroupLabel": "Filament {slots} · {nozzle}",
-  "@queueEditRackGroupLabel": {
-    "placeholders": {
-      "slots": {
-        "type": "String"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackAuto": "Automatisch",
-  "queueEditRackPosition": "Position {position} · {nozzle}",
-  "@queueEditRackPosition": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackPositionTaken": "Position {position} · {nozzle} — bereits ausgewählt",
-  "@queueEditRackPositionTaken": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackPositionUnfit": "Position {position} · {nozzle} — passt nicht",
-  "@queueEditRackPositionUnfit": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackEmpty": "leer",
   "queueEditRackPickStale": "Die gewählte Position passt nicht mehr zu diesem Filament — wähle eine andere, sonst wird der Druck beim Start abgelehnt.",
   "queueEditRackNoFit": "Keine Position im Magazin enthält eine {nozzle}-Düse — setze eine ein, sonst entscheidet der Drucker selbst.",
   "@queueEditRackNoFit": {
@@ -3938,5 +3896,39 @@
   "inventoryDetailSlot": "Slot",
   "inventoryDetailNotLoaded": "Nicht geladen",
   "inventoryDetailConsumedSinceReset": "Seit Zurücksetzen verbraucht",
-  "inventorySupplierArchivedCount": "{count} archiviert"
+  "inventorySupplierArchivedCount": "{count} archiviert",
+  "timeJustNow": "Gerade eben",
+  "timeNow": "Jetzt",
+  "timeMinutesAgo": "vor {count} Min.",
+  "timeInMinutes": "in {count} Min.",
+  "timeHoursAgo": "vor {count} Std.",
+  "timeInHours": "in {count} Std.",
+  "timeDaysAgo": "{count, plural, =1{vor 1 Tag} other{vor {count} Tagen}}",
+  "timeInDays": "{count, plural, =1{in 1 Tag} other{in {count} Tagen}}",
+  "queueHistory": "Verlauf",
+  "queueItemCount": "{count, plural, =1{1 Element} other{{count} Elemente}}",
+  "queueHistoryEmpty": "Noch kein Verlauf. Abgeschlossene, abgebrochene und fehlgeschlagene Drucke erscheinen hier.",
+  "queueHistoryShowMore": "Mehr anzeigen",
+  "queueHistoryShowing": "{shown} von {total} werden angezeigt",
+  "queueHistorySort": "Sortierung",
+  "queueHistorySortDate": "Nach Datum",
+  "queueHistorySortName": "Nach Name",
+  "queueHistorySortPrinter": "Nach Drucker",
+  "queueHistoryNewestFirst": "Neueste zuerst",
+  "queueHistoryOldestFirst": "Älteste zuerst",
+  "queueHistoryClear": "Verlauf löschen",
+  "queueHistoryClearTitle": "Verlauf löschen?",
+  "queueHistoryClearMessage": "{count, plural, =1{1 Element aus dem Verlauf entfernen?} other{Alle {count} Elemente aus dem Verlauf entfernen?}}",
+  "queueHistoryCleared": "{count, plural, =1{1 Verlaufselement gelöscht.} other{{count} Verlaufselemente gelöscht.}}",
+  "queueHistoryKeptForOrders": "{kept} behalten, die Stapelaufträge noch brauchen.",
+  "queueHistoryClearFailed": "Der Verlauf konnte nicht gelöscht werden.",
+  "queueHistoryNoClear": "Du hast keine Berechtigung, den gesamten Verlauf zu löschen",
+  "queueHistoryRequeue": "Erneut einreihen",
+  "queueHistoryNoRequeue": "Du hast keine Berechtigung, Elemente erneut einzureihen",
+  "queueHistoryRemove": "Entfernen",
+  "queueHistoryNoRemove": "Du hast keine Berechtigung, dieses Element zu entfernen",
+  "queueHistoryRemoveTitle": "Aus dem Verlauf entfernen?",
+  "queueHistoryRemoveMessage": "„{name}“ aus dem Warteschlangenverlauf entfernen?",
+  "queueHistoryAddedBy": "Hinzugefügt von {name}",
+  "queueHistoryBatch": "Stapel"
 }

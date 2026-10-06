@@ -160,6 +160,7 @@ abstract final class Permissions {
   /// covers them all.
   static const queueCreate = 'queue:create';
   static const queueDeleteAll = 'queue:delete_all';
+  static const queueDeleteOwn = 'queue:delete_own';
   static const queueUpdateOwn = 'queue:update_own';
   static const queueUpdateAll = 'queue:update_all';
 

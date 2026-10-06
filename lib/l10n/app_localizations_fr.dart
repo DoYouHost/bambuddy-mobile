@@ -5365,6 +5365,31 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get mappingRackPosition => 'Position dans le rack';
+
+  @override
+  String get mappingRackPositionHint =>
+      'Quelle buse du rack imprime ce filament. Les positions sont numérotées comme sur l’imprimante.';
+
+  @override
+  String mappingRackNeeds(String nozzle) {
+    return 'Ce filament nécessite une buse $nozzle.';
+  }
+
+  @override
+  String get mappingRackEmptyPosition => 'Cette position du rack est vide';
+
+  @override
+  String mappingRackWrongNozzle(String has, String needs) {
+    return 'Elle contient une buse $has ; ce filament nécessite $needs';
+  }
+
+  @override
+  String mappingRackSlot(int position) {
+    return 'R$position';
+  }
+
+  @override
   String get colorFamilyRed => 'Rouge';
 
   @override
@@ -5922,39 +5947,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get queueEditForceColorMatch => 'Forcer la correspondance de couleur';
-
-  @override
-  String get queueEditNozzleRack => 'Rack de buses';
-
-  @override
-  String get queueEditNozzleRackDesc =>
-      'Choisissez depuis quelle buse du rack chaque filament s\'imprime. Si laissé en automatique, une position adaptée sera choisie au lancement de l\'impression.';
-
-  @override
-  String queueEditRackGroupLabel(String slots, String nozzle) {
-    return 'Filament $slots · $nozzle';
-  }
-
-  @override
-  String get queueEditRackAuto => 'Automatique';
-
-  @override
-  String queueEditRackPosition(int position, String nozzle) {
-    return 'Position $position · $nozzle';
-  }
-
-  @override
-  String queueEditRackPositionTaken(int position, String nozzle) {
-    return 'Position $position · $nozzle — déjà choisie';
-  }
-
-  @override
-  String queueEditRackPositionUnfit(int position, String nozzle) {
-    return 'Position $position · $nozzle — incompatible';
-  }
-
-  @override
-  String get queueEditRackEmpty => 'vide';
 
   @override
   String get queueEditRackPickStale =>
@@ -7665,4 +7657,166 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get timeJustNow => 'À l’instant';
+
+  @override
+  String get timeNow => 'Maintenant';
+
+  @override
+  String timeMinutesAgo(int count) {
+    return 'il y a $count min';
+  }
+
+  @override
+  String timeInMinutes(int count) {
+    return 'dans $count min';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return 'il y a $count h';
+  }
+
+  @override
+  String timeInHours(int count) {
+    return 'dans $count h';
+  }
+
+  @override
+  String timeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'il y a $count jours',
+      one: 'il y a 1 jour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String timeInDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'dans $count jours',
+      one: 'dans 1 jour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueHistory => 'Historique';
+
+  @override
+  String queueItemCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count éléments',
+      one: '1 élément',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueHistoryEmpty =>
+      'Pas encore d’historique. Les impressions terminées, annulées et échouées apparaîtront ici.';
+
+  @override
+  String get queueHistoryShowMore => 'Afficher plus';
+
+  @override
+  String queueHistoryShowing(int shown, int total) {
+    return 'Affichage de $shown sur $total';
+  }
+
+  @override
+  String get queueHistorySort => 'Tri';
+
+  @override
+  String get queueHistorySortDate => 'Par date';
+
+  @override
+  String get queueHistorySortName => 'Par nom';
+
+  @override
+  String get queueHistorySortPrinter => 'Par imprimante';
+
+  @override
+  String get queueHistoryNewestFirst => 'Plus récents d’abord';
+
+  @override
+  String get queueHistoryOldestFirst => 'Plus anciens d’abord';
+
+  @override
+  String get queueHistoryClear => 'Effacer l’historique';
+
+  @override
+  String get queueHistoryClearTitle => 'Effacer l’historique ?';
+
+  @override
+  String queueHistoryClearMessage(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Retirer les $count éléments de l’historique ?',
+      one: 'Retirer 1 élément de l’historique ?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueHistoryCleared(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count éléments effacés.',
+      one: '1 élément effacé.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueHistoryKeptForOrders(int kept) {
+    return '$kept conservés, car des commandes en ont encore besoin.';
+  }
+
+  @override
+  String get queueHistoryClearFailed => 'Impossible d’effacer l’historique.';
+
+  @override
+  String get queueHistoryNoClear =>
+      'Vous n’avez pas l’autorisation d’effacer tout l’historique';
+
+  @override
+  String get queueHistoryRequeue => 'Remettre en file';
+
+  @override
+  String get queueHistoryNoRequeue =>
+      'Vous n’avez pas l’autorisation de remettre en file';
+
+  @override
+  String get queueHistoryRemove => 'Retirer';
+
+  @override
+  String get queueHistoryNoRemove =>
+      'Vous n’avez pas l’autorisation de retirer cet élément';
+
+  @override
+  String get queueHistoryRemoveTitle => 'Retirer de l’historique ?';
+
+  @override
+  String queueHistoryRemoveMessage(String name) {
+    return 'Retirer « $name » de l’historique de la file ?';
+  }
+
+  @override
+  String queueHistoryAddedBy(String name) {
+    return 'Ajouté par $name';
+  }
+
+  @override
+  String get queueHistoryBatch => 'Lot';
 }

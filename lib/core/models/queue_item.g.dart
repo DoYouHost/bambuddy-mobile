@@ -73,4 +73,5 @@ QueueItem _$QueueItemFromJson(Map<String, dynamic> json) => QueueItem(
   batchId: (json['batch_id'] as num?)?.toInt(),
   batchName: json['batch_name'] as String?,
   createdById: (json['created_by_id'] as num?)?.toInt(),
+  createdByUsername: json['created_by_username'] as String?,
 );

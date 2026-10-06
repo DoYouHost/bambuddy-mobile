@@ -127,12 +127,21 @@ QueueRepository queueFormRepo({
 /// What each printer reports live, for the mapping the form works out on
 /// save; a printer missing from the map reports nothing.
 class _LivePrinters extends PrintersRepository {
-  _LivePrinters(this._status) : super(Dio());
+  _LivePrinters(this._status, this._rack) : super(Dio());
 
   final Map<int, PrinterStatus> _status;
+  final List<NozzleRackSlot>? _rack;
 
   @override
-  Future<PrinterStatus?> fetchStatus(int printerId) async => _status[printerId];
+  Future<PrinterStatus?> fetchStatus(int printerId) async {
+    final status = _status[printerId];
+    if (_rack == null) return status;
+    return PrinterStatus(
+      id: printerId,
+      ams: status?.ams ?? const [],
+      nozzleRack: _rack,
+    );
+  }
 
   @override
   Future<SlotInventory> fetchInventoryRemain(int printerId) async =>
@@ -189,9 +198,8 @@ Widget queueFormScreen(
       return plates;
     }),
     printRequirementsProvider.overrideWith((ref, arg) async => requirements),
-    printersRepositoryProvider.overrideWithValue(_LivePrinters(live)),
-    printerStatusOnceProvider.overrideWith(
-      (ref, id) async => PrinterStatus(id: id, nozzleRack: nozzleRack),
+    printersRepositoryProvider.overrideWithValue(
+      _LivePrinters(live, nozzleRack),
     ),
     availableFilamentsProvider.overrideWith((ref, arg) => availableFilaments),
     ...extra,
