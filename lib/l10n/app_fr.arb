@@ -3930,5 +3930,7 @@
   "queueHistoryRemoveTitle": "Retirer de l’historique ?",
   "queueHistoryRemoveMessage": "Retirer « {name} » de l’historique de la file ?",
   "queueHistoryAddedBy": "Ajouté par {name}",
-  "queueHistoryBatch": "Lot"
+  "queueHistoryBatch": "Lot",
+  "queueHistoryRemoved": "Élément retiré",
+  "queueHistoryKeptForOrder": "Annulé au lieu d’être retiré : cette impression est la seule dont la commande puisse remettre cette plaque en file"
 }

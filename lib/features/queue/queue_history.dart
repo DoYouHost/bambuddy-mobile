@@ -658,7 +658,12 @@ class _HistoryRow extends ConsumerWidget {
     );
     if (!ok) return;
     try {
-      await ref.read(queueRepositoryProvider).delete(item.id);
+      // `removeMutation`: a row a batch order still needs stays on screen,
+      // cancelled, and without a word it would read as a failed delete.
+      final deleted = await ref.read(queueRepositoryProvider).delete(item.id);
+      messenger.snack(
+        deleted ? l10n.queueHistoryRemoved : l10n.queueHistoryKeptForOrder,
+      );
     } on AppApiException catch (e) {
       final text = queueWriteMessage(
         l10n,

@@ -703,6 +703,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         onTap: printerId == null
             ? null
             : () async {
+                // The rows write these back as they change; a sheet dismissed
+                // without saving takes them back, as it does its slot picks.
+                final rackBefore = {..._nozzleRackChoice};
+                final forceBefore = {..._forceColorMatch};
                 final mapping = await showQueueMappingSheet(
                   context,
                   item: widget.item,
@@ -728,7 +732,16 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                 );
                 // Empty: the printer reported nothing to map to, and the web
                 // sends no mapping then — keep the stored one.
-                if (mapping != null && mapping.isNotEmpty) {
+                if (mapping == null) {
+                  setState(() {
+                    _nozzleRackChoice
+                      ..clear()
+                      ..addAll(rackBefore);
+                    _forceColorMatch
+                      ..clear()
+                      ..addAll(forceBefore);
+                  });
+                } else if (mapping.isNotEmpty) {
                   setState(() => _amsMapping = mapping);
                 }
               },

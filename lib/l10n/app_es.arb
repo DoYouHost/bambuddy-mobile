@@ -3930,5 +3930,7 @@
   "queueHistoryRemoveTitle": "¿Quitar del historial?",
   "queueHistoryRemoveMessage": "¿Quitar «{name}» del historial de la cola?",
   "queueHistoryAddedBy": "Añadido por {name}",
-  "queueHistoryBatch": "Lote"
+  "queueHistoryBatch": "Lote",
+  "queueHistoryRemoved": "Elemento de la cola eliminado",
+  "queueHistoryKeptForOrder": "Cancelado en lugar de eliminado: es la única impresión desde la que el pedido puede volver a encolar esta placa"
 }

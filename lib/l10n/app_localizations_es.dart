@@ -7746,4 +7746,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get queueHistoryBatch => 'Lote';
+
+  @override
+  String get queueHistoryRemoved => 'Elemento de la cola eliminado';
+
+  @override
+  String get queueHistoryKeptForOrder =>
+      'Cancelado en lugar de eliminado: es la única impresión desde la que el pedido puede volver a encolar esta placa';
 }

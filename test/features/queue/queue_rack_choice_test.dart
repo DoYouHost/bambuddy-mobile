@@ -305,4 +305,20 @@ void main() {
 
     expect(capturedBody?['nozzle_rack_choice'], {'1': 3});
   });
+
+  testWidgets('a mapping dismissed without saving keeps the stored pick', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_form(item: _stored({'1': 3})));
+    await tester.pumpAndSettle();
+    await _openMapping(tester);
+    await _openRack(tester);
+    await _pick(tester, 1);
+    // The barrier above the sheet: dismissed, not saved.
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    await submitQueueForm(tester, edit: true);
+
+    expect(capturedBody?['nozzle_rack_choice'], {'1': 3});
+  });
 }

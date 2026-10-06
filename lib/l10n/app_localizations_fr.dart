@@ -7819,4 +7819,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get queueHistoryBatch => 'Lot';
+
+  @override
+  String get queueHistoryRemoved => 'Élément retiré';
+
+  @override
+  String get queueHistoryKeptForOrder =>
+      'Annulé au lieu d’être retiré : cette impression est la seule dont la commande puisse remettre cette plaque en file';
 }

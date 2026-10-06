@@ -7647,4 +7647,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueHistoryBatch => 'Batch';
+
+  @override
+  String get queueHistoryRemoved => 'Queue item removed';
+
+  @override
+  String get queueHistoryKeptForOrder =>
+      'Cancelled instead of removed: this is the only run its batch order can re-queue this plate from';
 }

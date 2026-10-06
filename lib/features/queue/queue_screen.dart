@@ -54,8 +54,19 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
 
   /// The queue and its history, the web's first and History tabs.
   late final TabController _tabs = TabController(length: 2, vsync: this)
-    ..addListener(() => setState(() {}));
+    ..addListener(_tabSettled);
+  int _shownTab = 0;
   bool get _onHistory => _tabs.index == 1;
+
+  /// A tab just brought into view shows what is there now rather than waiting
+  /// for the next tick: only the tab on screen is polled, so the other one has
+  /// been standing still.
+  void _tabSettled() {
+    if (_tabs.indexIsChanging || _tabs.index == _shownTab) return;
+    setState(() => _shownTab = _tabs.index);
+    unawaited(_refreshShown());
+    if (_visible) _startTimer();
+  }
 
   /// Whether this tab's branch is the one currently shown — see
   /// [didChangeDependencies]. Starts false; the framework-guaranteed
@@ -188,12 +199,12 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
                   label: Text(l10n.queueStartNext),
                 ),
               ),
-        body: TabBarView(
-          controller: _tabs,
-          children: [
-            RefreshWhenShown(
-              onRefresh: () => ref.read(queueProvider.notifier).refresh(),
-              child: dashAsync(
+        body: RefreshWhenShown(
+          onRefresh: _refreshShown,
+          child: TabBarView(
+            controller: _tabs,
+            children: [
+              dashAsync(
                 context,
                 async,
                 onRetry: () => ref.read(queueProvider.notifier).refresh(),
@@ -207,9 +218,9 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
                       : _QueueList(items: items),
                 ),
               ),
-            ),
-            const QueueHistoryView(),
-          ],
+              const QueueHistoryView(),
+            ],
+          ),
         ),
       ),
     );

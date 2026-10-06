@@ -12829,6 +12829,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Batch'**
   String get queueHistoryBatch;
+
+  /// After removing one queue history item.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue item removed'**
+  String get queueHistoryRemoved;
+
+  /// After removing a queue history item the server kept, cancelled, because its batch order can only re-queue the plate from it.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled instead of removed: this is the only run its batch order can re-queue this plate from'**
+  String get queueHistoryKeptForOrder;
 }
 
 class _AppLocalizationsDelegate

@@ -3930,5 +3930,7 @@
   "queueHistoryRemoveTitle": "Aus dem Verlauf entfernen?",
   "queueHistoryRemoveMessage": "„{name}“ aus dem Warteschlangenverlauf entfernen?",
   "queueHistoryAddedBy": "Hinzugefügt von {name}",
-  "queueHistoryBatch": "Stapel"
+  "queueHistoryBatch": "Stapel",
+  "queueHistoryRemoved": "Warteschlangenelement entfernt",
+  "queueHistoryKeptForOrder": "Abgebrochen statt entfernt: Nur aus diesem Durchlauf kann der Stapelauftrag diese Platte erneut einreihen"
 }

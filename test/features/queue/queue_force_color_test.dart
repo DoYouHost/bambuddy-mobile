@@ -112,4 +112,22 @@ void main() {
     expect(sent.single, containsPair('tray_info_idx', 'GFG00'));
     expect(sent.single, containsPair('color_name', 'Green'));
   });
+
+  testWidgets('a mapping dismissed without saving takes its flag back', (
+    tester,
+  ) async {
+    await tester.pumpWidget(form(overrides: [changed]));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text(formL10n.queueEditMappingAuto));
+    await tester.tap(find.text(formL10n.queueEditMappingAuto));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(Checkbox).last);
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    await submitQueueForm(tester, edit: true);
+
+    final sent = capturedBody?['filament_overrides'] as List<dynamic>;
+    expect(sent.single, containsPair('force_color_match', true));
+  });
 }

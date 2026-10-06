@@ -7766,4 +7766,11 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueHistoryBatch => 'Partia';
+
+  @override
+  String get queueHistoryRemoved => 'Usunięto element kolejki';
+
+  @override
+  String get queueHistoryKeptForOrder =>
+      'Anulowano, zamiast usunąć: tylko z tego wydruku zamówienie może ponownie dodać tę płytę do kolejki';
 }

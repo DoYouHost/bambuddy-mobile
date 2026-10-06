@@ -216,6 +216,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repo.deleted, [1]);
+    expect(find.text(_l10n.queueHistoryRemoved), findsOneWidget);
     expect(find.text('part-1.3mf'), findsNothing);
     expect(find.text('part-2.3mf'), findsOneWidget);
   });
@@ -362,5 +363,30 @@ void main() {
 
     expect(repo.historyReads, reads + 1);
     expect(_NoQueue.refreshes, refreshes);
+  });
+
+  testWidgets('a row a batch order keeps says it was cancelled instead', (
+    tester,
+  ) async {
+    final repo = _History([_item(1)], kept: {1});
+    await _openHistory(tester, repo);
+
+    await tester.tap(byLogId('queue_history.remove'));
+    await tester.pumpAndSettle();
+    await tester.tap(byLogId('queue_history.remove_confirm.confirm'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(_l10n.queueHistoryKeptForOrder), findsOneWidget);
+    expect(find.text('part-1.3mf'), findsOneWidget);
+  });
+
+  testWidgets('switching back to the queue reads it at once', (tester) async {
+    await _openHistory(tester, _History([_item(1)]));
+    final before = _NoQueue.refreshes;
+
+    await tester.tap(find.text(_l10n.navQueue).last);
+    await tester.pumpAndSettle();
+
+    expect(_NoQueue.refreshes, before + 1);
   });
 }

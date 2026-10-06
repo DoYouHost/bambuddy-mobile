@@ -7720,4 +7720,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueHistoryBatch => 'Stapel';
+
+  @override
+  String get queueHistoryRemoved => 'Warteschlangenelement entfernt';
+
+  @override
+  String get queueHistoryKeptForOrder =>
+      'Abgebrochen statt entfernt: Nur aus diesem Durchlauf kann der Stapelauftrag diese Platte erneut einreihen';
 }

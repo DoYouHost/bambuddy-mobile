@@ -3244,5 +3244,7 @@
   "queueHistoryRemoveTitle": "Usunąć z historii?",
   "queueHistoryRemoveMessage": "Usunąć „{name}” z historii kolejki?",
   "queueHistoryAddedBy": "Dodane przez: {name}",
-  "queueHistoryBatch": "Partia"
+  "queueHistoryBatch": "Partia",
+  "queueHistoryRemoved": "Usunięto element kolejki",
+  "queueHistoryKeptForOrder": "Anulowano, zamiast usunąć: tylko z tego wydruku zamówienie może ponownie dodać tę płytę do kolejki"
 }

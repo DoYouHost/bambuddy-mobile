@@ -4863,5 +4863,13 @@
   "queueHistoryBatch": "Batch",
   "@queueHistoryBatch": {
     "description": "Name of a batch of queue items that has none of its own."
+  },
+  "queueHistoryRemoved": "Queue item removed",
+  "@queueHistoryRemoved": {
+    "description": "After removing one queue history item."
+  },
+  "queueHistoryKeptForOrder": "Cancelled instead of removed: this is the only run its batch order can re-queue this plate from",
+  "@queueHistoryKeptForOrder": {
+    "description": "After removing a queue history item the server kept, cancelled, because its batch order can only re-queue the plate from it."
   }
 }
