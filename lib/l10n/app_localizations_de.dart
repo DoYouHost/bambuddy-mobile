@@ -7730,5 +7730,5 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueBillingUseWeb =>
-      'Auf diesem Server ist die Abrechnung aktiv, daher braucht ein neuer Druckauftrag eine Kostenstelle, die die App noch nicht auswählen kann. Füge ihn in Bambuddy im Browser zur Warteschlange hinzu.';
+      'Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, die die App noch nicht setzen kann. Reihe diesen Auftrag in Bambuddy im Browser ein, bearbeite und starte ihn dort.';
 }

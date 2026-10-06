@@ -82,6 +82,7 @@ class QueueItem {
     this.batchName,
     this.createdById,
     this.createdByUsername,
+    this.costCenterId,
   });
 
   factory QueueItem.fromJson(Map<String, dynamic> json) =>
@@ -310,6 +311,11 @@ class QueueItem {
   /// Their username, for the history row's "added by". Null when nobody is
   /// logged in on the server or the account is gone.
   final String? createdByUsername;
+
+  /// The billing cost center the item is charged to. On a server with billing
+  /// on, every create, edit and start of an item without one is refused
+  /// (`finance_budget.py::validate_print_budget`).
+  final int? costCenterId;
 
   /// Cross-model alternatives in priority order (server #671) — several sliced
   /// files, one job, whichever printer frees up first. Empty for every ordinary

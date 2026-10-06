@@ -873,20 +873,48 @@ final serverSettingsProvider =
       ServerSettingsNotifier.new,
     );
 
-/// [Endpoints.uiFlags], read once per session.
-final serverUiFlagsProvider = FutureProvider<Map<String, dynamic>>(
+/// [Endpoints.uiFlags]. autoDispose, so each screen that asks reads it afresh: billing can be
+/// switched on in the web while the app runs, and a read that failed must not
+/// stand for the rest of the session.
+final serverUiFlagsProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
   (ref) => ref.watch(serverSettingsRepositoryProvider).fetchUiFlags(),
 );
 
 /// Whether the server enforces cost-center billing, which makes every new queue
 /// item require a `cost_center_id` the app cannot pick yet (maziggy/bambuddy
 /// #3256). Read from the UI flags any user may see, else from the full
-/// settings on a server too old to have them; false until either answers.
-final billingEnabledProvider = Provider<bool>((ref) {
-  final flags = ref.watch(serverUiFlagsProvider).valueOrNull ?? const {};
-  final settings = ref.watch(serverSettingsProvider).valueOrNull ?? const {};
-  return (flags['billing_enabled'] ?? settings['billing_enabled']) == true;
-});
+/// settings on a server too old to have them — the flags win when present,
+/// being the only source a non-admin can read; false until either answers.
+final billingEnabledProvider = Provider.autoDispose<bool>(
+  (ref) => _billingFrom(
+    ref.watch(serverUiFlagsProvider).valueOrNull,
+    ref.watch(serverSettingsProvider).valueOrNull,
+  ),
+);
+
+/// [billingEnabledProvider] for an action outside a build, once the flags have
+/// answered.
+Future<bool> settledBillingEnabled(ProviderContainer container) async {
+  final flags = container.listen(serverUiFlagsProvider.future, (_, _) {});
+  try {
+    return _billingFrom(
+      await flags.read(),
+      await container
+          .read(serverSettingsProvider.future)
+          .catchError((Object _) => const <String, dynamic>{}),
+    );
+  } finally {
+    flags.close();
+  }
+}
+
+bool _billingFrom(
+  Map<String, dynamic>? flags,
+  Map<String, dynamic>? settings,
+) =>
+    ((flags ?? const {})['billing_enabled'] ??
+        (settings ?? const {})['billing_enabled']) ==
+    true;
 
 class ServerSettingsNotifier extends AsyncNotifier<Map<String, dynamic>> {
   @override

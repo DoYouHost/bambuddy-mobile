@@ -108,6 +108,21 @@ void main() {
       );
     });
 
+    test('a caller holding the exception gets the same wording', () {
+      // The library's "queue as alternatives" posts outside the queue notifier.
+      expect(
+        queueRefusal(
+          en,
+          ApiException(
+            AppErrorCode.badResponse,
+            statusCode: 400,
+            detail: 'Cost center is required when billing is enabled',
+          ),
+        ),
+        en.queueBillingUseWeb,
+      );
+    });
+
     test('each route\'s refusal reads as the row having moved on', () {
       // One wording per route, one thing the user has to do.
       const details = [

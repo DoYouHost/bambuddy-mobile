@@ -7829,5 +7829,5 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get queueBillingUseWeb =>
-      'La facturation est activée sur ce serveur : une nouvelle impression nécessite un centre de coûts que l’application ne sait pas encore choisir. Ajoutez-la à la file dans Bambuddy depuis un navigateur.';
+      'La facturation est activée sur ce serveur : chaque impression nécessite un centre de coûts que l’application ne sait pas encore définir. Mettez en file, modifiez et lancez cette impression dans Bambuddy depuis un navigateur.';
 }

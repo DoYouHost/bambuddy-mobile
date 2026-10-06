@@ -7657,5 +7657,5 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueBillingUseWeb =>
-      'Billing is on for this server, so a new print job needs a cost center, which the app cannot choose yet. Add it to the queue in Bambuddy in a browser.';
+      'Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.';
 }

@@ -7756,5 +7756,5 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get queueBillingUseWeb =>
-      'Este servidor tiene la facturación activada, así que un trabajo nuevo necesita un centro de costes que la app aún no puede elegir. Añádelo a la cola en Bambuddy desde el navegador.';
+      'Este servidor tiene la facturación activada, así que cada trabajo necesita un centro de costes que la app aún no puede asignar. Encola, edita e inicia este trabajo en Bambuddy desde el navegador.';
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -62,19 +64,38 @@ void main() {
     },
   );
 
-  Future<void> pump(WidgetTester tester, {required bool edit}) async {
+  test('the flag is read afresh for the next screen that asks', () async {
+    // Switched on in the web while the app runs, or a read that failed: either
+    // must not stand for the rest of the session.
+    var reads = 0;
+    final container = ProviderContainer(
+      overrides: [
+        serverUiFlagsProvider.overrideWith((ref) async {
+          reads++;
+          return {'billing_enabled': reads > 1};
+        }),
+        serverSettingsOverride(const {}),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    var sub = container.listen(billingEnabledProvider, (_, _) {});
+    await container.read(serverUiFlagsProvider.future);
+    expect(sub.read(), isFalse);
+    sub.close();
+    await Future<void>.delayed(Duration.zero);
+
+    sub = container.listen(billingEnabledProvider, (_, _) {});
+    await container.read(serverUiFlagsProvider.future);
+    expect(sub.read(), isTrue);
+    expect(reads, 2);
+  });
+
+  Future<void> pump(WidgetTester tester, {QueueItem? item}) async {
     await tester.pumpWidget(
       queueFormScreen(
-        edit
-            ? QueueItem.fromJson({
-                'id': 5,
-                'position': 1,
-                'status': 'pending',
-                'printer_id': 1,
-                'archive_id': 77,
-              })
-            : archiveDraft(),
-        mode: edit ? QueueEditMode.edit : QueueEditMode.create,
+        item ?? archiveDraft(),
+        mode: item == null ? QueueEditMode.create : QueueEditMode.edit,
         extra: [
           serverUiFlagsProvider.overrideWith(
             (ref) async => {'billing_enabled': true},
@@ -85,6 +106,15 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  QueueItem queued({int? costCenter}) => QueueItem.fromJson({
+    'id': 5,
+    'position': 1,
+    'status': 'pending',
+    'printer_id': 1,
+    'archive_id': 77,
+    'cost_center_id': costCenter,
+  });
+
   FilledButton submit(WidgetTester tester, String id) => tester.widget(
     find.descendant(of: byLogId(id), matching: find.byType(FilledButton)),
   );
@@ -92,17 +122,87 @@ void main() {
   testWidgets('a new job is not offered, and the form says why', (
     tester,
   ) async {
-    await pump(tester, edit: false);
+    await pump(tester);
 
     expect(find.text(formL10n.queueBillingUseWeb), findsOneWidget);
     expect(submit(tester, 'queue_create.save').onPressed, isNull);
   });
 
-  testWidgets('editing a queued job still saves', (tester) async {
-    // The server checks the budget on an edit only when billing fields change.
-    await pump(tester, edit: true);
+  testWidgets('an item with no cost center cannot be saved either', (
+    tester,
+  ) async {
+    // `update_queue_item` checks the budget on every PATCH.
+    await pump(tester, item: queued());
+
+    expect(find.text(formL10n.queueBillingUseWeb), findsOneWidget);
+    expect(submit(tester, 'queue_edit.save').onPressed, isNull);
+  });
+
+  testWidgets('an item queued in the web with a cost center still saves', (
+    tester,
+  ) async {
+    await pump(tester, item: queued(costCenter: 3));
 
     expect(find.text(formL10n.queueBillingUseWeb), findsNothing);
     expect(submit(tester, 'queue_edit.save').onPressed, isNotNull);
+  });
+
+  testWidgets('submit waits for the flag, without flashing the note', (
+    tester,
+  ) async {
+    final flags = Completer<Map<String, dynamic>>();
+    await tester.pumpWidget(
+      queueFormScreen(
+        archiveDraft(),
+        extra: [serverUiFlagsProvider.overrideWith((ref) => flags.future)],
+      ),
+    );
+    await tester.pump();
+
+    expect(submit(tester, 'queue_create.save').onPressed, isNull);
+    expect(find.text(formL10n.queueBillingUseWeb), findsNothing);
+
+    flags.complete({'billing_enabled': false});
+    await tester.pumpAndSettle();
+    expect(submit(tester, 'queue_create.save').onPressed, isNotNull);
+  });
+
+  testWidgets('a job with a cost center does not wait for the flag', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      queueFormScreen(
+        queued(costCenter: 3),
+        mode: QueueEditMode.edit,
+        extra: [
+          serverUiFlagsProvider.overrideWith(
+            (ref) => Completer<Map<String, dynamic>>().future,
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+
+    expect(submit(tester, 'queue_edit.save').onPressed, isNotNull);
+  });
+
+  test('an action outside a build waits for the answer', () async {
+    Future<bool> settled(
+      Map<String, dynamic> flags,
+      Map<String, dynamic> settings,
+    ) {
+      final container = ProviderContainer(
+        overrides: [
+          serverUiFlagsProvider.overrideWith((ref) async => flags),
+          serverSettingsOverride(settings),
+        ],
+      );
+      addTearDown(container.dispose);
+      return settledBillingEnabled(container);
+    }
+
+    expect(await settled({'billing_enabled': true}, const {}), isTrue);
+    expect(await settled(const {}, {'billing_enabled': true}), isTrue);
+    expect(await settled({'billing_enabled': false}, const {}), isFalse);
   });
 }

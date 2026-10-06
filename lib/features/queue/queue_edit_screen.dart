@@ -314,7 +314,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             ),
             children: [
               _header(l10n, t),
-              // The server refuses a new item without a cost center, and the
+              // The server refuses the job without a cost center, and the
               // app has no picker for one yet: say so before the form is
               // filled in rather than after.
               if (_billingBlocks)
@@ -530,7 +530,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           ),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        onPressed: _saving || _billingBlocks ? null : _submit,
+        onPressed: _saving || _billingBlocks || _billingPending
+            ? null
+            : _submit,
         child: Text(
           widget._isCreate ? l10n.queueCreateSubmit : l10n.queueEditSave,
         ),
@@ -538,10 +540,19 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     );
   }
 
-  /// A new item on a billing server: refused without a cost center. Editing
-  /// one is not — the server checks the budget only when billing fields change.
+  /// A billing server refuses a create, and any edit of an item, without a
+  /// cost center (`update_queue_item` checks the budget on every PATCH). An
+  /// item queued in the web with one still edits.
   bool get _billingBlocks =>
-      widget._isCreate && ref.watch(billingEnabledProvider);
+      _billingApplies && ref.watch(billingEnabledProvider);
+
+  /// Submit waits for the billing flag on a job it could block: the first
+  /// frame would otherwise offer a write the server is about to refuse.
+  bool get _billingPending =>
+      _billingApplies && ref.watch(serverUiFlagsProvider).isLoading;
+
+  bool get _billingApplies =>
+      widget._isCreate || widget.item.costCenterId == null;
 
   /// Name of the printer picked in the Target section, for messages that would
   /// otherwise quote the item's stored (or, on a draft, missing) printer.

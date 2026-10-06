@@ -12842,10 +12842,10 @@ abstract class AppLocalizations {
   /// **'Cancelled instead of removed: this is the only run its batch order can re-queue this plate from'**
   String get queueHistoryKeptForOrder;
 
-  /// Shown on the new-print form, and in place of the server refusal, when the server enforces cost-center billing, which the app does not support yet.
+  /// Shown on the print-job form, and in place of the server refusal on create, edit or start, when the server enforces cost-center billing, which the app does not support yet.
   ///
   /// In en, this message translates to:
-  /// **'Billing is on for this server, so a new print job needs a cost center, which the app cannot choose yet. Add it to the queue in Bambuddy in a browser.'**
+  /// **'Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.'**
   String get queueBillingUseWeb;
 }
 
