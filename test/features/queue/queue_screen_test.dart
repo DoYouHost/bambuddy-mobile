@@ -11,6 +11,7 @@ import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_screen.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
+import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -131,6 +132,52 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Uruchom następny'), findsOneWidget);
+  });
+
+  group('a user held for review (#1620)', () {
+    final json = readFixture('queue_item.json') as Map<String, dynamic>;
+    final waiting = QueueItem.fromJson({
+      ...json,
+      'status': 'pending',
+      'manual_start': true,
+    });
+    final l10n = lookupAppLocalizations(const Locale('pl'));
+
+    Widget screen({required bool held}) => ProviderScope(
+      overrides: [
+        queueProvider.overrideWith(() => _FakeQueueNotifier([waiting])),
+        noServerProfileOverride,
+        awaitingReviewProvider.overrideWithValue(held),
+      ],
+      child: plApp(const QueueScreen()),
+    );
+
+    testWidgets('is told who starts the job and offered no start', (
+      tester,
+    ) async {
+      await tester.pumpWidget(screen(held: true));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.queueBadgeAwaitingReview), findsOneWidget);
+      expect(find.text(l10n.queueStartNext), findsNothing);
+      await tester.tap(byLogId('queue.actions'));
+      await tester.pumpAndSettle();
+      expect(byLogId('queue.action.start'), findsNothing);
+      expect(byLogId('queue.action.edit'), findsOneWidget);
+    });
+
+    testWidgets('anyone else sees the job staged and may start it', (
+      tester,
+    ) async {
+      await tester.pumpWidget(screen(held: false));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.queueBadgeStaged), findsOneWidget);
+      expect(find.text(l10n.queueStartNext), findsOneWidget);
+      await tester.tap(byLogId('queue.actions'));
+      await tester.pumpAndSettle();
+      expect(byLogId('queue.action.start'), findsOneWidget);
+    });
   });
 
   testWidgets('swiping a pending item reveals the delete confirmation', (

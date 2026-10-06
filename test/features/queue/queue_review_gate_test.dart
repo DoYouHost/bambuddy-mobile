@@ -1,11 +1,15 @@
 import 'package:bambuddy_mobile/core/models/current_user.dart';
+import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import 'queue_form_harness.dart';
 
 /// Server #1620: a user without `queue:start_unreviewed` has every job held
 /// until a reviewer starts it, and may start none. Every 1.2.6 daily reports
@@ -83,6 +87,105 @@ void main() {
       final me = user(const {});
       expect(await held(me, gate: false), isFalse);
       expect(await held(null), isFalse);
+    });
+  });
+
+  group('the print form', () {
+    setUp(setUpQueueForm);
+
+    List<Override> review({required bool held}) => [
+      awaitingReviewProvider.overrideWithValue(held),
+    ];
+
+    // The schedule section sits below the fold, and a list builds nothing
+    // off-screen; "only if previous succeeded" is always right under it.
+    Future<void> scrollToSchedule(WidgetTester tester) async {
+      await tester.scrollUntilVisible(
+        find.text(formL10n.queueEditRequirePrevious),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    const waiting = QueueItem(
+      id: 5,
+      position: 1,
+      status: 'pending',
+      archiveId: 77,
+      archiveName: 'cube.3mf',
+      printerId: 1,
+      manualStart: true,
+    );
+
+    testWidgets('a held user gets the note instead of the switch, and waits', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        queueFormScreen(
+          archiveDraft(),
+          schedule: QueueScheduleType.queue,
+          extra: review(held: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await scrollToSchedule(tester);
+
+      expect(find.text(formL10n.queueEditRequireManualStart), findsNothing);
+      expect(find.text(formL10n.queueEditAwaitingReviewNote), findsOneWidget);
+      await submitQueueForm(tester);
+      expect(capturedBody?['manual_start'], isTrue);
+    });
+
+    testWidgets('a held user\'s edit keeps the wait it would be refused for', (
+      tester,
+    ) async {
+      // ASAP sends no wait of its own, and clearing one is a 403 (#1620).
+      await tester.pumpWidget(
+        queueFormScreen(
+          waiting,
+          mode: QueueEditMode.edit,
+          extra: review(held: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await submitQueueForm(tester, edit: true);
+      expect(capturedBody?['manual_start'], isTrue);
+    });
+
+    testWidgets('an edit keeps a scheduled job\'s wait, as the web does', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        queueFormScreen(
+          waiting,
+          mode: QueueEditMode.edit,
+          schedule: QueueScheduleType.scheduled,
+          extra: review(held: false),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await submitQueueForm(tester, edit: true);
+      expect(capturedBody?['manual_start'], isTrue);
+    });
+
+    testWidgets('anyone else keeps the switch, off by default', (tester) async {
+      await tester.pumpWidget(
+        queueFormScreen(
+          archiveDraft(),
+          schedule: QueueScheduleType.queue,
+          extra: review(held: false),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await scrollToSchedule(tester);
+
+      expect(find.text(formL10n.queueEditRequireManualStart), findsOneWidget);
+      expect(find.text(formL10n.queueEditAwaitingReviewNote), findsNothing);
+      await submitQueueForm(tester);
+      expect(capturedBody?['manual_start'], isFalse);
     });
   });
 }

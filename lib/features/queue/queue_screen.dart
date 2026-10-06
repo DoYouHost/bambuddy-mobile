@@ -187,7 +187,11 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
               ),
           ],
         ),
-        floatingActionButton: firstQueued == null || _onHistory
+        // A user held for review may start no job at all (#1620).
+        floatingActionButton:
+            firstQueued == null ||
+                _onHistory ||
+                ref.watch(awaitingReviewProvider)
             ? null
             : logTag(
                 'queue.start_next',
@@ -462,13 +466,13 @@ class _QueueCard extends ConsumerWidget {
   }
 }
 
-class _Subtitle extends StatelessWidget {
+class _Subtitle extends ConsumerWidget {
   const _Subtitle({required this.item});
 
   final QueueItem item;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final parts = <String>[
@@ -495,7 +499,22 @@ class _Subtitle extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        _StatusChip(item: item),
+        Wrap(
+          spacing: DashSpace.xs,
+          runSpacing: DashSpace.xs,
+          children: [
+            _StatusChip(item: item),
+            // The web's Staged badge, which says who starts the job to a user
+            // held for review (#1620).
+            if (item.manualStart)
+              _Chip(
+                label: ref.watch(awaitingReviewProvider)
+                    ? l10n.queueBadgeAwaitingReview
+                    : l10n.queueBadgeStaged,
+                accent: t.textTertiary,
+              ),
+          ],
+        ),
         if (parts.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: DashSpace.xs),
@@ -538,6 +557,19 @@ class _StatusChip extends StatelessWidget {
       QueueItemStatusKind.pending => (l10n.queueStatusPending, t.textTertiary),
       _ => (item.status, t.textTertiary),
     };
+    return _Chip(label: label, accent: accent);
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip({required this.label, required this.accent});
+
+  final String label;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
     // Pending/unknown statuses get a subtle neutral pill instead of a
     // colored one — there's nothing actionable to draw the eye to.
     final neutral = accent == t.textTertiary;
@@ -574,6 +606,8 @@ class _QueueActions extends ConsumerWidget {
     final canStart =
         item.statusKind == QueueItemStatusKind.pending ||
         item.statusKind == QueueItemStatusKind.scheduled;
+    // A user held for review may start no job at all (#1620).
+    final mayStart = canStart && !ref.watch(awaitingReviewProvider);
     // Which route takes this item out of the queue, and how to word it. The
     // printer's own state only separates "stop the print" from "remove the
     // leftover row": a printer that failed is not printing anything to abort,
@@ -633,7 +667,7 @@ class _QueueActions extends ConsumerWidget {
           await _removeFromQueue(context, notifier, messenger, l10n, removal);
         },
         itemBuilder: (_) => [
-          if (canStart)
+          if (mayStart)
             PopupMenuItem(
               value: 'start',
               child: logTag(
