@@ -190,7 +190,12 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
         floatingActionButton:
             firstQueued == null ||
                 _onHistory ||
-                !ref.watch(mayStartQueueItemProvider(firstQueued.createdById))
+                !ref.watch(
+                  mayStartQueueItemProvider((
+                    createdById: firstQueued.createdById,
+                    printerId: firstQueued.printerId,
+                  )),
+                )
             ? null
             : logTag(
                 'queue.start_next',
@@ -606,7 +611,13 @@ class _QueueActions extends ConsumerWidget {
         item.statusKind == QueueItemStatusKind.pending ||
         item.statusKind == QueueItemStatusKind.scheduled;
     final mayStart =
-        canStart && ref.watch(mayStartQueueItemProvider(item.createdById));
+        canStart &&
+        ref.watch(
+          mayStartQueueItemProvider((
+            createdById: item.createdById,
+            printerId: item.printerId,
+          )),
+        );
     // Which route takes this item out of the queue, and how to word it. The
     // printer's own state only separates "stop the print" from "remove the
     // leftover row": a printer that failed is not printing anything to abort,
@@ -861,18 +872,22 @@ Future<void> _sendQueuedPrint(
   DetachedHandles handles,
 ) async {
   final (:providers, :messenger) = handles;
+  // Only offered with a printer on the job, so it never reaches the picker.
+  final claims = providers.read(startClaimsJobProvider(item.createdById));
   var printerId = item.printerId;
   if (printerId == null) {
     final printer = await _pickQueuePrinter(context, ref, l10n);
     if (printer == null || !context.mounted) return;
     printerId = printer.id;
   }
-  final mapping = await showQueueMappingSheet(
-    context,
-    item: item,
-    printerId: printerId,
-    confirmLabel: l10n.queueStart,
-  );
+  final mapping = claims
+      ? const <int>[]
+      : await showQueueMappingSheet(
+          context,
+          item: item,
+          printerId: printerId,
+          confirmLabel: l10n.queueStart,
+        );
   if (mapping == null) return; // backed out of mapping → abort
 
   // Plate-clear gate: when the scheduler requires it and this printer still has
@@ -921,9 +936,10 @@ Future<void> _sendQueuedPrint(
   // One thing the container does not guarantee: `queueProvider` is autoDispose,
   // so it outlives this row only because the tab badge in `RootScaffold` keeps
   // it listened to.
-  final result = await providers
-      .read(queueProvider.notifier)
-      .startOnPrinter(item, printerId, amsMapping: mapping);
+  final notifier = providers.read(queueProvider.notifier);
+  final result = claims
+      ? await notifier.start(item.id)
+      : await notifier.startOnPrinter(item, printerId, amsMapping: mapping);
   messenger.snack(queueWriteMessage(l10n, result) ?? l10n.queuePrintStarted);
 }
 

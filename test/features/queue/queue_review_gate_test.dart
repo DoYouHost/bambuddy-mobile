@@ -95,6 +95,7 @@ void main() {
     Future<bool> mayStart(
       Set<String> permissions,
       int? createdById, {
+      int? printerId = 1,
       AuthMode authMode = AuthMode.jwt,
     }) async {
       final container = ProviderContainer(
@@ -113,7 +114,12 @@ void main() {
       );
       addTearDown(container.dispose);
       await container.read(currentUserProvider.future);
-      return container.read(mayStartQueueItemProvider(createdById));
+      return container.read(
+        mayStartQueueItemProvider((
+          createdById: createdById,
+          printerId: printerId,
+        )),
+      );
     }
 
     const own = {Permissions.queueUpdateOwn, Permissions.queueStartUnreviewed};
@@ -125,6 +131,11 @@ void main() {
         await mayStart(own, null),
         isTrue,
         reason: 'a virtual-printer job is claimed by starting it (#1670)',
+      );
+      expect(
+        await mayStart(own, null, printerId: null),
+        isFalse,
+        reason: 'assigning a printer is a PATCH, refused before the claim',
       );
       expect(await mayStart({Permissions.queueUpdateAll}, 8), isTrue);
     });

@@ -250,17 +250,36 @@ final awaitingReviewProvider = Provider<bool>((ref) {
       !me.can(Permissions.queueUpdateAll);
 });
 
-/// Whether to offer Start on a job [createdById] queued — the server's rule
+/// The job a Start is asked about: who queued it, and the printer it already
+/// has.
+typedef StartTarget = ({int? createdById, int? printerId});
+
+/// Whether starting a job [createdById] queued would claim it: it has no owner
+/// and the user may only touch their own jobs. The server then refuses every
+/// `PATCH` (`print_queue.py::update_queue_item`) until `/start` has made the
+/// job theirs (#1670), so such a start can neither assign a printer nor save a
+/// mapping first — it goes straight to the route, as the web's Play does.
+final startClaimsJobProvider = Provider.family<bool, int?>((ref, createdById) {
+  if (createdById != null) return false;
+  if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
+    return false;
+  }
+  final me = ref.watch(currentUserProvider).valueOrNull;
+  return me != null && !me.can(Permissions.queueUpdateAll);
+});
+
+/// Whether to offer Start on [target] — the server's rule
 /// (`print_queue.py::start_queue_item`, `auth.py::may_start_queue_item`) plus
 /// #1620, not the web's. The web greys Start on a job with no owner unless the
 /// user holds update-all, but the route lets update-own start one and makes
-/// them its owner: jobs from the virtual printer arrive that way (#1670).
+/// them its owner: jobs from the virtual printer arrive that way (#1670). Only
+/// with a printer already on it — see [startClaimsJobProvider].
 ///
 /// An API key is checked against update-all alone
 /// (`require_ownership_permission`), so its owner's own jobs are not enough.
-final mayStartQueueItemProvider = Provider.family<bool, int?>((
+final mayStartQueueItemProvider = Provider.family<bool, StartTarget>((
   ref,
-  createdById,
+  target,
 ) {
   if (ref.watch(awaitingReviewProvider)) return false;
   final me = ref.watch(currentUserProvider).valueOrNull;
@@ -269,7 +288,8 @@ final mayStartQueueItemProvider = Provider.family<bool, int?>((
   }
   if (me == null || me.can(Permissions.queueUpdateAll)) return true;
   if (!me.can(Permissions.queueUpdateOwn)) return false;
-  return createdById == null || createdById == me.id;
+  return target.createdById == me.id ||
+      (target.createdById == null && target.printerId != null);
 });
 
 /// All printers regardless of state, for the Edit Queue Item target picker.

@@ -110,7 +110,8 @@ class ProjectFilesSection extends ConsumerWidget {
     final foldersAsync = ref.watch(projectFoldersProvider(projectId));
     final filesAsync = ref.watch(projectFilesProvider(projectId));
     // Setting or clearing a folder's project is update-all only
-    // (`library.py::update_folder`); the web offers it to no one else.
+    // (`library.py::update_folder`), as the web's File Manager gates its Link
+    // entry; the web has no such control on the project page at all.
     final mayLink = ref.watch(permissionProvider(Permissions.libraryUpdateAll));
 
     return SectionCard(
@@ -174,7 +175,7 @@ class ProjectFilesSection extends ConsumerWidget {
       final tree = await ref.read(libraryRepositoryProvider).listFolders();
       candidates = [
         for (final f in _flatten(tree))
-          if (!linked.contains(f.id) && f.projectName == null) f,
+          if (!linked.contains(f.id) && f.projectId == null) f,
       ];
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.link_folder');

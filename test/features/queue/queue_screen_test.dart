@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
@@ -180,6 +181,50 @@ void main() {
     });
   });
 
+  testWidgets('a job with no owner is claimed by a bare start (#1670)', (
+    tester,
+  ) async {
+    // Every PATCH on it is refused to an update-own user until /start has made
+    // it theirs, so the flow must neither assign a printer nor save a mapping.
+    final ownerless = QueueItem.fromJson({
+      ...readFixture('queue_item.json') as Map<String, dynamic>,
+      'status': 'pending',
+      'printer_id': 1,
+      'created_by_id': null,
+    });
+    final queue = _MutableQueueNotifier([ownerless]);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          queueProvider.overrideWith(() => queue),
+          noServerProfileOverride,
+          currentUserOverride(
+            const CurrentUser(
+              id: 7,
+              username: 'op',
+              isAdmin: false,
+              permissions: {
+                Permissions.queueUpdateOwn,
+                Permissions.queueStartUnreviewed,
+              },
+            ),
+          ),
+          requirePlateClearProvider.overrideWithValue(const AsyncData(false)),
+        ],
+        child: plApp(const QueueScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(byLogId('queue.actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(byLogId('queue.action.start'));
+    await tester.pumpAndSettle();
+
+    expect(queue.startedAsIs, [ownerless.id]);
+    expect(queue.started, isEmpty);
+  });
+
   testWidgets('swiping a pending item reveals the delete confirmation', (
     tester,
   ) async {
@@ -330,6 +375,15 @@ class _MutableQueueNotifier extends QueueNotifier {
 
   List<QueueItem> _items;
   final List<({int item, int printer})> started = [];
+
+  /// Items started straight through `/start`, with no assignment or mapping.
+  final List<int> startedAsIs = [];
+
+  @override
+  Future<ActionOutcome> start(int itemId) async {
+    startedAsIs.add(itemId);
+    return ActionOutcome.ok;
+  }
 
   @override
   Future<List<QueueItem>> build() async => _items;

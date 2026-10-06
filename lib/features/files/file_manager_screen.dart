@@ -320,7 +320,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
               },
             ).tagged('files.new_folder'),
             // A read-only mount refuses uploads (`library.py`, 403) whatever
-            // `can_write` says; a subfolder there is a plain one and is taken.
+            // `can_write` says. New folder stays: the server takes it, as a
+            // library-only folder with nothing behind it on the mount.
             if (s.currentFolder?.externalReadonly != true)
               ListTile(
                 leading: const Icon(Icons.upload_file_outlined),
