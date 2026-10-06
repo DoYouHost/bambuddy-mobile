@@ -1314,6 +1314,12 @@ abstract final class Endpoints {
   /// preset names to the short codes `Printer.model` uses.
   static const slicerPrinterModels = '$apiPrefix/slicer/printer-models';
 
+  /// What the connected printers have loaded (`GET`, server #3172, 1.2.6 dailies
+  /// from 2026-10-04): every printer online now with its AMS units, external
+  /// holders and the profile saved per slot, limited to the caller's printers.
+  /// Needs `library:upload` and `printers:read`. An older server answers 404.
+  static const slicerLoadedSpools = '$apiPrefix/slicer/loaded-spools';
+
   // --- Projects ---
   //
   // Group prints (archives + queue) toward a goal: stats, BOM, timeline,

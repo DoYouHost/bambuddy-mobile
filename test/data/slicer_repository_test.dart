@@ -22,6 +22,67 @@ void main() {
     repo = SlicerRepository(dio);
   });
 
+  group('loadedSpools', () {
+    test('parses the connected printers and their trays', () async {
+      adapter.onGet(
+        '/api/v1/slicer/loaded-spools',
+        (s) => s.reply(200, {
+          'printers': [
+            {
+              'id': 1,
+              'name': 'H2D one',
+              'model': 'H2D',
+              'ams': [
+                {
+                  'id': 0,
+                  'is_ams_ht': false,
+                  'trays': [
+                    {
+                      'ams_id': 0,
+                      'tray_id': 0,
+                      'tray_type': 'PLA',
+                      'tray_color': 'FF0000FF',
+                      'exists': true,
+                      'saved_preset': {
+                        'preset_id': 'local_7',
+                        'preset_name': 'Overture PLA',
+                        'preset_source': 'local',
+                        'tray_info_idx': 'GFL05',
+                      },
+                    },
+                  ],
+                },
+              ],
+              'external': const [],
+              'external_holders': 2,
+            },
+          ],
+        }),
+      );
+
+      final printers = await repo.loadedSpools();
+
+      final tray = printers!.single.ams.single.trays.single;
+      expect(printers.single.externalHolders, 2);
+      expect(tray.isLoaded, isTrue);
+      expect(tray.savedPreset?.presetId, 'local_7');
+      expect(tray.savedPreset?.trayInfoIdx, 'GFL05');
+    });
+
+    test(
+      'an older server, or a caller without printers:read, has none',
+      () async {
+        for (final status in [404, 403]) {
+          adapter.onGet(
+            '/api/v1/slicer/loaded-spools',
+            (s) => s.reply(status, {'detail': 'nope'}),
+          );
+          expect(await repo.loadedSpools(), isNull, reason: '$status');
+        }
+      },
+    );
+  });
+
   group('presetValues', () {
     test('parses resolved values and turns override support on', () async {
       adapter.onGet(

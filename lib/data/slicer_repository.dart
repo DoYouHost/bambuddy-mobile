@@ -8,6 +8,7 @@ import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/archive_capabilities.dart';
 import '../core/models/filament_requirement.dart';
+import '../core/models/loaded_spools.dart';
 import '../core/models/slice_job.dart';
 import '../core/models/slicer_preset.dart';
 
@@ -54,6 +55,23 @@ class SlicerRepository {
     );
     return UnifiedPresets.fromJson(res.data ?? const {});
   });
+
+  /// GET /slicer/loaded-spools — the connected printers and what they have
+  /// loaded, for the slice form's two filters and its spool picker (#3172).
+  ///
+  /// Null where nothing can be offered: a server without the route (404), a
+  /// caller without `printers:read` (403), or any failure short of a lost
+  /// session. The web shows the filters only once this answered too.
+  Future<List<LoadedSpoolPrinter>?> loadedSpools() =>
+      guardOrNullAllowingForbidden(() async {
+        final res = await _dio.get<Map<String, dynamic>>(
+          Endpoints.slicerLoadedSpools,
+        );
+        return parseJsonList(
+          res.data?['printers'],
+          LoadedSpoolPrinter.fromJson,
+        );
+      });
 
   /// Filament slots a model needs, one per **project** slot.
   ///
