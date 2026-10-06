@@ -552,6 +552,7 @@ class DemoBackend {
         // it every row read "No longer in the catalog").
         if (at(1, 'presets')) return _ok(_slicerPresets);
         if (at(1, 'preset-values')) return _presetValues(q);
+        if (at(1, 'loaded-spools')) return _ok(_loadedSpools());
         return _ok(const <String, dynamic>{});
 
       case 'users':
@@ -709,6 +710,83 @@ class DemoBackend {
   /// handed out in fixture order and would move if a print were inserted above.
   int get _sliceableArchiveId =>
       _archives.firstWhere((a) => a['print_name'] == 'Benchy')['id'] as int;
+
+  /// `/slicer/loaded-spools` (#3172), built from the same statuses the
+  /// dashboard shows, so the slice form's filters and its spool picker work on
+  /// what the demo printers really carry. Offline printers are left out, as on
+  /// the server.
+  Map<String, dynamic> _loadedSpools() {
+    Map<String, dynamic> tray(
+      int printerId,
+      int amsId,
+      int trayId,
+      Map<String, dynamic> raw,
+    ) {
+      final saved = _slotPreset[_slotKey(printerId, amsId, trayId)];
+      String? text(Object? v) => v is String && v.isNotEmpty ? v : null;
+      return {
+        'ams_id': amsId,
+        'tray_id': trayId,
+        'tray_type': text(raw['tray_type']),
+        'tray_sub_brands': text(raw['tray_sub_brands']),
+        'tray_color': text(raw['tray_color']),
+        'tray_info_idx': text(raw['tray_info_idx']),
+        'exists': raw['tray_type'] != null,
+        'state': raw['state'],
+        'saved_preset': saved == null
+            ? null
+            : {
+                'preset_id': saved['preset_id'],
+                'preset_name': saved['preset_name'],
+                'preset_source': saved['preset_source'] ?? 'local',
+              },
+      };
+    }
+
+    return {
+      'printers': [
+        for (final printer in _printers)
+          if (statusData(printer['id'] as int) case final status
+              when status['connected'] == true)
+            {
+              'id': printer['id'],
+              'name': printer['name'],
+              'model': printer['model'],
+              'ams': [
+                for (final unit in (status['ams'] as List? ?? const []))
+                  if (unit case final Map<String, dynamic> u)
+                    {
+                      'id': u['id'],
+                      'is_ams_ht': (u['tray'] as List? ?? const []).length == 1,
+                      'trays': [
+                        for (final t in (u['tray'] as List? ?? const []))
+                          if (t case final Map<String, dynamic> raw)
+                            tray(
+                              printer['id'] as int,
+                              u['id'] as int,
+                              raw['id'] as int,
+                              raw,
+                            ),
+                      ],
+                    },
+              ],
+              'external': [
+                for (final vt in (status['vt_tray'] as List? ?? const []))
+                  if (vt case final Map<String, dynamic> raw
+                      when raw['tray_type'] != null)
+                    tray(
+                      printer['id'] as int,
+                      255,
+                      (raw['id'] as int? ?? 254) - 254,
+                      raw,
+                    ),
+              ],
+              'external_holders':
+                  (status['vt_tray'] as List? ?? const []).length,
+            },
+      ],
+    };
+  }
 
   /// `/slicer/preset-values` — the picked process preset's effective values,
   /// flattened, as the sidecar answers them.
