@@ -4837,6 +4837,22 @@ class AppLocalizationsPl extends AppLocalizations {
   String get sliceSpoolNoProfile => 'Brak profilu dla tej drukarki';
 
   @override
+  String sliceAllPlates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Potnij wszystkie $count płyt',
+      few: 'Potnij wszystkie $count płyty',
+      one: 'Potnij $count płytę',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sliceAllPlatesHint =>
+      'Wszystkie płyty w jednym pliku. Filamenty obejmują każdy slot projektu.';
+
+  @override
   String get sliceOwnedEmpty =>
       'Brak pasujących profili dla Twojej drukarki i filamentów. Włącz „Wszystkie”, aby przeglądać pełny katalog.';
 

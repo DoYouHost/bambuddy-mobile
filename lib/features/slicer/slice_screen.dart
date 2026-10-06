@@ -11,6 +11,7 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/embedded_settings.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/loaded_spools.dart';
+import '../../core/models/plate_list.dart';
 import '../../core/models/slice_job.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../l10n/app_localizations.dart';
@@ -33,6 +34,7 @@ import 'process_settings_screen.dart';
 import 'slice_filament_colours.dart';
 import 'slice_refusal.dart';
 import 'slice_spool_picker.dart';
+import '../queue/queue_plate_sheet.dart' show plateLabel, showQueuePlateSheet;
 import 'slice_providers.dart';
 
 /// What gets sliced — an archive or a library file. Both use the same
@@ -106,6 +108,14 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   bool _printerPicked = false;
   bool _designedPrinterAdopted = false;
 
+  /// The plate of a multi-plate 3MF to slice; 1 for anything else, which is
+  /// what the sidecar does with no plate named.
+  int _plate = 1;
+
+  /// Every plate into one multi-plate output (`plate: 0`, the sidecar's
+  /// sentinel). The rows then cover every project slot, all of them in use.
+  bool _allPlates = false;
+
   /// The two filters (#3172), remembered on this device.
   late bool _onlyOnline = ref
       .read(settingsRepositoryProvider)
@@ -170,7 +180,12 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
             // positional — see [SlicerRepository.filamentRequirements].
             final slotCount = reqs.isEmpty ? 1 : reqs.length;
             _resizeFilaments(slotCount);
-            final discriminated = anyUnused(reqs);
+            // Across every plate each project slot prints somewhere, so none is
+            // marked unused then — the web sets `used_in_plate` on all of them.
+            final discriminated = !_allPlates && anyUnused(reqs);
+            final plates =
+                ref.watch(plateListProvider(_sourceKey)).valueOrNull ??
+                PlateList.none;
 
             final online = loadedPrinters ?? const <LoadedSpoolPrinter>[];
             final connectedModels = [for (final p in online) p.model];
@@ -296,6 +311,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                       // Shown only once the server said what is loaded: on
                       // an older one, or without printers:read, it has nothing
                       // to narrow by.
+                      if (plates.isMultiPlate) _platesCard(plates),
                       if (loadedPrinters != null)
                         _filtersCard(
                           noneOnline:
@@ -546,7 +562,13 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                     ],
                   ),
                 ),
-                _submitBar(l10n, ready),
+                _submitBar(
+                  l10n,
+                  ready,
+                  allPlates: plates.isMultiPlate && _allPlates
+                      ? plates.plates.length
+                      : null,
+                ),
               ],
             );
           },
@@ -557,7 +579,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
 
   /// The submit button, pinned outside the scroll area so it is never something
   /// the user has to scroll a nine-row form to find.
-  Widget _submitBar(AppLocalizations l10n, bool ready) {
+  Widget _submitBar(AppLocalizations l10n, bool ready, {int? allPlates}) {
     return SafeArea(
       top: false,
       child: Padding(
@@ -568,7 +590,11 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
             icon: _submitting
                 ? const DashSpinner()
                 : const Icon(Icons.layers_outlined),
-            label: Text(l10n.sliceStart),
+            label: Text(
+              allPlates == null
+                  ? l10n.sliceStart
+                  : l10n.sliceAllPlates(allPlates),
+            ),
             onPressed: ready ? _submit : null,
           ).tagged('slice.submit'),
         ),
@@ -776,6 +802,76 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     return _pickDefaultFilament(filaments, owned, req);
   }
 
+  bool get _multiPlate =>
+      ref.read(plateListProvider(_sourceKey)).valueOrNull?.isMultiPlate ??
+      false;
+
+  /// Which plate to slice, and the switch that slices them all — shown only
+  /// for a 3MF with more than one plate.
+  Widget _platesCard(PlateList plates) {
+    final l10n = _l10n;
+    final theme = Theme.of(context);
+    final current = plates.byIndex(_plate);
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: DashSpace.xs),
+      child: Column(
+        children: [
+          _dimWhenLocked(
+            !_allPlates,
+            ListTile(
+              leading: const Icon(Icons.layers_outlined),
+              enabled: !_allPlates && !_submitting,
+              title: Text(
+                l10n.queueEditPlate,
+                style: theme.textTheme.labelMedium,
+              ),
+              subtitle: Text(
+                current == null
+                    ? l10n.queueEditPlateSelected(_plate)
+                    : plateLabel(l10n, current),
+                style: theme.textTheme.bodyMedium,
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _pickPlate(plates),
+            ).tagged('slice.plate'),
+          ),
+          SwitchListTile(
+            value: _allPlates,
+            onChanged: _submitting
+                ? null
+                : (v) => setState(() => _allPlates = v),
+            secondary: const Icon(Icons.layers_clear_outlined),
+            title: Text(
+              l10n.sliceAllPlates(plates.plates.length),
+              style: theme.textTheme.labelMedium,
+            ),
+            subtitle: Text(
+              l10n.sliceAllPlatesHint,
+              style: theme.textTheme.bodySmall,
+            ),
+          ).tagged('slice.all_plates'),
+        ],
+      ),
+    );
+  }
+
+  /// Another plate has other slots, so the rows start over: what was picked
+  /// and the spool colours named a slot of the plate that was left.
+  Future<void> _pickPlate(PlateList plates) async {
+    final picked = await showQueuePlateSheet(
+      context,
+      plates: plates,
+      selected: _plate,
+    );
+    if (picked == null || picked == _plate || !mounted) return;
+    setState(() {
+      _plate = picked;
+      _filaments = List.filled(_filaments.length, null);
+      _colourOverrides = List.filled(_filaments.length, null);
+      _explicitFilaments.clear();
+    });
+  }
+
   /// "Pick" under a filament row: fills it, and its colour, from a spool in
   /// an online printer of the selected model.
   Widget _pickSpoolButton({
@@ -881,12 +977,12 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
 
   (bool, int) get _sourceKey => (widget.target.isArchive, widget.target.id);
 
-  /// Plate 1, because this screen has no plate picker and the slice it posts
-  /// leaves `SliceRequest.plate` null — which the sidecar reads as plate 1. The
-  /// two have to name the same plate or the slots offered are not the slots the
-  /// slice will use.
+  /// The plate the slots are read for. It has to be the plate the slice names,
+  /// or the slots offered are not the slots the slice will use. With every
+  /// plate sliced it is still the picked one: the rows are every project slot
+  /// (`full_slots`) whichever plate asks.
   PlateSource get _filamentKey =>
-      (isArchive: widget.target.isArchive, id: widget.target.id, plate: 1);
+      (isArchive: widget.target.isArchive, id: widget.target.id, plate: _plate);
 
   /// Re-checked against the gate, so a switch left on by a stale read cannot
   /// reach the request.
@@ -1133,6 +1229,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         'filament_presets': refs,
       // The preset refs above stay: the validator wants them here too, unused.
       if (asDesigned) 'use_embedded_settings': true,
+      // A multi-plate source names its plate, or 0 for all of them; anything
+      // else leaves it out, as the web does, and the sidecar slices plate 1.
+      if (_multiPlate) 'plate': _allPlates ? 0 : _plate,
       // Override the plate only when the user picked one; null inherits.
       if (_bedType != null && !asDesigned) 'bed_type': _bedType,
       // Only when on: both default to false server-side, and an older server

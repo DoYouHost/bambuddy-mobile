@@ -4818,6 +4818,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sliceSpoolNoProfile => 'Sin perfil para esta impresora';
 
   @override
+  String sliceAllPlates(int count) {
+    return 'Laminar las $count placas';
+  }
+
+  @override
+  String get sliceAllPlatesHint =>
+      'Todas las placas en un solo archivo. Los filamentos cubren cada ranura del proyecto.';
+
+  @override
   String get sliceOwnedEmpty =>
       'No hay preajustes coincidentes para tu impresora y filamentos. Activa “Todos” para explorar el catálogo completo.';
 

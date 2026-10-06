@@ -2027,6 +2027,8 @@
   "sliceSpoolUnidentified": "Nierozpoznana szpula",
   "sliceSpoolEmpty": "Pusty",
   "sliceSpoolNoProfile": "Brak profilu dla tej drukarki",
+  "sliceAllPlates": "{count, plural, one{Potnij {count} płytę} few{Potnij wszystkie {count} płyty} other{Potnij wszystkie {count} płyt}}",
+  "sliceAllPlatesHint": "Wszystkie płyty w jednym pliku. Filamenty obejmują każdy slot projektu.",
   "sliceOwnedEmpty": "Brak pasujących profili dla Twojej drukarki i filamentów. Włącz „Wszystkie”, aby przeglądać pełny katalog.",
   "sliceNoPresets": "Brak dostępnych profili",
   "sliceInProgress": "Cięcie…",

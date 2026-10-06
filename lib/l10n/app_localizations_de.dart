@@ -4803,6 +4803,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sliceSpoolNoProfile => 'Kein Profil für diesen Drucker';
 
   @override
+  String sliceAllPlates(int count) {
+    return 'Alle $count Druckplatten slicen';
+  }
+
+  @override
+  String get sliceAllPlatesHint =>
+      'Alle Druckplatten in eine Datei. Die Filamente decken jeden Slot des Projekts ab.';
+
+  @override
   String get sliceOwnedEmpty =>
       'Keine passenden Profile für deinen Drucker und deine Filamente. Aktiviere „Alle“, um den gesamten Katalog zu durchsuchen.';
 

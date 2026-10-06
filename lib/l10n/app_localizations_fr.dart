@@ -4851,6 +4851,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sliceSpoolNoProfile => 'Aucun profil pour cette imprimante';
 
   @override
+  String sliceAllPlates(int count) {
+    return 'Découper les $count plateaux';
+  }
+
+  @override
+  String get sliceAllPlatesHint =>
+      'Tous les plateaux dans un seul fichier. Les filaments couvrent chaque emplacement du projet.';
+
+  @override
   String get sliceOwnedEmpty =>
       'Aucun préréglage correspondant pour votre imprimante et vos filaments. Activez « Tout » pour parcourir le catalogue complet.';
 

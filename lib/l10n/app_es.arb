@@ -2675,6 +2675,8 @@
   "sliceSpoolUnidentified": "Bobina no identificada",
   "sliceSpoolEmpty": "Vacío",
   "sliceSpoolNoProfile": "Sin perfil para esta impresora",
+  "sliceAllPlates": "Laminar las {count} placas",
+  "sliceAllPlatesHint": "Todas las placas en un solo archivo. Los filamentos cubren cada ranura del proyecto.",
   "sliceOwnedEmpty": "No hay preajustes coincidentes para tu impresora y filamentos. Activa “Todos” para explorar el catálogo completo.",
   "sliceNoPresets": "No hay preajustes disponibles",
   "sliceInProgress": "Laminando…",

@@ -8066,6 +8066,18 @@ abstract class AppLocalizations {
   /// **'No profile for this printer'**
   String get sliceSpoolNoProfile;
 
+  /// Slice form switch and submit label: slice every plate of a multi-plate 3MF into one output (web: slice.allPlatesToggle)
+  ///
+  /// In en, this message translates to:
+  /// **'Slice all {count} plates'**
+  String sliceAllPlates(int count);
+
+  /// Line under the slice-all-plates switch
+  ///
+  /// In en, this message translates to:
+  /// **'Every plate into one file. The filaments cover every slot of the project.'**
+  String get sliceAllPlatesHint;
+
   /// No description provided for @sliceOwnedEmpty.
   ///
   /// In en, this message translates to:

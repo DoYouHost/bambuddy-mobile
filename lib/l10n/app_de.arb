@@ -2675,6 +2675,8 @@
   "sliceSpoolUnidentified": "Unbekannte Spule",
   "sliceSpoolEmpty": "Leer",
   "sliceSpoolNoProfile": "Kein Profil für diesen Drucker",
+  "sliceAllPlates": "Alle {count} Druckplatten slicen",
+  "sliceAllPlatesHint": "Alle Druckplatten in eine Datei. Die Filamente decken jeden Slot des Projekts ab.",
   "sliceOwnedEmpty": "Keine passenden Profile für deinen Drucker und deine Filamente. Aktiviere „Alle“, um den gesamten Katalog zu durchsuchen.",
   "sliceNoPresets": "Keine Profile verfügbar",
   "sliceInProgress": "Wird geslict…",

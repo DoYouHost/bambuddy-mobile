@@ -2675,6 +2675,8 @@
   "sliceSpoolUnidentified": "Bobine non identifiée",
   "sliceSpoolEmpty": "Vide",
   "sliceSpoolNoProfile": "Aucun profil pour cette imprimante",
+  "sliceAllPlates": "Découper les {count} plateaux",
+  "sliceAllPlatesHint": "Tous les plateaux dans un seul fichier. Les filaments couvrent chaque emplacement du projet.",
   "sliceOwnedEmpty": "Aucun préréglage correspondant pour votre imprimante et vos filaments. Activez « Tout » pour parcourir le catalogue complet.",
   "sliceNoPresets": "Aucun préréglage disponible",
   "sliceInProgress": "Découpage en cours…",

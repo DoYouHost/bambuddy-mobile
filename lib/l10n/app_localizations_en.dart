@@ -4757,6 +4757,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sliceSpoolNoProfile => 'No profile for this printer';
 
   @override
+  String sliceAllPlates(int count) {
+    return 'Slice all $count plates';
+  }
+
+  @override
+  String get sliceAllPlatesHint =>
+      'Every plate into one file. The filaments cover every slot of the project.';
+
+  @override
   String get sliceOwnedEmpty =>
       'No matching presets for your printer and filaments. Turn on \"All\" to browse the full catalog.';
 

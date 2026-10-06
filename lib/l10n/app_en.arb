@@ -2899,6 +2899,19 @@
   "@sliceSpoolNoProfile": {
     "description": "Loaded spool with no filament profile for the selected printer, so it cannot be picked"
   },
+  "sliceAllPlates": "Slice all {count} plates",
+  "@sliceAllPlates": {
+    "description": "Slice form switch and submit label: slice every plate of a multi-plate 3MF into one output (web: slice.allPlatesToggle)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sliceAllPlatesHint": "Every plate into one file. The filaments cover every slot of the project.",
+  "@sliceAllPlatesHint": {
+    "description": "Line under the slice-all-plates switch"
+  },
   "sliceOwnedEmpty": "No matching presets for your printer and filaments. Turn on \"All\" to browse the full catalog.",
   "sliceNoPresets": "No presets available",
   "sliceInProgress": "Slicing…",

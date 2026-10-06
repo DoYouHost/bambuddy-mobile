@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:bambuddy_mobile/core/models/embedded_settings.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/loaded_spools.dart';
+import 'package:bambuddy_mobile/core/models/plate_list.dart';
 import 'package:bambuddy_mobile/core/models/slice_job.dart';
 import 'package:bambuddy_mobile/core/models/slicer_pipeline.dart';
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
@@ -147,6 +148,8 @@ void main() {
     Duration loadedAfter = Duration.zero,
     Map<String, String> registry = const {},
     Map<String, Object> prefs = const {},
+    PlateList plates = PlateList.none,
+    List<int>? requirementPlates,
   }) async {
     SharedPreferences.setMockInitialValues(prefs);
     final preferences = await SharedPreferences.getInstance();
@@ -174,9 +177,11 @@ void main() {
         sliceLayoutOptionsProvider.overrideWithValue(AsyncData(layoutOptions)),
         ownedPrinterCodesProvider.overrideWith((ref) async => ownedCodes),
         ownedFilamentsProvider.overrideWith((ref) async => owned),
-        filamentRequirementsProvider.overrideWith(
-          (ref, arg) async => requirements,
-        ),
+        filamentRequirementsProvider.overrideWith((ref, arg) async {
+          requirementPlates?.add(arg.plate);
+          return requirements;
+        }),
+        plateListProvider.overrideWith((ref, arg) async => plates),
         // With [onSchemaLoad] the availability gate is the real one, so the
         // test can see when the screen makes it decode the schema.
         if (onSchemaLoad == null)
@@ -1411,6 +1416,81 @@ void main() {
       await tester.pumpAndSettle();
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getBool('slice_only_loaded_spools'), isTrue);
+    });
+  });
+
+  group('which plate to slice', () {
+    const twoPlates = PlateList(
+      plates: [
+        PlateInfo(index: 1, name: 'Body'),
+        PlateInfo(index: 2, name: 'Lid'),
+      ],
+    );
+    final l10n = lookupAppLocalizations(const Locale('pl'));
+
+    testWidgets('a single-plate source names no plate', (tester) async {
+      await openSheet(tester);
+      expect(byLogId('slice.plate'), findsNothing);
+      expect((await slice(tester)).containsKey('plate'), isFalse);
+    });
+
+    testWidgets('a multi-plate source slices plate 1 until told otherwise', (
+      tester,
+    ) async {
+      await openSheet(tester, plates: twoPlates);
+      expect(byLogId('slice.plate'), findsOneWidget);
+      expect((await slice(tester))['plate'], 1);
+    });
+
+    testWidgets('another plate is sliced, with its own slots', (tester) async {
+      final asked = <int>[];
+      await openSheet(tester, plates: twoPlates, requirementPlates: asked);
+      await tester.tap(byLogId('slice.plate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('Lid'));
+      await tester.pumpAndSettle();
+
+      expect(asked, contains(2), reason: 'the slots are read for plate 2');
+      expect((await slice(tester))['plate'], 2);
+    });
+
+    testWidgets('all plates slice as plate 0, every slot in use', (
+      tester,
+    ) async {
+      await openSheet(
+        tester,
+        plates: twoPlates,
+        requirements: const [
+          FilamentRequirement(slotId: 1, type: 'PLA'),
+          FilamentRequirement(slotId: 2, type: 'PLA', usedInPlate: false),
+        ],
+      );
+      // The second row sits below the fold with the plate card above it.
+      await tester.scrollUntilVisible(
+        find.text(l10n.sliceFilamentUnused),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.scrollUntilVisible(
+        byLogId('slice.all_plates'),
+        -200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(byLogId('slice.all_plates'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text(l10n.sliceFilamentNumbered('2')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(find.text(l10n.sliceFilamentUnused), findsNothing);
+      expect(find.text(l10n.sliceAllPlates(2)), findsWidgets);
+      await tester.tap(find.text(l10n.sliceAllPlates(2)).last);
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(repo.body!['plate'], 0);
     });
   });
 }
