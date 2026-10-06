@@ -1208,6 +1208,107 @@ void main() {
       expect((await slice(tester))['printer_preset'], h2d.toRef());
     });
 
+    testWidgets('a row the user filled survives the move to an online model', (
+      tester,
+    ) async {
+      await openSheet(
+        tester,
+        presets: presets,
+        loaded: online,
+        // Long enough for the two sheets to open and close before it lands.
+        loadedAfter: const Duration(seconds: 30),
+        registry: registry,
+        prefs: {'slice_only_online_printers': true},
+      );
+      await tester.tap(find.text(generic.name));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(basic.name));
+      await tester.pumpAndSettle();
+
+      expect(find.text(x1c.name), findsOneWidget, reason: 'not moved yet');
+      await tester.pump(const Duration(seconds: 30));
+      await tester.pumpAndSettle();
+      final body = await slice(tester);
+      expect(body['printer_preset'], h2d.toRef());
+      expect(body['filament_preset'], basic.toRef());
+    });
+
+    testWidgets('the move stays among the printers the user owns', (
+      tester,
+    ) async {
+      // The H2D is online but none of the user's: the form keeps to the
+      // owned list it offers, as the designed-printer default does.
+      await openSheet(
+        tester,
+        presets: presets,
+        loaded: online,
+        loadedAfter: const Duration(seconds: 1),
+        registry: registry,
+        ownedCodes: const {'X1 CARBON'},
+        prefs: {'slice_only_online_printers': true},
+      );
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(find.text(x1c.name), findsOneWidget);
+      expect(find.text(h2d.name), findsNothing);
+    });
+
+    testWidgets('a loaded spool of the slot\'s material wins over the first', (
+      tester,
+    ) async {
+      const petg = SlicerPreset(
+        source: 'standard',
+        id: 'petg',
+        name: 'Generic PETG @BBL H2D',
+        filamentType: 'PETG',
+      );
+      await openSheet(
+        tester,
+        presets: const UnifiedPresets(
+          printers: [x1c, h2d],
+          processes: [
+            SlicerPreset(source: 'standard', id: 'p', name: '0.20mm Standard'),
+          ],
+          filaments: [generic, basic, petg],
+        ),
+        registry: registry,
+        requirements: const [FilamentRequirement(slotId: 1, type: 'PETG')],
+        prefs: {
+          'slice_only_online_printers': true,
+          'slice_only_loaded_spools': true,
+        },
+        loaded: const [
+          LoadedSpoolPrinter(
+            id: 1,
+            name: 'H2D one',
+            model: 'H2D',
+            ams: [
+              LoadedSpoolUnit(
+                id: 0,
+                isAmsHt: false,
+                trays: [
+                  LoadedSpoolTray(
+                    amsId: 0,
+                    trayId: 0,
+                    trayType: 'PLA',
+                    traySubBrands: 'PLA Basic',
+                    trayInfoIdx: 'GFA00',
+                  ),
+                  LoadedSpoolTray(
+                    amsId: 0,
+                    trayId: 1,
+                    trayType: 'PETG',
+                    trayInfoIdx: 'GFG99',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      );
+      expect((await slice(tester))['filament_preset'], petg.toRef());
+    });
+
     testWidgets('only loaded spools auto-picks the spool in the AMS', (
       tester,
     ) async {

@@ -189,7 +189,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
             }
             if (printerFilter != null) {
               _moveToOnlinePrinter(
-                presets.printers,
+                printers,
                 printerFilter,
                 connectedModels,
                 registry,
@@ -699,6 +699,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   /// not online moves to one that is — the file's own printer first, when that
   /// model is online (the web's effect of the same name). A printer the user
   /// chose stays, and so does the file's own while its settings are in use.
+  /// [all] is the owned list, as for [_adoptDesignedPrinter].
   void _moveToOnlinePrinter(
     List<SlicerPreset> all,
     bool Function(SlicerPreset) online,
@@ -716,8 +717,20 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         ? designed
         : pickConnectedPrinterPreset(all, connectedModels, registry);
     if (next == null) return;
+    // Rows the user filled while the answer was in flight survive the move:
+    // the web moves only the printer, and a choice is never undone behind
+    // somebody's back. The auto-picked rest is picked again for the new one.
+    final kept = {
+      for (final i in _explicitFilaments)
+        if (i < _filaments.length) i: (_filaments[i], _colourOverrides[i]),
+    };
     _pickPrinter(next);
     _printerPicked = false;
+    for (final MapEntry(key: i, value: (preset, colour)) in kept.entries) {
+      _filaments[i] = preset;
+      _colourOverrides[i] = colour;
+      _explicitFilaments.add(i);
+    }
   }
 
   /// [list] narrowed by [keep], or [list] itself when that would leave nothing
@@ -741,8 +754,20 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     required FilamentRequirement? req,
   }) {
     if (loaded != null && loaded.isNotEmpty) {
-      final fromLoaded = _pickDefaultFilament(loaded, owned, req);
       final type = req?.type;
+      // The slot's material first among the loaded, as the web's scorer
+      // ranks it: otherwise the first loaded PLA hides a loaded PETG.
+      final ofMaterial = type == null
+          ? loaded
+          : [
+              for (final p in loaded)
+                if (!statesDifferentMaterial(p, type)) p,
+            ];
+      final fromLoaded = _pickDefaultFilament(
+        ofMaterial.isEmpty ? loaded : ofMaterial,
+        owned,
+        req,
+      );
       if (fromLoaded != null &&
           (type == null || !statesDifferentMaterial(fromLoaded, type))) {
         return fromLoaded;
