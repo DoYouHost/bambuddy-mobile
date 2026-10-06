@@ -11,6 +11,8 @@ LibraryFolder _$LibraryFolderFromJson(Map<String, dynamic> json) =>
       id: (json['id'] as num).toInt(),
       name: json['name'] as String,
       parentId: (json['parent_id'] as num?)?.toInt(),
+      projectId: (json['project_id'] as num?)?.toInt(),
+      archiveId: (json['archive_id'] as num?)?.toInt(),
       projectName: json['project_name'] as String?,
       archiveName: json['archive_name'] as String?,
       isExternal: json['is_external'] as bool? ?? false,

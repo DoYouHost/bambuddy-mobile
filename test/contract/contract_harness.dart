@@ -152,8 +152,11 @@ Future<({Dio dio, CurrentUser me})> contractUser(
     Endpoints.authLogin,
     data: {'username': user.username, 'password': password},
   );
-  dio.options.headers['Authorization'] =
-      'Bearer ${login.data!['access_token']}';
+  final token = login.data?['access_token'];
+  if (token is! String || token.isEmpty) {
+    throw StateError('contract user login answered without access_token');
+  }
+  dio.options.headers['Authorization'] = 'Bearer $token';
   return (dio: dio, me: await AccountRepository(dio).me());
 }
 

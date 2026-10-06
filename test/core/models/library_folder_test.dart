@@ -55,8 +55,8 @@ void main() {
           ],
         },
         {'is_external': true},
-        {'project_name': 'Desk'},
-        {'archive_name': 'Benchy'},
+        {'project_id': 4},
+        {'archive_id': 9, 'archive_name': null},
       ]) {
         expect(folder(blocked).mayDelete(own), isFalse, reason: '$blocked');
         expect(

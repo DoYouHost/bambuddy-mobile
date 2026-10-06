@@ -187,6 +187,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         ),
       );
     } else {
+      final me = ref.watch(currentUserProvider).valueOrNull;
       content = SliverPadding(
         padding: const EdgeInsets.only(
           top: DashSpace.sm,
@@ -197,7 +198,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
             for (final f in folders)
               _FolderTile(
                 folder: f,
-                me: ref.watch(currentUserProvider).valueOrNull,
+                me: me,
                 onOpen: () => notifier.openFolder(f.id),
                 onRename: () => _renameFolder(f),
                 onDelete: () => _deleteFolder(f),

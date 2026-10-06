@@ -79,6 +79,9 @@ void main() {
       await repo.createFolder(name);
       addTearDown(() => _deleteByName(admin, name));
       final made = find(await repo.listFolders(), name)!;
+      // Not empty, so delete_own is refused on a pre-#3201 server as well
+      // (#1781) and the delete is a refusal on both generations.
+      await repo.createFolder('$name-sub', parentId: made.id);
       // An older server ignores the field, and shows the folder to all anyway.
       await admin.put<dynamic>(
         Endpoints.libraryFolder(made.id),
@@ -91,6 +94,7 @@ void main() {
         expect(seen.canRename, isFalse);
         expect(seen.canDelete, isFalse);
       }
+      expect(seen.mayDelete(me), isFalse);
       await offeredMatchesServer(name);
     });
   });

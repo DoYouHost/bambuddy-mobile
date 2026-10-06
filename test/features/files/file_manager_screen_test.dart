@@ -697,8 +697,15 @@ void main() {
       tester,
     ) async {
       await pumpAt(tester);
-      expect(find.text('Theirs'), findsOneWidget);
-      expect(byLogId('files.folder_actions'), findsOneWidget);
+      Finder actionsOf(String name) => find.descendant(
+        of: find.ancestor(
+          of: find.text(name),
+          matching: byLogId('files.folder'),
+        ),
+        matching: byLogId('files.folder_actions'),
+      );
+      expect(actionsOf('Theirs'), findsNothing);
+      expect(actionsOf('Mine'), findsOneWidget);
     });
 
     testWidgets('only writable folders are move targets', (tester) async {

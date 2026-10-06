@@ -13,6 +13,8 @@ class LibraryFolder {
     required this.id,
     required this.name,
     this.parentId,
+    this.projectId,
+    this.archiveId,
     this.projectName,
     this.archiveName,
     this.isExternal = false,
@@ -34,6 +36,11 @@ class LibraryFolder {
   /// Parent folder; `null` = root-level folder.
   final int? parentId;
 
+  /// Linked project / archive. Ids rather than names decide whether a folder is
+  /// linked: an archive without a print name links with a null name.
+  final int? projectId;
+  final int? archiveId;
+
   final String? projectName;
   final String? archiveName;
 
@@ -52,8 +59,9 @@ class LibraryFolder {
 
   /// What the signed-in user may do with this folder (#3201, server-computed:
   /// `services/library_folder_access.py`). Write is adding files or
-  /// subfolders, and being a move target; an older server sends none of these
-  /// and lets everyone write. Rename and delete are null there, and
+  /// subfolders, and being a move target. Folders had no owner before it, so an
+  /// older server sends none of these and nothing is withheld for ownership;
+  /// rename and delete are null there, and
   /// [mayRename] / [mayDelete] fall back to the web's permission rule.
   @JsonKey(defaultValue: true)
   final bool canWrite;
@@ -74,8 +82,8 @@ class LibraryFolder {
               fileCount == 0 &&
               children.isEmpty &&
               !isExternal &&
-              projectName == null &&
-              archiveName == null));
+              projectId == null &&
+              archiveId == null));
 
   /// Subfolders.
   @JsonKey(fromJson: _childrenFromJson)
