@@ -7826,4 +7826,8 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get queueHistoryKeptForOrder =>
       'Annulé au lieu d’être retiré : cette impression est la seule dont la commande puisse remettre cette plaque en file';
+
+  @override
+  String get queueBillingUseWeb =>
+      'La facturation est activée sur ce serveur : une nouvelle impression nécessite un centre de coûts que l’application ne sait pas encore choisir. Ajoutez-la à la file dans Bambuddy depuis un navigateur.';
 }

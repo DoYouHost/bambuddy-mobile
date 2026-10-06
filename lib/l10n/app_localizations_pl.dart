@@ -7773,4 +7773,8 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get queueHistoryKeptForOrder =>
       'Anulowano, zamiast usunąć: tylko z tego wydruku zamówienie może ponownie dodać tę płytę do kolejki';
+
+  @override
+  String get queueBillingUseWeb =>
+      'Na tym serwerze jest włączony billing, więc nowe zadanie wymaga centrum kosztów, a aplikacja jeszcze go nie obsługuje. Dodaj wydruk do kolejki w Bambuddy w przeglądarce.';
 }

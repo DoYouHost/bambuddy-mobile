@@ -627,6 +627,10 @@ class QueueRepository {
       if (insertAtTop) 'insert_at_top': true,
       ...?options?.toJson(triState: triState),
     }..removeWhere((_, v) => v == null);
-    return guard(() => _dio.post<dynamic>(Endpoints.queue, data: body));
+    // Keeps the detail: a billing server refuses an item with no cost center
+    // with 400, and its sentence is the only thing that says why (#3256).
+    return guardKeepingDetail(
+      () => _dio.post<dynamic>(Endpoints.queue, data: body),
+    );
   }
 }

@@ -7753,4 +7753,8 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get queueHistoryKeptForOrder =>
       'Cancelado en lugar de eliminado: es la única impresión desde la que el pedido puede volver a encolar esta placa';
+
+  @override
+  String get queueBillingUseWeb =>
+      'Este servidor tiene la facturación activada, así que un trabajo nuevo necesita un centro de costes que la app aún no puede elegir. Añádelo a la cola en Bambuddy desde el navegador.';
 }

@@ -59,4 +59,10 @@ final _rules = <RefusalRule>[
     'can only start pending items',
   ])
     ([phrase], (l10n) => l10n.queueRemovalStatusChanged),
+  // Billing on: every new item and every start needs a cost center
+  // (`finance_budget.py::validate_print_budget`), which the app cannot pick.
+  (
+    ['cost center is required when billing is enabled'],
+    (l10n) => l10n.queueBillingUseWeb,
+  ),
 ];

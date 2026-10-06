@@ -3246,5 +3246,6 @@
   "queueHistoryAddedBy": "Dodane przez: {name}",
   "queueHistoryBatch": "Partia",
   "queueHistoryRemoved": "Usunięto element kolejki",
-  "queueHistoryKeptForOrder": "Anulowano, zamiast usunąć: tylko z tego wydruku zamówienie może ponownie dodać tę płytę do kolejki"
+  "queueHistoryKeptForOrder": "Anulowano, zamiast usunąć: tylko z tego wydruku zamówienie może ponownie dodać tę płytę do kolejki",
+  "queueBillingUseWeb": "Na tym serwerze jest włączony billing, więc nowe zadanie wymaga centrum kosztów, a aplikacja jeszcze go nie obsługuje. Dodaj wydruk do kolejki w Bambuddy w przeglądarce."
 }

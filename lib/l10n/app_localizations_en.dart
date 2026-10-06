@@ -7654,4 +7654,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get queueHistoryKeptForOrder =>
       'Cancelled instead of removed: this is the only run its batch order can re-queue this plate from';
+
+  @override
+  String get queueBillingUseWeb =>
+      'Billing is on for this server, so a new print job needs a cost center, which the app cannot choose yet. Add it to the queue in Bambuddy in a browser.';
 }

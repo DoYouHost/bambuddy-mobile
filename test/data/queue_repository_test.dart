@@ -935,4 +935,27 @@ void main() {
       expect(await repo.delete(6), isTrue);
     });
   });
+
+  test('a refused create keeps the server\'s reason', () async {
+    // A billing server's 400 names the missing cost center; without the
+    // detail the user reads "error 400" and nothing else (#3256).
+    adapter.onPost(
+      '/api/v1/queue/',
+      (server) => server.reply(400, {
+        'detail': 'Cost center is required when billing is enabled',
+      }),
+      data: Matchers.any,
+    );
+
+    await expectLater(
+      repo.addFromLibraryFile(1),
+      throwsA(
+        isA<AppApiException>().having(
+          (e) => e.detail,
+          'detail',
+          'Cost center is required when billing is enabled',
+        ),
+      ),
+    );
+  });
 }

@@ -684,6 +684,13 @@ abstract final class Endpoints {
   /// statement about the server's age rather than about its configuration.
   static const appSettings = '$apiPrefix/settings';
 
+  /// The few settings the app shell needs (`billing_enabled` among them),
+  /// readable by any signed-in user or key — unlike [appSettings], which wants
+  /// `settings:read` and so answers a non-admin with 403 (#3023).
+  ///
+  /// **1.2.6+ only**; an older server 404s and [appSettings] is all there is.
+  static const uiFlags = '$apiPrefix/settings/ui-flags';
+
   /// The same settings, written — body `AppSettingsUpdate`, dumped with
   /// `exclude_unset=True`, so a request carrying three keys changes three rows.
   ///

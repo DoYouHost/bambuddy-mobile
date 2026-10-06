@@ -314,6 +314,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             ),
             children: [
               _header(l10n, t),
+              // The server refuses a new item without a cost center, and the
+              // app has no picker for one yet: say so before the form is
+              // filled in rather than after.
+              if (_billingBlocks)
+                ?inlineNote(l10n.queueBillingUseWeb, urgent: true),
               const SizedBox(height: DashSpace.lg),
               _targetSection(l10n, t),
               const SizedBox(height: DashSpace.lg),
@@ -525,13 +530,18 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           ),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        onPressed: _saving ? null : _submit,
+        onPressed: _saving || _billingBlocks ? null : _submit,
         child: Text(
           widget._isCreate ? l10n.queueCreateSubmit : l10n.queueEditSave,
         ),
       ).tagged(widget._isCreate ? 'queue_create.save' : 'queue_edit.save'),
     );
   }
+
+  /// A new item on a billing server: refused without a cost center. Editing
+  /// one is not — the server checks the budget only when billing fields change.
+  bool get _billingBlocks =>
+      widget._isCreate && ref.watch(billingEnabledProvider);
 
   /// Name of the printer picked in the Target section, for messages that would
   /// otherwise quote the item's stored (or, on a draft, missing) printer.

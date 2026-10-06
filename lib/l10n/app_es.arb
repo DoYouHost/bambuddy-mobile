@@ -3932,5 +3932,6 @@
   "queueHistoryAddedBy": "Añadido por {name}",
   "queueHistoryBatch": "Lote",
   "queueHistoryRemoved": "Elemento de la cola eliminado",
-  "queueHistoryKeptForOrder": "Cancelado en lugar de eliminado: es la única impresión desde la que el pedido puede volver a encolar esta placa"
+  "queueHistoryKeptForOrder": "Cancelado en lugar de eliminado: es la única impresión desde la que el pedido puede volver a encolar esta placa",
+  "queueBillingUseWeb": "Este servidor tiene la facturación activada, así que un trabajo nuevo necesita un centro de costes que la app aún no puede elegir. Añádelo a la cola en Bambuddy desde el navegador."
 }
