@@ -1,8 +1,11 @@
+import 'package:bambuddy_mobile/core/ams/slot_addressing.dart';
 import 'package:bambuddy_mobile/core/models/api_key.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
+import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/api_keys_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -17,6 +20,7 @@ void main() {
     late Dio dio;
     late SpoolmanInventorySource source;
     late int printerId;
+    late String serial;
     Map<String, dynamic>? settingsBefore;
     final keyIds = <int>[];
     final stamp = DateTime.now().millisecondsSinceEpoch;
@@ -37,7 +41,9 @@ void main() {
       final printers = (await dio.get<List<dynamic>>(
         '/api/v1/printers/',
       )).data!;
-      printerId = (printers.first as Map<String, dynamic>)['id'] as int;
+      final first = printers.first as Map<String, dynamic>;
+      printerId = first['id'] as int;
+      serial = first['serial_number'] as String;
     });
 
     tearDownAll(() async {
@@ -78,6 +84,16 @@ void main() {
       // Spoolman routes refuse once the last test switches it off.
       addTearDown(() => source.deleteSpool(spool.id));
       return spool;
+    }
+
+    /// The slot resolver the printer card reads, through the same providers —
+    /// the backend detection included.
+    Future<AssignedSpools> cardShelf() async {
+      final container = contractContainer(dio);
+      container.listen(assignedSpoolsProvider(printerId), (_, _) {});
+      await container.read(inventoryBackendProvider.future);
+      await container.read(inventoryProvider.future);
+      return container.read(assignedSpoolsProvider(printerId));
     }
 
     Future<List<SpoolAssignment>> slotsOf(int spoolId) async =>
@@ -121,6 +137,104 @@ void main() {
 
       await source.unassignSpool(printerId, 0, 3);
       expect(await slotsOf(spool.id), isEmpty);
+    });
+
+    test(
+      "the printer card reads a slot's fill from its Spoolman spool",
+      () async {
+        // The reporter's second screenshot: an AMS without RFID data says 100%,
+        // while Spoolman holds 700 of 1000 g. Followed through the providers the
+        // card reads, so the backend detection is part of what is checked.
+        final spool = await newSpool();
+        await source.assignSpool(
+          SpoolAssignmentDraft(
+            spoolId: spool.id,
+            printerId: printerId,
+            amsId: 0,
+            trayId: 3,
+          ),
+        );
+        addTearDown(() => source.unassignSpool(printerId, 0, 3));
+
+        final fill = (await cardShelf()).fillOf(
+          const AmsTray(id: 3, trayType: 'PLA', remain: 100),
+          amsId: 0,
+          trayId: 3,
+        );
+
+        expect(fill.spool?.id, spool.id);
+        expect(fill.percent, 70);
+      },
+    );
+
+    test('a spool linked by the slot\'s fallback tag gives its fill', () async {
+      // How the web linked a spool to a slot without RFID before slot rows
+      // (#1457): Spoolman's extra.tag holds a hash of the printer's serial
+      // and the slot. Linked without a printer, so no slot row answers.
+      final spool = await newSpool();
+      final tag = fallbackSpoolTag(serial, 0, 1)!;
+      await dio.post<dynamic>(
+        '/api/v1/spoolman/spools/${spool.id}/link',
+        data: {'spool_tag': tag},
+      );
+
+      final fill = (await cardShelf()).fillOf(
+        const AmsTray(id: 1, trayType: 'PLA', remain: 100),
+        amsId: 0,
+        trayId: 1,
+        serial: serial,
+      );
+
+      expect(fill.spool?.id, spool.id);
+      expect(fill.percent, 70);
+    });
+
+    test('the linked map keys a spool by its tag with raw weights', () async {
+      // The web's first fill source (`getSpoolmanFillLevel`).
+      final spool = await newSpool();
+      await dio.post<dynamic>(
+        '/api/v1/spoolman/spools/${spool.id}/link',
+        data: {'spool_tag': 'a1b2c3d4e5f6a7b8'},
+      );
+
+      final linked = (await source.fetchLinkedSpools())['A1B2C3D4E5F6A7B8'];
+      expect(linked?.id, spool.id);
+      expect(linked?.remaining, 700);
+      expect(linked?.filament, 1000);
+    });
+
+    test('the built-in inventory still answers under Spoolman', () async {
+      // The web fetches /inventory/assignments whatever the mode and reads a
+      // slot's fill from it after Spoolman's own.
+      final native = NativeInventorySource(dio);
+      final spool = await native.createSpool(
+        SpoolDraft(
+          material: 'PLA',
+          brand: 'Contract built-in $stamp',
+          labelWeight: 1000,
+          weightUsed: 750,
+        ),
+      );
+      addTearDown(() => native.deleteSpool(spool.id));
+      await native.assignSpool(
+        SpoolAssignmentDraft(
+          spoolId: spool.id,
+          printerId: printerId,
+          amsId: 0,
+          trayId: 2,
+        ),
+      );
+      addTearDown(() => native.unassignSpool(printerId, 0, 2));
+
+      final fill = (await cardShelf()).fillOf(
+        const AmsTray(id: 2, trayType: 'PLA', remain: 100),
+        amsId: 0,
+        trayId: 2,
+        serial: serial,
+      );
+
+      expect(fill.spool?.id, spool.id);
+      expect(fill.percent, 25);
     });
 
     test('an API key with manage-inventory can assign by slot', () async {

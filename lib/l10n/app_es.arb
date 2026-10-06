@@ -676,14 +676,6 @@
   "cameraConnecting": "Conectando con la cámara…",
   "cameraError": "No se pudo cargar la transmisión de la cámara",
   "cameraDemoUnavailable": "La vista previa de la cámara no está disponible en modo demo",
-  "amsUnit": "AMS {number}",
-  "@amsUnit": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
   "externalSpool": "Bobina externa",
   "traySlotEmpty": "Vacía",
   "amsSlotFilament": "Filamento",
@@ -2977,18 +2969,42 @@
   },
   "mappingPickTray": "Seleccionar ranura de AMS",
   "mappingExternalSpool": "Bobina externa",
-  "mappingAmsSlot": "AMS {unit} · ranura {slot}",
-  "@mappingAmsSlot": {
-    "placeholders": {
-      "unit": {
-        "type": "String"
-      },
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
   "mappingSaved": "Mapeo de filamentos guardado",
+  "mappingStatusReady": "Listo",
+  "mappingStatusColorMismatch": "Color distinto",
+  "mappingStatusTypeNotFound": "Tipo no encontrado",
+  "mappingTapToChange": "Toca un filamento para cambiar su ranura",
+  "mappingExactColor": "Color exacto",
+  "mappingSameTypeOtherColor": "Mismo tipo, otro color: necesita {required}, la ranura tiene {loaded}",
+  "mappingTypeNotLoaded": "Tipo de filamento no cargado",
+  "mappingManual": "Elegido a mano",
+  "mappingRequired": "Necesario: {name}, {color}",
+  "mappingUseSlicer": "Asignación del slicer",
+  "mappingUseSlicerHint": "Elige cada ranura según la asignación de AMS que el slicer guardó con esta impresión, en lugar de emparejar por tipo y color.",
+  "mappingReRead": "Volver a leer",
+  "mappingFtsSameInlet": "Todos los filamentos de esta impresión están en la entrada IN-{inlet} del Filament Track Switch. Cambiar entre filamentos de la misma entrada es más lento: mueve uno a un AMS de la otra entrada para acelerarlo.",
+  "mappingRackPosition": "Posición en el soporte",
+  "mappingRackPositionHint": "Qué boquilla del soporte imprime este filamento. Las posiciones están numeradas como en la impresora.",
+  "mappingRackNeeds": "Este filamento necesita una boquilla {nozzle}.",
+  "mappingRackEmptyPosition": "Esta posición del soporte está vacía",
+  "mappingRackWrongNozzle": "Tiene una boquilla {has}; este filamento necesita {needs}",
+  "mappingRackSlot": "R{position}",
+  "colorFamilyRed": "Rojo",
+  "colorFamilyOrange": "Naranja",
+  "colorFamilyYellow": "Amarillo",
+  "colorFamilyGreen": "Verde",
+  "colorFamilyCyan": "Cian",
+  "colorFamilyBlue": "Azul",
+  "colorFamilyPurple": "Morado",
+  "colorFamilyPink": "Rosa",
+  "colorFamilyBrown": "Marrón",
+  "colorFamilyWhite": "Blanco",
+  "colorFamilyLightGray": "Gris claro",
+  "colorFamilyGray": "Gris",
+  "colorFamilyDarkGray": "Gris oscuro",
+  "colorFamilyBlack": "Negro",
+  "colorFamilyClear": "Transparente",
+  "colorFamilyUnknown": "Desconocido",
   "plateClearTitle": "¿Está despejada la placa?",
   "plateClearBody": "Asegúrate de que la placa de impresión esté vacía antes de iniciar esta impresión.",
   "plateClearConfirm": "La placa está despejada",
@@ -3234,54 +3250,6 @@
     }
   },
   "queueEditForceColorMatch": "Forzar coincidencia de color",
-  "queueEditNozzleRack": "Soporte de boquillas",
-  "queueEditNozzleRackDesc": "Elige desde qué boquilla del soporte imprime cada filamento. Si se deja en automático, se elegirá una posición adecuada al iniciar la impresión.",
-  "queueEditRackGroupLabel": "Filamento {slots} · {nozzle}",
-  "@queueEditRackGroupLabel": {
-    "placeholders": {
-      "slots": {
-        "type": "String"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackAuto": "Automático",
-  "queueEditRackPosition": "Posición {position} · {nozzle}",
-  "@queueEditRackPosition": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackPositionTaken": "Posición {position} · {nozzle} — ya seleccionada",
-  "@queueEditRackPositionTaken": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackPositionUnfit": "Posición {position} · {nozzle} — no compatible",
-  "@queueEditRackPositionUnfit": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackEmpty": "vacía",
   "queueEditRackPickStale": "La posición elegida ya no es compatible con este filamento — selecciona otra o la impresión se rechazará al iniciar.",
   "queueEditRackNoFit": "Ninguna posición del soporte tiene una boquilla {nozzle} — instala una o la impresora decidirá por sí misma.",
   "@queueEditRackNoFit": {
@@ -3928,5 +3896,42 @@
   "inventoryDetailSlot": "Ranura",
   "inventoryDetailNotLoaded": "No cargada",
   "inventoryDetailConsumedSinceReset": "Consumido desde el reinicio",
-  "inventorySupplierArchivedCount": "{count, plural, one{{count} archivada} other{{count} archivadas}}"
+  "inventorySupplierArchivedCount": "{count, plural, one{{count} archivada} other{{count} archivadas}}",
+  "timeJustNow": "Ahora mismo",
+  "timeNow": "Ahora",
+  "timeMinutesAgo": "hace {count} min",
+  "timeInMinutes": "en {count} min",
+  "timeHoursAgo": "hace {count} h",
+  "timeInHours": "en {count} h",
+  "timeDaysAgo": "{count, plural, =1{hace 1 día} other{hace {count} días}}",
+  "timeInDays": "{count, plural, =1{en 1 día} other{en {count} días}}",
+  "queueHistory": "Historial",
+  "queueItemCount": "{count, plural, =1{1 elemento} other{{count} elementos}}",
+  "queueHistoryEmpty": "Aún no hay historial. Aquí aparecerán las impresiones completadas, canceladas y fallidas.",
+  "queueHistoryShowMore": "Mostrar más",
+  "queueHistoryShowing": "Mostrando {shown} de {total}",
+  "queueHistorySort": "Orden",
+  "queueHistorySortDate": "Por fecha",
+  "queueHistorySortName": "Por nombre",
+  "queueHistorySortPrinter": "Por impresora",
+  "queueHistoryNewestFirst": "Más recientes primero",
+  "queueHistoryOldestFirst": "Más antiguos primero",
+  "queueHistoryClear": "Borrar el historial",
+  "queueHistoryClearTitle": "¿Borrar el historial?",
+  "queueHistoryClearMessage": "{count, plural, =1{¿Quitar 1 elemento del historial?} other{¿Quitar los {count} elementos del historial?}}",
+  "queueHistoryCleared": "{count, plural, =1{Se borró 1 elemento del historial.} other{Se borraron {count} elementos del historial.}}",
+  "queueHistoryKeptForOrders": "Se conservan {kept} que los pedidos todavía necesitan.",
+  "queueHistoryClearFailed": "No se pudo borrar el historial.",
+  "queueHistoryNoClear": "No tienes permiso para borrar todo el historial",
+  "queueHistoryRequeue": "Volver a encolar",
+  "queueHistoryNoRequeue": "No tienes permiso para volver a encolar elementos",
+  "queueHistoryRemove": "Quitar",
+  "queueHistoryNoRemove": "No tienes permiso para quitar este elemento",
+  "queueHistoryRemoveTitle": "¿Quitar del historial?",
+  "queueHistoryRemoveMessage": "¿Quitar «{name}» del historial de la cola?",
+  "queueHistoryAddedBy": "Añadido por {name}",
+  "queueHistoryBatch": "Lote",
+  "queueHistoryRemoved": "Elemento de la cola eliminado",
+  "queueHistoryKeptForOrder": "Cancelado en lugar de eliminado: es la única impresión desde la que el pedido puede volver a encolar esta placa",
+  "queueBillingUseWeb": "Este servidor tiene la facturación activada, así que cada trabajo necesita un centro de costes que la app aún no puede asignar. Encola, edita e inicia este trabajo en Bambuddy desde el navegador."
 }

@@ -473,9 +473,11 @@ class _DetailsToggle extends StatelessWidget {
 /// Expanded details section: AMS unit(s) and external spool as list rows inside
 /// a grouping card, followed by the connectivity (Wi-Fi/door) row.
 class _DetailsPanel extends ConsumerWidget {
-  const _DetailsPanel({required this.status});
+  const _DetailsPanel({required this.status, this.serial, this.nozzleCount});
 
   final PrinterStatus status;
+  final String? serial;
+  final int? nozzleCount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -483,7 +485,7 @@ class _DetailsPanel extends ConsumerWidget {
     final ams = status.ams ?? const [];
     final spools = status.externalSpools;
     final active = status.activeTray;
-    final dual = status.isDualExtruder;
+    final dual = status.isDualNozzle(nozzleCount);
     final activeExtruder = status.activeExtruder;
     final assigned = ref.watch(assignedSpoolsProvider(status.id));
     final printerId = status.id;
@@ -507,6 +509,7 @@ class _DetailsPanel extends ConsumerWidget {
           slotExtruder: dual ? status.extruderForSlot(ams[i].id ?? i, 0) : null,
           activeExtruder: activeExtruder,
           assigned: assigned,
+          serial: serial,
           printerId: printerId,
           printerName: printerName,
           supportsDrying: status.supportsDrying ?? false,
@@ -523,11 +526,12 @@ class _DetailsPanel extends ConsumerWidget {
           extruderOf: dual
               ? (i) => status.extruderForExternal(spools[i].id)
               : (_) => null,
-          assignedOf: (i) =>
-              assigned.forExtruder(
-                dual ? status.extruderForExternal(spools[i].id) : 1,
-              ) ??
-              assigned.boundByTag(spools[i]),
+          fillOf: (i) => assigned.fillOf(
+            spools[i],
+            amsId: externalHolderUnit,
+            trayId: trayIdOf(i),
+            serial: serial,
+          ),
           tagBindsOf: (i) => assigned.tagBinds(spools[i]),
           boundByTagOf: (i) => assigned.boundByTag(spools[i]),
           trayIdOf: trayIdOf,
@@ -590,6 +594,7 @@ class _AmsSection extends ConsumerWidget {
     required this.slotExtruder,
     required this.activeExtruder,
     required this.assigned,
+    required this.serial,
     required this.printerId,
     required this.printerName,
     required this.supportsDrying,
@@ -614,6 +619,7 @@ class _AmsSection extends ConsumerWidget {
   final int? slotExtruder;
   final int? activeExtruder;
   final AssignedSpools assigned;
+  final String? serial;
   final int printerId;
   final String? printerName;
   final bool supportsDrying;
@@ -633,7 +639,6 @@ class _AmsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
-    final l10n = AppLocalizations.of(context);
     final trays = unit.trays ?? const <AmsTray>[];
     final history = ref.watch(amsHistorySupportedProvider).orFalse;
 
@@ -642,7 +647,7 @@ class _AmsSection extends ConsumerWidget {
             context,
             printerId: printerId,
             amsId: unit.id ?? unitIndex,
-            amsLabel: l10n.amsUnit(unitIndex + 1),
+            amsLabel: amsUnitName(unit.id ?? unitIndex),
             initialMetric: metric,
           )
         : null;
@@ -673,7 +678,7 @@ class _AmsSection extends ConsumerWidget {
         Row(
           children: [
             Text(
-              l10n.amsUnit(unitIndex + 1).toUpperCase(),
+              amsUnitName(unit.id ?? unitIndex).toUpperCase(),
               style: t.bodyBold.copyWith(
                 color: t.textPrimary,
                 letterSpacing: 0.4,
@@ -698,7 +703,7 @@ class _AmsSection extends ConsumerWidget {
               _AmsDryControl(
                 printerId: printerId,
                 amsId: unit.id ?? unitIndex,
-                amsLabel: l10n.amsUnit(unitIndex + 1),
+                amsLabel: amsUnitName(unit.id ?? unitIndex),
                 unit: unit,
               ),
             ],
@@ -723,29 +728,29 @@ class _AmsSection extends ConsumerWidget {
             ),
           )
         else
+          // The web addresses a slot by its index (`slotIdx`) — its fill,
+          // label and every action alike.
           for (var i = 0; i < trays.length; i++)
             _FilamentRow(
               tray: trays[i],
               active: identical(trays[i], active),
-              // The slot assignment first, as the web (#1457); the AMS sync
-              // writes the tag's spool there itself, so the tag only answers
-              // until that sync has run.
-              assignedSpool:
-                  assigned.forAmsSlot(unit.id ?? unitIndex, trays[i].id ?? 0) ??
-                  assigned.boundByTag(trays[i]),
-              allowRemain: true,
+              fill: assigned.fillOf(
+                trays[i],
+                amsId: unit.id ?? unitIndex,
+                trayId: i,
+                serial: serial,
+              ),
               last: i == trays.length - 1,
               slot: _SlotRef(
                 printerId: printerId,
                 printerName: printerName,
                 amsId: unit.id ?? unitIndex,
-                trayId: trays[i].id ?? 0,
-                label:
-                    '${l10n.amsUnit(unitIndex + 1)} · ${(trays[i].id ?? 0) + 1}',
+                trayId: i,
+                label: amsSlotName(unit.id ?? unitIndex, i),
                 printing: printing,
                 loadTrayId: amsLoadTrayId(
                   amsId: unit.id ?? unitIndex,
-                  trayId: trays[i].id ?? 0,
+                  trayId: i,
                 ),
                 canRereadRfid: true,
                 tagUid: trays[i].tagUid,
@@ -767,14 +772,14 @@ class _AmsSection extends ConsumerWidget {
   }
 }
 
-/// External spool section (design "SZPULA ZEWNĘTRZNA"): title + one row per spool,
+/// External spool section (design "EXTERNAL SPOOL"): title + one row per spool,
 /// each prefixed with its extruder side on dual machines.
 class _SpoolSection extends StatelessWidget {
   const _SpoolSection({
     required this.trays,
     required this.active,
     required this.extruderOf,
-    required this.assignedOf,
+    required this.fillOf,
     required this.tagBindsOf,
     required this.boundByTagOf,
     required this.trayIdOf,
@@ -788,7 +793,7 @@ class _SpoolSection extends StatelessWidget {
   final List<AmsTray> trays;
   final AmsTray? active;
   final int? Function(int index) extruderOf;
-  final Spool? Function(int index) assignedOf;
+  final TrayFill Function(int index) fillOf;
   final bool Function(int index) tagBindsOf;
   final Spool? Function(int index) boundByTagOf;
   final int Function(int index) trayIdOf;
@@ -814,8 +819,7 @@ class _SpoolSection extends StatelessWidget {
           _FilamentRow(
             tray: trays[i],
             active: identical(trays[i], active),
-            assignedSpool: assignedOf(i),
-            allowRemain: false,
+            fill: fillOf(i),
             last: i == trays.length - 1,
             sidePrefix: switch (extruderOf(i)) {
               1 => l10n.extruderLeftShort,
@@ -859,19 +863,21 @@ class _FilamentRow extends StatelessWidget {
   const _FilamentRow({
     required this.tray,
     required this.active,
-    required this.allowRemain,
+    required this.fill,
     required this.last,
     this.sidePrefix,
-    this.assignedSpool,
     this.slot,
   });
 
   final AmsTray tray;
   final bool active;
-  final bool allowRemain;
+
+  /// [AssignedSpools.fillOf]: the percent, and the grams and name of the
+  /// spool it was read from — none when the AMS's own number won, so the two
+  /// never disagree.
+  final TrayFill fill;
   final bool last;
   final String? sidePrefix;
-  final Spool? assignedSpool;
   final _SlotRef? slot;
 
   @override
@@ -886,13 +892,13 @@ class _FilamentRow extends StatelessWidget {
         : (tray.materialLabel ?? l10n.traySlotEmpty);
     final label = sidePrefix == null ? material : '$sidePrefix · $material';
 
-    final remain = tray.remain;
-    final showRemain = allowRemain && !empty && remain != null && remain >= 0;
-    final spool = empty ? null : assignedSpool;
-    final grams = spool == null
+    final percent = empty ? null : fill.percent;
+    final remaining = empty ? null : fill.grams;
+    final spool = empty ? null : fill.spool;
+    final grams = remaining == null
         ? null
-        : l10n.inventoryUsageWeight(spool.remainingWeight.toStringAsFixed(0));
-    final trailing = [if (showRemain) '$remain%', ?grams].join(' · ');
+        : l10n.inventoryUsageWeight(remaining.toStringAsFixed(0));
+    final trailing = [if (percent != null) '$percent%', ?grams].join(' · ');
 
     final textColor = active ? t.accentGreenInk : t.textSecondary;
 
@@ -1630,7 +1636,7 @@ class _SlotRef {
   final int amsId;
   final int trayId;
 
-  /// Readable slot label (e.g., "AMS 1 · 2" or "Left extruder").
+  /// Readable slot label (e.g., "AMS-A · 2" or "Left extruder").
   final String label;
 
   /// Whether a job is actively running on this printer. A paused one does not

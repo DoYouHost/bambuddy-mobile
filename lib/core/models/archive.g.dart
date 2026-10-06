@@ -49,6 +49,7 @@ abstract class _$ArchiveCWProxy {
     DateTime? userVerdictAt,
     bool confirmRequested,
     String? failureReason,
+    ({List<int> mapping, int printerId})? slicerAmsMapping,
   });
 }
 
@@ -102,6 +103,7 @@ class _$ArchiveCWProxyImpl implements _$ArchiveCWProxy {
     Object? userVerdictAt = const $CopyWithPlaceholder(),
     Object? confirmRequested = const $CopyWithPlaceholder(),
     Object? failureReason = const $CopyWithPlaceholder(),
+    Object? slicerAmsMapping = const $CopyWithPlaceholder(),
   }) {
     return Archive(
       id: id == const $CopyWithPlaceholder() || id == null
@@ -248,6 +250,10 @@ class _$ArchiveCWProxyImpl implements _$ArchiveCWProxy {
           ? _value.failureReason
           // ignore: cast_nullable_to_non_nullable
           : failureReason as String?,
+      slicerAmsMapping: slicerAmsMapping == const $CopyWithPlaceholder()
+          ? _value.slicerAmsMapping
+          // ignore: cast_nullable_to_non_nullable
+          : slicerAmsMapping as ({List<int> mapping, int printerId})?,
     );
   }
 }
@@ -299,4 +305,5 @@ Archive _$ArchiveFromJson(Map<String, dynamic> json) => Archive(
   userVerdictAt: dateTimeFromJson(json['user_verdict_at']),
   confirmRequested: json['confirm_requested'] as bool? ?? false,
   failureReason: json['failure_reason'] as String?,
+  slicerAmsMapping: _slicerAmsMapping(json['extra_data']),
 );

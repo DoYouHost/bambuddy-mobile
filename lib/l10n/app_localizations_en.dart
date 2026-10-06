@@ -1341,11 +1341,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Camera preview is not available in demo mode';
 
   @override
-  String amsUnit(int number) {
-    return 'AMS $number';
-  }
-
-  @override
   String get externalSpool => 'External spool';
 
   @override
@@ -5202,12 +5197,126 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mappingExternalSpool => 'External spool';
 
   @override
-  String mappingAmsSlot(String unit, String slot) {
-    return 'AMS $unit · slot $slot';
+  String get mappingSaved => 'Filament mapping saved';
+
+  @override
+  String get mappingStatusReady => 'Ready';
+
+  @override
+  String get mappingStatusColorMismatch => 'Color mismatch';
+
+  @override
+  String get mappingStatusTypeNotFound => 'Type not found';
+
+  @override
+  String get mappingTapToChange => 'Tap a filament to change its slot';
+
+  @override
+  String get mappingExactColor => 'Exact color match';
+
+  @override
+  String mappingSameTypeOtherColor(String required, String loaded) {
+    return 'Same type, different color: needs $required, slot has $loaded';
   }
 
   @override
-  String get mappingSaved => 'Filament mapping saved';
+  String get mappingTypeNotLoaded => 'Filament type not loaded';
+
+  @override
+  String get mappingManual => 'Picked by hand';
+
+  @override
+  String mappingRequired(String name, String color) {
+    return 'Required: $name, $color';
+  }
+
+  @override
+  String get mappingUseSlicer => 'Slicer mapping';
+
+  @override
+  String get mappingUseSlicerHint =>
+      'Pick every slot from the AMS mapping the slicer saved with this print, instead of matching by type and color.';
+
+  @override
+  String get mappingReRead => 'Re-read';
+
+  @override
+  String mappingFtsSameInlet(String inlet) {
+    return 'All filaments for this print are on Filament Track Switch IN-$inlet. Switching between filaments on the same inlet is slower — move one to an AMS on the other inlet to speed it up.';
+  }
+
+  @override
+  String get mappingRackPosition => 'Rack position';
+
+  @override
+  String get mappingRackPositionHint =>
+      'Which nozzle on the rack prints this filament. Positions are numbered as on the printer.';
+
+  @override
+  String mappingRackNeeds(String nozzle) {
+    return 'This filament needs a $nozzle nozzle.';
+  }
+
+  @override
+  String get mappingRackEmptyPosition => 'This rack position is empty';
+
+  @override
+  String mappingRackWrongNozzle(String has, String needs) {
+    return 'Holds a $has nozzle; this filament needs $needs';
+  }
+
+  @override
+  String mappingRackSlot(int position) {
+    return 'R$position';
+  }
+
+  @override
+  String get colorFamilyRed => 'Red';
+
+  @override
+  String get colorFamilyOrange => 'Orange';
+
+  @override
+  String get colorFamilyYellow => 'Yellow';
+
+  @override
+  String get colorFamilyGreen => 'Green';
+
+  @override
+  String get colorFamilyCyan => 'Cyan';
+
+  @override
+  String get colorFamilyBlue => 'Blue';
+
+  @override
+  String get colorFamilyPurple => 'Purple';
+
+  @override
+  String get colorFamilyPink => 'Pink';
+
+  @override
+  String get colorFamilyBrown => 'Brown';
+
+  @override
+  String get colorFamilyWhite => 'White';
+
+  @override
+  String get colorFamilyLightGray => 'Light gray';
+
+  @override
+  String get colorFamilyGray => 'Gray';
+
+  @override
+  String get colorFamilyDarkGray => 'Dark gray';
+
+  @override
+  String get colorFamilyBlack => 'Black';
+
+  @override
+  String get colorFamilyClear => 'Clear';
+
+  @override
+  String get colorFamilyUnknown => 'Unknown';
 
   @override
   String get plateClearTitle => 'Is the plate clear?';
@@ -5706,39 +5815,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueEditForceColorMatch => 'Force color match';
-
-  @override
-  String get queueEditNozzleRack => 'Nozzle rack';
-
-  @override
-  String get queueEditNozzleRackDesc =>
-      'Choose which rack nozzle each filament prints from. Left automatic, a fitting position is picked when the print starts.';
-
-  @override
-  String queueEditRackGroupLabel(String slots, String nozzle) {
-    return 'Filament $slots · $nozzle';
-  }
-
-  @override
-  String get queueEditRackAuto => 'Automatic';
-
-  @override
-  String queueEditRackPosition(int position, String nozzle) {
-    return 'Position $position · $nozzle';
-  }
-
-  @override
-  String queueEditRackPositionTaken(int position, String nozzle) {
-    return 'Position $position · $nozzle — already chosen';
-  }
-
-  @override
-  String queueEditRackPositionUnfit(int position, String nozzle) {
-    return 'Position $position · $nozzle — does not fit';
-  }
-
-  @override
-  String get queueEditRackEmpty => 'empty';
 
   @override
   String get queueEditRackPickStale =>
@@ -7409,4 +7485,177 @@ class AppLocalizationsEn extends AppLocalizations {
   String inventorySupplierArchivedCount(int count) {
     return '$count archived';
   }
+
+  @override
+  String get timeJustNow => 'Just now';
+
+  @override
+  String get timeNow => 'Now';
+
+  @override
+  String timeMinutesAgo(int count) {
+    return '$count min ago';
+  }
+
+  @override
+  String timeInMinutes(int count) {
+    return 'in $count min';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return '$count h ago';
+  }
+
+  @override
+  String timeInHours(int count) {
+    return 'in $count h';
+  }
+
+  @override
+  String timeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days ago',
+      one: '1 day ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String timeInDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'in $count days',
+      one: 'in 1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueHistory => 'History';
+
+  @override
+  String queueItemCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items',
+      one: '1 item',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueHistoryEmpty =>
+      'No history yet. Completed, cancelled and failed prints will appear here.';
+
+  @override
+  String get queueHistoryShowMore => 'Show more';
+
+  @override
+  String queueHistoryShowing(int shown, int total) {
+    return 'Showing $shown of $total';
+  }
+
+  @override
+  String get queueHistorySort => 'Sort';
+
+  @override
+  String get queueHistorySortDate => 'By date';
+
+  @override
+  String get queueHistorySortName => 'By name';
+
+  @override
+  String get queueHistorySortPrinter => 'By printer';
+
+  @override
+  String get queueHistoryNewestFirst => 'Newest first';
+
+  @override
+  String get queueHistoryOldestFirst => 'Oldest first';
+
+  @override
+  String get queueHistoryClear => 'Clear history';
+
+  @override
+  String get queueHistoryClearTitle => 'Clear history';
+
+  @override
+  String queueHistoryClearMessage(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Remove all $count items from the history?',
+      one: 'Remove 1 item from the history?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueHistoryCleared(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Cleared $count history items.',
+      one: 'Cleared 1 history item.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueHistoryKeptForOrders(int kept) {
+    return 'Kept $kept that batch orders still need.';
+  }
+
+  @override
+  String get queueHistoryClearFailed => 'Could not clear the history.';
+
+  @override
+  String get queueHistoryNoClear =>
+      'You do not have permission to clear all history';
+
+  @override
+  String get queueHistoryRequeue => 'Re-queue';
+
+  @override
+  String get queueHistoryNoRequeue =>
+      'You do not have permission to re-queue items';
+
+  @override
+  String get queueHistoryRemove => 'Remove';
+
+  @override
+  String get queueHistoryNoRemove =>
+      'You do not have permission to remove this queue item';
+
+  @override
+  String get queueHistoryRemoveTitle => 'Remove from history';
+
+  @override
+  String queueHistoryRemoveMessage(String name) {
+    return 'Remove “$name” from the queue history?';
+  }
+
+  @override
+  String queueHistoryAddedBy(String name) {
+    return 'Added by $name';
+  }
+
+  @override
+  String get queueHistoryBatch => 'Batch';
+
+  @override
+  String get queueHistoryRemoved => 'Queue item removed';
+
+  @override
+  String get queueHistoryKeptForOrder =>
+      'Cancelled instead of removed: this is the only run its batch order can re-queue this plate from';
+
+  @override
+  String get queueBillingUseWeb =>
+      'Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.';
 }

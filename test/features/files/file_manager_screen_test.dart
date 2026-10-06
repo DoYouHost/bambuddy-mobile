@@ -245,6 +245,7 @@ void main() {
       required Dio dio,
       required bool canTarget,
       Set<int> selected = const {1},
+      bool billing = false,
     }) async {
       final file = _file(filename: 'thing.gcode.3mf', fileType: 'gcode');
       await pumpPhone(
@@ -271,10 +272,29 @@ void main() {
           libraryTagsSupportedProvider.overrideWithValue(const AsyncData(true)),
           slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
           canRunPipelinesProvider.overrideWithValue(const AsyncData(false)),
+          serverUiFlagsProvider.overrideWith(
+            (ref) async => {'billing_enabled': billing},
+          ),
+          serverSettingsOverride(const {}),
         ],
       );
       await tester.pumpAndSettle();
     }
+
+    testWidgets('a billing server is told to queue in the browser', (
+      tester,
+    ) async {
+      // This route checks no budget: the job would be queued without a cost
+      // center and could never start. Nothing is mocked, so a request fails.
+      final dio = testDio();
+      mockServer(dio);
+      await pumpQueueing(tester, dio: dio, canTarget: false, billing: true);
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n(tester).queueBillingUseWeb), findsOneWidget);
+    });
 
     testWidgets('asks where, offering only active printers and their models', (
       tester,

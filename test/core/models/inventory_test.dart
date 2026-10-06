@@ -166,22 +166,48 @@ void main() {
     SpoolAssignment assign(int amsId, {int trayId = 0}) =>
         SpoolAssignment(spoolId: 1, printerId: 1, amsId: amsId, trayId: trayId);
 
-    test('a regular AMS slot: not external, label AMS·tray+1', () {
-      final a = assign(0, trayId: 1);
+    test('a regular AMS slot: not external, named as the web names it', () {
+      final a = assign(1, trayId: 1);
       expect(a.isExternalSpool, isFalse);
       expect(a.extruder, isNull);
-      expect(a.slotLabel, 'AMS0 · 2');
+      expect(a.slotLabel, 'AMS-B · 2');
     });
 
-    test('ams_label from the server takes priority', () {
+    test('an AMS-HT slot is the unit alone — it holds one tray', () {
+      expect(assign(129).slotLabel, 'HT-B');
+    });
+
+    test('a built-in assignment carries its spool, a Spoolman one not', () {
+      final native = SpoolAssignment.fromNative({
+        'spool_id': 3,
+        'printer_id': 1,
+        'ams_id': 0,
+        'tray_id': 1,
+        'spool': {
+          'id': 3,
+          'material': 'PETG',
+          'label_weight': 1000,
+          'weight_used': 250,
+        },
+      });
+      expect(native.spool?.id, 3);
+      expect(native.spool?.remainingWeight, 750);
+      expect(SpoolAssignment.fromNative({'spool_id': 3}).spool, isNull);
+      expect(
+        SpoolAssignment.fromSpoolman({'spoolman_spool_id': 3}).spool,
+        isNull,
+      );
+    });
+
+    test('ams_label from the server names the unit, the slot stays', () {
       const a = SpoolAssignment(
         spoolId: 1,
         printerId: 1,
         amsId: 0,
         trayId: 0,
-        amsLabel: 'AMS A',
+        amsLabel: 'Dryer box',
       );
-      expect(a.slotLabel, 'AMS A');
+      expect(a.slotLabel, 'Dryer box · 1');
     });
 
     test('external spool: ams=255, distinguishes tray_id (0→left, 1→right)', () {

@@ -24,6 +24,7 @@ import '../dashboard/ws_providers.dart';
 import '../files/library_thumbnail.dart';
 import '../orders/orders_providers.dart';
 import 'queue_edit_screen.dart';
+import 'queue_history.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_providers.dart';
 import 'queue_removal.dart';
@@ -42,13 +43,30 @@ class QueueScreen extends ConsumerStatefulWidget {
   ConsumerState<QueueScreen> createState() => _QueueScreenState();
 }
 
-class _QueueScreenState extends ConsumerState<QueueScreen> {
+class _QueueScreenState extends ConsumerState<QueueScreen>
+    with SingleTickerProviderStateMixin {
   /// Auto-refresh frequency in foreground. Less frequent than Dashboard's roster
   /// (5s) — queue changes slower and fetch is heavier.
   static const _refreshInterval = Duration(seconds: 10);
 
   Timer? _timer;
   late final AppLifecycleListener _lifecycle;
+
+  /// The queue and its history, the web's first and History tabs.
+  late final TabController _tabs = TabController(length: 2, vsync: this)
+    ..addListener(_tabSettled);
+  int _shownTab = 0;
+  bool get _onHistory => _tabs.index == 1;
+
+  /// A tab just brought into view shows what is there now rather than waiting
+  /// for the next tick: only the tab on screen is polled, so the other one has
+  /// been standing still.
+  void _tabSettled() {
+    if (_tabs.indexIsChanging || _tabs.index == _shownTab) return;
+    setState(() => _shownTab = _tabs.index);
+    unawaited(_refreshShown());
+    if (_visible) _startTimer();
+  }
 
   /// Whether this tab's branch is the one currently shown — see
   /// [didChangeDependencies]. Starts false; the framework-guaranteed
@@ -65,7 +83,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
         // Return to foreground on a different tab shouldn't resume polling
         // for a screen the user isn't looking at.
         if (!_visible) return;
-        unawaited(ref.read(queueProvider.notifier).refresh());
+        unawaited(_refreshShown());
         _startTimer();
       },
     );
@@ -94,9 +112,15 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
     _timer?.cancel();
     _timer = Timer.periodic(
       _refreshInterval,
-      (_) => unawaited(ref.read(queueProvider.notifier).refresh()),
+      (_) => unawaited(_refreshShown()),
     );
   }
+
+  /// Only the tab on screen is polled: the history is most of what the server
+  /// holds, and nobody is looking at it from the queue tab.
+  Future<void> _refreshShown() => _onHistory
+      ? ref.read(queueHistoryProvider.notifier).refresh()
+      : ref.read(queueProvider.notifier).refresh();
 
   void _stopTimer() {
     _timer?.cancel();
@@ -107,6 +131,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
   void dispose() {
     _stopTimer();
     _lifecycle.dispose();
+    _tabs.dispose();
     super.dispose();
   }
 
@@ -131,6 +156,17 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
         appBar: dashAppBar(
           context,
           title: l10n.navQueue,
+          bottom: TabBar(
+            controller: _tabs,
+            tabs: [
+              Tab(
+                text: l10n.navQueue,
+              ).tagged('queue.tab_queue', selected: !_onHistory),
+              Tab(
+                text: l10n.queueHistory,
+              ).tagged('queue.tab_history', selected: _onHistory),
+            ],
+          ),
           actions: [
             if (ref.watch(batchListingProvider).orFalse)
               IconButton(
@@ -138,7 +174,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
                 icon: const Icon(Icons.inventory_2_outlined),
                 onPressed: () => context.push('/orders'),
               ).tagged('queue.orders'),
-            if (queued.isNotEmpty)
+            if (queued.isNotEmpty && !_onHistory)
               Padding(
                 padding: const EdgeInsets.only(right: DashSpace.lg),
                 child: Center(
@@ -151,7 +187,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
               ),
           ],
         ),
-        floatingActionButton: firstQueued == null
+        floatingActionButton: firstQueued == null || _onHistory
             ? null
             : logTag(
                 'queue.start_next',
@@ -164,20 +200,26 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
                 ),
               ),
         body: RefreshWhenShown(
-          onRefresh: () => ref.read(queueProvider.notifier).refresh(),
-          child: dashAsync(
-            context,
-            async,
-            onRetry: () => ref.read(queueProvider.notifier).refresh(),
-            data: (items) => RefreshIndicator(
-              onRefresh: () => ref.read(queueProvider.notifier).refresh(),
-              child: items.isEmpty
-                  ? EmptyStateView(
-                      message: l10n.queueEmpty,
-                      icon: Icons.playlist_add_check,
-                    )
-                  : _QueueList(items: items),
-            ),
+          onRefresh: _refreshShown,
+          child: TabBarView(
+            controller: _tabs,
+            children: [
+              dashAsync(
+                context,
+                async,
+                onRetry: () => ref.read(queueProvider.notifier).refresh(),
+                data: (items) => RefreshIndicator(
+                  onRefresh: () => ref.read(queueProvider.notifier).refresh(),
+                  child: items.isEmpty
+                      ? EmptyStateView(
+                          message: l10n.queueEmpty,
+                          icon: Icons.playlist_add_check,
+                        )
+                      : _QueueList(items: items),
+                ),
+              ),
+              const QueueHistoryView(),
+            ],
           ),
         ),
       ),
@@ -579,7 +621,9 @@ class _QueueActions extends ConsumerWidget {
               printerId: printerId,
               confirmLabel: l10n.fmSave,
             );
-            if (mapping == null) return;
+            // Empty: the printer reported nothing to map to, and the web sends
+            // no mapping then — saving [] would clear the stored one.
+            if (mapping == null || mapping.isEmpty) return;
             final r = await notifier.saveMapping(item.id, mapping);
             messenger.snack(queueWriteMessage(l10n, r) ?? l10n.mappingSaved);
             return;

@@ -1,4 +1,5 @@
 import '../../core/api/action_outcome.dart';
+import '../../core/api/api_exceptions.dart';
 import '../../core/models/queue_item.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/server_refusal.dart';
@@ -45,6 +46,11 @@ QueueRemoval queueRemovalFor(
 String? queueWriteMessage(AppLocalizations l10n, ActionOutcome outcome) =>
     outcomeRefusal(l10n, outcome, _rules);
 
+/// [queueWriteMessage] for a caller that holds the exception itself, such as a
+/// queue write made outside the queue's own notifier.
+String queueRefusal(AppLocalizations l10n, AppApiException error) =>
+    serverRefusal(l10n, error, _rules);
+
 /// Five routes, five phrasings of "that is not the status I found", one thing
 /// the user has to do about it. The edit route is here because opening the form
 /// on an item that starts printing behind you refuses exactly this way; the
@@ -59,4 +65,10 @@ final _rules = <RefusalRule>[
     'can only start pending items',
   ])
     ([phrase], (l10n) => l10n.queueRemovalStatusChanged),
+  // Billing on: every create, edit and start needs a cost center
+  // (`finance_budget.py::validate_print_budget`), which the app cannot pick.
+  (
+    ['cost center is required when billing is enabled'],
+    (l10n) => l10n.queueBillingUseWeb,
+  ),
 ];

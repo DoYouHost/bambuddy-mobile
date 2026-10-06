@@ -24,6 +24,7 @@ import '../common/prompt_name_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
 import '../queue/queue_edit_screen.dart';
+import '../queue/queue_removal.dart';
 import '../slicer/slice_providers.dart';
 import '../../data/pipelines_repository.dart' show PipelineSource;
 import '../pipelines/pipeline_run_screen.dart';
@@ -71,8 +72,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   /// was stopped. Unmounted — the screen was left while the request was in
   /// flight — there is neither a messenger nor an `l10n` to resolve, so only
   /// the record is written, marked as one that reached nobody.
-  void _failed(AppApiException e, String action) => mounted
-      ? showApiFailure(_messenger, e, _l10n, action: action)
+  void _failed(AppApiException e, String action, {String? message}) => mounted
+      ? showApiFailure(_messenger, e, _l10n, action: action, message: message)
       : recordActionFailure(e, action: action, shown: false);
 
   @override
@@ -772,7 +773,13 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmAddedToQueue);
     } on AppApiException catch (e) {
-      _failed(e, 'file_actions.queue_variants');
+      // A billing server refuses the job for want of a cost center; the
+      // queue's own wording says what to do about it.
+      _failed(
+        e,
+        'file_actions.queue_variants',
+        message: queueRefusal(_l10n, e),
+      );
     }
   }
 
@@ -805,6 +812,15 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   /// Returns whether anything was queued.
   Future<bool> _queueFiles(List<int> ids, String action) async {
     final repo = ref.read(libraryRepositoryProvider);
+    // This route checks no budget, so on a billing server it would queue a job
+    // without a cost center that can then never start.
+    if (await settledBillingEnabled(
+      ProviderScope.containerOf(context, listen: false),
+    )) {
+      if (mounted) _snack(_l10n.queueBillingUseWeb);
+      return false;
+    }
+    if (!mounted) return false;
     try {
       QueueTarget target = (printerId: null, model: null);
       final canTarget = await settledGate(

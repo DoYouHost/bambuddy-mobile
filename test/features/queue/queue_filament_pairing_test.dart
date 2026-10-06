@@ -90,7 +90,8 @@ void main() {
         'slot_id': 2,
         'type': 'PLA',
         'color': '#00FF00',
-        'color_name': '#00FF00',
+        // The web's `getColorName`: the catalogue's name, else the hue's.
+        'color_name': 'Green',
         'force_color_match': true,
       });
     },

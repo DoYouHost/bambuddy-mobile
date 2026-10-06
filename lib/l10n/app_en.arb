@@ -796,14 +796,6 @@
   "cameraConnecting": "Connecting to camera…",
   "cameraError": "Couldn't load the camera stream",
   "cameraDemoUnavailable": "Camera preview is not available in demo mode",
-  "amsUnit": "AMS {number}",
-  "@amsUnit": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
   "externalSpool": "External spool",
   "traySlotEmpty": "Empty",
   "amsSlotFilament": "Filament",
@@ -3159,18 +3151,186 @@
   },
   "mappingPickTray": "Select AMS slot",
   "mappingExternalSpool": "External spool",
-  "mappingAmsSlot": "AMS {unit} · slot {slot}",
-  "@mappingAmsSlot": {
+  "mappingSaved": "Filament mapping saved",
+  "mappingStatusReady": "Ready",
+  "@mappingStatusReady": {
+    "description": "Filament mapping sheet header: every filament has a slot of its type and color."
+  },
+  "mappingStatusColorMismatch": "Color mismatch",
+  "@mappingStatusColorMismatch": {
+    "description": "Filament mapping sheet header: a filament got a slot of its type but another color."
+  },
+  "mappingStatusTypeNotFound": "Type not found",
+  "@mappingStatusTypeNotFound": {
+    "description": "Filament mapping sheet header: a filament found no slot of its type."
+  },
+  "mappingTapToChange": "Tap a filament to change its slot",
+  "@mappingTapToChange": {
+    "description": "Hint under the filament mapping sheet title."
+  },
+  "mappingExactColor": "Exact color match",
+  "@mappingExactColor": {
+    "description": "Slot picker: the slot holds exactly the color the file asks for."
+  },
+  "mappingSameTypeOtherColor": "Same type, different color: needs {required}, slot has {loaded}",
+  "@mappingSameTypeOtherColor": {
+    "description": "Filament row warning. {required} and {loaded} are color names.",
     "placeholders": {
-      "unit": {
+      "required": {
         "type": "String"
       },
-      "slot": {
+      "loaded": {
         "type": "String"
       }
     }
   },
-  "mappingSaved": "Filament mapping saved",
+  "mappingTypeNotLoaded": "Filament type not loaded",
+  "@mappingTypeNotLoaded": {
+    "description": "Filament row warning: no loaded slot holds this filament type."
+  },
+  "mappingManual": "Picked by hand",
+  "@mappingManual": {
+    "description": "Filament row: the user chose this slot rather than the automatic match. Agrees with \"slot\"."
+  },
+  "mappingRequired": "Required: {name}, {color}",
+  "@mappingRequired": {
+    "description": "Long-press hint on a filament color swatch. {name} is the filament, {color} its color name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "color": {
+        "type": "String"
+      }
+    }
+  },
+  "mappingUseSlicer": "Slicer mapping",
+  "@mappingUseSlicer": {
+    "description": "Filament mapping toggle: take every slot from the mapping the slicer sent with this archived print."
+  },
+  "mappingUseSlicerHint": "Pick every slot from the AMS mapping the slicer saved with this print, instead of matching by type and color.",
+  "@mappingUseSlicerHint": {
+    "description": "Long-press hint on the slicer mapping toggle."
+  },
+  "mappingReRead": "Re-read",
+  "@mappingReRead": {
+    "description": "Filament mapping button: ask the printer to report its AMS again."
+  },
+  "mappingFtsSameInlet": "All filaments for this print are on Filament Track Switch IN-{inlet}. Switching between filaments on the same inlet is slower — move one to an AMS on the other inlet to speed it up.",
+  "@mappingFtsSameInlet": {
+    "description": "Filament mapping warning on a printer with a Filament Track Switch. {inlet} is the inlet letter, A or B.",
+    "placeholders": {
+      "inlet": {
+        "type": "String"
+      }
+    }
+  },
+  "mappingRackPosition": "Rack position",
+  "@mappingRackPosition": {
+    "description": "Title of the sheet that picks which nozzle-rack position (H2C tool changer) prints one filament."
+  },
+  "mappingRackPositionHint": "Which nozzle on the rack prints this filament. Positions are numbered as on the printer.",
+  "@mappingRackPositionHint": {
+    "description": "Tooltip on the rack-position picker in a filament mapping row, and the explanation at the top of its sheet."
+  },
+  "mappingRackNeeds": "This filament needs a {nozzle} nozzle.",
+  "@mappingRackNeeds": {
+    "description": "Top of the rack-position sheet. {nozzle} is a nozzle like \"0.4 High flow\".",
+    "placeholders": {
+      "nozzle": {
+        "type": "String"
+      }
+    }
+  },
+  "mappingRackEmptyPosition": "This rack position is empty",
+  "@mappingRackEmptyPosition": {
+    "description": "Why a rack position cannot be picked: no nozzle is docked there."
+  },
+  "mappingRackWrongNozzle": "Holds a {has} nozzle; this filament needs {needs}",
+  "@mappingRackWrongNozzle": {
+    "description": "Why a rack position cannot be picked. {has} and {needs} are nozzles like \"0.2 Standard\" and \"0.4 High flow\".",
+    "placeholders": {
+      "has": {
+        "type": "String"
+      },
+      "needs": {
+        "type": "String"
+      }
+    }
+  },
+  "mappingRackSlot": "R{position}",
+  "@mappingRackSlot": {
+    "description": "Short name of a nozzle-rack position as the printer numbers it, 1–6 (R1…R6).",
+    "placeholders": {
+      "position": {
+        "type": "int"
+      }
+    }
+  },
+  "colorFamilyRed": "Red",
+  "@colorFamilyRed": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyOrange": "Orange",
+  "@colorFamilyOrange": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyYellow": "Yellow",
+  "@colorFamilyYellow": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyGreen": "Green",
+  "@colorFamilyGreen": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyCyan": "Cyan",
+  "@colorFamilyCyan": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyBlue": "Blue",
+  "@colorFamilyBlue": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyPurple": "Purple",
+  "@colorFamilyPurple": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyPink": "Pink",
+  "@colorFamilyPink": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyBrown": "Brown",
+  "@colorFamilyBrown": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyWhite": "White",
+  "@colorFamilyWhite": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyLightGray": "Light gray",
+  "@colorFamilyLightGray": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyGray": "Gray",
+  "@colorFamilyGray": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyDarkGray": "Dark gray",
+  "@colorFamilyDarkGray": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyBlack": "Black",
+  "@colorFamilyBlack": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyClear": "Clear",
+  "@colorFamilyClear": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyUnknown": "Unknown",
+  "@colorFamilyUnknown": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
   "plateClearTitle": "Is the plate clear?",
   "plateClearBody": "Make sure the build plate is empty before starting this print.",
   "plateClearConfirm": "Plate is clear",
@@ -3441,54 +3601,6 @@
     }
   },
   "queueEditForceColorMatch": "Force color match",
-  "queueEditNozzleRack": "Nozzle rack",
-  "queueEditNozzleRackDesc": "Choose which rack nozzle each filament prints from. Left automatic, a fitting position is picked when the print starts.",
-  "queueEditRackGroupLabel": "Filament {slots} · {nozzle}",
-  "@queueEditRackGroupLabel": {
-    "placeholders": {
-      "slots": {
-        "type": "String"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackAuto": "Automatic",
-  "queueEditRackPosition": "Position {position} · {nozzle}",
-  "@queueEditRackPosition": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackPositionTaken": "Position {position} · {nozzle} — already chosen",
-  "@queueEditRackPositionTaken": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackPositionUnfit": "Position {position} · {nozzle} — does not fit",
-  "@queueEditRackPositionUnfit": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackEmpty": "empty",
   "queueEditRackPickStale": "The chosen position no longer fits this filament — pick another, or the print is refused at start.",
   "queueEditRackNoFit": "No rack position holds a {nozzle} nozzle — fit one, or the printer decides for itself.",
   "@queueEditRackNoFit": {
@@ -4547,5 +4659,221 @@
         "type": "int"
       }
     }
+  },
+  "timeJustNow": "Just now",
+  "@timeJustNow": {
+    "description": "A moment ago, in a list of past events."
+  },
+  "timeNow": "Now",
+  "@timeNow": {
+    "description": "Within a minute from now."
+  },
+  "timeMinutesAgo": "{count} min ago",
+  "@timeMinutesAgo": {
+    "description": "Short relative time in the past.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeInMinutes": "in {count} min",
+  "@timeInMinutes": {
+    "description": "Short relative time in the future.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeHoursAgo": "{count} h ago",
+  "@timeHoursAgo": {
+    "description": "Short relative time in the past.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeInHours": "in {count} h",
+  "@timeInHours": {
+    "description": "Short relative time in the future.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeDaysAgo": "{count, plural, =1{1 day ago} other{{count} days ago}}",
+  "@timeDaysAgo": {
+    "description": "Short relative time in the past.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeInDays": "{count, plural, =1{in 1 day} other{in {count} days}}",
+  "@timeInDays": {
+    "description": "Short relative time in the future.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueHistory": "History",
+  "@queueHistory": {
+    "description": "Tab and heading of finished, failed, skipped and cancelled queue items."
+  },
+  "queueItemCount": "{count, plural, =1{1 item} other{{count} items}}",
+  "@queueItemCount": {
+    "description": "How many items a list holds.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueHistoryEmpty": "No history yet. Completed, cancelled and failed prints will appear here.",
+  "@queueHistoryEmpty": {
+    "description": "Empty queue history."
+  },
+  "queueHistoryShowMore": "Show more",
+  "@queueHistoryShowMore": {
+    "description": "Button under the queue history that shows the next page of items."
+  },
+  "queueHistoryShowing": "Showing {shown} of {total}",
+  "@queueHistoryShowing": {
+    "description": "Under the queue history: how many items are on screen out of all of them.",
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "queueHistorySort": "Sort",
+  "@queueHistorySort": {
+    "description": "Menu that orders the queue history."
+  },
+  "queueHistorySortDate": "By date",
+  "@queueHistorySortDate": {
+    "description": "Order the queue history by when each item finished."
+  },
+  "queueHistorySortName": "By name",
+  "@queueHistorySortName": {
+    "description": "Order the queue history by file name."
+  },
+  "queueHistorySortPrinter": "By printer",
+  "@queueHistorySortPrinter": {
+    "description": "Order the queue history by printer name."
+  },
+  "queueHistoryNewestFirst": "Newest first",
+  "@queueHistoryNewestFirst": {
+    "description": "Queue history order: newest first."
+  },
+  "queueHistoryOldestFirst": "Oldest first",
+  "@queueHistoryOldestFirst": {
+    "description": "Queue history order: oldest first."
+  },
+  "queueHistoryClear": "Clear history",
+  "@queueHistoryClear": {
+    "description": "Button that removes every item from the queue history."
+  },
+  "queueHistoryClearTitle": "Clear history",
+  "@queueHistoryClearTitle": {
+    "description": "Title of the confirmation before clearing the queue history."
+  },
+  "queueHistoryClearMessage": "{count, plural, =1{Remove 1 item from the history?} other{Remove all {count} items from the history?}}",
+  "@queueHistoryClearMessage": {
+    "description": "Confirmation before clearing the queue history.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueHistoryCleared": "{count, plural, =1{Cleared 1 history item.} other{Cleared {count} history items.}}",
+  "@queueHistoryCleared": {
+    "description": "After clearing the queue history.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueHistoryKeptForOrders": "Kept {kept} that batch orders still need.",
+  "@queueHistoryKeptForOrders": {
+    "description": "After clearing the queue history: items the server kept because a batch order can still re-queue its plate from them.",
+    "placeholders": {
+      "kept": {
+        "type": "int"
+      }
+    }
+  },
+  "queueHistoryClearFailed": "Could not clear the history.",
+  "@queueHistoryClearFailed": {
+    "description": "Clearing the queue history failed."
+  },
+  "queueHistoryNoClear": "You do not have permission to clear all history",
+  "@queueHistoryNoClear": {
+    "description": "Why clearing the queue history is unavailable."
+  },
+  "queueHistoryRequeue": "Re-queue",
+  "@queueHistoryRequeue": {
+    "description": "Button on a queue history item that queues the same file again."
+  },
+  "queueHistoryNoRequeue": "You do not have permission to re-queue items",
+  "@queueHistoryNoRequeue": {
+    "description": "Why re-queueing is unavailable."
+  },
+  "queueHistoryRemove": "Remove",
+  "@queueHistoryRemove": {
+    "description": "Button on a queue history item that removes it."
+  },
+  "queueHistoryNoRemove": "You do not have permission to remove this queue item",
+  "@queueHistoryNoRemove": {
+    "description": "Why removing a queue history item is unavailable."
+  },
+  "queueHistoryRemoveTitle": "Remove from history",
+  "@queueHistoryRemoveTitle": {
+    "description": "Title of the confirmation before removing one queue history item."
+  },
+  "queueHistoryRemoveMessage": "Remove “{name}” from the queue history?",
+  "@queueHistoryRemoveMessage": {
+    "description": "Confirmation before removing one queue history item. {name} is the file name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "queueHistoryAddedBy": "Added by {name}",
+  "@queueHistoryAddedBy": {
+    "description": "Who put a queue item in the queue.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "queueHistoryBatch": "Batch",
+  "@queueHistoryBatch": {
+    "description": "Name of a batch of queue items that has none of its own."
+  },
+  "queueHistoryRemoved": "Queue item removed",
+  "@queueHistoryRemoved": {
+    "description": "After removing one queue history item."
+  },
+  "queueHistoryKeptForOrder": "Cancelled instead of removed: this is the only run its batch order can re-queue this plate from",
+  "@queueHistoryKeptForOrder": {
+    "description": "After removing a queue history item the server kept, cancelled, because its batch order can only re-queue the plate from it."
+  },
+  "queueBillingUseWeb": "Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.",
+  "@queueBillingUseWeb": {
+    "description": "Shown on the print-job form, and in place of the server refusal on create, edit or start, when the server enforces cost-center billing, which the app does not support yet."
   }
 }

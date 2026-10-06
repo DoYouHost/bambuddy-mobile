@@ -1,5 +1,7 @@
 import 'package:bambuddy_mobile/core/models/calibration_option.dart';
+import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/plate_list.dart';
+import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/core/settings/print_options.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
@@ -38,6 +40,20 @@ const _mapped = QueueItem(
   slicedForModel: 'X2D',
   plateId: 1,
   amsMapping: [2, 0],
+);
+
+/// Red PLA in the first and third slot of AMS 0.
+const _redsInSlots = PrinterStatus(
+  id: 1,
+  ams: [
+    AmsUnit(
+      id: 0,
+      trays: [
+        AmsTray(id: 0, trayType: 'PLA', trayColor: 'FF0000FF'),
+        AmsTray(id: 2, trayType: 'PLA', trayColor: 'FF0000FF'),
+      ],
+    ),
+  ],
 );
 
 void main() {
@@ -114,16 +130,40 @@ void main() {
 
   // Guards the test above: without a plate change the same form does send the
   // mapping, so its absence there is the reset and not just an empty form.
-  testWidgets('an untouched plate keeps the mapping it was opened with', (
+  testWidgets('an untouched plate starts from the mapping it was opened with', (
     tester,
   ) async {
-    await tester.pumpWidget(queueFormScreen(_mapped, plates: _threePlates()));
+    // Matched again on save, as the web's `getMappingForPrinter`, with the
+    // stored picks as manual ones — both still loaded, so both stand.
+    await tester.pumpWidget(
+      queueFormScreen(
+        _mapped,
+        plates: _threePlates(),
+        requirements: const [
+          FilamentRequirement(slotId: 1, type: 'PLA', color: '#FF0000'),
+          FilamentRequirement(slotId: 2, type: 'PLA', color: '#FF0000'),
+        ],
+        live: {1: _redsInSlots},
+      ),
+    );
     await tester.pumpAndSettle();
 
     await submitQueueForm(tester);
 
     expect(capturedBody?['ams_mapping'], [2, 0]);
     expect(capturedBody?['plate_id'], 1);
+  });
+
+  testWidgets('a printer reporting no loaded slot gets no mapping', (
+    tester,
+  ) async {
+    // The web sends none then, rather than one it cannot check.
+    await tester.pumpWidget(queueFormScreen(_mapped, plates: _threePlates()));
+    await tester.pumpAndSettle();
+
+    await submitQueueForm(tester);
+
+    expect(capturedBody?.containsKey('ams_mapping'), isFalse);
   });
 
   testWidgets('add to queue: the item is created staged and does not jump', (

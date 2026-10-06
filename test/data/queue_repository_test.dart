@@ -880,4 +880,82 @@ void main() {
       await repo.addCrossModel([7, 8]);
     });
   });
+
+  group('history', () {
+    test('asks for each finished status and keeps every answer', () async {
+      for (final (id, status) in const [
+        (1, 'completed'),
+        (2, 'failed'),
+        (3, 'skipped'),
+        (4, 'cancelled'),
+      ]) {
+        adapter.onGet(
+          '/api/v1/queue/',
+          (server) => server.reply(200, [
+            {
+              'id': id,
+              'position': 1,
+              'status': status,
+              if (status == 'failed')
+                'error_message': 'Nozzle rack pick no longer fits the printer',
+              'created_by_username': 'ola',
+            },
+          ]),
+          queryParameters: {'status': status},
+        );
+      }
+
+      final items = await repo.fetchHistory();
+
+      expect(items.map((i) => i.id).toSet(), {1, 2, 3, 4});
+      final failed = items.singleWhere((i) => i.id == 2);
+      expect(failed.errorMessage, startsWith('Nozzle rack pick'));
+      expect(failed.createdByUsername, 'ola');
+      expect(
+        items.singleWhere((i) => i.id == 3).statusKind,
+        QueueItemStatusKind.skipped,
+      );
+    });
+
+    test('a delete the server turned into a cancel says so', () async {
+      adapter
+        ..onDelete(
+          '/api/v1/queue/5',
+          (server) => server.reply(200, {
+            'message': 'Item cancelled',
+            'deleted': false,
+          }),
+        )
+        ..onDelete(
+          '/api/v1/queue/6',
+          (server) => server.reply(200, {'message': 'Queue item deleted'}),
+        );
+
+      expect(await repo.delete(5), isFalse);
+      expect(await repo.delete(6), isTrue);
+    });
+  });
+
+  test('a refused create keeps the server\'s reason', () async {
+    // A billing server's 400 names the missing cost center; without the
+    // detail the user reads "error 400" and nothing else (#3256).
+    adapter.onPost(
+      '/api/v1/queue/',
+      (server) => server.reply(400, {
+        'detail': 'Cost center is required when billing is enabled',
+      }),
+      data: Matchers.any,
+    );
+
+    await expectLater(
+      repo.addFromLibraryFile(1),
+      throwsA(
+        isA<AppApiException>().having(
+          (e) => e.detail,
+          'detail',
+          'Cost center is required when billing is enabled',
+        ),
+      ),
+    );
+  });
 }

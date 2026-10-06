@@ -594,6 +594,21 @@ class SpoolmanInventorySource implements SpoolInventorySource {
 
   final Dio _dio;
 
+  /// Tag (upper case) → linked spool, as the web keys it.
+  Future<Map<String, LinkedSpool>> fetchLinkedSpools() async {
+    final body = await guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.spoolmanLinkedSpools,
+      );
+      return res.data ?? const <String, dynamic>{};
+    });
+    return {
+      if (body['linked'] case final Map<String, dynamic> linked)
+        for (final MapEntry(:key, :value) in linked.entries)
+          if (value is Map<String, dynamic>) key: LinkedSpool.fromJson(value),
+    };
+  }
+
   @override
   Future<List<Spool>> fetchSpools({bool includeArchived = false}) async {
     final body = await guard(() async {

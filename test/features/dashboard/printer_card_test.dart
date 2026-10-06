@@ -69,13 +69,13 @@ const _runoutWithActions = HmsError(
 /// the printer-side actions above that list, so it stays empty and offline.
 class _EmptyInventory extends InventoryNotifier {
   @override
-  Future<InventoryState> build() async => const InventoryState();
+  Future<InventoryState> build() async => InventoryState();
 }
 
 /// A stocked shelf, for the half of the sheet that offers spools.
 class _StockedInventory extends InventoryNotifier {
   @override
-  Future<InventoryState> build() async => const InventoryState(
+  Future<InventoryState> build() async => InventoryState(
     spools: [
       Spool(id: 14, material: 'PLA', subtype: 'Basic', brand: 'Anycubic'),
       Spool(id: 13, material: 'PLA', subtype: 'Matte', brand: 'Bambu'),
@@ -101,17 +101,47 @@ class _AssignedInventory extends InventoryNotifier {
   );
 
   @override
-  Future<InventoryState> build() async => const InventoryState(
+  Future<InventoryState> build() async => InventoryState(
     spools: [spool],
-    assignmentBySpool: {
-      42: SpoolAssignment(
+    assignments: [
+      SpoolAssignment(
         spoolId: 42,
         printerId: 1,
         amsId: 0,
         trayId: 0,
         printerName: 'X2D-3DP',
       ),
-    },
+    ],
+  );
+}
+
+/// A part-used spool in the fixture's PLA slot (AMS 0, tray 3) and another on
+/// the left side of the external holder.
+class _WeighedInventory extends InventoryNotifier {
+  @override
+  Future<InventoryState> build() async => InventoryState(
+    spools: [
+      Spool(id: 1, material: 'PLA', labelWeight: 1000, weightUsed: 898),
+      Spool(id: 2, material: 'TPU', labelWeight: 500, weightUsed: 250),
+    ],
+    assignments: [
+      SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
+      SpoolAssignment(spoolId: 2, printerId: 1, amsId: 255, trayId: 0),
+    ],
+  );
+}
+
+/// A spool whose counter says it is empty, in the slot the AMS reads at 66%.
+class _SpentInventory extends InventoryNotifier {
+  @override
+  Future<InventoryState> build() async => InventoryState(
+    // 0.4 g left: 0% and "0 g" both, without being exactly zero.
+    spools: [
+      Spool(id: 1, material: 'PLA', labelWeight: 1000, weightUsed: 999.6),
+    ],
+    assignments: [
+      SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
+    ],
   );
 }
 
@@ -119,7 +149,7 @@ class _AssignedInventory extends InventoryNotifier {
 /// for which of the two the slot shows.
 class _PinnedOverTagInventory extends InventoryNotifier {
   @override
-  Future<InventoryState> build() async => const InventoryState(
+  Future<InventoryState> build() async => InventoryState(
     spools: [
       _AssignedInventory.spool,
       Spool(
@@ -130,9 +160,11 @@ class _PinnedOverTagInventory extends InventoryNotifier {
         tagUid: 'a1b2c3d4e5f60708',
       ),
     ],
-    assignmentBySpool: {
-      42: SpoolAssignment(spoolId: 42, printerId: 1, amsId: 0, trayId: 0),
-    },
+    assignments: [
+      SpoolAssignment(spoolId: 42, printerId: 1, amsId: 0, trayId: 0),
+    ],
+    // What `/spoolman/spools/linked` says of a tagged spool.
+    linkedTags: const {'A1B2C3D4E5F60708': LinkedSpool(id: 21)},
   );
 }
 
@@ -140,7 +172,7 @@ class _PinnedOverTagInventory extends InventoryNotifier {
 /// sheet must offer to pick it rather than to create a second row for it.
 class _TaggedInventory extends InventoryNotifier {
   @override
-  Future<InventoryState> build() async => const InventoryState(
+  Future<InventoryState> build() async => InventoryState(
     spools: [
       Spool(
         id: 21,
@@ -150,6 +182,8 @@ class _TaggedInventory extends InventoryNotifier {
         tagUid: 'a1b2c3d4e5f60708',
       ),
     ],
+    // What `/spoolman/spools/linked` says of it, read in Spoolman mode.
+    linkedTags: const {'A1B2C3D4E5F60708': LinkedSpool(id: 21)},
   );
 }
 
@@ -159,7 +193,7 @@ class _RecordingInventory extends InventoryNotifier {
   static final calls = <String>[];
 
   @override
-  Future<InventoryState> build() async => const InventoryState();
+  Future<InventoryState> build() async => InventoryState();
 
   @override
   Future<int?> createSpoolFromSlot(int printerId, int amsId, int trayId) async {
@@ -178,7 +212,7 @@ class _RefusingInventory extends InventoryNotifier {
   );
 
   @override
-  Future<InventoryState> build() async => const InventoryState();
+  Future<InventoryState> build() async => InventoryState();
 
   @override
   Future<int?> createSpoolFromSlot(int printerId, int amsId, int trayId) async {
@@ -663,11 +697,14 @@ void main() {
     /// [tagged] writes an RFID tag onto the first slot of AMS 1. The capture
     /// this fixture comes from has none — the printer runs third-party spools
     /// — and a tag is what the "add to inventory" affordance hangs off.
-    PrinterWithStatus realItem({bool tagged = false}) {
+    PrinterWithStatus realItem({bool tagged = false, bool oneHolder = false}) {
       final frame =
           readFixture('ws_printer_status.json') as Map<String, dynamic>;
       final data = Map<String, dynamic>.from(frame['data'] as Map);
       data['id'] = frame['printer_id'];
+      if (oneHolder) {
+        data['vt_tray'] = [(data['vt_tray'] as List).first];
+      }
       // The cover thumbnail (network) is tested separately — we remove it here
       // to isolate the AMS section and not wait for an HTTP request in the test.
       data.remove('cover_url');
@@ -700,7 +737,7 @@ void main() {
 
       // Collapsed: there's a "Details" toggle, no AMS content.
       expect(find.text('Szczegóły'), findsOneWidget);
-      expect(find.text('AMS 1'), findsNothing);
+      expect(find.text('AMS-A'), findsNothing);
 
       // The card is tall — make sure the toggle is visible before tapping.
       await tester.ensureVisible(find.text('Szczegóły'));
@@ -712,7 +749,7 @@ void main() {
 
       // Expanded: AMS, external spool and metadata visible.
       expect(find.text('Ukryj szczegóły'), findsOneWidget);
-      expect(find.text('AMS 1'), findsOneWidget);
+      expect(find.text('AMS-A'), findsOneWidget);
       expect(find.text('SZPULA ZEWNĘTRZNA'), findsOneWidget);
       // Filament row: material and remaining amount as separate texts.
       expect(find.text('PLA Basic'), findsWidgets);
@@ -720,6 +757,82 @@ void main() {
       // Connectivity metadata.
       expect(find.textContaining('-59 dBm'), findsOneWidget);
       expect(find.text('DRZWICZKI ZAMKNIĘTE'), findsOneWidget);
+    });
+
+    testWidgets('a lone 254 holder on a two-nozzle printer is the left one', (
+      tester,
+    ) async {
+      // The server can hold a single `vt_tray` until `vir_slot` arrives; the
+      // web labels by the id alone (`PrintersPage.tsx`), where the app used to
+      // call the only holder the right one.
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(
+              child: PrinterCard(item: realItem(oneHolder: true)),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.textContaining('L · '), findsOneWidget);
+      expect(find.textContaining('P · '), findsNothing);
+    });
+
+    testWidgets('a slot with a spool reads its fill from the spool', (
+      tester,
+    ) async {
+      // The AMS reports 66% for the PLA in slot 4, but only a tagged Bambu
+      // spool gives it anything to measure — without one it says 100% for
+      // ever (issue #5). The spool's own weight is what the web shows.
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+          ),
+          extra: [inventoryProvider.overrideWith(_WeighedInventory.new)],
+        ),
+      );
+      await tester.pump();
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.text('10% · 102 g'), findsOneWidget);
+      expect(find.text('66%'), findsNothing);
+      // The holder reports no fill of its own, so it had nothing to show
+      // until a spool sat on it.
+      expect(find.text('50% · 250 g'), findsOneWidget);
+    });
+
+    testWidgets('a spool at 0 g the AMS still sees shows only the AMS fill', (
+      tester,
+    ) async {
+      // Server #676: the counter ran past the spool while filament is still
+      // in the slot. The fill falls back to the AMS's 66%, and "66% · 0 g"
+      // would say two opposite things.
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+          ),
+          extra: [inventoryProvider.overrideWith(_SpentInventory.new)],
+        ),
+      );
+      await tester.pump();
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.text('66%'), findsOneWidget);
+      expect(find.textContaining('0 g'), findsNothing);
     });
 
     testWidgets(

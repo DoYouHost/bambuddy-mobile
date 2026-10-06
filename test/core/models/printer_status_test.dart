@@ -288,9 +288,9 @@ void main() {
       expect(status.activeExtruder, 1);
       expect(status.amsExtruderMap, {0: 1});
       expect(
-        status.isDualExtruder,
+        status.isDualNozzle(null),
         isTrue,
-        reason: 'two external spools → dual-extruder machine',
+        reason: 'the X2D capture reports a second nozzle temperature',
       );
     });
 
@@ -842,19 +842,20 @@ void main() {
   });
 
   group('slot addressing', () {
-    test('a single external holder feeds the only nozzle there is', () {
-      // One holder means one nozzle, and that one is extruder 0 — the inverted
-      // 254/255 pair only describes a dual-head machine.
-      final single = PrinterStatus.fromJson(const {
+    test('a holder\'s side is its id, however many the report carries', () {
+      // A two-nozzle printer can report one holder for a while — the server
+      // keeps a lone `vt_tray` until `vir_slot` arrives (`bambu_mqtt.py`) —
+      // and 254 is still the left one, as on the web.
+      final one = PrinterStatus.fromJson(const {
         'id': 1,
         'vt_tray': [
           {'id': 254, 'tray_type': 'PLA'},
         ],
       });
 
-      expect(single.extruderForExternal(254), 0);
+      expect(one.extruderForExternal(254), 1);
       expect(
-        single.extruderForExternal(255),
+        one.extruderForExternal(255),
         isNull,
         reason: 'a spool this printer does not report',
       );
@@ -1050,11 +1051,24 @@ void main() {
       expect(offline.amsSwitchInlet, {0: 'B'});
     });
 
-    test('an FTS machine still counts as dual-extruder', () {
-      // Its AMS units drop out of `ams_extruder_map`, which used to be the
-      // signal — losing it hid the extruder badges and the side labels.
-      expect(withInlets({'0': 'A'}).isDualExtruder, isTrue);
-      expect(withInlets(const {}).isDualExtruder, isFalse);
+    test('two nozzles is the web\'s rule: nozzle_count or nozzle_2', () {
+      // `PrintersPage.tsx`: the printer row's nozzle count, or a second nozzle
+      // temperature. An FTS inlet map or a second holder is not part of it.
+      expect(withInlets({'0': 'A'}).isDualNozzle(2), isTrue);
+      expect(withInlets({'0': 'A'}).isDualNozzle(1), isFalse);
+      final secondTemp = PrinterStatus.fromJson(const {
+        'id': 1,
+        'temperatures': {'nozzle': 200.0, 'nozzle_2': 25.0},
+      });
+      expect(secondTemp.isDualNozzle(null), isTrue);
+      final twoHolders = PrinterStatus.fromJson(const {
+        'id': 1,
+        'vt_tray': [
+          {'id': 254},
+          {'id': 255},
+        ],
+      });
+      expect(twoHolders.isDualNozzle(1), isFalse);
     });
 
     test('an emptied binding wins over the last known one', () {

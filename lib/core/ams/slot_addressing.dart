@@ -51,6 +51,57 @@ int globalTrayId({required int amsId, required int trayId}) {
   return amsId * 4 + trayId;
 }
 
+/// Unit id the backend gives an A2L's AMS Lite (its physical 16, normalised at
+/// ingest). No regular AMS uses it.
+const amsLiteUnit = 6;
+
+/// The unit's name as the web names it (`amsHelpers.ts::getAmsLabel`): AMS-A,
+/// AMS-B… by unit id, HT-A… for an AMS-HT. Product names, so not localised;
+/// the external holder is the caller's to name.
+String amsUnitName(int amsId) {
+  assert(!isExternalHolder(amsId), 'the external holder has no unit name');
+  if (amsId == amsLiteUnit) return 'AMS Lite';
+  final ht = amsId >= amsHtUnitBase;
+  final letter = String.fromCharCode(
+    0x41 + (ht ? amsId - amsHtUnitBase : amsId),
+  );
+  return ht ? 'HT-$letter' : 'AMS-$letter';
+}
+
+/// "AMS-A · 2". An AMS-HT holds a single tray, so its unit name is the whole
+/// label. [unit] overrides the generated name with the user's own.
+String amsSlotName(int amsId, int trayId, {String? unit}) {
+  unit ??= amsUnitName(amsId);
+  return amsId >= amsHtUnitBase ? unit : '$unit · ${trayId + 1}';
+}
+
+/// `formatSlotLabel`, the slot names of the web's mapping dialog: `A1` for
+/// AMS A slot 1, `HT-A` for an AMS-HT. The external holder is the caller's
+/// to name (`Ext-L`/`Ext-R`/`External`).
+String formatSlotLabel(int amsId, int trayId, {required bool isHt}) {
+  final letter = String.fromCharCode(
+    0x41 + (amsId >= amsHtUnitBase ? amsId - amsHtUnitBase : amsId),
+  );
+  return isHt ? 'HT-$letter' : '$letter${trayId + 1}';
+}
+
+/// The tag bambuddy links a spool without RFID to a slot by, in Spoolman's
+/// `extra.tag`: a 32-bit FNV-1a of the serial, then the unit and the tray as
+/// four hex digits each. Byte for byte `amsHelpers.ts::getFallbackSpoolTag`
+/// and `spoolman_tracking.py::get_fallback_spool_tag_for_slot`, which must
+/// agree for the web to find the spool. Null without a serial, as the server.
+String? fallbackSpoolTag(String? serial, int amsId, int trayId) {
+  final input = (serial ?? '').trim().toUpperCase();
+  if (input.isEmpty) return null;
+  var hash = 0x811c9dc5;
+  for (final unit in input.codeUnits) {
+    hash = ((hash ^ unit) * 0x01000193) & 0xffffffff;
+  }
+  String hex(int value, int width) =>
+      value.toRadixString(16).toUpperCase().padLeft(width, '0');
+  return '${hex(hash, 8)}${hex(amsId, 4)}${hex(trayId, 4)}';
+}
+
 /// The inverse of [globalTrayId], for labelling a slot picked by its global id.
 ({int amsId, int trayId}) localSlotOf(int global) {
   final side = externalSideOf(global);

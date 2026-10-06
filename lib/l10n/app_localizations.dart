@@ -2318,12 +2318,6 @@ abstract class AppLocalizations {
   /// **'Camera preview is not available in demo mode'**
   String get cameraDemoUnavailable;
 
-  /// No description provided for @amsUnit.
-  ///
-  /// In en, this message translates to:
-  /// **'AMS {number}'**
-  String amsUnit(int number);
-
   /// No description provided for @externalSpool.
   ///
   /// In en, this message translates to:
@@ -8816,17 +8810,221 @@ abstract class AppLocalizations {
   /// **'External spool'**
   String get mappingExternalSpool;
 
-  /// No description provided for @mappingAmsSlot.
-  ///
-  /// In en, this message translates to:
-  /// **'AMS {unit} · slot {slot}'**
-  String mappingAmsSlot(String unit, String slot);
-
   /// No description provided for @mappingSaved.
   ///
   /// In en, this message translates to:
   /// **'Filament mapping saved'**
   String get mappingSaved;
+
+  /// Filament mapping sheet header: every filament has a slot of its type and color.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get mappingStatusReady;
+
+  /// Filament mapping sheet header: a filament got a slot of its type but another color.
+  ///
+  /// In en, this message translates to:
+  /// **'Color mismatch'**
+  String get mappingStatusColorMismatch;
+
+  /// Filament mapping sheet header: a filament found no slot of its type.
+  ///
+  /// In en, this message translates to:
+  /// **'Type not found'**
+  String get mappingStatusTypeNotFound;
+
+  /// Hint under the filament mapping sheet title.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a filament to change its slot'**
+  String get mappingTapToChange;
+
+  /// Slot picker: the slot holds exactly the color the file asks for.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact color match'**
+  String get mappingExactColor;
+
+  /// Filament row warning. {required} and {loaded} are color names.
+  ///
+  /// In en, this message translates to:
+  /// **'Same type, different color: needs {required}, slot has {loaded}'**
+  String mappingSameTypeOtherColor(String required, String loaded);
+
+  /// Filament row warning: no loaded slot holds this filament type.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament type not loaded'**
+  String get mappingTypeNotLoaded;
+
+  /// Filament row: the user chose this slot rather than the automatic match. Agrees with "slot".
+  ///
+  /// In en, this message translates to:
+  /// **'Picked by hand'**
+  String get mappingManual;
+
+  /// Long-press hint on a filament color swatch. {name} is the filament, {color} its color name.
+  ///
+  /// In en, this message translates to:
+  /// **'Required: {name}, {color}'**
+  String mappingRequired(String name, String color);
+
+  /// Filament mapping toggle: take every slot from the mapping the slicer sent with this archived print.
+  ///
+  /// In en, this message translates to:
+  /// **'Slicer mapping'**
+  String get mappingUseSlicer;
+
+  /// Long-press hint on the slicer mapping toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick every slot from the AMS mapping the slicer saved with this print, instead of matching by type and color.'**
+  String get mappingUseSlicerHint;
+
+  /// Filament mapping button: ask the printer to report its AMS again.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-read'**
+  String get mappingReRead;
+
+  /// Filament mapping warning on a printer with a Filament Track Switch. {inlet} is the inlet letter, A or B.
+  ///
+  /// In en, this message translates to:
+  /// **'All filaments for this print are on Filament Track Switch IN-{inlet}. Switching between filaments on the same inlet is slower — move one to an AMS on the other inlet to speed it up.'**
+  String mappingFtsSameInlet(String inlet);
+
+  /// Title of the sheet that picks which nozzle-rack position (H2C tool changer) prints one filament.
+  ///
+  /// In en, this message translates to:
+  /// **'Rack position'**
+  String get mappingRackPosition;
+
+  /// Tooltip on the rack-position picker in a filament mapping row, and the explanation at the top of its sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Which nozzle on the rack prints this filament. Positions are numbered as on the printer.'**
+  String get mappingRackPositionHint;
+
+  /// Top of the rack-position sheet. {nozzle} is a nozzle like "0.4 High flow".
+  ///
+  /// In en, this message translates to:
+  /// **'This filament needs a {nozzle} nozzle.'**
+  String mappingRackNeeds(String nozzle);
+
+  /// Why a rack position cannot be picked: no nozzle is docked there.
+  ///
+  /// In en, this message translates to:
+  /// **'This rack position is empty'**
+  String get mappingRackEmptyPosition;
+
+  /// Why a rack position cannot be picked. {has} and {needs} are nozzles like "0.2 Standard" and "0.4 High flow".
+  ///
+  /// In en, this message translates to:
+  /// **'Holds a {has} nozzle; this filament needs {needs}'**
+  String mappingRackWrongNozzle(String has, String needs);
+
+  /// Short name of a nozzle-rack position as the printer numbers it, 1–6 (R1…R6).
+  ///
+  /// In en, this message translates to:
+  /// **'R{position}'**
+  String mappingRackSlot(int position);
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get colorFamilyRed;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get colorFamilyOrange;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow'**
+  String get colorFamilyYellow;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get colorFamilyGreen;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyan'**
+  String get colorFamilyCyan;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get colorFamilyBlue;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get colorFamilyPurple;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get colorFamilyPink;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Brown'**
+  String get colorFamilyBrown;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'White'**
+  String get colorFamilyWhite;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Light gray'**
+  String get colorFamilyLightGray;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Gray'**
+  String get colorFamilyGray;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark gray'**
+  String get colorFamilyDarkGray;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Black'**
+  String get colorFamilyBlack;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get colorFamilyClear;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get colorFamilyUnknown;
 
   /// No description provided for @plateClearTitle.
   ///
@@ -9673,54 +9871,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Force color match'**
   String get queueEditForceColorMatch;
-
-  /// No description provided for @queueEditNozzleRack.
-  ///
-  /// In en, this message translates to:
-  /// **'Nozzle rack'**
-  String get queueEditNozzleRack;
-
-  /// No description provided for @queueEditNozzleRackDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose which rack nozzle each filament prints from. Left automatic, a fitting position is picked when the print starts.'**
-  String get queueEditNozzleRackDesc;
-
-  /// No description provided for @queueEditRackGroupLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Filament {slots} · {nozzle}'**
-  String queueEditRackGroupLabel(String slots, String nozzle);
-
-  /// No description provided for @queueEditRackAuto.
-  ///
-  /// In en, this message translates to:
-  /// **'Automatic'**
-  String get queueEditRackAuto;
-
-  /// No description provided for @queueEditRackPosition.
-  ///
-  /// In en, this message translates to:
-  /// **'Position {position} · {nozzle}'**
-  String queueEditRackPosition(int position, String nozzle);
-
-  /// No description provided for @queueEditRackPositionTaken.
-  ///
-  /// In en, this message translates to:
-  /// **'Position {position} · {nozzle} — already chosen'**
-  String queueEditRackPositionTaken(int position, String nozzle);
-
-  /// No description provided for @queueEditRackPositionUnfit.
-  ///
-  /// In en, this message translates to:
-  /// **'Position {position} · {nozzle} — does not fit'**
-  String queueEditRackPositionUnfit(int position, String nozzle);
-
-  /// No description provided for @queueEditRackEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'empty'**
-  String get queueEditRackEmpty;
 
   /// No description provided for @queueEditRackPickStale.
   ///
@@ -12475,6 +12625,228 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} archived'**
   String inventorySupplierArchivedCount(int count);
+
+  /// A moment ago, in a list of past events.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get timeJustNow;
+
+  /// Within a minute from now.
+  ///
+  /// In en, this message translates to:
+  /// **'Now'**
+  String get timeNow;
+
+  /// Short relative time in the past.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min ago'**
+  String timeMinutesAgo(int count);
+
+  /// Short relative time in the future.
+  ///
+  /// In en, this message translates to:
+  /// **'in {count} min'**
+  String timeInMinutes(int count);
+
+  /// Short relative time in the past.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} h ago'**
+  String timeHoursAgo(int count);
+
+  /// Short relative time in the future.
+  ///
+  /// In en, this message translates to:
+  /// **'in {count} h'**
+  String timeInHours(int count);
+
+  /// Short relative time in the past.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day ago} other{{count} days ago}}'**
+  String timeDaysAgo(int count);
+
+  /// Short relative time in the future.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{in 1 day} other{in {count} days}}'**
+  String timeInDays(int count);
+
+  /// Tab and heading of finished, failed, skipped and cancelled queue items.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get queueHistory;
+
+  /// How many items a list holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item} other{{count} items}}'**
+  String queueItemCount(int count);
+
+  /// Empty queue history.
+  ///
+  /// In en, this message translates to:
+  /// **'No history yet. Completed, cancelled and failed prints will appear here.'**
+  String get queueHistoryEmpty;
+
+  /// Button under the queue history that shows the next page of items.
+  ///
+  /// In en, this message translates to:
+  /// **'Show more'**
+  String get queueHistoryShowMore;
+
+  /// Under the queue history: how many items are on screen out of all of them.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {shown} of {total}'**
+  String queueHistoryShowing(int shown, int total);
+
+  /// Menu that orders the queue history.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get queueHistorySort;
+
+  /// Order the queue history by when each item finished.
+  ///
+  /// In en, this message translates to:
+  /// **'By date'**
+  String get queueHistorySortDate;
+
+  /// Order the queue history by file name.
+  ///
+  /// In en, this message translates to:
+  /// **'By name'**
+  String get queueHistorySortName;
+
+  /// Order the queue history by printer name.
+  ///
+  /// In en, this message translates to:
+  /// **'By printer'**
+  String get queueHistorySortPrinter;
+
+  /// Queue history order: newest first.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest first'**
+  String get queueHistoryNewestFirst;
+
+  /// Queue history order: oldest first.
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest first'**
+  String get queueHistoryOldestFirst;
+
+  /// Button that removes every item from the queue history.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear history'**
+  String get queueHistoryClear;
+
+  /// Title of the confirmation before clearing the queue history.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear history'**
+  String get queueHistoryClearTitle;
+
+  /// Confirmation before clearing the queue history.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Remove 1 item from the history?} other{Remove all {count} items from the history?}}'**
+  String queueHistoryClearMessage(int count);
+
+  /// After clearing the queue history.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Cleared 1 history item.} other{Cleared {count} history items.}}'**
+  String queueHistoryCleared(int count);
+
+  /// After clearing the queue history: items the server kept because a batch order can still re-queue its plate from them.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept {kept} that batch orders still need.'**
+  String queueHistoryKeptForOrders(int kept);
+
+  /// Clearing the queue history failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not clear the history.'**
+  String get queueHistoryClearFailed;
+
+  /// Why clearing the queue history is unavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to clear all history'**
+  String get queueHistoryNoClear;
+
+  /// Button on a queue history item that queues the same file again.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-queue'**
+  String get queueHistoryRequeue;
+
+  /// Why re-queueing is unavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to re-queue items'**
+  String get queueHistoryNoRequeue;
+
+  /// Button on a queue history item that removes it.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get queueHistoryRemove;
+
+  /// Why removing a queue history item is unavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to remove this queue item'**
+  String get queueHistoryNoRemove;
+
+  /// Title of the confirmation before removing one queue history item.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from history'**
+  String get queueHistoryRemoveTitle;
+
+  /// Confirmation before removing one queue history item. {name} is the file name.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove “{name}” from the queue history?'**
+  String queueHistoryRemoveMessage(String name);
+
+  /// Who put a queue item in the queue.
+  ///
+  /// In en, this message translates to:
+  /// **'Added by {name}'**
+  String queueHistoryAddedBy(String name);
+
+  /// Name of a batch of queue items that has none of its own.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch'**
+  String get queueHistoryBatch;
+
+  /// After removing one queue history item.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue item removed'**
+  String get queueHistoryRemoved;
+
+  /// After removing a queue history item the server kept, cancelled, because its batch order can only re-queue the plate from it.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled instead of removed: this is the only run its batch order can re-queue this plate from'**
+  String get queueHistoryKeptForOrder;
+
+  /// Shown on the print-job form, and in place of the server refusal on create, edit or start, when the server enforces cost-center billing, which the app does not support yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.'**
+  String get queueBillingUseWeb;
 }
 
 class _AppLocalizationsDelegate

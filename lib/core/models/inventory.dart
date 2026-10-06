@@ -437,6 +437,23 @@ class SpoolDraft {
   };
 }
 
+/// One entry of `GET /spoolman/spools/linked`, the map the web reads a slot's
+/// fill from first (`getSpoolmanFillLevel`). Raw Spoolman weights: either
+/// may be null, and [filament] is null where Spoolman has no net weight.
+class LinkedSpool {
+  const LinkedSpool({required this.id, this.remaining, this.filament});
+
+  factory LinkedSpool.fromJson(Map<String, dynamic> json) => LinkedSpool(
+    id: toIntOrNull(json['id']) ?? -1,
+    remaining: toDoubleOrNull(json['remaining_weight']),
+    filament: toDoubleOrNull(json['filament_weight']),
+  );
+
+  final int id;
+  final double? remaining;
+  final double? filament;
+}
+
 /// Spool assignment to AMS slot — normalized from native
 /// `SpoolAssignmentResponse` and Spoolman `SpoolmanSlotAssignmentEnriched`.
 class SpoolAssignment {
@@ -447,6 +464,7 @@ class SpoolAssignment {
     required this.trayId,
     this.printerName,
     this.amsLabel,
+    this.spool,
   });
 
   factory SpoolAssignment.fromNative(Map<String, dynamic> json) =>
@@ -457,6 +475,10 @@ class SpoolAssignment {
         trayId: toIntOrNull(json['tray_id']) ?? -1,
         printerName: toStringOrNull(json['printer_name']),
         amsLabel: toStringOrNull(json['ams_label']),
+        spool: switch (json['spool']) {
+          final Map<String, dynamic> spool => Spool.fromNative(spool),
+          _ => null,
+        },
       );
 
   factory SpoolAssignment.fromSpoolman(Map<String, dynamic> json) =>
@@ -476,6 +498,11 @@ class SpoolAssignment {
   final String? printerName;
   final String? amsLabel;
 
+  /// The spool itself, which the built-in inventory sends inside each
+  /// assignment (`SpoolAssignmentResponse.spool`); the web reads a slot's
+  /// fill from it. Null from Spoolman, whose slot rows carry only the id.
+  final Spool? spool;
+
   /// External spool (external holder), NOT in an AMS unit — the inventory
   /// backend marks it with an `ams_id` of 254 or 255. Then "slot" is the
   /// extruder (dual-head printers), not "AMS·tray".
@@ -490,9 +517,10 @@ class SpoolAssignment {
   /// [slot_addressing] for the two.
   int? get extruder => isExternalSpool ? extruderForExternalSide(trayId) : null;
 
-  /// AMS slot label for UI: `ams_label` from server or `AMS{ams}·{tray+1}`.
-  /// For external spool, label built in UI (needs l10n) — see `assignmentSlotLabel`.
-  String get slotLabel => amsLabel ?? 'AMS$amsId · ${trayId + 1}';
+  /// AMS slot label for UI, the unit named by the user's `ams_label` when it
+  /// has one. For external spool, label built in UI (needs l10n) — see
+  /// `assignmentSlotLabel`.
+  String get slotLabel => amsSlotName(amsId, trayId, unit: amsLabel);
 }
 
 /// Spool-to-slot assignment request (`SpoolAssignmentCreate`). Physical key

@@ -41,6 +41,16 @@ void main() {
       );
     });
 
+    test('a spool the linked map leaves out is not bound', () async {
+      // An archived spool still carries its tag on the shelf, but
+      // `/spoolman/spools/linked` lists no archived spool.
+      final assigned = await resolve(InventoryBackend.spoolman);
+      const tray = AmsTray(tagUid: 'B1B2C3D4E5F60708');
+
+      expect(assigned.tagBinds(tray), isTrue);
+      expect(assigned.boundByTag(tray), isNull);
+    });
+
     test('a tag binds even when no spool carries it yet', () async {
       // auto_add_unknown_rfid off: the web still offers no assign there.
       final assigned = await resolve(InventoryBackend.spoolman);
@@ -90,13 +100,20 @@ const byUuid = Spool(
   trayUuid: '0123456789ABCDEF0123456789ABCDEF',
 );
 const pinned = Spool(id: 7, material: 'ABS');
+// On the shelf with its tag, as an archived spool is, but not linked.
+const unlinked = Spool(id: 23, material: 'PLA', tagUid: 'b1b2c3d4e5f60708');
 
 class _Shelf extends InventoryNotifier {
   @override
-  Future<InventoryState> build() async => const InventoryState(
-    spools: [tagged, byUuid, pinned],
-    assignmentBySpool: {
-      7: SpoolAssignment(spoolId: 7, printerId: 1, amsId: 0, trayId: 0),
+  Future<InventoryState> build() async => InventoryState(
+    spools: [tagged, byUuid, pinned, unlinked],
+    assignments: [
+      SpoolAssignment(spoolId: 7, printerId: 1, amsId: 0, trayId: 0),
+    ],
+    // `/spoolman/spools/linked`, keyed by the tag in upper case.
+    linkedTags: const {
+      'A1B2C3D4E5F60708': LinkedSpool(id: 21),
+      '0123456789ABCDEF0123456789ABCDEF': LinkedSpool(id: 22),
     },
   );
 }

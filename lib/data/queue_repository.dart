@@ -261,9 +261,34 @@ class QueueRepository {
   /// Keeps the detail: refused with 400 for a row that is currently printing,
   /// and the status it names is the only thing that explains the refusal — see
   /// [stop].
-  Future<void> delete(int itemId) => guardKeepingDetail(
-    () => _dio.delete<dynamic>(Endpoints.queueItem(itemId)),
-  );
+  ///
+  /// False when the server kept the row as cancelled instead: the last run a
+  /// batch order can re-queue its plate from (`deleted: false`,
+  /// `print_queue.py::delete_queue_item`, #2960).
+  Future<bool> delete(int itemId) => guardKeepingDetail(() async {
+    final res = await _dio.delete<dynamic>(Endpoints.queueItem(itemId));
+    final body = res.data;
+    return !(body is Map && body['deleted'] == false);
+  });
+
+  /// The queue's history as the web's History tab lists it: every item that
+  /// completed, failed, was skipped or was cancelled — one request per status,
+  /// as the server filters on one at a time.
+  ///
+  /// Fetched only while the history is on screen: it is the bulk of an
+  /// unfiltered queue (see [fetchActive]).
+  Future<List<QueueItem>> fetchHistory() async {
+    final lists = await Future.wait([
+      for (final status in const [
+        'completed',
+        'failed',
+        'skipped',
+        'cancelled',
+      ])
+        fetch(status: status),
+    ]);
+    return [for (final list in lists) ...list];
+  }
 
   /// PATCH /queue/{id} — assign printer to item (before start).
   ///
@@ -602,6 +627,10 @@ class QueueRepository {
       if (insertAtTop) 'insert_at_top': true,
       ...?options?.toJson(triState: triState),
     }..removeWhere((_, v) => v == null);
-    return guard(() => _dio.post<dynamic>(Endpoints.queue, data: body));
+    // Keeps the detail: a billing server refuses an item with no cost center
+    // with 400, and its sentence is the only thing that says why (#3256).
+    return guardKeepingDetail(
+      () => _dio.post<dynamic>(Endpoints.queue, data: body),
+    );
   }
 }

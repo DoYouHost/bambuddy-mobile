@@ -1359,11 +1359,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Kameravorschau ist im Demo-Modus nicht verfügbar';
 
   @override
-  String amsUnit(int number) {
-    return 'AMS $number';
-  }
-
-  @override
   String get externalSpool => 'Externe Spule';
 
   @override
@@ -5251,12 +5246,127 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mappingExternalSpool => 'Externe Spule';
 
   @override
-  String mappingAmsSlot(String unit, String slot) {
-    return 'AMS $unit · Slot $slot';
+  String get mappingSaved => 'Filament-Zuordnung gespeichert';
+
+  @override
+  String get mappingStatusReady => 'Bereit';
+
+  @override
+  String get mappingStatusColorMismatch => 'Andere Farbe';
+
+  @override
+  String get mappingStatusTypeNotFound => 'Typ nicht gefunden';
+
+  @override
+  String get mappingTapToChange =>
+      'Tippe auf ein Filament, um seinen Slot zu ändern';
+
+  @override
+  String get mappingExactColor => 'Exakt diese Farbe';
+
+  @override
+  String mappingSameTypeOtherColor(String required, String loaded) {
+    return 'Gleicher Typ, andere Farbe: benötigt $required, im Slot $loaded';
   }
 
   @override
-  String get mappingSaved => 'Filament-Zuordnung gespeichert';
+  String get mappingTypeNotLoaded => 'Filamenttyp nicht geladen';
+
+  @override
+  String get mappingManual => 'Von Hand gewählt';
+
+  @override
+  String mappingRequired(String name, String color) {
+    return 'Benötigt: $name, $color';
+  }
+
+  @override
+  String get mappingUseSlicer => 'Slicer-Zuordnung';
+
+  @override
+  String get mappingUseSlicerHint =>
+      'Jeden Slot aus der AMS-Zuordnung wählen, die der Slicer mit diesem Druck gespeichert hat, statt nach Typ und Farbe abzugleichen.';
+
+  @override
+  String get mappingReRead => 'Neu einlesen';
+
+  @override
+  String mappingFtsSameInlet(String inlet) {
+    return 'Alle Filamente dieses Drucks hängen am Eingang IN-$inlet des Filament Track Switch. Ein Wechsel zwischen Filamenten am selben Eingang dauert länger – verschiebe eines in ein AMS am anderen Eingang, um ihn zu beschleunigen.';
+  }
+
+  @override
+  String get mappingRackPosition => 'Position im Magazin';
+
+  @override
+  String get mappingRackPositionHint =>
+      'Welche Düse aus dem Magazin dieses Filament druckt. Die Positionen sind wie am Drucker nummeriert.';
+
+  @override
+  String mappingRackNeeds(String nozzle) {
+    return 'Dieses Filament braucht eine $nozzle-Düse.';
+  }
+
+  @override
+  String get mappingRackEmptyPosition => 'Diese Position im Magazin ist leer';
+
+  @override
+  String mappingRackWrongNozzle(String has, String needs) {
+    return 'Hat eine $has-Düse; dieses Filament braucht $needs';
+  }
+
+  @override
+  String mappingRackSlot(int position) {
+    return 'R$position';
+  }
+
+  @override
+  String get colorFamilyRed => 'Rot';
+
+  @override
+  String get colorFamilyOrange => 'Orange';
+
+  @override
+  String get colorFamilyYellow => 'Gelb';
+
+  @override
+  String get colorFamilyGreen => 'Grün';
+
+  @override
+  String get colorFamilyCyan => 'Cyan';
+
+  @override
+  String get colorFamilyBlue => 'Blau';
+
+  @override
+  String get colorFamilyPurple => 'Lila';
+
+  @override
+  String get colorFamilyPink => 'Rosa';
+
+  @override
+  String get colorFamilyBrown => 'Braun';
+
+  @override
+  String get colorFamilyWhite => 'Weiß';
+
+  @override
+  String get colorFamilyLightGray => 'Hellgrau';
+
+  @override
+  String get colorFamilyGray => 'Grau';
+
+  @override
+  String get colorFamilyDarkGray => 'Dunkelgrau';
+
+  @override
+  String get colorFamilyBlack => 'Schwarz';
+
+  @override
+  String get colorFamilyClear => 'Transparent';
+
+  @override
+  String get colorFamilyUnknown => 'Unbekannt';
 
   @override
   String get plateClearTitle => 'Ist die Druckplatte frei?';
@@ -5761,39 +5871,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueEditForceColorMatch => 'Farbübereinstimmung erzwingen';
-
-  @override
-  String get queueEditNozzleRack => 'Düsenmagazin';
-
-  @override
-  String get queueEditNozzleRackDesc =>
-      'Wähle, mit welcher Düse aus dem Magazin jedes Filament gedruckt wird. Bleibt dies automatisch, wird bei Druckbeginn eine passende Position gewählt.';
-
-  @override
-  String queueEditRackGroupLabel(String slots, String nozzle) {
-    return 'Filament $slots · $nozzle';
-  }
-
-  @override
-  String get queueEditRackAuto => 'Automatisch';
-
-  @override
-  String queueEditRackPosition(int position, String nozzle) {
-    return 'Position $position · $nozzle';
-  }
-
-  @override
-  String queueEditRackPositionTaken(int position, String nozzle) {
-    return 'Position $position · $nozzle — bereits ausgewählt';
-  }
-
-  @override
-  String queueEditRackPositionUnfit(int position, String nozzle) {
-    return 'Position $position · $nozzle — passt nicht';
-  }
-
-  @override
-  String get queueEditRackEmpty => 'leer';
 
   @override
   String get queueEditRackPickStale =>
@@ -7480,4 +7557,178 @@ class AppLocalizationsDe extends AppLocalizations {
   String inventorySupplierArchivedCount(int count) {
     return '$count archiviert';
   }
+
+  @override
+  String get timeJustNow => 'Gerade eben';
+
+  @override
+  String get timeNow => 'Jetzt';
+
+  @override
+  String timeMinutesAgo(int count) {
+    return 'vor $count Min.';
+  }
+
+  @override
+  String timeInMinutes(int count) {
+    return 'in $count Min.';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return 'vor $count Std.';
+  }
+
+  @override
+  String timeInHours(int count) {
+    return 'in $count Std.';
+  }
+
+  @override
+  String timeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'vor $count Tagen',
+      one: 'vor 1 Tag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String timeInDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'in $count Tagen',
+      one: 'in 1 Tag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueHistory => 'Verlauf';
+
+  @override
+  String queueItemCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Elemente',
+      one: '1 Element',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueHistoryEmpty =>
+      'Noch kein Verlauf. Abgeschlossene, abgebrochene und fehlgeschlagene Drucke erscheinen hier.';
+
+  @override
+  String get queueHistoryShowMore => 'Mehr anzeigen';
+
+  @override
+  String queueHistoryShowing(int shown, int total) {
+    return '$shown von $total werden angezeigt';
+  }
+
+  @override
+  String get queueHistorySort => 'Sortierung';
+
+  @override
+  String get queueHistorySortDate => 'Nach Datum';
+
+  @override
+  String get queueHistorySortName => 'Nach Name';
+
+  @override
+  String get queueHistorySortPrinter => 'Nach Drucker';
+
+  @override
+  String get queueHistoryNewestFirst => 'Neueste zuerst';
+
+  @override
+  String get queueHistoryOldestFirst => 'Älteste zuerst';
+
+  @override
+  String get queueHistoryClear => 'Verlauf löschen';
+
+  @override
+  String get queueHistoryClearTitle => 'Verlauf löschen?';
+
+  @override
+  String queueHistoryClearMessage(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Alle $count Elemente aus dem Verlauf entfernen?',
+      one: '1 Element aus dem Verlauf entfernen?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueHistoryCleared(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Verlaufselemente gelöscht.',
+      one: '1 Verlaufselement gelöscht.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueHistoryKeptForOrders(int kept) {
+    return '$kept behalten, die Stapelaufträge noch brauchen.';
+  }
+
+  @override
+  String get queueHistoryClearFailed =>
+      'Der Verlauf konnte nicht gelöscht werden.';
+
+  @override
+  String get queueHistoryNoClear =>
+      'Du hast keine Berechtigung, den gesamten Verlauf zu löschen';
+
+  @override
+  String get queueHistoryRequeue => 'Erneut einreihen';
+
+  @override
+  String get queueHistoryNoRequeue =>
+      'Du hast keine Berechtigung, Elemente erneut einzureihen';
+
+  @override
+  String get queueHistoryRemove => 'Entfernen';
+
+  @override
+  String get queueHistoryNoRemove =>
+      'Du hast keine Berechtigung, dieses Element zu entfernen';
+
+  @override
+  String get queueHistoryRemoveTitle => 'Aus dem Verlauf entfernen?';
+
+  @override
+  String queueHistoryRemoveMessage(String name) {
+    return '„$name“ aus dem Warteschlangenverlauf entfernen?';
+  }
+
+  @override
+  String queueHistoryAddedBy(String name) {
+    return 'Hinzugefügt von $name';
+  }
+
+  @override
+  String get queueHistoryBatch => 'Stapel';
+
+  @override
+  String get queueHistoryRemoved => 'Warteschlangenelement entfernt';
+
+  @override
+  String get queueHistoryKeptForOrder =>
+      'Abgebrochen statt entfernt: Nur aus diesem Durchlauf kann der Stapelauftrag diese Platte erneut einreihen';
+
+  @override
+  String get queueBillingUseWeb =>
+      'Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, die die App noch nicht setzen kann. Reihe diesen Auftrag in Bambuddy im Browser ein, bearbeite und starte ihn dort.';
 }

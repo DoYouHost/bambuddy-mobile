@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import '../../core/ams/color_names.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/filament_colour.dart';
@@ -13,8 +14,6 @@ import '../../core/models/calibration_option.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/plate_list.dart';
-import '../../core/models/printer_status.dart';
-import '../../core/printers/nozzle_rack.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/settings/print_options.dart';
 import '../../core/theme/dash_theme.dart';
@@ -107,6 +106,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   // force-color-match flags. Prefilled from the item's stored overrides.
   final Map<int, ({String type, String color})> _overrides = {};
   final Map<int, bool> _forceColorMatch = {};
+
+  /// The last model actually targeted — nulls skipped — as the web's
+  /// `prevTargetModel`, for [_dropOverridesOnRetarget].
+  late String? _lastTargetModel = widget.item.targetModel;
 
   // Nozzle rack (H2C, printer mode): filament group → 1-based rack position.
   // A group with no entry is left to the scheduler, which assigns from the rack
@@ -287,6 +290,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
+    // Loaded with the form, so the overrides name their colours on save.
+    ref.watch(mappingColorCatalogProvider);
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -309,6 +314,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             ),
             children: [
               _header(l10n, t),
+              // The server refuses the job without a cost center, and the
+              // app has no picker for one yet: say so before the form is
+              // filled in rather than after.
+              if (_billingBlocks)
+                ?inlineNote(l10n.queueBillingUseWeb, urgent: true),
               const SizedBox(height: DashSpace.lg),
               _targetSection(l10n, t),
               const SizedBox(height: DashSpace.lg),
@@ -317,7 +327,6 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               if (!_modelMode) ...[
                 _mappingSection(l10n, t),
                 const SizedBox(height: DashSpace.lg),
-                ?_nozzleRackSection(l10n, t),
               ] else ...[
                 _filamentOverrideSection(l10n, t),
                 const SizedBox(height: DashSpace.lg),
@@ -444,7 +453,12 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               if (p.ipAddress != null) p.ipAddress!,
             ].join(' • '),
             onTap: () => setState(() {
-              if (_printerId != p.id) _nozzleRackChoice.clear();
+              if (_printerId != p.id) {
+                _nozzleRackChoice.clear();
+                // A slot id names another spool on another printer; the web
+                // drops its picks on a switch too (`PrintModal/index.tsx`).
+                _amsMapping = null;
+              }
               _printerId = p.id;
             }),
           ).tagged('queue_edit.printer'),
@@ -471,7 +485,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               items: [
                 for (final m in models) (value: m, label: m, swatch: null),
               ],
-              onChanged: (v) => setState(() => _targetModel = v),
+              onChanged: (v) => setState(() {
+                _targetModel = v;
+                _dropOverridesOnRetarget(plateChanged: false);
+              }),
             ),
           ),
         _Dropdown<String?>(
@@ -513,13 +530,29 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           ),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        onPressed: _saving ? null : _submit,
+        onPressed: _saving || _billingBlocks || _billingPending
+            ? null
+            : _submit,
         child: Text(
           widget._isCreate ? l10n.queueCreateSubmit : l10n.queueEditSave,
         ),
       ).tagged(widget._isCreate ? 'queue_create.save' : 'queue_edit.save'),
     );
   }
+
+  /// A billing server refuses a create, and any edit of an item, without a
+  /// cost center (`update_queue_item` checks the budget on every PATCH). An
+  /// item queued in the web with one still edits.
+  bool get _billingBlocks =>
+      _billingApplies && ref.watch(billingEnabledProvider);
+
+  /// Submit waits for the billing flag on a job it could block: the first
+  /// frame would otherwise offer a write the server is about to refuse.
+  bool get _billingPending =>
+      _billingApplies && ref.watch(serverUiFlagsProvider).isLoading;
+
+  bool get _billingApplies =>
+      widget._isCreate || widget.item.costCenterId == null;
 
   /// Name of the printer picked in the Target section, for messages that would
   /// otherwise quote the item's stored (or, on a draft, missing) printer.
@@ -673,6 +706,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     setState(() {
       _plateId = picked;
       _amsMapping = null;
+      _dropOverridesOnRetarget(plateChanged: true);
       // The pick names filament groups of the plate it was made for; another
       // plate's groups are another set, and a group id that survives means a
       // position chosen for a filament nobody asked about.
@@ -690,6 +724,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         onTap: printerId == null
             ? null
             : () async {
+                // The rows write these back as they change; a sheet dismissed
+                // without saving takes them back, as it does its slot picks.
+                final rackBefore = {..._nozzleRackChoice};
+                final forceBefore = {..._forceColorMatch};
                 final mapping = await showQueueMappingSheet(
                   context,
                   item: widget.item,
@@ -697,8 +735,36 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   printerName: _selectedPrinterName(printerId),
                   confirmLabel: l10n.fmSave,
                   plateId: _plateId,
+                  startFrom: _amsMapping ?? const [],
+                  forceColorMatch: _forceColorMatch,
+                  onForceColorMatch: (slotId, value) => setState(() {
+                    if (value) {
+                      _forceColorMatch[slotId] = true;
+                    } else {
+                      _forceColorMatch.remove(slotId);
+                    }
+                  }),
+                  rackChoice: _nozzleRackChoice,
+                  onRackChoice: (choice) => setState(
+                    () => _nozzleRackChoice
+                      ..clear()
+                      ..addAll(choice),
+                  ),
                 );
-                if (mapping != null) setState(() => _amsMapping = mapping);
+                // Empty: the printer reported nothing to map to, and the web
+                // sends no mapping then — keep the stored one.
+                if (mapping == null) {
+                  setState(() {
+                    _nozzleRackChoice
+                      ..clear()
+                      ..addAll(rackBefore);
+                    _forceColorMatch
+                      ..clear()
+                      ..addAll(forceBefore);
+                  });
+                } else if (mapping.isNotEmpty) {
+                  setState(() => _amsMapping = mapping);
+                }
               },
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
@@ -725,203 +791,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     );
   }
 
-  // --- Nozzle rack (H2C, printer mode) ---
-
-  /// The rack-bound filament groups of the plate about to print, lowest id
-  /// first — the unit a rack position is chosen for.
-  ///
-  /// Groups rather than slots: two slots in one group share a hotend and cannot
-  /// be pointed at different positions. Empty on every plate the server did not
-  /// annotate, which is every plate not sliced for a rack printer and every
-  /// plate at all on a server that predates the group table.
-  List<({int id, RackGroup need, List<int> slots})> _rackGroups() {
-    final slotsByGroup = <int, List<int>>{};
-    final needByGroup = <int, RackGroup>{};
-    for (final requirement in _parsedRequirements()) {
-      final id = requirement.groupId;
-      final need = requirement.group;
-      if (id == null || need == null || !need.onRack) continue;
-      needByGroup[id] = need;
-      (slotsByGroup[id] ??= []).add(requirement.slotId);
-    }
-    final ids = needByGroup.keys.toList()..sort();
-    return [
-      for (final id in ids)
-        (id: id, need: needByGroup[id]!, slots: slotsByGroup[id]!..sort()),
-    ];
-  }
-
-  /// Which rack nozzle each filament group prints from, or null when there is no
-  /// choice to offer.
-  ///
-  /// Three things have to hold, and each absence is itself the answer "leave it
-  /// to the scheduler": a specific printer is targeted (a model target cannot
-  /// name a rack, and a pick the server cannot satisfy stops the print rather
-  /// than degrading), that printer reports a rack, and the plate has groups
-  /// bound to it. So no version check is needed — an older server annotates no
-  /// groups and reports no rack, and the section simply never appears.
-  Widget? _nozzleRackSection(AppLocalizations l10n, DashTokens t) {
-    final printerId = _printerId;
-    if (printerId == null) return null;
-    final groups = _rackGroups();
-    if (groups.isEmpty) return null;
-    final rack = rackByPosition(
-      ref.watch(printerStatusOnceProvider(printerId)).valueOrNull?.nozzleRack,
-    );
-    if (rack.isEmpty) return null;
-
-    return Column(
-      children: [
-        _SectionCard(
-          title: l10n.queueEditNozzleRack,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(l10n.queueEditNozzleRackDesc, style: t.labelSoft),
-              const SizedBox(height: DashSpace.md),
-              for (final group in groups) _rackGroupRow(l10n, t, group, rack),
-            ],
-          ),
-        ),
-        const SizedBox(height: DashSpace.lg),
-      ],
-    );
-  }
-
-  Widget _rackGroupRow(
-    AppLocalizations l10n,
-    DashTokens t,
-    ({int id, RackGroup need, List<int> slots}) group,
-    Map<int, NozzleRackSlot> rack,
-  ) {
-    final taken = {
-      for (final entry in _nozzleRackChoice.entries)
-        if (entry.key != group.id) entry.value,
-    };
-    final fits = {
-      for (final entry in rack.entries)
-        if (rackSlotFits(
-          entry.value,
-          diameter: group.need.nozzleDiameter,
-          volumeType: group.need.volumeType,
-        ))
-          entry.key,
-    };
-    final positions = rack.keys.toList()..sort();
-    final needed = _nozzleLabel(
-      l10n,
-      diameter: group.need.nozzleDiameter,
-      highFlow: highFlowFromName(group.need.volumeType),
-    );
-    // A pick the live rack no longer satisfies is the one case the server does
-    // not paper over: it fails the item at dispatch, after the upload, rather
-    // than choosing something else. Say so while it can still be changed.
-    final picked = _nozzleRackChoice[group.id];
-    final stale = picked != null && !fits.contains(picked);
-    final warning = stale
-        ? l10n.queueEditRackPickStale
-        : (fits.isEmpty ? l10n.queueEditRackNoFit(needed) : null);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: DashSpace.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _Dropdown<int?>(
-            label: l10n.queueEditRackGroupLabel(
-              group.slots.map((s) => '$s').join(', '),
-              needed,
-            ),
-            value: _nozzleRackChoice[group.id],
-            placeholder: l10n.queueEditRackAuto,
-            items: [
-              (value: null, label: l10n.queueEditRackAuto, swatch: null),
-              for (final position in positions)
-                (
-                  value: position,
-                  label: _rackPositionLabel(
-                    l10n,
-                    position,
-                    rack[position]!,
-                    fits: fits.contains(position),
-                    taken: taken.contains(position),
-                  ),
-                  swatch: null,
-                ),
-            ],
-            // A position the nozzle does not fit, and one another group already
-            // holds, are both refused at dispatch — the pick is checked against
-            // the live rack there, and a stale one fails the print instead of
-            // falling back. Better to refuse it here, where it costs a tap.
-            disabled: {
-              for (final position in positions)
-                if (!fits.contains(position) || taken.contains(position))
-                  position,
-            },
-            onChanged: (picked) => setState(() {
-              if (picked == null) {
-                _nozzleRackChoice.remove(group.id);
-              } else {
-                _nozzleRackChoice[group.id] = picked;
-              }
-            }),
-          ),
-          ?inlineNote(warning, urgent: stale),
-        ],
-      ),
-    );
-  }
-
-  /// One row of the picker: the position, what it holds, and — when it cannot
-  /// be taken — which of the two reasons that is.
-  ///
-  /// The reason is in the label rather than left to the greying out: a disabled
-  /// row otherwise reads as "unavailable, no idea why", and a screen reader
-  /// announces it as dimmed and stops there. Not fitting outranks being taken,
-  /// because freeing the position would not help this group either.
-  String _rackPositionLabel(
-    AppLocalizations l10n,
-    int position,
-    NozzleRackSlot slot, {
-    required bool fits,
-    required bool taken,
-  }) {
-    final held = _rackSlotLabel(l10n, slot);
-    if (!fits) return l10n.queueEditRackPositionUnfit(position, held);
-    if (taken) return l10n.queueEditRackPositionTaken(position, held);
-    return l10n.queueEditRackPosition(position, held);
-  }
-
-  /// What one rack position holds, or the empty-dock label.
-  String _rackSlotLabel(AppLocalizations l10n, NozzleRackSlot slot) =>
-      slot.isEmpty
-      ? l10n.queueEditRackEmpty
-      : _nozzleLabel(
-          l10n,
-          diameter: slot.nozzleDiameter ?? '',
-          highFlow: highFlowFromCode(slot.nozzleType),
-        );
-
-  /// A nozzle as both sides of this screen name it: `0.4 High flow`. The flow
-  /// type is dropped when nothing states it, rather than guessed at standard.
-  String _nozzleLabel(
-    AppLocalizations l10n, {
-    required String diameter,
-    required bool? highFlow,
-  }) {
-    final size = nozzleDiameterLabel(diameter);
-    final flow = switch (highFlow) {
-      true => l10n.nozzleFlowHigh,
-      false => l10n.nozzleFlowStandard,
-      null => '',
-    };
-    return [size, flow].where((part) => part.isNotEmpty).join(' ');
-  }
-
   // --- Filament override (model mode) ---
 
-  /// The filament slots as the server parsed them out of the 3MF, or empty when
-  /// the job has no source to parse (a queued reprint whose archive is created
-  /// only at print start) and while the request is in flight.
+  /// The filament slots the plate prints with, as the server parsed them out of
+  /// the 3MF — unused project slots left out, as the web's print dialog reads
+  /// them — or empty when the job has no source to parse (a queued reprint
+  /// whose archive is created only at print start) and while the request is in
+  /// flight.
   ///
   /// Separate from [_requirements] because that one flattens the records down to
   /// what the override rows need, and the rack picker needs the filament-group
@@ -931,7 +807,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     if (it.archiveId != null) {
       return ref
               .watch(
-                filamentRequirementsProvider((
+                printRequirementsProvider((
                   isArchive: true,
                   id: it.archiveId!,
                   plate: _plateId ?? 1,
@@ -943,7 +819,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     if (it.libraryFileId != null) {
       return ref
               .watch(
-                filamentRequirementsProvider((
+                printRequirementsProvider((
                   isArchive: false,
                   id: it.libraryFileId!,
                   plate: _plateId ?? 1,
@@ -1124,7 +1000,23 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// force-only slot carries the ORIGINAL type/color. Returns null when empty
   /// (sent as an explicit clear). `color_name` has no catalogue on mobile, so
   /// the hex stands in — the backend uses it only for display messages.
+  /// The web's `printerOverridesForPlate`: a job for one printer carries only
+  /// the slots whose filament was changed (#3133) — the mapping was matched
+  /// against them, and the scheduler needs them if it maps again at
+  /// dispatch. A force-colour flag on its own stays behind, as the web's
+  /// does: printer mode never sent one.
+  List<Map<String, dynamic>>? _buildPrinterOverrides() {
+    final entries = [
+      for (final o
+          in _buildFilamentOverrides() ?? const <Map<String, dynamic>>[])
+        if (_overrides.containsKey(o['slot_id'])) o,
+    ];
+    return entries.isEmpty ? null : entries;
+  }
+
   List<Map<String, dynamic>>? _buildFilamentOverrides() {
+    final catalog =
+        ref.read(mappingColorCatalogProvider).valueOrNull ?? ColorCatalog.empty;
     final entries = <Map<String, dynamic>>[];
     for (final r in _requirements()) {
       final ov = _overrides[r.slotId];
@@ -1140,11 +1032,39 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         'slot_id': r.slotId,
         'type': type,
         'color': color,
-        'color_name': color,
+        // The web's `getColorName`: the server quotes it back in its waiting
+        // reasons, where a bare hex tells the reader nothing.
+        'color_name': colorNameForServer(catalog, color),
+        ...?_storedVariant(r.slotId, type, color),
         'force_color_match': force,
       });
     }
     return entries.isEmpty ? null : entries;
+  }
+
+  /// The web's `storedVariantFor`: a slot still asking for the filament its
+  /// stored override named keeps that override's `tray_info_idx` — the exact
+  /// variant a forced colour match is held to (`print_scheduler.py`). Any
+  /// change of type or colour drops it. Only an edit has stored overrides.
+  Map<String, String>? _storedVariant(int slotId, String type, String color) {
+    if (widget._isCreate) return null;
+    String hex(Object? c) {
+      final clean = (c?.toString() ?? '').replaceFirst('#', '').toLowerCase();
+      return clean.length > 6 ? clean.substring(0, 6) : clean;
+    }
+
+    for (final o
+        in widget.item.filamentOverrides ?? const <Map<String, dynamic>>[]) {
+      if (o['slot_id'] != slotId) continue;
+      final idx = o['tray_info_idx'];
+      final same =
+          (o['type']?.toString() ?? '').toUpperCase() == type.toUpperCase() &&
+          hex(o['color']) == hex(color);
+      return idx is String && idx.isNotEmpty && same
+          ? {'tray_info_idx': idx}
+          : null;
+    }
+    return null;
   }
 
   Color? _swatch(String hex) => colorFromHex(hex);
@@ -1404,6 +1324,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
     setState(() => _saving = true);
     _logGcodeInjection();
+    _sentMapping = _modelMode ? null : await _matchMapping();
 
     final result = await ref
         .read(queueProvider.notifier)
@@ -1428,6 +1349,57 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     // Create pops `true` — its caller (a list of archives or files) refreshes
     // what it shows only when something was really added.
     if (result.isOk) navigator.pop(widget._isCreate);
+  }
+
+  /// The web's rule for the filament overrides when the target model or the
+  /// plate changes (`PrintModal/index.tsx`): they go, unless this is the first
+  /// model after none — a choice, not a change — or an edit of a job that had
+  /// no model before. Leaving "any P2S" for a printer keeps them: they are
+  /// the job's filament, not a tray (#3133).
+  void _dropOverridesOnRetarget({required bool plateChanged}) {
+    final previous = _lastTargetModel;
+    final modelChanged = _targetModel != null && _targetModel != previous;
+    if (!modelChanged && !plateChanged) return;
+    if (modelChanged) _lastTargetModel = _targetModel;
+    if (modelChanged && !plateChanged && previous == null) return;
+    if (widget._isCreate || previous != null) {
+      _overrides.clear();
+      _forceColorMatch.clear();
+    }
+  }
+
+  /// What [_update] and [_create] send as `ams_mapping`, worked out just
+  /// before; null is "send none".
+  List<int>? _sentMapping;
+
+  /// The mapping the web sends on save (`getMappingForPrinter`): matched
+  /// afresh against the printer as it is now, from the form's own picks. None
+  /// when the printer reports no loaded slot, which keeps the stored one.
+  Future<List<int>?> _matchMapping() async {
+    final printerId = _printerId;
+    final it = widget.item;
+    final source = it.archiveId ?? it.libraryFileId;
+    if (printerId == null || source == null) return null;
+    try {
+      return await queueMappingToSend(
+        // The provider the form already watches, so this is no second fetch.
+        requirements: await ref.read(
+          printRequirementsProvider((
+            isArchive: it.archiveId != null,
+            id: source,
+            plate: _plateId ?? 1,
+          )).future,
+        ),
+        printers: ref.read(printersRepositoryProvider),
+        printerId: printerId,
+        startFrom: _amsMapping ?? const [],
+        preferLowestSetting: ref.read(preferLowestFilamentProvider).valueOrNull,
+      );
+    } on Object {
+      // A lost session surfaces on the write itself; the mapping only rides
+      // along with it.
+      return null;
+    }
   }
 
   /// The print toggles as they stand in the form.
@@ -1575,10 +1547,14 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     printerId: _modelMode ? null : _printerId,
     targetModel: _modelMode ? _targetModel : null,
     targetLocation: _modelMode ? _targetLocation : null,
-    amsMapping: _modelMode ? kQueueUpdateUnset : _amsMapping,
+    amsMapping: _modelMode
+        ? kQueueUpdateUnset
+        : _sentMapping ?? kQueueUpdateUnset,
+    // Null, not unset: a job moved to a printer must not keep a model job's
+    // overrides it no longer carries (#3133).
     filamentOverrides: _modelMode
         ? _buildFilamentOverrides()
-        : kQueueUpdateUnset,
+        : _buildPrinterOverrides(),
     scheduledTime: _scheduledTimeIso,
     requirePreviousSuccess: _requirePreviousSuccess,
     autoOffAfter: _autoOffAfter,
@@ -1621,8 +1597,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       plateId: orderId == null ? _plateId : plate.id,
       targetModel: _modelMode ? _targetModel : null,
       targetLocation: _modelMode ? _targetLocation : null,
-      filamentOverrides: _modelMode ? _buildFilamentOverrides() : null,
-      amsMapping: _modelMode ? null : _amsMapping,
+      filamentOverrides: _modelMode
+          ? _buildFilamentOverrides()
+          : _buildPrinterOverrides(),
+      amsMapping: _modelMode ? null : _sentMapping,
       scheduledTime: _scheduledTimeIso,
       requirePreviousSuccess: _requirePreviousSuccess,
       autoOffAfter: _autoOffAfter,
@@ -2103,7 +2081,6 @@ class _Dropdown<T> extends StatelessWidget {
     required this.items,
     required this.onChanged,
     this.placeholder = '—',
-    this.disabled,
   });
 
   final String label;
@@ -2111,10 +2088,6 @@ class _Dropdown<T> extends StatelessWidget {
   final String placeholder;
   final List<({T value, String label, Color? swatch})> items;
   final ValueChanged<T> onChanged;
-
-  /// Values shown but not selectable. Listing a choice the caller cannot honour
-  /// says why it is unavailable; leaving it out only makes the list shorter.
-  final Set<T>? disabled;
 
   @override
   Widget build(BuildContext context) {
@@ -2149,7 +2122,6 @@ class _Dropdown<T> extends StatelessWidget {
                 it.label,
                 it.swatch,
                 it.value == value,
-                disabled?.contains(it.value) ?? false,
                 () => onChanged(it.value),
               ),
           ],
@@ -2171,11 +2143,10 @@ class _Dropdown<T> extends StatelessWidget {
     String label,
     Color? swatch,
     bool selected,
-    bool disabled,
     VoidCallback onTap,
   ) {
     return MenuItemButton(
-      onPressed: disabled ? null : onTap,
+      onPressed: onTap,
       leadingIcon: swatch != null
           ? _SwatchDot(color: swatch, ring: selected ? t.accentGreenInk : null)
           : Icon(

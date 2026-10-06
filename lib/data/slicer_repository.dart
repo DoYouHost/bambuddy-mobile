@@ -74,10 +74,15 @@ class SlicerRepository {
   ///
   /// Not version-gated (an older server ignores an undeclared query parameter),
   /// and best-effort: any failure degrades to no slots.
+  ///
+  /// [fullSlots] asks for every project slot rather than the plate's own,
+  /// which only slicing wants; matching a print to the AMS must not see the
+  /// unused ones (`routes/library.py`, `full_slots`).
   Future<List<FilamentRequirement>> filamentRequirements({
     required int id,
     required bool isArchive,
     int plateId = 1,
+    bool fullSlots = true,
   }) async {
     final path = isArchive
         ? Endpoints.archiveFilamentRequirements(id)
@@ -85,7 +90,10 @@ class SlicerRepository {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
         path,
-        queryParameters: {'full_slots': true, 'plate_id': plateId},
+        queryParameters: {
+          if (fullSlots) 'full_slots': true,
+          'plate_id': plateId,
+        },
       );
       return FilamentRequirement.parseList(res.data ?? const {});
     } on DioException {

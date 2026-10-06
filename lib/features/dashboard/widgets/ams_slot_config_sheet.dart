@@ -51,7 +51,7 @@ class AmsSlotTarget {
   final int amsId;
   final int trayId;
 
-  /// Readable slot name, e.g. "AMS 1 · 2".
+  /// Readable slot name, e.g. "AMS-A · 2".
   final String label;
   final String? printerName;
 

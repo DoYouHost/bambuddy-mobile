@@ -7,6 +7,7 @@ import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/core/settings/print_options.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
+import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
@@ -123,6 +124,30 @@ QueueRepository queueFormRepo({
   return QueueRepository(dio, ServerVersionService(dio));
 }
 
+/// What each printer reports live, for the mapping the form works out on
+/// save; a printer missing from the map reports nothing.
+class _LivePrinters extends PrintersRepository {
+  _LivePrinters(this._status, this._rack) : super(Dio());
+
+  final Map<int, PrinterStatus> _status;
+  final List<NozzleRackSlot>? _rack;
+
+  @override
+  Future<PrinterStatus?> fetchStatus(int printerId) async {
+    final status = _status[printerId];
+    if (_rack == null) return status;
+    return PrinterStatus(
+      id: printerId,
+      ams: status?.ams ?? const [],
+      nozzleRack: _rack,
+    );
+  }
+
+  @override
+  Future<SlotInventory> fetchInventoryRemain(int printerId) async =>
+      (grams: const <int, double>{}, spools: const <int, SlotSpool>{});
+}
+
 /// The print form, wired to answers instead of a server.
 ///
 /// Every knob stands in for one thing the screen asks the network for, and each
@@ -137,6 +162,9 @@ QueueRepository queueFormRepo({
 /// - [plates]: `GET /archives/{id}/plates`. The default is what every server
 ///   answers for a single-plate file — and what a server without the route
 ///   answers for anything — so the plate section stays hidden unless asked for.
+/// - [live]: each printer's status, which the form matches the filament
+///   mapping against on save. Empty is a printer that reports no loaded slot,
+///   and then no mapping is sent at all.
 /// - [requirements] and [nozzleRack]: the filament groups a plate declares and
 ///   the rack a printer reports. Both empty is every job on every printer
 ///   without a rack, and everything at all on a server that predates them.
@@ -149,6 +177,7 @@ Widget queueFormScreen(
   PlateList plates = PlateList.none,
   List<Printer> printers = const [printerX2D],
   List<FilamentRequirement> requirements = const [],
+  Map<int, PrinterStatus> live = const {},
   List<NozzleRackSlot>? nozzleRack,
   List<AvailableFilament> availableFilaments = const [],
   int createStatus = 200,
@@ -168,9 +197,9 @@ Widget queueFormScreen(
       if (platesDelay != null) await Future<void>.delayed(platesDelay);
       return plates;
     }),
-    filamentRequirementsProvider.overrideWith((ref, arg) async => requirements),
-    printerStatusOnceProvider.overrideWith(
-      (ref, id) async => PrinterStatus(id: id, nozzleRack: nozzleRack),
+    printRequirementsProvider.overrideWith((ref, arg) async => requirements),
+    printersRepositoryProvider.overrideWithValue(
+      _LivePrinters(live, nozzleRack),
     ),
     availableFilamentsProvider.overrideWith((ref, arg) => availableFilaments),
     ...extra,

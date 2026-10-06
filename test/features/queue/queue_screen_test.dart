@@ -178,10 +178,8 @@ void main() {
           requirePlateClearProvider.overrideWithValue(gate),
           printerStatusesProvider.overrideWith(_DirtyPlateStatuses.new),
           // The mapping sheet with nothing to map: one confirm button.
-          filamentRequirementsProvider.overrideWith(
-            (ref, key) async => const [],
-          ),
-          printerTraysProvider.overrideWith((ref, printerId) async => const []),
+          printRequirementsProvider.overrideWith((ref, key) async => const []),
+          mappingStatusProvider.overrideWith((ref, printerId) async => null),
         ],
         child: plApp(const QueueScreen()),
       );

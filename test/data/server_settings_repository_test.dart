@@ -18,6 +18,20 @@ void main() {
   });
 
   group('fetch', () {
+    test('the UI flags, or nothing on a server that predates them', () async {
+      adapter.onGet(
+        '/api/v1/settings/ui-flags',
+        (s) => s.reply(200, {'billing_enabled': true, 'currency': 'EUR'}),
+      );
+      expect(await repo.fetchUiFlags(), containsPair('billing_enabled', true));
+
+      adapter.onGet(
+        '/api/v1/settings/ui-flags',
+        (s) => s.reply(404, {'detail': 'Not Found'}),
+      );
+      expect(await repo.fetchUiFlags(), isEmpty);
+    });
+
     test('reads the map', () async {
       adapter.onGet(
         '/api/v1/settings',

@@ -676,14 +676,6 @@
   "cameraConnecting": "Connexion à la caméra…",
   "cameraError": "Impossible de charger le flux de la caméra",
   "cameraDemoUnavailable": "L'aperçu de la caméra n'est pas disponible en mode démo",
-  "amsUnit": "AMS {number}",
-  "@amsUnit": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
   "externalSpool": "Bobine externe",
   "traySlotEmpty": "Vide",
   "amsSlotFilament": "Filament",
@@ -2977,18 +2969,42 @@
   },
   "mappingPickTray": "Sélectionner un emplacement AMS",
   "mappingExternalSpool": "Bobine externe",
-  "mappingAmsSlot": "AMS {unit} · emplacement {slot}",
-  "@mappingAmsSlot": {
-    "placeholders": {
-      "unit": {
-        "type": "String"
-      },
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
   "mappingSaved": "Mappage des filaments enregistré",
+  "mappingStatusReady": "Prêt",
+  "mappingStatusColorMismatch": "Couleur différente",
+  "mappingStatusTypeNotFound": "Type introuvable",
+  "mappingTapToChange": "Appuyez sur un filament pour changer son emplacement",
+  "mappingExactColor": "Couleur exacte",
+  "mappingSameTypeOtherColor": "Même type, autre couleur : il faut {required}, l’emplacement contient {loaded}",
+  "mappingTypeNotLoaded": "Type de filament non chargé",
+  "mappingManual": "Choisi manuellement",
+  "mappingRequired": "Requis : {name}, {color}",
+  "mappingUseSlicer": "Correspondance du slicer",
+  "mappingUseSlicerHint": "Choisir chaque emplacement d’après la correspondance AMS enregistrée par le slicer avec cette impression, plutôt que par type et couleur.",
+  "mappingReRead": "Relire",
+  "mappingFtsSameInlet": "Tous les filaments de cette impression sont sur l’entrée IN-{inlet} du Filament Track Switch. Changer de filament sur la même entrée est plus lent : déplacez-en un vers un AMS de l’autre entrée pour accélérer le changement.",
+  "mappingRackPosition": "Position dans le rack",
+  "mappingRackPositionHint": "Quelle buse du rack imprime ce filament. Les positions sont numérotées comme sur l’imprimante.",
+  "mappingRackNeeds": "Ce filament nécessite une buse {nozzle}.",
+  "mappingRackEmptyPosition": "Cette position du rack est vide",
+  "mappingRackWrongNozzle": "Elle contient une buse {has} ; ce filament nécessite {needs}",
+  "mappingRackSlot": "R{position}",
+  "colorFamilyRed": "Rouge",
+  "colorFamilyOrange": "Orange",
+  "colorFamilyYellow": "Jaune",
+  "colorFamilyGreen": "Vert",
+  "colorFamilyCyan": "Cyan",
+  "colorFamilyBlue": "Bleu",
+  "colorFamilyPurple": "Violet",
+  "colorFamilyPink": "Rose",
+  "colorFamilyBrown": "Marron",
+  "colorFamilyWhite": "Blanc",
+  "colorFamilyLightGray": "Gris clair",
+  "colorFamilyGray": "Gris",
+  "colorFamilyDarkGray": "Gris foncé",
+  "colorFamilyBlack": "Noir",
+  "colorFamilyClear": "Transparent",
+  "colorFamilyUnknown": "Inconnu",
   "plateClearTitle": "Le plateau est-il dégagé ?",
   "plateClearBody": "Assurez-vous que le plateau d'impression est vide avant de lancer cette impression.",
   "plateClearConfirm": "Le plateau est dégagé",
@@ -3234,54 +3250,6 @@
     }
   },
   "queueEditForceColorMatch": "Forcer la correspondance de couleur",
-  "queueEditNozzleRack": "Rack de buses",
-  "queueEditNozzleRackDesc": "Choisissez depuis quelle buse du rack chaque filament s'imprime. Si laissé en automatique, une position adaptée sera choisie au lancement de l'impression.",
-  "queueEditRackGroupLabel": "Filament {slots} · {nozzle}",
-  "@queueEditRackGroupLabel": {
-    "placeholders": {
-      "slots": {
-        "type": "String"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackAuto": "Automatique",
-  "queueEditRackPosition": "Position {position} · {nozzle}",
-  "@queueEditRackPosition": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackPositionTaken": "Position {position} · {nozzle} — déjà choisie",
-  "@queueEditRackPositionTaken": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackPositionUnfit": "Position {position} · {nozzle} — incompatible",
-  "@queueEditRackPositionUnfit": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackEmpty": "vide",
   "queueEditRackPickStale": "La position choisie ne convient plus à ce filament — choisissez-en une autre, sinon l'impression sera refusée au démarrage.",
   "queueEditRackNoFit": "Aucune position du rack ne contient de buse {nozzle} — installez-en une, sinon l'imprimante décidera d'elle-même.",
   "@queueEditRackNoFit": {
@@ -3928,5 +3896,42 @@
   "inventoryDetailSlot": "Emplacement",
   "inventoryDetailNotLoaded": "Non chargée",
   "inventoryDetailConsumedSinceReset": "Consommé depuis la réinitialisation",
-  "inventorySupplierArchivedCount": "{count, plural, one{{count} archivée} other{{count} archivées}}"
+  "inventorySupplierArchivedCount": "{count, plural, one{{count} archivée} other{{count} archivées}}",
+  "timeJustNow": "À l’instant",
+  "timeNow": "Maintenant",
+  "timeMinutesAgo": "il y a {count} min",
+  "timeInMinutes": "dans {count} min",
+  "timeHoursAgo": "il y a {count} h",
+  "timeInHours": "dans {count} h",
+  "timeDaysAgo": "{count, plural, =1{il y a 1 jour} other{il y a {count} jours}}",
+  "timeInDays": "{count, plural, =1{dans 1 jour} other{dans {count} jours}}",
+  "queueHistory": "Historique",
+  "queueItemCount": "{count, plural, =1{1 élément} other{{count} éléments}}",
+  "queueHistoryEmpty": "Pas encore d’historique. Les impressions terminées, annulées et échouées apparaîtront ici.",
+  "queueHistoryShowMore": "Afficher plus",
+  "queueHistoryShowing": "Affichage de {shown} sur {total}",
+  "queueHistorySort": "Tri",
+  "queueHistorySortDate": "Par date",
+  "queueHistorySortName": "Par nom",
+  "queueHistorySortPrinter": "Par imprimante",
+  "queueHistoryNewestFirst": "Plus récents d’abord",
+  "queueHistoryOldestFirst": "Plus anciens d’abord",
+  "queueHistoryClear": "Effacer l’historique",
+  "queueHistoryClearTitle": "Effacer l’historique ?",
+  "queueHistoryClearMessage": "{count, plural, =1{Retirer 1 élément de l’historique ?} other{Retirer les {count} éléments de l’historique ?}}",
+  "queueHistoryCleared": "{count, plural, =1{1 élément effacé.} other{{count} éléments effacés.}}",
+  "queueHistoryKeptForOrders": "{kept} conservés, car des commandes en ont encore besoin.",
+  "queueHistoryClearFailed": "Impossible d’effacer l’historique.",
+  "queueHistoryNoClear": "Vous n’avez pas l’autorisation d’effacer tout l’historique",
+  "queueHistoryRequeue": "Remettre en file",
+  "queueHistoryNoRequeue": "Vous n’avez pas l’autorisation de remettre en file",
+  "queueHistoryRemove": "Retirer",
+  "queueHistoryNoRemove": "Vous n’avez pas l’autorisation de retirer cet élément",
+  "queueHistoryRemoveTitle": "Retirer de l’historique ?",
+  "queueHistoryRemoveMessage": "Retirer « {name} » de l’historique de la file ?",
+  "queueHistoryAddedBy": "Ajouté par {name}",
+  "queueHistoryBatch": "Lot",
+  "queueHistoryRemoved": "Élément retiré",
+  "queueHistoryKeptForOrder": "Annulé au lieu d’être retiré : cette impression est la seule dont la commande puisse remettre cette plaque en file",
+  "queueBillingUseWeb": "La facturation est activée sur ce serveur : chaque impression nécessite un centre de coûts que l’application ne sait pas encore définir. Mettez en file, modifiez et lancez cette impression dans Bambuddy depuis un navigateur."
 }

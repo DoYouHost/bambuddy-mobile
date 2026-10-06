@@ -96,6 +96,33 @@ void main() {
       expect(queueWriteMessage(en, ActionOutcome.ok), isNull);
     });
 
+    test('a billing refusal says to queue in the browser', () {
+      // `finance_budget.py::validate_print_budget`, on a new item or a start
+      // with no cost center while billing is on.
+      expect(
+        queueWriteMessage(
+          en,
+          _refused('Cost center is required when billing is enabled', 400),
+        ),
+        en.queueBillingUseWeb,
+      );
+    });
+
+    test('a caller holding the exception gets the same wording', () {
+      // The library's "queue as alternatives" posts outside the queue notifier.
+      expect(
+        queueRefusal(
+          en,
+          ApiException(
+            AppErrorCode.badResponse,
+            statusCode: 400,
+            detail: 'Cost center is required when billing is enabled',
+          ),
+        ),
+        en.queueBillingUseWeb,
+      );
+    });
+
     test('each route\'s refusal reads as the row having moved on', () {
       // One wording per route, one thing the user has to do.
       const details = [

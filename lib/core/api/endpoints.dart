@@ -77,6 +77,14 @@ abstract final class Endpoints {
   static String printerStatus(int printerId) =>
       '$apiPrefix/printers/$printerId/status';
 
+  /// `GET` → `{inventory_remain_g: {"254": grams, …}, slot_materials:
+  /// [...]}`: grams left on the spool bound to each loaded slot, which the
+  /// web's mapping sorts by when "prefer lowest remaining" is on
+  /// (`routes/printers.py::get_inventory_remain`). Newer than most servers in
+  /// the field — a 404 is the same as nothing bound.
+  static String printerInventoryRemain(int printerId) =>
+      '$apiPrefix/printers/$printerId/inventory-remain';
+
   /// Pre-save connection diagnostic for the Add-Printer flow (`POST`, body
   /// `{ip_address, serial_number?, access_code?}`). Returns
   /// `PrinterDiagnosticResult` (`{overall, checks:[{id,status,params}]}`).
@@ -676,6 +684,13 @@ abstract final class Endpoints {
   /// statement about the server's age rather than about its configuration.
   static const appSettings = '$apiPrefix/settings';
 
+  /// The few settings the app shell needs (`billing_enabled` among them),
+  /// readable by any signed-in user or key — unlike [appSettings], which wants
+  /// `settings:read` and so answers a non-admin with 403 (#3023).
+  ///
+  /// **1.2.6+ only**; an older server 404s and [appSettings] is all there is.
+  static const uiFlags = '$apiPrefix/settings/ui-flags';
+
   /// The same settings, written — body `AppSettingsUpdate`, dumped with
   /// `exclude_unset=True`, so a request carrying three keys changes three rows.
   ///
@@ -978,6 +993,14 @@ abstract final class Endpoints {
   /// health check of Spoolman, not part of that decision.
   static const spoolmanStatus = '$apiPrefix/spoolman/status';
   static const spoolmanSpools = '$apiPrefix/spoolman/inventory/spools';
+
+  /// `GET` → `{linked: {TAG: {id, remaining_weight, filament_weight}}}`: every
+  /// non-archived Spoolman spool with an `extra.tag`, keyed by the tag in
+  /// upper case (`routes/spoolman.py::get_linked_spools`). The web reads a
+  /// slot's fill from it first. Its `filament_weight` is null where Spoolman
+  /// knows no net weight; the inventory routes give such a spool 1000
+  /// (`_spoolman_helpers.py::_map_spoolman_spool`).
+  static const spoolmanLinkedSpools = '$apiPrefix/spoolman/spools/linked';
   static const spoolmanSpoolsBulk = '$apiPrefix/spoolman/inventory/spools/bulk';
   static String spoolmanSpool(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId';
@@ -1264,6 +1287,21 @@ abstract final class Endpoints {
   /// and needs no cloud login (only `filaments:read`), which makes it the floor
   /// the filament picker always has.
   static const cloudBuiltinFilaments = '$apiPrefix/cloud/builtin-filaments';
+
+  /// `GET` → `{filament_id: name}` for the user's own cloud presets,
+  /// which the built-in table cannot name. Needs a cloud login: without one
+  /// the answer is an error, and the built-in names are all there is.
+  static const cloudFilamentIdMap = '$apiPrefix/cloud/filament-id-map';
+
+  /// `GET` → the colour catalogue, `{colors: {hex: name}, by_material:
+  /// {"material|hex": name}}`. Not gated on an inventory permission:
+  /// every view that names a sliced colour needs it (`routes/inventory.py`).
+  static const inventoryColorMap = '$apiPrefix/inventory/colors/map';
+
+  /// `GET ?hex=&material=` → `{color_name}`, null when the catalogue has no
+  /// such hex. The material picks between colours sharing one hex.
+  static const inventoryColorByMaterial =
+      '$apiPrefix/inventory/colors/by-material';
 
   /// Presets imported from a slicer bundle (`GET`) — same grouping as
   /// [cloudSettings], entries carry `filament_type`, `nozzle_temp_min/max` and

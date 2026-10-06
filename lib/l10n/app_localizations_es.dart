@@ -1353,11 +1353,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'La vista previa de la cámara no está disponible en modo demo';
 
   @override
-  String amsUnit(int number) {
-    return 'AMS $number';
-  }
-
-  @override
   String get externalSpool => 'Bobina externa';
 
   @override
@@ -5270,12 +5265,126 @@ class AppLocalizationsEs extends AppLocalizations {
   String get mappingExternalSpool => 'Bobina externa';
 
   @override
-  String mappingAmsSlot(String unit, String slot) {
-    return 'AMS $unit · ranura $slot';
+  String get mappingSaved => 'Mapeo de filamentos guardado';
+
+  @override
+  String get mappingStatusReady => 'Listo';
+
+  @override
+  String get mappingStatusColorMismatch => 'Color distinto';
+
+  @override
+  String get mappingStatusTypeNotFound => 'Tipo no encontrado';
+
+  @override
+  String get mappingTapToChange => 'Toca un filamento para cambiar su ranura';
+
+  @override
+  String get mappingExactColor => 'Color exacto';
+
+  @override
+  String mappingSameTypeOtherColor(String required, String loaded) {
+    return 'Mismo tipo, otro color: necesita $required, la ranura tiene $loaded';
   }
 
   @override
-  String get mappingSaved => 'Mapeo de filamentos guardado';
+  String get mappingTypeNotLoaded => 'Tipo de filamento no cargado';
+
+  @override
+  String get mappingManual => 'Elegido a mano';
+
+  @override
+  String mappingRequired(String name, String color) {
+    return 'Necesario: $name, $color';
+  }
+
+  @override
+  String get mappingUseSlicer => 'Asignación del slicer';
+
+  @override
+  String get mappingUseSlicerHint =>
+      'Elige cada ranura según la asignación de AMS que el slicer guardó con esta impresión, en lugar de emparejar por tipo y color.';
+
+  @override
+  String get mappingReRead => 'Volver a leer';
+
+  @override
+  String mappingFtsSameInlet(String inlet) {
+    return 'Todos los filamentos de esta impresión están en la entrada IN-$inlet del Filament Track Switch. Cambiar entre filamentos de la misma entrada es más lento: mueve uno a un AMS de la otra entrada para acelerarlo.';
+  }
+
+  @override
+  String get mappingRackPosition => 'Posición en el soporte';
+
+  @override
+  String get mappingRackPositionHint =>
+      'Qué boquilla del soporte imprime este filamento. Las posiciones están numeradas como en la impresora.';
+
+  @override
+  String mappingRackNeeds(String nozzle) {
+    return 'Este filamento necesita una boquilla $nozzle.';
+  }
+
+  @override
+  String get mappingRackEmptyPosition => 'Esta posición del soporte está vacía';
+
+  @override
+  String mappingRackWrongNozzle(String has, String needs) {
+    return 'Tiene una boquilla $has; este filamento necesita $needs';
+  }
+
+  @override
+  String mappingRackSlot(int position) {
+    return 'R$position';
+  }
+
+  @override
+  String get colorFamilyRed => 'Rojo';
+
+  @override
+  String get colorFamilyOrange => 'Naranja';
+
+  @override
+  String get colorFamilyYellow => 'Amarillo';
+
+  @override
+  String get colorFamilyGreen => 'Verde';
+
+  @override
+  String get colorFamilyCyan => 'Cian';
+
+  @override
+  String get colorFamilyBlue => 'Azul';
+
+  @override
+  String get colorFamilyPurple => 'Morado';
+
+  @override
+  String get colorFamilyPink => 'Rosa';
+
+  @override
+  String get colorFamilyBrown => 'Marrón';
+
+  @override
+  String get colorFamilyWhite => 'Blanco';
+
+  @override
+  String get colorFamilyLightGray => 'Gris claro';
+
+  @override
+  String get colorFamilyGray => 'Gris';
+
+  @override
+  String get colorFamilyDarkGray => 'Gris oscuro';
+
+  @override
+  String get colorFamilyBlack => 'Negro';
+
+  @override
+  String get colorFamilyClear => 'Transparente';
+
+  @override
+  String get colorFamilyUnknown => 'Desconocido';
 
   @override
   String get plateClearTitle => '¿Está despejada la placa?';
@@ -5781,39 +5890,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get queueEditForceColorMatch => 'Forzar coincidencia de color';
-
-  @override
-  String get queueEditNozzleRack => 'Soporte de boquillas';
-
-  @override
-  String get queueEditNozzleRackDesc =>
-      'Elige desde qué boquilla del soporte imprime cada filamento. Si se deja en automático, se elegirá una posición adecuada al iniciar la impresión.';
-
-  @override
-  String queueEditRackGroupLabel(String slots, String nozzle) {
-    return 'Filamento $slots · $nozzle';
-  }
-
-  @override
-  String get queueEditRackAuto => 'Automático';
-
-  @override
-  String queueEditRackPosition(int position, String nozzle) {
-    return 'Posición $position · $nozzle';
-  }
-
-  @override
-  String queueEditRackPositionTaken(int position, String nozzle) {
-    return 'Posición $position · $nozzle — ya seleccionada';
-  }
-
-  @override
-  String queueEditRackPositionUnfit(int position, String nozzle) {
-    return 'Posición $position · $nozzle — no compatible';
-  }
-
-  @override
-  String get queueEditRackEmpty => 'vacía';
 
   @override
   String get queueEditRackPickStale =>
@@ -7508,4 +7584,177 @@ class AppLocalizationsEs extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get timeJustNow => 'Ahora mismo';
+
+  @override
+  String get timeNow => 'Ahora';
+
+  @override
+  String timeMinutesAgo(int count) {
+    return 'hace $count min';
+  }
+
+  @override
+  String timeInMinutes(int count) {
+    return 'en $count min';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return 'hace $count h';
+  }
+
+  @override
+  String timeInHours(int count) {
+    return 'en $count h';
+  }
+
+  @override
+  String timeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'hace $count días',
+      one: 'hace 1 día',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String timeInDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'en $count días',
+      one: 'en 1 día',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueHistory => 'Historial';
+
+  @override
+  String queueItemCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count elementos',
+      one: '1 elemento',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueHistoryEmpty =>
+      'Aún no hay historial. Aquí aparecerán las impresiones completadas, canceladas y fallidas.';
+
+  @override
+  String get queueHistoryShowMore => 'Mostrar más';
+
+  @override
+  String queueHistoryShowing(int shown, int total) {
+    return 'Mostrando $shown de $total';
+  }
+
+  @override
+  String get queueHistorySort => 'Orden';
+
+  @override
+  String get queueHistorySortDate => 'Por fecha';
+
+  @override
+  String get queueHistorySortName => 'Por nombre';
+
+  @override
+  String get queueHistorySortPrinter => 'Por impresora';
+
+  @override
+  String get queueHistoryNewestFirst => 'Más recientes primero';
+
+  @override
+  String get queueHistoryOldestFirst => 'Más antiguos primero';
+
+  @override
+  String get queueHistoryClear => 'Borrar el historial';
+
+  @override
+  String get queueHistoryClearTitle => '¿Borrar el historial?';
+
+  @override
+  String queueHistoryClearMessage(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '¿Quitar los $count elementos del historial?',
+      one: '¿Quitar 1 elemento del historial?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueHistoryCleared(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Se borraron $count elementos del historial.',
+      one: 'Se borró 1 elemento del historial.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueHistoryKeptForOrders(int kept) {
+    return 'Se conservan $kept que los pedidos todavía necesitan.';
+  }
+
+  @override
+  String get queueHistoryClearFailed => 'No se pudo borrar el historial.';
+
+  @override
+  String get queueHistoryNoClear =>
+      'No tienes permiso para borrar todo el historial';
+
+  @override
+  String get queueHistoryRequeue => 'Volver a encolar';
+
+  @override
+  String get queueHistoryNoRequeue =>
+      'No tienes permiso para volver a encolar elementos';
+
+  @override
+  String get queueHistoryRemove => 'Quitar';
+
+  @override
+  String get queueHistoryNoRemove =>
+      'No tienes permiso para quitar este elemento';
+
+  @override
+  String get queueHistoryRemoveTitle => '¿Quitar del historial?';
+
+  @override
+  String queueHistoryRemoveMessage(String name) {
+    return '¿Quitar «$name» del historial de la cola?';
+  }
+
+  @override
+  String queueHistoryAddedBy(String name) {
+    return 'Añadido por $name';
+  }
+
+  @override
+  String get queueHistoryBatch => 'Lote';
+
+  @override
+  String get queueHistoryRemoved => 'Elemento de la cola eliminado';
+
+  @override
+  String get queueHistoryKeptForOrder =>
+      'Cancelado en lugar de eliminado: es la única impresión desde la que el pedido puede volver a encolar esta placa';
+
+  @override
+  String get queueBillingUseWeb =>
+      'Este servidor tiene la facturación activada, así que cada trabajo necesita un centro de costes que la app aún no puede asignar. Encola, edita e inicia este trabajo en Bambuddy desde el navegador.';
 }

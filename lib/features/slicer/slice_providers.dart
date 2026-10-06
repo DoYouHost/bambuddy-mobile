@@ -79,7 +79,7 @@ final ownedFilamentsProvider = FutureProvider.autoDispose<List<OwnedFilament>>((
 typedef PlateSource = ({bool isArchive, int id, int plate});
 
 /// Filament slots a model needs, keyed by [PlateSource] — the per-colour pickers
-/// in the slice modal and the queue mapping sheet. Each plate of a multi-plate
+/// in the slice modal, every project slot included. Each plate of a multi-plate
 /// file consumes its own slots, so the wrong key offers the wrong pickers (see
 /// `SlicerRepository.filamentRequirements`).
 final filamentRequirementsProvider = FutureProvider.autoDispose
@@ -90,6 +90,21 @@ final filamentRequirementsProvider = FutureProvider.autoDispose
             id: key.id,
             isArchive: key.isArchive,
             plateId: key.plate,
+          ),
+    );
+
+/// The filaments a plate prints with, unused project slots left out — what
+/// matching it to the AMS reads, as the web's print dialog does (it never
+/// asks for `full_slots`): an unused slot would take a tray from one in use.
+final printRequirementsProvider = FutureProvider.autoDispose
+    .family<List<FilamentRequirement>, PlateSource>(
+      (ref, key) => ref
+          .watch(slicerRepositoryProvider)
+          .filamentRequirements(
+            id: key.id,
+            isArchive: key.isArchive,
+            plateId: key.plate,
+            fullSlots: false,
           ),
     );
 

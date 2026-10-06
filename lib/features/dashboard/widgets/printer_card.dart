@@ -356,7 +356,12 @@ class _PrinterCardState extends State<PrinterCard> {
                           _MovementTile(printerId: printerId, model: model),
                         if (hasFans)
                           _FansGrid(status: status, printerId: printerId),
-                        if (hasDetails) _DetailsPanel(status: status),
+                        if (hasDetails)
+                          _DetailsPanel(
+                            status: status,
+                            serial: widget.item.printer.serialNumber,
+                            nozzleCount: widget.item.printer.nozzleCount,
+                          ),
                       ],
                     )
                   : const SizedBox(width: double.infinity),

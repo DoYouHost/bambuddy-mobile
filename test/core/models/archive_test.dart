@@ -229,4 +229,43 @@ void main() {
       expect(a.isFavorite, isFalse);
     });
   });
+
+  group('slicer AMS mapping', () {
+    Archive withExtra(Object? extra) => Archive.fromJson({
+      'id': 1,
+      'filename': 'a.3mf',
+      'status': 'completed',
+      'extra_data': extra,
+    });
+
+    test('reads the mapping and the printer it was resolved against', () {
+      final a = withExtra({
+        'slicer_ams_mapping': {
+          'printer_id': 3,
+          'mapping': [2, -1, 0],
+        },
+      });
+      expect(a.slicerAmsMapping?.printerId, 3);
+      expect(a.slicerAmsMapping?.mapping, [2, -1, 0]);
+    });
+
+    test('anything less is no mapping', () {
+      expect(withExtra(null).slicerAmsMapping, isNull);
+      expect(withExtra(const {}).slicerAmsMapping, isNull);
+      expect(
+        withExtra({
+          'slicer_ams_mapping': {'printer_id': 3, 'mapping': []},
+        }).slicerAmsMapping,
+        isNull,
+      );
+      expect(
+        withExtra({
+          'slicer_ams_mapping': {
+            'mapping': [1],
+          },
+        }).slicerAmsMapping,
+        isNull,
+      );
+    });
+  });
 }
