@@ -20,6 +20,7 @@ import '../../providers.dart';
 import '../../core/models/process_option.dart';
 import '../../core/slicer/filament_slot_options.dart';
 import '../../core/slicer/loaded_spool_match.dart';
+import '../../core/slicer/preset_compatibility.dart';
 import '../../core/slicer/process_settings_codec.dart';
 import '../../core/theme/dash_theme.dart';
 import '../common/dash_async.dart';
@@ -151,9 +152,13 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final owned =
         ref.watch(ownedFilamentsProvider).valueOrNull ??
         const <OwnedFilament>[];
-    final reqs =
-        ref.watch(filamentRequirementsProvider(_filamentKey)).valueOrNull ??
-        const <FilamentRequirement>[];
+    final reqsAsync = ref.watch(filamentRequirementsProvider(_filamentKey));
+    final reqs = reqsAsync.valueOrNull ?? const <FilamentRequirement>[];
+    // A plate just picked has no slots yet. Rows filled against nothing would
+    // keep a material the plate never asked for once its slots arrive, so they
+    // wait, and so does the button — the web's `filamentReqsQuery.isSuccess`.
+    // A read that failed still lets the form go on with one plain row.
+    final reqsPending = reqsAsync.isLoading && !reqsAsync.hasValue;
     final embeddedAsync = ref.watch(embeddedSettingsProvider(_sourceKey));
     final embedded = embeddedAsync.valueOrNull ?? EmbeddedSettings.none;
     // Watched here, not where the cards are built: those only exist once the
@@ -248,7 +253,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
             final filaments = filamentFilter == null
                 ? ownedFilaments
                 : presets.filaments.where(filamentFilter).toList();
-            for (var i = 0; i < slotCount; i++) {
+            for (var i = 0; i < slotCount && !reqsPending; i++) {
               final current = _filaments[i];
               final notLoaded =
                   current != null &&
@@ -265,6 +270,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
             }
 
             final ready =
+                !reqsPending &&
                 _printer != null &&
                 _process != null &&
                 _filaments.every((f) => f != null) &&
@@ -743,12 +749,16 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         ? designed
         : pickConnectedPrinterPreset(all, connectedModels, registry);
     if (next == null) return;
-    // Rows the user filled while the answer was in flight survive the move:
-    // the web moves only the printer, and a choice is never undone behind
-    // somebody's back. The auto-picked rest is picked again for the new one.
+    // Rows the user filled while the answer was in flight survive the move
+    // where they still fit the new printer — the web keeps a pick that is not
+    // a mismatch and picks the rest again. The auto-picked rows are re-picked.
     final kept = {
       for (final i in _explicitFilaments)
-        if (i < _filaments.length) i: (_filaments[i], _colourOverrides[i]),
+        if (i < _filaments.length)
+          if (_filaments[i] case final preset?
+              when presetCompatibility(preset, next.name, registry) !=
+                  PresetFit.mismatch)
+            i: (preset, _colourOverrides[i]),
     };
     _pickPrinter(next);
     _printerPicked = false;
@@ -802,10 +812,6 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     return _pickDefaultFilament(filaments, owned, req);
   }
 
-  bool get _multiPlate =>
-      ref.read(plateListProvider(_sourceKey)).valueOrNull?.isMultiPlate ??
-      false;
-
   /// Which plate to slice, and the switch that slices them all — shown only
   /// for a 3MF with more than one plate.
   Widget _platesCard(PlateList plates) {
@@ -855,8 +861,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     );
   }
 
-  /// Another plate has other slots, so the rows start over: what was picked
-  /// and the spool colours named a slot of the plate that was left.
+  /// Another plate has other slots, so the rows start over: what was picked,
+  /// the spool colours and any process edit naming a slot all named a slot of
+  /// the plate that was left.
   Future<void> _pickPlate(PlateList plates) async {
     final picked = await showQueuePlateSheet(
       context,
@@ -864,11 +871,18 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       selected: _plate,
     );
     if (picked == null || picked == _plate || !mounted) return;
+    final schema = ref.read(processSchemaProvider).valueOrNull?.schema;
     setState(() {
       _plate = picked;
       _filaments = List.filled(_filaments.length, null);
       _colourOverrides = List.filled(_filaments.length, null);
       _explicitFilaments.clear();
+      // An edit naming a filament slot named one of the plate that was left.
+      _processValues = {
+        for (final MapEntry(:key, :value) in _processValues.entries)
+          if (schema?[key] == null || !namesFilamentSlot(schema![key]!))
+            key: value,
+      };
     });
   }
 
@@ -979,8 +993,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
 
   /// The plate the slots are read for. It has to be the plate the slice names,
   /// or the slots offered are not the slots the slice will use. With every
-  /// plate sliced it is still the picked one: the rows are every project slot
-  /// (`full_slots`) whichever plate asks.
+  /// plate sliced it is still the picked one, as on the web: the rows are every
+  /// project slot (`full_slots`) whichever plate asks, though their colours and
+  /// usage describe that plate.
   PlateSource get _filamentKey =>
       (isArchive: widget.target.isArchive, id: widget.target.id, plate: _plate);
 
@@ -1229,9 +1244,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         'filament_presets': refs,
       // The preset refs above stay: the validator wants them here too, unused.
       if (asDesigned) 'use_embedded_settings': true,
-      // A multi-plate source names its plate, or 0 for all of them; anything
-      // else leaves it out, as the web does, and the sidecar slices plate 1.
-      if (_multiPlate) 'plate': _allPlates ? 0 : _plate,
+      // 0 for every plate, another plate by number; plate 1 is what the sidecar
+      // slices with none named, so it is left out as on a single-plate file.
+      if (_allPlates) 'plate': 0 else if (_plate != 1) 'plate': _plate,
       // Override the plate only when the user picked one; null inherits.
       if (_bedType != null && !asDesigned) 'bed_type': _bedType,
       // Only when on: both default to false server-side, and an older server

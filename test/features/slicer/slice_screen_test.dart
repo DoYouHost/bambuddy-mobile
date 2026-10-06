@@ -150,6 +150,8 @@ void main() {
     Map<String, Object> prefs = const {},
     PlateList plates = PlateList.none,
     List<int>? requirementPlates,
+    Map<int, List<FilamentRequirement>> requirementsByPlate = const {},
+    Duration requirementsAfter = Duration.zero,
   }) async {
     SharedPreferences.setMockInitialValues(prefs);
     final preferences = await SharedPreferences.getInstance();
@@ -179,7 +181,10 @@ void main() {
         ownedFilamentsProvider.overrideWith((ref) async => owned),
         filamentRequirementsProvider.overrideWith((ref, arg) async {
           requirementPlates?.add(arg.plate);
-          return requirements;
+          final byPlate = requirementsByPlate[arg.plate];
+          if (byPlate == null) return requirements;
+          await Future<void>.delayed(requirementsAfter);
+          return byPlate;
         }),
         plateListProvider.overrideWith((ref, arg) async => plates),
         // With [onSchemaLoad] the availability gate is the real one, so the
@@ -1238,6 +1243,41 @@ void main() {
       expect(body['filament_preset'], basic.toRef());
     });
 
+    testWidgets('a row made for the old printer does not survive the move', (
+      tester,
+    ) async {
+      const forX1c = SlicerPreset(
+        source: 'standard',
+        id: 'x1c-pla',
+        name: 'Generic PLA @BBL X1C',
+        filamentType: 'PLA',
+      );
+      await openSheet(
+        tester,
+        presets: const UnifiedPresets(
+          printers: [x1c, h2d],
+          processes: [
+            SlicerPreset(source: 'standard', id: 'p', name: '0.20mm Standard'),
+          ],
+          filaments: [generic, forX1c],
+        ),
+        loaded: online,
+        loadedAfter: const Duration(seconds: 30),
+        registry: registry,
+        prefs: {'slice_only_online_printers': true},
+      );
+      await tester.tap(find.text(generic.name));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(forX1c.name));
+      await tester.pumpAndSettle();
+
+      await tester.pump(const Duration(seconds: 30));
+      await tester.pumpAndSettle();
+      final body = await slice(tester);
+      expect(body['printer_preset'], h2d.toRef());
+      expect(body['filament_preset'], generic.toRef());
+    });
+
     testWidgets('the move stays among the printers the user owns', (
       tester,
     ) async {
@@ -1439,7 +1479,11 @@ void main() {
     ) async {
       await openSheet(tester, plates: twoPlates);
       expect(byLogId('slice.plate'), findsOneWidget);
-      expect((await slice(tester))['plate'], 1);
+      expect(
+        (await slice(tester)).containsKey('plate'),
+        isFalse,
+        reason: 'plate 1 is what the sidecar slices with none named',
+      );
     });
 
     testWidgets('another plate is sliced, with its own slots', (tester) async {
@@ -1491,6 +1535,89 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
       }
       expect(repo.body!['plate'], 0);
+    });
+
+    testWidgets('a new plate\'s rows wait for its slots', (tester) async {
+      const tpu = SlicerPreset(
+        source: 'local',
+        id: '31',
+        name: 'Generic TPU',
+        filamentType: 'TPU',
+      );
+      await openSheet(
+        tester,
+        plates: twoPlates,
+        presets: const UnifiedPresets(
+          printers: [
+            SlicerPreset(source: 'local', id: '1', name: 'Bambu Lab X2D'),
+          ],
+          processes: [
+            SlicerPreset(source: 'local', id: '12', name: '0.20 mm Standard'),
+          ],
+          filaments: [
+            SlicerPreset(source: 'local', id: '30', name: 'Bambu PLA Basic'),
+            tpu,
+          ],
+        ),
+        owned: const [(name: 'Generic TPU', material: 'TPU', color: null)],
+        requirementsByPlate: const {
+          2: [
+            FilamentRequirement(slotId: 1, type: 'TPU'),
+            FilamentRequirement(slotId: 2, type: 'PLA'),
+          ],
+        },
+        requirementsAfter: const Duration(seconds: 5),
+      );
+      await tester.tap(byLogId('slice.plate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('Lid'));
+      await tester.pump();
+
+      final submit = tester.widget<ButtonStyleButton>(
+        find.ancestor(
+          of: find.text('Potnij'),
+          matching: find.bySubtype<ButtonStyleButton>(),
+        ),
+      );
+      expect(submit.onPressed, isNull, reason: 'no slots, no slice yet');
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      final body = await slice(tester);
+      expect((body['filament_presets'] as List).first, tpu.toRef());
+    });
+
+    testWidgets('a slot edit is dropped with the plate it named', (
+      tester,
+    ) async {
+      await openSheet(
+        tester,
+        plates: twoPlates,
+        requirements: const [
+          FilamentRequirement(slotId: 1, type: 'PLA'),
+          FilamentRequirement(slotId: 2, type: 'PETG'),
+        ],
+      );
+      await tester.tap(find.text('Ustawienia procesu'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('support_filament')),
+          matching: find.byType(DropdownMenu<String>),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('2: Bambu PLA Basic').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+
+      await tester.tap(byLogId('slice.plate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('Lid'));
+      await tester.pumpAndSettle();
+
+      expect((await slice(tester)).containsKey('process_overrides'), isFalse);
     });
   });
 }
