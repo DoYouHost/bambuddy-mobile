@@ -4770,6 +4770,92 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sliceSearchHint => 'Buscar preajustes';
 
   @override
+  String get sliceOnlyOnline => 'Solo impresoras en línea';
+
+  @override
+  String get sliceOnlyOnlineHint =>
+      'Perfiles de impresora de los modelos conectados ahora, en todos los tamaños de boquilla.';
+
+  @override
+  String get sliceOnlyLoaded => 'Solo bobinas cargadas';
+
+  @override
+  String get sliceOnlyLoadedHint =>
+      'Perfiles de filamento de las bobinas en las impresoras conectadas del modelo seleccionado. Un perfil que elijas tú se mantiene.';
+
+  @override
+  String get sliceNoneOnline =>
+      'Ninguna impresora está en línea, así que se muestran todos los perfiles.';
+
+  @override
+  String get sliceNoneLoaded =>
+      'Ninguna bobina cargada tiene un perfil para esta impresora, así que se muestran todos los perfiles de filamento.';
+
+  @override
+  String get sliceLoadedNoneOfModel =>
+      'Ninguna impresora de este modelo está en línea.';
+
+  @override
+  String get sliceLoadedNothing => 'Sin AMS ni bobina externa.';
+
+  @override
+  String get sliceSpoolUnidentified => 'Bobina no identificada';
+
+  @override
+  String get sliceSpoolEmpty => 'Vacío';
+
+  @override
+  String sliceAllPlates(int count) {
+    return 'Laminar las $count placas';
+  }
+
+  @override
+  String get sliceAllPlatesHint =>
+      'Todas las placas en un solo archivo. Los filamentos cubren cada ranura del proyecto.';
+
+  @override
+  String get sliceTabSpools => 'Bobinas';
+
+  @override
+  String get sliceTabProfiles => 'Perfiles';
+
+  @override
+  String sliceNeedsMaterial(String material) {
+    return 'La placa necesita: $material';
+  }
+
+  @override
+  String get sliceFilterPrinter => 'Impresora';
+
+  @override
+  String get sliceFilterMaterial => 'Material';
+
+  @override
+  String get sliceFilterBrand => 'Fabricante';
+
+  @override
+  String sliceProfilesShown(int shown, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total perfiles',
+      one: '1 perfil',
+    );
+    return '$shown de $_temp0';
+  }
+
+  @override
+  String get sliceSpoolsUnavailable => 'No disponibles:';
+
+  @override
+  String sliceSpoolFrom(String source) {
+    return 'De una bobina · $source';
+  }
+
+  @override
+  String get sliceSpoolNoProfileShort => 'sin perfil';
+
+  @override
   String get sliceOwnedEmpty =>
       'No hay preajustes coincidentes para tu impresora y filamentos. Activa “Todos” para explorar el catálogo completo.';
 

@@ -2843,6 +2843,117 @@
   "sliceStart": "Slice",
   "sliceShowAll": "All",
   "sliceSearchHint": "Search presets",
+  "sliceOnlyOnline": "Only printers that are online",
+  "@sliceOnlyOnline": {
+    "description": "Slice form switch: narrow the printer profiles to the models online now (web: slice.filters.onlyConnectedModels)"
+  },
+  "sliceOnlyOnlineHint": "Printer profiles for the models online right now, at every nozzle size.",
+  "@sliceOnlyOnlineHint": {
+    "description": "Line under the online-printers switch"
+  },
+  "sliceOnlyLoaded": "Only spools that are loaded",
+  "@sliceOnlyLoaded": {
+    "description": "Slice form switch: narrow the filament profiles to the spools loaded in online printers"
+  },
+  "sliceOnlyLoadedHint": "Filament profiles of the spools in the online printers of the selected model. A profile you pick yourself stays.",
+  "@sliceOnlyLoadedHint": {
+    "description": "Line under the loaded-spools switch"
+  },
+  "sliceNoneOnline": "No printer is online, so every profile is shown.",
+  "@sliceNoneOnline": {
+    "description": "Note when a filter is on but no printer is online, so it has no effect"
+  },
+  "sliceNoneLoaded": "No loaded spool has a profile for this printer, so every filament profile is shown.",
+  "@sliceNoneLoaded": {
+    "description": "Note when the loaded-spools filter is on but no loaded spool maps to a profile"
+  },
+  "sliceLoadedNoneOfModel": "No printer of this model is online.",
+  "@sliceLoadedNoneOfModel": {
+    "description": "Loaded-spools sheet when no printer of the selected model is online"
+  },
+  "sliceLoadedNothing": "No AMS and no external spool.",
+  "@sliceLoadedNothing": {
+    "description": "Printer in the loaded-spools sheet with no AMS and no external spool"
+  },
+  "sliceSpoolUnidentified": "Unidentified spool",
+  "@sliceSpoolUnidentified": {
+    "description": "Slot holding a spool the printer cannot identify"
+  },
+  "sliceSpoolEmpty": "Empty",
+  "@sliceSpoolEmpty": {
+    "description": "Empty slot in the loaded-spools sheet"
+  },
+  "sliceAllPlates": "Slice all {count} plates",
+  "@sliceAllPlates": {
+    "description": "Slice form switch and submit label: slice every plate of a multi-plate 3MF into one output (web: slice.allPlatesToggle)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sliceAllPlatesHint": "Every plate into one file. The filaments cover every slot of the project.",
+  "@sliceAllPlatesHint": {
+    "description": "Line under the slice-all-plates switch"
+  },
+  "sliceTabSpools": "Spools",
+  "@sliceTabSpools": {
+    "description": "Filament sheet tab: the spools loaded in online printers"
+  },
+  "sliceTabProfiles": "Profiles",
+  "@sliceTabProfiles": {
+    "description": "Filament sheet tab: the profile catalogue"
+  },
+  "sliceNeedsMaterial": "The plate needs: {material}",
+  "@sliceNeedsMaterial": {
+    "description": "Under the filament sheet's title: the material the plate's slot asks for",
+    "placeholders": {
+      "material": {
+        "type": "String"
+      }
+    }
+  },
+  "sliceFilterPrinter": "Printer",
+  "@sliceFilterPrinter": {
+    "description": "Filter row label in the filament sheet: printer model"
+  },
+  "sliceFilterMaterial": "Material",
+  "@sliceFilterMaterial": {
+    "description": "Filter row label in the filament sheet: material"
+  },
+  "sliceFilterBrand": "Brand",
+  "@sliceFilterBrand": {
+    "description": "Filter row label in the filament sheet: brand"
+  },
+  "sliceProfilesShown": "{shown} of {total, plural, =1{1 profile} other{{total} profiles}}",
+  "@sliceProfilesShown": {
+    "description": "Count under the filament filters: profiles shown out of those listed",
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "sliceSpoolsUnavailable": "Unavailable:",
+  "@sliceSpoolsUnavailable": {
+    "description": "Label before the slots that cannot be picked (empty, unidentified, no profile)"
+  },
+  "sliceSpoolFrom": "From a spool · {source}",
+  "@sliceSpoolFrom": {
+    "description": "Line under a filament row filled from a loaded spool; source is printer and slot",
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "sliceSpoolNoProfileShort": "no profile",
+  "@sliceSpoolNoProfileShort": {
+    "description": "In a compact unavailable-slot chip: the spool has no profile for this printer"
+  },
   "sliceOwnedEmpty": "No matching presets for your printer and filaments. Turn on \"All\" to browse the full catalog.",
   "sliceNoPresets": "No presets available",
   "sliceInProgress": "Slicing…",

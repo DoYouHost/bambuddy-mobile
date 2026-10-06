@@ -4789,6 +4789,99 @@ class AppLocalizationsPl extends AppLocalizations {
   String get sliceSearchHint => 'Szukaj profili';
 
   @override
+  String get sliceOnlyOnline => 'Tylko drukarki online';
+
+  @override
+  String get sliceOnlyOnlineHint =>
+      'Profile drukarek dla modeli, które są teraz online, we wszystkich rozmiarach dysz.';
+
+  @override
+  String get sliceOnlyLoaded => 'Tylko załadowane szpule';
+
+  @override
+  String get sliceOnlyLoadedHint =>
+      'Profile filamentów ze szpul w drukarkach online wybranego modelu. Profil wybrany ręcznie zostaje.';
+
+  @override
+  String get sliceNoneOnline =>
+      'Żadna drukarka nie jest online, więc widać wszystkie profile.';
+
+  @override
+  String get sliceNoneLoaded =>
+      'Żadna załadowana szpula nie ma profilu dla tej drukarki, więc widać wszystkie profile filamentów.';
+
+  @override
+  String get sliceLoadedNoneOfModel =>
+      'Żadna drukarka tego modelu nie jest online.';
+
+  @override
+  String get sliceLoadedNothing => 'Brak AMS i szpuli zewnętrznej.';
+
+  @override
+  String get sliceSpoolUnidentified => 'Nierozpoznana szpula';
+
+  @override
+  String get sliceSpoolEmpty => 'Pusty';
+
+  @override
+  String sliceAllPlates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Potnij wszystkie $count płyt',
+      few: 'Potnij wszystkie $count płyty',
+      one: 'Potnij $count płytę',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sliceAllPlatesHint =>
+      'Wszystkie płyty w jednym pliku. Filamenty obejmują każdy slot projektu.';
+
+  @override
+  String get sliceTabSpools => 'Szpule';
+
+  @override
+  String get sliceTabProfiles => 'Profile';
+
+  @override
+  String sliceNeedsMaterial(String material) {
+    return 'Płyta potrzebuje: $material';
+  }
+
+  @override
+  String get sliceFilterPrinter => 'Drukarka';
+
+  @override
+  String get sliceFilterMaterial => 'Materiał';
+
+  @override
+  String get sliceFilterBrand => 'Producent';
+
+  @override
+  String sliceProfilesShown(int shown, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total profili',
+      one: '1 profilu',
+    );
+    return '$shown z $_temp0';
+  }
+
+  @override
+  String get sliceSpoolsUnavailable => 'Niedostępne:';
+
+  @override
+  String sliceSpoolFrom(String source) {
+    return 'Ze szpuli · $source';
+  }
+
+  @override
+  String get sliceSpoolNoProfileShort => 'brak profilu';
+
+  @override
   String get sliceOwnedEmpty =>
       'Brak pasujących profili dla Twojej drukarki i filamentów. Włącz „Wszystkie”, aby przeglądać pełny katalog.';
 

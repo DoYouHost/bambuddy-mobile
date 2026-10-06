@@ -4710,6 +4710,91 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sliceSearchHint => 'Search presets';
 
   @override
+  String get sliceOnlyOnline => 'Only printers that are online';
+
+  @override
+  String get sliceOnlyOnlineHint =>
+      'Printer profiles for the models online right now, at every nozzle size.';
+
+  @override
+  String get sliceOnlyLoaded => 'Only spools that are loaded';
+
+  @override
+  String get sliceOnlyLoadedHint =>
+      'Filament profiles of the spools in the online printers of the selected model. A profile you pick yourself stays.';
+
+  @override
+  String get sliceNoneOnline =>
+      'No printer is online, so every profile is shown.';
+
+  @override
+  String get sliceNoneLoaded =>
+      'No loaded spool has a profile for this printer, so every filament profile is shown.';
+
+  @override
+  String get sliceLoadedNoneOfModel => 'No printer of this model is online.';
+
+  @override
+  String get sliceLoadedNothing => 'No AMS and no external spool.';
+
+  @override
+  String get sliceSpoolUnidentified => 'Unidentified spool';
+
+  @override
+  String get sliceSpoolEmpty => 'Empty';
+
+  @override
+  String sliceAllPlates(int count) {
+    return 'Slice all $count plates';
+  }
+
+  @override
+  String get sliceAllPlatesHint =>
+      'Every plate into one file. The filaments cover every slot of the project.';
+
+  @override
+  String get sliceTabSpools => 'Spools';
+
+  @override
+  String get sliceTabProfiles => 'Profiles';
+
+  @override
+  String sliceNeedsMaterial(String material) {
+    return 'The plate needs: $material';
+  }
+
+  @override
+  String get sliceFilterPrinter => 'Printer';
+
+  @override
+  String get sliceFilterMaterial => 'Material';
+
+  @override
+  String get sliceFilterBrand => 'Brand';
+
+  @override
+  String sliceProfilesShown(int shown, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total profiles',
+      one: '1 profile',
+    );
+    return '$shown of $_temp0';
+  }
+
+  @override
+  String get sliceSpoolsUnavailable => 'Unavailable:';
+
+  @override
+  String sliceSpoolFrom(String source) {
+    return 'From a spool · $source';
+  }
+
+  @override
+  String get sliceSpoolNoProfileShort => 'no profile';
+
+  @override
   String get sliceOwnedEmpty =>
       'No matching presets for your printer and filaments. Turn on \"All\" to browse the full catalog.';
 

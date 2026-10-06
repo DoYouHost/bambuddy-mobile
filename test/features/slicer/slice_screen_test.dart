@@ -4,11 +4,14 @@ import 'dart:convert';
 
 import 'package:bambuddy_mobile/core/models/embedded_settings.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
+import 'package:bambuddy_mobile/core/models/loaded_spools.dart';
+import 'package:bambuddy_mobile/core/models/plate_list.dart';
 import 'package:bambuddy_mobile/core/models/slice_job.dart';
 import 'package:bambuddy_mobile/core/models/slicer_pipeline.dart';
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/core/slicer/process_schema_catalog.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
+import 'package:bambuddy_mobile/features/dashboard/ams_slot_config_providers.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_screen.dart';
@@ -18,6 +21,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
 
@@ -140,7 +144,17 @@ void main() {
     List<OwnedFilament> owned = const [],
     Future<UnifiedPresets>? heldPresets,
     void Function()? onSchemaLoad,
+    List<LoadedSpoolPrinter>? loaded,
+    Duration loadedAfter = Duration.zero,
+    Map<String, String> registry = const {},
+    Map<String, Object> prefs = const {},
+    PlateList plates = PlateList.none,
+    List<int>? requirementPlates,
+    Map<int, List<FilamentRequirement>> requirementsByPlate = const {},
+    Duration requirementsAfter = Duration.zero,
   }) async {
+    SharedPreferences.setMockInitialValues(prefs);
+    final preferences = await SharedPreferences.getInstance();
     await pumpPhone(
       tester,
       Builder(
@@ -165,9 +179,18 @@ void main() {
         sliceLayoutOptionsProvider.overrideWithValue(AsyncData(layoutOptions)),
         ownedPrinterCodesProvider.overrideWith((ref) async => ownedCodes),
         ownedFilamentsProvider.overrideWith((ref) async => owned),
-        filamentRequirementsProvider.overrideWith(
-          (ref, arg) async => requirements,
+        ownedSpoolFacetsProvider.overrideWith(
+          (ref) async =>
+              (materials: const <String>{}, brands: const <String>{}),
         ),
+        filamentRequirementsProvider.overrideWith((ref, arg) async {
+          requirementPlates?.add(arg.plate);
+          final byPlate = requirementsByPlate[arg.plate];
+          if (byPlate == null) return requirements;
+          await Future<void>.delayed(requirementsAfter);
+          return byPlate;
+        }),
+        plateListProvider.overrideWith((ref, arg) async => plates),
         // With [onSchemaLoad] the availability gate is the real one, so the
         // test can see when the screen makes it decode the schema.
         if (onSchemaLoad == null)
@@ -191,6 +214,13 @@ void main() {
         // Reaches `currentUserProvider` and the repository's observed latch,
         // neither of which these tests stand up.
         canWritePipelinesProvider.overrideWithValue(const AsyncData(true)),
+        // Null by default: a server without #3172, so no filters at all.
+        loadedSpoolsProvider.overrideWith((ref) async {
+          await Future<void>.delayed(loadedAfter);
+          return loaded;
+        }),
+        printerModelRegistryProvider.overrideWith((ref) async => registry),
+        sharedPreferencesProvider.overrideWithValue(preferences),
       ],
     );
     await tester.tap(find.text('open'));
@@ -1080,6 +1110,572 @@ void main() {
         find.textContaining(l10n(tester).sliceExternalFallback),
         findsNothing,
       );
+    });
+  });
+
+  group('online printers and loaded spools (#3172)', () {
+    const registry = {'Bambu Lab X1 Carbon': 'X1C', 'Bambu Lab H2D': 'H2D'};
+    const x1c = SlicerPreset(
+      source: 'standard',
+      id: 'x1c',
+      name: 'Bambu Lab X1 Carbon 0.4 nozzle',
+    );
+    const h2d = SlicerPreset(
+      source: 'standard',
+      id: 'h2d',
+      name: 'Bambu Lab H2D 0.4 nozzle',
+    );
+    const generic = SlicerPreset(
+      source: 'standard',
+      id: 'generic',
+      name: 'Generic PLA @BBL H2D',
+      filamentType: 'PLA',
+    );
+    const basic = SlicerPreset(
+      source: 'standard',
+      id: 'basic',
+      name: 'Bambu PLA Basic @BBL H2D',
+      filamentType: 'PLA',
+    );
+    const presets = UnifiedPresets(
+      printers: [x1c, h2d],
+      processes: [
+        SlicerPreset(source: 'standard', id: 'p', name: '0.20mm Standard'),
+      ],
+      filaments: [generic, basic],
+    );
+    const online = [
+      LoadedSpoolPrinter(
+        id: 1,
+        name: 'H2D one',
+        model: 'H2D',
+        ams: [
+          LoadedSpoolUnit(
+            id: 0,
+            isAmsHt: false,
+            trays: [
+              LoadedSpoolTray(
+                amsId: 0,
+                trayId: 0,
+                trayType: 'PLA',
+                traySubBrands: 'PLA Basic',
+                trayInfoIdx: 'GFA00',
+                trayColor: 'FF8800FF',
+              ),
+            ],
+          ),
+        ],
+      ),
+    ];
+
+    Future<void> open(
+      WidgetTester tester, {
+      List<LoadedSpoolPrinter>? loaded = online,
+      bool onlyOnline = false,
+      bool onlyLoaded = false,
+    }) => openSheet(
+      tester,
+      presets: presets,
+      loaded: loaded,
+      registry: registry,
+      prefs: {
+        'slice_only_online_printers': onlyOnline,
+        'slice_only_loaded_spools': onlyLoaded,
+      },
+    );
+
+    testWidgets('a server without the route offers no filters', (tester) async {
+      await open(tester, loaded: null);
+      expect(byLogId('slice.only_online'), findsNothing);
+      expect(byLogId('slice.only_loaded'), findsNothing);
+    });
+
+    testWidgets('both start off and change nothing', (tester) async {
+      await open(tester);
+      expect(byLogId('slice.only_online'), findsOneWidget);
+      final body = await slice(tester);
+      expect(body['printer_preset'], x1c.toRef());
+      expect(body['filament_preset'], generic.toRef());
+    });
+
+    testWidgets('only online printers moves the auto-pick to an online model', (
+      tester,
+    ) async {
+      await open(tester, onlyOnline: true);
+      expect((await slice(tester))['printer_preset'], h2d.toRef());
+    });
+
+    testWidgets('an answer that lands after the form moves its auto-pick', (
+      tester,
+    ) async {
+      await openSheet(
+        tester,
+        presets: presets,
+        loaded: online,
+        loadedAfter: const Duration(seconds: 1),
+        registry: registry,
+        prefs: {'slice_only_online_printers': true},
+      );
+      expect(find.text(x1c.name), findsOneWidget, reason: 'nothing known yet');
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect((await slice(tester))['printer_preset'], h2d.toRef());
+    });
+
+    testWidgets('a row the user filled survives the move to an online model', (
+      tester,
+    ) async {
+      await openSheet(
+        tester,
+        presets: presets,
+        loaded: online,
+        // Long enough for the two sheets to open and close before it lands.
+        loadedAfter: const Duration(seconds: 30),
+        registry: registry,
+        prefs: {'slice_only_online_printers': true},
+      );
+      await tester.tap(find.text(generic.name));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(basic.name));
+      await tester.pumpAndSettle();
+
+      expect(find.text(x1c.name), findsOneWidget, reason: 'not moved yet');
+      await tester.pump(const Duration(seconds: 30));
+      await tester.pumpAndSettle();
+      final body = await slice(tester);
+      expect(body['printer_preset'], h2d.toRef());
+      expect(body['filament_preset'], basic.toRef());
+    });
+
+    testWidgets('a row made for the old printer does not survive the move', (
+      tester,
+    ) async {
+      const forX1c = SlicerPreset(
+        source: 'standard',
+        id: 'x1c-pla',
+        name: 'Generic PLA @BBL X1C',
+        filamentType: 'PLA',
+      );
+      await openSheet(
+        tester,
+        presets: const UnifiedPresets(
+          printers: [x1c, h2d],
+          processes: [
+            SlicerPreset(source: 'standard', id: 'p', name: '0.20mm Standard'),
+          ],
+          filaments: [generic, forX1c],
+        ),
+        loaded: online,
+        loadedAfter: const Duration(seconds: 30),
+        registry: registry,
+        prefs: {'slice_only_online_printers': true},
+      );
+      await tester.tap(find.text(generic.name));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(forX1c.name));
+      await tester.pumpAndSettle();
+
+      await tester.pump(const Duration(seconds: 30));
+      await tester.pumpAndSettle();
+      final body = await slice(tester);
+      expect(body['printer_preset'], h2d.toRef());
+      expect(body['filament_preset'], generic.toRef());
+    });
+
+    testWidgets('the move stays among the printers the user owns', (
+      tester,
+    ) async {
+      // The H2D is online but none of the user's: the form keeps to the
+      // owned list it offers, as the designed-printer default does.
+      await openSheet(
+        tester,
+        presets: presets,
+        loaded: online,
+        loadedAfter: const Duration(seconds: 1),
+        registry: registry,
+        ownedCodes: const {'X1 CARBON'},
+        prefs: {'slice_only_online_printers': true},
+      );
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(find.text(x1c.name), findsOneWidget);
+      expect(find.text(h2d.name), findsNothing);
+    });
+
+    testWidgets('a loaded spool of the slot\'s material wins over the first', (
+      tester,
+    ) async {
+      const petg = SlicerPreset(
+        source: 'standard',
+        id: 'petg',
+        name: 'Generic PETG @BBL H2D',
+        filamentType: 'PETG',
+      );
+      await openSheet(
+        tester,
+        presets: const UnifiedPresets(
+          printers: [x1c, h2d],
+          processes: [
+            SlicerPreset(source: 'standard', id: 'p', name: '0.20mm Standard'),
+          ],
+          filaments: [generic, basic, petg],
+        ),
+        registry: registry,
+        requirements: const [FilamentRequirement(slotId: 1, type: 'PETG')],
+        prefs: {
+          'slice_only_online_printers': true,
+          'slice_only_loaded_spools': true,
+        },
+        loaded: const [
+          LoadedSpoolPrinter(
+            id: 1,
+            name: 'H2D one',
+            model: 'H2D',
+            ams: [
+              LoadedSpoolUnit(
+                id: 0,
+                isAmsHt: false,
+                trays: [
+                  LoadedSpoolTray(
+                    amsId: 0,
+                    trayId: 0,
+                    trayType: 'PLA',
+                    traySubBrands: 'PLA Basic',
+                    trayInfoIdx: 'GFA00',
+                  ),
+                  LoadedSpoolTray(
+                    amsId: 0,
+                    trayId: 1,
+                    trayType: 'PETG',
+                    trayInfoIdx: 'GFG99',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      );
+      expect((await slice(tester))['filament_preset'], petg.toRef());
+    });
+
+    testWidgets('only loaded spools auto-picks the spool in the AMS', (
+      tester,
+    ) async {
+      await open(tester, onlyOnline: true, onlyLoaded: true);
+      expect((await slice(tester))['filament_preset'], basic.toRef());
+    });
+
+    testWidgets('with nothing online it says the lists stay whole', (
+      tester,
+    ) async {
+      await open(tester, loaded: const [], onlyOnline: true);
+      final l10n = lookupAppLocalizations(const Locale('pl'));
+      expect(find.text(l10n.sliceNoneOnline), findsOneWidget);
+      expect((await slice(tester))['printer_preset'], x1c.toRef());
+    });
+
+    final l10n = lookupAppLocalizations(const Locale('pl'));
+
+    /// Opens the filament row's sheet. The row sits below the fold once the
+    /// filters are on screen.
+    Future<void> openFilament(WidgetTester tester) async {
+      await tester.scrollUntilVisible(
+        find.text(l10n.sliceFilament),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text(l10n.sliceFilament));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the row opens on the spools, and a spool fills it and its '
+        'colour', (tester) async {
+      // On the H2D: the X1C the form starts on has no printer online.
+      await open(tester, onlyOnline: true);
+      await openFilament(tester);
+      expect(byLogId('slice.filament_tab'), findsOneWidget);
+      await tester.tap(byLogId('slice.spool_tile'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.sliceSpoolFrom('H2D one · A1')), findsOneWidget);
+      final body = await slice(tester);
+      expect(body['filament_preset'], basic.toRef());
+      expect(body['filament_colours'], ['#FF8800']);
+    });
+
+    testWidgets('a profile picked from the other tab drops the spool', (
+      tester,
+    ) async {
+      await open(tester, onlyOnline: true);
+      await openFilament(tester);
+      await tester.tap(byLogId('slice.spool_tile'));
+      await tester.pumpAndSettle();
+      await openFilament(tester);
+      await tester.tap(find.text(l10n.sliceTabProfiles));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(generic.name).last);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('H2D one · A1'), findsNothing);
+      final body = await slice(tester);
+      expect(body['filament_preset'], generic.toRef());
+      expect(body.containsKey('filament_colours'), isFalse);
+    });
+
+    testWidgets('slots that cannot be picked are one compact line', (
+      tester,
+    ) async {
+      await openSheet(
+        tester,
+        presets: presets,
+        registry: registry,
+        prefs: {'slice_only_online_printers': true},
+        loaded: const [
+          LoadedSpoolPrinter(
+            id: 1,
+            name: 'H2D one',
+            model: 'H2D',
+            ams: [
+              LoadedSpoolUnit(
+                id: 0,
+                isAmsHt: false,
+                trays: [
+                  LoadedSpoolTray(
+                    amsId: 0,
+                    trayId: 0,
+                    trayType: 'PA-CF',
+                    traySubBrands: 'Odd brand',
+                  ),
+                  LoadedSpoolTray(amsId: 0, trayId: 1, exists: false),
+                ],
+              ),
+            ],
+          ),
+        ],
+      );
+      await openFilament(tester);
+      expect(byLogId('slice.spool_tile'), findsNothing);
+      expect(find.text(l10n.sliceSpoolsUnavailable), findsOneWidget);
+      expect(
+        find.text('A1 · PA-CF · ${l10n.sliceSpoolNoProfileShort}'),
+        findsOneWidget,
+      );
+      expect(find.text('A2 · ${l10n.sliceSpoolEmpty}'), findsOneWidget);
+    });
+
+    testWidgets('the spools tab says when no printer of the model is online', (
+      tester,
+    ) async {
+      await open(tester);
+      await openFilament(tester);
+      expect(find.text(l10n.sliceLoadedNoneOfModel), findsOneWidget);
+    });
+
+    testWidgets('the sheet lists every owned printer\'s presets, starting '
+        'on the selected one', (tester) async {
+      const forX1c = SlicerPreset(
+        source: 'standard',
+        id: 'x1c-pla',
+        name: 'Generic PLA @BBL X1C',
+        filamentType: 'PLA',
+      );
+      await openSheet(
+        tester,
+        presets: const UnifiedPresets(
+          printers: [x1c, h2d],
+          processes: [
+            SlicerPreset(source: 'standard', id: 'p', name: '0.20mm Standard'),
+          ],
+          filaments: [generic, forX1c],
+        ),
+        registry: registry,
+        ownedCodes: const {'H2D', 'X1C'},
+        loaded: const [],
+      );
+      await openFilament(tester);
+      expect(find.text(forX1c.name), findsNothing, reason: 'starts on H2D');
+      await tester.tap(find.widgetWithText(ChoiceChip, 'X1C'));
+      await tester.pumpAndSettle();
+      expect(find.text(forX1c.name), findsOneWidget);
+    });
+
+    testWidgets('with nothing online the sheet is the profile list alone', (
+      tester,
+    ) async {
+      await open(tester, loaded: const []);
+      await openFilament(tester);
+      expect(byLogId('slice.filament_tab'), findsNothing);
+      expect(byLogId('slice.preset_option'), findsWidgets);
+    });
+
+    testWidgets('a switch is remembered on the device', (tester) async {
+      await open(tester);
+      await tester.tap(byLogId('slice.only_loaded'));
+      await tester.pumpAndSettle();
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('slice_only_loaded_spools'), isTrue);
+    });
+  });
+
+  group('which plate to slice', () {
+    const twoPlates = PlateList(
+      plates: [
+        PlateInfo(index: 1, name: 'Body'),
+        PlateInfo(index: 2, name: 'Lid'),
+      ],
+    );
+    final l10n = lookupAppLocalizations(const Locale('pl'));
+
+    testWidgets('a single-plate source names no plate', (tester) async {
+      await openSheet(tester);
+      expect(byLogId('slice.plate'), findsNothing);
+      expect((await slice(tester)).containsKey('plate'), isFalse);
+    });
+
+    testWidgets('a multi-plate source slices plate 1 until told otherwise', (
+      tester,
+    ) async {
+      await openSheet(tester, plates: twoPlates);
+      expect(byLogId('slice.plate'), findsOneWidget);
+      expect(
+        (await slice(tester)).containsKey('plate'),
+        isFalse,
+        reason: 'plate 1 is what the sidecar slices with none named',
+      );
+    });
+
+    testWidgets('another plate is sliced, with its own slots', (tester) async {
+      final asked = <int>[];
+      await openSheet(tester, plates: twoPlates, requirementPlates: asked);
+      await tester.tap(byLogId('slice.plate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('Lid'));
+      await tester.pumpAndSettle();
+
+      expect(asked, contains(2), reason: 'the slots are read for plate 2');
+      expect((await slice(tester))['plate'], 2);
+    });
+
+    testWidgets('all plates slice as plate 0, every slot in use', (
+      tester,
+    ) async {
+      await openSheet(
+        tester,
+        plates: twoPlates,
+        requirements: const [
+          FilamentRequirement(slotId: 1, type: 'PLA'),
+          FilamentRequirement(slotId: 2, type: 'PLA', usedInPlate: false),
+        ],
+      );
+      // The second row sits below the fold with the plate card above it.
+      await tester.scrollUntilVisible(
+        find.text(l10n.sliceFilamentUnused),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.scrollUntilVisible(
+        byLogId('slice.all_plates'),
+        -200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(byLogId('slice.all_plates'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text(l10n.sliceFilamentNumbered('2')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(find.text(l10n.sliceFilamentUnused), findsNothing);
+      expect(find.text(l10n.sliceAllPlates(2)), findsWidgets);
+      await tester.tap(find.text(l10n.sliceAllPlates(2)).last);
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(repo.body!['plate'], 0);
+    });
+
+    testWidgets('a new plate\'s rows wait for its slots', (tester) async {
+      const tpu = SlicerPreset(
+        source: 'local',
+        id: '31',
+        name: 'Generic TPU',
+        filamentType: 'TPU',
+      );
+      await openSheet(
+        tester,
+        plates: twoPlates,
+        presets: const UnifiedPresets(
+          printers: [
+            SlicerPreset(source: 'local', id: '1', name: 'Bambu Lab X2D'),
+          ],
+          processes: [
+            SlicerPreset(source: 'local', id: '12', name: '0.20 mm Standard'),
+          ],
+          filaments: [
+            SlicerPreset(source: 'local', id: '30', name: 'Bambu PLA Basic'),
+            tpu,
+          ],
+        ),
+        owned: const [(name: 'Generic TPU', material: 'TPU', color: null)],
+        requirementsByPlate: const {
+          2: [
+            FilamentRequirement(slotId: 1, type: 'TPU'),
+            FilamentRequirement(slotId: 2, type: 'PLA'),
+          ],
+        },
+        requirementsAfter: const Duration(seconds: 5),
+      );
+      await tester.tap(byLogId('slice.plate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('Lid'));
+      await tester.pump();
+
+      final submit = tester.widget<ButtonStyleButton>(
+        find.ancestor(
+          of: find.text('Potnij'),
+          matching: find.bySubtype<ButtonStyleButton>(),
+        ),
+      );
+      expect(submit.onPressed, isNull, reason: 'no slots, no slice yet');
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      final body = await slice(tester);
+      expect((body['filament_presets'] as List).first, tpu.toRef());
+    });
+
+    testWidgets('a slot edit is dropped with the plate it named', (
+      tester,
+    ) async {
+      await openSheet(
+        tester,
+        plates: twoPlates,
+        requirements: const [
+          FilamentRequirement(slotId: 1, type: 'PLA'),
+          FilamentRequirement(slotId: 2, type: 'PETG'),
+        ],
+      );
+      await tester.tap(find.text('Ustawienia procesu'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('support_filament')),
+          matching: find.byType(DropdownMenu<String>),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('2: Bambu PLA Basic').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+
+      await tester.tap(byLogId('slice.plate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('Lid'));
+      await tester.pumpAndSettle();
+
+      expect((await slice(tester)).containsKey('process_overrides'), isFalse);
     });
   });
 }

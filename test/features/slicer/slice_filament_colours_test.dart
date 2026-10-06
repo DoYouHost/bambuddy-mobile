@@ -173,4 +173,19 @@ void main() {
       );
     });
   });
+
+  test('a row filled from a loaded spool prints in that spool\'s colour', () {
+    // #3172: the spool the user tapped is the colour, whatever inventory spool
+    // happens to share the preset name.
+    const preset = SlicerPreset(source: 'standard', id: 'p', name: 'Bambu PLA');
+    expect(
+      sliceFilamentColours(
+        picked: const [preset, preset],
+        owned: const [(name: 'Bambu PLA', material: 'PLA', color: '00FF00FF')],
+        requirements: const [],
+        overrides: const ['#FF8800', null],
+      ),
+      ['#FF8800', '#00FF00'],
+    );
+  });
 }

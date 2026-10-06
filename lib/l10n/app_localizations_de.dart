@@ -4755,6 +4755,92 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sliceSearchHint => 'Profile suchen';
 
   @override
+  String get sliceOnlyOnline => 'Nur Drucker, die online sind';
+
+  @override
+  String get sliceOnlyOnlineHint =>
+      'Druckerprofile für die gerade verbundenen Modelle, in jeder Düsengröße.';
+
+  @override
+  String get sliceOnlyLoaded => 'Nur eingelegte Spulen';
+
+  @override
+  String get sliceOnlyLoadedHint =>
+      'Filamentprofile der Spulen in den verbundenen Druckern des gewählten Modells. Ein selbst gewähltes Profil bleibt erhalten.';
+
+  @override
+  String get sliceNoneOnline =>
+      'Kein Drucker ist online, daher werden alle Profile angezeigt.';
+
+  @override
+  String get sliceNoneLoaded =>
+      'Keine eingelegte Spule hat ein Profil für diesen Drucker, daher werden alle Filamentprofile angezeigt.';
+
+  @override
+  String get sliceLoadedNoneOfModel =>
+      'Kein Drucker dieses Modells ist online.';
+
+  @override
+  String get sliceLoadedNothing => 'Kein AMS und keine externe Spule.';
+
+  @override
+  String get sliceSpoolUnidentified => 'Unbekannte Spule';
+
+  @override
+  String get sliceSpoolEmpty => 'Leer';
+
+  @override
+  String sliceAllPlates(int count) {
+    return 'Alle $count Druckplatten slicen';
+  }
+
+  @override
+  String get sliceAllPlatesHint =>
+      'Alle Druckplatten in eine Datei. Die Filamente decken jeden Slot des Projekts ab.';
+
+  @override
+  String get sliceTabSpools => 'Spulen';
+
+  @override
+  String get sliceTabProfiles => 'Profile';
+
+  @override
+  String sliceNeedsMaterial(String material) {
+    return 'Die Druckplatte braucht: $material';
+  }
+
+  @override
+  String get sliceFilterPrinter => 'Drucker';
+
+  @override
+  String get sliceFilterMaterial => 'Material';
+
+  @override
+  String get sliceFilterBrand => 'Hersteller';
+
+  @override
+  String sliceProfilesShown(int shown, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total Profilen',
+      one: '1 Profil',
+    );
+    return '$shown von $_temp0';
+  }
+
+  @override
+  String get sliceSpoolsUnavailable => 'Nicht verfügbar:';
+
+  @override
+  String sliceSpoolFrom(String source) {
+    return 'Von einer Spule · $source';
+  }
+
+  @override
+  String get sliceSpoolNoProfileShort => 'kein Profil';
+
+  @override
   String get sliceOwnedEmpty =>
       'Keine passenden Profile für deinen Drucker und deine Filamente. Aktiviere „Alle“, um den gesamten Katalog zu durchsuchen.';
 

@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
 import 'package:bambuddy_mobile/core/demo/demo_config.dart';
 import 'package:bambuddy_mobile/core/demo/demo_ws.dart';
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
+import 'package:bambuddy_mobile/core/slicer/loaded_spool_match.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
 import 'package:bambuddy_mobile/data/ams_history_repository.dart';
@@ -424,6 +425,32 @@ void main() {
       final fresh = list.firstWhere((p) => p.name == 'Nightly ASA brackets');
       expect(fresh.isRunnable, isFalse);
     });
+
+    test(
+      'the online printers\' spools map to slice profiles (#3172)',
+      () async {
+        // The slice form offers its filters and the Pick button only once this
+        // answers, and a spool the catalogue cannot name is greyed out.
+        final repo = SlicerRepository(dio);
+        final printers = (await repo.loadedSpools())!;
+        final filaments = (await repo.presets()).filaments;
+
+        expect(printers, isNotEmpty);
+        expect(
+          printers.any((p) => p.name == 'A1 mini'),
+          isFalse,
+          reason: 'offline printers are left out, as on the server',
+        );
+        final matched = matchedFilamentKeys(
+          printers,
+          filaments: filaments,
+          index: buildFilamentNameIndex(filaments),
+          selectedPrinterName: null,
+          registry: const {},
+        );
+        expect(matched, contains('standard:Bambu PLA Basic @BBL X1C'));
+      },
+    );
 
     test('the stored preset refs resolve against /slicer/presets', () async {
       // The same catalogue the slice form's pickers read, or every row of the card would

@@ -4803,6 +4803,92 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sliceSearchHint => 'Rechercher des préréglages';
 
   @override
+  String get sliceOnlyOnline => 'Uniquement les imprimantes en ligne';
+
+  @override
+  String get sliceOnlyOnlineHint =>
+      'Profils d\'imprimante des modèles connectés en ce moment, pour toutes les tailles de buse.';
+
+  @override
+  String get sliceOnlyLoaded => 'Uniquement les bobines chargées';
+
+  @override
+  String get sliceOnlyLoadedHint =>
+      'Profils de filament des bobines dans les imprimantes connectées du modèle choisi. Un profil choisi par vous est conservé.';
+
+  @override
+  String get sliceNoneOnline =>
+      'Aucune imprimante n\'est en ligne, tous les profils sont donc affichés.';
+
+  @override
+  String get sliceNoneLoaded =>
+      'Aucune bobine chargée n\'a de profil pour cette imprimante, tous les profils de filament sont donc affichés.';
+
+  @override
+  String get sliceLoadedNoneOfModel =>
+      'Aucune imprimante de ce modèle n\'est en ligne.';
+
+  @override
+  String get sliceLoadedNothing => 'Ni AMS ni bobine externe.';
+
+  @override
+  String get sliceSpoolUnidentified => 'Bobine non identifiée';
+
+  @override
+  String get sliceSpoolEmpty => 'Vide';
+
+  @override
+  String sliceAllPlates(int count) {
+    return 'Découper les $count plateaux';
+  }
+
+  @override
+  String get sliceAllPlatesHint =>
+      'Tous les plateaux dans un seul fichier. Les filaments couvrent chaque emplacement du projet.';
+
+  @override
+  String get sliceTabSpools => 'Bobines';
+
+  @override
+  String get sliceTabProfiles => 'Profils';
+
+  @override
+  String sliceNeedsMaterial(String material) {
+    return 'Le plateau demande : $material';
+  }
+
+  @override
+  String get sliceFilterPrinter => 'Imprimante';
+
+  @override
+  String get sliceFilterMaterial => 'Matériau';
+
+  @override
+  String get sliceFilterBrand => 'Fabricant';
+
+  @override
+  String sliceProfilesShown(int shown, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total profils',
+      one: '1 profil',
+    );
+    return '$shown sur $_temp0';
+  }
+
+  @override
+  String get sliceSpoolsUnavailable => 'Indisponibles :';
+
+  @override
+  String sliceSpoolFrom(String source) {
+    return 'D\'une bobine · $source';
+  }
+
+  @override
+  String get sliceSpoolNoProfileShort => 'aucun profil';
+
+  @override
   String get sliceOwnedEmpty =>
       'Aucun préréglage correspondant pour votre imprimante et vos filaments. Activez « Tout » pour parcourir le catalogue complet.';
 
