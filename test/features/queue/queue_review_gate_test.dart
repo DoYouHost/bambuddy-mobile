@@ -118,10 +118,14 @@ void main() {
 
     const own = {Permissions.queueUpdateOwn, Permissions.queueStartUnreviewed};
 
-    test('update-own starts the user\'s own jobs only', () async {
+    test('update-own starts the user\'s own jobs and ownerless ones', () async {
       expect(await mayStart(own, 7), isTrue);
       expect(await mayStart(own, 8), isFalse);
-      expect(await mayStart(own, null), isFalse, reason: 'web canModify');
+      expect(
+        await mayStart(own, null),
+        isTrue,
+        reason: 'a virtual-printer job is claimed by starting it (#1670)',
+      );
       expect(await mayStart({Permissions.queueUpdateAll}, 8), isTrue);
     });
 

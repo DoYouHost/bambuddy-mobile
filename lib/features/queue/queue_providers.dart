@@ -12,7 +12,6 @@ import '../../core/settings/server_profile.dart';
 import '../../data/queue_repository.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import 'queue_history.dart' show canModifyOwned;
 
 final queueProvider =
     AutoDisposeAsyncNotifierProvider<QueueNotifier, List<QueueItem>>(
@@ -251,10 +250,14 @@ final awaitingReviewProvider = Provider<bool>((ref) {
       !me.can(Permissions.queueUpdateAll);
 });
 
-/// Whether to offer Start on a job [createdById] queued: the web's
-/// `canModify('queue', 'update', …)` plus #1620. An API key is checked against
-/// update-all alone (`require_ownership_permission`), so its owner's own jobs
-/// are not enough.
+/// Whether to offer Start on a job [createdById] queued — the server's rule
+/// (`print_queue.py::start_queue_item`, `auth.py::may_start_queue_item`) plus
+/// #1620, not the web's. The web greys Start on a job with no owner unless the
+/// user holds update-all, but the route lets update-own start one and makes
+/// them its owner: jobs from the virtual printer arrive that way (#1670).
+///
+/// An API key is checked against update-all alone
+/// (`require_ownership_permission`), so its owner's own jobs are not enough.
 final mayStartQueueItemProvider = Provider.family<bool, int?>((
   ref,
   createdById,
@@ -264,12 +267,9 @@ final mayStartQueueItemProvider = Provider.family<bool, int?>((
   if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
     return me?.can(Permissions.queueUpdateAll) ?? true;
   }
-  return canModifyOwned(
-    me,
-    all: Permissions.queueUpdateAll,
-    own: Permissions.queueUpdateOwn,
-    createdById: createdById,
-  );
+  if (me == null || me.can(Permissions.queueUpdateAll)) return true;
+  if (!me.can(Permissions.queueUpdateOwn)) return false;
+  return createdById == null || createdById == me.id;
 });
 
 /// All printers regardless of state, for the Edit Queue Item target picker.
