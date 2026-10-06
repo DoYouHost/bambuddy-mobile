@@ -660,6 +660,12 @@ void main() {
       canRename: false,
       canDelete: false,
     );
+    const mount = LibraryFolder(
+      id: 3,
+      name: 'NAS',
+      isExternal: true,
+      externalReadonly: true,
+    );
     final file = _file();
     final l10n = lookupAppLocalizations(const Locale('pl'));
 
@@ -672,7 +678,7 @@ void main() {
           fileManagerProvider.overrideWith(
             () => _FakeNotifier(
               FileManagerState(
-                allFolders: const [mine, theirs],
+                allFolders: const [mine, theirs, mount],
                 currentFolderId: folderId,
                 files: [file],
               ),
@@ -736,6 +742,16 @@ void main() {
     ) async {
       await pumpAt(tester, folderId: 2);
       expect(byLogId('files.create'), findsNothing);
+    });
+
+    testWidgets('a read-only mount takes a subfolder, not an upload', (
+      tester,
+    ) async {
+      await pumpAt(tester, folderId: 3);
+      await tester.tap(byLogId('files.create'));
+      await tester.pumpAndSettle();
+      expect(byLogId('files.new_folder'), findsOneWidget);
+      expect(byLogId('files.upload'), findsNothing);
     });
 
     testWidgets('a writable folder keeps the add button', (tester) async {

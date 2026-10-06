@@ -8,8 +8,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
-import '../../core/models/library_file.dart';
 import '../../core/models/current_user.dart';
+import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
@@ -319,14 +319,17 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 _createFolder(s);
               },
             ).tagged('files.new_folder'),
-            ListTile(
-              leading: const Icon(Icons.upload_file_outlined),
-              title: Text(l10n.fmUpload),
-              onTap: () {
-                Navigator.pop(ctx);
-                _uploadFile(s);
-              },
-            ).tagged('files.upload'),
+            // A read-only mount refuses uploads (`library.py`, 403) whatever
+            // `can_write` says; a subfolder there is a plain one and is taken.
+            if (s.currentFolder?.externalReadonly != true)
+              ListTile(
+                leading: const Icon(Icons.upload_file_outlined),
+                title: Text(l10n.fmUpload),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _uploadFile(s);
+                },
+              ).tagged('files.upload'),
           ],
         ),
       ),
