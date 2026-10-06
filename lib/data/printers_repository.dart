@@ -60,8 +60,13 @@ class PrintersRepository {
   /// row the day after #1620 was merged, so a row carrying it proves the
   /// gate. A row without it reads as no gate, which is wrong only for the day
   /// between the two, where the refusal still reaches the user as a sentence.
+  ///
+  /// Probed, because the queue screen that reads it never lists printers
+  /// itself. No printer to read (an empty fleet, no `printers:read`) leaves it
+  /// unobserved, so the gate reads no until a later listing carries a row.
   late final reviewGateCapability = ObservedCapability.unversioned(
     whenUnknown: false,
+    probe: fetchPrinters,
   );
 
   Future<List<Printer>> fetchPrinters() async {

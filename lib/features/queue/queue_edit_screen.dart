@@ -1230,25 +1230,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           const SizedBox(height: DashSpace.sm),
           // Their jobs always wait, so the switch would only mislead (#1620).
           if (ref.watch(awaitingReviewProvider))
-            Padding(
+            InlineNote(
+              l10n.queueEditAwaitingReviewNote,
+              icon: Icons.pan_tool_outlined,
               padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.pan_tool_outlined,
-                    size: 18,
-                    color: t.textSecondary,
-                  ),
-                  const SizedBox(width: DashSpace.md),
-                  Expanded(
-                    child: Text(
-                      l10n.queueEditAwaitingReviewNote,
-                      style: t.body.copyWith(color: t.textSecondary),
-                    ),
-                  ),
-                ],
-              ),
             )
           else if (_scheduleType == QueueScheduleType.queue)
             _CheckRow(

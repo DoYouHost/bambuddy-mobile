@@ -8,9 +8,11 @@ import '../../core/models/available_filament.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/settings/server_profile.dart';
 import '../../data/queue_repository.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
+import 'queue_history.dart' show canModifyOwned;
 
 final queueProvider =
     AutoDisposeAsyncNotifierProvider<QueueNotifier, List<QueueItem>>(
@@ -247,6 +249,27 @@ final awaitingReviewProvider = Provider<bool>((ref) {
   return me != null &&
       !me.can(Permissions.queueStartUnreviewed) &&
       !me.can(Permissions.queueUpdateAll);
+});
+
+/// Whether to offer Start on a job [createdById] queued: the web's
+/// `canModify('queue', 'update', …)` plus #1620. An API key is checked against
+/// update-all alone (`require_ownership_permission`), so its owner's own jobs
+/// are not enough.
+final mayStartQueueItemProvider = Provider.family<bool, int?>((
+  ref,
+  createdById,
+) {
+  if (ref.watch(awaitingReviewProvider)) return false;
+  final me = ref.watch(currentUserProvider).valueOrNull;
+  if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
+    return me?.can(Permissions.queueUpdateAll) ?? true;
+  }
+  return canModifyOwned(
+    me,
+    all: Permissions.queueUpdateAll,
+    own: Permissions.queueUpdateOwn,
+    createdById: createdById,
+  );
 });
 
 /// All printers regardless of state, for the Edit Queue Item target picker.

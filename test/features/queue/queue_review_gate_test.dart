@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
@@ -88,6 +89,78 @@ void main() {
       expect(await held(me, gate: false), isFalse);
       expect(await held(null), isFalse);
     });
+  });
+
+  group('mayStartQueueItemProvider', () {
+    Future<bool> mayStart(
+      Set<String> permissions,
+      int? createdById, {
+      AuthMode authMode = AuthMode.jwt,
+    }) async {
+      final container = ProviderContainer(
+        overrides: [
+          fakeServerProfileOverride(authMode: authMode),
+          currentUserOverride(
+            CurrentUser(
+              id: 7,
+              username: 'u',
+              isAdmin: false,
+              permissions: permissions,
+            ),
+          ),
+          queueReviewGateProvider.overrideWithValue(const AsyncData(true)),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(currentUserProvider.future);
+      return container.read(mayStartQueueItemProvider(createdById));
+    }
+
+    const own = {Permissions.queueUpdateOwn, Permissions.queueStartUnreviewed};
+
+    test('update-own starts the user\'s own jobs only', () async {
+      expect(await mayStart(own, 7), isTrue);
+      expect(await mayStart(own, 8), isFalse);
+      expect(await mayStart(own, null), isFalse, reason: 'web canModify');
+      expect(await mayStart({Permissions.queueUpdateAll}, 8), isTrue);
+    });
+
+    test('a held user starts nothing, not even their own', () async {
+      expect(await mayStart({Permissions.queueUpdateOwn}, 7), isFalse);
+    });
+
+    test('an API key needs its owner\'s update-all', () async {
+      expect(await mayStart(own, 7, authMode: AuthMode.apiKey), isFalse);
+      expect(
+        await mayStart(
+          {Permissions.queueUpdateAll},
+          8,
+          authMode: AuthMode.apiKey,
+        ),
+        isTrue,
+      );
+    });
+  });
+
+  test('reading the gate lists printers once nothing has', () async {
+    final dio = testDio();
+    var listed = 0;
+    mockServer(dio).onGet('/api/v1/printers/', (s) {
+      listed++;
+      s.reply(200, [
+        {'id': 1, 'name': 'X1C', 'wear_cost_per_hour': null},
+      ]);
+    });
+    final container = ProviderContainer(
+      overrides: [
+        printersRepositoryProvider.overrideWithValue(PrintersRepository(dio)),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.listen(queueReviewGateProvider, (_, _) {});
+    await pumpEventQueue();
+    expect(container.read(queueReviewGateProvider).valueOrNull, isTrue);
+    expect(listed, 1);
   });
 
   group('the print form', () {

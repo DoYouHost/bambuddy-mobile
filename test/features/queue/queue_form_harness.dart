@@ -132,6 +132,10 @@ class _LivePrinters extends PrintersRepository {
   final Map<int, PrinterStatus> _status;
   final List<NozzleRackSlot>? _rack;
 
+  /// The review gate's probe lists printers; none leaves the gate at no.
+  @override
+  Future<List<Printer>> fetchPrinters() async => const [];
+
   @override
   Future<PrinterStatus?> fetchStatus(int printerId) async {
     final status = _status[printerId];

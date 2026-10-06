@@ -187,11 +187,10 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
               ),
           ],
         ),
-        // A user held for review may start no job at all (#1620).
         floatingActionButton:
             firstQueued == null ||
                 _onHistory ||
-                ref.watch(awaitingReviewProvider)
+                !ref.watch(mayStartQueueItemProvider(firstQueued.createdById))
             ? null
             : logTag(
                 'queue.start_next',
@@ -606,8 +605,8 @@ class _QueueActions extends ConsumerWidget {
     final canStart =
         item.statusKind == QueueItemStatusKind.pending ||
         item.statusKind == QueueItemStatusKind.scheduled;
-    // A user held for review may start no job at all (#1620).
-    final mayStart = canStart && !ref.watch(awaitingReviewProvider);
+    final mayStart =
+        canStart && ref.watch(mayStartQueueItemProvider(item.createdById));
     // Which route takes this item out of the queue, and how to word it. The
     // printer's own state only separates "stop the print" from "remove the
     // leftover row": a printer that failed is not printing anything to abort,
