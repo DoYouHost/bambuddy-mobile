@@ -32,6 +32,7 @@ import '../pipelines/pipeline_slice_bar.dart';
 import 'process_settings_screen.dart';
 import 'slice_filament_colours.dart';
 import 'slice_refusal.dart';
+import 'slice_spool_picker.dart';
 import 'slice_providers.dart';
 
 /// What gets sliced — an archive or a library file. Both use the same
@@ -112,6 +113,10 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   late bool _onlyLoaded = ref
       .read(settingsRepositoryProvider)
       .loadSliceOnlyLoaded();
+
+  /// The colour of the spool a row was filled from (#3172), per row; null
+  /// leaves the colour to [sliceFilamentColours]' own rule.
+  List<String?> _colourOverrides = [];
 
   /// Filament rows the user filled themselves. A filter only ever re-picks the
   /// others, as on the web: a profile somebody chose stays.
@@ -486,9 +491,29 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                               ? l10n.sliceFilament
                               : l10n.sliceFilamentNumbered('${i + 1}'),
                           icon: Icons.cable,
-                          swatch: i < reqs.length
+                          swatch: _colourOverrides[i] != null
+                              ? colorFromHex(_colourOverrides[i])
+                              : i < reqs.length
                               ? colorFromHex(reqs[i].color)
                               : null,
+                          footnote:
+                              online.isEmpty ||
+                                  (asDesigned && _filaments[i] != null)
+                              ? null
+                              : _pickSpoolButton(
+                                  slotLabel: slotCount == 1
+                                      ? l10n.sliceFilament
+                                      : l10n.sliceFilamentNumbered('${i + 1}'),
+                                  row: i,
+                                  printers: spoolPrinters,
+                                  matchFor: (tray) => matchSlotPreset(
+                                    tray,
+                                    filaments: presets.filaments,
+                                    index: nameIndex,
+                                    selectedPrinterName: _printer?.name,
+                                    registry: registry,
+                                  ),
+                                ),
                           typeHint: i < reqs.length ? reqs[i].type : null,
                           // Only when the server actually told used from unused —
                           // its own fallback flags everything used, and marking every
@@ -513,6 +538,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                               setState(() {
                                 _filaments[i] = p;
                                 _explicitFilaments.add(i);
+                                _colourOverrides[i] = null;
                               });
                             }
                           },
@@ -642,6 +668,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     for (var i = 0; i < _filaments.length; i++) {
       if (i >= pipeline.filamentPresets.length) continue;
       _explicitFilaments.add(i);
+      _colourOverrides[i] = null;
       _filaments[i] = resolvePresetRef(
         catalog,
         pipeline.filamentPresets[i],
@@ -663,6 +690,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     _printer = printer;
     _process = null;
     _filaments = List.filled(_filaments.length, null);
+    _colourOverrides = List.filled(_filaments.length, null);
     _explicitFilaments.clear();
     _processValues = {};
   }
@@ -722,6 +750,46 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     }
     return _pickDefaultFilament(filaments, owned, req);
   }
+
+  /// "Pick" under a filament row: fills it, and its colour, from a spool in
+  /// an online printer of the selected model.
+  Widget _pickSpoolButton({
+    required String slotLabel,
+    required int row,
+    required List<LoadedSpoolPrinter> printers,
+    required SlicerPreset? Function(LoadedSpoolTray tray) matchFor,
+  }) => Padding(
+    padding: const EdgeInsets.only(top: DashSpace.sm, bottom: DashSpace.xs),
+    child: Tooltip(
+      message: _l10n.slicePickSpoolTooltip,
+      child: FilledButton.tonalIcon(
+        onPressed: _submitting
+            ? null
+            : () async {
+                final picked = await showLoadedSpoolPicker(
+                  context,
+                  slotLabel: slotLabel,
+                  printers: printers,
+                  matchFor: matchFor,
+                );
+                if (picked == null || !mounted) return;
+                setState(() {
+                  _filaments[row] = picked.preset;
+                  _colourOverrides[row] = picked.colour;
+                  _explicitFilaments.add(row);
+                });
+              },
+        icon: const Icon(Icons.grid_view, size: 18),
+        label: Text(_l10n.slicePickSpool),
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: DashSpace.lg),
+          // The dense floor the designed-printer switch uses in this list.
+          minimumSize: const Size(48, 36),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ).tagged('slice.pick_spool'),
+    ),
+  );
 
   Widget _filtersCard({required bool noneOnline, required bool noneLoaded}) {
     final l10n = _l10n;
@@ -876,10 +944,13 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   void _resizeFilaments(int count) {
     if (_filaments.length == count) return;
     final next = List<SlicerPreset?>.filled(count, null);
+    final colours = List<String?>.filled(count, null);
     for (var i = 0; i < count && i < _filaments.length; i++) {
       next[i] = _filaments[i];
+      if (i < _colourOverrides.length) colours[i] = _colourOverrides[i];
     }
     _filaments = next;
+    _colourOverrides = colours;
   }
 
   Widget _slotTile({
@@ -1008,6 +1079,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         ? const <String>[]
         : sliceFilamentColours(
             picked: _filaments,
+            overrides: _colourOverrides,
             owned:
                 ref.read(ownedFilamentsProvider).valueOrNull ??
                 const <OwnedFilament>[],

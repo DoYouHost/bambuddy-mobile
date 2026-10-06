@@ -1224,6 +1224,86 @@ void main() {
       expect((await slice(tester))['printer_preset'], x1c.toRef());
     });
 
+    /// The filament rows sit below the fold once the filters are on screen.
+    Future<void> tapPick(WidgetTester tester) async {
+      await tester.scrollUntilVisible(
+        byLogId('slice.pick_spool'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(byLogId('slice.pick_spool'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('Pick fills the row and its colour from a loaded spool', (
+      tester,
+    ) async {
+      // On the H2D: the X1C the form starts on has no printer online.
+      await open(tester, onlyOnline: true);
+      await tapPick(tester);
+      await tester.tap(byLogId('slice.spool_tile'));
+      await tester.pumpAndSettle();
+
+      final body = await slice(tester);
+      expect(body['filament_preset'], basic.toRef());
+      expect(body['filament_colours'], ['#FF8800']);
+    });
+
+    testWidgets('a spool with no profile, and an empty slot, pick nothing', (
+      tester,
+    ) async {
+      await openSheet(
+        tester,
+        presets: presets,
+        registry: registry,
+        prefs: {'slice_only_online_printers': true},
+        loaded: const [
+          LoadedSpoolPrinter(
+            id: 1,
+            name: 'H2D one',
+            model: 'H2D',
+            ams: [
+              LoadedSpoolUnit(
+                id: 0,
+                isAmsHt: false,
+                trays: [
+                  LoadedSpoolTray(
+                    amsId: 0,
+                    trayId: 0,
+                    trayType: 'PA-CF',
+                    traySubBrands: 'Odd brand',
+                  ),
+                  LoadedSpoolTray(amsId: 0, trayId: 1, exists: false),
+                ],
+              ),
+            ],
+          ),
+        ],
+      );
+      final l10n = lookupAppLocalizations(const Locale('pl'));
+      await tapPick(tester);
+      expect(find.text(l10n.sliceSpoolNoProfile), findsOneWidget);
+      expect(find.text(l10n.sliceSpoolEmpty), findsOneWidget);
+
+      await tester.tap(byLogId('slice.spool_tile'));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.sliceLoadedSpools), findsOneWidget);
+    });
+
+    testWidgets('the sheet says when no printer of the model is online', (
+      tester,
+    ) async {
+      await open(tester);
+      await tapPick(tester);
+      final l10n = lookupAppLocalizations(const Locale('pl'));
+      expect(find.text(l10n.sliceLoadedNoneOfModel), findsOneWidget);
+    });
+
+    testWidgets('no Pick without a printer online', (tester) async {
+      await open(tester, loaded: const []);
+      expect(byLogId('slice.pick_spool'), findsNothing);
+    });
+
     testWidgets('a switch is remembered on the device', (tester) async {
       await open(tester);
       await tester.tap(byLogId('slice.only_loaded'));
