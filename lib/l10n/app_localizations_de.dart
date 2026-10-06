@@ -5830,6 +5830,20 @@ class AppLocalizationsDe extends AppLocalizations {
   String get queueEditRequireManualStart => 'Manuellen Start erfordern';
 
   @override
+  String get queueBadgeStaged => 'Bereitgestellt';
+
+  @override
+  String get queueBadgeAwaitingReview => 'Wartet auf Freigabe';
+
+  @override
+  String get queueAwaitingReviewRefused =>
+      'Dieser Auftrag wartet auf Freigabe: Jemand, der die Warteschlange verwaltet, muss ihn starten.';
+
+  @override
+  String get queueEditAwaitingReviewNote =>
+      'Dein Druck wartet auf Freigabe: Er beginnt, sobald jemand, der die Warteschlange verwaltet, ihn startet.';
+
+  @override
   String get queueEditRequirePrevious =>
       'Nur starten, wenn der vorherige Druck erfolgreich war';
 

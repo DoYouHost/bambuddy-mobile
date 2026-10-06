@@ -517,6 +517,13 @@ final printersRepositoryProvider = Provider<PrintersRepository>(
   (ref) => PrintersRepository(ref.watch(apiClientProvider).dio),
 );
 
+/// Whether the server can hold a user's jobs for review (#1620). See
+/// `PrintersRepository.reviewGateCapability`; who is held is
+/// `awaitingReviewProvider`.
+final queueReviewGateProvider = capabilityGate(
+  (ref) => ref.watch(printersRepositoryProvider).reviewGateCapability,
+);
+
 /// Network discovery (SSDP + subnet scan) for the Add-Printer flow.
 final discoveryRepositoryProvider = Provider<DiscoveryRepository>(
   (ref) => DiscoveryRepository(ref.watch(apiClientProvider).dio),

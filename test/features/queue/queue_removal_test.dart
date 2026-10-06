@@ -108,6 +108,22 @@ void main() {
       );
     });
 
+    test('a user held for review is told who starts the job', () {
+      // `print_queue.py::_AWAITING_REVIEW`, on a start or on an edit clearing
+      // `manual_start` (#1620).
+      expect(
+        queueWriteMessage(
+          en,
+          _refused(
+            'This job waits for review: someone who can manage all queue '
+            'jobs has to start it',
+            403,
+          ),
+        ),
+        en.queueAwaitingReviewRefused,
+      );
+    });
+
     test('a caller holding the exception gets the same wording', () {
       // The library's "queue as alternatives" posts outside the queue notifier.
       expect(

@@ -9800,6 +9800,30 @@ abstract class AppLocalizations {
   /// **'Require manual start'**
   String get queueEditRequireManualStart;
 
+  /// Chip on a queue row whose job waits for a manual start (web: queue.badges.staged)
+  ///
+  /// In en, this message translates to:
+  /// **'Staged'**
+  String get queueBadgeStaged;
+
+  /// Chip on a queue row whose job waits for a reviewer to start it, shown instead of Staged to a user who may not start jobs (#1620)
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for review'**
+  String get queueBadgeAwaitingReview;
+
+  /// Snackbar when the server refuses to start a job, or to clear its manual start, because the user is held for review
+  ///
+  /// In en, this message translates to:
+  /// **'This job waits for review: someone who manages the queue has to start it.'**
+  String get queueAwaitingReviewRefused;
+
+  /// Shown in the print form instead of the Require manual start switch to a user whose jobs always wait for review
+  ///
+  /// In en, this message translates to:
+  /// **'Your print waits for review: it starts once someone who manages the queue starts it.'**
+  String get queueEditAwaitingReviewNote;
+
   /// No description provided for @queueEditRequirePrevious.
   ///
   /// In en, this message translates to:

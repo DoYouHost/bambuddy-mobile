@@ -5905,6 +5905,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String get queueEditRequireManualStart => 'Exiger un démarrage manuel';
 
   @override
+  String get queueBadgeStaged => 'Préparé';
+
+  @override
+  String get queueBadgeAwaitingReview => 'En attente de validation';
+
+  @override
+  String get queueAwaitingReviewRefused =>
+      'Ce travail attend une validation : une personne qui gère la file doit le lancer.';
+
+  @override
+  String get queueEditAwaitingReviewNote =>
+      'Votre impression attend une validation : elle démarre quand une personne qui gère la file la lance.';
+
+  @override
   String get queueEditRequirePrevious =>
       'Démarrer uniquement si l\'impression précédente a réussi';
 

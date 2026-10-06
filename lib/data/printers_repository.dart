@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
+import '../core/api/observed_capability.dart';
 import '../core/models/available_filament.dart';
 import '../core/models/printer.dart';
 import '../core/models/printer_create.dart';
@@ -52,11 +53,23 @@ class PrintersRepository {
 
   final Dio _dio;
 
+  /// Whether the server holds the jobs of a user without
+  /// `queue:start_unreviewed` for review (#1620). Every daily of the cycle
+  /// reports `1.2.6b1`, so no version can answer, and nothing on the queue
+  /// routes changed shape. `wear_cost_per_hour` (#694) landed on every printer
+  /// row the day after #1620 was merged, so a row carrying it proves the
+  /// gate. A row without it reads as no gate, which is wrong only for the day
+  /// between the two, where the refusal still reaches the user as a sentence.
+  late final reviewGateCapability = ObservedCapability.unversioned(
+    whenUnknown: false,
+  );
+
   Future<List<Printer>> fetchPrinters() async {
     final body = await guard(() async {
       final res = await _dio.get<List<dynamic>>(Endpoints.printers);
       return res.data ?? const [];
     });
+    reviewGateCapability.observeKey(body.firstOrNull, 'wear_cost_per_hour');
     return parseJsonList(body, Printer.fromJson);
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/available_filament.dart';
+import '../../core/models/current_user.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/queue_item.dart';
 import '../../data/queue_repository.dart';
@@ -235,6 +236,18 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
 /// whether it's currently online and has smart plug assigned — so UI can mark
 /// OFFLINE printers (bambuddy will wake them before start).
 typedef PrinterCandidate = ({Printer printer, bool online, bool hasPlug});
+
+/// Whether the signed-in user's jobs wait for a reviewer to start them, and
+/// they may start none (#1620) — the web's `needsReview`. No for an unknown
+/// identity and for a server not known to have the gate: the server says so
+/// itself then (`queueWriteMessage`).
+final awaitingReviewProvider = Provider<bool>((ref) {
+  if (!ref.watch(queueReviewGateProvider).orFalse) return false;
+  final me = ref.watch(currentUserProvider).valueOrNull;
+  return me != null &&
+      !me.can(Permissions.queueStartUnreviewed) &&
+      !me.can(Permissions.queueUpdateAll);
+});
 
 /// All printers regardless of state, for the Edit Queue Item target picker.
 /// Unlike [availablePrintersProvider] it does NOT drop busy/printing printers,

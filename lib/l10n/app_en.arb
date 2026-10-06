@@ -3572,6 +3572,22 @@
   "queueScheduleSchedule": "Schedule",
   "queueEditPickTime": "Pick date & time",
   "queueEditRequireManualStart": "Require manual start",
+  "queueBadgeStaged": "Staged",
+  "@queueBadgeStaged": {
+    "description": "Chip on a queue row whose job waits for a manual start (web: queue.badges.staged)"
+  },
+  "queueBadgeAwaitingReview": "Waiting for review",
+  "@queueBadgeAwaitingReview": {
+    "description": "Chip on a queue row whose job waits for a reviewer to start it, shown instead of Staged to a user who may not start jobs (#1620)"
+  },
+  "queueAwaitingReviewRefused": "This job waits for review: someone who manages the queue has to start it.",
+  "@queueAwaitingReviewRefused": {
+    "description": "Snackbar when the server refuses to start a job, or to clear its manual start, because the user is held for review"
+  },
+  "queueEditAwaitingReviewNote": "Your print waits for review: it starts once someone who manages the queue starts it.",
+  "@queueEditAwaitingReviewNote": {
+    "description": "Shown in the print form instead of the Require manual start switch to a user whose jobs always wait for review"
+  },
   "queueEditRequirePrevious": "Only start if previous print succeeded",
   "queueEditPowerOff": "Power off printer when done",
   "queueEditGcodeInjection": "Inject auto-print G-code",

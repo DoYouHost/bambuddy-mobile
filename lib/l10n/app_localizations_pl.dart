@@ -5860,6 +5860,20 @@ class AppLocalizationsPl extends AppLocalizations {
   String get queueEditRequireManualStart => 'Wymagaj ręcznego startu';
 
   @override
+  String get queueBadgeStaged => 'Ręczny start';
+
+  @override
+  String get queueBadgeAwaitingReview => 'Czeka na akceptację';
+
+  @override
+  String get queueAwaitingReviewRefused =>
+      'To zadanie czeka na akceptację: musi je uruchomić ktoś, kto zarządza kolejką.';
+
+  @override
+  String get queueEditAwaitingReviewNote =>
+      'Twój wydruk czeka na akceptację: ruszy, gdy uruchomi go ktoś, kto zarządza kolejką.';
+
+  @override
   String get queueEditRequirePrevious =>
       'Startuj tylko jeśli poprzedni druk się powiódł';
 
