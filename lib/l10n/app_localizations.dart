@@ -8018,24 +8018,6 @@ abstract class AppLocalizations {
   /// **'No loaded spool has a profile for this printer, so every filament profile is shown.'**
   String get sliceNoneLoaded;
 
-  /// Title of the sheet listing the spools loaded in the online printers
-  ///
-  /// In en, this message translates to:
-  /// **'Loaded spools'**
-  String get sliceLoadedSpools;
-
-  /// Button on a filament row that opens the loaded-spools sheet
-  ///
-  /// In en, this message translates to:
-  /// **'Pick'**
-  String get slicePickSpool;
-
-  /// Tooltip of the Pick button
-  ///
-  /// In en, this message translates to:
-  /// **'Pick a spool loaded in a connected printer'**
-  String get slicePickSpoolTooltip;
-
   /// Loaded-spools sheet when no printer of the selected model is online
   ///
   /// In en, this message translates to:
@@ -8060,12 +8042,6 @@ abstract class AppLocalizations {
   /// **'Empty'**
   String get sliceSpoolEmpty;
 
-  /// Loaded spool with no filament profile for the selected printer, so it cannot be picked
-  ///
-  /// In en, this message translates to:
-  /// **'No profile for this printer'**
-  String get sliceSpoolNoProfile;
-
   /// Slice form switch and submit label: slice every plate of a multi-plate 3MF into one output (web: slice.allPlatesToggle)
   ///
   /// In en, this message translates to:
@@ -8077,6 +8053,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Every plate into one file. The filaments cover every slot of the project.'**
   String get sliceAllPlatesHint;
+
+  /// Filament sheet tab: the spools loaded in online printers
+  ///
+  /// In en, this message translates to:
+  /// **'Spools'**
+  String get sliceTabSpools;
+
+  /// Filament sheet tab: the profile catalogue
+  ///
+  /// In en, this message translates to:
+  /// **'Profiles'**
+  String get sliceTabProfiles;
+
+  /// Under the filament sheet's title: the material the plate's slot asks for
+  ///
+  /// In en, this message translates to:
+  /// **'The plate needs: {material}'**
+  String sliceNeedsMaterial(String material);
+
+  /// Filter row label in the filament sheet: printer model
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get sliceFilterPrinter;
+
+  /// Filter row label in the filament sheet: material
+  ///
+  /// In en, this message translates to:
+  /// **'Material'**
+  String get sliceFilterMaterial;
+
+  /// Filter row label in the filament sheet: brand
+  ///
+  /// In en, this message translates to:
+  /// **'Brand'**
+  String get sliceFilterBrand;
+
+  /// Count under the filament filters: profiles shown out of those listed
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} of {total, plural, =1{1 profile} other{{total} profiles}}'**
+  String sliceProfilesShown(int shown, int total);
+
+  /// Label before the slots that cannot be picked (empty, unidentified, no profile)
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable:'**
+  String get sliceSpoolsUnavailable;
+
+  /// Line under a filament row filled from a loaded spool; source is printer and slot
+  ///
+  /// In en, this message translates to:
+  /// **'From a spool · {source}'**
+  String sliceSpoolFrom(String source);
+
+  /// In a compact unavailable-slot chip: the spool has no profile for this printer
+  ///
+  /// In en, this message translates to:
+  /// **'no profile'**
+  String get sliceSpoolNoProfileShort;
 
   /// No description provided for @sliceOwnedEmpty.
   ///

@@ -179,6 +179,10 @@ void main() {
         sliceLayoutOptionsProvider.overrideWithValue(AsyncData(layoutOptions)),
         ownedPrinterCodesProvider.overrideWith((ref) async => ownedCodes),
         ownedFilamentsProvider.overrideWith((ref) async => owned),
+        ownedSpoolFacetsProvider.overrideWith(
+          (ref) async =>
+              (materials: const <String>{}, brands: const <String>{}),
+        ),
         filamentRequirementsProvider.overrideWith((ref, arg) async {
           requirementPlates?.add(arg.plate);
           final byPlate = requirementsByPlate[arg.plate];
@@ -1370,32 +1374,55 @@ void main() {
       expect((await slice(tester))['printer_preset'], x1c.toRef());
     });
 
-    /// The filament rows sit below the fold once the filters are on screen.
-    Future<void> tapPick(WidgetTester tester) async {
+    final l10n = lookupAppLocalizations(const Locale('pl'));
+
+    /// Opens the filament row's sheet. The row sits below the fold once the
+    /// filters are on screen.
+    Future<void> openFilament(WidgetTester tester) async {
       await tester.scrollUntilVisible(
-        byLogId('slice.pick_spool'),
+        find.text(l10n.sliceFilament),
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.tap(byLogId('slice.pick_spool'));
+      await tester.tap(find.text(l10n.sliceFilament));
       await tester.pumpAndSettle();
     }
 
-    testWidgets('Pick fills the row and its colour from a loaded spool', (
-      tester,
-    ) async {
+    testWidgets('the row opens on the spools, and a spool fills it and its '
+        'colour', (tester) async {
       // On the H2D: the X1C the form starts on has no printer online.
       await open(tester, onlyOnline: true);
-      await tapPick(tester);
+      await openFilament(tester);
+      expect(byLogId('slice.filament_tab'), findsOneWidget);
       await tester.tap(byLogId('slice.spool_tile'));
       await tester.pumpAndSettle();
 
+      expect(find.text(l10n.sliceSpoolFrom('H2D one · A1')), findsOneWidget);
       final body = await slice(tester);
       expect(body['filament_preset'], basic.toRef());
       expect(body['filament_colours'], ['#FF8800']);
     });
 
-    testWidgets('a spool with no profile, and an empty slot, pick nothing', (
+    testWidgets('a profile picked from the other tab drops the spool', (
+      tester,
+    ) async {
+      await open(tester, onlyOnline: true);
+      await openFilament(tester);
+      await tester.tap(byLogId('slice.spool_tile'));
+      await tester.pumpAndSettle();
+      await openFilament(tester);
+      await tester.tap(find.text(l10n.sliceTabProfiles));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(generic.name).last);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('H2D one · A1'), findsNothing);
+      final body = await slice(tester);
+      expect(body['filament_preset'], generic.toRef());
+      expect(body.containsKey('filament_colours'), isFalse);
+    });
+
+    testWidgets('slots that cannot be picked are one compact line', (
       tester,
     ) async {
       await openSheet(
@@ -1426,28 +1453,31 @@ void main() {
           ),
         ],
       );
-      final l10n = lookupAppLocalizations(const Locale('pl'));
-      await tapPick(tester);
-      expect(find.text(l10n.sliceSpoolNoProfile), findsOneWidget);
-      expect(find.text(l10n.sliceSpoolEmpty), findsOneWidget);
-
-      await tester.tap(byLogId('slice.spool_tile'));
-      await tester.pumpAndSettle();
-      expect(find.text(l10n.sliceLoadedSpools), findsOneWidget);
+      await openFilament(tester);
+      expect(byLogId('slice.spool_tile'), findsNothing);
+      expect(find.text(l10n.sliceSpoolsUnavailable), findsOneWidget);
+      expect(
+        find.text('A1 · PA-CF · ${l10n.sliceSpoolNoProfileShort}'),
+        findsOneWidget,
+      );
+      expect(find.text('A2 · ${l10n.sliceSpoolEmpty}'), findsOneWidget);
     });
 
-    testWidgets('the sheet says when no printer of the model is online', (
+    testWidgets('the spools tab says when no printer of the model is online', (
       tester,
     ) async {
       await open(tester);
-      await tapPick(tester);
-      final l10n = lookupAppLocalizations(const Locale('pl'));
+      await openFilament(tester);
       expect(find.text(l10n.sliceLoadedNoneOfModel), findsOneWidget);
     });
 
-    testWidgets('no Pick without a printer online', (tester) async {
+    testWidgets('with nothing online the sheet is the profile list alone', (
+      tester,
+    ) async {
       await open(tester, loaded: const []);
-      expect(byLogId('slice.pick_spool'), findsNothing);
+      await openFilament(tester);
+      expect(byLogId('slice.filament_tab'), findsNothing);
+      expect(byLogId('slice.preset_option'), findsWidgets);
     });
 
     testWidgets('a switch is remembered on the device', (tester) async {

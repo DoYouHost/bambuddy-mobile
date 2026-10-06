@@ -4825,16 +4825,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucune bobine chargée n\'a de profil pour cette imprimante, tous les profils de filament sont donc affichés.';
 
   @override
-  String get sliceLoadedSpools => 'Bobines chargées';
-
-  @override
-  String get slicePickSpool => 'Choisir';
-
-  @override
-  String get slicePickSpoolTooltip =>
-      'Choisir une bobine chargée dans une imprimante connectée';
-
-  @override
   String get sliceLoadedNoneOfModel =>
       'Aucune imprimante de ce modèle n\'est en ligne.';
 
@@ -4848,9 +4838,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sliceSpoolEmpty => 'Vide';
 
   @override
-  String get sliceSpoolNoProfile => 'Aucun profil pour cette imprimante';
-
-  @override
   String sliceAllPlates(int count) {
     return 'Découper les $count plateaux';
   }
@@ -4858,6 +4845,48 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get sliceAllPlatesHint =>
       'Tous les plateaux dans un seul fichier. Les filaments couvrent chaque emplacement du projet.';
+
+  @override
+  String get sliceTabSpools => 'Bobines';
+
+  @override
+  String get sliceTabProfiles => 'Profils';
+
+  @override
+  String sliceNeedsMaterial(String material) {
+    return 'Le plateau demande : $material';
+  }
+
+  @override
+  String get sliceFilterPrinter => 'Imprimante';
+
+  @override
+  String get sliceFilterMaterial => 'Matériau';
+
+  @override
+  String get sliceFilterBrand => 'Fabricant';
+
+  @override
+  String sliceProfilesShown(int shown, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total profils',
+      one: '1 profil',
+    );
+    return '$shown sur $_temp0';
+  }
+
+  @override
+  String get sliceSpoolsUnavailable => 'Indisponibles :';
+
+  @override
+  String sliceSpoolFrom(String source) {
+    return 'D\'une bobine · $source';
+  }
+
+  @override
+  String get sliceSpoolNoProfileShort => 'aucun profil';
 
   @override
   String get sliceOwnedEmpty =>

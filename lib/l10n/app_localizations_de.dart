@@ -4777,16 +4777,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Keine eingelegte Spule hat ein Profil für diesen Drucker, daher werden alle Filamentprofile angezeigt.';
 
   @override
-  String get sliceLoadedSpools => 'Eingelegte Spulen';
-
-  @override
-  String get slicePickSpool => 'Wählen';
-
-  @override
-  String get slicePickSpoolTooltip =>
-      'Eine Spule aus einem verbundenen Drucker wählen';
-
-  @override
   String get sliceLoadedNoneOfModel =>
       'Kein Drucker dieses Modells ist online.';
 
@@ -4800,9 +4790,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sliceSpoolEmpty => 'Leer';
 
   @override
-  String get sliceSpoolNoProfile => 'Kein Profil für diesen Drucker';
-
-  @override
   String sliceAllPlates(int count) {
     return 'Alle $count Druckplatten slicen';
   }
@@ -4810,6 +4797,48 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get sliceAllPlatesHint =>
       'Alle Druckplatten in eine Datei. Die Filamente decken jeden Slot des Projekts ab.';
+
+  @override
+  String get sliceTabSpools => 'Spulen';
+
+  @override
+  String get sliceTabProfiles => 'Profile';
+
+  @override
+  String sliceNeedsMaterial(String material) {
+    return 'Die Druckplatte braucht: $material';
+  }
+
+  @override
+  String get sliceFilterPrinter => 'Drucker';
+
+  @override
+  String get sliceFilterMaterial => 'Material';
+
+  @override
+  String get sliceFilterBrand => 'Hersteller';
+
+  @override
+  String sliceProfilesShown(int shown, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total Profilen',
+      one: '1 Profil',
+    );
+    return '$shown von $_temp0';
+  }
+
+  @override
+  String get sliceSpoolsUnavailable => 'Nicht verfügbar:';
+
+  @override
+  String sliceSpoolFrom(String source) {
+    return 'Von einer Spule · $source';
+  }
+
+  @override
+  String get sliceSpoolNoProfileShort => 'kein Profil';
 
   @override
   String get sliceOwnedEmpty =>

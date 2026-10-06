@@ -53,6 +53,39 @@ bool presetFitsMaterial(SlicerPreset preset, String? material) {
   return pattern.hasMatch(preset.name);
 }
 
+/// Whether [preset] is [brand]'s, read off its name — presets carry no vendor
+/// field. A word match anywhere, so "eSUN PETG" and "PETG eSUN" both count.
+bool presetFitsBrand(SlicerPreset preset, String? brand) {
+  final wanted = brand?.trim() ?? '';
+  return wanted.isEmpty || _wordPattern(wanted).hasMatch(preset.name);
+}
+
+/// The brand a filament preset's name leads with ("SUNLU TPU @…" → "SUNLU"),
+/// or null for a name with nothing before its first space.
+String? presetBrand(SlicerPreset preset) {
+  final name = preset.name.replaceFirst(RegExp(r'^#\s*'), '').trim();
+  final space = name.indexOf(' ');
+  return space <= 0 ? null : name.substring(0, space);
+}
+
+/// Materials a filament preset can be filtered by when nothing narrows the
+/// list to what the user owns: its declared type, else any of these found in
+/// its name — the cloud and standard tiers leave the type empty.
+const knownMaterials = [
+  'PLA', 'PETG', 'PET', 'ABS', 'ASA', 'TPU', 'PA', 'PC', 'PVA', 'HIPS', //
+  'PPS', 'PPA', 'PE', 'PP', 'BVOH',
+];
+
+/// The material [preset] is for, as far as anything on it says.
+String? presetMaterial(SlicerPreset preset) {
+  final declared = preset.filamentType?.trim() ?? '';
+  if (declared.isNotEmpty) return declared.toUpperCase();
+  for (final m in knownMaterials) {
+    if (_wordPattern(m).hasMatch(preset.name)) return m;
+  }
+  return null;
+}
+
 /// A literal material as a word-boundary pattern, with whitespace loosened so
 /// "PLA Basic" also matches a name that spells it with two spaces.
 RegExp _wordPattern(String value) {

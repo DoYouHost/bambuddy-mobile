@@ -4792,16 +4792,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'Ninguna bobina cargada tiene un perfil para esta impresora, así que se muestran todos los perfiles de filamento.';
 
   @override
-  String get sliceLoadedSpools => 'Bobinas cargadas';
-
-  @override
-  String get slicePickSpool => 'Elegir';
-
-  @override
-  String get slicePickSpoolTooltip =>
-      'Elegir una bobina cargada en una impresora conectada';
-
-  @override
   String get sliceLoadedNoneOfModel =>
       'Ninguna impresora de este modelo está en línea.';
 
@@ -4815,9 +4805,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sliceSpoolEmpty => 'Vacío';
 
   @override
-  String get sliceSpoolNoProfile => 'Sin perfil para esta impresora';
-
-  @override
   String sliceAllPlates(int count) {
     return 'Laminar las $count placas';
   }
@@ -4825,6 +4812,48 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get sliceAllPlatesHint =>
       'Todas las placas en un solo archivo. Los filamentos cubren cada ranura del proyecto.';
+
+  @override
+  String get sliceTabSpools => 'Bobinas';
+
+  @override
+  String get sliceTabProfiles => 'Perfiles';
+
+  @override
+  String sliceNeedsMaterial(String material) {
+    return 'La placa necesita: $material';
+  }
+
+  @override
+  String get sliceFilterPrinter => 'Impresora';
+
+  @override
+  String get sliceFilterMaterial => 'Material';
+
+  @override
+  String get sliceFilterBrand => 'Fabricante';
+
+  @override
+  String sliceProfilesShown(int shown, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total perfiles',
+      one: '1 perfil',
+    );
+    return '$shown de $_temp0';
+  }
+
+  @override
+  String get sliceSpoolsUnavailable => 'No disponibles:';
+
+  @override
+  String sliceSpoolFrom(String source) {
+    return 'De una bobina · $source';
+  }
+
+  @override
+  String get sliceSpoolNoProfileShort => 'sin perfil';
 
   @override
   String get sliceOwnedEmpty =>

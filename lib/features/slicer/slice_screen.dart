@@ -24,7 +24,6 @@ import '../../core/slicer/preset_compatibility.dart';
 import '../../core/slicer/process_settings_codec.dart';
 import '../../core/theme/dash_theme.dart';
 import '../common/dash_async.dart';
-import '../common/dash_search_field.dart';
 import '../common/inline_note.dart';
 import '../dashboard/ams_slot_config_providers.dart'
     show printerModelRegistryProvider;
@@ -34,7 +33,7 @@ import '../pipelines/pipeline_slice_bar.dart';
 import 'process_settings_screen.dart';
 import 'slice_filament_colours.dart';
 import 'slice_refusal.dart';
-import 'slice_spool_picker.dart';
+import 'slice_preset_sheet.dart';
 import '../queue/queue_plate_sheet.dart' show plateLabel, showQueuePlateSheet;
 import 'slice_providers.dart';
 
@@ -125,9 +124,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       .read(settingsRepositoryProvider)
       .loadSliceOnlyLoaded();
 
-  /// The colour of the spool a row was filled from (#3172), per row; null
-  /// leaves the colour to [sliceFilamentColours]' own rule.
-  List<String?> _colourOverrides = [];
+  /// The spool each row was filled from (#3172), per row. Its colour is what
+  /// the row prints in; null leaves that to [sliceFilamentColours]' own rule.
+  List<SpoolOrigin?> _spoolOrigins = [];
 
   /// Filament rows the user filled themselves. A filter only ever re-picks the
   /// others, as on the web: a profile somebody chose stays.
@@ -167,6 +166,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final processSettings = ref.watch(processSettingsAvailableProvider).orFalse;
     final layoutOptions = ref.watch(sliceLayoutOptionsProvider).orFalse;
     final loadedPrinters = ref.watch(loadedSpoolsProvider).valueOrNull;
+    final facets =
+        ref.watch(ownedSpoolFacetsProvider).valueOrNull ??
+        (materials: const <String>{}, brands: const <String>{});
     final registry =
         ref.watch(printerModelRegistryProvider).valueOrNull ??
         const <String, String>{};
@@ -513,27 +515,17 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                               ? l10n.sliceFilament
                               : l10n.sliceFilamentNumbered('${i + 1}'),
                           icon: Icons.cable,
-                          swatch: _colourOverrides[i] != null
-                              ? colorFromHex(_colourOverrides[i])
+                          swatch: _spoolOrigins[i]?.colour != null
+                              ? colorFromHex(_spoolOrigins[i]!.colour)
                               : i < reqs.length
                               ? colorFromHex(reqs[i].color)
                               : null,
-                          footnote:
-                              online.isEmpty ||
-                                  (asDesigned && _filaments[i] != null)
+                          footnote: _spoolOrigins[i] == null
                               ? null
-                              : _pickSpoolButton(
-                                  slotLabel: slotCount == 1
-                                      ? l10n.sliceFilament
-                                      : l10n.sliceFilamentNumbered('${i + 1}'),
-                                  row: i,
-                                  printers: spoolPrinters,
-                                  matchFor: (tray) => matchSlotPreset(
-                                    tray,
-                                    filaments: presets.filaments,
-                                    index: nameIndex,
-                                    selectedPrinterName: _printer?.name,
-                                    registry: registry,
+                              : Text(
+                                  l10n.sliceSpoolFrom(_spoolOrigins[i]!.label),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.primary,
                                   ),
                                 ),
                           typeHint: i < reqs.length ? reqs[i].type : null,
@@ -549,18 +541,44 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                           // slot on this path too, so locking it dead-ends the form.
                           enabled: !asDesigned || _filaments[i] == null,
                           onTap: () async {
-                            final p = await _openPicker(
+                            final pick = await showPresetSheet(
+                              context,
                               title: slotCount == 1
                                   ? l10n.sliceFilament
                                   : l10n.sliceFilamentNumbered('${i + 1}'),
                               filtered: filaments,
                               all: presets.filaments,
+                              filament: FilamentChoices(
+                                // The Spools tab while any printer is online,
+                                // even one of another model: it then says so.
+                                spoolPrinters: online.isEmpty
+                                    ? null
+                                    : spoolPrinters,
+                                matchFor: (tray) => matchSlotPreset(
+                                  tray,
+                                  filaments: presets.filaments,
+                                  index: nameIndex,
+                                  selectedPrinterName: _printer?.name,
+                                  registry: registry,
+                                ),
+                                ownedModels: ownedCodes,
+                                ownedMaterials: facets.materials,
+                                ownedBrands: facets.brands,
+                                registry: registry,
+                                printerModel: printerPresetModel(
+                                  _printer?.name,
+                                  registry,
+                                ),
+                                needsMaterial: i < reqs.length
+                                    ? reqs[i].type
+                                    : null,
+                              ),
                             );
-                            if (p != null && mounted) {
+                            if (pick != null && mounted) {
                               setState(() {
-                                _filaments[i] = p;
+                                _filaments[i] = pick.preset;
                                 _explicitFilaments.add(i);
-                                _colourOverrides[i] = null;
+                                _spoolOrigins[i] = pick.spool;
                               });
                             }
                           },
@@ -700,7 +718,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     for (var i = 0; i < _filaments.length; i++) {
       if (i >= pipeline.filamentPresets.length) continue;
       _explicitFilaments.add(i);
-      _colourOverrides[i] = null;
+      _spoolOrigins[i] = null;
       _filaments[i] = resolvePresetRef(
         catalog,
         pipeline.filamentPresets[i],
@@ -722,7 +740,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     _printer = printer;
     _process = null;
     _filaments = List.filled(_filaments.length, null);
-    _colourOverrides = List.filled(_filaments.length, null);
+    _spoolOrigins = List.filled(_filaments.length, null);
     _explicitFilaments.clear();
     _processValues = {};
   }
@@ -758,13 +776,13 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
           if (_filaments[i] case final preset?
               when presetCompatibility(preset, next.name, registry) !=
                   PresetFit.mismatch)
-            i: (preset, _colourOverrides[i]),
+            i: (preset, _spoolOrigins[i]),
     };
     _pickPrinter(next);
     _printerPicked = false;
-    for (final MapEntry(key: i, value: (preset, colour)) in kept.entries) {
+    for (final MapEntry(key: i, value: (preset, origin)) in kept.entries) {
       _filaments[i] = preset;
-      _colourOverrides[i] = colour;
+      _spoolOrigins[i] = origin;
       _explicitFilaments.add(i);
     }
   }
@@ -875,7 +893,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     setState(() {
       _plate = picked;
       _filaments = List.filled(_filaments.length, null);
-      _colourOverrides = List.filled(_filaments.length, null);
+      _spoolOrigins = List.filled(_filaments.length, null);
       _explicitFilaments.clear();
       // An edit naming a filament slot named one of the plate that was left.
       _processValues = {
@@ -885,46 +903,6 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       };
     });
   }
-
-  /// "Pick" under a filament row: fills it, and its colour, from a spool in
-  /// an online printer of the selected model.
-  Widget _pickSpoolButton({
-    required String slotLabel,
-    required int row,
-    required List<LoadedSpoolPrinter> printers,
-    required SlicerPreset? Function(LoadedSpoolTray tray) matchFor,
-  }) => Padding(
-    padding: const EdgeInsets.only(top: DashSpace.sm, bottom: DashSpace.xs),
-    child: Tooltip(
-      message: _l10n.slicePickSpoolTooltip,
-      child: FilledButton.tonalIcon(
-        onPressed: _submitting
-            ? null
-            : () async {
-                final picked = await showLoadedSpoolPicker(
-                  context,
-                  slotLabel: slotLabel,
-                  printers: printers,
-                  matchFor: matchFor,
-                );
-                if (picked == null || !mounted) return;
-                setState(() {
-                  _filaments[row] = picked.preset;
-                  _colourOverrides[row] = picked.colour;
-                  _explicitFilaments.add(row);
-                });
-              },
-        icon: const Icon(Icons.grid_view, size: 18),
-        label: Text(_l10n.slicePickSpool),
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: DashSpace.lg),
-          // The dense floor the designed-printer switch uses in this list.
-          minimumSize: const Size(48, 36),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-      ).tagged('slice.pick_spool'),
-    ),
-  );
 
   Widget _filtersCard({required bool noneOnline, required bool noneLoaded}) {
     final l10n = _l10n;
@@ -1080,13 +1058,13 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   void _resizeFilaments(int count) {
     if (_filaments.length == count) return;
     final next = List<SlicerPreset?>.filled(count, null);
-    final colours = List<String?>.filled(count, null);
+    final origins = List<SpoolOrigin?>.filled(count, null);
     for (var i = 0; i < count && i < _filaments.length; i++) {
       next[i] = _filaments[i];
-      if (i < _colourOverrides.length) colours[i] = _colourOverrides[i];
+      if (i < _spoolOrigins.length) origins[i] = _spoolOrigins[i];
     }
     _filaments = next;
-    _colourOverrides = colours;
+    _spoolOrigins = origins;
   }
 
   Widget _slotTile({
@@ -1195,12 +1173,12 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     required String title,
     required List<SlicerPreset> filtered,
     required List<SlicerPreset> all,
-  }) {
-    return dashSheet<SlicerPreset>(
-      context,
-      builder: (_) => _PresetPicker(title: title, filtered: filtered, all: all),
-    );
-  }
+  }) async => (await showPresetSheet(
+    context,
+    title: title,
+    filtered: filtered,
+    all: all,
+  ))?.preset;
 
   Future<void> _submit() async {
     final l10n = _l10n;
@@ -1215,7 +1193,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         ? const <String>[]
         : sliceFilamentColours(
             picked: _filaments,
-            overrides: _colourOverrides,
+            overrides: [for (final o in _spoolOrigins) o?.colour],
             owned:
                 ref.read(ownedFilamentsProvider).valueOrNull ??
                 const <OwnedFilament>[],
@@ -1412,147 +1390,6 @@ bool _ownedMatch(String name, Set<String> owned) {
     if (name == base || name.startsWith('$base ')) return true;
   }
   return false;
-}
-
-/// Searchable preset list with a "show all" escape hatch (the owned/compatible
-/// filter is heuristic, so the full catalog is one toggle away).
-class _PresetPicker extends StatefulWidget {
-  const _PresetPicker({
-    required this.title,
-    required this.filtered,
-    required this.all,
-  });
-
-  final String title;
-  final List<SlicerPreset> filtered;
-  final List<SlicerPreset> all;
-
-  @override
-  State<_PresetPicker> createState() => _PresetPickerState();
-}
-
-class _PresetPickerState extends State<_PresetPicker> {
-  late bool _showAll = widget.filtered.isEmpty && widget.all.isNotEmpty;
-  String _query = '';
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final base = _showAll ? widget.all : widget.filtered;
-    final q = _query.trim().toLowerCase();
-    final items = q.isEmpty
-        ? base
-        : base.where((p) => p.name.toLowerCase().contains(q)).toList();
-
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.7,
-      maxChildSize: 0.95,
-      // Said out loud, or Flutter's 0.25 leaves a quarter-screen stub. 0.5
-      // rather than the 0.4 the sheets without a keyboard use: the search field
-      // above the list keeps the keyboard up, and the two together need the
-      // room the maintenance form — the app's only other keyboard sheet —
-      // settled on.
-      minChildSize: 0.5,
-      builder: (ctx, scrollController) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                DashSpace.gutter,
-                0,
-                DashSpace.gutter,
-                DashSpace.sm,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.title,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                  ),
-                  // Merged, or the reader announces a bare "switch": the label
-                  // beside it is a separate node and nothing ties the two.
-                  MergeSemantics(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          l10n.sliceShowAll,
-                          style: theme.textTheme.bodySmall,
-                        ),
-                        Switch(
-                          value: _showAll,
-                          onChanged: (v) => setState(() => _showAll = v),
-                        ).tagged('slice.show_all_presets'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
-              child: DashSearchField(
-                id: 'slice.search',
-                hintText: l10n.sliceSearchHint,
-                onChanged: (v) => setState(() => _query = v),
-              ),
-            ),
-            const SizedBox(height: DashSpace.sm),
-            Expanded(
-              child: items.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(DashSpace.xl),
-                        child: Text(
-                          widget.filtered.isEmpty && !_showAll
-                              ? l10n.sliceOwnedEmpty
-                              : l10n.sliceNoPresets,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: scrollController,
-                      itemCount: items.length,
-                      itemBuilder: (ctx, i) {
-                        final p = items[i];
-                        return ListTile(
-                          dense: true,
-                          title: Text(
-                            p.name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Text(_sourceLabel(l10n, p.source)),
-                          trailing: p.isLocal
-                              ? Icon(
-                                  Icons.star,
-                                  size: 16,
-                                  color: theme.colorScheme.primary,
-                                )
-                              : null,
-                          onTap: () => Navigator.pop(ctx, p),
-                        ).tagged('slice.preset_option');
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _sourceLabel(AppLocalizations l10n, String source) => switch (source) {
-    'local' => l10n.sliceTierLocal,
-    'cloud' => l10n.sliceTierCloud,
-    'orca_cloud' => l10n.sliceTierOrcaCloud,
-    _ => l10n.sliceTierStandard,
-  };
 }
 
 /// Polls a slice job to completion, showing live stage/progress, then the
