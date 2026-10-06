@@ -4,11 +4,13 @@ import 'dart:convert';
 
 import 'package:bambuddy_mobile/core/models/embedded_settings.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
+import 'package:bambuddy_mobile/core/models/loaded_spools.dart';
 import 'package:bambuddy_mobile/core/models/slice_job.dart';
 import 'package:bambuddy_mobile/core/models/slicer_pipeline.dart';
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/core/slicer/process_schema_catalog.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
+import 'package:bambuddy_mobile/features/dashboard/ams_slot_config_providers.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_screen.dart';
@@ -18,6 +20,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
 
@@ -140,7 +143,13 @@ void main() {
     List<OwnedFilament> owned = const [],
     Future<UnifiedPresets>? heldPresets,
     void Function()? onSchemaLoad,
+    List<LoadedSpoolPrinter>? loaded,
+    Duration loadedAfter = Duration.zero,
+    Map<String, String> registry = const {},
+    Map<String, Object> prefs = const {},
   }) async {
+    SharedPreferences.setMockInitialValues(prefs);
+    final preferences = await SharedPreferences.getInstance();
     await pumpPhone(
       tester,
       Builder(
@@ -191,6 +200,13 @@ void main() {
         // Reaches `currentUserProvider` and the repository's observed latch,
         // neither of which these tests stand up.
         canWritePipelinesProvider.overrideWithValue(const AsyncData(true)),
+        // Null by default: a server without #3172, so no filters at all.
+        loadedSpoolsProvider.overrideWith((ref) async {
+          await Future<void>.delayed(loadedAfter);
+          return loaded;
+        }),
+        printerModelRegistryProvider.overrideWith((ref) async => registry),
+        sharedPreferencesProvider.overrideWithValue(preferences),
       ],
     );
     await tester.tap(find.text('open'));
@@ -1080,6 +1096,140 @@ void main() {
         find.textContaining(l10n(tester).sliceExternalFallback),
         findsNothing,
       );
+    });
+  });
+
+  group('online printers and loaded spools (#3172)', () {
+    const registry = {'Bambu Lab X1 Carbon': 'X1C', 'Bambu Lab H2D': 'H2D'};
+    const x1c = SlicerPreset(
+      source: 'standard',
+      id: 'x1c',
+      name: 'Bambu Lab X1 Carbon 0.4 nozzle',
+    );
+    const h2d = SlicerPreset(
+      source: 'standard',
+      id: 'h2d',
+      name: 'Bambu Lab H2D 0.4 nozzle',
+    );
+    const generic = SlicerPreset(
+      source: 'standard',
+      id: 'generic',
+      name: 'Generic PLA @BBL H2D',
+      filamentType: 'PLA',
+    );
+    const basic = SlicerPreset(
+      source: 'standard',
+      id: 'basic',
+      name: 'Bambu PLA Basic @BBL H2D',
+      filamentType: 'PLA',
+    );
+    const presets = UnifiedPresets(
+      printers: [x1c, h2d],
+      processes: [
+        SlicerPreset(source: 'standard', id: 'p', name: '0.20mm Standard'),
+      ],
+      filaments: [generic, basic],
+    );
+    const online = [
+      LoadedSpoolPrinter(
+        id: 1,
+        name: 'H2D one',
+        model: 'H2D',
+        ams: [
+          LoadedSpoolUnit(
+            id: 0,
+            isAmsHt: false,
+            trays: [
+              LoadedSpoolTray(
+                amsId: 0,
+                trayId: 0,
+                trayType: 'PLA',
+                traySubBrands: 'PLA Basic',
+                trayInfoIdx: 'GFA00',
+                trayColor: 'FF8800FF',
+              ),
+            ],
+          ),
+        ],
+      ),
+    ];
+
+    Future<void> open(
+      WidgetTester tester, {
+      List<LoadedSpoolPrinter>? loaded = online,
+      bool onlyOnline = false,
+      bool onlyLoaded = false,
+    }) => openSheet(
+      tester,
+      presets: presets,
+      loaded: loaded,
+      registry: registry,
+      prefs: {
+        'slice_only_online_printers': onlyOnline,
+        'slice_only_loaded_spools': onlyLoaded,
+      },
+    );
+
+    testWidgets('a server without the route offers no filters', (tester) async {
+      await open(tester, loaded: null);
+      expect(byLogId('slice.only_online'), findsNothing);
+      expect(byLogId('slice.only_loaded'), findsNothing);
+    });
+
+    testWidgets('both start off and change nothing', (tester) async {
+      await open(tester);
+      expect(byLogId('slice.only_online'), findsOneWidget);
+      final body = await slice(tester);
+      expect(body['printer_preset'], x1c.toRef());
+      expect(body['filament_preset'], generic.toRef());
+    });
+
+    testWidgets('only online printers moves the auto-pick to an online model', (
+      tester,
+    ) async {
+      await open(tester, onlyOnline: true);
+      expect((await slice(tester))['printer_preset'], h2d.toRef());
+    });
+
+    testWidgets('an answer that lands after the form moves its auto-pick', (
+      tester,
+    ) async {
+      await openSheet(
+        tester,
+        presets: presets,
+        loaded: online,
+        loadedAfter: const Duration(seconds: 1),
+        registry: registry,
+        prefs: {'slice_only_online_printers': true},
+      );
+      expect(find.text(x1c.name), findsOneWidget, reason: 'nothing known yet');
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect((await slice(tester))['printer_preset'], h2d.toRef());
+    });
+
+    testWidgets('only loaded spools auto-picks the spool in the AMS', (
+      tester,
+    ) async {
+      await open(tester, onlyOnline: true, onlyLoaded: true);
+      expect((await slice(tester))['filament_preset'], basic.toRef());
+    });
+
+    testWidgets('with nothing online it says the lists stay whole', (
+      tester,
+    ) async {
+      await open(tester, loaded: const [], onlyOnline: true);
+      final l10n = lookupAppLocalizations(const Locale('pl'));
+      expect(find.text(l10n.sliceNoneOnline), findsOneWidget);
+      expect((await slice(tester))['printer_preset'], x1c.toRef());
+    });
+
+    testWidgets('a switch is remembered on the device', (tester) async {
+      await open(tester);
+      await tester.tap(byLogId('slice.only_loaded'));
+      await tester.pumpAndSettle();
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('slice_only_loaded_spools'), isTrue);
     });
   });
 }

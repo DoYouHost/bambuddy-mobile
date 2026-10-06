@@ -32,6 +32,8 @@ class SettingsRepository {
   static const _wallKeepAwakeKey = 'wall_keep_screen_awake';
   static const _wallPanelExpandedKey = 'wall_panel_expanded';
   static const _wallLiveCameraKey = 'wall_live_camera';
+  static const _sliceOnlyOnlineKey = 'slice_only_online_printers';
+  static const _sliceOnlyLoadedKey = 'slice_only_loaded_spools';
   static const _wallHiddenPrintersKey = 'wall_hidden_printer_ids';
 
   final SharedPreferences _prefs;
@@ -157,6 +159,18 @@ class SettingsRepository {
 
   Future<void> saveWallLiveCamera(bool on) =>
       _prefs.setBool(_wallLiveCameraKey, on);
+
+  /// The slice form's two filters (#3172), remembered on this device as the
+  /// web remembers them per browser. Absent reads as off, as there.
+  bool loadSliceOnlyOnline() => _prefs.getBool(_sliceOnlyOnlineKey) ?? false;
+
+  Future<void> saveSliceOnlyOnline(bool on) =>
+      _prefs.setBool(_sliceOnlyOnlineKey, on);
+
+  bool loadSliceOnlyLoaded() => _prefs.getBool(_sliceOnlyLoadedKey) ?? false;
+
+  Future<void> saveSliceOnlyLoaded(bool on) =>
+      _prefs.setBool(_sliceOnlyLoadedKey, on);
 
   /// Printers this device keeps off its wall. A local choice only: the server
   /// and the dashboard never see it. An id the server no longer has is simply

@@ -10,6 +10,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/embedded_settings.dart';
 import '../../core/models/filament_requirement.dart';
+import '../../core/models/loaded_spools.dart';
 import '../../core/models/slice_job.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../l10n/app_localizations.dart';
@@ -17,10 +18,14 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../../core/models/process_option.dart';
 import '../../core/slicer/filament_slot_options.dart';
+import '../../core/slicer/loaded_spool_match.dart';
 import '../../core/slicer/process_settings_codec.dart';
 import '../../core/theme/dash_theme.dart';
 import '../common/dash_async.dart';
 import '../common/dash_search_field.dart';
+import '../common/inline_note.dart';
+import '../dashboard/ams_slot_config_providers.dart'
+    show printerModelRegistryProvider;
 import '../../core/models/slicer_pipeline.dart';
 import '../pipelines/pipeline_presets.dart';
 import '../pipelines/pipeline_slice_bar.dart';
@@ -100,6 +105,18 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   bool _printerPicked = false;
   bool _designedPrinterAdopted = false;
 
+  /// The two filters (#3172), remembered on this device.
+  late bool _onlyOnline = ref
+      .read(settingsRepositoryProvider)
+      .loadSliceOnlyOnline();
+  late bool _onlyLoaded = ref
+      .read(settingsRepositoryProvider)
+      .loadSliceOnlyLoaded();
+
+  /// Filament rows the user filled themselves. A filter only ever re-picks the
+  /// others, as on the web: a profile somebody chose stays.
+  final _explicitFilaments = <int>{};
+
   /// Process-option edits from the settings screen, as the user typed them.
   ///
   /// What actually goes on the wire is derived from these rather than stored, so
@@ -129,6 +146,10 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     // time to decode — asked now, both answer during the presets spinner.
     final processSettings = ref.watch(processSettingsAvailableProvider).orFalse;
     final layoutOptions = ref.watch(sliceLayoutOptionsProvider).orFalse;
+    final loadedPrinters = ref.watch(loadedSpoolsProvider).valueOrNull;
+    final registry =
+        ref.watch(printerModelRegistryProvider).valueOrNull ??
+        const <String, String>{};
 
     return Scaffold(
       appBar: dashAppBar(context, title: l10n.sliceTitle),
@@ -146,10 +167,29 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
             _resizeFilaments(slotCount);
             final discriminated = anyUnused(reqs);
 
-            final printers = _filterPrinters(presets.printers, ownedCodes);
+            final online = loadedPrinters ?? const <LoadedSpoolPrinter>[];
+            final connectedModels = [for (final p in online) p.model];
+            // Each filter applies only while it has something to go on.
+            final printerFilter = _onlyOnline && online.isNotEmpty
+                ? (SlicerPreset p) =>
+                      isConnectedModelPreset(p, connectedModels, registry)
+                : null;
+            final printers = _narrow(
+              _filterPrinters(presets.printers, ownedCodes),
+              printerFilter,
+            );
             _printer ??= _firstLocalOr(printers);
             if (!embeddedAsync.isLoading && !ownedCodesAsync.isLoading) {
               _adoptDesignedPrinter(printers, embedded);
+            }
+            if (printerFilter != null) {
+              _moveToOnlinePrinter(
+                presets.printers,
+                printerFilter,
+                connectedModels,
+                registry,
+                embedded,
+              );
             }
             final code = _printer == null
                 ? null
@@ -161,12 +201,46 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
             // filament is selectable (swap PLA↔PETG↔TPU freely). The model's
             // per-slot type/colour only seeds the auto-picked default; plate
             // compatibility is enforced server-side at slice time.
-            final filaments = _filterFilaments(presets.filaments, code, owned);
+            // Spools count only on printers of the selected profile's model:
+            // an A1's AMS says nothing about what an X1C job can start on.
+            final spoolPrinters = printersOfModel(
+              online,
+              printerPresetModel(_printer?.name, registry),
+            );
+            final nameIndex = buildFilamentNameIndex(presets.filaments);
+            final loadedKeys = matchedFilamentKeys(
+              spoolPrinters,
+              filaments: presets.filaments,
+              index: nameIndex,
+              selectedPrinterName: _printer?.name,
+              registry: registry,
+            );
+            final filamentFilter = _onlyLoaded && loadedKeys.isNotEmpty
+                ? (SlicerPreset p) => loadedKeys.contains(presetKey(p))
+                : null;
+            final ownedFilaments = _filterFilaments(
+              presets.filaments,
+              code,
+              owned,
+            );
+            // From the whole catalog, not the owned list: a spool in the AMS
+            // is better evidence than an inventory mapping, and may have none.
+            final filaments = filamentFilter == null
+                ? ownedFilaments
+                : presets.filaments.where(filamentFilter).toList();
             for (var i = 0; i < slotCount; i++) {
-              _filaments[i] ??= _pickDefaultFilament(
-                filaments,
-                owned,
-                i < reqs.length ? reqs[i] : null,
+              final current = _filaments[i];
+              final notLoaded =
+                  current != null &&
+                  filamentFilter != null &&
+                  !_explicitFilaments.contains(i) &&
+                  !filamentFilter(current);
+              if (current != null && !notLoaded) continue;
+              _filaments[i] = _autoPickFilament(
+                loaded: filamentFilter == null ? null : filaments,
+                filaments: ownedFilaments,
+                owned: owned,
+                req: i < reqs.length ? reqs[i] : null,
               );
             }
 
@@ -214,6 +288,18 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                           () => _applyPipeline(p, presets, slotCount),
                         ),
                       ),
+                      // Shown only once the server said what is loaded: on
+                      // an older one, or without printers:read, it has nothing
+                      // to narrow by.
+                      if (loadedPrinters != null)
+                        _filtersCard(
+                          noneOnline:
+                              (_onlyOnline || _onlyLoaded) && online.isEmpty,
+                          noneLoaded:
+                              _onlyLoaded &&
+                              online.isNotEmpty &&
+                              loadedKeys.isEmpty,
+                        ),
                       _slotTile(
                         label: l10n.slicePrinter,
                         icon: Icons.print_outlined,
@@ -424,7 +510,10 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                               all: presets.filaments,
                             );
                             if (p != null && mounted) {
-                              setState(() => _filaments[i] = p);
+                              setState(() {
+                                _filaments[i] = p;
+                                _explicitFilaments.add(i);
+                              });
                             }
                           },
                         ),
@@ -552,6 +641,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     _resizeFilaments(slotCount);
     for (var i = 0; i < _filaments.length; i++) {
       if (i >= pipeline.filamentPresets.length) continue;
+      _explicitFilaments.add(i);
       _filaments[i] = resolvePresetRef(
         catalog,
         pipeline.filamentPresets[i],
@@ -573,7 +663,121 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     _printer = printer;
     _process = null;
     _filaments = List.filled(_filaments.length, null);
+    _explicitFilaments.clear();
     _processValues = {};
+  }
+
+  /// With "only online printers" on, an auto-picked printer of a model that is
+  /// not online moves to one that is — the file's own printer first, when that
+  /// model is online (the web's effect of the same name). A printer the user
+  /// chose stays, and so does the file's own while its settings are in use.
+  void _moveToOnlinePrinter(
+    List<SlicerPreset> all,
+    bool Function(SlicerPreset) online,
+    List<String?> connectedModels,
+    Map<String, String> registry,
+    EmbeddedSettings embedded,
+  ) {
+    final current = _printer;
+    if (_printerPicked || _useEmbedded || current == null) return;
+    if (online(current)) return;
+    final designed = all
+        .where((p) => embedded.matchesPrinter(p.name))
+        .firstOrNull;
+    final next = designed != null && online(designed)
+        ? designed
+        : pickConnectedPrinterPreset(all, connectedModels, registry);
+    if (next == null) return;
+    _pickPrinter(next);
+    _printerPicked = false;
+  }
+
+  /// [list] narrowed by [keep], or [list] itself when that would leave nothing
+  /// to pick — the rest stays one "All" away in the picker.
+  List<SlicerPreset> _narrow(
+    List<SlicerPreset> list,
+    bool Function(SlicerPreset)? keep,
+  ) {
+    if (keep == null) return list;
+    final narrowed = list.where(keep).toList();
+    return narrowed.isEmpty ? list : narrowed;
+  }
+
+  /// A row's default: from the loaded spools first, but only one that does not
+  /// state another material than the plate's slot — a loaded PLA is no answer
+  /// for a PETG slot (web #2982). Otherwise the usual pick.
+  SlicerPreset? _autoPickFilament({
+    required List<SlicerPreset>? loaded,
+    required List<SlicerPreset> filaments,
+    required List<OwnedFilament> owned,
+    required FilamentRequirement? req,
+  }) {
+    if (loaded != null && loaded.isNotEmpty) {
+      final fromLoaded = _pickDefaultFilament(loaded, owned, req);
+      final type = req?.type;
+      if (fromLoaded != null &&
+          (type == null || !statesDifferentMaterial(fromLoaded, type))) {
+        return fromLoaded;
+      }
+    }
+    return _pickDefaultFilament(filaments, owned, req);
+  }
+
+  Widget _filtersCard({required bool noneOnline, required bool noneLoaded}) {
+    final l10n = _l10n;
+    final theme = Theme.of(context);
+    final settings = ref.read(settingsRepositoryProvider);
+    Widget toggle({
+      required String id,
+      required bool value,
+      required String title,
+      required String hint,
+      required ValueChanged<bool> onChanged,
+    }) => SwitchListTile(
+      value: value,
+      onChanged: _submitting ? null : onChanged,
+      title: Text(title, style: theme.textTheme.labelMedium),
+      subtitle: Text(hint, style: theme.textTheme.bodySmall),
+    ).tagged(id);
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: DashSpace.xs),
+      child: Column(
+        children: [
+          toggle(
+            id: 'slice.only_online',
+            value: _onlyOnline,
+            title: l10n.sliceOnlyOnline,
+            hint: l10n.sliceOnlyOnlineHint,
+            onChanged: (v) {
+              setState(() => _onlyOnline = v);
+              unawaited(settings.saveSliceOnlyOnline(v));
+            },
+          ),
+          toggle(
+            id: 'slice.only_loaded',
+            value: _onlyLoaded,
+            title: l10n.sliceOnlyLoaded,
+            hint: l10n.sliceOnlyLoadedHint,
+            onChanged: (v) {
+              setState(() => _onlyLoaded = v);
+              unawaited(settings.saveSliceOnlyLoaded(v));
+            },
+          ),
+          if (noneOnline || noneLoaded)
+            InlineNote(
+              noneOnline ? l10n.sliceNoneOnline : l10n.sliceNoneLoaded,
+              icon: Icons.info_outline,
+              announce: true,
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.lg,
+                0,
+                DashSpace.lg,
+                DashSpace.md,
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   /// `ListTile.enabled` alone barely reads on the dark theme — the row looked

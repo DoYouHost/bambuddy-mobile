@@ -7982,6 +7982,90 @@ abstract class AppLocalizations {
   /// **'Search presets'**
   String get sliceSearchHint;
 
+  /// Slice form switch: narrow the printer profiles to the models online now (web: slice.filters.onlyConnectedModels)
+  ///
+  /// In en, this message translates to:
+  /// **'Only printers that are online'**
+  String get sliceOnlyOnline;
+
+  /// Line under the online-printers switch
+  ///
+  /// In en, this message translates to:
+  /// **'Printer profiles for the models online right now, at every nozzle size.'**
+  String get sliceOnlyOnlineHint;
+
+  /// Slice form switch: narrow the filament profiles to the spools loaded in online printers
+  ///
+  /// In en, this message translates to:
+  /// **'Only spools that are loaded'**
+  String get sliceOnlyLoaded;
+
+  /// Line under the loaded-spools switch
+  ///
+  /// In en, this message translates to:
+  /// **'Filament profiles of the spools in the online printers of the selected model. A profile you pick yourself stays.'**
+  String get sliceOnlyLoadedHint;
+
+  /// Note when a filter is on but no printer is online, so it has no effect
+  ///
+  /// In en, this message translates to:
+  /// **'No printer is online, so every profile is shown.'**
+  String get sliceNoneOnline;
+
+  /// Note when the loaded-spools filter is on but no loaded spool maps to a profile
+  ///
+  /// In en, this message translates to:
+  /// **'No loaded spool has a profile for this printer, so every filament profile is shown.'**
+  String get sliceNoneLoaded;
+
+  /// Title of the sheet listing the spools loaded in the online printers
+  ///
+  /// In en, this message translates to:
+  /// **'Loaded spools'**
+  String get sliceLoadedSpools;
+
+  /// Button on a filament row that opens the loaded-spools sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Pick'**
+  String get slicePickSpool;
+
+  /// Tooltip of the Pick button
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a spool loaded in a connected printer'**
+  String get slicePickSpoolTooltip;
+
+  /// Loaded-spools sheet when no printer of the selected model is online
+  ///
+  /// In en, this message translates to:
+  /// **'No printer of this model is online.'**
+  String get sliceLoadedNoneOfModel;
+
+  /// Printer in the loaded-spools sheet with no AMS and no external spool
+  ///
+  /// In en, this message translates to:
+  /// **'No AMS and no external spool.'**
+  String get sliceLoadedNothing;
+
+  /// Slot holding a spool the printer cannot identify
+  ///
+  /// In en, this message translates to:
+  /// **'Unidentified spool'**
+  String get sliceSpoolUnidentified;
+
+  /// Empty slot in the loaded-spools sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Empty'**
+  String get sliceSpoolEmpty;
+
+  /// Loaded spool with no filament profile for the selected printer, so it cannot be picked
+  ///
+  /// In en, this message translates to:
+  /// **'No profile for this printer'**
+  String get sliceSpoolNoProfile;
+
   /// No description provided for @sliceOwnedEmpty.
   ///
   /// In en, this message translates to:

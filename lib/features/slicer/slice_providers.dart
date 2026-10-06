@@ -4,6 +4,7 @@ import '../../core/models/archive_capabilities.dart';
 import '../../core/settings/server_settings.dart';
 import '../../core/models/embedded_settings.dart';
 import '../../core/models/filament_requirement.dart';
+import '../../core/models/loaded_spools.dart';
 import '../../core/models/plate_list.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/slicer/process_schema_catalog.dart';
@@ -25,6 +26,14 @@ final slicerEnabledProvider = serverGate<bool>(
 final slicerPresetsProvider = FutureProvider.autoDispose<UnifiedPresets>(
   (ref) => ref.watch(slicerRepositoryProvider).presets(),
 );
+
+/// What the online printers have loaded, for the form's two filters and its
+/// spool picker (#3172). Null when the server has no such route or the caller
+/// may not read printer status — the form then offers none of it.
+final loadedSpoolsProvider =
+    FutureProvider.autoDispose<List<LoadedSpoolPrinter>?>(
+      (ref) => ref.watch(slicerRepositoryProvider).loadedSpools(),
+    );
 
 /// Slice capabilities for a single archive — gates the archive slice button
 /// (hidden for plain gcode.3mf prints that can't be re-sliced).

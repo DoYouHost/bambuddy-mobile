@@ -4789,6 +4789,54 @@ class AppLocalizationsPl extends AppLocalizations {
   String get sliceSearchHint => 'Szukaj profili';
 
   @override
+  String get sliceOnlyOnline => 'Tylko drukarki online';
+
+  @override
+  String get sliceOnlyOnlineHint =>
+      'Profile drukarek dla modeli, które są teraz online, we wszystkich rozmiarach dysz.';
+
+  @override
+  String get sliceOnlyLoaded => 'Tylko załadowane szpule';
+
+  @override
+  String get sliceOnlyLoadedHint =>
+      'Profile filamentów ze szpul w drukarkach online wybranego modelu. Profil wybrany ręcznie zostaje.';
+
+  @override
+  String get sliceNoneOnline =>
+      'Żadna drukarka nie jest online, więc widać wszystkie profile.';
+
+  @override
+  String get sliceNoneLoaded =>
+      'Żadna załadowana szpula nie ma profilu dla tej drukarki, więc widać wszystkie profile filamentów.';
+
+  @override
+  String get sliceLoadedSpools => 'Załadowane szpule';
+
+  @override
+  String get slicePickSpool => 'Wybierz';
+
+  @override
+  String get slicePickSpoolTooltip =>
+      'Wybierz szpulę załadowaną w drukarce online';
+
+  @override
+  String get sliceLoadedNoneOfModel =>
+      'Żadna drukarka tego modelu nie jest online.';
+
+  @override
+  String get sliceLoadedNothing => 'Brak AMS i szpuli zewnętrznej.';
+
+  @override
+  String get sliceSpoolUnidentified => 'Nierozpoznana szpula';
+
+  @override
+  String get sliceSpoolEmpty => 'Pusty';
+
+  @override
+  String get sliceSpoolNoProfile => 'Brak profilu dla tej drukarki';
+
+  @override
   String get sliceOwnedEmpty =>
       'Brak pasujących profili dla Twojej drukarki i filamentów. Włącz „Wszystkie”, aby przeglądać pełny katalog.';
 

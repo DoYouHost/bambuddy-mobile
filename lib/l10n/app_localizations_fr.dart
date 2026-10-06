@@ -4803,6 +4803,54 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sliceSearchHint => 'Rechercher des préréglages';
 
   @override
+  String get sliceOnlyOnline => 'Uniquement les imprimantes en ligne';
+
+  @override
+  String get sliceOnlyOnlineHint =>
+      'Profils d\'imprimante des modèles connectés en ce moment, pour toutes les tailles de buse.';
+
+  @override
+  String get sliceOnlyLoaded => 'Uniquement les bobines chargées';
+
+  @override
+  String get sliceOnlyLoadedHint =>
+      'Profils de filament des bobines dans les imprimantes connectées du modèle choisi. Un profil choisi par vous est conservé.';
+
+  @override
+  String get sliceNoneOnline =>
+      'Aucune imprimante n\'est en ligne, tous les profils sont donc affichés.';
+
+  @override
+  String get sliceNoneLoaded =>
+      'Aucune bobine chargée n\'a de profil pour cette imprimante, tous les profils de filament sont donc affichés.';
+
+  @override
+  String get sliceLoadedSpools => 'Bobines chargées';
+
+  @override
+  String get slicePickSpool => 'Choisir';
+
+  @override
+  String get slicePickSpoolTooltip =>
+      'Choisir une bobine chargée dans une imprimante connectée';
+
+  @override
+  String get sliceLoadedNoneOfModel =>
+      'Aucune imprimante de ce modèle n\'est en ligne.';
+
+  @override
+  String get sliceLoadedNothing => 'Ni AMS ni bobine externe.';
+
+  @override
+  String get sliceSpoolUnidentified => 'Bobine non identifiée';
+
+  @override
+  String get sliceSpoolEmpty => 'Vide';
+
+  @override
+  String get sliceSpoolNoProfile => 'Aucun profil pour cette imprimante';
+
+  @override
   String get sliceOwnedEmpty =>
       'Aucun préréglage correspondant pour votre imprimante et vos filaments. Activez « Tout » pour parcourir le catalogue complet.';
 

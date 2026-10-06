@@ -2843,6 +2843,62 @@
   "sliceStart": "Slice",
   "sliceShowAll": "All",
   "sliceSearchHint": "Search presets",
+  "sliceOnlyOnline": "Only printers that are online",
+  "@sliceOnlyOnline": {
+    "description": "Slice form switch: narrow the printer profiles to the models online now (web: slice.filters.onlyConnectedModels)"
+  },
+  "sliceOnlyOnlineHint": "Printer profiles for the models online right now, at every nozzle size.",
+  "@sliceOnlyOnlineHint": {
+    "description": "Line under the online-printers switch"
+  },
+  "sliceOnlyLoaded": "Only spools that are loaded",
+  "@sliceOnlyLoaded": {
+    "description": "Slice form switch: narrow the filament profiles to the spools loaded in online printers"
+  },
+  "sliceOnlyLoadedHint": "Filament profiles of the spools in the online printers of the selected model. A profile you pick yourself stays.",
+  "@sliceOnlyLoadedHint": {
+    "description": "Line under the loaded-spools switch"
+  },
+  "sliceNoneOnline": "No printer is online, so every profile is shown.",
+  "@sliceNoneOnline": {
+    "description": "Note when a filter is on but no printer is online, so it has no effect"
+  },
+  "sliceNoneLoaded": "No loaded spool has a profile for this printer, so every filament profile is shown.",
+  "@sliceNoneLoaded": {
+    "description": "Note when the loaded-spools filter is on but no loaded spool maps to a profile"
+  },
+  "sliceLoadedSpools": "Loaded spools",
+  "@sliceLoadedSpools": {
+    "description": "Title of the sheet listing the spools loaded in the online printers"
+  },
+  "slicePickSpool": "Pick",
+  "@slicePickSpool": {
+    "description": "Button on a filament row that opens the loaded-spools sheet"
+  },
+  "slicePickSpoolTooltip": "Pick a spool loaded in a connected printer",
+  "@slicePickSpoolTooltip": {
+    "description": "Tooltip of the Pick button"
+  },
+  "sliceLoadedNoneOfModel": "No printer of this model is online.",
+  "@sliceLoadedNoneOfModel": {
+    "description": "Loaded-spools sheet when no printer of the selected model is online"
+  },
+  "sliceLoadedNothing": "No AMS and no external spool.",
+  "@sliceLoadedNothing": {
+    "description": "Printer in the loaded-spools sheet with no AMS and no external spool"
+  },
+  "sliceSpoolUnidentified": "Unidentified spool",
+  "@sliceSpoolUnidentified": {
+    "description": "Slot holding a spool the printer cannot identify"
+  },
+  "sliceSpoolEmpty": "Empty",
+  "@sliceSpoolEmpty": {
+    "description": "Empty slot in the loaded-spools sheet"
+  },
+  "sliceSpoolNoProfile": "No profile for this printer",
+  "@sliceSpoolNoProfile": {
+    "description": "Loaded spool with no filament profile for the selected printer, so it cannot be picked"
+  },
   "sliceOwnedEmpty": "No matching presets for your printer and filaments. Turn on \"All\" to browse the full catalog.",
   "sliceNoPresets": "No presets available",
   "sliceInProgress": "Slicing…",

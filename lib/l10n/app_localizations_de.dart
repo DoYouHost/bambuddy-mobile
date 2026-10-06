@@ -4755,6 +4755,54 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sliceSearchHint => 'Profile suchen';
 
   @override
+  String get sliceOnlyOnline => 'Nur Drucker, die online sind';
+
+  @override
+  String get sliceOnlyOnlineHint =>
+      'Druckerprofile für die gerade verbundenen Modelle, in jeder Düsengröße.';
+
+  @override
+  String get sliceOnlyLoaded => 'Nur eingelegte Spulen';
+
+  @override
+  String get sliceOnlyLoadedHint =>
+      'Filamentprofile der Spulen in den verbundenen Druckern des gewählten Modells. Ein selbst gewähltes Profil bleibt erhalten.';
+
+  @override
+  String get sliceNoneOnline =>
+      'Kein Drucker ist online, daher werden alle Profile angezeigt.';
+
+  @override
+  String get sliceNoneLoaded =>
+      'Keine eingelegte Spule hat ein Profil für diesen Drucker, daher werden alle Filamentprofile angezeigt.';
+
+  @override
+  String get sliceLoadedSpools => 'Eingelegte Spulen';
+
+  @override
+  String get slicePickSpool => 'Wählen';
+
+  @override
+  String get slicePickSpoolTooltip =>
+      'Eine Spule aus einem verbundenen Drucker wählen';
+
+  @override
+  String get sliceLoadedNoneOfModel =>
+      'Kein Drucker dieses Modells ist online.';
+
+  @override
+  String get sliceLoadedNothing => 'Kein AMS und keine externe Spule.';
+
+  @override
+  String get sliceSpoolUnidentified => 'Unbekannte Spule';
+
+  @override
+  String get sliceSpoolEmpty => 'Leer';
+
+  @override
+  String get sliceSpoolNoProfile => 'Kein Profil für diesen Drucker';
+
+  @override
   String get sliceOwnedEmpty =>
       'Keine passenden Profile für deinen Drucker und deine Filamente. Aktiviere „Alle“, um den gesamten Katalog zu durchsuchen.';
 
