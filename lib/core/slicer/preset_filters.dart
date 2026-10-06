@@ -10,6 +10,7 @@
 /// worse than showing one too many.
 library;
 
+import '../ams/filament_naming.dart';
 import '../ams/printer_model_match.dart';
 import '../models/slicer_preset.dart';
 
@@ -53,38 +54,38 @@ bool presetFitsMaterial(SlicerPreset preset, String? material) {
   return pattern.hasMatch(preset.name);
 }
 
-/// Whether [preset] is [brand]'s, read off its name — presets carry no vendor
-/// field. A word match anywhere, so "eSUN PETG" and "PETG eSUN" both count.
-bool presetFitsBrand(SlicerPreset preset, String? brand) {
-  final wanted = brand?.trim() ?? '';
-  return wanted.isEmpty || _wordPattern(wanted).hasMatch(preset.name);
+/// The maker a filament preset's name leads with ("Bambu PLA Basic @BBL
+/// H2D" → "Bambu", "# eSUN PETG" → "eSUN"), via the AMS slot parser — the
+/// text before the material. Null when the name names no known material, so
+/// nothing is guessed, or nothing stands before it.
+String? presetMakerName(SlicerPreset preset) {
+  final parsed = parsePresetName(_withoutClonePrefix(preset.name));
+  if (!filamentMaterials.contains(parsed.material)) return null;
+  return parsed.brand.isEmpty ? null : parsed.brand;
 }
 
-/// The brand a filament preset's name leads with ("SUNLU TPU @…" → "SUNLU"),
-/// or null for a name with nothing before its first space.
-String? presetBrand(SlicerPreset preset) {
-  final name = preset.name.replaceFirst(RegExp(r'^#\s*'), '').trim();
-  final space = name.indexOf(' ');
-  return space <= 0 ? null : name.substring(0, space);
-}
-
-/// Materials a filament preset can be filtered by when nothing narrows the
-/// list to what the user owns: its declared type, else any of these found in
-/// its name — the cloud and standard tiers leave the type empty.
-const knownMaterials = [
-  'PLA', 'PETG', 'PET', 'ABS', 'ASA', 'TPU', 'PA', 'PC', 'PVA', 'HIPS', //
-  'PPS', 'PPA', 'PE', 'PP', 'BVOH',
-];
-
-/// The material [preset] is for, as far as anything on it says.
-String? presetMaterial(SlicerPreset preset) {
+/// The material a filament preset is for: the declared type where it has
+/// one, else the one its name names, a composite kept whole ("PETG-CF" is not
+/// "PETG"). Null when the name names no known material.
+String? presetMaterialName(SlicerPreset preset) {
   final declared = preset.filamentType?.trim() ?? '';
   if (declared.isNotEmpty) return declared.toUpperCase();
-  for (final m in knownMaterials) {
-    if (_wordPattern(m).hasMatch(preset.name)) return m;
-  }
-  return null;
+  final parsed = parsePresetName(_withoutClonePrefix(preset.name));
+  if (!filamentMaterials.contains(parsed.material)) return null;
+  final composite = RegExp(r'^-(\w+)').firstMatch(parsed.variant);
+  return composite == null
+      ? parsed.material
+      : '${parsed.material}-${composite.group(1)!.toUpperCase()}';
 }
+
+/// What two maker spellings are compared by: the first word, case-folded. The
+/// inventory says "Bambu Lab" where the preset says "Bambu".
+String makerKey(String maker) =>
+    maker.trim().split(RegExp(r'\s+')).first.toUpperCase();
+
+/// A slicer clone's "# " (and "#2 ") prefix, which is not part of the name.
+String _withoutClonePrefix(String name) =>
+    name.replaceFirst(RegExp(r'^#\s*\d*\s*'), '');
 
 /// A literal material as a word-boundary pattern, with whitespace loosened so
 /// "PLA Basic" also matches a name that spells it with two spaces.

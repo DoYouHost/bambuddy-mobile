@@ -25,7 +25,15 @@ void main() {
     std('eSUN ABS+ @BBL H2D', 'ABS'),
   ];
 
-  Future<void> open(WidgetTester tester, {String? needs = 'PETG'}) async {
+  Future<void> open(
+    WidgetTester tester, {
+    String? needs = 'PETG',
+    List<SlicerPreset>? presets,
+    Set<String> ownedModels = const {'H2D'},
+    Set<String> ownedBrands = const {'Bambu'},
+    String printerModel = 'H2D',
+  }) async {
+    final list = presets ?? catalog;
     await pumpPhone(
       tester,
       Builder(
@@ -35,16 +43,16 @@ void main() {
               onPressed: () => showPresetSheet(
                 context,
                 title: 'Filament',
-                filtered: catalog.take(5).toList(),
-                all: catalog,
+                filtered: presets ?? catalog.take(5).toList(),
+                all: list,
                 filament: FilamentChoices(
                   spoolPrinters: null,
                   matchFor: (_) => null,
-                  ownedModels: const {'H2D'},
+                  ownedModels: ownedModels,
                   ownedMaterials: const {'PLA', 'PETG'},
-                  ownedBrands: const {'Bambu'},
+                  ownedBrands: ownedBrands,
                   registry: registry,
-                  printerModel: 'H2D',
+                  printerModel: printerModel,
                   needsMaterial: needs,
                 ),
               ),
@@ -134,5 +142,45 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(ChoiceChip), findsNothing);
     expect(byLogId('slice.filament_tab'), findsNothing);
+  });
+
+  testWidgets('PETG leaves the composites out', (tester) async {
+    await open(
+      tester,
+      presets: [std('Generic PETG @BBL H2D'), std('Bambu PETG-CF @BBL H2D')],
+    );
+    expect(shown(tester), ['Generic PETG @BBL H2D']);
+  });
+
+  testWidgets('the inventory\'s "Bambu Lab" finds the "Bambu" presets', (
+    tester,
+  ) async {
+    await open(tester, ownedBrands: const {'Bambu Lab'});
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Bambu Lab'));
+    await tester.pumpAndSettle();
+    expect(shown(tester), ['Bambu PETG HF @BBL H2D']);
+  });
+
+  testWidgets('another owned printer shows its own presets', (tester) async {
+    await open(tester, ownedModels: const {'H2D', 'X1C'});
+    await tester.tap(find.widgetWithText(ChoiceChip, 'X1C'));
+    await tester.pumpAndSettle();
+    expect(shown(tester), ['Bambu PETG HF @BBL X1C']);
+  });
+
+  testWidgets('a short model code finds the owned printer it stands for', (
+    tester,
+  ) async {
+    // The preset says A1M, the fleet says A1 Mini (#1649).
+    await open(
+      tester,
+      presets: [
+        std('Generic PETG @BBL A1M', 'PETG'),
+        std('Generic PETG @BBL H2D', 'PETG'),
+      ],
+      ownedModels: const {'A1 MINI'},
+      printerModel: 'A1M',
+    );
+    expect(shown(tester), ['Generic PETG @BBL A1M']);
   });
 }

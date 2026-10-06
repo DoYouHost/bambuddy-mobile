@@ -546,7 +546,15 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                               title: slotCount == 1
                                   ? l10n.sliceFilament
                                   : l10n.sliceFilamentNumbered('${i + 1}'),
-                              filtered: filaments,
+                              // Not narrowed to the printer: the sheet's own
+                              // printer filter does that, and starts on it.
+                              filtered: filamentFilter == null
+                                  ? _filterFilaments(
+                                      presets.filaments,
+                                      null,
+                                      owned,
+                                    )
+                                  : filaments,
                               all: presets.filaments,
                               filament: FilamentChoices(
                                 // The Spools tab while any printer is online,
@@ -770,19 +778,20 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     // Rows the user filled while the answer was in flight survive the move
     // where they still fit the new printer — the web keeps a pick that is not
     // a mismatch and picks the rest again. The auto-picked rows are re-picked.
+    // A spool picked for one stays behind: it sits in the printer that was
+    // left, so the row keeps its profile, not that spool's colour or name.
     final kept = {
       for (final i in _explicitFilaments)
         if (i < _filaments.length)
           if (_filaments[i] case final preset?
               when presetCompatibility(preset, next.name, registry) !=
                   PresetFit.mismatch)
-            i: (preset, _spoolOrigins[i]),
+            i: preset,
     };
     _pickPrinter(next);
     _printerPicked = false;
-    for (final MapEntry(key: i, value: (preset, origin)) in kept.entries) {
+    for (final MapEntry(key: i, value: preset) in kept.entries) {
       _filaments[i] = preset;
-      _spoolOrigins[i] = origin;
       _explicitFilaments.add(i);
     }
   }

@@ -87,7 +87,8 @@ final _sliceSpoolsProvider = FutureProvider.autoDispose<List<Spool>>(
 
 /// The materials and brands of the spools the user owns: the filament
 /// picker's filter options, before "All" widens them to the catalogue.
-/// Upper-cased materials, brands as the inventory spells them.
+/// Upper-cased materials, brands as the inventory spells them — "Bambu Lab",
+/// which the picker matches to presets named "Bambu" by `makerKey`.
 final ownedSpoolFacetsProvider =
     FutureProvider.autoDispose<({Set<String> materials, Set<String> brands})>((
       ref,

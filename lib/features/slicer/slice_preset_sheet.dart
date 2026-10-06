@@ -205,18 +205,29 @@ class _PresetSheetState extends State<_PresetSheet> {
     final base = _showAll ? widget.all : widget.filtered;
     final filament = widget.filament;
 
+    // Spellings that name one thing: a model under its alias ("A1 Mini" and
+    // "A1M"), a maker by its first word ("Bambu Lab" and "Bambu").
+    bool sameModel(String a, String b) =>
+        a.toUpperCase() == b.toUpperCase() || matchesPrinterModel(a, b);
+    bool sameMaker(String a, String b) => makerKey(a) == makerKey(b);
+    bool sameText(String a, String b) => a.toUpperCase() == b.toUpperCase();
+
     // The options: what the user owns, or the whole catalogue once "All" is
-    // on — one chip per value whatever its case ("A1 MINI" and "A1 Mini").
-    Set<String> options(Set<String> owned, String? Function(SlicerPreset) of) {
-      final seen = <String>{};
-      return {
-        for (final v in [
-          ...owned,
-          if (_showAll)
-            for (final p in widget.all) ?of(p),
-        ])
-          if (seen.add(v.toUpperCase())) v,
-      };
+    // on — one chip per thing, the owned spelling first.
+    Set<String> options(
+      Set<String> owned,
+      String? Function(SlicerPreset) of,
+      bool Function(String, String) same,
+    ) {
+      final out = <String>[];
+      for (final v in [
+        ...owned,
+        if (_showAll)
+          for (final p in widget.all) ?of(p),
+      ]) {
+        if (!out.any((o) => same(o, v))) out.add(v);
+      }
+      return out.toSet();
     }
 
     final models = filament == null
@@ -224,22 +235,36 @@ class _PresetSheetState extends State<_PresetSheet> {
         : options(
             filament.ownedModels,
             (p) => presetPrinterModel(p.name, filament.registry),
+            sameModel,
           );
     final materials = filament == null
         ? const <String>{}
-        : options(filament.ownedMaterials, presetMaterial);
+        : options(filament.ownedMaterials, presetMaterialName, sameText);
     final brands = filament == null
         ? const <String>{}
-        : options(filament.ownedBrands, presetBrand);
+        : options(filament.ownedBrands, presetMakerName, sameMaker);
 
-    // A pick that is not on offer (not owned, "All" off) does not filter.
-    String? applied(String? pick, Set<String> from) =>
-        pick != null && from.any((o) => o.toUpperCase() == pick.toUpperCase())
-        ? pick
-        : null;
-    final model = applied(_model, models);
-    final material = applied(_material, materials);
-    final brand = applied(_brand, brands);
+    // The option a pick stands for; a pick not on offer (not owned, "All"
+    // off) does not filter.
+    String? applied(
+      String? pick,
+      Set<String> from,
+      bool Function(String, String) same,
+    ) => pick == null ? null : from.where((o) => same(o, pick)).firstOrNull;
+    final model = applied(_model, models, sameModel);
+    final material = applied(_material, materials, sameText);
+    final brand = applied(_brand, brands, sameMaker);
+
+    // A material compares whole, so PETG leaves PETG-CF out; a preset whose
+    // material cannot be read stays in, as everywhere in these filters.
+    bool fitsMaterial(SlicerPreset p) =>
+        material == null ||
+        sameText(presetMaterialName(p) ?? material, material);
+    bool fitsMaker(SlicerPreset p) {
+      if (brand == null) return true;
+      final maker = presetMakerName(p);
+      return maker != null && sameMaker(maker, brand);
+    }
 
     final needle = _query.trim().toLowerCase();
     final items = [
@@ -247,8 +272,8 @@ class _PresetSheetState extends State<_PresetSheet> {
         if (needle.isEmpty || p.name.toLowerCase().contains(needle))
           if (filament == null ||
               (presetFitsPrinterModel(p.name, model, filament.registry) &&
-                  presetFitsMaterial(p, material) &&
-                  presetFitsBrand(p, brand)))
+                  fitsMaterial(p) &&
+                  fitsMaker(p)))
             p,
     ];
 

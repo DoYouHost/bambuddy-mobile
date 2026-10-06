@@ -1471,6 +1471,34 @@ void main() {
       expect(find.text(l10n.sliceLoadedNoneOfModel), findsOneWidget);
     });
 
+    testWidgets('the sheet lists every owned printer\'s presets, starting '
+        'on the selected one', (tester) async {
+      const forX1c = SlicerPreset(
+        source: 'standard',
+        id: 'x1c-pla',
+        name: 'Generic PLA @BBL X1C',
+        filamentType: 'PLA',
+      );
+      await openSheet(
+        tester,
+        presets: const UnifiedPresets(
+          printers: [x1c, h2d],
+          processes: [
+            SlicerPreset(source: 'standard', id: 'p', name: '0.20mm Standard'),
+          ],
+          filaments: [generic, forX1c],
+        ),
+        registry: registry,
+        ownedCodes: const {'H2D', 'X1C'},
+        loaded: const [],
+      );
+      await openFilament(tester);
+      expect(find.text(forX1c.name), findsNothing, reason: 'starts on H2D');
+      await tester.tap(find.widgetWithText(ChoiceChip, 'X1C'));
+      await tester.pumpAndSettle();
+      expect(find.text(forX1c.name), findsOneWidget);
+    });
+
     testWidgets('with nothing online the sheet is the profile list alone', (
       tester,
     ) async {
