@@ -170,6 +170,12 @@ abstract final class Permissions {
   /// covers it only when the key's owner holds it.
   static const queueStartUnreviewed = 'queue:start_unreviewed';
 
+  /// What a library folder's rename and delete asked for before the server
+  /// answered per folder (#3201) — the fallback for an older one.
+  static const libraryUpdateAll = 'library:update_all';
+  static const libraryDeleteAll = 'library:delete_all';
+  static const libraryDeleteOwn = 'library:delete_own';
+
   /// Recording an outcome verdict (`PATCH /archives/{id}`): update-own on the
   /// caller's own prints, update-all on anyone's. An API key's
   /// `can_manage_archives` covers both.
