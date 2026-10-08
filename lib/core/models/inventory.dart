@@ -332,6 +332,39 @@ class Spool {
   }
 }
 
+/// One row of `GET /inventory/stats/material-numbers` (server #2870): what the
+/// shelf holds and what was used of every spool sharing a number.
+class MaterialNumberStats {
+  const MaterialNumberStats({
+    required this.materialNumber,
+    this.spoolCount = 0,
+    this.remainingGrams = 0,
+    this.consumedGrams = 0,
+    this.cost = 0,
+  });
+
+  factory MaterialNumberStats.fromJson(Map<String, dynamic> json) =>
+      MaterialNumberStats(
+        materialNumber: toStringOrNull(json['material_number']) ?? '',
+        spoolCount: toIntOrNull(json['spool_count']) ?? 0,
+        remainingGrams: toDoubleOrNull(json['remaining_g']) ?? 0,
+        consumedGrams: toDoubleOrNull(json['consumed_g']) ?? 0,
+        cost: toDoubleOrNull(json['cost']) ?? 0,
+      );
+
+  final String materialNumber;
+
+  /// Active spools only, and [remainingGrams] with them — stock is
+  /// point-in-time, so a date range never narrows these two.
+  final int spoolCount;
+  final double remainingGrams;
+
+  /// Recorded usage of every spool carrying the number, archived ones
+  /// included, within the requested date range.
+  final double consumedGrams;
+  final double cost;
+}
+
 /// Editable spool field set for saving (create/update) — backend-agnostic.
 /// UI fills draft, source translates to proper body shape
 /// (`SpoolCreate`/`SpoolUpdate` native, `SpoolmanInventory*` for Spoolman).

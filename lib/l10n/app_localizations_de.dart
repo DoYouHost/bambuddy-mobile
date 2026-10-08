@@ -7646,6 +7646,17 @@ class AppLocalizationsDe extends AppLocalizations {
       'Lieferantendaten konnten nicht geladen werden';
 
   @override
+  String get statsByMaterialNumber => 'Nach Materialnummer';
+
+  @override
+  String get statsByMaterialNumberHint =>
+      'Verbrauch aus Spulen mit derselben Materialnummer und was er gekostet hat. Der Bestand zählt aktive Spulen und ignoriert den Zeitraum.';
+
+  @override
+  String get statsByMaterialNumberFailed =>
+      'Daten zu Materialnummern konnten nicht geladen werden';
+
+  @override
   String statsSupplierDetail(String spools, String remaining, String cost) {
     return '$spools · $remaining auf Lager · Kosten $cost';
   }

@@ -829,12 +829,6 @@ final presetOverridesSupportedProvider = capabilityGate(
   (ref) => ref.watch(inventoryRepositoryProvider).presetOverridesCapability,
 );
 
-/// Whether this server stores a material number on a spool. Whether the
-/// number can also be written is the backend's call: Spoolman's is read-only.
-final materialNumberSupportedProvider = capabilityGate(
-  (ref) => ref.watch(inventoryRepositoryProvider).materialNumberCapability,
-);
-
 /// One spool's per-printer-model preset overrides, as stored right now.
 ///
 /// Errors are NOT swallowed here, unlike the other reference data above: the

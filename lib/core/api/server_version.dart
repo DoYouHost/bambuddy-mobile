@@ -184,7 +184,7 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.printOutcome: (1, 2, 6, 0),
     ServerFeature.apiKeyNotificationScope: (1, 2, 6, 0),
     ServerFeature.spoolSuppliers: (1, 2, 6, 0),
-    ServerFeature.spoolMaterialNumber: (1, 2, 6, 0),
+    ServerFeature.spoolMaterialNumber: (1, 2, 5, 7),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

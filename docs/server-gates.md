@@ -410,11 +410,12 @@ a single spool answers before any supplier route is asked. Being early costs a
 1.2.6b1 daily older than the commit one 404 on the listing and a supplier entry
 that disappears with it; nothing is written to a server that could drop it.
 
-### spoolMaterialNumber — 1.2.6 (server #2870)
+### spoolMaterialNumber — 1.2.5.7 (server #2870)
 
 A purchasing number shared by every spool of a product: `material_number` on a
-spool, in the bulk edit, and `GET /inventory/stats/material-numbers`. Only in
-1.2.6 dailies from 2026-09-30.
+spool, in the bulk edit, and `GET /inventory/stats/material-numbers`. In
+1.2.5.7, the first release to carry it; 1.2.5.6 has none (checked against both
+images, which is why the row is not 1.2.6 like its neighbours).
 
 `SpoolCreate`, `SpoolUpdate` and the bulk `update` take no extra-field
 refusal, so an older server accepts the key, says nothing and stores nothing —
@@ -422,9 +423,9 @@ a field that reads as saved and is gone on the next load. `SpoolResponse` sends
 the key on every row from the feature on, null or not, and the Spoolman listing
 merges it in as well, so `InventoryRepository.materialNumberCapability`
 observes it on the first row of the spool listing. An empty inventory says
-nothing and the version row answers; being early costs a 1.2.6b1 daily older
-than the commit a missing field and nothing else, since no write goes out
-without the gate.
+nothing and the version row answers; being early costs a 1.2.5.7-numbered
+build older than the commit a missing field and nothing else, since no write
+goes out without the gate.
 
 The gate says the server *has* the number. Whether it can be *written* is the
 backend: Spoolman maps the filament's `article_number` onto it and keeps it

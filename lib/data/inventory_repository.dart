@@ -156,6 +156,23 @@ class InventoryRepository {
   Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
       _on((s) => s.renderLabels(request));
 
+  /// Stock and spend per material number; [from]/[to] are inclusive calendar
+  /// days and narrow only the consumption and cost. Empty on Spoolman and on a
+  /// server without the route: the card on top of it is additive, and the latch
+  /// has recorded why there is nothing to add.
+  Future<List<MaterialNumberStats>> fetchMaterialNumberStats({
+    DateTime? from,
+    DateTime? to,
+  }) => materialNumberCapability.watching(
+    () => _on(
+      (s) => s is NativeInventorySource
+          ? s.fetchMaterialNumberStats(from: from, to: to)
+          : Future.value(const <MaterialNumberStats>[]),
+    ),
+    absent: () => const [],
+    observing: treat404AsAbsent,
+  );
+
   /// One spool's per-printer-model preset overrides. A server without the route
   /// answers with an empty list rather than throwing: the section reading this
   /// is additive, so it renders as if the spool simply had none.

@@ -42,6 +42,7 @@ import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
+import 'package:bambuddy_mobile/data/inventory_repository.dart';
 import 'package:bambuddy_mobile/data/suppliers_repository.dart';
 import 'package:bambuddy_mobile/core/models/supplier.dart';
 import 'package:bambuddy_mobile/core/models/calibration_option.dart';
@@ -1692,6 +1693,91 @@ void main() {
       for (final f in ServerFeature.values)
         if (!version!.supports(f)) f.name,
     ], isEmpty);
+  });
+
+  group('material numbers', () {
+    final source = NativeInventorySource(dio);
+
+    test('every row carries the key, so the gate opens off the rows', () async {
+      final spools = await source.fetchSpools();
+      expect(spools.every((s) => s.materialNumberReported), isTrue);
+      expect(spools.any((s) => s.materialNumber == null), isTrue);
+      expect(spools.any((s) => s.materialNumber == '15'), isTrue);
+    });
+
+    test('stats group by number and the range narrows usage only', () async {
+      final repo = InventoryRepository(source);
+      final all = await repo.fetchMaterialNumberStats();
+      expect(all.map((r) => r.materialNumber), contains('15'));
+      expect(all.first.consumedGrams, greaterThan(0));
+
+      final far = DateTime(2000);
+      final none = await repo.fetchMaterialNumberStats(from: far, to: far);
+      expect(none.every((r) => r.consumedGrams == 0), isTrue);
+      expect(
+        none.map((r) => r.remainingGrams),
+        all.map((r) => r.remainingGrams),
+        reason: 'stock is point-in-time',
+      );
+    });
+
+    test('a new spool of a numbered product inherits the number', () async {
+      final numbered = (await source.fetchSpools()).firstWhere(
+        (s) => s.materialNumber != null,
+      );
+      final created = await source.createSpool(
+        SpoolDraft(
+          material: numbered.material,
+          subtype: numbered.subtype,
+          brand: numbered.brand,
+          colorName: numbered.colorName,
+        ),
+      );
+      expect(created.materialNumber, numbered.materialNumber);
+
+      final own = await source.createSpool(
+        SpoolDraft(
+          material: numbered.material,
+          subtype: numbered.subtype,
+          brand: numbered.brand,
+          colorName: numbered.colorName,
+          materialNumber: ' X-1 ',
+        ),
+      );
+      expect(own.materialNumber, 'X-1');
+      await source.deleteSpool(created.id);
+      await source.deleteSpool(own.id);
+    });
+
+    test('a blank number clears it, like the schema validator', () async {
+      final created = await source.createSpool(
+        const SpoolDraft(material: 'PCTG', materialNumber: '77'),
+      );
+      expect(created.materialNumber, '77');
+      final cleared = await source.updateSpool(
+        created.id,
+        const SpoolDraft(material: 'PCTG', materialNumber: ' '),
+      );
+      expect(cleared.materialNumber, isNull);
+      await source.deleteSpool(created.id);
+    });
+
+    test('a bulk edit sets it on every selected spool', () async {
+      final created = [
+        await source.createSpool(const SpoolDraft(material: 'PVA')),
+        await source.createSpool(const SpoolDraft(material: 'HIPS')),
+      ];
+      final ids = [for (final s in created) s.id];
+      await source.bulkUpdate(ids, const SpoolBulkPatch(materialNumber: '9'));
+      final after = await source.fetchSpools();
+      expect(
+        after.where((s) => ids.contains(s.id)).map((s) => s.materialNumber),
+        ['9', '9'],
+      );
+      for (final id in ids) {
+        await source.deleteSpool(id);
+      }
+    });
   });
 
   group('suppliers', () {

@@ -959,6 +959,12 @@ abstract final class Endpoints {
   /// (`SupplierStats[]`). `date_from`/`date_to` narrow the usage half only.
   static const inventorySupplierStats = '$apiPrefix/inventory/stats/suppliers';
 
+  /// Stock, consumption and cost per material number (`MaterialNumberStats[]`,
+  /// server #2870), heaviest consumer first. `date_from`/`date_to` narrow the
+  /// usage half only. Reads the built-in spool table, so Spoolman has no twin.
+  static const inventoryMaterialNumberStats =
+      '$apiPrefix/inventory/stats/material-numbers';
+
   /// One spool's supplier assignments. `PUT` only — there is no `GET` on the
   /// built-in side, the rows ride on `SpoolResponse.suppliers` — and it
   /// replaces the whole list.

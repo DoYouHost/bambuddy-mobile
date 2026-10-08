@@ -184,12 +184,26 @@ void main() {
           ServerFeature.spoolModelPresets,
           ServerFeature.libraryFileExtras,
           ServerFeature.printOutcome,
-          ServerFeature.spoolMaterialNumber,
         ]) {
           expect(v125.supports(f), isFalse, reason: '$f absent in 1.2.5');
           expect(v126.supports(f), isTrue, reason: '$f present in 1.2.6');
         }
       },
+    );
+  });
+
+  test('the material number arrives in 1.2.5.7, the last 1.2.5 release', () {
+    expect(
+      parse('1.2.5.6').supports(ServerFeature.spoolMaterialNumber),
+      isFalse,
+    );
+    expect(
+      parse('1.2.5.7').supports(ServerFeature.spoolMaterialNumber),
+      isTrue,
+    );
+    expect(
+      parse('1.2.6b1').supports(ServerFeature.spoolMaterialNumber),
+      isTrue,
     );
   });
 

@@ -7698,6 +7698,17 @@ class AppLocalizationsPl extends AppLocalizations {
   String get statsBySupplierFailed => 'Nie udało się wczytać danych dostawców';
 
   @override
+  String get statsByMaterialNumber => 'Wg numeru materiałowego';
+
+  @override
+  String get statsByMaterialNumberHint =>
+      'Zużycie filamentu ze szpul o danym numerze materiałowym i jego koszt. Zapas liczy aktywne szpule i nie zależy od zakresu dat.';
+
+  @override
+  String get statsByMaterialNumberFailed =>
+      'Nie udało się wczytać danych numerów materiałowych';
+
+  @override
   String statsSupplierDetail(String spools, String remaining, String cost) {
     return '$spools · $remaining na stanie · koszt $cost';
   }

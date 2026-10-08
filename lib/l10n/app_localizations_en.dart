@@ -7574,6 +7574,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statsBySupplierFailed => 'Couldn\'t load the supplier figures';
 
   @override
+  String get statsByMaterialNumber => 'By material number';
+
+  @override
+  String get statsByMaterialNumberHint =>
+      'Filament used from spools sharing each material number, and what it cost. Stock counts active spools and ignores the date range.';
+
+  @override
+  String get statsByMaterialNumberFailed =>
+      'Couldn\'t load the material number figures';
+
+  @override
   String statsSupplierDetail(String spools, String remaining, String cost) {
     return '$spools · $remaining in stock · cost $cost';
   }

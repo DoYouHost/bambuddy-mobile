@@ -42,6 +42,7 @@ class StatisticsScreen extends ConsumerWidget {
             ref.invalidate(archiveSlimProvider);
             ref.invalidate(failureAnalysisProvider);
             ref.invalidate(supplierStatsProvider);
+            ref.invalidate(materialNumberStatsProvider);
             await ref.read(statsProvider.notifier).refresh();
           },
           child: dashAsync(
@@ -252,6 +253,7 @@ class _StatsBody extends ConsumerWidget {
         const FailureAnalysisCard(),
         // Its own data, not the slim list's, so it does not wait for that.
         const SupplierStatsCard(),
+        const MaterialNumberStatsCard(),
         // Rich widgets computed from slim list — wait for it to load.
         ...computed.when(
           loading: () => const [

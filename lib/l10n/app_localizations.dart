@@ -12764,6 +12764,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the supplier figures'**
   String get statsBySupplierFailed;
 
+  /// No description provided for @statsByMaterialNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'By material number'**
+  String get statsByMaterialNumber;
+
+  /// No description provided for @statsByMaterialNumberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament used from spools sharing each material number, and what it cost. Stock counts active spools and ignores the date range.'**
+  String get statsByMaterialNumberHint;
+
+  /// No description provided for @statsByMaterialNumberFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the material number figures'**
+  String get statsByMaterialNumberFailed;
+
   /// Line under one supplier's bar. {spools} is already a counted phrase such as '2 spools'; {remaining} is a weight with its unit.
   ///
   /// In en, this message translates to:

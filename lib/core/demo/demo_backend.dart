@@ -4812,6 +4812,7 @@ class DemoBackend {
       'created_at': _iso(_daysAgo(30 + id)),
       'k_profiles': const <Object>[],
       'suppliers': <Map<String, dynamic>>[],
+      'material_number': null,
     };
 
     final spools = [
@@ -4893,6 +4894,13 @@ class DemoBackend {
     // at Filament24, and nothing at all — the three states the spool card and
     // the supplier filter have to show. Printed Solid stays unassigned, so the
     // supplier list has one row that can be deleted and two that cannot.
+    // Two spools of one product share a number, a third product has its own,
+    // and the rest stay blank: the filter, the tile and the card all have
+    // something to show without the demo hiding what an unnumbered shelf is.
+    spools[0]['material_number'] = '15';
+    spools[1]['material_number'] = '15';
+    spools[2]['material_number'] = '22';
+    spools[3]['material_number'] = 'A-104';
     _linkSeed(spools[0], [
       (1, 'GFA00-K0', 24.99, true),
       (2, 'BL-PLA-BK-1', 22.90, false),
@@ -5136,6 +5144,55 @@ class DemoBackend {
     return _ok(out);
   }
 
+  /// `GET /inventory/stats/material-numbers`: stock from active spools,
+  /// consumption and cost from the usage rows inside the date range, heaviest
+  /// consumer first and the number as the tie-break.
+  DemoResult _materialNumberStats(Map<String, String> q) {
+    final from = DateTime.tryParse(q['date_from'] ?? '');
+    final to = DateTime.tryParse(q['date_to'] ?? '');
+    final rows = <String, Map<String, dynamic>>{};
+    for (final spool in _spools) {
+      final number = spool['material_number'] as String?;
+      if (number == null) continue;
+      final row = rows.putIfAbsent(
+        number,
+        () => {
+          'material_number': number,
+          'spool_count': 0,
+          'remaining_g': 0.0,
+          'consumed_g': 0.0,
+          'cost': 0.0,
+        },
+      );
+      if (spool['archived_at'] == null) {
+        final left =
+            (spool['label_weight'] as num) - (spool['weight_used'] as num);
+        row['spool_count'] = (row['spool_count'] as int) + 1;
+        row['remaining_g'] =
+            (row['remaining_g'] as double) + (left > 0 ? left : 0);
+      }
+      for (final use in _spoolUsage(spool['id'] as int)) {
+        final at = DateTime.parse(use['created_at'] as String).toLocal();
+        final day = DateTime(at.year, at.month, at.day);
+        if (from != null && day.isBefore(from)) continue;
+        if (to != null && day.isAfter(to)) continue;
+        row['consumed_g'] =
+            (row['consumed_g'] as double) + (use['weight_used'] as num);
+        row['cost'] = (row['cost'] as double) + (use['cost'] as num);
+      }
+    }
+    final out = rows.values.toList()
+      ..sort((a, b) {
+        final byUse = (b['consumed_g'] as double).compareTo(
+          a['consumed_g'] as double,
+        );
+        return byUse != 0
+            ? byUse
+            : '${a['material_number']}'.compareTo('${b['material_number']}');
+      });
+    return _ok(out);
+  }
+
   late final List<Map<String, dynamic>> _assignments = [
     {
       'spool_id': 1,
@@ -5336,6 +5393,7 @@ class DemoBackend {
         if (s.length == 3) {
           if (m == 'GET') return _ok(spool);
           if (m == 'PATCH') {
+            _normalizeMaterialNumber(body);
             body.forEach((k, v) => spool[k] = v);
             return _ok(spool);
           }
@@ -5447,6 +5505,9 @@ class DemoBackend {
         if (s.length == 3 && s[2] == 'suppliers' && m == 'GET') {
           return _supplierStats(q);
         }
+        if (s.length == 3 && s[2] == 'material-numbers' && m == 'GET') {
+          return _materialNumberStats(q);
+        }
         return _fallback(m);
       case 'catalog':
         return _ok(_coreWeights);
@@ -5517,8 +5578,10 @@ class DemoBackend {
             body: {'detail': 'update must include at least one field'},
           );
         }
+        final fields = update.cast<String, dynamic>();
+        _normalizeMaterialNumber(fields);
         for (final spool in found) {
-          update.forEach((k, v) => spool['$k'] = v);
+          fields.forEach((k, v) => spool[k] = v);
         }
         return _ok({'updated': found.length, 'not_found': notFound});
 
@@ -5655,6 +5718,15 @@ class DemoBackend {
     return _ok(spool);
   }
 
+  /// The server trims `material_number` and stores a blank as NULL, on every
+  /// write path (`schemas/spool.py::normalize_material_number`).
+  void _normalizeMaterialNumber(Map<String, dynamic> fields) {
+    final raw = fields['material_number'];
+    if (raw is String) {
+      fields['material_number'] = raw.trim().isEmpty ? null : raw.trim();
+    }
+  }
+
   Map<String, dynamic> _createSpool(Map<String, dynamic> draft) {
     final spool = <String, dynamic>{
       'id': _nextSpoolId++,
@@ -5666,6 +5738,24 @@ class DemoBackend {
       'k_profiles': const <Object>[],
       ...draft,
     };
+    _normalizeMaterialNumber(spool);
+    spool.putIfAbsent('material_number', () => null);
+    // The number is inherited from the most recently added spool of the same
+    // product when the draft names none (`services/material_number.py`).
+    if (spool['material_number'] == null) {
+      final numbered = _spools.lastWhere(
+        (x) =>
+            x['material_number'] != null &&
+            [
+              'material',
+              'subtype',
+              'brand',
+              'color_name',
+            ].every((k) => x[k] == spool[k]),
+        orElse: () => const {},
+      );
+      spool['material_number'] = numbered['material_number'];
+    }
     // The server's inheritance (`services/supplier_links.py`): the newest spool
     // of the same product that has any sources lends them, never where it was
     // bought.

@@ -4759,6 +4759,9 @@
   "statsBySupplier": "By supplier",
   "statsBySupplierHint": "Filament used from spools bought at each supplier, and what it cost. Stock counts active spools and ignores the date range.",
   "statsBySupplierFailed": "Couldn't load the supplier figures",
+  "statsByMaterialNumber": "By material number",
+  "statsByMaterialNumberHint": "Filament used from spools sharing each material number, and what it cost. Stock counts active spools and ignores the date range.",
+  "statsByMaterialNumberFailed": "Couldn't load the material number figures",
   "statsSupplierDetail": "{spools} · {remaining} in stock · cost {cost}",
   "@statsSupplierDetail": {
     "description": "Line under one supplier's bar. {spools} is already a counted phrase such as '2 spools'; {remaining} is a weight with its unit.",

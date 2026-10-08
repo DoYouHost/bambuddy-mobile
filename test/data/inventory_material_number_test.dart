@@ -63,6 +63,63 @@ void main() {
     });
   });
 
+  group('stats', () {
+    const path = '/api/v1/inventory/stats/material-numbers';
+
+    test('rows are parsed and the range goes out as calendar days', () async {
+      replyVersion('1.2.6b1');
+      adapter.onGet(
+        path,
+        (s) => s.reply(200, [
+          {
+            'material_number': '15',
+            'spool_count': 6,
+            'remaining_g': 3900.5,
+            'consumed_g': 3200,
+            'cost': 285.0,
+          },
+        ]),
+        queryParameters: {'date_from': '2026-09-01', 'date_to': '2026-09-30'},
+      );
+
+      final rows = await repo.fetchMaterialNumberStats(
+        from: DateTime(2026, 9),
+        to: DateTime(2026, 9, 30),
+      );
+
+      expect(rows.single.materialNumber, '15');
+      expect(rows.single.spoolCount, 6);
+      expect(rows.single.remainingGrams, 3900.5);
+      expect(rows.single.consumedGrams, 3200);
+      expect(rows.single.cost, 285);
+    });
+
+    test('a 404 is an empty list and settles the gate as absent', () async {
+      replyVersion('1.2.6b1');
+      adapter.onGet(path, (s) => s.reply(404, {'detail': 'Not Found'}));
+
+      expect(await repo.fetchMaterialNumberStats(), isEmpty);
+      expect(await repo.materialNumberCapability.supported, isFalse);
+    });
+
+    test('Spoolman is never asked', () async {
+      replyVersion('1.2.6b1');
+      final spoolman = InventoryRepository(
+        SpoolmanInventorySource(dio),
+        ServerVersionService(dio),
+      );
+      expect(await spoolman.fetchMaterialNumberStats(), isEmpty);
+    });
+
+    test('a row missing its figures reads as zeros', () {
+      final row = MaterialNumberStats.fromJson(const {'material_number': 'A'});
+      expect(
+        [row.spoolCount, row.remainingGrams, row.consumedGrams, row.cost],
+        [0, 0, 0, 0],
+      );
+    });
+  });
+
   group('Spool', () {
     test('reads the number and whether the key was there', () {
       final withNumber = row(const {'material_number': '15'});

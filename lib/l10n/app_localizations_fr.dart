@@ -7740,6 +7740,17 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible de charger les chiffres des fournisseurs';
 
   @override
+  String get statsByMaterialNumber => 'Par numéro de matériau';
+
+  @override
+  String get statsByMaterialNumberHint =>
+      'Filament consommé sur les bobines partageant un même numéro de matériau et son coût. Le stock compte les bobines actives et ne dépend pas de la période.';
+
+  @override
+  String get statsByMaterialNumberFailed =>
+      'Impossible de charger les chiffres par numéro de matériau';
+
+  @override
   String statsSupplierDetail(String spools, String remaining, String cost) {
     return '$spools · $remaining en stock · coût $cost';
   }

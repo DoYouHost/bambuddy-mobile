@@ -10,6 +10,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/archive_stats.dart';
+import '../../core/models/inventory.dart' show MaterialNumberStats;
 import '../../core/models/supplier.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -511,6 +512,73 @@ class SupplierStatsCard extends ConsumerWidget {
                       rows: [
                         (
                           label: row.supplierName,
+                          value: fmtGrams(row.consumedGrams),
+                          fraction: row.consumedGrams / heaviest,
+                          color: null,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: DashSpace.xs),
+                    Text(
+                      l10n.statsSupplierDetail(
+                        l10n.inventorySpoolCount(row.spoolCount),
+                        fmtGrams(row.remainingGrams),
+                        fmtNum(row.cost),
+                      ),
+                      style: t.label.copyWith(color: t.textSecondary),
+                    ),
+                  ],
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+// ── By material number ─────────────────────────────────────────────────────
+
+/// Consumption per material number, heaviest first as the server sorts it,
+/// with stock and spend under each bar. Hidden like [SupplierStatsCard]: most
+/// inventories never number a spool, and a failed read is shown because it is
+/// not the same answer as "none".
+class MaterialNumberStatsCard extends ConsumerWidget {
+  const MaterialNumberStatsCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
+    final stats = ref.watch(materialNumberStatsProvider);
+    final rows = stats.valueOrNull ?? const <MaterialNumberStats>[];
+    if (!stats.hasError && rows.isEmpty) return const SizedBox.shrink();
+    final heaviest = rows.fold<double>(
+      1,
+      (m, r) => math.max(m, r.consumedGrams),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(top: DashSpace.md),
+      child: SectionCard(
+        title: l10n.statsByMaterialNumber,
+        child: stats.hasError
+            ? Text(
+                l10n.statsByMaterialNumberFailed,
+                style: t.bodyPlain.copyWith(color: t.textSecondary),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.statsByMaterialNumberHint,
+                    style: t.label.copyWith(color: t.textSecondary),
+                  ),
+                  const SizedBox(height: DashSpace.md),
+                  for (final (i, row) in rows.indexed) ...[
+                    if (i > 0) const SizedBox(height: DashSpace.md),
+                    BarList(
+                      rows: [
+                        (
+                          label: row.materialNumber,
                           value: fmtGrams(row.consumedGrams),
                           fraction: row.consumedGrams / heaviest,
                           color: null,

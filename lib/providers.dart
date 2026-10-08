@@ -577,6 +577,12 @@ final suppliersSupportedProvider = capabilityGate(
   (ref) => ref.watch(suppliersRepositoryProvider).capability,
 );
 
+/// Whether this server stores a material number on a spool. Whether the
+/// number can also be written is the backend's call: Spoolman's is read-only.
+final materialNumberSupportedProvider = capabilityGate(
+  (ref) => ref.watch(inventoryRepositoryProvider).materialNumberCapability,
+);
+
 final locationSensorsRepositoryProvider = Provider<LocationSensorsRepository>(
   (ref) => LocationSensorsRepository(
     ref.watch(apiClientProvider).dio,
