@@ -97,6 +97,7 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     final repo = ref.read(inventoryRepositoryProvider);
     final spools = await repo.fetchSpools(includeArchived: true);
     ref.read(suppliersRepositoryProvider).observeSpools(spools);
+    repo.observeSpools(spools);
 
     var assignments = const <SpoolAssignment>[];
     try {
@@ -818,6 +819,12 @@ final printerModelsProvider = FutureProvider.autoDispose<List<String>>((
 /// Whether this server has the per-model preset routes.
 final presetOverridesSupportedProvider = capabilityGate(
   (ref) => ref.watch(inventoryRepositoryProvider).presetOverridesCapability,
+);
+
+/// Whether this server stores a material number on a spool. Whether the
+/// number can also be written is the backend's call: Spoolman's is read-only.
+final materialNumberSupportedProvider = capabilityGate(
+  (ref) => ref.watch(inventoryRepositoryProvider).materialNumberCapability,
 );
 
 /// One spool's per-printer-model preset overrides, as stored right now.

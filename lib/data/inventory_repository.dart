@@ -63,6 +63,24 @@ class InventoryRepository {
     _serverVersion,
   );
 
+  /// Whether this server stores a material number on a spool (#2870). One
+  /// latch for both backends: Spoolman rows carry the key too, and only the
+  /// native one is writable.
+  late final materialNumberCapability = ObservedCapability(
+    ServerFeature.spoolMaterialNumber,
+    _serverVersion,
+  );
+
+  /// Settles [materialNumberCapability] from a listing: `SpoolResponse` sends
+  /// `material_number` on every row from the feature on. An empty inventory
+  /// says nothing either way.
+  void observeSpools(List<Spool> spools) {
+    final first = spools.firstOrNull;
+    if (first != null) {
+      materialNumberCapability.observe(present: first.materialNumberReported);
+    }
+  }
+
   Future<List<Spool>> fetchSpools({bool includeArchived = false}) =>
       _on((s) => s.fetchSpools(includeArchived: includeArchived));
 

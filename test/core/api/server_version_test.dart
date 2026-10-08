@@ -184,6 +184,7 @@ void main() {
           ServerFeature.spoolModelPresets,
           ServerFeature.libraryFileExtras,
           ServerFeature.printOutcome,
+          ServerFeature.spoolMaterialNumber,
         ]) {
           expect(v125.supports(f), isFalse, reason: '$f absent in 1.2.5');
           expect(v126.supports(f), isTrue, reason: '$f present in 1.2.6');

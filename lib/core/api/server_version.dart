@@ -78,6 +78,11 @@ enum ServerFeature {
 
   /// `/inventory/suppliers*` and a spool's supplier assignments.
   spoolSuppliers,
+
+  /// `material_number` on a spool, in the bulk edit and in
+  /// `GET /inventory/stats/material-numbers` (#2870). Taken and ignored below
+  /// it by both spool schemas.
+  spoolMaterialNumber,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -179,6 +184,7 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.printOutcome: (1, 2, 6, 0),
     ServerFeature.apiKeyNotificationScope: (1, 2, 6, 0),
     ServerFeature.spoolSuppliers: (1, 2, 6, 0),
+    ServerFeature.spoolMaterialNumber: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

@@ -81,6 +81,8 @@ class Spool {
     this.slicerFilamentName,
     this.kProfiles = const [],
     this.suppliers,
+    this.materialNumber,
+    this.materialNumberReported = false,
   });
 
   /// Native `SpoolResponse` from `GET /inventory/spools`.
@@ -120,6 +122,8 @@ class Spool {
       json['suppliers'],
       SpoolSupplierLink.fromJson,
     ),
+    materialNumber: toStringOrNull(json['material_number']),
+    materialNumberReported: json.containsKey('material_number'),
   );
 
   /// Spoolman returns loose object (passthrough) — field names vary, so read
@@ -176,6 +180,9 @@ class Spool {
         json['suppliers'],
         SpoolSupplierLink.fromJson,
       ),
+      // The backend maps the filament's `article_number` onto this key.
+      materialNumber: toStringOrNull(json['material_number']),
+      materialNumberReported: json.containsKey('material_number'),
     );
   }
 
@@ -249,6 +256,15 @@ class Spool {
   /// nobody assigned one to — must not be mistaken for.
   final List<SpoolSupplierLink>? suppliers;
 
+  /// Internal purchasing number shared by every spool of a product (server
+  /// #2870). Free text; null when the spool has none.
+  final String? materialNumber;
+
+  /// Whether the row carried the `material_number` key at all. `SpoolResponse`
+  /// sends it on every row from the feature on, null or not, so its presence is
+  /// what tells a server with the feature from one that predates it.
+  final bool materialNumberReported;
+
   /// Remaining filament [g] (clamps to 0).
   double get remainingWeight {
     final r = labelWeight - weightUsed;
@@ -306,6 +322,7 @@ class Spool {
       colorName,
       storageLocation,
       category,
+      materialNumber,
       for (final link in suppliers ?? const <SpoolSupplierLink>[])
         link.supplierName,
     ]) {
@@ -343,6 +360,7 @@ class SpoolDraft {
     this.slicerFilament,
     this.slicerFilamentName,
     this.note,
+    this.materialNumber,
   });
 
   /// Draft from existing spool — for edit form prefill.
@@ -368,6 +386,7 @@ class SpoolDraft {
     slicerFilament: s.slicerFilament,
     slicerFilamentName: s.slicerFilamentName,
     note: s.note,
+    materialNumber: s.materialNumber,
   );
 
   final String material;
@@ -391,6 +410,11 @@ class SpoolDraft {
   final String? slicerFilament;
   final String? slicerFilamentName;
   final String? note;
+
+  /// `null` leaves the number alone (and keeps the key off the wire for a
+  /// server that would drop it); an empty string clears it, which the server
+  /// stores as NULL.
+  final String? materialNumber;
 
   /// Body for native `/inventory/spools` (`SpoolCreate`/`SpoolUpdate` same fields;
   /// server ignores missing). Skip null to avoid zeroing untouched fields on PATCH.
@@ -418,6 +442,7 @@ class SpoolDraft {
     if (slicerFilament != null) 'slicer_filament': slicerFilament,
     if (slicerFilamentName != null) 'slicer_filament_name': slicerFilamentName,
     if (note != null) 'note': note,
+    if (materialNumber != null) 'material_number': materialNumber,
   };
 
   /// Body for Spoolman (`SpoolmanInventoryCreate`/`Update`) — narrower field set;
