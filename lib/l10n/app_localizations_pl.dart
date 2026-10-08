@@ -2607,6 +2607,10 @@ class AppLocalizationsPl extends AppLocalizations {
       'Wspólny dla wszystkich szpul danego produktu. Nowa szpula znanego produktu dostaje go sama.';
 
   @override
+  String get inventorySpoolmanCannotClear =>
+      'Spoolman nie pozwala usunąć tej wartości. Zmień ją na inną.';
+
+  @override
   String get inventoryFieldExtraColors => 'Dodatkowe kolory';
 
   @override

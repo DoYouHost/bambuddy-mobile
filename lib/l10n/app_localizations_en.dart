@@ -2568,6 +2568,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Shared by every spool of a product. A new spool of a known product gets it filled in.';
 
   @override
+  String get inventorySpoolmanCannotClear =>
+      'Spoolman can\'t remove this value. Change it to something else instead.';
+
+  @override
   String get inventoryFieldExtraColors => 'Extra colors';
 
   @override

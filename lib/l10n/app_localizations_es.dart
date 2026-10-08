@@ -2588,6 +2588,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Común a todas las bobinas de un producto. Una bobina nueva de un producto conocido lo recibe automáticamente.';
 
   @override
+  String get inventorySpoolmanCannotClear =>
+      'Spoolman no permite quitar este valor. Cámbialo por otro.';
+
+  @override
   String get inventoryFieldExtraColors => 'Colores adicionales';
 
   @override

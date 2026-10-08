@@ -1564,6 +1564,7 @@
   "inventoryFieldCategory": "Category",
   "inventoryFieldMaterialNumber": "Material number",
   "inventoryMaterialNumberHint": "Shared by every spool of a product. A new spool of a known product gets it filled in.",
+  "inventorySpoolmanCannotClear": "Spoolman can't remove this value. Change it to something else instead.",
   "inventoryFieldExtraColors": "Extra colors",
   "inventoryExtraColorsHint": "2–8 hex stops, comma-separated",
   "inventoryFieldEffect": "Effect",

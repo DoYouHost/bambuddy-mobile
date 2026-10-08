@@ -196,6 +196,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     if (!formOk || material.isEmpty) return;
 
     final l10n = AppLocalizations.of(context);
+    final kept = _writtenOver;
+    if (_spoolmanKeeps('brand', kept?.brand, l10n) != null ||
+        _spoolmanKeeps('costPerKg', kept?.costPerKg, l10n) != null) {
+      return;
+    }
     final messenger = ScaffoldMessenger.of(context);
     // Server requires low-stock threshold in range 1..99 (outside = 422).
     final lowStock = _parseIntField('lowStock')?.clamp(1, 99);
@@ -448,7 +453,15 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               required: true,
               errorText: _materialMissing ? l10n.inventoryFieldRequired : null,
             ),
-            _combo('brand', l10n.inventoryFieldBrand, brands),
+            ValueListenableBuilder(
+              valueListenable: _c['brand']!,
+              builder: (context, _, _) => _combo(
+                'brand',
+                l10n.inventoryFieldBrand,
+                brands,
+                errorText: _spoolmanKeeps('brand', _writtenOver?.brand, l10n),
+              ),
+            ),
             _combo('subtype', l10n.inventoryFieldSubtype, subtypes),
             if (showMaterialNumber) ...[
               _combo(
@@ -525,7 +538,19 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               number: true,
               onChanged: _applyScaleWeight,
             ),
-            _field('costPerKg', l10n.inventoryFieldCostPerKg, number: true),
+            ValueListenableBuilder(
+              valueListenable: _c['costPerKg']!,
+              builder: (context, _, _) => _field(
+                'costPerKg',
+                l10n.inventoryFieldCostPerKg,
+                number: true,
+                errorText: _spoolmanKeeps(
+                  'costPerKg',
+                  _writtenOver?.costPerKg,
+                  l10n,
+                ),
+              ),
+            ),
             _field('category', l10n.inventoryFieldCategory),
             _field(
               'lowStock',
@@ -959,6 +984,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     String? suffixText,
     int maxLines = 1,
     ValueChanged<String>? onChanged,
+    String? errorText,
   }) => _spoolTextField(
     context,
     _c,
@@ -969,7 +995,20 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     suffixText: suffixText,
     maxLines: maxLines,
     onChanged: onChanged,
+    errorText: errorText,
   );
+
+  /// Spoolman can change a spool's brand and price but not empty them (probed:
+  /// the route keeps the old value on null and on an empty string), so a field
+  /// that held one there must not be saved blank - the save would claim a
+  /// removal that never happens.
+  String? _spoolmanKeeps(String key, Object? stored, AppLocalizations l10n) =>
+      stored != null &&
+          _c[key]!.text.trim().isEmpty &&
+          ref.read(inventoryBackendProvider).valueOrNull ==
+              InventoryBackend.spoolman
+      ? l10n.inventorySpoolmanCannotClear
+      : null;
 }
 
 /// `coreWeight` → `core_weight`: log identifiers are lowercase with
@@ -1000,6 +1039,7 @@ Widget _spoolTextField(
   ValueChanged<String>? onChanged,
   int? min,
   int? max,
+  String? errorText,
 }) {
   final l10n = AppLocalizations.of(context);
   final t = DashTokens.of(context);
@@ -1023,6 +1063,7 @@ Widget _spoolTextField(
           labelText: label,
           hintText: hint,
           suffixText: suffixText,
+          errorText: errorText,
         ),
         validator: (v) {
           final text = (v ?? '').trim();

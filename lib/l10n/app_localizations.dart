@@ -4448,6 +4448,12 @@ abstract class AppLocalizations {
   /// **'Shared by every spool of a product. A new spool of a known product gets it filled in.'**
   String get inventoryMaterialNumberHint;
 
+  /// No description provided for @inventorySpoolmanCannotClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Spoolman can\'t remove this value. Change it to something else instead.'**
+  String get inventorySpoolmanCannotClear;
+
   /// No description provided for @inventoryFieldExtraColors.
   ///
   /// In en, this message translates to:

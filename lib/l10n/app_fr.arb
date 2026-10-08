@@ -1425,6 +1425,7 @@
   "inventoryFieldCategory": "Catégorie",
   "inventoryFieldMaterialNumber": "Numéro de matériau",
   "inventoryMaterialNumberHint": "Commun à toutes les bobines d’un produit. Une nouvelle bobine d’un produit connu le reçoit automatiquement.",
+  "inventorySpoolmanCannotClear": "Spoolman ne permet pas de supprimer cette valeur. Remplacez-la plutôt.",
   "inventoryFieldExtraColors": "Couleurs supplémentaires",
   "inventoryExtraColorsHint": "2–8 valeurs hex, séparées par des virgules",
   "inventoryFieldEffect": "Effet",

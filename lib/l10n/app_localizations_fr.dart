@@ -2611,6 +2611,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Commun à toutes les bobines d’un produit. Une nouvelle bobine d’un produit connu le reçoit automatiquement.';
 
   @override
+  String get inventorySpoolmanCannotClear =>
+      'Spoolman ne permet pas de supprimer cette valeur. Remplacez-la plutôt.';
+
+  @override
   String get inventoryFieldExtraColors => 'Couleurs supplémentaires';
 
   @override

@@ -2598,6 +2598,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Gilt für alle Spulen eines Produkts. Eine neue Spule eines bekannten Produkts erhält sie automatisch.';
 
   @override
+  String get inventorySpoolmanCannotClear =>
+      'Spoolman erlaubt es nicht, diesen Wert zu entfernen. Ändere ihn stattdessen.';
+
+  @override
   String get inventoryFieldExtraColors => 'Zusätzliche Farben';
 
   @override
