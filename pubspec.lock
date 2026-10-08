@@ -39,11 +39,11 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_report_ui"
-      ref: "v0.11.0"
-      resolved-ref: "33501487b0ef5aba742a74fe3612470ee47365f0"
+      ref: "v0.11.1"
+      resolved-ref: "4126f902228f297466fa6559abcc778e6757ad01"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.1.3"
+    version: "0.1.4"
   app_util:
     dependency: "direct main"
     description:

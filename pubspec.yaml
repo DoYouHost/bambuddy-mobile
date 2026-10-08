@@ -36,7 +36,7 @@ dependencies:
   app_report_ui:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.11.0
+      ref: v0.11.1
       path: packages/app_report_ui
   # The design system and the widgets that name themselves in the diagnostic
   # log, shared with lubelogger-mobile. `dash_kit` re-exports `dash_ui`, so this
