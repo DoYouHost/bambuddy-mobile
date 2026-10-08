@@ -152,14 +152,14 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       ref.read(materialNumberSupportedProvider).orFalse &&
       ref.read(inventoryBackendProvider).valueOrNull == InventoryBackend.native;
 
-  /// The spool this sheet created, as the server last answered. A retry after a
-  /// failed follow-up write edits it, and what it holds is what a blanked
-  /// field has to clear.
-  Spool? _createdSpool;
+  /// The spool as this sheet last wrote it and the server answered. A retry
+  /// after a failed follow-up write edits that state, not the one the sheet
+  /// opened with, so it is what a blanked field has to clear.
+  Spool? _lastWritten;
 
-  /// The spool a save writes over: the one being edited, or the one this sheet
-  /// already created. Null for a new spool, which has nothing to clear.
-  Spool? get _writtenOver => widget.existing ?? _createdSpool;
+  /// The spool a save writes over: what this sheet last wrote, else the one
+  /// being edited. Null for a new spool, which has nothing to clear.
+  Spool? get _writtenOver => _lastWritten ?? widget.existing;
 
   int? _parseIntField(String key) => _intField(_c, key);
 
@@ -238,7 +238,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       note: _trim('note'),
     );
     final before = _writtenOver;
-    final draft = before == null ? built : built.clearing(before);
+    final draft = before == null
+        ? built
+        : built.clearing(
+            before,
+            except: {if (!_showsMaterialNumber(ref)) 'material_number'},
+          );
     setState(() => _saving = true);
     final notifier = ref.read(inventoryProvider.notifier);
     // Read before the first await: a WidgetRef is not usable once the sheet it
@@ -256,13 +261,15 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       // creates several and names none of them.
       final int? spoolId;
       if (_isEdit) {
-        await notifier.updateSpool(widget.existing!.id, draft);
+        _lastWritten =
+            await notifier.updateSpool(widget.existing!.id, draft) ??
+            _lastWritten;
         spoolId = widget.existing!.id;
         message = l10n.inventorySpoolUpdated;
       } else if (_createdSpoolId case final id?) {
         // A retry after a follow-up write failed: the spool exists, so this is
         // the PATCH the edit path would send, not another create.
-        _createdSpool = await notifier.updateSpool(id, draft) ?? _createdSpool;
+        _lastWritten = await notifier.updateSpool(id, draft) ?? _lastWritten;
         spoolId = id;
         message = l10n.inventorySpoolCreated;
       } else if (_quantity > 1) {
@@ -272,7 +279,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       } else {
         final created = await notifier.createSpool(draft);
         _createdSpoolId = created?.id;
-        _createdSpool = created;
+        _lastWritten = created;
         spoolId = created?.id;
         message = l10n.inventorySpoolCreated;
       }

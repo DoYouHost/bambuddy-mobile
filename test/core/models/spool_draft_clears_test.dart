@@ -61,6 +61,22 @@ void main() {
       expect(draft.clears, isNot(contains('rgba')));
     });
 
+    test('keeps clears it already had', () {
+      final draft = const SpoolDraft(
+        material: 'PLA',
+        clears: {'note'},
+      ).clearing(const Spool(id: 1, material: 'PLA'));
+      expect(draft.clears, {'note'});
+    });
+
+    test('skips a field the user could not see', () {
+      final draft = const SpoolDraft(
+        material: 'PLA',
+      ).clearing(stored, except: {'material_number'});
+      expect(draft.clears, isNot(contains('material_number')));
+      expect(draft.clears, contains('note'));
+    });
+
     test('has nothing to clear on a spool that held nothing', () {
       const bare = Spool(id: 1, material: 'PLA');
       expect(const SpoolDraft(material: 'PLA').clearing(bare).clears, isEmpty);
@@ -83,6 +99,21 @@ void main() {
         SpoolDraft.fromSpool(stored).clearing(stored).toNativeJson().values,
         isNot(contains(null)),
       );
+    });
+
+    test('Spoolman: the slicer preset clears on an empty string', () {
+      final json = const SpoolDraft(material: 'PLA')
+          .clearing(
+            const Spool(
+              id: 1,
+              material: 'PLA',
+              slicerFilament: 'GFA00',
+              slicerFilamentName: 'Bambu PLA',
+            ),
+          )
+          .toSpoolmanJson();
+      expect(json['slicer_filament'], '');
+      expect(json['slicer_filament_name'], '');
     });
 
     test('Spoolman: only the clears its route understands, in its dialect', () {

@@ -192,6 +192,46 @@ void main() {
       expect(after.brand, stored.brand, reason: 'brand was kept in the draft');
     });
 
+    test('the slicer preset is removed with an empty string', () async {
+      final created = await source.createSpool(
+        SpoolDraft(material: 'PLA', brand: 'Preset $stamp', labelWeight: 1000),
+      );
+      addTearDown(() => source.deleteSpool(created.id));
+      Future<Map<String, dynamic>> raw() async =>
+          ((await dio.get<List<dynamic>>(Endpoints.spoolmanSpools)).data!)
+              .cast<Map<String, dynamic>>()
+              .firstWhere((x) => x['id'] == created.id);
+      // The draft cannot set a preset on Spoolman, only the web client can;
+      // write it the way that does.
+      await dio.patch<dynamic>(
+        Endpoints.spoolmanSpool(created.id),
+        data: {'slicer_filament': 'GFA00', 'slicer_filament_name': 'Bambu PLA'},
+      );
+      expect((await raw())['slicer_filament'], 'GFA00');
+
+      // Spool.fromSpoolman does not read the preset, so a stored spool that
+      // holds one is built by hand: the point is what the draft puts on the
+      // wire.
+      const held = Spool(
+        id: 0,
+        material: 'PLA',
+        slicerFilament: 'GFA00',
+        slicerFilamentName: 'Bambu PLA',
+      );
+      await source.updateSpool(
+        created.id,
+        SpoolDraft(
+          material: 'PLA',
+          brand: 'Preset $stamp',
+          labelWeight: 1000,
+        ).clearing(held),
+      );
+
+      final after = await raw();
+      expect(after['slicer_filament'], isNull);
+      expect(after['slicer_filament_name'], isNot('Bambu PLA'));
+    });
+
     test(
       'a clear Spoolman cannot do is not sent, and breaks nothing',
       () async {

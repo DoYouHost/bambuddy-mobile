@@ -522,38 +522,45 @@ class SpoolDraft {
         ),
       };
 
-  /// This draft with [clears] set to every clearable field that [before] holds
-  /// and the draft leaves empty, so saving the form over [before] removes what
-  /// the user deleted instead of silently keeping it.
-  SpoolDraft clearing(Spool before) => SpoolDraft(
-    material: material,
-    subtype: subtype,
-    brand: brand,
-    colorName: colorName,
-    rgba: rgba,
-    extraColors: extraColors,
-    effectType: effectType,
-    labelWeight: labelWeight,
-    weightUsed: weightUsed,
-    coreWeight: coreWeight,
-    coreWeightCatalogId: coreWeightCatalogId,
-    lastScaleWeight: lastScaleWeight,
-    costPerKg: costPerKg,
-    lowStockThresholdPct: lowStockThresholdPct,
-    storageLocation: storageLocation,
-    category: category,
-    nozzleTempMin: nozzleTempMin,
-    nozzleTempMax: nozzleTempMax,
-    slicerFilament: slicerFilament,
-    slicerFilamentName: slicerFilamentName,
-    note: note,
-    materialNumber: materialNumber,
-    clears: {
-      for (final e in _clearable.entries)
-        if (e.value.stored(before) != null && e.value.draft(this) == null)
-          e.key,
-    },
-  );
+  /// This draft with [clears] extended by every clearable field that [before]
+  /// holds and the draft leaves empty, so saving the form over [before]
+  /// removes what the user deleted instead of silently keeping it.
+  ///
+  /// [except] names fields the user could not see: an empty draft field there
+  /// is "never offered", not "deleted", and must not reach the server.
+  SpoolDraft clearing(Spool before, {Set<String> except = const {}}) =>
+      SpoolDraft(
+        material: material,
+        subtype: subtype,
+        brand: brand,
+        colorName: colorName,
+        rgba: rgba,
+        extraColors: extraColors,
+        effectType: effectType,
+        labelWeight: labelWeight,
+        weightUsed: weightUsed,
+        coreWeight: coreWeight,
+        coreWeightCatalogId: coreWeightCatalogId,
+        lastScaleWeight: lastScaleWeight,
+        costPerKg: costPerKg,
+        lowStockThresholdPct: lowStockThresholdPct,
+        storageLocation: storageLocation,
+        category: category,
+        nozzleTempMin: nozzleTempMin,
+        nozzleTempMax: nozzleTempMax,
+        slicerFilament: slicerFilament,
+        slicerFilamentName: slicerFilamentName,
+        note: note,
+        materialNumber: materialNumber,
+        clears: {
+          ...clears,
+          for (final e in _clearable.entries)
+            if (!except.contains(e.key) &&
+                e.value.stored(before) != null &&
+                e.value.draft(this) == null)
+              e.key,
+        },
+      );
 
   /// Body for native `/inventory/spools` (`SpoolCreate`/`SpoolUpdate` same fields;
   /// server ignores missing). Skip null to avoid zeroing untouched fields on PATCH.
@@ -607,14 +614,19 @@ class SpoolDraft {
 
   /// What a Spoolman backend takes as "empty this field", as the route answers
   /// it: `subtype` and `note` clear on an empty string and ignore null,
-  /// `storage_location` and `color_name` clear on null, and the rest of
-  /// [clears] (brand, price, category, the slicer preset…) has no way to be
-  /// emptied there - an unsupported clear is dropped rather than sent.
+  /// `storage_location` and `color_name` clear on null, the slicer preset on
+  /// an empty string (`spoolman_inventory.py`: "pass an empty string to
+  /// clear"), and the rest of [clears] (brand, price, category…) has no way to
+  /// be emptied there - an unsupported clear is dropped rather than sent.
+  /// [Spool.fromSpoolman] does not read the preset back, so today it only
+  /// reaches [clears] from a hand-built [Spool].
   Map<String, dynamic> get _spoolmanClears => {
     if (clears.contains('subtype')) 'subtype': '',
     if (clears.contains('note')) 'note': '',
     if (clears.contains('storage_location')) 'storage_location': null,
     if (clears.contains('color_name')) 'color_name': null,
+    if (clears.contains('slicer_filament')) 'slicer_filament': '',
+    if (clears.contains('slicer_filament_name')) 'slicer_filament_name': '',
   };
 }
 

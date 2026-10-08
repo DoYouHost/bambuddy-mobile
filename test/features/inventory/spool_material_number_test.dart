@@ -32,7 +32,15 @@ class _Shelf extends InventoryNotifier {
   @override
   Future<Spool?> updateSpool(int spoolId, SpoolDraft draft) async {
     drafts.add(draft);
-    return null;
+    // What the server answers: the spool as this write left it.
+    return Spool(
+      id: spoolId,
+      material: draft.material,
+      note: draft.note,
+      materialNumber: draft.materialNumber,
+      materialNumberReported: true,
+      suppliers: const [],
+    );
   }
 
   @override
@@ -253,11 +261,52 @@ void main() {
       expect(shelf.drafts.last.clears, {'material_number'});
     });
 
+    testWidgets(
+      'an edit retried after a failed follow-up clears what it wrote',
+      (tester) async {
+        final suppliers = FakeSuppliers(
+          suppliers: const [Supplier(id: 5, name: 'Filamentworld')],
+        );
+        final shelf = await openForm(
+          tester,
+          existing: const Spool(id: 3, material: 'PLA', suppliers: []),
+          suppliers: suppliers,
+        );
+        final note = find.descendant(
+          of: byLogId('spool_form.note'),
+          matching: find.byType(TextFormField),
+        );
+        await scrollSheetDown(tester);
+        await tester.enterText(note, 'dry box');
+        await tester.tap(byLogId('spool_form.supplier_add'));
+        await settle(tester);
+        await tester.tap(find.text('Filamentworld'));
+        await settle(tester);
+
+        suppliers.failNextWrite = conflict;
+        await save(tester);
+        expect(shelf.drafts.single.note, 'dry box');
+
+        // The note is on the server now; the user deletes it and retries.
+        await tester.enterText(note, '');
+        await save(tester);
+
+        expect(shelf.drafts, hasLength(2));
+        expect(shelf.drafts.last.clears, contains('note'));
+      },
+    );
+
     testWidgets('no field on a server without the feature', (tester) async {
       final shelf = await openForm(tester, existing: _alpha, supported: false);
       expect(byLogId('spool_form.material_number'), findsNothing);
       await save(tester);
       expect(shelf.drafts.single.materialNumber, isNull);
+      expect(
+        shelf.drafts.single.clears,
+        isNot(contains('material_number')),
+        reason:
+            'a field that was never offered is not a field the user deleted',
+      );
     });
 
     testWidgets('no field on Spoolman, where the number is read-only', (
