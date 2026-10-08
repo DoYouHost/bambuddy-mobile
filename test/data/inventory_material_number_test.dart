@@ -3,8 +3,6 @@ import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
 import 'package:bambuddy_mobile/data/inventory_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
-import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart'
-    show materialNumberToWrite;
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
@@ -165,37 +163,6 @@ void main() {
     });
   });
 
-  group('materialNumberToWrite', () {
-    test('a typed number wins, whatever is stored', () {
-      expect(
-        materialNumberToWrite(shown: true, typed: '22', stored: '15'),
-        '22',
-      );
-      expect(
-        materialNumberToWrite(shown: true, typed: '22', stored: null),
-        '22',
-      );
-    });
-
-    test('blank over a stored number clears it with the empty string', () {
-      expect(materialNumberToWrite(shown: true, typed: null, stored: '15'), '');
-    });
-
-    test('blank over nothing sends no key, so the server can inherit', () {
-      expect(
-        materialNumberToWrite(shown: true, typed: null, stored: null),
-        isNull,
-      );
-    });
-
-    test('a field that is not shown never writes', () {
-      expect(
-        materialNumberToWrite(shown: false, typed: '22', stored: '15'),
-        isNull,
-      );
-    });
-  });
-
   group('writes', () {
     test('a draft without a number keeps the key off the wire', () {
       expect(
@@ -206,12 +173,13 @@ void main() {
       );
     });
 
-    test('an empty number is sent, so it can clear the field', () {
-      final json = const SpoolDraft(
+    test('a cleared number goes out as an explicit null', () {
+      final cleared = const SpoolDraft(
         material: 'PLA',
-        materialNumber: '',
-      ).toNativeJson();
-      expect(json['material_number'], '');
+      ).clearing(row(const {'material_number': '15'}));
+      final json = cleared.toNativeJson();
+      expect(json.containsKey('material_number'), isTrue);
+      expect(json['material_number'], isNull);
     });
 
     test('editing a spool prefills the draft with its number', () {

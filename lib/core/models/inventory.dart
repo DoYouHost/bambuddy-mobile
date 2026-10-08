@@ -394,6 +394,7 @@ class SpoolDraft {
     this.slicerFilamentName,
     this.note,
     this.materialNumber,
+    this.clears = const {},
   });
 
   /// Draft from existing spool — for edit form prefill.
@@ -444,10 +445,97 @@ class SpoolDraft {
   final String? slicerFilamentName;
   final String? note;
 
-  /// `null` leaves the number alone (and keeps the key off the wire for a
-  /// server that would drop it); an empty string clears it, which the server
-  /// stores as NULL.
+  /// `null` leaves the number alone and keeps the key off the wire, which is
+  /// also what a server that predates the number needs.
   final String? materialNumber;
+
+  /// Native wire keys of the fields the user emptied, see [clearing]. A null
+  /// field is "leave it as it is" everywhere else in this class, so a field
+  /// the user blanked has to be named separately to reach the server at all.
+  final Set<String> clears;
+
+  /// The fields the per-spool form edits and the user can blank, by native wire
+  /// key: how to read each from a stored [Spool] and from a draft. `rgba` and
+  /// the weights are left out (blanking them is not a clear), and so are
+  /// `nozzle_temp_*` and `last_scale_weight`, which the form does not manage
+  /// or the server does not clear.
+  static final _clearable =
+      <
+        String,
+        ({Object? Function(Spool) stored, Object? Function(SpoolDraft) draft})
+      >{
+        'subtype': (stored: (s) => s.subtype, draft: (d) => d.subtype),
+        'brand': (stored: (s) => s.brand, draft: (d) => d.brand),
+        'color_name': (stored: (s) => s.colorName, draft: (d) => d.colorName),
+        'extra_colors': (
+          stored: (s) => s.extraColors,
+          draft: (d) => d.extraColors,
+        ),
+        'effect_type': (
+          stored: (s) => s.effectType,
+          draft: (d) => d.effectType,
+        ),
+        'note': (stored: (s) => s.note, draft: (d) => d.note),
+        'category': (stored: (s) => s.category, draft: (d) => d.category),
+        'storage_location': (
+          stored: (s) => s.storageLocation,
+          draft: (d) => d.storageLocation,
+        ),
+        'cost_per_kg': (stored: (s) => s.costPerKg, draft: (d) => d.costPerKg),
+        'low_stock_threshold_pct': (
+          stored: (s) => s.lowStockThresholdPct,
+          draft: (d) => d.lowStockThresholdPct,
+        ),
+        'core_weight_catalog_id': (
+          stored: (s) => s.coreWeightCatalogId,
+          draft: (d) => d.coreWeightCatalogId,
+        ),
+        'slicer_filament': (
+          stored: (s) => s.slicerFilament,
+          draft: (d) => d.slicerFilament,
+        ),
+        'slicer_filament_name': (
+          stored: (s) => s.slicerFilamentName,
+          draft: (d) => d.slicerFilamentName,
+        ),
+        'material_number': (
+          stored: (s) => s.materialNumber,
+          draft: (d) => d.materialNumber,
+        ),
+      };
+
+  /// This draft with [clears] set to every clearable field that [before] holds
+  /// and the draft leaves empty, so saving the form over [before] removes what
+  /// the user deleted instead of silently keeping it.
+  SpoolDraft clearing(Spool before) => SpoolDraft(
+    material: material,
+    subtype: subtype,
+    brand: brand,
+    colorName: colorName,
+    rgba: rgba,
+    extraColors: extraColors,
+    effectType: effectType,
+    labelWeight: labelWeight,
+    weightUsed: weightUsed,
+    coreWeight: coreWeight,
+    coreWeightCatalogId: coreWeightCatalogId,
+    lastScaleWeight: lastScaleWeight,
+    costPerKg: costPerKg,
+    lowStockThresholdPct: lowStockThresholdPct,
+    storageLocation: storageLocation,
+    category: category,
+    nozzleTempMin: nozzleTempMin,
+    nozzleTempMax: nozzleTempMax,
+    slicerFilament: slicerFilament,
+    slicerFilamentName: slicerFilamentName,
+    note: note,
+    materialNumber: materialNumber,
+    clears: {
+      for (final e in _clearable.entries)
+        if (e.value.stored(before) != null && e.value.draft(this) == null)
+          e.key,
+    },
+  );
 
   /// Body for native `/inventory/spools` (`SpoolCreate`/`SpoolUpdate` same fields;
   /// server ignores missing). Skip null to avoid zeroing untouched fields on PATCH.
@@ -476,6 +564,10 @@ class SpoolDraft {
     if (slicerFilamentName != null) 'slicer_filament_name': slicerFilamentName,
     if (note != null) 'note': note,
     if (materialNumber != null) 'material_number': materialNumber,
+    // The route stores an explicit null as NULL for every field in [clears]
+    // (probed against 1.2.5.7 and the 1.2.6 daily); an empty string would
+    // store "" in the text columns and be refused by the numeric ones.
+    for (final key in clears) key: null,
   };
 
   /// Body for Spoolman (`SpoolmanInventoryCreate`/`Update`) — narrower field set;
@@ -492,6 +584,19 @@ class SpoolDraft {
     if (costPerKg != null) 'cost_per_kg': costPerKg,
     if (storageLocation != null) 'storage_location': storageLocation,
     if (note != null) 'note': note,
+    ..._spoolmanClears,
+  };
+
+  /// What a Spoolman backend takes as "empty this field", as the route answers
+  /// it: `subtype` and `note` clear on an empty string and ignore null,
+  /// `storage_location` and `color_name` clear on null, and the rest of
+  /// [clears] (brand, price, category, the slicer preset…) has no way to be
+  /// emptied there - an unsupported clear is dropped rather than sent.
+  Map<String, dynamic> get _spoolmanClears => {
+    if (clears.contains('subtype')) 'subtype': '',
+    if (clears.contains('note')) 'note': '',
+    if (clears.contains('storage_location')) 'storage_location': null,
+    if (clears.contains('color_name')) 'color_name': null,
   };
 }
 

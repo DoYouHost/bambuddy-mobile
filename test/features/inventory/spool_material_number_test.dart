@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/models/inventory.dart';
+import 'package:bambuddy_mobile/core/models/supplier.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import 'fake_suppliers.dart';
 
 /// The material number (#2870) on the shelf: shown, searched, filtered and
 /// written. What leaves the phone is the point — a blank field on a new spool
@@ -36,7 +38,12 @@ class _Shelf extends InventoryNotifier {
   @override
   Future<Spool?> createSpool(SpoolDraft draft) async {
     drafts.add(draft);
-    return const Spool(id: 99, material: 'PLA');
+    return Spool(
+      id: 99,
+      material: 'PLA',
+      materialNumber: draft.materialNumber,
+      materialNumberReported: true,
+    );
   }
 }
 
@@ -124,6 +131,7 @@ void main() {
       Spool? existing,
       bool supported = true,
       InventoryBackend backend = InventoryBackend.native,
+      FakeSuppliers? suppliers,
     }) async {
       final shelf = _Shelf([_alpha, _beta]);
       await pumpPhone(
@@ -141,6 +149,8 @@ void main() {
           noServerProfileOverride,
           inventoryRepositoryOf(backend),
           inventoryBackendOverride(backend),
+          if (suppliers != null)
+            suppliersRepositoryProvider.overrideWithValue(suppliers),
           materialNumberSupportedProvider.overrideWithValue(
             AsyncData(supported),
           ),
@@ -190,9 +200,7 @@ void main() {
       expect(shelf.drafts.single.materialNumber, '22');
     });
 
-    testWidgets('blanking a stored number sends the empty string', (
-      tester,
-    ) async {
+    testWidgets('blanking a stored number clears it', (tester) async {
       final shelf = await openForm(tester, existing: _alpha);
       await tester.enterText(
         find.descendant(
@@ -202,13 +210,47 @@ void main() {
         '',
       );
       await save(tester);
-      expect(shelf.drafts.single.materialNumber, '');
+      expect(shelf.drafts.single.materialNumber, isNull);
+      expect(shelf.drafts.single.clears, {'material_number'});
     });
 
     testWidgets('a blank number on a new spool sends nothing', (tester) async {
       final shelf = await openForm(tester);
       await save(tester);
       expect(shelf.drafts.single.materialNumber, isNull);
+    });
+
+    testWidgets('a retry after a failed follow-up write clears what it wrote', (
+      tester,
+    ) async {
+      final suppliers = FakeSuppliers(
+        suppliers: const [Supplier(id: 5, name: 'Filamentworld')],
+      );
+      final shelf = await openForm(tester, suppliers: suppliers);
+      final field = find.descendant(
+        of: byLogId('spool_form.material_number'),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(field, '15');
+      await scrollSheetDown(tester);
+      await tester.tap(byLogId('spool_form.supplier_add'));
+      await settle(tester);
+      await tester.tap(find.text('Filamentworld'));
+      await settle(tester);
+
+      suppliers.failNextWrite = conflict;
+      await save(tester);
+      expect(shelf.drafts.single.materialNumber, '15');
+
+      // The spool exists with its number; the user deletes it and retries.
+      await tester.drag(find.byType(ListView).last, const Offset(0, 3000));
+      await tester.pump();
+      await tester.enterText(field, '');
+      await save(tester);
+
+      expect(shelf.drafts, hasLength(2));
+      expect(shelf.drafts.last.materialNumber, isNull);
+      expect(shelf.drafts.last.clears, {'material_number'});
     });
 
     testWidgets('no field on a server without the feature', (tester) async {
