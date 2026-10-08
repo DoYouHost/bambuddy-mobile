@@ -2581,6 +2581,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inventoryFieldCategory => 'Categoría';
 
   @override
+  String get inventoryFieldMaterialNumber => 'Número de material';
+
+  @override
+  String get inventoryMaterialNumberHint =>
+      'Común a todas las bobinas de un producto. Una bobina nueva de un producto conocido lo recibe automáticamente.';
+
+  @override
   String get inventoryFieldExtraColors => 'Colores adicionales';
 
   @override

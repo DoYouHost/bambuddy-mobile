@@ -1036,6 +1036,8 @@
   "inventoryFieldRemainingWeight": "Pozostała waga (g)",
   "inventoryFieldMeasuredWeight": "Zmierzona waga (g)",
   "inventoryFieldCategory": "Kategoria",
+  "inventoryFieldMaterialNumber": "Numer materiałowy",
+  "inventoryMaterialNumberHint": "Wspólny dla wszystkich szpul danego produktu. Nowa szpula znanego produktu dostaje go sama.",
   "inventoryFieldExtraColors": "Dodatkowe kolory",
   "inventoryExtraColorsHint": "2–8 hexów koloru, po przecinku",
   "inventoryFieldEffect": "Efekt",

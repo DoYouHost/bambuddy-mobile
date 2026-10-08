@@ -2600,6 +2600,13 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryFieldCategory => 'Kategoria';
 
   @override
+  String get inventoryFieldMaterialNumber => 'Numer materiałowy';
+
+  @override
+  String get inventoryMaterialNumberHint =>
+      'Wspólny dla wszystkich szpul danego produktu. Nowa szpula znanego produktu dostaje go sama.';
+
+  @override
   String get inventoryFieldExtraColors => 'Dodatkowe kolory';
 
   @override

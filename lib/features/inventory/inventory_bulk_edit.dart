@@ -35,6 +35,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
       'material',
       'brand',
       'subtype',
+      'materialNumber',
       'colorName',
       'rgba',
       'labelWeight',
@@ -61,6 +62,10 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   bool _saving = false;
 
   int get _count => widget.spoolIds.length;
+
+  /// Native backend only, and only where the server stores the number; the
+  /// patch drops it otherwise so a field that was never shown cannot be sent.
+  bool _showsMaterialNumber = false;
 
   @override
   void dispose() {
@@ -93,6 +98,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     material: _trim('material'),
     brand: _trim('brand'),
     subtype: _trim('subtype'),
+    materialNumber: _showsMaterialNumber ? _trim('materialNumber') : null,
     colorName: _trim('colorName'),
     rgba: normalizeRgba(_c['rgba']!.text),
     labelWeight: _int('labelWeight'),
@@ -183,6 +189,8 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
         ref.watch(suppliersSupportedProvider).orFalse &&
         widget.spoolIds.every(listed.contains);
     _suppliersShown = showSuppliers;
+    _showsMaterialNumber =
+        native && ref.watch(materialNumberSupportedProvider).orFalse;
 
     return DraggableSheetSurface(
       initialSize: 0.9,
@@ -220,6 +228,12 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
               l10n.inventoryFieldSubtype,
               ref.watch(subtypeOptionsProvider),
             ),
+            if (_showsMaterialNumber)
+              _combo(
+                'materialNumber',
+                l10n.inventoryFieldMaterialNumber,
+                ref.watch(materialNumberOptionsProvider),
+              ),
             _field('labelWeight', l10n.inventoryFieldLabelWeight, number: true),
 
             const SizedBox(height: DashSpace.sm),

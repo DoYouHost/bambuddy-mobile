@@ -105,6 +105,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       'material': TextEditingController(text: s?.material ?? ''),
       'brand': TextEditingController(text: s?.brand ?? ''),
       'subtype': TextEditingController(text: s?.subtype ?? ''),
+      'materialNumber': TextEditingController(text: s?.materialNumber ?? ''),
       'colorName': TextEditingController(text: s?.colorName ?? ''),
       'rgba': TextEditingController(text: s?.rgba ?? ''),
       'extraColors': TextEditingController(text: s?.extraColors ?? ''),
@@ -144,6 +145,22 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   }
 
   String? _trim(String key) => _trimmedField(_c, key);
+
+  /// Whether the form offers the material number at all: the server has to
+  /// store it and the backend has to take a write (Spoolman's is read-only).
+  bool _showsMaterialNumber(WidgetRef ref) =>
+      ref.read(materialNumberSupportedProvider).orFalse &&
+      ref.read(inventoryBackendProvider).valueOrNull == InventoryBackend.native;
+
+  /// A blank field on a new spool sends nothing, so the server can fill in the
+  /// number its other spools of the product carry. On an edit, blank over a
+  /// stored number is a deliberate clear, and only the empty string says so.
+  String? _materialNumberToSend() {
+    if (!_showsMaterialNumber(ref)) return null;
+    final typed = _trim('materialNumber');
+    if (typed != null) return typed;
+    return _isEdit && widget.existing!.materialNumber != null ? '' : null;
+  }
 
   int? _parseIntField(String key) => _intField(_c, key);
 
@@ -209,6 +226,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       category: _trim('category'),
       lowStockThresholdPct: lowStock,
       storageLocation: _trim('location'),
+      materialNumber: _materialNumberToSend(),
       slicerFilament: _slicerFilament,
       slicerFilamentName: _slicerFilamentName,
       note: _trim('note'),
@@ -360,6 +378,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     }
     // A copy saved before its presets arrive would be created without them;
     // that includes the gate, which asks for them only once it has answered.
+    ref.watch(materialNumberSupportedProvider);
+    ref.watch(inventoryBackendProvider);
+    final showMaterialNumber = _showsMaterialNumber(ref);
     final suppliersGate = ref.watch(suppliersSupportedProvider);
     final showSuppliers = _showsSupplierLinks(suppliersGate.orFalse);
     final copyPresetsPending =
@@ -425,6 +446,14 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             ),
             _combo('brand', l10n.inventoryFieldBrand, brands),
             _combo('subtype', l10n.inventoryFieldSubtype, subtypes),
+            if (showMaterialNumber) ...[
+              _combo(
+                'materialNumber',
+                l10n.inventoryFieldMaterialNumber,
+                ref.watch(materialNumberOptionsProvider),
+              ),
+              Text(l10n.inventoryMaterialNumberHint, style: t.bodySoft),
+            ],
             _field(
               'labelWeight',
               l10n.inventoryFieldLabelWeight,

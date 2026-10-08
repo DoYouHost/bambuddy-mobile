@@ -2561,6 +2561,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryFieldCategory => 'Category';
 
   @override
+  String get inventoryFieldMaterialNumber => 'Material number';
+
+  @override
+  String get inventoryMaterialNumberHint =>
+      'Shared by every spool of a product. A new spool of a known product gets it filled in.';
+
+  @override
   String get inventoryFieldExtraColors => 'Extra colors';
 
   @override

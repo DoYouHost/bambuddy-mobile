@@ -4436,6 +4436,18 @@ abstract class AppLocalizations {
   /// **'Category'**
   String get inventoryFieldCategory;
 
+  /// No description provided for @inventoryFieldMaterialNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Material number'**
+  String get inventoryFieldMaterialNumber;
+
+  /// No description provided for @inventoryMaterialNumberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared by every spool of a product. A new spool of a known product gets it filled in.'**
+  String get inventoryMaterialNumberHint;
+
   /// No description provided for @inventoryFieldExtraColors.
   ///
   /// In en, this message translates to:

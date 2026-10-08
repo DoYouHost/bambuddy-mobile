@@ -2591,6 +2591,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get inventoryFieldCategory => 'Kategorie';
 
   @override
+  String get inventoryFieldMaterialNumber => 'Materialnummer';
+
+  @override
+  String get inventoryMaterialNumberHint =>
+      'Gilt für alle Spulen eines Produkts. Eine neue Spule eines bekannten Produkts erhält sie automatisch.';
+
+  @override
   String get inventoryFieldExtraColors => 'Zusätzliche Farben';
 
   @override

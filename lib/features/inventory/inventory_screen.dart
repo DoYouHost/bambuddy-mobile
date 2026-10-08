@@ -625,11 +625,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 if (filters.locations.isEmpty ||
                     (s.storageLocation != null &&
                         filters.locations.contains(s.storageLocation)))
-                  if (filters.suppliers.isEmpty ||
-                      (s.suppliers ?? const []).any(
-                        (l) => filters.suppliers.contains(l.supplierId),
-                      ))
-                    if (s.matchesSearch(query)) s,
+                  if (filters.materialNumbers.isEmpty ||
+                      (s.materialNumber != null &&
+                          filters.materialNumbers.contains(s.materialNumber)))
+                    if (filters.suppliers.isEmpty ||
+                        (s.suppliers ?? const []).any(
+                          (l) => filters.suppliers.contains(l.supplierId),
+                        ))
+                      if (s.matchesSearch(query)) s,
     ];
   }
 
@@ -647,6 +650,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         materials: _distinct(all.map((s) => s.material)),
         brands: _distinct(all.map((s) => s.brand)),
         locations: _distinct(all.map((s) => s.storageLocation)),
+        materialNumbers: _distinct(all.map((s) => s.materialNumber)),
         suppliers: {
           for (final s in all)
             for (final link in s.suppliers ?? const <SpoolSupplierLink>[])

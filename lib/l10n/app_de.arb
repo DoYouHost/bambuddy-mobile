@@ -1423,6 +1423,8 @@
   "inventoryFieldRemainingWeight": "Verbleibendes Gewicht (g)",
   "inventoryFieldMeasuredWeight": "Gemessenes Gewicht (g)",
   "inventoryFieldCategory": "Kategorie",
+  "inventoryFieldMaterialNumber": "Materialnummer",
+  "inventoryMaterialNumberHint": "Gilt für alle Spulen eines Produkts. Eine neue Spule eines bekannten Produkts erhält sie automatisch.",
   "inventoryFieldExtraColors": "Zusätzliche Farben",
   "inventoryExtraColorsHint": "2–8 Hex-Werte, kommagetrennt",
   "inventoryFieldEffect": "Effekt",
