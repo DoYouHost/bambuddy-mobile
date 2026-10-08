@@ -67,15 +67,11 @@ const _runoutWithActions = HmsError(
 
 /// The slot sheet reads the inventory to offer spools; these tests care about
 /// the printer-side actions above that list, so it stays empty and offline.
-class _EmptyInventory extends InventoryNotifier {
-  @override
-  Future<InventoryState> build() async => InventoryState();
-}
+FixedInventory _emptyInventory() => FixedInventory(InventoryState());
 
 /// A stocked shelf, for the half of the sheet that offers spools.
-class _StockedInventory extends InventoryNotifier {
-  @override
-  Future<InventoryState> build() async => InventoryState(
+FixedInventory _stockedInventory() => FixedInventory(
+  InventoryState(
     spools: [
       Spool(id: 14, material: 'PLA', subtype: 'Basic', brand: 'Anycubic'),
       Spool(id: 13, material: 'PLA', subtype: 'Matte', brand: 'Bambu'),
@@ -86,23 +82,22 @@ class _StockedInventory extends InventoryNotifier {
         brand: 'Smart Print',
       ),
     ],
-  );
-}
+  ),
+);
+
+const _assignedSpool = Spool(
+  id: 42,
+  material: 'PLA',
+  subtype: 'Basic',
+  brand: 'Bambu Lab',
+  labelWeight: 1000,
+);
 
 /// A shelf with a spool pinned to the slot the sheet opens on (X1C, AMS 1,
 /// first slot), so the "currently in this slot" row has something to show.
-class _AssignedInventory extends InventoryNotifier {
-  static const spool = Spool(
-    id: 42,
-    material: 'PLA',
-    subtype: 'Basic',
-    brand: 'Bambu Lab',
-    labelWeight: 1000,
-  );
-
-  @override
-  Future<InventoryState> build() async => InventoryState(
-    spools: [spool],
+FixedInventory _assignedInventory() => FixedInventory(
+  InventoryState(
+    spools: [_assignedSpool],
     assignments: [
       SpoolAssignment(
         spoolId: 42,
@@ -112,14 +107,13 @@ class _AssignedInventory extends InventoryNotifier {
         printerName: 'X2D-3DP',
       ),
     ],
-  );
-}
+  ),
+);
 
 /// A part-used spool in the fixture's PLA slot (AMS 0, tray 3) and another on
 /// the left side of the external holder.
-class _WeighedInventory extends InventoryNotifier {
-  @override
-  Future<InventoryState> build() async => InventoryState(
+FixedInventory _weighedInventory() => FixedInventory(
+  InventoryState(
     spools: [
       Spool(id: 1, material: 'PLA', labelWeight: 1000, weightUsed: 898),
       Spool(id: 2, material: 'TPU', labelWeight: 500, weightUsed: 250),
@@ -128,13 +122,12 @@ class _WeighedInventory extends InventoryNotifier {
       SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
       SpoolAssignment(spoolId: 2, printerId: 1, amsId: 255, trayId: 0),
     ],
-  );
-}
+  ),
+);
 
 /// A spool whose counter says it is empty, in the slot the AMS reads at 66%.
-class _SpentInventory extends InventoryNotifier {
-  @override
-  Future<InventoryState> build() async => InventoryState(
+FixedInventory _spentInventory() => FixedInventory(
+  InventoryState(
     // 0.4 g left: 0% and "0 g" both, without being exactly zero.
     spools: [
       Spool(id: 1, material: 'PLA', labelWeight: 1000, weightUsed: 999.6),
@@ -142,16 +135,15 @@ class _SpentInventory extends InventoryNotifier {
     assignments: [
       SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
     ],
-  );
-}
+  ),
+);
 
 /// The tagged spool on the shelf and a different one pinned to the same slot,
 /// for which of the two the slot shows.
-class _PinnedOverTagInventory extends InventoryNotifier {
-  @override
-  Future<InventoryState> build() async => InventoryState(
+FixedInventory _pinnedOverTagInventory() => FixedInventory(
+  InventoryState(
     spools: [
-      _AssignedInventory.spool,
+      _assignedSpool,
       Spool(
         id: 21,
         material: 'PLA',
@@ -165,14 +157,13 @@ class _PinnedOverTagInventory extends InventoryNotifier {
     ],
     // What `/spoolman/spools/linked` says of a tagged spool.
     linkedTags: const {'A1B2C3D4E5F60708': LinkedSpool(id: 21)},
-  );
-}
+  ),
+);
 
 /// A shelf that already holds the spool whose tag sits in the slot, so the
 /// sheet must offer to pick it rather than to create a second row for it.
-class _TaggedInventory extends InventoryNotifier {
-  @override
-  Future<InventoryState> build() async => InventoryState(
+FixedInventory _taggedInventory() => FixedInventory(
+  InventoryState(
     spools: [
       Spool(
         id: 21,
@@ -184,8 +175,8 @@ class _TaggedInventory extends InventoryNotifier {
     ],
     // What `/spoolman/spools/linked` says of it, read in Spoolman mode.
     linkedTags: const {'A1B2C3D4E5F60708': LinkedSpool(id: 21)},
-  );
-}
+  ),
+);
 
 /// Records the registration the sheet asks for, so a test can tell the button
 /// fired the right slot triple rather than merely being tappable.
@@ -795,7 +786,7 @@ void main() {
           Scaffold(
             body: SingleChildScrollView(child: PrinterCard(item: realItem())),
           ),
-          extra: [inventoryProvider.overrideWith(_WeighedInventory.new)],
+          extra: [inventoryProvider.overrideWith(_weighedInventory)],
         ),
       );
       await tester.pump();
@@ -822,7 +813,7 @@ void main() {
           Scaffold(
             body: SingleChildScrollView(child: PrinterCard(item: realItem())),
           ),
-          extra: [inventoryProvider.overrideWith(_SpentInventory.new)],
+          extra: [inventoryProvider.overrideWith(_spentInventory)],
         ),
       );
       await tester.pump();
@@ -956,8 +947,7 @@ void main() {
           extra: [
             printerCommandsRepositoryProvider.overrideWithValue(commands),
             inventoryProvider.overrideWith(
-              inventory ??
-                  (stocked ? _StockedInventory.new : _EmptyInventory.new),
+              inventory ?? (stocked ? _stockedInventory : _emptyInventory),
             ),
           ],
           backend: backend,
@@ -1149,7 +1139,7 @@ void main() {
               ),
             ),
           ),
-          extra: [inventoryProvider.overrideWith(_EmptyInventory.new)],
+          extra: [inventoryProvider.overrideWith(_emptyInventory)],
         ),
       );
 
@@ -1214,7 +1204,7 @@ void main() {
               ),
             ),
           ),
-          extra: [inventoryProvider.overrideWith(_EmptyInventory.new)],
+          extra: [inventoryProvider.overrideWith(_emptyInventory)],
         ),
       );
 
@@ -1377,12 +1367,12 @@ void main() {
           ...inertHistorySupportOverrides,
           inertSmartPlugsOverride,
           inventoryBackendOverride(),
-          inventoryProvider.overrideWith(_AssignedInventory.new),
+          inventoryProvider.overrideWith(_assignedInventory),
           // The spool card fetches its usage on open; the repository behind it
           // has no server here and this test is about arriving, not about what
           // the card then loads.
           spoolUsageProvider(
-            _AssignedInventory.spool.id,
+            _assignedSpool.id,
           ).overrideWith((ref) async => const <SpoolUsageEntry>[]),
         ],
         child: MaterialApp.router(
@@ -1463,7 +1453,7 @@ void main() {
           tester,
           state: 'IDLE',
           tagged: true,
-          inventory: _TaggedInventory.new,
+          inventory: _taggedInventory,
           backend: InventoryBackend.spoolman,
         );
 
@@ -1484,7 +1474,7 @@ void main() {
           tester,
           state: 'IDLE',
           tagged: true,
-          inventory: _PinnedOverTagInventory.new,
+          inventory: _pinnedOverTagInventory,
           backend: InventoryBackend.spoolman,
         );
 
@@ -1512,7 +1502,7 @@ void main() {
           tester,
           state: 'IDLE',
           tagged: true,
-          inventory: _StockedInventory.new,
+          inventory: _stockedInventory,
           backend: InventoryBackend.spoolman,
         );
 
@@ -1528,7 +1518,7 @@ void main() {
           tester,
           state: 'IDLE',
           tagged: true,
-          inventory: _TaggedInventory.new,
+          inventory: _taggedInventory,
         );
 
         expect(control('assign_spool.current'), findsNothing);
@@ -1541,7 +1531,7 @@ void main() {
         await openSlotSheet(
           tester,
           state: 'IDLE',
-          inventory: _TaggedInventory.new,
+          inventory: _taggedInventory,
           backend: InventoryBackend.spoolman,
         );
 
@@ -1560,7 +1550,7 @@ void main() {
         tester,
         state: 'IDLE',
         tagged: true,
-        inventory: _TaggedInventory.new,
+        inventory: _taggedInventory,
       );
 
       expect(registerButton(), findsNothing);

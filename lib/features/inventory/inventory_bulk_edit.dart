@@ -308,36 +308,9 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     ),
   );
 
-  /// Editable combo: pick from what the shelf already uses, or type a new
-  /// value. Same widget the per-spool form uses, minus the required marker —
-  /// nothing is required here.
-  Widget _combo(String key, String label, List<String> options) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-    child: dashCombo<String>(
-      context,
-      id: _fieldTag(key, area: 'bulk_edit'),
-      controller: _c[key],
-      label: Text(label),
-      filterable: true,
-      textStyle: DashTokens.of(context).body,
-      entries: [
-        for (final o in options)
-          DropdownMenuEntry(
-            value: o,
-            label: o,
-            labelWidget: logTagMaterial(
-              '${_fieldTag(key, area: 'bulk_edit')}.option',
-              o,
-              Text(o),
-            ),
-          ),
-      ],
-    ),
-  );
+  Widget _combo(String key, String label, List<String> options) =>
+      _spoolCombo(context, _c, key, label, options, area: 'bulk_edit');
 
-  /// [min] and [max] bound a numeric field the server validates: typing
-  /// outside the range has to say so here, because silently clamping it would
-  /// apply a value the user never chose — across the whole selection.
   Widget _field(
     String key,
     String label, {
@@ -346,43 +319,18 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     int maxLines = 1,
     int? min,
     int? max,
-  }) {
-    final l10n = AppLocalizations.of(context);
-    final t = DashTokens.of(context);
-    return logTag(
-      _fieldTag(key, area: 'bulk_edit'),
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-        child: TextFormField(
-          controller: _c[key],
-          style: t.body,
-          keyboardType: number
-              ? const TextInputType.numberWithOptions(decimal: true)
-              : (maxLines > 1 ? TextInputType.multiline : TextInputType.text),
-          maxLines: maxLines,
-          textCapitalization: number
-              ? TextCapitalization.none
-              : TextCapitalization.sentences,
-          decoration: dashDecoration(t, labelText: label, hintText: hint),
-          validator: (v) {
-            final text = (v ?? '').trim();
-            if (!number || text.isEmpty) return null;
-            final value = parseUserDecimal(text);
-            if (value == null) return l10n.inventoryFieldInvalidNumber;
-            if (min != null && max != null && (value < min || value > max)) {
-              return l10n.inventoryFieldRange(min, max);
-            }
-            // Fields without a declared range still have a floor. `cost_per_kg`
-            // is `ge=0` server-side and a negative one 422s the whole selection;
-            // `core_weight` has no such guard and stores the negative, which
-            // then poisons every remaining-weight sum built on it.
-            if (value < 0) return l10n.inventoryFieldNegative;
-            return null;
-          },
-        ),
-      ),
-    );
-  }
+  }) => _spoolTextField(
+    context,
+    _c,
+    key,
+    label,
+    area: 'bulk_edit',
+    number: number,
+    hint: hint,
+    maxLines: maxLines,
+    min: min,
+    max: max,
+  );
 
   /// Slicer preset for the whole selection. Clearing it means "leave every
   /// spool's preset as it is" — it does not unset the preset server-side.

@@ -5090,74 +5090,54 @@ class DemoBackend {
     return _ok(spool['suppliers']);
   }
 
-  /// `GET /inventory/stats/suppliers`: grouped by the purchase source only,
-  /// stock from active spools, consumption and cost from the usage rows inside
-  /// the date range — archived spools included, as their use happened.
-  DemoResult _supplierStats(Map<String, String> q) {
-    final from = DateTime.tryParse(q['date_from'] ?? '');
-    final to = DateTime.tryParse(q['date_to'] ?? '');
-    final rows = <int, Map<String, dynamic>>{};
-    for (final spool in _spools) {
+  /// `GET /inventory/stats/suppliers`: grouped by the purchase source only.
+  DemoResult _supplierStats(Map<String, String> q) => _stockAggregate(
+    q,
+    group: (spool) {
       final bought = _linksOf(
         spool,
       ).where((l) => l['is_purchase_source'] == true).firstOrNull;
-      if (bought == null) continue;
-      final id = bought['supplier_id'] as int;
-      final row = rows.putIfAbsent(
-        id,
-        () => {
-          'supplier_id': id,
-          'supplier_name': bought['supplier_name'],
-          'spool_count': 0,
-          'remaining_g': 0.0,
-          'consumed_g': 0.0,
-          'cost': 0.0,
-        },
-      );
-      if (spool['archived_at'] == null) {
-        final left =
-            (spool['label_weight'] as num) - (spool['weight_used'] as num);
-        row['spool_count'] = (row['spool_count'] as int) + 1;
-        row['remaining_g'] =
-            (row['remaining_g'] as double) + (left > 0 ? left : 0);
-      }
-      for (final use in _spoolUsage(spool['id'] as int)) {
-        final at = DateTime.parse(use['created_at'] as String).toLocal();
-        final day = DateTime(at.year, at.month, at.day);
-        if (from != null && day.isBefore(from)) continue;
-        if (to != null && day.isAfter(to)) continue;
-        row['consumed_g'] =
-            (row['consumed_g'] as double) + (use['weight_used'] as num);
-        row['cost'] = (row['cost'] as double) + (use['cost'] as num);
-      }
-    }
-    final out = rows.values.toList()
-      ..sort((a, b) {
-        final byUse = (b['consumed_g'] as double).compareTo(
-          a['consumed_g'] as double,
-        );
-        if (byUse != 0) return byUse;
-        return '${a['supplier_name']}'.toLowerCase().compareTo(
-          '${b['supplier_name']}'.toLowerCase(),
-        );
-      });
-    return _ok(out);
-  }
+      return bought == null
+          ? null
+          : {
+              'supplier_id': bought['supplier_id'],
+              'supplier_name': bought['supplier_name'],
+            };
+    },
+    sortKey: (row) => '${row['supplier_name']}'.toLowerCase(),
+  );
 
-  /// `GET /inventory/stats/material-numbers`: stock from active spools,
-  /// consumption and cost from the usage rows inside the date range, heaviest
-  /// consumer first and the number as the tie-break.
-  DemoResult _materialNumberStats(Map<String, String> q) {
+  /// `GET /inventory/stats/material-numbers`: grouped by the number, spools
+  /// without one left out.
+  DemoResult _materialNumberStats(Map<String, String> q) => _stockAggregate(
+    q,
+    group: (spool) => spool['material_number'] == null
+        ? null
+        : {'material_number': spool['material_number']},
+    sortKey: (row) => '${row['material_number']}',
+  );
+
+  /// The aggregate both stats routes share: stock from active spools,
+  /// consumption and cost from the usage rows inside the date range - archived
+  /// spools included, as their use happened - heaviest consumer first and
+  /// [sortKey] to break a tie. [group] names the row a spool belongs to, or
+  /// null for a spool the route leaves out; its first entry is the row's
+  /// identity.
+  DemoResult _stockAggregate(
+    Map<String, String> q, {
+    required Map<String, Object?>? Function(Map<String, dynamic> spool) group,
+    required String Function(Map<String, dynamic> row) sortKey,
+  }) {
     final from = DateTime.tryParse(q['date_from'] ?? '');
     final to = DateTime.tryParse(q['date_to'] ?? '');
-    final rows = <String, Map<String, dynamic>>{};
+    final rows = <Object?, Map<String, dynamic>>{};
     for (final spool in _spools) {
-      final number = spool['material_number'] as String?;
-      if (number == null) continue;
+      final identity = group(spool);
+      if (identity == null) continue;
       final row = rows.putIfAbsent(
-        number,
+        identity.values.first,
         () => {
-          'material_number': number,
+          ...identity,
           'spool_count': 0,
           'remaining_g': 0.0,
           'consumed_g': 0.0,
@@ -5186,9 +5166,7 @@ class DemoBackend {
         final byUse = (b['consumed_g'] as double).compareTo(
           a['consumed_g'] as double,
         );
-        return byUse != 0
-            ? byUse
-            : '${a['material_number']}'.compareTo('${b['material_number']}');
+        return byUse != 0 ? byUse : sortKey(a).compareTo(sortKey(b));
       });
     return _ok(out);
   }

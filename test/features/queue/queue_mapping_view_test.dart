@@ -32,11 +32,6 @@ class _Printers extends PrintersRepository {
       (grams: const <int, double>{}, spools: _spools);
 }
 
-class _EmptyShelf extends InventoryNotifier {
-  @override
-  Future<InventoryState> build() async => InventoryState();
-}
-
 AmsTray _tray(int id, String type, String color, {String? subBrands}) =>
     AmsTray(id: id, trayType: type, trayColor: color, traySubBrands: subBrands);
 
@@ -60,7 +55,9 @@ void main() {
             _Printers(status, spools),
           ),
           inventoryBackendOverride(),
-          inventoryProvider.overrideWith(_EmptyShelf.new),
+          inventoryProvider.overrideWith(
+            () => FixedInventory(InventoryState()),
+          ),
           serverSettingsOverride(const {}),
           printRequirementsProvider.overrideWith(
             (ref, key) async => requirements,

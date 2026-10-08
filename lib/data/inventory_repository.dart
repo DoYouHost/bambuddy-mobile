@@ -74,12 +74,8 @@ class InventoryRepository {
   /// Settles [materialNumberCapability] from a listing: `SpoolResponse` sends
   /// `material_number` on every row from the feature on. An empty inventory
   /// says nothing either way.
-  void observeSpools(List<Spool> spools) {
-    final first = spools.firstOrNull;
-    if (first != null) {
-      materialNumberCapability.observe(present: first.materialNumberReported);
-    }
-  }
+  void observeSpools(List<Spool> spools) => materialNumberCapability
+      .observeFirst(spools, (s) => s.materialNumberReported);
 
   Future<List<Spool>> fetchSpools({bool includeArchived = false}) =>
       _on((s) => s.fetchSpools(includeArchived: includeArchived));

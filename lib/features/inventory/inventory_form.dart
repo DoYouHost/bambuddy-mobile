@@ -575,41 +575,20 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     List<String> options, {
     bool required = false,
     String? errorText,
-  }) {
-    final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-      child: dashCombo<String>(
-        context,
-        id: _fieldTag(key),
-        controller: _c[key],
-        label: Text(required ? '$label *' : label),
-        errorText: errorText,
-        filterable: true,
-        textStyle: t.body,
-        onSelected: (v) {
-          if (required && v != null && v.isNotEmpty) {
-            setState(() => _materialMissing = false);
-          }
-        },
-        entries: [
-          // `logTagMaterial` keeps the pick out of the identifier: on the
-          // material combo it rides in `mat`, and a brand or variant is not a
-          // known material, so it falls back to the bare id.
-          for (final o in options)
-            DropdownMenuEntry(
-              value: o,
-              label: o,
-              labelWidget: logTagMaterial(
-                '${_fieldTag(key)}.option',
-                o,
-                Text(o),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+  }) => _spoolCombo(
+    context,
+    _c,
+    key,
+    label,
+    options,
+    required: required,
+    errorText: errorText,
+    onSelected: (v) {
+      if (required && v != null && v.isNotEmpty) {
+        setState(() => _materialMissing = false);
+      }
+    },
+  );
 
   /// Empty Spool Weight field: a searchable picker from the core catalog (sets
   /// weight + id) beside an editable weight in grams. If catalog empty — weight
@@ -980,45 +959,17 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     String? suffixText,
     int maxLines = 1,
     ValueChanged<String>? onChanged,
-  }) {
-    final l10n = AppLocalizations.of(context);
-    final t = DashTokens.of(context);
-    return logTag(
-      _fieldTag(key),
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-        child: TextFormField(
-          controller: _c[key],
-          style: t.body,
-          keyboardType: number
-              ? const TextInputType.numberWithOptions(decimal: true)
-              : (maxLines > 1 ? TextInputType.multiline : TextInputType.text),
-          maxLines: maxLines,
-          textCapitalization: number
-              ? TextCapitalization.none
-              : TextCapitalization.sentences,
-          onChanged: onChanged,
-          decoration: dashDecoration(
-            t,
-            labelText: label,
-            hintText: hint,
-            suffixText: suffixText,
-          ),
-          validator: (v) {
-            final text = (v ?? '').trim();
-            if (!number || text.isEmpty) return null;
-            final value = parseUserDecimal(text);
-            if (value == null) return l10n.inventoryFieldInvalidNumber;
-            // Same floor as the bulk sheet: the server takes a negative core
-            // weight without a word and every remaining-weight sum built on it
-            // is then wrong.
-            if (value < 0) return l10n.inventoryFieldNegative;
-            return null;
-          },
-        ),
-      ),
-    );
-  }
+  }) => _spoolTextField(
+    context,
+    _c,
+    key,
+    label,
+    number: number,
+    hint: hint,
+    suffixText: suffixText,
+    maxLines: maxLines,
+    onChanged: onChanged,
+  );
 }
 
 /// `coreWeight` → `core_weight`: log identifiers are lowercase with
@@ -1029,6 +980,109 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 /// mass-edit sheet, which name their fields identically.
 String _fieldTag(String key, {String area = 'spool_form'}) =>
     '$area.${key.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}')}';
+
+/// A text field of the spool form or the mass-edit sheet, which name theirs
+/// identically; [area] is the sheet, for the diagnostic id.
+///
+/// [min] and [max] bound a numeric field the server validates: typing outside
+/// the range has to say so here, because silently clamping it would apply a
+/// value the user never chose - across the whole selection, on the mass edit.
+Widget _spoolTextField(
+  BuildContext context,
+  Map<String, TextEditingController> controllers,
+  String key,
+  String label, {
+  String area = 'spool_form',
+  bool number = false,
+  String? hint,
+  String? suffixText,
+  int maxLines = 1,
+  ValueChanged<String>? onChanged,
+  int? min,
+  int? max,
+}) {
+  final l10n = AppLocalizations.of(context);
+  final t = DashTokens.of(context);
+  return logTag(
+    _fieldTag(key, area: area),
+    Padding(
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+      child: TextFormField(
+        controller: controllers[key],
+        style: t.body,
+        keyboardType: number
+            ? const TextInputType.numberWithOptions(decimal: true)
+            : (maxLines > 1 ? TextInputType.multiline : TextInputType.text),
+        maxLines: maxLines,
+        textCapitalization: number
+            ? TextCapitalization.none
+            : TextCapitalization.sentences,
+        onChanged: onChanged,
+        decoration: dashDecoration(
+          t,
+          labelText: label,
+          hintText: hint,
+          suffixText: suffixText,
+        ),
+        validator: (v) {
+          final text = (v ?? '').trim();
+          if (!number || text.isEmpty) return null;
+          final value = parseUserDecimal(text);
+          if (value == null) return l10n.inventoryFieldInvalidNumber;
+          if (min != null && max != null && (value < min || value > max)) {
+            return l10n.inventoryFieldRange(min, max);
+          }
+          // Every numeric field has a floor. `cost_per_kg` is `ge=0`
+          // server-side and a negative one 422s a whole selection;
+          // `core_weight` has no such guard and stores the negative, which
+          // then poisons every remaining-weight sum built on it.
+          if (value < 0) return l10n.inventoryFieldNegative;
+          return null;
+        },
+      ),
+    ),
+  );
+}
+
+/// An editable combo: pick from what the shelf already uses, or type a new
+/// value. [required] only marks the label; the caller owns the check.
+Widget _spoolCombo(
+  BuildContext context,
+  Map<String, TextEditingController> controllers,
+  String key,
+  String label,
+  List<String> options, {
+  String area = 'spool_form',
+  bool required = false,
+  String? errorText,
+  ValueChanged<String?>? onSelected,
+}) {
+  final tag = _fieldTag(key, area: area);
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+    child: dashCombo<String>(
+      context,
+      id: tag,
+      controller: controllers[key],
+      label: Text(required ? '$label *' : label),
+      errorText: errorText,
+      filterable: true,
+      textStyle: DashTokens.of(context).body,
+      onSelected: onSelected,
+      entries: [
+        // `logTagMaterial` keeps the pick out of the identifier: on the
+        // material combo it rides in `mat`, and a brand or variant is not a
+        // known material, so it falls back to the bare id.
+        for (final o in options)
+          DropdownMenuEntry(
+            value: o,
+            label: o,
+            labelWidget: logTagMaterial('$tag.option', o, Text(o)),
+          ),
+      ],
+    ),
+  );
+}
 
 /// A trimmed field value, or null when the user left it blank. Blank means
 /// "unset" on both sheets: the form sends no key rather than an empty string,

@@ -21,6 +21,7 @@ import 'package:bambuddy_mobile/features/admin/users_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
 import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart';
@@ -1159,4 +1160,16 @@ class RecordingCommands implements PrinterCommandsRepository {
     required String action,
     String? jobId,
   }) => _do('hmsAction:$id:$printError:$action:${jobId ?? ''}');
+}
+
+/// The inventory screens read the shelf through this: exactly [state], with no
+/// server behind it. Anything a test needs to record or refuse is a subclass of
+/// `InventoryNotifier` of its own; a shelf that only stands there is this.
+class FixedInventory extends InventoryNotifier {
+  FixedInventory(this._state);
+
+  final InventoryState _state;
+
+  @override
+  Future<InventoryState> build() async => _state;
 }

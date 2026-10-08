@@ -332,9 +332,26 @@ class Spool {
   }
 }
 
+/// What a stock-and-spend aggregate says about one group of spools: shared by
+/// the per-supplier and per-material-number rows, so one card draws both.
+abstract interface class StockStats {
+  /// Who the group is: a supplier's name, a material number.
+  String get label;
+
+  /// Active spools only, and [remainingGrams] with them - stock is
+  /// point-in-time, so a date range never narrows these two.
+  int get spoolCount;
+  double get remainingGrams;
+
+  /// Recorded usage of every spool in the group, archived ones included,
+  /// within the requested date range.
+  double get consumedGrams;
+  double get cost;
+}
+
 /// One row of `GET /inventory/stats/material-numbers` (server #2870): what the
 /// shelf holds and what was used of every spool sharing a number.
-class MaterialNumberStats {
+class MaterialNumberStats implements StockStats {
   const MaterialNumberStats({
     required this.materialNumber,
     this.spoolCount = 0,
@@ -353,16 +370,17 @@ class MaterialNumberStats {
       );
 
   final String materialNumber;
-
-  /// Active spools only, and [remainingGrams] with them — stock is
-  /// point-in-time, so a date range never narrows these two.
+  @override
   final int spoolCount;
+  @override
   final double remainingGrams;
-
-  /// Recorded usage of every spool carrying the number, archived ones
-  /// included, within the requested date range.
+  @override
   final double consumedGrams;
+  @override
   final double cost;
+
+  @override
+  String get label => materialNumber;
 }
 
 /// Editable spool field set for saving (create/update) — backend-agnostic.
