@@ -81,6 +81,8 @@ class Spool {
     this.slicerFilamentName,
     this.kProfiles = const [],
     this.suppliers,
+    this.materialNumber,
+    this.materialNumberReported = false,
   });
 
   /// Native `SpoolResponse` from `GET /inventory/spools`.
@@ -120,6 +122,8 @@ class Spool {
       json['suppliers'],
       SpoolSupplierLink.fromJson,
     ),
+    materialNumber: toStringOrNull(json['material_number']),
+    materialNumberReported: json.containsKey('material_number'),
   );
 
   /// Spoolman returns loose object (passthrough) — field names vary, so read
@@ -176,6 +180,9 @@ class Spool {
         json['suppliers'],
         SpoolSupplierLink.fromJson,
       ),
+      // The backend maps the filament's `article_number` onto this key.
+      materialNumber: toStringOrNull(json['material_number']),
+      materialNumberReported: json.containsKey('material_number'),
     );
   }
 
@@ -249,6 +256,15 @@ class Spool {
   /// nobody assigned one to — must not be mistaken for.
   final List<SpoolSupplierLink>? suppliers;
 
+  /// Internal purchasing number shared by every spool of a product (server
+  /// #2870). Free text; null when the spool has none.
+  final String? materialNumber;
+
+  /// Whether the row carried the `material_number` key at all. `SpoolResponse`
+  /// sends it on every row from the feature on, null or not, so its presence is
+  /// what tells a server with the feature from one that predates it.
+  final bool materialNumberReported;
+
   /// Remaining filament [g] (clamps to 0).
   double get remainingWeight {
     final r = labelWeight - weightUsed;
@@ -306,6 +322,7 @@ class Spool {
       colorName,
       storageLocation,
       category,
+      materialNumber,
       for (final link in suppliers ?? const <SpoolSupplierLink>[])
         link.supplierName,
     ]) {
@@ -313,6 +330,57 @@ class Spool {
     }
     return false;
   }
+}
+
+/// What a stock-and-spend aggregate says about one group of spools: shared by
+/// the per-supplier and per-material-number rows, so one card draws both.
+abstract interface class StockStats {
+  /// Who the group is: a supplier's name, a material number.
+  String get label;
+
+  /// Active spools only, and [remainingGrams] with them - stock is
+  /// point-in-time, so a date range never narrows these two.
+  int get spoolCount;
+  double get remainingGrams;
+
+  /// Recorded usage of every spool in the group, archived ones included,
+  /// within the requested date range.
+  double get consumedGrams;
+  double get cost;
+}
+
+/// One row of `GET /inventory/stats/material-numbers` (server #2870): what the
+/// shelf holds and what was used of every spool sharing a number.
+class MaterialNumberStats implements StockStats {
+  const MaterialNumberStats({
+    required this.materialNumber,
+    this.spoolCount = 0,
+    this.remainingGrams = 0,
+    this.consumedGrams = 0,
+    this.cost = 0,
+  });
+
+  factory MaterialNumberStats.fromJson(Map<String, dynamic> json) =>
+      MaterialNumberStats(
+        materialNumber: toStringOrNull(json['material_number']) ?? '',
+        spoolCount: toIntOrNull(json['spool_count']) ?? 0,
+        remainingGrams: toDoubleOrNull(json['remaining_g']) ?? 0,
+        consumedGrams: toDoubleOrNull(json['consumed_g']) ?? 0,
+        cost: toDoubleOrNull(json['cost']) ?? 0,
+      );
+
+  final String materialNumber;
+  @override
+  final int spoolCount;
+  @override
+  final double remainingGrams;
+  @override
+  final double consumedGrams;
+  @override
+  final double cost;
+
+  @override
+  String get label => materialNumber;
 }
 
 /// Editable spool field set for saving (create/update) — backend-agnostic.
@@ -343,6 +411,8 @@ class SpoolDraft {
     this.slicerFilament,
     this.slicerFilamentName,
     this.note,
+    this.materialNumber,
+    this.clears = const {},
   });
 
   /// Draft from existing spool — for edit form prefill.
@@ -368,6 +438,7 @@ class SpoolDraft {
     slicerFilament: s.slicerFilament,
     slicerFilamentName: s.slicerFilamentName,
     note: s.note,
+    materialNumber: s.materialNumber,
   );
 
   final String material;
@@ -391,6 +462,105 @@ class SpoolDraft {
   final String? slicerFilament;
   final String? slicerFilamentName;
   final String? note;
+
+  /// `null` leaves the number alone and keeps the key off the wire, which is
+  /// also what a server that predates the number needs.
+  final String? materialNumber;
+
+  /// Native wire keys of the fields the user emptied, see [clearing]. A null
+  /// field is "leave it as it is" everywhere else in this class, so a field
+  /// the user blanked has to be named separately to reach the server at all.
+  final Set<String> clears;
+
+  /// The fields the per-spool form edits and the user can blank, by native wire
+  /// key: how to read each from a stored [Spool] and from a draft. `rgba` and
+  /// the weights are left out (blanking them is not a clear), and so are
+  /// `nozzle_temp_*` and `last_scale_weight`, which the form does not manage
+  /// or the server does not clear.
+  static final _clearable =
+      <
+        String,
+        ({Object? Function(Spool) stored, Object? Function(SpoolDraft) draft})
+      >{
+        'subtype': (stored: (s) => s.subtype, draft: (d) => d.subtype),
+        'brand': (stored: (s) => s.brand, draft: (d) => d.brand),
+        'color_name': (stored: (s) => s.colorName, draft: (d) => d.colorName),
+        'extra_colors': (
+          stored: (s) => s.extraColors,
+          draft: (d) => d.extraColors,
+        ),
+        'effect_type': (
+          stored: (s) => s.effectType,
+          draft: (d) => d.effectType,
+        ),
+        'note': (stored: (s) => s.note, draft: (d) => d.note),
+        'category': (stored: (s) => s.category, draft: (d) => d.category),
+        'storage_location': (
+          stored: (s) => s.storageLocation,
+          draft: (d) => d.storageLocation,
+        ),
+        'cost_per_kg': (stored: (s) => s.costPerKg, draft: (d) => d.costPerKg),
+        'low_stock_threshold_pct': (
+          stored: (s) => s.lowStockThresholdPct,
+          draft: (d) => d.lowStockThresholdPct,
+        ),
+        'core_weight_catalog_id': (
+          stored: (s) => s.coreWeightCatalogId,
+          draft: (d) => d.coreWeightCatalogId,
+        ),
+        'slicer_filament': (
+          stored: (s) => s.slicerFilament,
+          draft: (d) => d.slicerFilament,
+        ),
+        'slicer_filament_name': (
+          stored: (s) => s.slicerFilamentName,
+          draft: (d) => d.slicerFilamentName,
+        ),
+        'material_number': (
+          stored: (s) => s.materialNumber,
+          draft: (d) => d.materialNumber,
+        ),
+      };
+
+  /// This draft with [clears] extended by every clearable field that [before]
+  /// holds and the draft leaves empty, so saving the form over [before]
+  /// removes what the user deleted instead of silently keeping it.
+  ///
+  /// [except] names fields the user could not see: an empty draft field there
+  /// is "never offered", not "deleted", and must not reach the server.
+  SpoolDraft clearing(Spool before, {Set<String> except = const {}}) =>
+      SpoolDraft(
+        material: material,
+        subtype: subtype,
+        brand: brand,
+        colorName: colorName,
+        rgba: rgba,
+        extraColors: extraColors,
+        effectType: effectType,
+        labelWeight: labelWeight,
+        weightUsed: weightUsed,
+        coreWeight: coreWeight,
+        coreWeightCatalogId: coreWeightCatalogId,
+        lastScaleWeight: lastScaleWeight,
+        costPerKg: costPerKg,
+        lowStockThresholdPct: lowStockThresholdPct,
+        storageLocation: storageLocation,
+        category: category,
+        nozzleTempMin: nozzleTempMin,
+        nozzleTempMax: nozzleTempMax,
+        slicerFilament: slicerFilament,
+        slicerFilamentName: slicerFilamentName,
+        note: note,
+        materialNumber: materialNumber,
+        clears: {
+          ...clears,
+          for (final e in _clearable.entries)
+            if (!except.contains(e.key) &&
+                e.value.stored(before) != null &&
+                e.value.draft(this) == null)
+              e.key,
+        },
+      );
 
   /// Body for native `/inventory/spools` (`SpoolCreate`/`SpoolUpdate` same fields;
   /// server ignores missing). Skip null to avoid zeroing untouched fields on PATCH.
@@ -418,6 +588,11 @@ class SpoolDraft {
     if (slicerFilament != null) 'slicer_filament': slicerFilament,
     if (slicerFilamentName != null) 'slicer_filament_name': slicerFilamentName,
     if (note != null) 'note': note,
+    if (materialNumber != null) 'material_number': materialNumber,
+    // The route stores an explicit null as NULL for every field in [clears]
+    // (probed against 1.2.5.7 and the 1.2.6 daily); an empty string would
+    // store "" in the text columns and be refused by the numeric ones.
+    for (final key in clears) key: null,
   };
 
   /// Body for Spoolman (`SpoolmanInventoryCreate`/`Update`) — narrower field set;
@@ -434,6 +609,24 @@ class SpoolDraft {
     if (costPerKg != null) 'cost_per_kg': costPerKg,
     if (storageLocation != null) 'storage_location': storageLocation,
     if (note != null) 'note': note,
+    ..._spoolmanClears,
+  };
+
+  /// What a Spoolman backend takes as "empty this field", as the route answers
+  /// it: `subtype` and `note` clear on an empty string and ignore null,
+  /// `storage_location` and `color_name` clear on null, the slicer preset on
+  /// an empty string (`spoolman_inventory.py`: "pass an empty string to
+  /// clear"), and the rest of [clears] (brand, price, category…) has no way to
+  /// be emptied there - an unsupported clear is dropped rather than sent.
+  /// [Spool.fromSpoolman] does not read the preset back, so today it only
+  /// reaches [clears] from a hand-built [Spool].
+  Map<String, dynamic> get _spoolmanClears => {
+    if (clears.contains('subtype')) 'subtype': '',
+    if (clears.contains('note')) 'note': '',
+    if (clears.contains('storage_location')) 'storage_location': null,
+    if (clears.contains('color_name')) 'color_name': null,
+    if (clears.contains('slicer_filament')) 'slicer_filament': '',
+    if (clears.contains('slicer_filament_name')) 'slicer_filament_name': '',
   };
 }
 

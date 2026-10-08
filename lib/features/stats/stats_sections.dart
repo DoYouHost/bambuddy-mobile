@@ -10,7 +10,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/archive_stats.dart';
-import '../../core/models/supplier.dart';
+import '../../core/models/inventory.dart' show StockStats;
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
@@ -465,23 +465,62 @@ class BarList extends StatelessWidget {
   }
 }
 
-// ── By supplier ────────────────────────────────────────────────────────────
+// ── By supplier / by material number ───────────────────────────────────────
 
 /// Consumption per purchase-source supplier, heaviest first as the server
 /// sorts it, with stock and spend under each bar.
-///
-/// Absent while it loads and when nothing was bought anywhere: most
-/// inventories never name a supplier, and a card saying so on every visit is
-/// noise. A failed read is shown, because it is not the same answer as "none".
 class SupplierStatsCard extends ConsumerWidget {
   const SupplierStatsCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    return _StockStatsCard(
+      title: l10n.statsBySupplier,
+      hint: l10n.statsBySupplierHint,
+      failed: l10n.statsBySupplierFailed,
+      stats: ref.watch(supplierStatsProvider),
+    );
+  }
+}
+
+/// The same per spool material number (#2870).
+class MaterialNumberStatsCard extends ConsumerWidget {
+  const MaterialNumberStatsCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return _StockStatsCard(
+      title: l10n.statsByMaterialNumber,
+      hint: l10n.statsByMaterialNumberHint,
+      failed: l10n.statsByMaterialNumberFailed,
+      stats: ref.watch(materialNumberStatsProvider),
+    );
+  }
+}
+
+/// Absent while it loads and when nothing is grouped: most inventories never
+/// name a supplier or number a spool, and a card saying so on every visit is
+/// noise. A failed read is shown, because it is not the same answer as "none".
+class _StockStatsCard extends StatelessWidget {
+  const _StockStatsCard({
+    required this.title,
+    required this.hint,
+    required this.failed,
+    required this.stats,
+  });
+
+  final String title;
+  final String hint;
+  final String failed;
+  final AsyncValue<List<StockStats>> stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final stats = ref.watch(supplierStatsProvider);
-    final rows = stats.valueOrNull ?? const <SupplierStats>[];
+    final rows = stats.valueOrNull ?? const <StockStats>[];
     if (!stats.hasError && rows.isEmpty) return const SizedBox.shrink();
     final heaviest = rows.fold<double>(
       1,
@@ -491,26 +530,20 @@ class SupplierStatsCard extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(top: DashSpace.md),
       child: SectionCard(
-        title: l10n.statsBySupplier,
+        title: title,
         child: stats.hasError
-            ? Text(
-                l10n.statsBySupplierFailed,
-                style: t.bodyPlain.copyWith(color: t.textSecondary),
-              )
+            ? Text(failed, style: t.bodyPlain.copyWith(color: t.textSecondary))
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    l10n.statsBySupplierHint,
-                    style: t.label.copyWith(color: t.textSecondary),
-                  ),
+                  Text(hint, style: t.label.copyWith(color: t.textSecondary)),
                   const SizedBox(height: DashSpace.md),
                   for (final (i, row) in rows.indexed) ...[
                     if (i > 0) const SizedBox(height: DashSpace.md),
                     BarList(
                       rows: [
                         (
-                          label: row.supplierName,
+                          label: row.label,
                           value: fmtGrams(row.consumedGrams),
                           fraction: row.consumedGrams / heaviest,
                           color: null,

@@ -112,6 +112,13 @@ class ObservedCapability {
     return present;
   }
 
+  /// [observeKey] for rows that are already parsed: [carriesKey] says whether
+  /// the first of [rows] held the field. An empty list says nothing.
+  void observeFirst<T>(Iterable<T> rows, bool Function(T row) carriesKey) {
+    final first = rows.firstOrNull;
+    if (first != null) observe(present: carriesKey(first));
+  }
+
   void observeRefusal() => _update(() {
     _refused = true;
     _probeFailed = false;

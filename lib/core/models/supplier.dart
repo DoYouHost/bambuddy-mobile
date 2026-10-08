@@ -1,4 +1,5 @@
 import 'package:app_util/app_util.dart';
+import 'inventory.dart' show StockStats;
 
 /// Where filament is bought (`SupplierResponse`, server #2988) — not
 /// `Spool.brand`, which is who made it. One supplier carries many brands, and a
@@ -172,7 +173,7 @@ List<SpoolSupplierLink> mergeSupplierLinks(
 ///
 /// Built-in inventory only: the aggregate reads the local spool table, which
 /// is empty in Spoolman mode.
-class SupplierStats {
+class SupplierStats implements StockStats {
   const SupplierStats({
     required this.supplierId,
     required this.supplierName,
@@ -193,14 +194,15 @@ class SupplierStats {
 
   final int supplierId;
   final String supplierName;
-
-  /// Active spools only, and [remainingGrams] with them — stock is
-  /// point-in-time, so a date range never narrows these two.
+  @override
   final int spoolCount;
+  @override
   final double remainingGrams;
-
-  /// Recorded usage of every spool bought here, archived ones included, within
-  /// the requested date range.
+  @override
   final double consumedGrams;
+  @override
   final double cost;
+
+  @override
+  String get label => supplierName;
 }

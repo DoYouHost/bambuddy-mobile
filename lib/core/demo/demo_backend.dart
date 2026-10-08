@@ -4812,6 +4812,7 @@ class DemoBackend {
       'created_at': _iso(_daysAgo(30 + id)),
       'k_profiles': const <Object>[],
       'suppliers': <Map<String, dynamic>>[],
+      'material_number': null,
     };
 
     final spools = [
@@ -4893,6 +4894,13 @@ class DemoBackend {
     // at Filament24, and nothing at all — the three states the spool card and
     // the supplier filter have to show. Printed Solid stays unassigned, so the
     // supplier list has one row that can be deleted and two that cannot.
+    // Two spools of one product share a number, a third product has its own,
+    // and the rest stay blank: the filter, the tile and the card all have
+    // something to show without the demo hiding what an unnumbered shelf is.
+    spools[0]['material_number'] = '15';
+    spools[1]['material_number'] = '15';
+    spools[2]['material_number'] = '22';
+    spools[3]['material_number'] = 'A-104';
     _linkSeed(spools[0], [
       (1, 'GFA00-K0', 24.99, true),
       (2, 'BL-PLA-BK-1', 22.90, false),
@@ -5082,24 +5090,54 @@ class DemoBackend {
     return _ok(spool['suppliers']);
   }
 
-  /// `GET /inventory/stats/suppliers`: grouped by the purchase source only,
-  /// stock from active spools, consumption and cost from the usage rows inside
-  /// the date range — archived spools included, as their use happened.
-  DemoResult _supplierStats(Map<String, String> q) {
-    final from = DateTime.tryParse(q['date_from'] ?? '');
-    final to = DateTime.tryParse(q['date_to'] ?? '');
-    final rows = <int, Map<String, dynamic>>{};
-    for (final spool in _spools) {
+  /// `GET /inventory/stats/suppliers`: grouped by the purchase source only.
+  DemoResult _supplierStats(Map<String, String> q) => _stockAggregate(
+    q,
+    group: (spool) {
       final bought = _linksOf(
         spool,
       ).where((l) => l['is_purchase_source'] == true).firstOrNull;
-      if (bought == null) continue;
-      final id = bought['supplier_id'] as int;
+      return bought == null
+          ? null
+          : {
+              'supplier_id': bought['supplier_id'],
+              'supplier_name': bought['supplier_name'],
+            };
+    },
+    sortKey: (row) => '${row['supplier_name']}'.toLowerCase(),
+  );
+
+  /// `GET /inventory/stats/material-numbers`: grouped by the number, spools
+  /// without one left out.
+  DemoResult _materialNumberStats(Map<String, String> q) => _stockAggregate(
+    q,
+    group: (spool) => spool['material_number'] == null
+        ? null
+        : {'material_number': spool['material_number']},
+    sortKey: (row) => '${row['material_number']}',
+  );
+
+  /// The aggregate both stats routes share: stock from active spools,
+  /// consumption and cost from the usage rows inside the date range - archived
+  /// spools included, as their use happened - heaviest consumer first and
+  /// [sortKey] to break a tie. [group] names the row a spool belongs to, or
+  /// null for a spool the route leaves out; its first entry is the row's
+  /// identity.
+  DemoResult _stockAggregate(
+    Map<String, String> q, {
+    required Map<String, Object?>? Function(Map<String, dynamic> spool) group,
+    required String Function(Map<String, dynamic> row) sortKey,
+  }) {
+    final from = DateTime.tryParse(q['date_from'] ?? '');
+    final to = DateTime.tryParse(q['date_to'] ?? '');
+    final rows = <Object?, Map<String, dynamic>>{};
+    for (final spool in _spools) {
+      final identity = group(spool);
+      if (identity == null) continue;
       final row = rows.putIfAbsent(
-        id,
+        identity.values.first,
         () => {
-          'supplier_id': id,
-          'supplier_name': bought['supplier_name'],
+          ...identity,
           'spool_count': 0,
           'remaining_g': 0.0,
           'consumed_g': 0.0,
@@ -5128,10 +5166,7 @@ class DemoBackend {
         final byUse = (b['consumed_g'] as double).compareTo(
           a['consumed_g'] as double,
         );
-        if (byUse != 0) return byUse;
-        return '${a['supplier_name']}'.toLowerCase().compareTo(
-          '${b['supplier_name']}'.toLowerCase(),
-        );
+        return byUse != 0 ? byUse : sortKey(a).compareTo(sortKey(b));
       });
     return _ok(out);
   }
@@ -5336,6 +5371,7 @@ class DemoBackend {
         if (s.length == 3) {
           if (m == 'GET') return _ok(spool);
           if (m == 'PATCH') {
+            _normalizeMaterialNumber(body);
             body.forEach((k, v) => spool[k] = v);
             return _ok(spool);
           }
@@ -5447,6 +5483,9 @@ class DemoBackend {
         if (s.length == 3 && s[2] == 'suppliers' && m == 'GET') {
           return _supplierStats(q);
         }
+        if (s.length == 3 && s[2] == 'material-numbers' && m == 'GET') {
+          return _materialNumberStats(q);
+        }
         return _fallback(m);
       case 'catalog':
         return _ok(_coreWeights);
@@ -5517,8 +5556,10 @@ class DemoBackend {
             body: {'detail': 'update must include at least one field'},
           );
         }
+        final fields = update.cast<String, dynamic>();
+        _normalizeMaterialNumber(fields);
         for (final spool in found) {
-          update.forEach((k, v) => spool['$k'] = v);
+          fields.forEach((k, v) => spool[k] = v);
         }
         return _ok({'updated': found.length, 'not_found': notFound});
 
@@ -5655,6 +5696,15 @@ class DemoBackend {
     return _ok(spool);
   }
 
+  /// The server trims `material_number` and stores a blank as NULL, on every
+  /// write path (`schemas/spool.py::normalize_material_number`).
+  void _normalizeMaterialNumber(Map<String, dynamic> fields) {
+    final raw = fields['material_number'];
+    if (raw is String) {
+      fields['material_number'] = raw.trim().isEmpty ? null : raw.trim();
+    }
+  }
+
   Map<String, dynamic> _createSpool(Map<String, dynamic> draft) {
     final spool = <String, dynamic>{
       'id': _nextSpoolId++,
@@ -5666,6 +5716,24 @@ class DemoBackend {
       'k_profiles': const <Object>[],
       ...draft,
     };
+    _normalizeMaterialNumber(spool);
+    spool.putIfAbsent('material_number', () => null);
+    // The number is inherited from the most recently added spool of the same
+    // product when the draft names none (`services/material_number.py`).
+    if (spool['material_number'] == null) {
+      final numbered = _spools.lastWhere(
+        (x) =>
+            x['material_number'] != null &&
+            [
+              'material',
+              'subtype',
+              'brand',
+              'color_name',
+            ].every((k) => x[k] == spool[k]),
+        orElse: () => const {},
+      );
+      spool['material_number'] = numbered['material_number'];
+    }
     // The server's inheritance (`services/supplier_links.py`): the newest spool
     // of the same product that has any sources lends them, never where it was
     // bought.

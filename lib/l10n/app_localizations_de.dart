@@ -2591,6 +2591,17 @@ class AppLocalizationsDe extends AppLocalizations {
   String get inventoryFieldCategory => 'Kategorie';
 
   @override
+  String get inventoryFieldMaterialNumber => 'Materialnummer';
+
+  @override
+  String get inventoryMaterialNumberHint =>
+      'Gilt für alle Spulen eines Produkts. Eine neue Spule eines bekannten Produkts erhält sie automatisch.';
+
+  @override
+  String get inventorySpoolmanCannotClear =>
+      'Spoolman erlaubt es nicht, diesen Wert zu entfernen. Ändere ihn stattdessen.';
+
+  @override
   String get inventoryFieldExtraColors => 'Zusätzliche Farben';
 
   @override
@@ -7637,6 +7648,17 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get statsBySupplierFailed =>
       'Lieferantendaten konnten nicht geladen werden';
+
+  @override
+  String get statsByMaterialNumber => 'Nach Materialnummer';
+
+  @override
+  String get statsByMaterialNumberHint =>
+      'Verbrauch aus Spulen mit derselben Materialnummer und was er gekostet hat. Der Bestand zählt aktive Spulen und ignoriert den Zeitraum.';
+
+  @override
+  String get statsByMaterialNumberFailed =>
+      'Daten zu Materialnummern konnten nicht geladen werden';
 
   @override
   String statsSupplierDetail(String spools, String remaining, String cost) {

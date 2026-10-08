@@ -34,7 +34,8 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-/// Inventory filter sheet: status, stock, material, brand, location, supplier.
+/// Inventory filter sheet: status, stock, material, brand, location, material
+/// number, supplier.
 /// Changes saved immediately to [inventoryFiltersProvider] — list below updates live.
 /// Options passed from view (values that actually occur).
 class _FilterSheet extends ConsumerWidget {
@@ -42,12 +43,14 @@ class _FilterSheet extends ConsumerWidget {
     required this.materials,
     required this.brands,
     required this.locations,
+    required this.materialNumbers,
     required this.suppliers,
   });
 
   final List<String> materials;
   final List<String> brands;
   final List<String> locations;
+  final List<String> materialNumbers;
 
   /// Supplier id → name, for the suppliers some spool carries.
   final Map<int, String> suppliers;
@@ -197,6 +200,17 @@ class _FilterSheet extends ConsumerWidget {
                 selected: filters.locations,
                 onToggle: (v) => notifier.state = filters.copyWith(
                   locations: toggled(filters.locations, v),
+                ),
+              ),
+            ],
+            if (materialNumbers.isNotEmpty) ...[
+              const SizedBox(height: DashSpace.lg),
+              FilterGroupLabel(label: l10n.inventoryFieldMaterialNumber),
+              _ChipWrap(
+                options: materialNumbers,
+                selected: filters.materialNumbers,
+                onToggle: (v) => notifier.state = filters.copyWith(
+                  materialNumbers: toggled(filters.materialNumbers, v),
                 ),
               ),
             ],

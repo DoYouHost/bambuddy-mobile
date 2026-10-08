@@ -192,6 +192,21 @@ void main() {
     );
   });
 
+  test('the material number arrives in 1.2.5.7, the last 1.2.5 release', () {
+    expect(
+      parse('1.2.5.6').supports(ServerFeature.spoolMaterialNumber),
+      isFalse,
+    );
+    expect(
+      parse('1.2.5.7').supports(ServerFeature.spoolMaterialNumber),
+      isTrue,
+    );
+    expect(
+      parse('1.2.6b1').supports(ServerFeature.spoolMaterialNumber),
+      isTrue,
+    );
+  });
+
   test('grouping by hand arrives in 0.2.4.8, in the old numbering', () {
     expect(parse('0.2.4.7').supports(ServerFeature.batchGrouping), isFalse);
     expect(parse('0.2.4.8').supports(ServerFeature.batchGrouping), isTrue);

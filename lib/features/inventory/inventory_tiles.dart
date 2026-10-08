@@ -102,6 +102,12 @@ class _SpoolTile extends StatelessWidget {
             style: t.monoLabel,
           ),
         ),
+        if (spool.materialNumber case final number?) ...[
+          const SizedBox(width: DashSpace.sm),
+          Icon(Icons.tag, size: 12, color: t.textTertiary),
+          const SizedBox(width: DashSpace.xs),
+          Text(number, maxLines: 1, style: t.monoLabel),
+        ],
         if (assignment != null) ...[
           const SizedBox(width: DashSpace.sm),
           Icon(Icons.print_outlined, size: 12, color: t.textTertiary),
@@ -487,6 +493,12 @@ class _SpoolDetailSheet extends ConsumerWidget {
                     icon: Icons.trending_down,
                     label: l10n.inventoryDetailConsumedSinceReset,
                     value: fmtGrams(spool.consumedWeight),
+                  ),
+                if (spool.materialNumber case final number?)
+                  _InfoRow(
+                    icon: Icons.tag,
+                    label: l10n.inventoryFieldMaterialNumber,
+                    value: number,
                   ),
                 if (spool.costPerKg != null)
                   _InfoRow(

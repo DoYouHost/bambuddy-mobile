@@ -32,10 +32,8 @@ class SuppliersRepository {
   /// Settles [capability] from a spool listing: `SpoolResponse` defaults
   /// `suppliers` on every row from the feature on, and so does the Spoolman
   /// listing. An empty inventory says nothing either way.
-  void observeSpools(List<Spool> spools) {
-    final first = spools.firstOrNull;
-    if (first != null) capability.observe(present: first.suppliers != null);
-  }
+  void observeSpools(List<Spool> spools) =>
+      capability.observeFirst(spools, (s) => s.suppliers != null);
 
   /// The master list, sorted case-insensitively by the server. A 404 or a 403
   /// answers with an empty list: every surface built on it is additive, and

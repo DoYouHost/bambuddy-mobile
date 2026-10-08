@@ -2600,6 +2600,17 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryFieldCategory => 'Kategoria';
 
   @override
+  String get inventoryFieldMaterialNumber => 'Numer materiałowy';
+
+  @override
+  String get inventoryMaterialNumberHint =>
+      'Wspólny dla wszystkich szpul danego produktu. Nowa szpula znanego produktu dostaje go sama.';
+
+  @override
+  String get inventorySpoolmanCannotClear =>
+      'Spoolman nie pozwala usunąć tej wartości. Zmień ją na inną.';
+
+  @override
   String get inventoryFieldExtraColors => 'Dodatkowe kolory';
 
   @override
@@ -7689,6 +7700,17 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get statsBySupplierFailed => 'Nie udało się wczytać danych dostawców';
+
+  @override
+  String get statsByMaterialNumber => 'Wg numeru materiałowego';
+
+  @override
+  String get statsByMaterialNumberHint =>
+      'Zużycie filamentu ze szpul o danym numerze materiałowym i jego koszt. Zapas liczy aktywne szpule i nie zależy od zakresu dat.';
+
+  @override
+  String get statsByMaterialNumberFailed =>
+      'Nie udało się wczytać danych numerów materiałowych';
 
   @override
   String statsSupplierDetail(String spools, String remaining, String cost) {

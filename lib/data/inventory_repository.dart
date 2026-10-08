@@ -63,6 +63,20 @@ class InventoryRepository {
     _serverVersion,
   );
 
+  /// Whether this server stores a material number on a spool (#2870). One
+  /// latch for both backends: Spoolman rows carry the key too, and only the
+  /// native one is writable.
+  late final materialNumberCapability = ObservedCapability(
+    ServerFeature.spoolMaterialNumber,
+    _serverVersion,
+  );
+
+  /// Settles [materialNumberCapability] from a listing: `SpoolResponse` sends
+  /// `material_number` on every row from the feature on. An empty inventory
+  /// says nothing either way.
+  void observeSpools(List<Spool> spools) => materialNumberCapability
+      .observeFirst(spools, (s) => s.materialNumberReported);
+
   Future<List<Spool>> fetchSpools({bool includeArchived = false}) =>
       _on((s) => s.fetchSpools(includeArchived: includeArchived));
 
@@ -137,6 +151,28 @@ class InventoryRepository {
 
   Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
       _on((s) => s.renderLabels(request));
+
+  /// Stock and spend per material number; [from]/[to] are inclusive calendar
+  /// days and narrow only the consumption and cost. Empty on Spoolman, whose
+  /// source is never asked, and on a server without the route or a session
+  /// that may not read it: the card on top of it is additive.
+  ///
+  /// Only a 404 settles [materialNumberCapability]. The spool rows are the
+  /// evidence the gate documents, and a 403 on an aggregate must not hide a
+  /// field the rows prove the server has.
+  Future<List<MaterialNumberStats>> fetchMaterialNumberStats({
+    DateTime? from,
+    DateTime? to,
+  }) => _on((s) {
+    if (s is! NativeInventorySource) {
+      return Future.value(const <MaterialNumberStats>[]);
+    }
+    return materialNumberCapability.watching(
+      () => s.fetchMaterialNumberStats(from: from, to: to),
+      absent: () => const [],
+      observing: const {404},
+    );
+  });
 
   /// One spool's per-printer-model preset overrides. A server without the route
   /// answers with an empty list rather than throwing: the section reading this

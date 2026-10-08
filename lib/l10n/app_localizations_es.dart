@@ -2581,6 +2581,17 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inventoryFieldCategory => 'Categoría';
 
   @override
+  String get inventoryFieldMaterialNumber => 'Número de material';
+
+  @override
+  String get inventoryMaterialNumberHint =>
+      'Común a todas las bobinas de un producto. Una bobina nueva de un producto conocido lo recibe automáticamente.';
+
+  @override
+  String get inventorySpoolmanCannotClear =>
+      'Spoolman no permite quitar este valor. Cámbialo por otro.';
+
+  @override
   String get inventoryFieldExtraColors => 'Colores adicionales';
 
   @override
@@ -7659,6 +7670,17 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get statsBySupplierFailed =>
       'No se pudieron cargar los datos de proveedores';
+
+  @override
+  String get statsByMaterialNumber => 'Por número de material';
+
+  @override
+  String get statsByMaterialNumberHint =>
+      'Filamento consumido de las bobinas con el mismo número de material y su coste. Las existencias cuentan las bobinas activas y no dependen del rango de fechas.';
+
+  @override
+  String get statsByMaterialNumberFailed =>
+      'No se pudieron cargar los datos por número de material';
 
   @override
   String statsSupplierDetail(String spools, String remaining, String cost) {

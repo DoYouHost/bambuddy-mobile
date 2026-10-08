@@ -4436,6 +4436,24 @@ abstract class AppLocalizations {
   /// **'Category'**
   String get inventoryFieldCategory;
 
+  /// No description provided for @inventoryFieldMaterialNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Material number'**
+  String get inventoryFieldMaterialNumber;
+
+  /// No description provided for @inventoryMaterialNumberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared by every spool of a product. A new spool of a known product gets it filled in.'**
+  String get inventoryMaterialNumberHint;
+
+  /// No description provided for @inventorySpoolmanCannotClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Spoolman can\'t remove this value. Change it to something else instead.'**
+  String get inventorySpoolmanCannotClear;
+
   /// No description provided for @inventoryFieldExtraColors.
   ///
   /// In en, this message translates to:
@@ -12751,6 +12769,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the supplier figures'**
   String get statsBySupplierFailed;
+
+  /// No description provided for @statsByMaterialNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'By material number'**
+  String get statsByMaterialNumber;
+
+  /// No description provided for @statsByMaterialNumberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament used from spools sharing each material number, and what it cost. Stock counts active spools and ignores the date range.'**
+  String get statsByMaterialNumberHint;
+
+  /// No description provided for @statsByMaterialNumberFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the material number figures'**
+  String get statsByMaterialNumberFailed;
 
   /// Line under one supplier's bar. {spools} is already a counted phrase such as '2 spools'; {remaining} is a weight with its unit.
   ///

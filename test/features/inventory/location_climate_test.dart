@@ -13,18 +13,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-/// The storage-conditions readings, which the app shows in the two places a
-/// spool and its shelf are both on screen: the spool's own card, and the sheet
-/// behind the Filaments app bar.
-class _Shelf extends InventoryNotifier {
-  _Shelf(this._spools);
-
-  final List<Spool> _spools;
-
-  @override
-  Future<InventoryState> build() async => InventoryState(spools: _spools);
-}
-
 /// Records what the provider actually asks for: the point of the listing is
 /// that a location nobody bound a sensor to is never asked for a reading.
 class _FakeSensors extends LocationSensorsRepository {
@@ -135,7 +123,9 @@ void main() {
       tester,
       const InventoryScreen(),
       overrides: [
-        inventoryProvider.overrideWith(() => _Shelf(spools)),
+        inventoryProvider.overrideWith(
+          () => FixedInventory(InventoryState(spools: spools)),
+        ),
         locationClimateProvider.overrideWith((ref) async => climates),
         noServerProfileOverride,
       ],

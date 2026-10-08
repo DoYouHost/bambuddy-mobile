@@ -568,6 +568,25 @@ class NativeInventorySource implements SpoolInventorySource {
   Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
       _postLabels(_dio, Endpoints.inventoryLabels, request);
 
+  /// Not on [SpoolInventorySource]: the aggregate reads the built-in spool
+  /// table, which Spoolman leaves empty, so there is nothing to ask it.
+  ///
+  /// Throws the raw [DioException]: the repository's latch reads the status
+  /// off it, and maps it afterwards.
+  Future<List<MaterialNumberStats>> fetchMaterialNumberStats({
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final res = await _dio.get<List<dynamic>>(
+      Endpoints.inventoryMaterialNumberStats,
+      queryParameters: {
+        if (from != null) 'date_from': calendarDateToJson(from),
+        if (to != null) 'date_to': calendarDateToJson(to),
+      },
+    );
+    return parseJsonList(res.data, MaterialNumberStats.fromJson);
+  }
+
   @override
   Future<List<SpoolPresetOverride>> fetchPresetOverrides(int spoolId) =>
       _getPresetOverrides(

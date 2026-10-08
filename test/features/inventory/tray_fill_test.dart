@@ -23,7 +23,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         inventoryBackendOverride(backend),
-        inventoryProvider.overrideWith(() => _Fixed(shelf)),
+        inventoryProvider.overrideWith(() => FixedInventory(shelf)),
       ],
     );
     addTearDown(container.dispose);
@@ -292,13 +292,4 @@ void main() {
       expect(assigned.fillOf(pla, amsId: 0, trayId: 0).percent, 0);
     });
   });
-}
-
-class _Fixed extends InventoryNotifier {
-  _Fixed(this._state);
-
-  final InventoryState _state;
-
-  @override
-  Future<InventoryState> build() async => _state;
 }

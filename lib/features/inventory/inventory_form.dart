@@ -105,6 +105,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       'material': TextEditingController(text: s?.material ?? ''),
       'brand': TextEditingController(text: s?.brand ?? ''),
       'subtype': TextEditingController(text: s?.subtype ?? ''),
+      'materialNumber': TextEditingController(text: s?.materialNumber ?? ''),
       'colorName': TextEditingController(text: s?.colorName ?? ''),
       'rgba': TextEditingController(text: s?.rgba ?? ''),
       'extraColors': TextEditingController(text: s?.extraColors ?? ''),
@@ -145,6 +146,21 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 
   String? _trim(String key) => _trimmedField(_c, key);
 
+  /// Whether the form offers the material number at all: the server has to
+  /// store it and the backend has to take a write (Spoolman's is read-only).
+  bool _showsMaterialNumber(WidgetRef ref) =>
+      ref.read(materialNumberSupportedProvider).orFalse &&
+      ref.read(inventoryBackendProvider).valueOrNull == InventoryBackend.native;
+
+  /// The spool as this sheet last wrote it and the server answered. A retry
+  /// after a failed follow-up write edits that state, not the one the sheet
+  /// opened with, so it is what a blanked field has to clear.
+  Spool? _lastWritten;
+
+  /// The spool a save writes over: what this sheet last wrote, else the one
+  /// being edited. Null for a new spool, which has nothing to clear.
+  Spool? get _writtenOver => _lastWritten ?? widget.existing;
+
   int? _parseIntField(String key) => _intField(_c, key);
 
   /// Measured weight is gross (filament + empty spool/core). After entering scale
@@ -180,6 +196,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     if (!formOk || material.isEmpty) return;
 
     final l10n = AppLocalizations.of(context);
+    final kept = _writtenOver;
+    if (_spoolmanKeeps('brand', kept?.brand, l10n) != null ||
+        _spoolmanKeeps('costPerKg', kept?.costPerKg, l10n) != null) {
+      return;
+    }
     final messenger = ScaffoldMessenger.of(context);
     // Server requires low-stock threshold in range 1..99 (outside = 422).
     final lowStock = _parseIntField('lowStock')?.clamp(1, 99);
@@ -192,7 +213,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     } else if (_isEdit && remaining == null) {
       used = widget.existing!.weightUsed;
     }
-    final draft = SpoolDraft(
+    final built = SpoolDraft(
       material: material,
       brand: _trim('brand'),
       subtype: _trim('subtype'),
@@ -209,10 +230,20 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       category: _trim('category'),
       lowStockThresholdPct: lowStock,
       storageLocation: _trim('location'),
+      materialNumber: _showsMaterialNumber(ref)
+          ? _trim('materialNumber')
+          : null,
       slicerFilament: _slicerFilament,
       slicerFilamentName: _slicerFilamentName,
       note: _trim('note'),
     );
+    final before = _writtenOver;
+    final draft = before == null
+        ? built
+        : built.clearing(
+            before,
+            except: {if (!_showsMaterialNumber(ref)) 'material_number'},
+          );
     setState(() => _saving = true);
     final notifier = ref.read(inventoryProvider.notifier);
     // Read before the first await: a WidgetRef is not usable once the sheet it
@@ -230,13 +261,15 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       // creates several and names none of them.
       final int? spoolId;
       if (_isEdit) {
-        await notifier.updateSpool(widget.existing!.id, draft);
+        _lastWritten =
+            await notifier.updateSpool(widget.existing!.id, draft) ??
+            _lastWritten;
         spoolId = widget.existing!.id;
         message = l10n.inventorySpoolUpdated;
       } else if (_createdSpoolId case final id?) {
         // A retry after a follow-up write failed: the spool exists, so this is
         // the PATCH the edit path would send, not another create.
-        await notifier.updateSpool(id, draft);
+        _lastWritten = await notifier.updateSpool(id, draft) ?? _lastWritten;
         spoolId = id;
         message = l10n.inventorySpoolCreated;
       } else if (_quantity > 1) {
@@ -246,6 +279,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       } else {
         final created = await notifier.createSpool(draft);
         _createdSpoolId = created?.id;
+        _lastWritten = created;
         spoolId = created?.id;
         message = l10n.inventorySpoolCreated;
       }
@@ -360,6 +394,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     }
     // A copy saved before its presets arrive would be created without them;
     // that includes the gate, which asks for them only once it has answered.
+    ref.watch(materialNumberSupportedProvider);
+    ref.watch(inventoryBackendProvider);
+    final showMaterialNumber = _showsMaterialNumber(ref);
     final suppliersGate = ref.watch(suppliersSupportedProvider);
     final showSuppliers = _showsSupplierLinks(suppliersGate.orFalse);
     final copyPresetsPending =
@@ -423,8 +460,24 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               required: true,
               errorText: _materialMissing ? l10n.inventoryFieldRequired : null,
             ),
-            _combo('brand', l10n.inventoryFieldBrand, brands),
+            ValueListenableBuilder(
+              valueListenable: _c['brand']!,
+              builder: (context, _, _) => _combo(
+                'brand',
+                l10n.inventoryFieldBrand,
+                brands,
+                errorText: _spoolmanKeeps('brand', _writtenOver?.brand, l10n),
+              ),
+            ),
             _combo('subtype', l10n.inventoryFieldSubtype, subtypes),
+            if (showMaterialNumber) ...[
+              _combo(
+                'materialNumber',
+                l10n.inventoryFieldMaterialNumber,
+                ref.watch(materialNumberOptionsProvider),
+              ),
+              Text(l10n.inventoryMaterialNumberHint, style: t.bodySoft),
+            ],
             _field(
               'labelWeight',
               l10n.inventoryFieldLabelWeight,
@@ -492,7 +545,19 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               number: true,
               onChanged: _applyScaleWeight,
             ),
-            _field('costPerKg', l10n.inventoryFieldCostPerKg, number: true),
+            ValueListenableBuilder(
+              valueListenable: _c['costPerKg']!,
+              builder: (context, _, _) => _field(
+                'costPerKg',
+                l10n.inventoryFieldCostPerKg,
+                number: true,
+                errorText: _spoolmanKeeps(
+                  'costPerKg',
+                  _writtenOver?.costPerKg,
+                  l10n,
+                ),
+              ),
+            ),
             _field('category', l10n.inventoryFieldCategory),
             _field(
               'lowStock',
@@ -542,41 +607,20 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     List<String> options, {
     bool required = false,
     String? errorText,
-  }) {
-    final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-      child: dashCombo<String>(
-        context,
-        id: _fieldTag(key),
-        controller: _c[key],
-        label: Text(required ? '$label *' : label),
-        errorText: errorText,
-        filterable: true,
-        textStyle: t.body,
-        onSelected: (v) {
-          if (required && v != null && v.isNotEmpty) {
-            setState(() => _materialMissing = false);
-          }
-        },
-        entries: [
-          // `logTagMaterial` keeps the pick out of the identifier: on the
-          // material combo it rides in `mat`, and a brand or variant is not a
-          // known material, so it falls back to the bare id.
-          for (final o in options)
-            DropdownMenuEntry(
-              value: o,
-              label: o,
-              labelWidget: logTagMaterial(
-                '${_fieldTag(key)}.option',
-                o,
-                Text(o),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+  }) => _spoolCombo(
+    context,
+    _c,
+    key,
+    label,
+    options,
+    required: required,
+    errorText: errorText,
+    onSelected: (v) {
+      if (required && v != null && v.isNotEmpty) {
+        setState(() => _materialMissing = false);
+      }
+    },
+  );
 
   /// Empty Spool Weight field: a searchable picker from the core catalog (sets
   /// weight + id) beside an editable weight in grams. If catalog empty — weight
@@ -947,45 +991,31 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     String? suffixText,
     int maxLines = 1,
     ValueChanged<String>? onChanged,
-  }) {
-    final l10n = AppLocalizations.of(context);
-    final t = DashTokens.of(context);
-    return logTag(
-      _fieldTag(key),
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-        child: TextFormField(
-          controller: _c[key],
-          style: t.body,
-          keyboardType: number
-              ? const TextInputType.numberWithOptions(decimal: true)
-              : (maxLines > 1 ? TextInputType.multiline : TextInputType.text),
-          maxLines: maxLines,
-          textCapitalization: number
-              ? TextCapitalization.none
-              : TextCapitalization.sentences,
-          onChanged: onChanged,
-          decoration: dashDecoration(
-            t,
-            labelText: label,
-            hintText: hint,
-            suffixText: suffixText,
-          ),
-          validator: (v) {
-            final text = (v ?? '').trim();
-            if (!number || text.isEmpty) return null;
-            final value = parseUserDecimal(text);
-            if (value == null) return l10n.inventoryFieldInvalidNumber;
-            // Same floor as the bulk sheet: the server takes a negative core
-            // weight without a word and every remaining-weight sum built on it
-            // is then wrong.
-            if (value < 0) return l10n.inventoryFieldNegative;
-            return null;
-          },
-        ),
-      ),
-    );
-  }
+    String? errorText,
+  }) => _spoolTextField(
+    context,
+    _c,
+    key,
+    label,
+    number: number,
+    hint: hint,
+    suffixText: suffixText,
+    maxLines: maxLines,
+    onChanged: onChanged,
+    errorText: errorText,
+  );
+
+  /// Spoolman can change a spool's brand and price but not empty them (probed:
+  /// the route keeps the old value on null and on an empty string), so a field
+  /// that held one there must not be saved blank - the save would claim a
+  /// removal that never happens.
+  String? _spoolmanKeeps(String key, Object? stored, AppLocalizations l10n) =>
+      stored != null &&
+          _c[key]!.text.trim().isEmpty &&
+          ref.read(inventoryBackendProvider).valueOrNull ==
+              InventoryBackend.spoolman
+      ? l10n.inventorySpoolmanCannotClear
+      : null;
 }
 
 /// `coreWeight` → `core_weight`: log identifiers are lowercase with
@@ -996,6 +1026,111 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 /// mass-edit sheet, which name their fields identically.
 String _fieldTag(String key, {String area = 'spool_form'}) =>
     '$area.${key.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}')}';
+
+/// A text field of the spool form or the mass-edit sheet, which name theirs
+/// identically; [area] is the sheet, for the diagnostic id.
+///
+/// [min] and [max] bound a numeric field the server validates: typing outside
+/// the range has to say so here, because silently clamping it would apply a
+/// value the user never chose - across the whole selection, on the mass edit.
+Widget _spoolTextField(
+  BuildContext context,
+  Map<String, TextEditingController> controllers,
+  String key,
+  String label, {
+  String area = 'spool_form',
+  bool number = false,
+  String? hint,
+  String? suffixText,
+  int maxLines = 1,
+  ValueChanged<String>? onChanged,
+  int? min,
+  int? max,
+  String? errorText,
+}) {
+  final l10n = AppLocalizations.of(context);
+  final t = DashTokens.of(context);
+  return logTag(
+    _fieldTag(key, area: area),
+    Padding(
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+      child: TextFormField(
+        controller: controllers[key],
+        style: t.body,
+        keyboardType: number
+            ? const TextInputType.numberWithOptions(decimal: true)
+            : (maxLines > 1 ? TextInputType.multiline : TextInputType.text),
+        maxLines: maxLines,
+        textCapitalization: number
+            ? TextCapitalization.none
+            : TextCapitalization.sentences,
+        onChanged: onChanged,
+        decoration: dashDecoration(
+          t,
+          labelText: label,
+          hintText: hint,
+          suffixText: suffixText,
+          errorText: errorText,
+        ),
+        validator: (v) {
+          final text = (v ?? '').trim();
+          if (!number || text.isEmpty) return null;
+          final value = parseUserDecimal(text);
+          if (value == null) return l10n.inventoryFieldInvalidNumber;
+          if (min != null && max != null && (value < min || value > max)) {
+            return l10n.inventoryFieldRange(min, max);
+          }
+          // Every numeric field has a floor. `cost_per_kg` is `ge=0`
+          // server-side and a negative one 422s a whole selection;
+          // `core_weight` has no such guard and stores the negative, which
+          // then poisons every remaining-weight sum built on it.
+          if (value < 0) return l10n.inventoryFieldNegative;
+          return null;
+        },
+      ),
+    ),
+  );
+}
+
+/// An editable combo: pick from what the shelf already uses, or type a new
+/// value. [required] only marks the label; the caller owns the check.
+Widget _spoolCombo(
+  BuildContext context,
+  Map<String, TextEditingController> controllers,
+  String key,
+  String label,
+  List<String> options, {
+  String area = 'spool_form',
+  bool required = false,
+  String? errorText,
+  ValueChanged<String?>? onSelected,
+}) {
+  final tag = _fieldTag(key, area: area);
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+    child: dashCombo<String>(
+      context,
+      id: tag,
+      controller: controllers[key],
+      label: Text(required ? '$label *' : label),
+      errorText: errorText,
+      filterable: true,
+      textStyle: DashTokens.of(context).body,
+      onSelected: onSelected,
+      entries: [
+        // `logTagMaterial` keeps the pick out of the identifier: on the
+        // material combo it rides in `mat`, and a brand or variant is not a
+        // known material, so it falls back to the bare id.
+        for (final o in options)
+          DropdownMenuEntry(
+            value: o,
+            label: o,
+            labelWidget: logTagMaterial('$tag.option', o, Text(o)),
+          ),
+      ],
+    ),
+  );
+}
 
 /// A trimmed field value, or null when the user left it blank. Blank means
 /// "unset" on both sheets: the form sends no key rather than an empty string,

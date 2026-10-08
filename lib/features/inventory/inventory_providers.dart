@@ -97,6 +97,7 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     final repo = ref.read(inventoryRepositoryProvider);
     final spools = await repo.fetchSpools(includeArchived: true);
     ref.read(suppliersRepositoryProvider).observeSpools(spools);
+    repo.observeSpools(spools);
 
     var assignments = const <SpoolAssignment>[];
     try {
@@ -692,6 +693,7 @@ class InventoryFilters {
     this.materials = const {},
     this.brands = const {},
     this.locations = const {},
+    this.materialNumbers = const {},
     this.suppliers = const {},
     this.sort = InventorySort.standard,
     this.descending = true,
@@ -703,6 +705,10 @@ class InventoryFilters {
   final Set<String> materials;
   final Set<String> brands;
   final Set<String> locations;
+
+  /// Material numbers (#2870), matched exactly: the server trims them, so a
+  /// chip built from one spool matches every other spool of that product.
+  final Set<String> materialNumbers;
 
   /// Supplier ids; a spool matches on any assignment, the purchase source or
   /// an alternative — "what can I get from this shop". Ids, not names: a
@@ -718,6 +724,7 @@ class InventoryFilters {
       (materials.isNotEmpty ? 1 : 0) +
       (brands.isNotEmpty ? 1 : 0) +
       (locations.isNotEmpty ? 1 : 0) +
+      (materialNumbers.isNotEmpty ? 1 : 0) +
       (suppliers.isNotEmpty ? 1 : 0);
 
   /// Every filter back to its default, the sort left as it was.
@@ -730,6 +737,7 @@ class InventoryFilters {
     Set<String>? materials,
     Set<String>? brands,
     Set<String>? locations,
+    Set<String>? materialNumbers,
     Set<int>? suppliers,
     InventorySort? sort,
     bool? descending,
@@ -739,6 +747,7 @@ class InventoryFilters {
     materials: materials ?? this.materials,
     brands: brands ?? this.brands,
     locations: locations ?? this.locations,
+    materialNumbers: materialNumbers ?? this.materialNumbers,
     suppliers: suppliers ?? this.suppliers,
     sort: sort ?? this.sort,
     descending: descending ?? this.descending,
@@ -1014,6 +1023,16 @@ final brandOptionsProvider = Provider.autoDispose<List<String>>((ref) {
       if (s.brand != null && s.brand!.trim().isNotEmpty) s.brand!.trim(),
   };
   final list = set.toList()..sort();
+  return list;
+});
+
+/// Material numbers already in use, for the form's suggestions.
+final materialNumberOptionsProvider = Provider.autoDispose<List<String>>((ref) {
+  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  final list = <String>{
+    for (final s in spools)
+      if (s.materialNumber != null) s.materialNumber!,
+  }.toList()..sort();
   return list;
 });
 

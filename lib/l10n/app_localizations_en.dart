@@ -2561,6 +2561,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryFieldCategory => 'Category';
 
   @override
+  String get inventoryFieldMaterialNumber => 'Material number';
+
+  @override
+  String get inventoryMaterialNumberHint =>
+      'Shared by every spool of a product. A new spool of a known product gets it filled in.';
+
+  @override
+  String get inventorySpoolmanCannotClear =>
+      'Spoolman can\'t remove this value. Change it to something else instead.';
+
+  @override
   String get inventoryFieldExtraColors => 'Extra colors';
 
   @override
@@ -7565,6 +7576,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statsBySupplierFailed => 'Couldn\'t load the supplier figures';
+
+  @override
+  String get statsByMaterialNumber => 'By material number';
+
+  @override
+  String get statsByMaterialNumberHint =>
+      'Filament used from spools sharing each material number, and what it cost. Stock counts active spools and ignores the date range.';
+
+  @override
+  String get statsByMaterialNumberFailed =>
+      'Couldn\'t load the material number figures';
 
   @override
   String statsSupplierDetail(String spools, String remaining, String cost) {
