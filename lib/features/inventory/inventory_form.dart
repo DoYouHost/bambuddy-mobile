@@ -152,15 +152,24 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       ref.read(materialNumberSupportedProvider).orFalse &&
       ref.read(inventoryBackendProvider).valueOrNull == InventoryBackend.native;
 
-  /// A blank field on a new spool sends nothing, so the server can fill in the
-  /// number its other spools of the product carry. On an edit, blank over a
-  /// stored number is a deliberate clear, and only the empty string says so.
-  String? _materialNumberToSend() {
-    if (!_showsMaterialNumber(ref)) return null;
-    final typed = _trim('materialNumber');
-    if (typed != null) return typed;
-    return _isEdit && widget.existing!.materialNumber != null ? '' : null;
-  }
+  /// The number this sheet itself wrote to the spool it created, so a retry
+  /// after a failed follow-up write knows what a blank field would clear.
+  String? _createdMaterialNumber;
+
+  String? _materialNumberToSend() => materialNumberToWrite(
+    shown: _showsMaterialNumber(ref),
+    typed: _trim('materialNumber'),
+    stored: _isEdit ? widget.existing!.materialNumber : _createdMaterialNumber,
+  );
+
+  /// What the spool holds after [draft] was written over [before]: an empty
+  /// string cleared it, no key left it alone.
+  String? _writtenNumber(SpoolDraft draft, String? before) =>
+      switch (draft.materialNumber) {
+        null => before,
+        '' => null,
+        final number => number,
+      };
 
   int? _parseIntField(String key) => _intField(_c, key);
 
@@ -255,6 +264,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         // A retry after a follow-up write failed: the spool exists, so this is
         // the PATCH the edit path would send, not another create.
         await notifier.updateSpool(id, draft);
+        _createdMaterialNumber = _writtenNumber(draft, _createdMaterialNumber);
         spoolId = id;
         message = l10n.inventorySpoolCreated;
       } else if (_quantity > 1) {
@@ -264,6 +274,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       } else {
         final created = await notifier.createSpool(draft);
         _createdSpoolId = created?.id;
+        _createdMaterialNumber = _writtenNumber(draft, null);
         spoolId = created?.id;
         message = l10n.inventorySpoolCreated;
       }
@@ -1025,6 +1036,23 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 /// mass-edit sheet, which name their fields identically.
 String _fieldTag(String key, {String area = 'spool_form'}) =>
     '$area.${key.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}')}';
+
+/// The `material_number` a save sends, or null for "send no key".
+///
+/// A blank field over nothing stored sends nothing, so the server can fill in
+/// the number its other spools of the product carry. A blank field over a
+/// stored number is a deliberate clear, and only the empty string says so: an
+/// absent key leaves the number as it was. [shown] is false where the server
+/// would drop the key or the backend takes no write.
+String? materialNumberToWrite({
+  required bool shown,
+  required String? typed,
+  required String? stored,
+}) {
+  if (!shown) return null;
+  if (typed != null) return typed;
+  return stored != null ? '' : null;
+}
 
 /// A trimmed field value, or null when the user left it blank. Blank means
 /// "unset" on both sheets: the form sends no key rather than an empty string,

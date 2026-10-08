@@ -3,6 +3,8 @@ import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
 import 'package:bambuddy_mobile/data/inventory_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
+import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart'
+    show materialNumberToWrite;
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
@@ -102,13 +104,28 @@ void main() {
       expect(await repo.materialNumberCapability.supported, isFalse);
     });
 
-    test('Spoolman is never asked', () async {
-      replyVersion('1.2.6b1');
+    test(
+      'a 403 on the aggregate does not hide a field the rows prove',
+      () async {
+        replyVersion('1.2.6b1');
+        repo.observeSpools([
+          row(const {'material_number': null}),
+        ]);
+        adapter.onGet(path, (s) => s.reply(403, {'detail': 'Forbidden'}));
+
+        expect(await repo.fetchMaterialNumberStats(), isEmpty);
+        expect(await repo.materialNumberCapability.supported, isTrue);
+      },
+    );
+
+    test('Spoolman is never asked and settles nothing', () async {
+      replyVersion('1.2.5.6');
       final spoolman = InventoryRepository(
         SpoolmanInventorySource(dio),
         ServerVersionService(dio),
       );
       expect(await spoolman.fetchMaterialNumberStats(), isEmpty);
+      expect(spoolman.materialNumberCapability.observedAnswer, isNull);
     });
 
     test('a row missing its figures reads as zeros', () {
@@ -145,6 +162,37 @@ void main() {
       final spool = row(const {'material_number': 'A-104'});
       expect(spool.matchesSearch('a-10'), isTrue);
       expect(spool.matchesSearch('zzz'), isFalse);
+    });
+  });
+
+  group('materialNumberToWrite', () {
+    test('a typed number wins, whatever is stored', () {
+      expect(
+        materialNumberToWrite(shown: true, typed: '22', stored: '15'),
+        '22',
+      );
+      expect(
+        materialNumberToWrite(shown: true, typed: '22', stored: null),
+        '22',
+      );
+    });
+
+    test('blank over a stored number clears it with the empty string', () {
+      expect(materialNumberToWrite(shown: true, typed: null, stored: '15'), '');
+    });
+
+    test('blank over nothing sends no key, so the server can inherit', () {
+      expect(
+        materialNumberToWrite(shown: true, typed: null, stored: null),
+        isNull,
+      );
+    });
+
+    test('a field that is not shown never writes', () {
+      expect(
+        materialNumberToWrite(shown: false, typed: '22', stored: '15'),
+        isNull,
+      );
     });
   });
 

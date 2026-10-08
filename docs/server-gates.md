@@ -423,9 +423,11 @@ a field that reads as saved and is gone on the next load. `SpoolResponse` sends
 the key on every row from the feature on, null or not, and the Spoolman listing
 merges it in as well, so `InventoryRepository.materialNumberCapability`
 observes it on the first row of the spool listing. An empty inventory says
-nothing and the version row answers; being early costs a 1.2.5.7-numbered
-build older than the commit a missing field and nothing else, since no write
-goes out without the gate.
+nothing and the version row answers. Being early costs something there: a
+1.2.6b1 daily older than the commit, with no spool yet, is offered the field
+and drops the first write silently. Once a row has loaded, its missing key
+settles the gate. Only a 404 on the stats route also settles it; a 403 there
+is a session that may not read the aggregate, not a server without the field.
 
 The gate says the server *has* the number. Whether it can be *written* is the
 backend: Spoolman maps the filament's `article_number` onto it and keeps it

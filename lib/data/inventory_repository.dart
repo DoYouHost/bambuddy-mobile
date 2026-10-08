@@ -157,21 +157,26 @@ class InventoryRepository {
       _on((s) => s.renderLabels(request));
 
   /// Stock and spend per material number; [from]/[to] are inclusive calendar
-  /// days and narrow only the consumption and cost. Empty on Spoolman and on a
-  /// server without the route: the card on top of it is additive, and the latch
-  /// has recorded why there is nothing to add.
+  /// days and narrow only the consumption and cost. Empty on Spoolman, whose
+  /// source is never asked, and on a server without the route or a session
+  /// that may not read it: the card on top of it is additive.
+  ///
+  /// Only a 404 settles [materialNumberCapability]. The spool rows are the
+  /// evidence the gate documents, and a 403 on an aggregate must not hide a
+  /// field the rows prove the server has.
   Future<List<MaterialNumberStats>> fetchMaterialNumberStats({
     DateTime? from,
     DateTime? to,
-  }) => materialNumberCapability.watching(
-    () => _on(
-      (s) => s is NativeInventorySource
-          ? s.fetchMaterialNumberStats(from: from, to: to)
-          : Future.value(const <MaterialNumberStats>[]),
-    ),
-    absent: () => const [],
-    observing: treat404AsAbsent,
-  );
+  }) => _on((s) {
+    if (s is! NativeInventorySource) {
+      return Future.value(const <MaterialNumberStats>[]);
+    }
+    return materialNumberCapability.watching(
+      () => s.fetchMaterialNumberStats(from: from, to: to),
+      absent: () => const [],
+      observing: const {404},
+    );
+  });
 
   /// One spool's per-printer-model preset overrides. A server without the route
   /// answers with an empty list rather than throwing: the section reading this
