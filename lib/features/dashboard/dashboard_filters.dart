@@ -17,14 +17,17 @@ enum PrinterStatusBucket {
   offline,
 }
 
-/// Classify a printer's live [status] into one bucket. Priority mirrors the web:
-/// offline (no connection) wins, then error (state FAILED or a displayable HMS
-/// error), then the print state. Unknown/other states fall back to idle.
+/// Classify a printer's live [status] into one bucket — the web's
+/// `classifyPrinterStatus`, state for state: offline (no connection) wins, then
+/// error (a displayable HMS error — nothing else is one), then the print state.
+/// A `FAILED` job without an HMS code is the printer's terminal state after any
+/// unsuccessful end, a cancellation included, so it counts as finished; a
+/// preparing printer and any other state fall back to idle.
 /// Never returns [PrinterStatusBucket.all] (that's the "no filter" sentinel).
 PrinterStatusBucket classifyPrinter(PrinterStatus? status) {
   if (!(status?.connected ?? false)) return PrinterStatusBucket.offline;
-  // Error = the same displayable HMS errors the card surfaces, or a FAILED
-  // terminal state — through the shared filter, so the two cannot drift.
+  // The same displayable HMS errors the card surfaces, through the shared
+  // filter, so the two cannot drift.
   final hasError =
       firstDisplayableHmsError(
         status!,
@@ -34,16 +37,14 @@ PrinterStatusBucket classifyPrinter(PrinterStatus? status) {
   if (hasError) return PrinterStatusBucket.error;
   switch (status.state?.toUpperCase()) {
     case 'RUNNING':
-    case 'PREPARE':
       return PrinterStatusBucket.printing;
     case 'PAUSE':
     case 'PAUSED':
       return PrinterStatusBucket.paused;
     case 'FINISH':
     case 'FINISHED':
-      return PrinterStatusBucket.finished;
     case 'FAILED':
-      return PrinterStatusBucket.error;
+      return PrinterStatusBucket.finished;
     default:
       return PrinterStatusBucket.idle;
   }

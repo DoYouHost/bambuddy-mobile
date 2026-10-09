@@ -1,5 +1,7 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
+import 'package:flutter/widgets.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/dashboard_filters.dart';
 import 'package:bambuddy_mobile/features/dashboard/dashboard_sort.dart';
@@ -29,6 +31,11 @@ List<String> _names(Iterable<PrinterWithStatus> ps) => [
 ];
 
 void main() {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    await HmsCatalog.instance.load(const Locale('en'));
+  });
+
   final farm = [
     _p(1, 'bravo', location: 'Workshop', model: 'X1C'),
     _p(2, 'Alpha', model: 'P1S'),
@@ -87,19 +94,37 @@ void main() {
       );
     });
 
-    test('by status a failed print sorts with the errors and a preparing one '
-        'with the printing, as the sections have them', () {
+    test('by status a displayable HMS error comes first, a failed or preparing '
+        'printer is idle', () {
+      PrinterWithStatus withHms(int id, String name) => PrinterWithStatus(
+        printer: Printer(id: id, name: name),
+        status: PrinterStatus(
+          id: id,
+          connected: true,
+          state: 'IDLE',
+          hmsErrors: const [
+            HmsError(
+              code: '0x8004',
+              attr: 0x03008004,
+              module: 3,
+              severity: 3,
+              fullCode: '03008004',
+            ),
+          ],
+        ),
+      );
       final mixed = [
         _p(1, 'idle'),
         _p(2, 'failed', state: 'FAILED'),
         _p(3, 'preparing', state: 'PREPARE'),
         _p(4, 'run', state: 'RUNNING'),
+        withHms(5, 'hms'),
       ];
       expect(
         _names(
           sortPrinters(mixed, const DashboardSort(by: PrinterSort.status)),
         ),
-        ['failed', 'preparing', 'run', 'idle'],
+        ['hms', 'run', 'idle', 'failed', 'preparing'],
       );
     });
 
