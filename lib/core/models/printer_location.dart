@@ -78,42 +78,6 @@ class PrinterLocationDraft {
 /// column is `VARCHAR(100)`, and a longer value is refused with a 422.
 const printerLocationNameMax = 100;
 
-/// The icon names the server accepts and the web's picker offers
-/// (`IconPicker.tsx::AVAILABLE_ICONS`). The server only checks the shape
-/// (`^[a-z0-9-]{1,50}$`), so these are the ones every client can draw.
-const printerLocationIcons = <String>[
-  'globe',
-  'link',
-  'external-link',
-  'book',
-  'file-text',
-  'home',
-  'star',
-  'heart',
-  'bookmark',
-  'shopping-cart',
-  'music',
-  'video',
-  'image',
-  'camera',
-  'map',
-  'compass',
-  'coffee',
-  'gift',
-  'wrench',
-  'zap',
-  'cloud',
-  'database',
-  'folder',
-  'mail',
-  'phone',
-  'user',
-  'users',
-  'server',
-  'terminal',
-  'code',
-];
-
 /// The colours the web page offers (`PrinterLocationsPage.tsx`,
 /// `LOCATION_COLORS`); the server takes any `#rrggbb`.
 const printerLocationColors = <String>[
@@ -127,20 +91,3 @@ const printerLocationColors = <String>[
   '#ec4899',
   '#6b7280',
 ];
-
-/// `PrinterLocationDeleteResult`.
-class PrinterLocationDeleteResult {
-  const PrinterLocationDeleteResult({
-    required this.deleted,
-    required this.printersUngrouped,
-  });
-
-  factory PrinterLocationDeleteResult.fromJson(Map<String, dynamic> json) =>
-      PrinterLocationDeleteResult(
-        deleted: toInt(json['deleted']),
-        printersUngrouped: toInt(json['printers_ungrouped']),
-      );
-
-  final int deleted;
-  final int printersUngrouped;
-}

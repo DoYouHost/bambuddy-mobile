@@ -67,14 +67,14 @@ class PrinterLocationsRepository {
 
   /// Their printers end up with no location. Queue items aimed at a deleted
   /// location are left alone, so one may be left waiting for printers that no
-  /// longer have it.
-  Future<PrinterLocationDeleteResult> delete(List<String> names) =>
+  /// longer have it. Returns how many locations existed to be deleted.
+  Future<int> delete(List<String> names) =>
       capability.watching(observing: const {}, () async {
         final res = await _dio.post<Map<String, dynamic>>(
           Endpoints.printerLocationsDelete,
           data: {'names': names},
         );
-        return PrinterLocationDeleteResult.fromJson(res.data ?? const {});
+        return toInt(res.data?['deleted']);
       });
 
   /// Moves [printerIds] into [location], or out of any with `null`. Returns

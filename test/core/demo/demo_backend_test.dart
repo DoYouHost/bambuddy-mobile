@@ -1848,17 +1848,20 @@ void main() {
       expect(await repo.assign([2], 'Office'), 1);
     });
 
-    test('delete reports what it removed and ungrouped', () async {
+    test('delete ungroups the printers and counts the locations', () async {
       final home = (await PrintersRepository(
         dio,
       ).fetchAll()).firstWhere((p) => p.printer.id == 5).printer.location;
       await repo.create(const PrinterLocationDraft(name: 'Scratch'));
       await repo.assign([5], 'Scratch');
 
-      final result = await repo.delete(['Scratch']);
-
-      expect(result.deleted, 1);
-      expect(result.printersUngrouped, 1);
+      expect(await repo.delete(['Scratch']), 1);
+      expect(
+        (await PrintersRepository(
+          dio,
+        ).fetchAll()).firstWhere((p) => p.printer.id == 5).printer.location,
+        isNull,
+      );
       await repo.assign([5], home);
     });
   });

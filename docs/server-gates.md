@@ -197,7 +197,9 @@ assign printers). Only in 1.2.6 dailies from 2026-10-03.
 A route family nothing shadows (`/printers/{id}` is a different prefix), so the
 listing's 404 settles `PrinterLocationsRepository.capability`. Being early costs
 a drawer entry that opens onto an empty screen on a 1.2.6b1 daily older than the
-commit, so the entry waits for the listing. The writes settle nothing: their 403
+commit: the version row shows the entry before any request, and the 404 the
+screen meets on opening settles the latch, which hides the entry and the write
+controls from then on. The writes settle nothing: their 403
 is a missing `printers:update`, which no API key can hold — the screen is
 read-only for a key — and taking it for "no locations here" would hide a list
 the session may read.

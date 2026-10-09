@@ -154,7 +154,7 @@ class _PrinterLocationFormState extends ConsumerState<_PrinterLocationForm> {
                 spacing: DashSpace.sm,
                 runSpacing: DashSpace.sm,
                 children: [
-                  for (final name in printerLocationIcons)
+                  for (final name in printerLocationIcons.keys)
                     _IconChoice(
                       name: name,
                       selected: _icon == name,

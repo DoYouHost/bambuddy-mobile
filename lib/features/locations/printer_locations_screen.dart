@@ -57,13 +57,19 @@ class _PrinterLocationsScreenState
   static String _locationOf(PrinterWithStatus p) =>
       (p.printer.location ?? '').trim();
 
-  Future<void> _refresh() async {
-    ref.invalidate(printerLocationsProvider);
+  /// Re-reads the locations and the roster, and waits for both: a write that
+  /// let go of the screen before the list was back left a deleted location on
+  /// show, with its buttons enabled.
+  Future<void> _reload(ProviderContainer container) async {
+    container.invalidate(printerLocationsProvider);
     await Future.wait([
-      ref.read(printerLocationsProvider.future).then((_) {}),
-      ref.read(dashboardProvider.notifier).refresh(),
+      container.read(printerLocationsProvider.future).then((_) {}),
+      container.read(dashboardProvider.notifier).refresh(),
     ]);
   }
+
+  Future<void> _refresh() =>
+      _reload(ProviderScope.containerOf(context, listen: false));
 
   /// Runs one write: [send] answers the sentence to show, a refusal shows the
   /// server's reason instead. Re-reads the locations and the roster either
@@ -90,15 +96,15 @@ class _PrinterLocationsScreenState
         message: e.statusCode == 409 ? l10n.printerLocationsNameTaken : null,
       );
     } finally {
-      container.invalidate(printerLocationsProvider);
-      await container.read(dashboardProvider.notifier).refresh();
+      try {
+        await _reload(container);
+      } on Object {
+        // The write's own outcome is already on screen; a failed re-read is
+        // the list's error state, not this call's.
+      }
       if (mounted) setState(() => _busy = false);
     }
     return ok;
-  }
-
-  Future<void> _create() async {
-    await openPrinterLocationForm(context);
   }
 
   Future<void> _edit(PrinterLocation location) async {
@@ -107,7 +113,7 @@ class _PrinterLocationsScreenState
     // A rename moved the printers along; the roster has to follow, and the
     // card that was open stays open under its new name.
     if (_expanded == location.name) setState(() => _expanded = saved.name);
-    await ref.read(dashboardProvider.notifier).refresh();
+    await _reload(ProviderScope.containerOf(context, listen: false));
   }
 
   Future<void> _delete(List<String> names, {required String action}) async {
@@ -131,10 +137,10 @@ class _PrinterLocationsScreenState
     );
     if (!ok || !mounted) return;
     final done = await _write((l10n) async {
-      final result = await ref
+      final deleted = await ref
           .read(printerLocationsRepositoryProvider)
           .delete(names);
-      return l10n.printerLocationsDeleted(result.deleted);
+      return l10n.printerLocationsDeleted(deleted);
     }, action: action);
     if (done && mounted) {
       setState(() {
@@ -157,15 +163,18 @@ class _PrinterLocationsScreenState
           .assign(ids, choice.location);
       return l10n.printerLocationsMoved(moved);
     }, action: 'location_move.confirm');
-    if (done && mounted) setState(_pickedPrinters.clear);
+    if (done && mounted) setState(() => _pickedPrinters.removeAll(ids));
   }
 
-  Future<void> _remove(PrinterWithStatus p) => _write((l10n) async {
-    final moved = await ref.read(printerLocationsRepositoryProvider).assign([
-      p.printer.id,
-    ], null);
-    return l10n.printerLocationsMoved(moved);
-  }, action: 'locations.printer_remove');
+  Future<void> _remove(PrinterWithStatus p) async {
+    final done = await _write((l10n) async {
+      final moved = await ref.read(printerLocationsRepositoryProvider).assign([
+        p.printer.id,
+      ], null);
+      return l10n.printerLocationsMoved(moved);
+    }, action: 'locations.printer_remove');
+    if (done && mounted) setState(() => _pickedPrinters.remove(p.printer.id));
+  }
 
   void _toggle<T>(Set<T> set, T value) => setState(() {
     if (!set.remove(value)) set.add(value);
@@ -174,7 +183,10 @@ class _PrinterLocationsScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final canEdit = ref.watch(canEditPrinterLocationsProvider);
+    // A server that answered 404 to the listing has nothing to write to.
+    final canEdit =
+        ref.watch(canEditPrinterLocationsProvider) &&
+        (ref.watch(printerLocationsSupportedProvider).valueOrNull ?? true);
     final async = ref.watch(printerLocationsProvider);
     final roster = withLiveStatuses(
       ref.watch(dashboardProvider).printers ?? const [],
@@ -206,7 +218,9 @@ class _PrinterLocationsScreenState
         ),
         floatingActionButton: canEdit && bar == null && !_selecting
             ? FloatingActionButton.extended(
-                onPressed: _busy ? null : _create,
+                onPressed: _busy
+                    ? null
+                    : () => openPrinterLocationForm(context),
                 icon: const Icon(Icons.add),
                 label: Text(l10n.printerLocationsNew),
               ).tagged('locations.new')

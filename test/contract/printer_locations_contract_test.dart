@@ -163,8 +163,7 @@ void main() {
       expect((await reread()).location, printer.location);
     });
 
-    test('deleting a location ungroups its printers and reports both '
-        'counts', () async {
+    test('deleting a location ungroups its printers', () async {
       if (!hasLocations) {
         markTestSkipped('server predates printer locations');
         return;
@@ -173,10 +172,7 @@ void main() {
       await create(doomed);
       await locations.assign([printer.id], doomed);
 
-      final result = await locations.delete([doomed]);
-
-      expect(result.deleted, 1);
-      expect(result.printersUngrouped, 1);
+      expect(await locations.delete([doomed]), 1);
       expect((await reread()).location, isNull);
       expect(
         (await locations.list()).map((l) => l.name),

@@ -163,7 +163,7 @@ void main() {
     expect(saved.color, '#22c55e');
   });
 
-  test('delete sends the names and reads the counts', () async {
+  test('delete sends the names and reads how many existed', () async {
     adapter.onPost(
       '/api/v1/printer-locations/delete',
       (s) => s.reply(200, {'deleted': 2, 'printers_ungrouped': 3}),
@@ -172,10 +172,7 @@ void main() {
       },
     );
 
-    final result = await repo.delete(['A', 'B']);
-
-    expect(result.deleted, 2);
-    expect(result.printersUngrouped, 3);
+    expect(await repo.delete(['A', 'B']), 2);
   });
 
   test('assign sends null to take printers out of every location', () async {

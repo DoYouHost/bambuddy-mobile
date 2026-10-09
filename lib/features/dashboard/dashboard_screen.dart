@@ -861,9 +861,9 @@ class _AppDrawer extends ConsumerWidget {
                     },
                     id: 'drawer.stats',
                   ),
-                  // The version table answers before the listing has: a 1.2.6
-                  // daily older than the feature shows the entry once, and the
-                  // empty listing it gets takes it away.
+                  // The version table answers before any request: a 1.2.6 daily
+                  // older than the feature shows the entry, and the 404 the
+                  // screen then meets on its listing takes it away.
                   if (ref.watch(printerLocationsSupportedProvider).orFalse)
                     _DrawerTile(
                       icon: Icons.place_outlined,

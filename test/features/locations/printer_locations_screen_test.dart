@@ -272,4 +272,85 @@ void main() {
 
     expect(find.text(l.printerLocationsNameTaken), findsOneWidget);
   });
+
+  testWidgets('moving one printer from its row keeps the other ticks', (
+    tester,
+  ) async {
+    await pumpScreen(tester);
+    adapter.onPost(
+      '${_path}assign',
+      (s) => s.reply(200, {'moved': 1}),
+      data: {
+        'printer_ids': [3],
+        'location': 'Attic',
+      },
+    );
+
+    // Spare (id 4) is ticked; Desk (id 3) is then moved on its own.
+    await tester.tap(byLogId('locations.printer_select'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Office'));
+    await tester.pumpAndSettle();
+    await tester.tap(byLogId('locations.printer_move').first);
+    await tester.pumpAndSettle();
+    await tester.tap(byLogId('location_move.target'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Attic').last);
+    await tester.pumpAndSettle();
+    await tester.tap(byLogId('location_move.confirm'));
+    await tester.pumpAndSettle();
+
+    expect(
+      sent.requests.where((r) => r.method == 'POST').single.data,
+      containsPair('printer_ids', [3]),
+    );
+    expect(byLogId('locations.move_selected'), findsOneWidget);
+  });
+
+  testWidgets('a printer taken out of its location is no longer ticked', (
+    tester,
+  ) async {
+    await pumpScreen(tester);
+    adapter.onPost(
+      '${_path}assign',
+      (s) => s.reply(200, {'moved': 1}),
+      data: {
+        'printer_ids': [3],
+        'location': null,
+      },
+    );
+
+    await tester.tap(find.text('Office'));
+    await tester.pumpAndSettle();
+    await tester.tap(byLogId('locations.printer_select'));
+    await tester.pumpAndSettle();
+    expect(byLogId('locations.move_selected'), findsOneWidget);
+
+    await tester.tap(byLogId('locations.printer_remove'));
+    await tester.pumpAndSettle();
+
+    expect(byLogId('locations.move_selected'), findsNothing);
+  });
+
+  testWidgets('a server that answered 404 to the listing offers no writes', (
+    tester,
+  ) async {
+    final dio = testDio();
+    mockServer(dio).onGet(_path, (s) => s.reply(404, {'detail': 'Not Found'}));
+    await pumpPhone(
+      tester,
+      const PrinterLocationsScreen(),
+      overrides: [
+        fakeServerProfileOverride(),
+        printerLocationsRepositoryProvider.overrideWithValue(
+          PrinterLocationsRepository(dio),
+        ),
+        dashboardProvider.overrideWith(_FixedDashboard.new),
+        inertStatusesOverride,
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    expect(byLogId('locations.new'), findsNothing);
+  });
 }
