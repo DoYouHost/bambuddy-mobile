@@ -80,29 +80,31 @@ class _ManyfoldModelScreenState extends ConsumerState<ManyfoldModelScreen> {
 
   Future<void> _importMany(List<ManyfoldFile> files, String action) async {
     final l10n = AppLocalizations.of(context);
-    await importManyfoldFiles(
-      ref.read(manyfoldRepositoryProvider),
-      [
-        for (final f in files)
-          (modelId: widget.modelId, fileId: f.id, name: f.name),
-      ],
-      folderId: _folderId,
-      messenger: ScaffoldMessenger.of(context),
-      l10n: l10n,
-      mounted: () => mounted,
-      action: action,
-      onProgress: (current, total) {
-        if (mounted) {
-          setState(() => _progress = l10n.mfImportProgress(current, total));
-        }
-      },
-    );
-    if (!mounted) return;
-    setState(() {
-      _progress = null;
-      _checked.clear();
-    });
-    _reload();
+    try {
+      await importManyfoldFiles(
+        ref.read(manyfoldRepositoryProvider),
+        [
+          for (final f in files)
+            (modelId: widget.modelId, fileId: f.id, name: f.name),
+        ],
+        folderId: _folderId,
+        messenger: ScaffoldMessenger.of(context),
+        l10n: l10n,
+        mounted: () => mounted,
+        action: action,
+        onProgress: (current, total) {
+          if (mounted) {
+            setState(() => _progress = l10n.mfImportProgress(current, total));
+          }
+        },
+      );
+      if (mounted) setState(_checked.clear);
+    } finally {
+      if (mounted) {
+        setState(() => _progress = null);
+        _reload();
+      }
+    }
   }
 
   @override

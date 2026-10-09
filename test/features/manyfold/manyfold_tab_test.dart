@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/makerworld.dart';
+import 'package:bambuddy_mobile/core/models/manyfold.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/data/manyfold_repository.dart';
@@ -7,6 +10,7 @@ import 'package:bambuddy_mobile/features/manyfold/manyfold_model_screen.dart';
 import 'package:bambuddy_mobile/features/model_sources/model_sources_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +19,7 @@ import 'package:http_mock_adapter/http_mock_adapter.dart';
 import '../../helpers.dart';
 
 void main() {
+  late Dio dio;
   late DioAdapter server;
   late List<Override> overrides;
 
@@ -29,7 +34,7 @@ void main() {
   );
 
   setUp(() {
-    final dio = testDio();
+    dio = testDio();
     server = mockServer(dio)
       ..onGet('/api/v1/library/folders', (s) => s.reply(200, <Object>[]));
     overrides = [
@@ -218,6 +223,39 @@ void main() {
     );
   });
 
+  testWidgets('an unexpected failure mid-import unlocks the grid again', (
+    tester,
+  ) async {
+    status(200, {'configured': true, 'url': 'http://mf'});
+    listing();
+    await open(
+      tester,
+      extra: [
+        currentUserOverride(user({Permissions.manyfoldImport})),
+        manyfoldRepositoryProvider.overrideWithValue(
+          _BrokenModelRepository(dio),
+        ),
+      ],
+    );
+    await tester.tap(find.text(l10n(tester).manyfoldTitle));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n(tester).mfSelectPage));
+    await tester.pumpAndSettle();
+
+    final errors = <Object>[];
+    await runZonedGuarded(
+      () => tester.tap(find.text(l10n(tester).mfImportModels)),
+      (e, _) => errors.add(e),
+    );
+    await tester.pumpAndSettle();
+
+    // Unexpected errors still go up to the error reporter...
+    expect(errors.single, isA<StateError>());
+    // ...but no longer leave the progress line standing in for the buttons.
+    expect(find.text(l10n(tester).mfImportModels), findsOneWidget);
+    expect(find.text(l10n(tester).mfCollectProgress(1, 2)), findsNothing);
+  });
+
   group('a model', () {
     Future<void> openModel(WidgetTester tester, Set<String> permissions) =>
         pumpPhone(
@@ -245,6 +283,21 @@ void main() {
       expect(find.text(l10n(tester).mfInLibrary), findsOneWidget);
       expect(find.text(l10n(tester).mfShowInLibrary), findsOneWidget);
       expect(find.text(l10n(tester).mfImport), findsOneWidget);
+      // The folder field starts on the automatic "Manyfold" folder.
+      expect(
+        tester
+            .widget<DropdownMenu<int?>>(find.byType(DropdownMenu<int?>))
+            .controller
+            ?.text,
+        anyOf(isNull, l10n(tester).mfFolderAuto),
+      );
+      expect(
+        find.descendant(
+          of: find.byType(DropdownMenu<int?>),
+          matching: find.text(l10n(tester).mfFolderAuto),
+        ),
+        findsWidgets,
+      );
       // Only "a" is still to import, and only it has a box beside "Select all".
       expect(find.byType(Checkbox), findsNWidgets(2));
     });
@@ -336,9 +389,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(l10n(tester).mfTestOk(12)), findsOneWidget);
 
+      // What the server answers once the connection is stored.
+      status(200, {'configured': true, 'url': 'http://mf:3214'});
+      listing();
       await tester.tap(save);
       await tester.pumpAndSettle();
       expect(find.text(l10n(tester).mfSaved), findsOneWidget);
+      // The first connection leads straight on to browsing.
+      expect(find.text('Dragon'), findsOneWidget);
     });
 
     testWidgets('a refused test says why in our words', (tester) async {
@@ -396,4 +454,11 @@ void main() {
       expect(find.text(l10n(tester).mfDisconnected), findsOneWidget);
     });
   });
+}
+
+class _BrokenModelRepository extends ManyfoldRepository {
+  _BrokenModelRepository(super.dio);
+
+  @override
+  Future<ManyfoldModel> model(String id) => throw StateError('broken');
 }

@@ -89,46 +89,47 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
     final picked = Map.of(_picked);
     final items = <ManyfoldImportItem>[];
     final unreadable = <String>[];
-    var i = 0;
-    for (final MapEntry(key: id, value: name) in picked.entries) {
-      setState(() => _progress = l10n.mfCollectProgress(++i, picked.length));
-      try {
-        final model = await repo.model(id);
-        for (final f in model.importCandidates) {
-          items.add((
-            modelId: model.id,
-            fileId: f.id,
-            name: '${model.name}: ${f.name}',
-          ));
+    // `finally`, as the web's: an unexpected error must not leave the grid
+    // locked behind a progress line nothing will clear.
+    try {
+      var i = 0;
+      for (final MapEntry(key: id, value: name) in picked.entries) {
+        setState(() => _progress = l10n.mfCollectProgress(++i, picked.length));
+        try {
+          final model = await repo.model(id);
+          for (final f in model.importCandidates) {
+            items.add((
+              modelId: model.id,
+              fileId: f.id,
+              name: '${model.name}: ${f.name}',
+            ));
+          }
+        } on Object catch (e) {
+          if (e is! ManyfoldFailure && e is! AppApiException) rethrow;
+          unreadable.add(name);
         }
-      } on Object catch (e) {
-        if (e is! ManyfoldFailure && e is! AppApiException) rethrow;
-        unreadable.add(name);
+        if (!mounted) return;
       }
-      if (!mounted) return;
-    }
-    if (unreadable.isNotEmpty) {
-      messenger.snack(l10n.mfModelsUnreadable(manyfoldListNames(unreadable)));
-    }
-    await importManyfoldFiles(
-      repo,
-      items,
-      folderId: _folderId,
-      messenger: messenger,
-      l10n: l10n,
-      mounted: () => mounted,
-      action: 'manyfold.import_models',
-      onProgress: (current, total) {
-        if (mounted) {
-          setState(() => _progress = l10n.mfImportProgress(current, total));
-        }
-      },
-    );
-    if (mounted) {
-      setState(() {
-        _progress = null;
-        _picked.clear();
-      });
+      if (unreadable.isNotEmpty) {
+        messenger.snack(l10n.mfModelsUnreadable(manyfoldListNames(unreadable)));
+      }
+      await importManyfoldFiles(
+        repo,
+        items,
+        folderId: _folderId,
+        messenger: messenger,
+        l10n: l10n,
+        mounted: () => mounted,
+        action: 'manyfold.import_models',
+        onProgress: (current, total) {
+          if (mounted) {
+            setState(() => _progress = l10n.mfImportProgress(current, total));
+          }
+        },
+      );
+      if (mounted) setState(_picked.clear);
+    } finally {
+      if (mounted) setState(() => _progress = null);
     }
   }
 
