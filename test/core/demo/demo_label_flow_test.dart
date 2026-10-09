@@ -72,7 +72,7 @@ void main() {
 
     // Offered only to a server that has them: the demo's version says it does.
     expect(find.text(l10n.labelFieldsTitle), findsOneWidget);
-    expect(find.text('PNG'), findsOneWidget);
+    expect(find.text(l10n.labelFormatTitle), findsOneWidget);
   });
 
   testWidgets('a printer that is set up gets the labels, and says so', (
