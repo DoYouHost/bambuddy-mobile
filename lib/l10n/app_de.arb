@@ -65,9 +65,9 @@
   "editPrinterSerialLocked": "Seriennummer kann nicht geändert werden",
   "editPrinterAccessCodeKeep": "Leer lassen, um den aktuellen zu behalten",
   "editPrinterMaintenance": "Wartungsmodus",
-  "editPrinterMaintenanceHelp": "Wenn aktiviert, ist dieser Drucker von MQTT, Warteschlangenversand und Benachrichtigungen pausiert — nützlich für Reparaturen, parallele Bambuddy-Installationen oder temporäre Außerbetriebnahme.",
+  "editPrinterMaintenanceHelp": "Pausiert Verbindung, Warteschlange und Benachrichtigungen dieses Druckers.",
   "editPrinterWearCost": "Verschleißkosten pro Druckstunde ({currency})",
-  "editPrinterWearCostHelp": "Was eine Druckstunde diesen Drucker an Verschleiß und Ersatzteilen kostet. Wird ab jetzt zu den Kosten jedes Drucks addiert; frühere Drucke bleiben unverändert. Leer lassen zum Abschalten.",
+  "editPrinterWearCostHelp": "Wird nur zu neuen Drucken addiert. Leer lassen zum Abschalten.",
   "editPrinterWearCostInvalid": "Gib eine Zahl von 0 bis 100000 ein",
   "editPrinterPreflightWarning": "Einige Verbindungsprüfungen sind fehlgeschlagen. Dieser Drucker wird möglicherweise als offline angezeigt. Prüfe die Punkte unten, behebe was möglich ist, oder speichere trotzdem.",
   "editPrinterSaveAnyway": "Trotzdem speichern",
@@ -4087,7 +4087,6 @@
   "dashboardSortAscending": "Aufsteigend",
   "dashboardSortDescending": "Absteigend",
   "dashboardLocationAll": "Alle Standorte",
-  "dashboardLocationsManage": "Standorte verwalten",
   "dashboardGroupUngrouped": "Ohne Standort",
   "dashboardGroupUnknownModel": "Unbekanntes Modell"
 }

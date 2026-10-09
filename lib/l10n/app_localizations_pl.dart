@@ -198,7 +198,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get editPrinterMaintenanceHelp =>
-      'Gdy włączony, Bambuddy rozłącza się z drukarką, nie wysyła do niej zadań z kolejki ani powiadomień o niej. Przydaje się przy naprawie, przy drugiej instalacji Bambuddy albo by na jakiś czas wyłączyć ją z użytku.';
+      'Wstrzymuje połączenie, kolejkę i powiadomienia tej drukarki.';
 
   @override
   String editPrinterWearCost(String currency) {
@@ -207,7 +207,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get editPrinterWearCostHelp =>
-      'Ile godzina drukowania kosztuje tę drukarkę w zużyciu i częściach. Od teraz dolicza się do kosztu każdego wydruku; wcześniejszych wydruków nie zmienia. Zostaw puste, aby wyłączyć.';
+      'Dolicza się tylko do nowych wydruków. Puste pole wyłącza.';
 
   @override
   String get editPrinterWearCostInvalid => 'Wpisz liczbę od 0 do 100000';
@@ -8311,9 +8311,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get dashboardLocationAll => 'Wszystkie lokalizacje';
-
-  @override
-  String get dashboardLocationsManage => 'Zarządzaj lokalizacjami';
 
   @override
   String get dashboardGroupUngrouped => 'Bez lokalizacji';

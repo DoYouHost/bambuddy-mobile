@@ -569,16 +569,7 @@ void main() {
     Future<void> remember(Map<String, Object?> view) =>
         _prefs.setString('dashboard_view', jsonEncode(view));
 
-    Future<void> pumpFarm(WidgetTester tester) => tester.pumpWidget(
-      _app(
-        farm,
-        extra: [
-          printerLocationsSupportedProvider.overrideWithValue(
-            const AsyncData(true),
-          ),
-        ],
-      ),
-    );
+    Future<void> pumpFarm(WidgetTester tester) => tester.pumpWidget(_app(farm));
 
     testWidgets('a fresh install starts sorted by status, in sections', (
       tester,
@@ -673,13 +664,11 @@ void main() {
       );
     });
 
-    testWidgets('the sheet picks a location and a sort, and offers the way '
-        'to manage them', (tester) async {
+    testWidgets('the sheet picks a location and a sort', (tester) async {
       await pumpFarm(tester);
 
       await tester.tap(byLogId('dashboard.filters'));
       await tester.pumpAndSettle();
-      expect(byLogId('dashboard_filters.manage_locations'), findsOneWidget);
 
       await tester.tap(byLogId('dashboard_filters.location'));
       await tester.pumpAndSettle();
@@ -693,8 +682,7 @@ void main() {
       expect(saved['ascending'], isFalse);
     });
 
-    testWidgets('no location to pick and none to manage leaves the section '
-        'out', (tester) async {
+    testWidgets('no location to pick leaves the section out', (tester) async {
       await tester.pumpWidget(
         _app(
           const DashboardState(
@@ -703,11 +691,6 @@ void main() {
               PrinterWithStatus(printer: Printer(id: 2, name: 'B')),
             ],
           ),
-          extra: [
-            printerLocationsSupportedProvider.overrideWithValue(
-              const AsyncData(false),
-            ),
-          ],
         ),
       );
 
@@ -715,7 +698,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(byLogId('dashboard_filters.location'), findsNothing);
-      expect(byLogId('dashboard_filters.manage_locations'), findsNothing);
     });
   });
 

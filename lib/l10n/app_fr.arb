@@ -65,9 +65,9 @@
   "editPrinterSerialLocked": "Le numéro de série ne peut pas être modifié",
   "editPrinterAccessCodeKeep": "Laissez vide pour garder l'actuel",
   "editPrinterMaintenance": "Mode maintenance",
-  "editPrinterMaintenanceHelp": "Quand il est activé, cette imprimante est mise en pause de MQTT, de la file d'attente et des notifications — utile pour les réparations, les installations Bambuddy parallèles ou une suspension temporaire.",
+  "editPrinterMaintenanceHelp": "Connexion, file d'attente et notifications de cette imprimante en pause.",
   "editPrinterWearCost": "Coût d'usure par heure d'impression ({currency})",
-  "editPrinterWearCostHelp": "Ce qu'une heure d'impression coûte à cette imprimante en usure et en pièces. Il s'ajoute au coût de chaque impression à partir de maintenant ; les impressions précédentes ne changent pas. Laissez vide pour le désactiver.",
+  "editPrinterWearCostHelp": "S'ajoute uniquement aux nouvelles impressions. Laissez vide pour le désactiver.",
   "editPrinterWearCostInvalid": "Saisissez un nombre entre 0 et 100000",
   "editPrinterPreflightWarning": "Certaines vérifications de connexion ont échoué. Cette imprimante pourrait apparaître hors ligne. Examinez les vérifications ci-dessous, corrigez ce que vous pouvez ou enregistrez quand même.",
   "editPrinterSaveAnyway": "Enregistrer quand même",
@@ -4087,7 +4087,6 @@
   "dashboardSortAscending": "Croissant",
   "dashboardSortDescending": "Décroissant",
   "dashboardLocationAll": "Tous les emplacements",
-  "dashboardLocationsManage": "Gérer les emplacements",
   "dashboardGroupUngrouped": "Sans emplacement",
   "dashboardGroupUnknownModel": "Modèle inconnu"
 }

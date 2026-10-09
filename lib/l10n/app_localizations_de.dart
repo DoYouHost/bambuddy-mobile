@@ -201,7 +201,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get editPrinterMaintenanceHelp =>
-      'Wenn aktiviert, ist dieser Drucker von MQTT, Warteschlangenversand und Benachrichtigungen pausiert — nützlich für Reparaturen, parallele Bambuddy-Installationen oder temporäre Außerbetriebnahme.';
+      'Pausiert Verbindung, Warteschlange und Benachrichtigungen dieses Druckers.';
 
   @override
   String editPrinterWearCost(String currency) {
@@ -210,7 +210,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get editPrinterWearCostHelp =>
-      'Was eine Druckstunde diesen Drucker an Verschleiß und Ersatzteilen kostet. Wird ab jetzt zu den Kosten jedes Drucks addiert; frühere Drucke bleiben unverändert. Leer lassen zum Abschalten.';
+      'Wird nur zu neuen Drucken addiert. Leer lassen zum Abschalten.';
 
   @override
   String get editPrinterWearCostInvalid => 'Gib eine Zahl von 0 bis 100000 ein';
@@ -8260,9 +8260,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get dashboardLocationAll => 'Alle Standorte';
-
-  @override
-  String get dashboardLocationsManage => 'Standorte verwalten';
 
   @override
   String get dashboardGroupUngrouped => 'Ohne Standort';

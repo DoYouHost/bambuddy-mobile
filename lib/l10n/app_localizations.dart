@@ -455,7 +455,7 @@ abstract class AppLocalizations {
   /// No description provided for @editPrinterMaintenanceHelp.
   ///
   /// In en, this message translates to:
-  /// **'While on, Bambuddy disconnects from this printer, sends it no queued jobs and sends no notifications about it. Useful during a repair, for a second Bambuddy install, or to take it out of use for a while.'**
+  /// **'Pauses the connection, queued jobs and notifications for this printer.'**
   String get editPrinterMaintenanceHelp;
 
   /// No description provided for @editPrinterWearCost.
@@ -467,7 +467,7 @@ abstract class AppLocalizations {
   /// No description provided for @editPrinterWearCostHelp.
   ///
   /// In en, this message translates to:
-  /// **'What an hour of printing costs this printer in wear and parts. It is added to the cost of every print from now on; earlier prints are not changed. Leave empty to turn it off.'**
+  /// **'Added to new prints only. Leave empty to turn it off.'**
   String get editPrinterWearCostHelp;
 
   /// No description provided for @editPrinterWearCostInvalid.
@@ -13765,12 +13765,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All locations'**
   String get dashboardLocationAll;
-
-  /// No description provided for @dashboardLocationsManage.
-  ///
-  /// In en, this message translates to:
-  /// **'Manage locations'**
-  String get dashboardLocationsManage;
 
   /// No description provided for @dashboardGroupUngrouped.
   ///

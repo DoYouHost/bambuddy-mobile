@@ -194,7 +194,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editPrinterMaintenanceHelp =>
-      'While on, Bambuddy disconnects from this printer, sends it no queued jobs and sends no notifications about it. Useful during a repair, for a second Bambuddy install, or to take it out of use for a while.';
+      'Pauses the connection, queued jobs and notifications for this printer.';
 
   @override
   String editPrinterWearCost(String currency) {
@@ -203,7 +203,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editPrinterWearCostHelp =>
-      'What an hour of printing costs this printer in wear and parts. It is added to the cost of every print from now on; earlier prints are not changed. Leave empty to turn it off.';
+      'Added to new prints only. Leave empty to turn it off.';
 
   @override
   String get editPrinterWearCostInvalid => 'Enter a number from 0 to 100000';
@@ -8182,9 +8182,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashboardLocationAll => 'All locations';
-
-  @override
-  String get dashboardLocationsManage => 'Manage locations';
 
   @override
   String get dashboardGroupUngrouped => 'No location';

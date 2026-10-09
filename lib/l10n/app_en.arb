@@ -89,14 +89,14 @@
   "editPrinterSerialLocked": "Serial number cannot be changed",
   "editPrinterAccessCodeKeep": "Leave empty to keep the current one",
   "editPrinterMaintenance": "Maintenance mode",
-  "editPrinterMaintenanceHelp": "While on, Bambuddy disconnects from this printer, sends it no queued jobs and sends no notifications about it. Useful during a repair, for a second Bambuddy install, or to take it out of use for a while.",
+  "editPrinterMaintenanceHelp": "Pauses the connection, queued jobs and notifications for this printer.",
   "editPrinterWearCost": "Wear cost per printing hour ({currency})",
   "@editPrinterWearCost": {
     "placeholders": {
       "currency": {"type": "String", "example": "zł"}
     }
   },
-  "editPrinterWearCostHelp": "What an hour of printing costs this printer in wear and parts. It is added to the cost of every print from now on; earlier prints are not changed. Leave empty to turn it off.",
+  "editPrinterWearCostHelp": "Added to new prints only. Leave empty to turn it off.",
   "editPrinterWearCostInvalid": "Enter a number from 0 to 100000",
   "editPrinterPreflightWarning": "Some connection checks failed. This printer may show as offline. Review the checks below, fix what you can, or save anyway.",
   "editPrinterSaveAnyway": "Save anyway",
@@ -5231,7 +5231,6 @@
   "dashboardSortAscending": "Ascending",
   "dashboardSortDescending": "Descending",
   "dashboardLocationAll": "All locations",
-  "dashboardLocationsManage": "Manage locations",
   "dashboardGroupUngrouped": "No location",
   "dashboardGroupUnknownModel": "Unknown model"
 }

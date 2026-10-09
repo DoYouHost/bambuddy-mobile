@@ -201,7 +201,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get editPrinterMaintenanceHelp =>
-      'Quand il est activé, cette imprimante est mise en pause de MQTT, de la file d\'attente et des notifications — utile pour les réparations, les installations Bambuddy parallèles ou une suspension temporaire.';
+      'Connexion, file d\'attente et notifications de cette imprimante en pause.';
 
   @override
   String editPrinterWearCost(String currency) {
@@ -210,7 +210,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get editPrinterWearCostHelp =>
-      'Ce qu\'une heure d\'impression coûte à cette imprimante en usure et en pièces. Il s\'ajoute au coût de chaque impression à partir de maintenant ; les impressions précédentes ne changent pas. Laissez vide pour le désactiver.';
+      'S\'ajoute uniquement aux nouvelles impressions. Laissez vide pour le désactiver.';
 
   @override
   String get editPrinterWearCostInvalid =>
@@ -8363,9 +8363,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get dashboardLocationAll => 'Tous les emplacements';
-
-  @override
-  String get dashboardLocationsManage => 'Gérer les emplacements';
 
   @override
   String get dashboardGroupUngrouped => 'Sans emplacement';
