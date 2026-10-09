@@ -4084,6 +4084,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mfTest => 'Verbindung testen';
 
   @override
+  String get mfSave => 'Speichern';
+
+  @override
+  String get mfSaved => 'Einstellungen gespeichert';
+
+  @override
   String mfTestOk(int count) {
     return 'Verbunden. Für Bambuddy sichtbare Modelle: $count';
   }

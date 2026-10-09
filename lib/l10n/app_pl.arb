@@ -1703,6 +1703,8 @@
   "mfClientSecret": "Sekret klienta",
   "mfClientSecretStored": "Zapisany. Zostaw puste, aby go zachować.",
   "mfTest": "Testuj połączenie",
+  "mfSave": "Zapisz",
+  "mfSaved": "Zapisano ustawienia",
   "mfTestOk": "Połączono. Modele widoczne dla Bambuddy: {count}",
   "mfDisconnect": "Rozłącz",
   "mfDisconnectTitle": "Rozłączyć Manyfold?",

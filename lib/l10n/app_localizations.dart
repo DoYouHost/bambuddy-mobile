@@ -6806,6 +6806,18 @@ abstract class AppLocalizations {
   /// **'Test connection'**
   String get mfTest;
 
+  /// Manyfold connection form: stores the URL, client ID and secret
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get mfSave;
+
+  /// Snackbar after the Manyfold connection was stored
+  ///
+  /// In en, this message translates to:
+  /// **'Settings saved'**
+  String get mfSaved;
+
   /// Manyfold tab: testOk
   ///
   /// In en, this message translates to:

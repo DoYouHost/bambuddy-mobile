@@ -4042,6 +4042,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mfTest => 'Test connection';
 
   @override
+  String get mfSave => 'Save';
+
+  @override
+  String get mfSaved => 'Settings saved';
+
+  @override
   String mfTestOk(int count) {
     return 'Connected. Models Bambuddy can see: $count';
   }

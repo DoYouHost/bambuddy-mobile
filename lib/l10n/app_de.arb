@@ -2285,6 +2285,8 @@
   "mfClientSecret": "Client-Secret",
   "mfClientSecretStored": "Gespeichert. Leer lassen, um es zu behalten.",
   "mfTest": "Verbindung testen",
+  "mfSave": "Speichern",
+  "mfSaved": "Einstellungen gespeichert",
   "mfTestOk": "Verbunden. Für Bambuddy sichtbare Modelle: {count}",
   "mfDisconnect": "Trennen",
   "mfDisconnectTitle": "Manyfold trennen?",

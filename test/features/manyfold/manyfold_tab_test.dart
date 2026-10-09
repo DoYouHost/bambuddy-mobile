@@ -267,4 +267,133 @@ void main() {
       expect(find.byType(Checkbox), findsNothing);
     });
   });
+
+  group('the connection', () {
+    final admin = [
+      currentUserOverride(user({Permissions.settingsUpdate})),
+    ];
+
+    void config(Map<String, dynamic> body) =>
+        server.onGet('/api/v1/manyfold/config', (s) => s.reply(200, body));
+
+    testWidgets('an API key is never offered it', (tester) async {
+      status(200, {'configured': false, 'url': ''});
+      await open(
+        tester,
+        extra: [
+          fakeServerProfileOverride(authMode: AuthMode.apiKey),
+          currentUserOverride(user({Permissions.settingsUpdate})),
+        ],
+      );
+      expect(find.byType(TabBar), findsNothing);
+    });
+
+    testWidgets('is tested and stored from the tab before Manyfold is set up', (
+      tester,
+    ) async {
+      status(200, {'configured': false, 'url': ''});
+      config({
+        'url': '',
+        'client_id': '',
+        'has_client_secret': false,
+        'configured': false,
+      });
+      const sent = {
+        'url': 'http://mf:3214',
+        'client_id': 'app',
+        'client_secret': 's3cret',
+      };
+      server
+        ..onPost(
+          '/api/v1/manyfold/config/test',
+          (s) => s.reply(200, {'model_count': 12}),
+          data: sent,
+        )
+        ..onPut(
+          '/api/v1/manyfold/config',
+          (s) => s.reply(200, {
+            'url': 'http://mf:3214',
+            'client_id': 'app',
+            'has_client_secret': true,
+            'configured': true,
+          }),
+          data: sent,
+        );
+      await open(tester, extra: admin);
+      await tester.tap(find.text(l10n(tester).manyfoldTitle));
+      await tester.pumpAndSettle();
+
+      final save = find.widgetWithText(FilledButton, l10n(tester).mfSave);
+      expect(tester.widget<FilledButton>(save).onPressed, isNull);
+
+      final fields = find.byType(TextField);
+      await tester.enterText(fields.at(0), 'http://mf:3214');
+      await tester.enterText(fields.at(1), 'app');
+      await tester.enterText(fields.at(2), 's3cret');
+      await tester.pump();
+
+      await tester.tap(find.text(l10n(tester).mfTest));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n(tester).mfTestOk(12)), findsOneWidget);
+
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(find.text(l10n(tester).mfSaved), findsOneWidget);
+    });
+
+    testWidgets('a refused test says why in our words', (tester) async {
+      status(200, {'configured': false, 'url': ''});
+      config({
+        'url': '',
+        'client_id': '',
+        'has_client_secret': true,
+        'configured': false,
+      });
+      server.onPost(
+        '/api/v1/manyfold/config/test',
+        (s) => s.reply(400, {
+          'detail': {'code': 'manyfold_bad_url', 'message': 'x'},
+        }),
+        data: {'url': 'mf', 'client_id': 'app'},
+      );
+      await open(tester, extra: admin);
+      await tester.tap(find.text(l10n(tester).manyfoldTitle));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n(tester).mfClientSecretStored), findsOneWidget);
+      final fields = find.byType(TextField);
+      await tester.enterText(fields.at(0), 'mf');
+      await tester.enterText(fields.at(1), 'app');
+      await tester.pump();
+      await tester.tap(find.text(l10n(tester).mfTest));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n(tester).mfErrBadUrl), findsOneWidget);
+    });
+
+    testWidgets('disconnects after asking', (tester) async {
+      status(200, {'configured': true, 'url': 'http://mf'});
+      listing();
+      config({
+        'url': 'http://mf',
+        'client_id': 'app',
+        'has_client_secret': true,
+        'configured': true,
+      });
+      server.onDelete('/api/v1/manyfold/config', (s) => s.reply(204, null));
+      await open(tester, extra: admin);
+      await tester.tap(find.text(l10n(tester).manyfoldTitle));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(l10n(tester).mfEditConnection));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(l10n(tester).mfDisconnect));
+      await tester.tap(find.text(l10n(tester).mfDisconnect));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n(tester).mfDisconnect).last);
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n(tester).mfDisconnected), findsOneWidget);
+    });
+  });
 }

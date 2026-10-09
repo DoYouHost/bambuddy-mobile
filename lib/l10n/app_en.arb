@@ -2508,6 +2508,14 @@
   "@mfTest": {
     "description": "Manyfold tab: test"
   },
+  "mfSave": "Save",
+  "@mfSave": {
+    "description": "Manyfold connection form: stores the URL, client ID and secret"
+  },
+  "mfSaved": "Settings saved",
+  "@mfSaved": {
+    "description": "Snackbar after the Manyfold connection was stored"
+  },
   "mfTestOk": "Connected. Models Bambuddy can see: {count}",
   "@mfTestOk": {
     "description": "Manyfold tab: testOk",

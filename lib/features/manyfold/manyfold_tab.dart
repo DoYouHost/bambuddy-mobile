@@ -12,6 +12,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
 import '../common/dash_search_field.dart';
+import 'manyfold_connection.dart';
 import 'manyfold_model_screen.dart';
 import 'manyfold_providers.dart';
 import 'manyfold_widgets.dart';
@@ -43,6 +44,9 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
   /// The page shown while the next one loads, as the web's
   /// `placeholderData`, so paging does not blank the grid.
   ManyfoldModelPage? _shown;
+
+  /// The connection form, opened over a working connection.
+  bool _editingConnection = false;
 
   @override
   void dispose() {
@@ -132,8 +136,28 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    if (!widget.status.configured) {
-      return _NotConnected(l10n: l10n);
+    final canConfigure = ref.watch(canConfigureManyfoldProvider);
+    final configured = widget.status.configured;
+    if (!configured || _editingConnection) {
+      if (!canConfigure) return _NotConnected(l10n: l10n);
+      return ListView(
+        padding: withSystemNavInset(
+          context,
+          const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            DashSpace.lg,
+            DashSpace.gutter,
+            DashSpace.xxl,
+          ),
+        ),
+        children: [
+          ManyfoldConnectionCard(
+            onDone: configured
+                ? () => setState(() => _editingConnection = false)
+                : null,
+          ),
+        ],
+      );
     }
     final canImport = ref.watch(permissionProvider(Permissions.manyfoldImport));
     final key = (_query, _page);
@@ -152,7 +176,20 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
         ),
       ),
       children: [
-        Text(l10n.mfDescription, style: t.bodySoft),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: Text(l10n.mfDescription, style: t.bodySoft)),
+            if (canConfigure)
+              TextButton.icon(
+                onPressed: busy
+                    ? null
+                    : () => setState(() => _editingConnection = true),
+                icon: const Icon(Icons.settings_outlined, size: 18),
+                label: Text(l10n.mfEditConnection),
+              ).tagged('manyfold.edit_connection'),
+          ],
+        ),
         const SizedBox(height: DashSpace.lg),
         DashSearchField(
           id: 'manyfold.search',

@@ -4111,6 +4111,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get mfTest => 'Testuj połączenie';
 
   @override
+  String get mfSave => 'Zapisz';
+
+  @override
+  String get mfSaved => 'Zapisano ustawienia';
+
+  @override
   String mfTestOk(int count) {
     return 'Połączono. Modele widoczne dla Bambuddy: $count';
   }

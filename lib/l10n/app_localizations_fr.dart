@@ -4121,6 +4121,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get mfTest => 'Tester la connexion';
 
   @override
+  String get mfSave => 'Enregistrer';
+
+  @override
+  String get mfSaved => 'Paramètres enregistrés';
+
+  @override
   String mfTestOk(int count) {
     return 'Connecté. Modèles visibles par Bambuddy : $count';
   }

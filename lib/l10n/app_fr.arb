@@ -2285,6 +2285,8 @@
   "mfClientSecret": "Secret client",
   "mfClientSecretStored": "Enregistré. Laissez vide pour le conserver.",
   "mfTest": "Tester la connexion",
+  "mfSave": "Enregistrer",
+  "mfSaved": "Paramètres enregistrés",
   "mfTestOk": "Connecté. Modèles visibles par Bambuddy : {count}",
   "mfDisconnect": "Déconnecter",
   "mfDisconnectTitle": "Déconnecter Manyfold ?",
