@@ -181,6 +181,7 @@ void main() {
           ServerFeature.scheduledDryings,
           ServerFeature.archivePrinterMedia,
           ServerFeature.locationHaSensors,
+          ServerFeature.printerLocations,
           ServerFeature.spoolModelPresets,
           ServerFeature.libraryFileExtras,
           ServerFeature.printOutcome,

@@ -50,6 +50,9 @@ enum ServerFeature {
   /// `GET /location-ha-sensors/` and the per-location readings behind it.
   locationHaSensors,
 
+  /// `/printer-locations/*` — the managed list of printer locations.
+  printerLocations,
+
   /// `GET/PUT /inventory/spools/{id}/filament-presets` and the Spoolman twin.
   spoolModelPresets,
 
@@ -180,6 +183,7 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.scheduledDryings: (1, 2, 6, 0),
     ServerFeature.archivePrinterMedia: (1, 2, 6, 0),
     ServerFeature.locationHaSensors: (1, 2, 6, 0),
+    ServerFeature.printerLocations: (1, 2, 6, 0),
     ServerFeature.spoolModelPresets: (1, 2, 6, 0),
     ServerFeature.libraryQueueTarget: (1, 2, 5, 6),
     ServerFeature.libraryFileExtras: (1, 2, 6, 0),

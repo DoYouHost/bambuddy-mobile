@@ -460,6 +460,9 @@ class DemoBackend {
       case 'pipeline-runs':
         return _pipelineRunsRoute(m, s, q);
 
+      case 'printer-locations':
+        return _printerLocationsRoute(m, s, body);
+
       case 'location-ha-sensors':
         if (s.length == 1) return _ok(_locationSensors);
         if (at(1, 'by-location') && at(3, 'readings')) {
@@ -4999,6 +5002,141 @@ class DemoBackend {
     status: 409,
     body: {'detail': 'A supplier with this name already exists'},
   );
+
+  /// Styled locations, keyed by name. A location the printers carry without a
+  /// row here is listed too, unstyled — as the real route does — and `Storage`
+  /// is the empty one, which the printers cannot show.
+  final Map<String, Map<String, dynamic>> _locationRows = {
+    'Workshop': {'id': 1, 'icon': 'wrench', 'color': '#f97316'},
+    'Office': {'id': 2, 'icon': 'home', 'color': null},
+    'Storage': {'id': 3, 'icon': 'folder', 'color': '#3b82f6'},
+  };
+  int _nextLocationId = 4;
+
+  static const _duplicateLocation = (
+    status: 409,
+    body: {'detail': 'A location with this name already exists'},
+  );
+
+  int _printersAt(String name) =>
+      _printers.where((p) => p['location'] == name).length;
+
+  Map<String, dynamic> _locationResponse(String name) => {
+    'id': _locationRows[name]?['id'],
+    'name': name,
+    'icon': _locationRows[name]?['icon'],
+    'color': _locationRows[name]?['color'],
+    'printer_count': _printersAt(name),
+  };
+
+  /// Every name, case-insensitively, that a new or renamed location could
+  /// collide with: the styled rows and the ones only printers carry.
+  bool _locationNameTaken(String name, {String? except}) {
+    final key = name.toLowerCase();
+    final names = {
+      ..._locationRows.keys,
+      for (final p in _printers)
+        if (p['location'] case final String l when l.isNotEmpty) l,
+    };
+    return names.any((n) => n != except && n.toLowerCase() == key);
+  }
+
+  /// `/printer-locations/` with the 409 on a name taken, the 404 on a missing
+  /// location, and the rename that moves the printers along with it.
+  DemoResult _printerLocationsRoute(
+    String m,
+    List<String> s,
+    Map<String, dynamic> body,
+  ) {
+    final sub = s.length > 1 ? s[1] : '';
+    if (s.length == 1 && m == 'GET') {
+      final names = {
+        ..._locationRows.keys,
+        for (final p in _printers)
+          if (p['location'] case final String l when l.isNotEmpty) l,
+      }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      return _ok([for (final n in names) _locationResponse(n)]);
+    }
+    if (s.length == 1 && m == 'POST') {
+      final name = '${body['name']}'.trim();
+      if (_locationNameTaken(name)) return _duplicateLocation;
+      _locationRows[name] = {
+        'id': _nextLocationId++,
+        'icon': body['icon'],
+        'color': body['color'],
+      };
+      return (status: 201, body: _locationResponse(name));
+    }
+    if (s.length == 1 && m == 'PATCH') {
+      var name = '${body['name']}'.trim();
+      final exists = _locationRows.containsKey(name) || _printersAt(name) > 0;
+      if (!exists) {
+        return (status: 404, body: {'detail': 'Location not found'});
+      }
+      final newName = (body['new_name'] as String?)?.trim();
+      if (newName != null && newName.isNotEmpty && newName != name) {
+        if (_locationNameTaken(newName, except: name)) {
+          return _duplicateLocation;
+        }
+        for (final p in _printers) {
+          if (p['location'] == name) p['location'] = newName;
+        }
+        final row = _locationRows.remove(name);
+        if (row != null) _locationRows[newName] = row;
+        name = newName;
+      }
+      final row = _locationRows.putIfAbsent(
+        name,
+        () => {'id': _nextLocationId++, 'icon': null, 'color': null},
+      );
+      if (body.containsKey('icon')) row['icon'] = body['icon'];
+      if (body.containsKey('color')) row['color'] = body['color'];
+      return _ok(_locationResponse(name));
+    }
+    if (sub == 'delete' && m == 'POST') {
+      final names = [for (final n in body['names'] as List) '$n'];
+      var ungrouped = 0;
+      var deleted = 0;
+      for (final n in names) {
+        final existed = _locationRows.remove(n) != null || _printersAt(n) > 0;
+        if (existed) deleted++;
+        for (final p in _printers) {
+          if (p['location'] == n) {
+            p['location'] = null;
+            ungrouped++;
+          }
+        }
+      }
+      return _ok({'deleted': deleted, 'printers_ungrouped': ungrouped});
+    }
+    if (sub == 'assign' && m == 'POST') {
+      final ids = [for (final i in body['printer_ids'] as List) i as int];
+      final location = (body['location'] as String?)?.trim();
+      final target = location == null || location.isEmpty ? null : location;
+      final known = {for (final p in _printers) p['id'] as int};
+      final missing = [
+        for (final i in ids)
+          if (!known.contains(i)) i,
+      ];
+      if (missing.isNotEmpty) {
+        return (
+          status: 404,
+          body: {'detail': 'Printer not found: ${missing.join(', ')}'},
+        );
+      }
+      var moved = 0;
+      for (final p in _printers) {
+        // The route's `rowcount` counts every matched row, a printer already
+        // there included.
+        if (ids.contains(p['id'])) {
+          p['location'] = target;
+          moved++;
+        }
+      }
+      return _ok({'moved': moved});
+    }
+    return _notFound();
+  }
 
   /// `/inventory/suppliers` and `/inventory/suppliers/{id}`, with the two 409s
   /// the real routes answer: a name taken case-insensitively, and a delete of a
