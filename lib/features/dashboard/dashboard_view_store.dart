@@ -30,7 +30,9 @@ class DashboardView {
         location: location is String && location.isNotEmpty ? location : null,
       ),
       sort: DashboardSort(
-        by: PrinterSort.values.asNameMap()[json['sort']] ?? PrinterSort.name,
+        by:
+            PrinterSort.values.asNameMap()[json['sort']] ??
+            const DashboardSort().by,
         ascending: json['ascending'] != false,
       ),
       collapsed: {

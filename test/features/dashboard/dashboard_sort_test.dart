@@ -44,15 +44,24 @@ void main() {
   ];
 
   group('sortPrinters', () {
+    test('the sort a fresh install starts with is status, ascending', () {
+      const fresh = DashboardSort();
+      expect(fresh.by, PrinterSort.status);
+      expect(fresh.ascending, isTrue);
+    });
+
     test('by name ignores case; descending turns the list round', () {
-      expect(_names(sortPrinters(farm, const DashboardSort())), [
-        'Alpha',
-        'bravo',
-        'charlie',
-        'Delta',
-      ]);
       expect(
-        _names(sortPrinters(farm, const DashboardSort(ascending: false))),
+        _names(sortPrinters(farm, const DashboardSort(by: PrinterSort.name))),
+        ['Alpha', 'bravo', 'charlie', 'Delta'],
+      );
+      expect(
+        _names(
+          sortPrinters(
+            farm,
+            const DashboardSort(by: PrinterSort.name, ascending: false),
+          ),
+        ),
         ['Delta', 'charlie', 'bravo', 'Alpha'],
       );
     });
@@ -132,8 +141,13 @@ void main() {
         'arrive', () {
       final a = [_p(1, 'alpha'), _p(2, 'Alpha')];
       expect(
-        _names(sortPrinters(a, const DashboardSort())),
-        _names(sortPrinters(a.reversed.toList(), const DashboardSort())),
+        _names(sortPrinters(a, const DashboardSort(by: PrinterSort.name))),
+        _names(
+          sortPrinters(
+            a.reversed.toList(),
+            const DashboardSort(by: PrinterSort.name),
+          ),
+        ),
       );
     });
 
@@ -153,10 +167,18 @@ void main() {
     });
 
     test('an empty roster and a single printer come back as they are', () {
-      expect(sortPrinters(const [], const DashboardSort()), isEmpty);
-      expect(_names(sortPrinters([_p(1, 'only')], const DashboardSort())), [
-        'only',
-      ]);
+      expect(
+        sortPrinters(const [], const DashboardSort(by: PrinterSort.name)),
+        isEmpty,
+      );
+      expect(
+        _names(
+          sortPrinters([
+            _p(1, 'only'),
+          ], const DashboardSort(by: PrinterSort.name)),
+        ),
+        ['only'],
+      );
     });
   });
 
@@ -169,7 +191,10 @@ void main() {
         groupPrinters(farm, const DashboardSort(by: PrinterSort.eta)),
         isNull,
       );
-      expect(groupPrinters(farm, const DashboardSort()), isNull);
+      expect(
+        groupPrinters(farm, const DashboardSort(by: PrinterSort.name)),
+        isNull,
+      );
     });
 
     test('by location: a section per location, none last', () {
@@ -291,7 +316,7 @@ void main() {
           final view = DashboardView.fromJson(json);
           expect(view.filters.status, PrinterStatusBucket.all);
           expect(view.filters.location, isNull);
-          expect(view.sort.by, PrinterSort.name);
+          expect(view.sort.by, PrinterSort.status);
           expect(view.sort.ascending, isTrue);
           expect(view.collapsed, isEmpty);
         }

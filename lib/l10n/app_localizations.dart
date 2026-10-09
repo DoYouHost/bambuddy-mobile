@@ -236,7 +236,7 @@ abstract class AppLocalizations {
   /// **'No printers match the current filters'**
   String get noPrintersMatchFilters;
 
-  /// Title of the dashboard filter sheet / filter button tooltip
+  /// Title of the dashboard filter and sort sheet / its button tooltip
   ///
   /// In en, this message translates to:
   /// **'Filters and sort'**

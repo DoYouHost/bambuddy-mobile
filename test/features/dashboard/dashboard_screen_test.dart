@@ -580,7 +580,19 @@ void main() {
       ),
     );
 
+    testWidgets('a fresh install starts sorted by status, in sections', (
+      tester,
+    ) async {
+      await pumpFarm(tester);
+
+      // The four have no status yet, so they are one section, headed and
+      // counted.
+      expect(byLogId('dashboard.group'), findsOneWidget);
+      expect(find.text('(4)'), findsOneWidget);
+    });
+
     testWidgets('sorted by name there are no headings', (tester) async {
+      await remember({'sort': 'name'});
       await pumpFarm(tester);
 
       expect(byLogId('dashboard.group'), findsNothing);
@@ -607,6 +619,24 @@ void main() {
       expect(jsonDecode(_prefs.getString('dashboard_view')!)['collapsed'], [
         'location:Workshop',
       ]);
+    });
+
+    testWidgets('a folded section is still folded after a restart', (
+      tester,
+    ) async {
+      await remember({'sort': 'location'});
+      await pumpFarm(tester);
+      await tester.tap(find.text('Workshop'));
+      await tester.pumpAndSettle();
+      expect(find.text('Lathe'), findsNothing);
+
+      // A new scope is a new start: nothing is kept but what was written down.
+      await tester.pumpWidget(const SizedBox());
+      await pumpFarm(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lathe'), findsNothing);
+      expect(find.text('Desk'), findsOneWidget);
     });
 
     testWidgets('a remembered location filters the list', (tester) async {

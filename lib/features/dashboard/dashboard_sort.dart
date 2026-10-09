@@ -11,10 +11,11 @@ import 'dashboard_filters.dart';
 /// that choice for every install.
 enum PrinterSort { name, status, model, location, eta }
 
-/// The order and its direction. Descending reverses the whole list, as the web
+/// The order and its direction. Errors first, then printing, down to offline,
+/// until the user picks another. Descending reverses the whole list, as the web
 /// does, so ties come out reversed too.
 class DashboardSort {
-  const DashboardSort({this.by = PrinterSort.name, this.ascending = true});
+  const DashboardSort({this.by = PrinterSort.status, this.ascending = true});
 
   final PrinterSort by;
   final bool ascending;
