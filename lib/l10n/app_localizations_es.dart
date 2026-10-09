@@ -4053,10 +4053,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get fmTagsPickSome => 'Elige al menos una etiqueta';
 
   @override
-  String get makerworldMenu => 'MakerWorld';
+  String get makerworldTitle => 'MakerWorld';
 
   @override
-  String get makerworldTitle => 'MakerWorld';
+  String get modelSourcesTitle => 'Fuentes de modelos';
+
+  @override
+  String get manyfoldTitle => 'Manyfold';
 
   @override
   String get mwIntro =>

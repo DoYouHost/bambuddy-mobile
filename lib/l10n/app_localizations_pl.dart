@@ -4066,10 +4066,13 @@ class AppLocalizationsPl extends AppLocalizations {
   String get fmTagsPickSome => 'Wybierz przynajmniej jeden tag';
 
   @override
-  String get makerworldMenu => 'MakerWorld';
+  String get makerworldTitle => 'MakerWorld';
 
   @override
-  String get makerworldTitle => 'MakerWorld';
+  String get modelSourcesTitle => 'Źródła modeli';
+
+  @override
+  String get manyfoldTitle => 'Manyfold';
 
   @override
   String get mwIntro =>

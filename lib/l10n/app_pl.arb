@@ -1689,11 +1689,9 @@
     }
   },
   "fmTagsPickSome": "Wybierz przynajmniej jeden tag",
-  "makerworldMenu": "MakerWorld",
-  "@makerworldMenu": {
-    "description": "Drawer entry: MakerWorld import"
-  },
   "makerworldTitle": "MakerWorld",
+  "modelSourcesTitle": "Źródła modeli",
+  "manyfoldTitle": "Manyfold",
   "mwIntro": "Wklej link do modelu z MakerWorld, aby zaimportować go i drukować bezpośrednio z Bambuddy.",
   "mwUrlHint": "https://makerworld.com/pl/models/… lub dowolny link MakerWorld",
   "mwResolve": "Rozwiąż",

@@ -4075,10 +4075,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fmTagsPickSome => 'Sélectionnez au moins une étiquette';
 
   @override
-  String get makerworldMenu => 'MakerWorld';
+  String get makerworldTitle => 'MakerWorld';
 
   @override
-  String get makerworldTitle => 'MakerWorld';
+  String get modelSourcesTitle => 'Sources de modèles';
+
+  @override
+  String get manyfoldTitle => 'Manyfold';
 
   @override
   String get mwIntro =>

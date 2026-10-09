@@ -6722,17 +6722,23 @@ abstract class AppLocalizations {
   /// **'Pick at least one tag'**
   String get fmTagsPickSome;
 
-  /// Drawer entry: MakerWorld import
-  ///
-  /// In en, this message translates to:
-  /// **'MakerWorld'**
-  String get makerworldMenu;
-
   /// No description provided for @makerworldTitle.
   ///
   /// In en, this message translates to:
   /// **'MakerWorld'**
   String get makerworldTitle;
+
+  /// Drawer entry and title of the screen holding the MakerWorld and Manyfold tabs
+  ///
+  /// In en, this message translates to:
+  /// **'Model Sources'**
+  String get modelSourcesTitle;
+
+  /// Tab name: Manyfold, a self-hosted 3D model library (product name)
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold'**
+  String get manyfoldTitle;
 
   /// No description provided for @mwIntro.
   ///

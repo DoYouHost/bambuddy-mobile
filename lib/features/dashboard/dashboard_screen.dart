@@ -987,11 +987,13 @@ class _AppDrawer extends ConsumerWidget {
                   ),
                   _DrawerTile(
                     icon: Icons.travel_explore_rounded,
-                    label: l10n.makerworldMenu,
+                    label: l10n.modelSourcesTitle,
                     onTap: () {
                       Navigator.pop(context);
-                      context.push('/makerworld');
+                      context.push('/model-sources');
                     },
+                    // Id kept from when the screen was MakerWorld-only: log
+                    // ids are wire values.
                     id: 'drawer.makerworld',
                   ),
                   _DrawerTile(

@@ -2271,8 +2271,9 @@
     }
   },
   "fmTagsPickSome": "Wähle mindestens einen Tag aus",
-  "makerworldMenu": "MakerWorld",
   "makerworldTitle": "MakerWorld",
+  "modelSourcesTitle": "Modellquellen",
+  "manyfoldTitle": "Manyfold",
   "mwIntro": "Füge eine MakerWorld-Modell-URL ein, um es direkt aus Bambuddy zu importieren und zu drucken.",
   "mwUrlHint": "https://makerworld.com/en/models/… oder ein beliebiger MakerWorld-Link",
   "mwResolve": "Abrufen",

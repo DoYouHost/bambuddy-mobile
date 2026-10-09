@@ -2271,8 +2271,9 @@
     }
   },
   "fmTagsPickSome": "Sélectionnez au moins une étiquette",
-  "makerworldMenu": "MakerWorld",
   "makerworldTitle": "MakerWorld",
+  "modelSourcesTitle": "Sources de modèles",
+  "manyfoldTitle": "Manyfold",
   "mwIntro": "Collez l'URL d'un modèle MakerWorld pour l'importer et l'imprimer directement depuis Bambuddy.",
   "mwUrlHint": "https://makerworld.com/en/models/… ou tout lien MakerWorld",
   "mwResolve": "Résoudre",

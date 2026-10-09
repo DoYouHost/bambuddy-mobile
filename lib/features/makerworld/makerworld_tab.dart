@@ -15,17 +15,18 @@ import 'makerworld_providers.dart';
 import 'makerworld_thumbnail.dart';
 import '../common/web_link.dart';
 
-/// MakerWorld screen: paste model URL → resolve → pick plate → import (download) to library.
-/// Download requires Bambu Cloud login; if missing, import action goes to settings login screen
-/// (`/settings/cloud`) — login NOT built into this screen.
-class MakerWorldScreen extends ConsumerStatefulWidget {
-  const MakerWorldScreen({super.key});
+/// MakerWorld tab of Model Sources: paste model URL → resolve → pick plate →
+/// import (download) to library. Download requires Bambu Cloud login; if
+/// missing, import action goes to settings login screen (`/settings/cloud`) —
+/// login NOT built into this tab.
+class MakerWorldTab extends ConsumerStatefulWidget {
+  const MakerWorldTab({super.key});
 
   @override
-  ConsumerState<MakerWorldScreen> createState() => _MakerWorldScreenState();
+  ConsumerState<MakerWorldTab> createState() => _MakerWorldTabState();
 }
 
-class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
+class _MakerWorldTabState extends ConsumerState<MakerWorldTab> {
   final _urlController = TextEditingController();
 
   /// `profileId` (or -1 for none) of plates currently importing.
@@ -117,62 +118,56 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
     final status = ref.watch(makerworldStatusProvider).valueOrNull;
     final canDownload = status?.canDownload ?? false;
 
-    return DashBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: dashAppBar(context, title: l10n.makerworldTitle),
-        body: ListView(
-          padding: withSystemNavInset(
-            context,
-            const EdgeInsets.fromLTRB(
-              DashSpace.gutter,
-              DashSpace.sm,
-              DashSpace.gutter,
-              DashSpace.xxl,
-            ),
-          ),
-          children: [
-            Text(l10n.mwIntro, style: t.bodySoft),
-            const SizedBox(height: DashSpace.lg),
-            _UrlBar(
-              controller: _urlController,
-              loading: resolveAsync.isLoading,
-              onResolve: _resolve,
-            ),
-            if (!canDownload) ...[
-              const SizedBox(height: DashSpace.lg),
-              _LoginBanner(
-                onSignIn: () async {
-                  await context.push('/settings/cloud');
-                  if (!mounted) return;
-                  ref.invalidate(cloudAuthStatusProvider);
-                  ref.invalidate(makerworldStatusProvider);
-                },
-              ),
-            ],
-            const SizedBox(height: DashSpace.sm),
-            dashAsyncStrip(
-              context,
-              resolveAsync,
-              padding: const EdgeInsets.symmetric(vertical: DashSpace.xxl),
-              failureMessage: l10n.ctrlFailed,
-              failureBuilder: (message) =>
-                  _InlineError(message: message, onRetry: _resolve),
-              data: (model) => model == null
-                  ? const SizedBox.shrink()
-                  : _ResolvedModel(
-                      model: model,
-                      importing: _importing,
-                      imported: _imported,
-                      onImport: (plate) => _import(model, plate),
-                      keyOf: _key,
-                    ),
-            ),
-            const SizedBox(height: DashSpace.xl),
-            _RecentImports(),
-          ],
+    return ListView(
+      padding: withSystemNavInset(
+        context,
+        const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          DashSpace.sm,
+          DashSpace.gutter,
+          DashSpace.xxl,
         ),
       ),
+      children: [
+        Text(l10n.mwIntro, style: t.bodySoft),
+        const SizedBox(height: DashSpace.lg),
+        _UrlBar(
+          controller: _urlController,
+          loading: resolveAsync.isLoading,
+          onResolve: _resolve,
+        ),
+        if (!canDownload) ...[
+          const SizedBox(height: DashSpace.lg),
+          _LoginBanner(
+            onSignIn: () async {
+              await context.push('/settings/cloud');
+              if (!mounted) return;
+              ref.invalidate(cloudAuthStatusProvider);
+              ref.invalidate(makerworldStatusProvider);
+            },
+          ),
+        ],
+        const SizedBox(height: DashSpace.sm),
+        dashAsyncStrip(
+          context,
+          resolveAsync,
+          padding: const EdgeInsets.symmetric(vertical: DashSpace.xxl),
+          failureMessage: l10n.ctrlFailed,
+          failureBuilder: (message) =>
+              _InlineError(message: message, onRetry: _resolve),
+          data: (model) => model == null
+              ? const SizedBox.shrink()
+              : _ResolvedModel(
+                  model: model,
+                  importing: _importing,
+                  imported: _imported,
+                  onImport: (plate) => _import(model, plate),
+                  keyOf: _key,
+                ),
+        ),
+        const SizedBox(height: DashSpace.xl),
+        _RecentImports(),
+      ],
     );
   }
 }

@@ -94,7 +94,10 @@
   "editPrinterWearCost": "Wear cost per printing hour ({currency})",
   "@editPrinterWearCost": {
     "placeholders": {
-      "currency": {"type": "String", "example": "zł"}
+      "currency": {
+        "type": "String",
+        "example": "zł"
+      }
     }
   },
   "editPrinterWearCostHelp": "Added to new prints only. Leave empty to turn it off.",
@@ -2452,11 +2455,15 @@
     }
   },
   "fmTagsPickSome": "Pick at least one tag",
-  "makerworldMenu": "MakerWorld",
-  "@makerworldMenu": {
-    "description": "Drawer entry: MakerWorld import"
-  },
   "makerworldTitle": "MakerWorld",
+  "modelSourcesTitle": "Model Sources",
+  "@modelSourcesTitle": {
+    "description": "Drawer entry and title of the screen holding the MakerWorld and Manyfold tabs"
+  },
+  "manyfoldTitle": "Manyfold",
+  "@manyfoldTitle": {
+    "description": "Tab name: Manyfold, a self-hosted 3D model library (product name)"
+  },
   "mwIntro": "Paste a MakerWorld model URL to import and print it directly from Bambuddy.",
   "mwUrlHint": "https://makerworld.com/en/models/… or any MakerWorld link",
   "mwResolve": "Resolve",

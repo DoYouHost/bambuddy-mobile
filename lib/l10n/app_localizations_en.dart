@@ -3997,10 +3997,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fmTagsPickSome => 'Pick at least one tag';
 
   @override
-  String get makerworldMenu => 'MakerWorld';
+  String get makerworldTitle => 'MakerWorld';
 
   @override
-  String get makerworldTitle => 'MakerWorld';
+  String get modelSourcesTitle => 'Model Sources';
+
+  @override
+  String get manyfoldTitle => 'Manyfold';
 
   @override
   String get mwIntro =>
