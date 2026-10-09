@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:async';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
@@ -236,6 +237,7 @@ void main() {
     // reads it to decide whether a credential coming back should lower the
     // flag, a leftover from the test before changes what this one does.
     await _prefs.remove('sign_in_reason');
+    await _prefs.remove('dashboard_view');
   });
 
   testWidgets(
@@ -546,6 +548,175 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byTooltip('Zwiń kartę'), findsOneWidget);
     expect(find.byTooltip('Rozwiń kartę'), findsOneWidget);
+  });
+
+  group('sort, sections and the location filter', () {
+    const farm = DashboardState(
+      printers: [
+        PrinterWithStatus(
+          printer: Printer(id: 1, name: 'Bench', location: 'Workshop'),
+        ),
+        PrinterWithStatus(printer: Printer(id: 2, name: 'Spare')),
+        PrinterWithStatus(
+          printer: Printer(id: 3, name: 'Desk', location: 'Office'),
+        ),
+        PrinterWithStatus(
+          printer: Printer(id: 4, name: 'Lathe', location: 'Workshop'),
+        ),
+      ],
+    );
+
+    Future<void> remember(Map<String, Object?> view) =>
+        _prefs.setString('dashboard_view', jsonEncode(view));
+
+    Future<void> pumpFarm(WidgetTester tester) => tester.pumpWidget(
+      _app(
+        farm,
+        extra: [
+          printerLocationsSupportedProvider.overrideWithValue(
+            const AsyncData(true),
+          ),
+        ],
+      ),
+    );
+
+    testWidgets('a fresh install starts sorted by status, in sections', (
+      tester,
+    ) async {
+      await pumpFarm(tester);
+
+      // The four have no status yet, so they are one section, headed and
+      // counted.
+      expect(byLogId('dashboard.group'), findsOneWidget);
+      expect(find.text('(4)'), findsOneWidget);
+    });
+
+    testWidgets('sorted by name there are no headings', (tester) async {
+      await remember({'sort': 'name'});
+      await pumpFarm(tester);
+
+      expect(byLogId('dashboard.group'), findsNothing);
+    });
+
+    testWidgets('sorted by location the list is cut into counted sections, '
+        'and a tap folds one away', (tester) async {
+      await remember({'sort': 'location'});
+      await pumpFarm(tester);
+
+      expect(byLogId('dashboard.group'), findsNWidgets(3));
+      expect(find.text('Workshop'), findsOneWidget);
+      expect(find.text('(2)'), findsOneWidget);
+      expect(find.text('Bez lokalizacji'), findsOneWidget);
+      expect(find.text('Lathe'), findsOneWidget);
+
+      await tester.tap(find.text('Workshop'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lathe'), findsNothing);
+      expect(find.text('Bench'), findsNothing);
+      expect(find.text('Desk'), findsOneWidget);
+      // Remembered, so the next visit finds it folded.
+      expect(jsonDecode(_prefs.getString('dashboard_view')!)['collapsed'], [
+        'location:Workshop',
+      ]);
+    });
+
+    testWidgets('a folded section is still folded after a restart', (
+      tester,
+    ) async {
+      await remember({'sort': 'location'});
+      await pumpFarm(tester);
+      await tester.tap(find.text('Workshop'));
+      await tester.pumpAndSettle();
+      expect(find.text('Lathe'), findsNothing);
+
+      // A new scope is a new start: nothing is kept but what was written down.
+      await tester.pumpWidget(const SizedBox());
+      await pumpFarm(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lathe'), findsNothing);
+      expect(find.text('Desk'), findsOneWidget);
+    });
+
+    testWidgets('a remembered location filters the list', (tester) async {
+      await remember({'location': 'Office'});
+      await pumpFarm(tester);
+
+      expect(find.text('Desk'), findsOneWidget);
+      expect(find.text('Bench'), findsNothing);
+      expect(find.text('Spare'), findsNothing);
+    });
+
+    testWidgets('a remembered location nothing has any more is let go of, '
+        'not left hiding the list', (tester) async {
+      await remember({'location': 'Gone'});
+      await pumpFarm(tester);
+
+      // Already drawn without it, not an empty list for one frame.
+      expect(find.text('Bench'), findsOneWidget);
+      expect(
+        find.text(
+          AppLocalizations.of(
+            tester.element(find.byType(Scaffold).first),
+          ).noPrintersMatchFilters,
+        ),
+        findsNothing,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bench'), findsOneWidget);
+      expect(find.text('Spare'), findsOneWidget);
+      expect(
+        jsonDecode(_prefs.getString('dashboard_view')!)['location'],
+        isNull,
+      );
+    });
+
+    testWidgets('the sheet picks a location and a sort, and offers the way '
+        'to manage them', (tester) async {
+      await pumpFarm(tester);
+
+      await tester.tap(byLogId('dashboard.filters'));
+      await tester.pumpAndSettle();
+      expect(byLogId('dashboard_filters.manage_locations'), findsOneWidget);
+
+      await tester.tap(byLogId('dashboard_filters.location'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Office').last);
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('dashboard_filters.direction').last);
+      await tester.pumpAndSettle();
+
+      final saved = jsonDecode(_prefs.getString('dashboard_view')!);
+      expect(saved['location'], 'Office');
+      expect(saved['ascending'], isFalse);
+    });
+
+    testWidgets('no location to pick and none to manage leaves the section '
+        'out', (tester) async {
+      await tester.pumpWidget(
+        _app(
+          const DashboardState(
+            printers: [
+              PrinterWithStatus(printer: Printer(id: 1, name: 'A')),
+              PrinterWithStatus(printer: Printer(id: 2, name: 'B')),
+            ],
+          ),
+          extra: [
+            printerLocationsSupportedProvider.overrideWithValue(
+              const AsyncData(false),
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(byLogId('dashboard.filters'));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('dashboard_filters.location'), findsNothing);
+      expect(byLogId('dashboard_filters.manage_locations'), findsNothing);
+    });
   });
 
   testWidgets('the search box filters the list by name', (tester) async {

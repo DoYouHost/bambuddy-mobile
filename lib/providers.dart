@@ -44,6 +44,7 @@ import 'data/firmware_repository.dart';
 import 'data/groups_repository.dart';
 import 'data/heater_history_repository.dart';
 import 'data/location_sensors_repository.dart';
+import 'data/printer_locations_repository.dart';
 import 'data/suppliers_repository.dart';
 import 'data/makerworld_repository.dart';
 import 'data/pipelines_repository.dart';
@@ -581,6 +582,19 @@ final suppliersSupportedProvider = capabilityGate(
 /// number can also be written is the backend's call: Spoolman's is read-only.
 final materialNumberSupportedProvider = capabilityGate(
   (ref) => ref.watch(inventoryRepositoryProvider).materialNumberCapability,
+);
+
+final printerLocationsRepositoryProvider = Provider<PrinterLocationsRepository>(
+  (ref) => PrinterLocationsRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether this server has the managed Printer Locations. Read by the dashboard's
+/// filter sheet, which holds the way in, and by the locations screen. See `PrinterLocationsRepository.capability`.
+final printerLocationsSupportedProvider = capabilityGate(
+  (ref) => ref.watch(printerLocationsRepositoryProvider).capability,
 );
 
 final locationSensorsRepositoryProvider = Provider<LocationSensorsRepository>(

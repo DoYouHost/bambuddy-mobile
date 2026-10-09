@@ -81,7 +81,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noPrintersMatchFilters => 'No printers match the current filters';
 
   @override
-  String get dashboardFilters => 'Filters';
+  String get dashboardFilters => 'Filters and sort';
 
   @override
   String get filterStatus => 'Status';
@@ -7956,4 +7956,195 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get labelSaved => 'Labels saved';
+
+  @override
+  String get printerLocationsMenu => 'Printer locations';
+
+  @override
+  String printerLocationsSubtitle(int grouped, int ungrouped) {
+    return 'In a location: $grouped, without one: $ungrouped';
+  }
+
+  @override
+  String get printerLocationsSearch => 'Search locations';
+
+  @override
+  String get printerLocationsHideEmpty => 'Hide empty';
+
+  @override
+  String get printerLocationsSortNameAsc => 'Name A→Z';
+
+  @override
+  String get printerLocationsSortNameDesc => 'Name Z→A';
+
+  @override
+  String get printerLocationsSortCountAsc => 'Fewest printers';
+
+  @override
+  String get printerLocationsSortCountDesc => 'Most printers';
+
+  @override
+  String get printerLocationsSort => 'Sort';
+
+  @override
+  String get printerLocationsSelect => 'Select';
+
+  @override
+  String get printerLocationsDone => 'Done';
+
+  @override
+  String get printerLocationsNew => 'New location';
+
+  @override
+  String get printerLocationsCreateTitle => 'Create location';
+
+  @override
+  String get printerLocationsEditTitle => 'Edit location';
+
+  @override
+  String get printerLocationsCreate => 'Create';
+
+  @override
+  String get printerLocationsSave => 'Save';
+
+  @override
+  String get printerLocationsFieldName => 'Location name';
+
+  @override
+  String get printerLocationsFieldIcon => 'Icon';
+
+  @override
+  String get printerLocationsFieldColor => 'Color';
+
+  @override
+  String get printerLocationsNoColor => 'No color';
+
+  @override
+  String get printerLocationsEmpty => 'No printer locations yet';
+
+  @override
+  String get printerLocationsNoResults => 'No locations match your search';
+
+  @override
+  String printerLocationsPrinterCount(int count) {
+    return 'Printers: $count';
+  }
+
+  @override
+  String get printerLocationsNoPrinters => 'No printers in this location';
+
+  @override
+  String get printerLocationsSelectPrinter => 'Select printer';
+
+  @override
+  String get printerLocationsMove => 'Move to another location';
+
+  @override
+  String get printerLocationsMoveButton => 'Move';
+
+  @override
+  String get printerLocationsRemoveFromLocation => 'Remove from location';
+
+  @override
+  String printerLocationsUngrouped(int count) {
+    return 'Printers without a location: $count';
+  }
+
+  @override
+  String get printerLocationsSelectAll => 'Select all';
+
+  @override
+  String get printerLocationsDeselectAll => 'Deselect all';
+
+  @override
+  String printerLocationsSelected(int count) {
+    return 'Selected: $count';
+  }
+
+  @override
+  String get printerLocationsDeleteSelected => 'Delete selected';
+
+  @override
+  String get printerLocationsMoveTitle => 'Move printer';
+
+  @override
+  String printerLocationsMoveTitleMany(int count) {
+    return 'Move printers ($count)';
+  }
+
+  @override
+  String get printerLocationsTargetHint => 'Select a location';
+
+  @override
+  String get printerLocationsNoLocation => 'No location';
+
+  @override
+  String get printerLocationsDeleteTitle => 'Delete location';
+
+  @override
+  String printerLocationsDeleteTitleMany(int count) {
+    return 'Delete locations ($count)';
+  }
+
+  @override
+  String printerLocationsDeleteMessage(String names, int count) {
+    return 'Delete $names? Printers left without a location: $count.';
+  }
+
+  @override
+  String get printerLocationsCreated => 'Location created';
+
+  @override
+  String get printerLocationsSaved => 'Location saved';
+
+  @override
+  String printerLocationsDeleted(int count) {
+    return 'Locations deleted: $count';
+  }
+
+  @override
+  String printerLocationsMoved(int count) {
+    return 'Printers moved: $count';
+  }
+
+  @override
+  String get printerLocationsNameTaken =>
+      'A location with this name already exists';
+
+  @override
+  String get printerLocationsReadOnly =>
+      'Only a user account can change locations; an API key can only read them.';
+
+  @override
+  String get dashboardSortTitle => 'Sort by';
+
+  @override
+  String get dashboardSortName => 'Name';
+
+  @override
+  String get dashboardSortModel => 'Model';
+
+  @override
+  String get dashboardSortLocation => 'Location';
+
+  @override
+  String get dashboardSortEta => 'Time left';
+
+  @override
+  String get dashboardSortAscending => 'Ascending';
+
+  @override
+  String get dashboardSortDescending => 'Descending';
+
+  @override
+  String get dashboardLocationAll => 'All locations';
+
+  @override
+  String get dashboardLocationsManage => 'Manage locations';
+
+  @override
+  String get dashboardGroupUngrouped => 'No location';
+
+  @override
+  String get dashboardGroupUnknownModel => 'Unknown model';
 }

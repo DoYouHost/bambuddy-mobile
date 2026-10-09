@@ -188,6 +188,25 @@ server's Home Assistant connection. A route family, so
 a server known to be older: nothing is offered until the listing comes back
 non-empty, so being early costs a request and never a control.
 
+### printerLocations — 1.2.6 (server #2962, PR #2995, commit fa259567)
+
+`/printer-locations/*`: the list of places a printer can be filed under, with an
+icon and a colour, and the three writes (create or restyle or rename, delete,
+assign printers). Only in 1.2.6 dailies from 2026-10-03.
+
+A route family nothing shadows (`/printers/{id}` is a different prefix), so the
+listing's 404 settles `PrinterLocationsRepository.capability`. Being early costs
+a "Manage locations" link, in the dashboard's filter sheet, that opens onto an
+empty screen on a 1.2.6b1 daily older than the commit: the version row shows the
+link before any request, and the 404 the screen meets on opening settles the
+latch, which hides the link and the write controls from then on. The writes settle nothing: their 403
+is a missing `printers:update`, which no API key can hold — the screen is
+read-only for a key — and taking it for "no locations here" would hide a list
+the session may read.
+
+What an older server does with the free-text `location` string the printer form
+already sends is unchanged, so the form keeps working on both.
+
 ### spoolModelPresets — 1.2.6 (server commit a7b56333)
 
 `GET/PUT /inventory/spools/{id}/filament-presets` and the Spoolman twin — the

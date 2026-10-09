@@ -992,6 +992,23 @@ abstract final class Endpoints {
   static String locationHaSensorReadings(int locationId) =>
       '$apiPrefix/location-ha-sensors/by-location/$locationId/readings';
 
+  // --- Printer locations (server #2962) ---
+
+  /// The managed list (`PrinterLocationResponse[]`): `GET` lists, `POST`
+  /// creates, `PATCH` renames and/or restyles the one named in the body. The
+  /// trailing slash is the declared route (`printer_locations.py`).
+  ///
+  /// No path carries a name, because a location name is free text: `PATCH`,
+  /// delete and assign all take it in the body.
+  static const printerLocations = '$apiPrefix/printer-locations/';
+
+  /// `POST {names:[…]}` — deletes locations; their printers end up with none.
+  static const printerLocationsDelete = '$apiPrefix/printer-locations/delete';
+
+  /// `POST {printer_ids:[…], location}` — moves printers in one transaction,
+  /// out of any location with `location: null`.
+  static const printerLocationsAssign = '$apiPrefix/printer-locations/assign';
+
   // Backend Spoolman (drop-in replacement — different data shape).
 
   /// `GET` → `{enabled, connected, url}`. Decides which of the two inventory

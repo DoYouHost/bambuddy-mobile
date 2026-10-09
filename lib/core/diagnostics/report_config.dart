@@ -33,7 +33,7 @@ final HttpProbeConfig bambuddyHttpProbe = HttpProbeConfig(
 final RegExp _sampledPaths = RegExp(
   r'/api/v1/(queue|archives|printers|inventory|spoolman'
   r'|smart-plugs|maintenance|projects|library|scheduled-dryings'
-  r'|location-ha-sensors)(/|$)',
+  r'|location-ha-sensors|printer-locations)(/|$)',
 );
 
 /// Checked before [_sampledPaths] and wins over it.
