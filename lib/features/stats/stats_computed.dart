@@ -21,6 +21,12 @@ class StatBucket {
   double get successRate => prints == 0 ? 0 : successes / prints * 100;
 }
 
+/// What one run cost, the way the web's "most expensive" record adds it up
+/// (`StatsPage.tsx` RecordsWidget): filament + measured energy + printer wear,
+/// a figure that was not recorded adding nothing.
+double runCost(ArchiveSlim a) =>
+    (a.cost ?? 0) + (a.energyCost ?? 0) + (a.wearCost ?? 0);
+
 /// Duration histogram thresholds (upper bound in seconds; last = ∞).
 const durationBucketBounds = <int>[
   1800, // <30 min
@@ -148,9 +154,9 @@ class StatsComputed {
           (c.heaviest == null || g > (c.heaviest!.filamentUsedGrams ?? 0))) {
         c.heaviest = a;
       }
-      final cost = a.cost;
-      if (cost != null &&
-          (c.mostExpensive == null || cost > (c.mostExpensive!.cost ?? 0))) {
+      final cost = runCost(a);
+      if (cost > 0 &&
+          (c.mostExpensive == null || cost > runCost(c.mostExpensive!))) {
         c.mostExpensive = a;
       }
       if (kwh != null &&

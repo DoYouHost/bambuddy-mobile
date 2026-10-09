@@ -2015,6 +2015,10 @@
   "statsFilamentCost": "Filament cost",
   "statsEnergyUsed": "Energy used",
   "statsEnergyCost": "Energy cost",
+  "statsWearCost": "Wear cost",
+  "@statsWearCost": {
+    "description": "Printer wear charged to prints: hours printed times the printer's wear cost per hour. Stats tile, print log run detail and project tile."
+  },
   "statsTotalCost": "Total cost",
   "statsEnergyWarmingUp": "Energy data is still warming up",
   "statsSuccessRate": "Success rate",

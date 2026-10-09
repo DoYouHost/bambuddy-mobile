@@ -5570,6 +5570,12 @@ abstract class AppLocalizations {
   /// **'Energy cost'**
   String get statsEnergyCost;
 
+  /// Printer wear charged to prints: hours printed times the printer's wear cost per hour. Stats tile, print log run detail and project tile.
+  ///
+  /// In en, this message translates to:
+  /// **'Wear cost'**
+  String get statsWearCost;
+
   /// No description provided for @statsTotalCost.
   ///
   /// In en, this message translates to:

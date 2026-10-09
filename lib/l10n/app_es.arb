@@ -1870,6 +1870,7 @@
   "statsFilamentCost": "Coste de filamento",
   "statsEnergyUsed": "Energía consumida",
   "statsEnergyCost": "Coste energético",
+  "statsWearCost": "Coste de desgaste",
   "statsTotalCost": "Coste total",
   "statsEnergyWarmingUp": "Los datos de energía aún se están recopilando",
   "statsSuccessRate": "Tasa de éxito",

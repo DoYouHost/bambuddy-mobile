@@ -1295,6 +1295,7 @@
   "statsFilamentCost": "Koszt filamentu",
   "statsEnergyUsed": "Zużyta energia",
   "statsEnergyCost": "Koszt energii",
+  "statsWearCost": "Koszt zużycia",
   "statsTotalCost": "Koszt łącznie",
   "statsEnergyWarmingUp": "Dane o energii dopiero się zbierają",
   "statsSuccessRate": "Skuteczność",

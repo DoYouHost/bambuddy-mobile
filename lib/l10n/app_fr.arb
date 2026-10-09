@@ -1870,6 +1870,7 @@
   "statsFilamentCost": "Coût du filament",
   "statsEnergyUsed": "Énergie consommée",
   "statsEnergyCost": "Coût de l'énergie",
+  "statsWearCost": "Coût d'usure",
   "statsTotalCost": "Coût total",
   "statsEnergyWarmingUp": "Les données d'énergie sont encore en cours de collecte",
   "statsSuccessRate": "Taux de réussite",

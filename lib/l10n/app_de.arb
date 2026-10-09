@@ -1870,6 +1870,7 @@
   "statsFilamentCost": "Filamentkosten",
   "statsEnergyUsed": "Verbrauchte Energie",
   "statsEnergyCost": "Energiekosten",
+  "statsWearCost": "Verschleißkosten",
   "statsTotalCost": "Gesamtkosten",
   "statsEnergyWarmingUp": "Energiedaten werden noch gesammelt",
   "statsSuccessRate": "Erfolgsquote",

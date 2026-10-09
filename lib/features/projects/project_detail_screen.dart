@@ -408,6 +408,12 @@ class _StatCards extends StatelessWidget {
         l10n.projectStatEnergy,
         '${stats.totalEnergyKwh.toStringAsFixed(2)} kWh',
       ),
+      if (stats.totalWearCost > 0)
+        (
+          Icons.build_outlined,
+          l10n.statsWearCost,
+          stats.totalWearCost.toStringAsFixed(2),
+        ),
       (
         Icons.checklist_outlined,
         l10n.projectStatBom,

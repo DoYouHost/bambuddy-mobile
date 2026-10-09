@@ -3328,6 +3328,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get statsEnergyCost => 'Energiekosten';
 
   @override
+  String get statsWearCost => 'Verschleißkosten';
+
+  @override
   String get statsTotalCost => 'Gesamtkosten';
 
   @override
