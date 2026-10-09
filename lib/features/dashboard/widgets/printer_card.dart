@@ -12,6 +12,7 @@ import '../../../core/api/api_exceptions.dart';
 import '../../../core/format/datetime_format.dart';
 import '../../../core/format/duration_format.dart';
 import '../../../core/models/inventory.dart';
+import '../../../core/models/printer.dart';
 import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';
 import '../../../core/models/scheduled_drying.dart';
@@ -46,6 +47,7 @@ import '../../inventory/inventory_screen.dart'
     show SpoolSwatch, assignmentSlotLabel, openSpoolInInventory;
 import '../../inventory/spool_scanner_screen.dart';
 import '../../maintenance/maintenance_providers.dart';
+import '../add_printer_screen.dart';
 import '../controls_providers.dart';
 import '../drying_schedule.dart';
 import '../scheduled_drying_providers.dart';
@@ -210,6 +212,7 @@ class _PrinterCardState extends State<PrinterCard> {
             _HeaderLine(
               leading: _IconSquare(tokens: t, offline: true),
               name: name,
+              editable: widget.item.printer,
               // Smart plug stays controllable even when OFFLINE — the only way to
               // remotely power the printer back on. Auto-hides if none assigned.
               beforeStatus: _SmartPlugButton(
@@ -266,6 +269,7 @@ class _PrinterCardState extends State<PrinterCard> {
           _HeaderLine(
             leading: _IconSquare(tokens: t, offline: !connected),
             name: name,
+            editable: widget.item.printer,
             status: _StateChip(
               label: _stateChipLabel(l10n, status),
               offline: !connected,
@@ -480,10 +484,15 @@ class _HeaderLine extends StatelessWidget {
     this.toggle,
     this.afterName,
     this.belowName,
+    this.editable,
   });
 
   final Widget leading;
   final String name;
+
+  /// The printer a long press on the name opens for editing, when the session
+  /// may change printers. Null for a header that offers no edit.
+  final Printer? editable;
   final Widget status;
   final Widget? beforeStatus;
   final Widget? toggle;
@@ -547,7 +556,10 @@ class _HeaderLine extends StatelessWidget {
                         return Row(
                           children: [
                             Flexible(
-                              child: _NameText(name: name, tokens: t),
+                              child: _EditableName(
+                                printer: editable,
+                                child: _NameText(name: name, tokens: t),
+                              ),
                             ),
                             if (showAfterName) ...[
                               const SizedBox(width: _afterNameGap),
@@ -586,6 +598,34 @@ class _HeaderLine extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// Opens the printer's edit form on a long press — the card has no menu, and
+/// a fourth header icon would crowd the name out on a narrow screen. Absent
+/// for an API-key session, which the server refuses `printers:update`.
+class _EditableName extends ConsumerWidget {
+  const _EditableName({required this.printer, required this.child});
+
+  final Printer? printer;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final printer = this.printer;
+    if (printer == null || !ref.watch(canUpdatePrintersProvider)) return child;
+    return Semantics(
+      onLongPressHint: AppLocalizations.of(context).editPrinterTitle,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onLongPress: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => AddPrinterScreen(printer: printer),
+          ),
+        ),
+        child: child,
+      ).tagged('printer.edit'),
     );
   }
 }

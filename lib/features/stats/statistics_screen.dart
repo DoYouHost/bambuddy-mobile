@@ -370,6 +370,23 @@ class _OverviewCard extends StatelessWidget {
               ),
             ],
           ),
+          // Only once a printer has a wear rate, as on the web: without one
+          // the tile would read zero on every install forever.
+          if (data.totalWearCost > 0) ...[
+            const SizedBox(height: DashSpace.md),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatTile(
+                    icon: Icons.build_outlined,
+                    label: l10n.statsWearCost,
+                    value: fmtNum(data.totalWearCost),
+                  ),
+                ),
+                const Spacer(),
+              ],
+            ),
+          ],
           if (data.energyDataWarmingUp) ...[
             const SizedBox(height: DashSpace.sm),
             Row(
@@ -389,7 +406,9 @@ class _OverviewCard extends StatelessWidget {
               const SizedBox(width: DashSpace.md),
               Expanded(child: Text(l10n.statsTotalCost, style: t.body)),
               Text(
-                fmtNum(data.totalCost + data.totalEnergyCost),
+                fmtNum(
+                  data.totalCost + data.totalEnergyCost + data.totalWearCost,
+                ),
                 style: t.monoTitle,
               ),
             ],

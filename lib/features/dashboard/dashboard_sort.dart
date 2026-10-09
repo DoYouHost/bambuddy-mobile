@@ -3,6 +3,7 @@ import 'package:collection/collection.dart';
 import '../../core/models/printer_status.dart';
 import '../../data/printers_repository.dart';
 import 'dashboard_filters.dart';
+import '../../core/format/text_compare.dart';
 
 /// What the printer list is ordered by — the web's `SortOption`
 /// (`PrintersPage.tsx`).
@@ -31,13 +32,10 @@ class DashboardSort {
       by == PrinterSort.location;
 }
 
-// ponytail: lower-cased compareTo standing in for the web's localeCompare, with
-// the raw strings as tie-break so "Alpha" and "alpha" keep one order whichever
-// way the list arrived. It compares UTF-16 code units, so an accented letter
-// sorts after "z" instead of beside its base letter; real collation needs the
-// intl package's Collator-like support, which Dart does not ship.
+// The raw strings break a tie, so "Alpha" and "alpha" keep one order whichever
+// way the list arrived.
 int _text(String a, String b) {
-  final c = a.toLowerCase().compareTo(b.toLowerCase());
+  final c = compareIgnoringCase(a, b);
   return c != 0 ? c : a.compareTo(b);
 }
 

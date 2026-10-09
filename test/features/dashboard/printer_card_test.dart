@@ -12,6 +12,7 @@ import 'package:bambuddy_mobile/core/models/scheduled_drying.dart';
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/core/printers/bed_jog.dart';
+import 'package:bambuddy_mobile/features/dashboard/add_printer_screen.dart';
 import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
@@ -1925,6 +1926,36 @@ void main() {
       await tester.tap(find.text('Włącz'));
       await tester.pump();
       expect(stub.calls.single.action, SmartPlugAction.on);
+    });
+  });
+
+  group('edit entry', () {
+    const offline = PrinterWithStatus(
+      printer: Printer(id: 1, name: 'X1 Carbon'),
+    );
+    Widget card() => const Scaffold(
+      body: SingleChildScrollView(child: PrinterCard(item: offline)),
+    );
+
+    testWidgets('a long press on the name opens the edit form', (tester) async {
+      await tester.pumpWidget(_scope(card()));
+      await tester.pumpAndSettle();
+
+      await tester.longPress(find.text('X1 Carbon'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AddPrinterScreen), findsOneWidget);
+    });
+
+    testWidgets('an API-key session is offered no edit at all', (tester) async {
+      // The server refuses every key `printers:update`, whatever its scopes.
+      await tester.pumpWidget(_scope(card(), apiKeySession: true));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('printer.edit'), findsNothing);
+      await tester.longPress(find.text('X1 Carbon'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byType(AddPrinterScreen), findsNothing);
     });
   });
 

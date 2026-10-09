@@ -74,21 +74,6 @@ class _NoopNotifications implements NotificationService {
 
 late SharedPreferences _prefs;
 
-class _FakeDashboardNotifier extends DashboardNotifier {
-  _FakeDashboardNotifier(this._fixed);
-
-  final DashboardState _fixed;
-
-  @override
-  DashboardState build() => _fixed;
-
-  @override
-  Future<void> refresh() async {}
-
-  /// What a poll does when the session is rejected and cannot be renewed.
-  void expire() => state = const DashboardState(authExpired: true);
-}
-
 /// Background service with no Android underneath — the lifecycle tests check who
 /// the dashboard hands work to and takes it back from, not the service itself.
 class _FakeBackgroundMonitor implements BackgroundMonitor {
@@ -165,7 +150,7 @@ class _SpyFinishPhoto extends FinishPhotoNotifier {
 }
 
 List<Override> _overrides(DashboardState state) => [
-  dashboardProvider.overrideWith(() => _FakeDashboardNotifier(state)),
+  fixedDashboardOverride(state),
   fakeServerProfileOverride(),
   inertStatusesOverride,
   inertSmartPlugsOverride,
@@ -569,16 +554,7 @@ void main() {
     Future<void> remember(Map<String, Object?> view) =>
         _prefs.setString('dashboard_view', jsonEncode(view));
 
-    Future<void> pumpFarm(WidgetTester tester) => tester.pumpWidget(
-      _app(
-        farm,
-        extra: [
-          printerLocationsSupportedProvider.overrideWithValue(
-            const AsyncData(true),
-          ),
-        ],
-      ),
-    );
+    Future<void> pumpFarm(WidgetTester tester) => tester.pumpWidget(_app(farm));
 
     testWidgets('a fresh install starts sorted by status, in sections', (
       tester,
@@ -673,13 +649,11 @@ void main() {
       );
     });
 
-    testWidgets('the sheet picks a location and a sort, and offers the way '
-        'to manage them', (tester) async {
+    testWidgets('the sheet picks a location and a sort', (tester) async {
       await pumpFarm(tester);
 
       await tester.tap(byLogId('dashboard.filters'));
       await tester.pumpAndSettle();
-      expect(byLogId('dashboard_filters.manage_locations'), findsOneWidget);
 
       await tester.tap(byLogId('dashboard_filters.location'));
       await tester.pumpAndSettle();
@@ -693,8 +667,7 @@ void main() {
       expect(saved['ascending'], isFalse);
     });
 
-    testWidgets('no location to pick and none to manage leaves the section '
-        'out', (tester) async {
+    testWidgets('no location to pick leaves the section out', (tester) async {
       await tester.pumpWidget(
         _app(
           const DashboardState(
@@ -703,11 +676,6 @@ void main() {
               PrinterWithStatus(printer: Printer(id: 2, name: 'B')),
             ],
           ),
-          extra: [
-            printerLocationsSupportedProvider.overrideWithValue(
-              const AsyncData(false),
-            ),
-          ],
         ),
       );
 
@@ -715,7 +683,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(byLogId('dashboard_filters.location'), findsNothing);
-      expect(byLogId('dashboard_filters.manage_locations'), findsNothing);
     });
   });
 
@@ -1156,7 +1123,7 @@ void main() {
           ProviderScope.containerOf(
                 tester.element(find.byType(DashboardScreen)),
               ).read(dashboardProvider.notifier)
-              as _FakeDashboardNotifier;
+              as FixedDashboard;
       notifier.expire();
       await tester.pumpAndSettle();
 

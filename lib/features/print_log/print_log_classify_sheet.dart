@@ -204,6 +204,12 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
                           formatMoney(currency, fmtNum(entry.energyCost!)),
                       ].join(' · '),
               ),
+              _RunDetailRow(
+                label: l10n.statsWearCost,
+                value: entry.wearCost == null
+                    ? null
+                    : formatMoney(currency, fmtNum(entry.wearCost!)),
+              ),
             ],
             const SizedBox(height: DashSpace.lg),
             Divider(color: t.hairline, height: 1),

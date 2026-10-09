@@ -11,6 +11,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_search_field.dart';
 import '../inventory/inventory_screen.dart' show SpoolSwatch;
+import '../../core/format/text_compare.dart';
 
 /// Where a filament row was filled from a spool loaded in a printer (#3172):
 /// its colour (`#RRGGBB`, null when the printer named none) and the printer
@@ -394,8 +395,7 @@ class _FilterRow extends StatelessWidget {
   Widget build(BuildContext context) {
     if (options.isEmpty) return const SizedBox.shrink();
     final t = DashTokens.of(context);
-    final sorted = options.toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final sorted = options.toList()..sort(compareIgnoringCase);
     return Padding(
       padding: const EdgeInsets.only(top: DashSpace.sm),
       child: SingleChildScrollView(

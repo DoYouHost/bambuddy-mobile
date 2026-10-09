@@ -19,6 +19,7 @@ import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/features/admin/users_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
+import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
@@ -1172,4 +1173,25 @@ class FixedInventory extends InventoryNotifier {
 
   @override
   Future<InventoryState> build() async => _state;
+}
+
+/// `dashboardProvider` fixed at [state], with polling switched off — what a
+/// screen that lists printers wants, since the real one polls the server.
+Override fixedDashboardOverride([
+  DashboardState state = const DashboardState(),
+]) => dashboardProvider.overrideWith(() => FixedDashboard(state));
+
+class FixedDashboard extends DashboardNotifier {
+  FixedDashboard(this._fixed);
+
+  final DashboardState _fixed;
+
+  @override
+  DashboardState build() => _fixed;
+
+  @override
+  Future<void> refresh() async {}
+
+  /// What a poll does when the session is rejected and cannot be renewed.
+  void expire() => state = const DashboardState(authExpired: true);
 }

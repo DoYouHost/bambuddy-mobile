@@ -146,6 +146,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get addPrinterLocationOptional => 'Opcjonalnie';
 
   @override
+  String get printerLocationsManage => 'Zarządzaj lokalizacjami';
+
+  @override
   String get addPrinterSubmit => 'Dodaj drukarkę';
 
   @override
@@ -177,6 +180,47 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get addPrinterAutoArchive =>
       'Automatycznie archiwizuj ukończone wydruki';
+
+  @override
+  String get editPrinterTitle => 'Edytuj drukarkę';
+
+  @override
+  String get editPrinterSubmit => 'Zapisz zmiany';
+
+  @override
+  String get editPrinterSaved => 'Zapisano drukarkę';
+
+  @override
+  String get editPrinterSerialLocked => 'Numeru seryjnego nie można zmienić';
+
+  @override
+  String get editPrinterAccessCodeKeep => 'Zostaw puste, aby zachować obecny';
+
+  @override
+  String get editPrinterMaintenance => 'Tryb konserwacji';
+
+  @override
+  String get editPrinterMaintenanceHelp =>
+      'Wstrzymuje połączenie, kolejkę i powiadomienia tej drukarki.';
+
+  @override
+  String editPrinterWearCost(String currency) {
+    return 'Koszt zużycia za godzinę druku ($currency)';
+  }
+
+  @override
+  String get editPrinterWearCostHelp =>
+      'Dolicza się tylko do nowych wydruków. Puste pole wyłącza.';
+
+  @override
+  String get editPrinterWearCostInvalid => 'Wpisz liczbę od 0 do 100000';
+
+  @override
+  String get editPrinterPreflightWarning =>
+      'Część testów połączenia nie przeszła. Drukarka może być widoczna jako offline. Przejrzyj wyniki poniżej, popraw, co się da, albo zapisz mimo to.';
+
+  @override
+  String get editPrinterSaveAnyway => 'Zapisz mimo to';
 
   @override
   String get addPrinterScanTitle => 'Znajdź drukarki w sieci';
@@ -3335,6 +3379,9 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get statsEnergyCost => 'Koszt energii';
+
+  @override
+  String get statsWearCost => 'Koszt zużycia';
 
   @override
   String get statsTotalCost => 'Koszt łącznie';
@@ -8267,9 +8314,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get dashboardLocationAll => 'Wszystkie lokalizacje';
-
-  @override
-  String get dashboardLocationsManage => 'Zarządzaj lokalizacjami';
 
   @override
   String get dashboardGroupUngrouped => 'Bez lokalizacji';

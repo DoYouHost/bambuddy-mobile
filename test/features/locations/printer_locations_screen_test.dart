@@ -41,14 +41,6 @@ final _farm = [
   _printer(4, 'Spare', null),
 ];
 
-class _FixedDashboard extends DashboardNotifier {
-  @override
-  DashboardState build() => DashboardState(printers: _farm);
-
-  @override
-  Future<void> refresh() async {}
-}
-
 void main() {
   late RequestLog sent;
   late DioAdapter adapter;
@@ -70,7 +62,7 @@ void main() {
         printerLocationsRepositoryProvider.overrideWithValue(
           PrinterLocationsRepository(dio),
         ),
-        dashboardProvider.overrideWith(_FixedDashboard.new),
+        fixedDashboardOverride(DashboardState(printers: _farm)),
         inertStatusesOverride,
         if (user != null) currentUserOverride(user),
       ],
@@ -345,7 +337,7 @@ void main() {
         printerLocationsRepositoryProvider.overrideWithValue(
           PrinterLocationsRepository(dio),
         ),
-        dashboardProvider.overrideWith(_FixedDashboard.new),
+        fixedDashboardOverride(DashboardState(printers: _farm)),
         inertStatusesOverride,
       ],
     );

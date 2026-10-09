@@ -15,9 +15,11 @@ void main() {
       'filament_type': 'PLA',
       'filament_color': '#AABBCC',
       'quantity': 2,
+      'wear_cost': 0.38,
     });
 
     expect(slim.status, 'completed');
+    expect(slim.wearCost, 0.38);
     expect(slim.printerId, 3);
     expect(slim.printName, 'benchy');
     expect(slim.runSeconds, 900);
@@ -38,6 +40,8 @@ void main() {
 
     expect(slim.runSeconds, isNull);
     expect(slim.effectiveSeconds, 1200);
+    // No rate on the printer, or a server before #694: blank, not free.
+    expect(slim.wearCost, isNull);
   });
 
   test('an empty row parses instead of throwing', () {

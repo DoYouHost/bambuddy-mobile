@@ -1,8 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/models/current_user.dart';
 import '../../core/models/printer_location.dart';
-import '../../core/settings/server_profile.dart';
 import '../../providers.dart';
 
 /// Every location the server knows, those only printers carry included.
@@ -10,20 +8,6 @@ final printerLocationsProvider =
     FutureProvider.autoDispose<List<PrinterLocation>>(
       (ref) => ref.watch(printerLocationsRepositoryProvider).list(),
     );
-
-/// Whether this session may change a location. **An API-key session never
-/// may:** every write asks for `printers:update`, which is outside the key
-/// scope allowlist, so it is decided on the auth mode rather than on what
-/// `/auth/me` claims — the same reason as [identifiedPermissionProvider].
-///
-/// Unlike that provider an unknown identity answers yes: the server is the
-/// enforcer, and a server without auth has nobody to refuse.
-final canEditPrinterLocationsProvider = Provider<bool>((ref) {
-  if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
-    return false;
-  }
-  return ref.watch(permissionProvider(Permissions.printersUpdate));
-});
 
 /// The four orders of the web page's sort menu.
 enum LocationSort { nameAsc, nameDesc, countAsc, countDesc }

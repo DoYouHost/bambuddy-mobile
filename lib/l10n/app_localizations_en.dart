@@ -144,6 +144,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addPrinterLocationOptional => 'Optional';
 
   @override
+  String get printerLocationsManage => 'Manage locations';
+
+  @override
   String get addPrinterSubmit => 'Add printer';
 
   @override
@@ -173,6 +176,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addPrinterAutoArchive => 'Auto-archive completed prints';
+
+  @override
+  String get editPrinterTitle => 'Edit printer';
+
+  @override
+  String get editPrinterSubmit => 'Save changes';
+
+  @override
+  String get editPrinterSaved => 'Printer saved';
+
+  @override
+  String get editPrinterSerialLocked => 'Serial number cannot be changed';
+
+  @override
+  String get editPrinterAccessCodeKeep => 'Leave empty to keep the current one';
+
+  @override
+  String get editPrinterMaintenance => 'Maintenance mode';
+
+  @override
+  String get editPrinterMaintenanceHelp =>
+      'Pauses the connection, queued jobs and notifications for this printer.';
+
+  @override
+  String editPrinterWearCost(String currency) {
+    return 'Wear cost per printing hour ($currency)';
+  }
+
+  @override
+  String get editPrinterWearCostHelp =>
+      'Added to new prints only. Leave empty to turn it off.';
+
+  @override
+  String get editPrinterWearCostInvalid => 'Enter a number from 0 to 100000';
+
+  @override
+  String get editPrinterPreflightWarning =>
+      'Some connection checks failed. This printer may show as offline. Review the checks below, fix what you can, or save anyway.';
+
+  @override
+  String get editPrinterSaveAnyway => 'Save anyway';
 
   @override
   String get addPrinterScanTitle => 'Find printers on the network';
@@ -3291,6 +3335,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statsEnergyCost => 'Energy cost';
+
+  @override
+  String get statsWearCost => 'Wear cost';
 
   @override
   String get statsTotalCost => 'Total cost';
@@ -8138,9 +8185,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashboardLocationAll => 'All locations';
-
-  @override
-  String get dashboardLocationsManage => 'Manage locations';
 
   @override
   String get dashboardGroupUngrouped => 'No location';

@@ -9,6 +9,7 @@ import '../../core/models/print_run.dart';
 import '../../core/models/printer.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
+import '../../core/format/text_compare.dart';
 
 /// Upper bound on how many archives we load in one shot. Filtering/sorting runs
 /// client-side over the full set (matching bambuddy), so we fetch everything
@@ -153,7 +154,7 @@ List<Archive> applyArchiveFilters(
   int byDate(Archive a, Archive b) => (a.createdAt?.millisecondsSinceEpoch ?? 0)
       .compareTo(b.createdAt?.millisecondsSinceEpoch ?? 0);
   int byName(Archive a, Archive b) =>
-      a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+      compareIgnoringCase(a.displayName, b.displayName);
   int bySize(Archive a, Archive b) =>
       (a.fileSize ?? 0).compareTo(b.fileSize ?? 0);
 

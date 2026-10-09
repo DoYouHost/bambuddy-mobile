@@ -147,6 +147,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get addPrinterLocationOptional => 'Optional';
 
   @override
+  String get printerLocationsManage => 'Standorte verwalten';
+
+  @override
   String get addPrinterSubmit => 'Drucker hinzufügen';
 
   @override
@@ -178,6 +181,49 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get addPrinterAutoArchive =>
       'Abgeschlossene Drucke automatisch archivieren';
+
+  @override
+  String get editPrinterTitle => 'Drucker bearbeiten';
+
+  @override
+  String get editPrinterSubmit => 'Änderungen speichern';
+
+  @override
+  String get editPrinterSaved => 'Drucker gespeichert';
+
+  @override
+  String get editPrinterSerialLocked =>
+      'Seriennummer kann nicht geändert werden';
+
+  @override
+  String get editPrinterAccessCodeKeep =>
+      'Leer lassen, um den aktuellen zu behalten';
+
+  @override
+  String get editPrinterMaintenance => 'Wartungsmodus';
+
+  @override
+  String get editPrinterMaintenanceHelp =>
+      'Pausiert Verbindung, Warteschlange und Benachrichtigungen dieses Druckers.';
+
+  @override
+  String editPrinterWearCost(String currency) {
+    return 'Verschleißkosten pro Druckstunde ($currency)';
+  }
+
+  @override
+  String get editPrinterWearCostHelp =>
+      'Wird nur zu neuen Drucken addiert. Leer lassen zum Abschalten.';
+
+  @override
+  String get editPrinterWearCostInvalid => 'Gib eine Zahl von 0 bis 100000 ein';
+
+  @override
+  String get editPrinterPreflightWarning =>
+      'Einige Verbindungsprüfungen sind fehlgeschlagen. Dieser Drucker wird möglicherweise als offline angezeigt. Prüfe die Punkte unten, behebe was möglich ist, oder speichere trotzdem.';
+
+  @override
+  String get editPrinterSaveAnyway => 'Trotzdem speichern';
 
   @override
   String get addPrinterScanTitle => 'Drucker im Netzwerk suchen';
@@ -3326,6 +3372,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get statsEnergyCost => 'Energiekosten';
+
+  @override
+  String get statsWearCost => 'Verschleißkosten';
 
   @override
   String get statsTotalCost => 'Gesamtkosten';
@@ -8214,9 +8263,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get dashboardLocationAll => 'Alle Standorte';
-
-  @override
-  String get dashboardLocationsManage => 'Standorte verwalten';
 
   @override
   String get dashboardGroupUngrouped => 'Ohne Standort';

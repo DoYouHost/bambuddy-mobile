@@ -74,6 +74,7 @@
   "addPrinterModelNone": "Not set",
   "addPrinterLocation": "Location",
   "addPrinterLocationOptional": "Optional",
+  "printerLocationsManage": "Manage locations",
   "addPrinterSubmit": "Add printer",
   "addPrinterConnectionNote": "The server verifies the connection before saving, so a wrong IP or access code is reported and nothing is created.",
   "addPrinterRequiredField": "Required",
@@ -83,6 +84,23 @@
   "addPrinterErrForbidden": "You do not have permission to add printers",
   "addPrinterErrGeneric": "Could not add the printer. Try again.",
   "addPrinterAutoArchive": "Auto-archive completed prints",
+  "editPrinterTitle": "Edit printer",
+  "editPrinterSubmit": "Save changes",
+  "editPrinterSaved": "Printer saved",
+  "editPrinterSerialLocked": "Serial number cannot be changed",
+  "editPrinterAccessCodeKeep": "Leave empty to keep the current one",
+  "editPrinterMaintenance": "Maintenance mode",
+  "editPrinterMaintenanceHelp": "Pauses the connection, queued jobs and notifications for this printer.",
+  "editPrinterWearCost": "Wear cost per printing hour ({currency})",
+  "@editPrinterWearCost": {
+    "placeholders": {
+      "currency": {"type": "String", "example": "zł"}
+    }
+  },
+  "editPrinterWearCostHelp": "Added to new prints only. Leave empty to turn it off.",
+  "editPrinterWearCostInvalid": "Enter a number from 0 to 100000",
+  "editPrinterPreflightWarning": "Some connection checks failed. This printer may show as offline. Review the checks below, fix what you can, or save anyway.",
+  "editPrinterSaveAnyway": "Save anyway",
   "addPrinterScanTitle": "Find printers on the network",
   "addPrinterSubnet": "Subnet to scan",
   "addPrinterScanButton": "Scan subnet for printers",
@@ -2015,6 +2033,10 @@
   "statsFilamentCost": "Filament cost",
   "statsEnergyUsed": "Energy used",
   "statsEnergyCost": "Energy cost",
+  "statsWearCost": "Wear cost",
+  "@statsWearCost": {
+    "description": "Printer wear charged to prints: hours printed times the printer's wear cost per hour. Stats tile, print log run detail and project tile."
+  },
   "statsTotalCost": "Total cost",
   "statsEnergyWarmingUp": "Energy data is still warming up",
   "statsSuccessRate": "Success rate",
@@ -5210,7 +5232,6 @@
   "dashboardSortAscending": "Ascending",
   "dashboardSortDescending": "Descending",
   "dashboardLocationAll": "All locations",
-  "dashboardLocationsManage": "Manage locations",
   "dashboardGroupUngrouped": "No location",
   "dashboardGroupUnknownModel": "Unknown model"
 }

@@ -139,6 +139,10 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   /// all: an edit matching the new preset's own value stops being an override.
   Map<String, Object> _processValues = {};
 
+  /// `GET /slicer/printer-models`, as of the last build — what a printer change
+  /// checks the kept picks against.
+  Map<String, String> _registry = const {};
+
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
@@ -169,7 +173,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final facets =
         ref.watch(ownedSpoolFacetsProvider).valueOrNull ??
         (materials: const <String>{}, brands: const <String>{});
-    final registry =
+    final registry = _registry =
         ref.watch(printerModelRegistryProvider).valueOrNull ??
         const <String, String>{};
 
@@ -202,7 +206,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                       isConnectedModelPreset(p, connectedModels, registry)
                 : null;
             final printers = _narrow(
-              _filterPrinters(presets.printers, ownedCodes),
+              _filterPrinters(presets.printers, ownedCodes, registry),
               printerFilter,
             );
             _printer ??= _firstLocalOr(printers);
@@ -218,10 +222,12 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                 embedded,
               );
             }
-            final code = _printer == null
-                ? null
-                : _codeOfPrinter(_printer!, ownedCodes);
-            final processes = _filterProcesses(presets.processes, code);
+            final printerName = _printer?.name;
+            final processes = _fitting(
+              presets.processes,
+              printerName,
+              registry,
+            );
             _process ??= _firstLocalOr(processes);
 
             // One filament list for every slot — any owned, printer-compatible
@@ -247,7 +253,8 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                 : null;
             final ownedFilaments = _filterFilaments(
               presets.filaments,
-              code,
+              printerName,
+              registry,
               owned,
             );
             // From the whole catalog, not the owned list: a spool in the AMS
@@ -552,6 +559,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                                   ? _filterFilaments(
                                       presets.filaments,
                                       null,
+                                      registry,
                                       owned,
                                     )
                                   : filaments,
@@ -746,10 +754,18 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   void _pickPrinter(SlicerPreset printer) {
     _printerPicked = true;
     _printer = printer;
-    _process = null;
-    _filaments = List.filled(_filaments.length, null);
-    _spoolOrigins = List.filled(_filaments.length, null);
-    _explicitFilaments.clear();
+    // The web's re-pick (#1325): a pick that still fits the new printer stays,
+    // the user's own included; one ruled out for it is chosen again.
+    bool ruledOut(SlicerPreset? p) =>
+        p != null &&
+        presetCompatibility(p, printer.name, _registry) == PresetFit.mismatch;
+    if (ruledOut(_process)) _process = null;
+    for (var i = 0; i < _filaments.length; i++) {
+      if (!ruledOut(_filaments[i])) continue;
+      _filaments[i] = null;
+      _spoolOrigins[i] = null;
+      _explicitFilaments.remove(i);
+    }
     _processValues = {};
   }
 
@@ -1290,44 +1306,47 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
 
   List<SlicerPreset> _filterPrinters(
     List<SlicerPreset> all,
-    Set<String> codes,
+    Set<String> owned,
+    Map<String, String> registry,
   ) {
-    if (codes.isEmpty) return all;
+    if (owned.isEmpty) return all;
+    final models = owned.toList();
     return all
-        .where((p) => p.isLocal || codes.any((c) => _containsCode(p.name, c)))
+        .where((p) => p.isLocal || isConnectedModelPreset(p, models, registry))
         .toList();
   }
 
-  /// The owned code the selected printer maps to (drives process/filament compat).
-  String? _codeOfPrinter(SlicerPreset printer, Set<String> codes) {
-    for (final c in codes) {
-      if (_containsCode(printer.name, c)) return c;
-    }
-    return null;
-  }
-
-  List<SlicerPreset> _filterProcesses(List<SlicerPreset> all, String? code) {
-    if (code == null) return all;
-    return all.where((p) => p.isLocal || _containsCode(p.name, code)).toList();
+  /// The presets the web's rule (`presetCompatibility`) does not rule out for
+  /// [printerName] — an untagged one stays. When that leaves nothing, all of
+  /// them, as the web does (#2982): a preset for the wrong printer can be
+  /// changed, an empty list cannot.
+  List<SlicerPreset> _fitting(
+    List<SlicerPreset> all,
+    String? printerName,
+    Map<String, String> registry,
+  ) {
+    final fit = [
+      for (final p in all)
+        if (presetCompatibility(p, printerName, registry) != PresetFit.mismatch)
+          p,
+    ];
+    return fit.isEmpty ? all : fit;
   }
 
   /// Owned (any material) + printer-compatible. Not narrowed by the model's
   /// filament type — the user can pick a different material per slot.
   List<SlicerPreset> _filterFilaments(
     List<SlicerPreset> all,
-    String? code,
+    String? printerName,
+    Map<String, String> registry,
     List<OwnedFilament> owned,
   ) {
-    bool compat(SlicerPreset p) => code == null || _containsCode(p.name, code);
+    final fit = _fitting(all, printerName, registry);
     final ownedNames = {for (final o in owned) o.name};
-    if (ownedNames.isEmpty) {
-      // No owned-filament signal — narrow by printer only.
-      return all.where((p) => p.isLocal || compat(p)).toList();
-    }
-    return all
-        .where(
-          (p) => p.isLocal || (_ownedMatch(p.name, ownedNames) && compat(p)),
-        )
+    // No owned-filament signal — narrow by printer only.
+    if (ownedNames.isEmpty) return fit;
+    return fit
+        .where((p) => p.isLocal || _ownedMatch(p.name, ownedNames))
         .toList();
   }
 
@@ -1371,26 +1390,6 @@ bool _typeMatches(String material, String type) {
   final t = type.toUpperCase();
   return m == t || m.startsWith(t) || t.startsWith(m);
 }
-
-/// A preset's name contains the printer [code] as a whole token, so "X1"
-/// doesn't match "X1C". Case-insensitive; the code may contain a space
-/// ("A1 Mini").
-bool _containsCode(String name, String code) {
-  final n = name.toUpperCase();
-  final c = code.toUpperCase();
-  if (c.isEmpty) return false;
-  var i = n.indexOf(c);
-  while (i >= 0) {
-    final before = i == 0 ? ' ' : n[i - 1];
-    final afterIdx = i + c.length;
-    final after = afterIdx >= n.length ? ' ' : n[afterIdx];
-    if (!_isAlnum(before) && !_isAlnum(after)) return true;
-    i = n.indexOf(c, i + 1);
-  }
-  return false;
-}
-
-bool _isAlnum(String ch) => RegExp(r'[A-Za-z0-9]').hasMatch(ch);
 
 /// A preset belongs to an owned filament if its name equals an owned base name
 /// or extends it ("Bambu PETG HF" → "Bambu PETG HF @BBL X2D 0.4 nozzle").

@@ -21,6 +21,7 @@ import '../common/file_export.dart';
 import 'printer_download_job.dart';
 import 'printer_selection_download.dart';
 import '../../data/streamed_download.dart';
+import '../../core/format/text_compare.dart';
 
 /// Client-side sort keys for the printer file list (the endpoint doesn't sort).
 enum PrinterFileSort { nameAsc, nameDesc, sizeAsc, sizeDesc, dateAsc, dateDesc }
@@ -165,12 +166,8 @@ class _PrinterFileManagerScreenState
     filtered.sort((a, b) {
       if (a.isDirectory != b.isDirectory) return a.isDirectory ? -1 : 1;
       return switch (_sort) {
-        PrinterFileSort.nameAsc => a.name.toLowerCase().compareTo(
-          b.name.toLowerCase(),
-        ),
-        PrinterFileSort.nameDesc => b.name.toLowerCase().compareTo(
-          a.name.toLowerCase(),
-        ),
+        PrinterFileSort.nameAsc => compareIgnoringCase(a.name, b.name),
+        PrinterFileSort.nameDesc => compareIgnoringCase(b.name, a.name),
         PrinterFileSort.sizeAsc => a.size.compareTo(b.size),
         PrinterFileSort.sizeDesc => b.size.compareTo(a.size),
         PrinterFileSort.dateAsc => _compareDate(a, b),

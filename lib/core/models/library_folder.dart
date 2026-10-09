@@ -92,3 +92,8 @@ class LibraryFolder {
 
 List<LibraryFolder> _childrenFromJson(dynamic value) =>
     parseJsonList(value, LibraryFolder.fromJson);
+
+/// Every folder of [tree], each parent before its children.
+List<LibraryFolder> flattenFolders(List<LibraryFolder> tree) => [
+  for (final f in tree) ...[f, ...flattenFolders(f.children)],
+];

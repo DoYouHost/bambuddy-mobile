@@ -10,6 +10,7 @@ import '../models/print_run.dart';
 import '../models/spool_label.dart';
 import 'demo_config.dart';
 import 'demo_labels.dart';
+import '../format/text_compare.dart';
 
 /// In-process fake bambuddy server for demo mode (see [DemoConfig]).
 ///
@@ -35,6 +36,7 @@ class DemoBackend {
   /// Simulated job duration; the job loops forever.
   static const _printCycleSec = 5400; // 90 min
   static const _totalLayers = 264;
+  static const _demoWearCostPerHour = 0.25;
 
   /// How many machines the demo runs a print on at once, from app settings.
   ///
@@ -308,7 +310,10 @@ class DemoBackend {
         if (pid == null) return _notFound();
         if (s.length == 2) {
           final p = _printers.where((e) => e['id'] == pid).firstOrNull;
-          return p == null ? _notFound() : _ok(p);
+          if (p == null) return _notFound();
+          // The access code is write-only on the real server too.
+          if (m == 'PATCH') p.addAll(body..remove('access_code'));
+          return _ok(p);
         }
         if (at(2, 'status')) return _ok(statusJson(pid));
         if (at(2, 'print')) {
@@ -1230,6 +1235,7 @@ class DemoBackend {
       'cost': _r1(grams * 0.025),
       'energy_kwh': 0.0,
       'energy_cost': 0.0,
+      'wear_cost': null,
       'created_at': _iso(DateTime.now()),
     };
     _archives.insert(0, archive);
@@ -1290,6 +1296,7 @@ class DemoBackend {
       'location': 'Workshop',
       'is_active': true,
       'nozzle_count': 1,
+      'wear_cost_per_hour': _demoWearCostPerHour,
     },
     {
       'id': 2,
@@ -3024,6 +3031,11 @@ class DemoBackend {
         'quantity': quantity,
         'energy_kwh': energyKwh ?? _r1(estSec / 3600 * 0.11),
         'energy_cost': _r1((energyKwh ?? estSec / 3600 * 0.11) * 0.3),
+        // Only printer 1 has a wear rate, so the other printers' runs show
+        // the "no rate set" half of the field.
+        'wear_cost': printerId == 1
+            ? _r1(actualSec / 3600 * _demoWearCostPerHour)
+            : null,
         'created_at': _iso(started),
         'run_count': 1,
         'last_run_at': _iso(started),
@@ -3186,6 +3198,7 @@ class DemoBackend {
       'cost': archive['cost'],
       'energy_kwh': archive['energy_kwh'],
       'energy_cost': archive['energy_cost'],
+      'wear_cost': archive['wear_cost'],
       'failure_reason': failureReason ?? archive['failure_reason'],
       'thumbnail_path': null,
       'created_by_id': 1,
@@ -3343,6 +3356,7 @@ class DemoBackend {
       'cost' => (e['cost'] as num?)?.toDouble(),
       'energy' => (e['energy_kwh'] as num?)?.toDouble(),
       'energy_cost' => (e['energy_cost'] as num?)?.toDouble(),
+      'wear_cost' => (e['wear_cost'] as num?)?.toDouble(),
       _ => null,
     };
     final descending = q['sort_dir'] != 'asc';
@@ -3615,7 +3629,7 @@ class DemoBackend {
     final failed = _archives.where((a) => a['status'] == 'failed').length;
     final byType = <String, int>{};
     final byPrinter = <String, int>{};
-    var hours = 0.0, grams = 0.0, cost = 0.0, kwh = 0.0;
+    var hours = 0.0, grams = 0.0, cost = 0.0, kwh = 0.0, wear = 0.0;
     for (final a in _archives) {
       byType.update('${a['filament_type']}', (v) => v + 1, ifAbsent: () => 1);
       final printerName =
@@ -3631,6 +3645,7 @@ class DemoBackend {
       grams += toDouble(a['filament_used_grams']);
       cost += toDouble(a['cost']);
       kwh += toDouble(a['energy_kwh']);
+      wear += toDouble(a['wear_cost']);
     }
     return {
       'total_prints': _archives.length,
@@ -3645,6 +3660,7 @@ class DemoBackend {
       'average_time_accuracy': 94.4,
       'total_energy_kwh': _r1(kwh),
       'total_energy_cost': _r1(kwh * 0.3),
+      'total_wear_cost': _r1(wear),
       'energy_data_warming_up': false,
     };
   }
@@ -5054,7 +5070,7 @@ class DemoBackend {
         ..._locationRows.keys,
         for (final p in _printers)
           if (p['location'] case final String l when l.isNotEmpty) l,
-      }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      }.toList()..sort(compareIgnoringCase);
       return _ok([for (final n in names) _locationResponse(n)]);
     }
     if (s.length == 1 && m == 'POST') {
@@ -5149,11 +5165,7 @@ class DemoBackend {
     if (s.length == 2) {
       if (m == 'GET') {
         final rows = [..._suppliers]
-          ..sort(
-            (a, b) => '${a['name']}'.toLowerCase().compareTo(
-              '${b['name']}'.toLowerCase(),
-            ),
-          );
+          ..sort((a, b) => compareIgnoringCase('${a['name']}', '${b['name']}'));
         return _ok([for (final r in rows) _supplierResponse(r)]);
       }
       if (m == 'POST') {
@@ -6605,6 +6617,7 @@ class DemoBackend {
         'estimated_cost': isFirst ? 12.8 : 8.5,
         'total_energy_kwh': isFirst ? 1.6 : 1.0,
         'total_energy_cost': isFirst ? 0.5 : 0.3,
+        'total_wear_cost': isFirst ? 3.7 : 2.3,
         'remaining_prints': isFirst ? 5 : 0,
         'remaining_parts': null,
         'bom_total_items': bom.length,

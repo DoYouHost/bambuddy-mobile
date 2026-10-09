@@ -1,12 +1,9 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/dash_theme.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../providers.dart';
-import '../../common/dash_async.dart';
 import '../../common/dash_input.dart';
 import '../../common/sheet_surface.dart';
 import '../dashboard_filters.dart';
@@ -51,7 +48,6 @@ class _DashboardFilterSheet extends ConsumerWidget {
       for (final p in ref.watch(dashboardProvider).printers ?? const [])
         p.printer.location,
     ]);
-    final canManage = ref.watch(printerLocationsSupportedProvider).orFalse;
 
     return logTag(
       'sheet.dashboard_filters',
@@ -122,47 +118,36 @@ class _DashboardFilterSheet extends ConsumerWidget {
                     title: Text(l10n.hideOffline, style: t.bodyStrong),
                     activeThumbColor: t.accentGreen,
                   ),
-                  // Offered while some printer has a location, as on the web, and
-                  // while the server can manage them — the way in to the screen.
-                  if (locations.isNotEmpty || canManage) ...[
+                  // Offered while some printer has a location, as on the web.
+                  if (locations.isNotEmpty) ...[
                     const SizedBox(height: DashSpace.sm),
                     _GroupLabel(label: l10n.dashboardSortLocation),
-                    if (locations.isNotEmpty)
-                      dashCombo<String?>(
-                        context,
-                        id: 'dashboard_filters.location',
-                        initialSelection: filters.location,
-                        onSelected: (v) =>
-                            notifier.state = filters.copyWith(location: v),
-                        entries: [
+                    dashCombo<String?>(
+                      context,
+                      id: 'dashboard_filters.location',
+                      initialSelection: filters.location,
+                      onSelected: (v) =>
+                          notifier.state = filters.copyWith(location: v),
+                      entries: [
+                        DropdownMenuEntry(
+                          value: null,
+                          label: l10n.dashboardLocationAll,
+                          labelWidget: logTag(
+                            'dashboard_filters.location_all',
+                            Text(l10n.dashboardLocationAll),
+                          ),
+                        ),
+                        for (final location in locations)
                           DropdownMenuEntry(
-                            value: null,
-                            label: l10n.dashboardLocationAll,
+                            value: location,
+                            label: location,
                             labelWidget: logTag(
-                              'dashboard_filters.location_all',
-                              Text(l10n.dashboardLocationAll),
+                              'dashboard_filters.location_option',
+                              Text(location),
                             ),
                           ),
-                          for (final location in locations)
-                            DropdownMenuEntry(
-                              value: location,
-                              label: location,
-                              labelWidget: logTag(
-                                'dashboard_filters.location_option',
-                                Text(location),
-                              ),
-                            ),
-                        ],
-                      ),
-                    if (canManage)
-                      TextButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          context.push('/locations');
-                        },
-                        icon: const Icon(Icons.place_outlined),
-                        label: Text(l10n.dashboardLocationsManage),
-                      ).tagged('dashboard_filters.manage_locations'),
+                      ],
+                    ),
                   ],
                   const SizedBox(height: DashSpace.md),
                   _GroupLabel(label: l10n.dashboardSortTitle),

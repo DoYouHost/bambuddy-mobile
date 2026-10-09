@@ -146,6 +146,7 @@ class ProjectStats {
     this.estimatedCost = 0,
     this.totalEnergyKwh = 0,
     this.totalEnergyCost = 0,
+    this.totalWearCost = 0,
     this.remainingPrints,
     this.remainingParts,
     this.bomTotalItems = 0,
@@ -182,6 +183,10 @@ class ProjectStats {
   final double totalEnergyKwh;
   @JsonKey(fromJson: toDouble)
   final double totalEnergyCost;
+
+  /// Printer wear of the project's runs (#694); absent, so 0, before 1.2.6.
+  @JsonKey(fromJson: toDouble)
+  final double totalWearCost;
   @JsonKey(fromJson: toIntOrNull)
   final int? remainingPrints;
   @JsonKey(fromJson: toIntOrNull)

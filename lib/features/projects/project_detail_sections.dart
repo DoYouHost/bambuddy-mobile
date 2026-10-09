@@ -174,7 +174,7 @@ class ProjectFilesSection extends ConsumerWidget {
     try {
       final tree = await ref.read(libraryRepositoryProvider).listFolders();
       candidates = [
-        for (final f in _flatten(tree))
+        for (final f in flattenFolders(tree))
           if (!linked.contains(f.id) && f.projectId == null) f,
       ];
     } on AppApiException catch (e) {
@@ -269,10 +269,6 @@ class ProjectFilesSection extends ConsumerWidget {
         ),
         schedule: QueueScheduleType.asap,
       );
-
-  List<LibraryFolder> _flatten(List<LibraryFolder> tree) => [
-    for (final f in tree) ...[f, ..._flatten(f.children)],
-  ];
 }
 
 class _FolderTile extends StatelessWidget {

@@ -330,11 +330,11 @@ class RecordsCard extends StatelessWidget {
       );
     }
     final exp = data.mostExpensive;
-    if (exp?.cost != null) {
+    if (exp != null) {
       add(
         Icons.payments_outlined,
         l10n.statsMostExpensive,
-        fmtNum(exp!.cost!),
+        fmtNum(runCost(exp)),
         exp.printName,
       );
     }

@@ -16,6 +16,9 @@ class Printer {
     this.isActive,
     this.serialNumber,
     this.nozzleCount,
+    this.autoArchive,
+    this.wearCostPerHour,
+    this.servesWearCost = false,
   });
 
   factory Printer.fromJson(Map<String, dynamic> json) =>
@@ -34,7 +37,21 @@ class Printer {
 
   /// 1 or 2, detected by the server from the printer's reports.
   final int? nozzleCount;
+
+  final bool? autoArchive;
+
+  /// What an hour of printing costs this printer in wear (#694); null = off.
+  final double? wearCostPerHour;
+
+  /// Whether the server knows [wearCostPerHour] at all — it sends the key,
+  /// null or not, from 1.2.6. An older one would take the field on a `PATCH`
+  /// and drop it without a word, so the editor offers it only on this answer.
+  @JsonKey(readValue: _hasWearCostKey)
+  final bool servesWearCost;
 }
+
+Object? _hasWearCostKey(Map<dynamic, dynamic> json, String _) =>
+    json.containsKey('wear_cost_per_hour');
 
 /// The distinct models of [printers], sorted, spelled exactly as the server
 /// stores them: `target_model` and a pipeline's printer class are matched
