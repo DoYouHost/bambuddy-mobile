@@ -362,6 +362,12 @@ abstract class AppLocalizations {
   /// **'Optional'**
   String get addPrinterLocationOptional;
 
+  /// No description provided for @printerLocationsManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage locations'**
+  String get printerLocationsManage;
+
   /// No description provided for @addPrinterSubmit.
   ///
   /// In en, this message translates to:

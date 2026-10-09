@@ -605,8 +605,9 @@ final printerLocationsRepositoryProvider = Provider<PrinterLocationsRepository>(
   ),
 );
 
-/// Whether this server has the managed Printer Locations. Read by the dashboard's
-/// filter sheet, which holds the way in, and by the locations screen. See `PrinterLocationsRepository.capability`.
+/// Whether this server has the managed Printer Locations. Read by the printer
+/// form, which holds the way in and offers their names, and by the locations
+/// screen. See `PrinterLocationsRepository.capability`.
 final printerLocationsSupportedProvider = capabilityGate(
   (ref) => ref.watch(printerLocationsRepositoryProvider).capability,
 );

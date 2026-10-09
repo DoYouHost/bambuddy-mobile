@@ -50,6 +50,7 @@
   "addPrinterModelNone": "Sin definir",
   "addPrinterLocation": "Ubicación",
   "addPrinterLocationOptional": "Opcional",
+  "printerLocationsManage": "Gestionar ubicaciones",
   "addPrinterSubmit": "Añadir impresora",
   "addPrinterConnectionNote": "El servidor verifica la conexión antes de guardar; si la IP o el código de acceso son incorrectos, se notificará y no se creará nada.",
   "addPrinterRequiredField": "Obligatorio",

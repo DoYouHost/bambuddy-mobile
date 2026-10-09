@@ -1,5 +1,9 @@
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
+import 'package:bambuddy_mobile/core/models/printer_location.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/features/locations/printer_locations_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bambuddy_mobile/core/models/printer_create.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/add_printer_screen.dart';
@@ -33,6 +37,8 @@ const _diagnoseBody = {
   'ip_address': '192.168.4.21',
   'serial_number': '01P00A390800000',
 };
+
+final _keyProfile = fakeServerProfileOverride(authMode: AuthMode.apiKey);
 
 class _InertDashboard extends DashboardNotifier {
   @override
@@ -148,7 +154,11 @@ void main() {
     late DioAdapter server;
     late RequestLog log;
 
-    Future<void> pump(WidgetTester tester, Printer printer) async {
+    Future<void> pump(
+      WidgetTester tester,
+      Printer printer, {
+      List<Override> extra = const [],
+    }) async {
       usePhoneWindow(tester, dp: 2400);
       final dio = testDio();
       server = mockServer(dio);
@@ -157,7 +167,8 @@ void main() {
         tester,
         AddPrinterScreen(printer: printer),
         overrides: [
-          noServerProfileOverride,
+          ...extra,
+          if (!extra.any((o) => o == _keyProfile)) noServerProfileOverride,
           printersRepositoryProvider.overrideWithValue(PrintersRepository(dio)),
           dashboardProvider.overrideWith(_InertDashboard.new),
           serverSettingsOverride(const {'currency': 'PLN'}),
@@ -321,6 +332,75 @@ void main() {
 
       expect(find.text(_l10n.editPrinterWearCostInvalid), findsOneWidget);
       expect(patched(), isNull);
+    });
+
+    group('location', () {
+      List<Override> managed({bool apiKey = false}) => [
+        if (apiKey) _keyProfile,
+        printerLocationsSupportedProvider.overrideWithValue(
+          const AsyncData(true),
+        ),
+        printerLocationsProvider.overrideWith(
+          (ref) async => const [
+            PrinterLocation(name: 'Workshop', printerCount: 1),
+            PrinterLocation(name: 'Garage'),
+          ],
+        ),
+      ];
+
+      testWidgets('offers the managed ones, an empty one included', (
+        tester,
+      ) async {
+        await pump(tester, _printer(), extra: managed());
+        await tester.tap(byLogId('add_printer.location'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Garage'), findsWidgets);
+        expect(byLogId('add_printer.manage_locations'), findsOneWidget);
+      });
+
+      testWidgets('a name typed in that is on no list is saved as typed', (
+        tester,
+      ) async {
+        await pump(tester, _printer(), extra: managed());
+        server
+          ..onPost(
+            Endpoints.printersDiagnostic,
+            (s) => s.reply(200, _passing),
+            data: _diagnoseBody,
+          )
+          ..onPatch(
+            Endpoints.printer(1),
+            (s) => s.reply(200, {'id': 1, 'name': 'X1 Carbon'}),
+            data: {
+              'name': 'X1 Carbon',
+              'ip_address': '192.168.4.21',
+              'auto_archive': true,
+              'is_active': true,
+              'model': 'X1C',
+              'location': 'Attic',
+              'wear_cost_per_hour': 0.25,
+            },
+          );
+        await tester.enterText(
+          find.descendant(
+            of: byLogId('add_printer.location'),
+            matching: find.byType(TextField),
+          ),
+          'Attic',
+        );
+        await tester.tap(find.text(_l10n.editPrinterSubmit));
+        await tester.pumpAndSettle();
+
+        expect(log.statuses, [200, 200]);
+      });
+
+      testWidgets('an API key gets the names but not the way to manage them', (
+        tester,
+      ) async {
+        await pump(tester, _printer(), extra: managed(apiKey: true));
+        expect(byLogId('add_printer.manage_locations'), findsNothing);
+      });
     });
 
     testWidgets('a rate the server would refuse is stopped in the form', (

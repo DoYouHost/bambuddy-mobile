@@ -43,6 +43,7 @@
   "addPrinterModelNone": "Nie ustawiono",
   "addPrinterLocation": "Lokalizacja",
   "addPrinterLocationOptional": "Opcjonalnie",
+  "printerLocationsManage": "Zarządzaj lokalizacjami",
   "addPrinterSubmit": "Dodaj drukarkę",
   "addPrinterConnectionNote": "Serwer sprawdza połączenie przed zapisaniem, więc błędny adres IP lub kod dostępu zostanie zgłoszony i nic nie zostanie utworzone.",
   "addPrinterRequiredField": "Wymagane",

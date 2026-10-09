@@ -147,6 +147,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get addPrinterLocationOptional => 'Optional';
 
   @override
+  String get printerLocationsManage => 'Standorte verwalten';
+
+  @override
   String get addPrinterSubmit => 'Drucker hinzufügen';
 
   @override

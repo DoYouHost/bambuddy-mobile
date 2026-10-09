@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
@@ -15,8 +16,12 @@ import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
 import '../common/dash_input.dart';
 import 'providers.dart';
+import '../../core/models/printer_location.dart';
+import '../locations/printer_locations_providers.dart';
+import 'dashboard_filters.dart';
 
 /// Bambu Lab model options for the (optional) model dropdown, grouped by series
 /// to mirror the web form. `value` is the code stored on the server; `label` is
@@ -482,13 +487,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                     const SizedBox(height: DashSpace.md),
                     _modelDropdown(t, l10n),
                     const SizedBox(height: DashSpace.md),
-                    _field(
-                      t,
-                      controller: _location,
-                      label: l10n.addPrinterLocation,
-                      hint: l10n.addPrinterLocationOptional,
-                      textInputAction: TextInputAction.done,
-                    ),
+                    _locationField(t, l10n),
                     const SizedBox(height: DashSpace.xs),
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
@@ -548,6 +547,59 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  // --- Location -----------------------------------------------------------
+
+  /// One location for the whole app: the names the locations screen manages
+  /// (empty ones included) and those printers already carry, with a new name
+  /// still typed in — the server stores free text and adds it to that list.
+  /// The way in to the locations screen sits under it.
+  Widget _locationField(DashTokens t, AppLocalizations l10n) {
+    final managed = ref.watch(printerLocationsSupportedProvider).orFalse;
+    final names = {
+      if (managed)
+        for (final l
+            in ref.watch(printerLocationsProvider).valueOrNull ??
+                const <PrinterLocation>[])
+          l.name,
+      ...printerLocationsOf([
+        for (final p in ref.watch(dashboardProvider).printers ?? const [])
+          p.printer.location,
+      ]),
+    }.toList()..sort(compareLocationNames);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        dashCombo<String>(
+          context,
+          id: 'add_printer.location',
+          controller: _location,
+          filterable: true,
+          enabled: !_busy,
+          label: Text(l10n.addPrinterLocation),
+          helperText: l10n.addPrinterLocationOptional,
+          textStyle: _fieldTextStyle(t),
+          entries: [
+            for (final name in names)
+              DropdownMenuEntry(
+                value: name,
+                label: name,
+                labelWidget: logTag('add_printer.location_option', Text(name)),
+              ),
+          ],
+        ),
+        if (managed && ref.watch(canUpdatePrintersProvider))
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _busy ? null : () => context.push('/locations'),
+              icon: const Icon(Icons.place_outlined),
+              label: Text(l10n.printerLocationsManage),
+            ).tagged('add_printer.manage_locations'),
+          ),
+      ],
     );
   }
 

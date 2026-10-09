@@ -74,6 +74,7 @@
   "addPrinterModelNone": "Not set",
   "addPrinterLocation": "Location",
   "addPrinterLocationOptional": "Optional",
+  "printerLocationsManage": "Manage locations",
   "addPrinterSubmit": "Add printer",
   "addPrinterConnectionNote": "The server verifies the connection before saving, so a wrong IP or access code is reported and nothing is created.",
   "addPrinterRequiredField": "Required",
