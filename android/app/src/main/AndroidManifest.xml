@@ -34,6 +34,10 @@
          foreground service type have to keep naming the same one. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"/>
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
+    <!-- Finding the label print server on the LAN (mDNS, nsd): the plugin's own
+         README lists it with INTERNET as everything Android needs. A normal
+         permission — no runtime prompt. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
     <!-- No WAKE_LOCK of ours any more (see `allowWakeLock` in lib/main.dart).
          flutter_foreground_task declares the permission in its own manifest, so
          it still merges into the APK — nothing in this app acquires a lock. -->
