@@ -37,19 +37,20 @@ void main() {
     });
 
     /// The edit form's save, as it would go out for [printer] with [rate].
-    Future<Printer> saveRate(double? rate) => printers.updatePrinter(
-      printer.id,
-      PrinterUpdate(
-        name: printer.name,
-        ipAddress: printer.ipAddress!,
-        autoArchive: printer.autoArchive ?? true,
-        isActive: printer.isActive ?? true,
-        model: printer.model,
-        location: printer.location,
-        wearCostPerHour: rate,
-        sendWearCost: printer.servesWearCost,
-      ),
-    );
+    Future<Printer> saveRate(double? rate, {String? model = ''}) =>
+        printers.updatePrinter(
+          printer.id,
+          PrinterUpdate(
+            name: printer.name,
+            ipAddress: printer.ipAddress!,
+            autoArchive: printer.autoArchive ?? true,
+            isActive: printer.isActive ?? true,
+            model: model == '' ? printer.model : model,
+            location: printer.location,
+            wearCostPerHour: rate,
+            sendWearCost: printer.servesWearCost,
+          ),
+        );
 
     test('the edit form saves a printer back unchanged', () async {
       final saved = await saveRate(printer.wearCostPerHour);
@@ -59,6 +60,14 @@ void main() {
       expect(saved.autoArchive, printer.autoArchive);
       expect(saved.isActive, printer.isActive);
       expect(saved.servesWearCost, served);
+    });
+
+    test('"not set" clears the model on the server', () async {
+      addTearDown(() => saveRate(printer.wearCostPerHour));
+      expect(
+        (await saveRate(printer.wearCostPerHour, model: null)).model,
+        isNull,
+      );
     });
 
     test('the rate the edit form sends is the rate the server keeps', () async {

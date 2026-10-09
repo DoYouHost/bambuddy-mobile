@@ -73,8 +73,9 @@ class PrinterUpdate {
     'ip_address': ipAddress,
     'auto_archive': autoArchive,
     'is_active': isActive,
-    // Left out when not set, as the web does.
-    if (model != null && model!.isNotEmpty) 'model': model,
+    // Null clears it. The web leaves the key out instead, so its "not set"
+    // keeps the old model; here it does what it says (user's call).
+    'model': (model == null || model!.isEmpty) ? null : model,
     // Always sent, as the web does: null or empty clears it.
     'location': (location == null || location!.isEmpty) ? null : location,
     if (accessCode != null && accessCode!.isNotEmpty) 'access_code': accessCode,

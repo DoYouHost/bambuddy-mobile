@@ -121,6 +121,12 @@ void main() {
       expect(json['location'], isNull);
     });
 
+    test('"not set" clears the model instead of keeping the old one', () {
+      final json = update().toJson();
+      expect(json.containsKey('model'), isTrue);
+      expect(json['model'], isNull);
+    });
+
     test('a zero or empty rate turns wear off, as the web sends it', () {
       expect(update(rate: 0).toJson()['wear_cost_per_hour'], isNull);
       expect(update().toJson()['wear_cost_per_hour'], isNull);
