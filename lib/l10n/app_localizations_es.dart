@@ -181,6 +181,50 @@ class AppLocalizationsEs extends AppLocalizations {
       'Archivar automáticamente las impresiones completadas';
 
   @override
+  String get editPrinterTitle => 'Editar impresora';
+
+  @override
+  String get editPrinterSubmit => 'Guardar cambios';
+
+  @override
+  String get editPrinterSaved => 'Impresora guardada';
+
+  @override
+  String get editPrinterSerialLocked =>
+      'El número de serie no se puede cambiar';
+
+  @override
+  String get editPrinterAccessCodeKeep =>
+      'Dejar vacío para conservar el actual';
+
+  @override
+  String get editPrinterMaintenance => 'Modo mantenimiento';
+
+  @override
+  String get editPrinterMaintenanceHelp =>
+      'Cuando está activado, esta impresora se pausa de MQTT, despacho de cola y notificaciones — útil para reparaciones, instalaciones paralelas de Bambuddy o suspensión temporal.';
+
+  @override
+  String editPrinterWearCost(String currency) {
+    return 'Coste de desgaste por hora de impresión ($currency)';
+  }
+
+  @override
+  String get editPrinterWearCostHelp =>
+      'Lo que una hora de impresión le cuesta a esta impresora en desgaste y piezas. Se suma al coste de cada impresión a partir de ahora; las impresiones anteriores no cambian. Déjalo vacío para desactivarlo.';
+
+  @override
+  String get editPrinterWearCostInvalid =>
+      'Introduce un número entre 0 y 100000';
+
+  @override
+  String get editPrinterPreflightWarning =>
+      'Algunas comprobaciones de conexión fallaron. Esta impresora podría aparecer como desconectada. Revisa las comprobaciones de abajo, soluciona lo que puedas o guárdala de todos modos.';
+
+  @override
+  String get editPrinterSaveAnyway => 'Guardar de todos modos';
+
+  @override
   String get addPrinterScanTitle => 'Buscar impresoras en la red';
 
   @override

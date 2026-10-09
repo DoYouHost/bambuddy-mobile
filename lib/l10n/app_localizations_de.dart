@@ -180,6 +180,49 @@ class AppLocalizationsDe extends AppLocalizations {
       'Abgeschlossene Drucke automatisch archivieren';
 
   @override
+  String get editPrinterTitle => 'Drucker bearbeiten';
+
+  @override
+  String get editPrinterSubmit => 'Änderungen speichern';
+
+  @override
+  String get editPrinterSaved => 'Drucker gespeichert';
+
+  @override
+  String get editPrinterSerialLocked =>
+      'Seriennummer kann nicht geändert werden';
+
+  @override
+  String get editPrinterAccessCodeKeep =>
+      'Leer lassen, um den aktuellen zu behalten';
+
+  @override
+  String get editPrinterMaintenance => 'Wartungsmodus';
+
+  @override
+  String get editPrinterMaintenanceHelp =>
+      'Wenn aktiviert, ist dieser Drucker von MQTT, Warteschlangenversand und Benachrichtigungen pausiert — nützlich für Reparaturen, parallele Bambuddy-Installationen oder temporäre Außerbetriebnahme.';
+
+  @override
+  String editPrinterWearCost(String currency) {
+    return 'Verschleißkosten pro Druckstunde ($currency)';
+  }
+
+  @override
+  String get editPrinterWearCostHelp =>
+      'Was eine Druckstunde diesen Drucker an Verschleiß und Ersatzteilen kostet. Wird ab jetzt zu den Kosten jedes Drucks addiert; frühere Drucke bleiben unverändert. Leer lassen zum Abschalten.';
+
+  @override
+  String get editPrinterWearCostInvalid => 'Gib eine Zahl von 0 bis 100000 ein';
+
+  @override
+  String get editPrinterPreflightWarning =>
+      'Einige Verbindungsprüfungen sind fehlgeschlagen. Dieser Drucker wird möglicherweise als offline angezeigt. Prüfe die Punkte unten, behebe was möglich ist, oder speichere trotzdem.';
+
+  @override
+  String get editPrinterSaveAnyway => 'Trotzdem speichern';
+
+  @override
   String get addPrinterScanTitle => 'Drucker im Netzwerk suchen';
 
   @override

@@ -192,7 +192,7 @@ class _PrinterLocationsScreenState
     final l10n = AppLocalizations.of(context);
     // A server that answered 404 to the listing has nothing to write to.
     final canEdit =
-        ref.watch(canEditPrinterLocationsProvider) &&
+        ref.watch(canUpdatePrintersProvider) &&
         ref.watch(printerLocationsSupportedProvider).orFalse;
     final async = ref.watch(printerLocationsProvider);
     final roster = withLiveStatuses(

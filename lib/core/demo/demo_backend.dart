@@ -309,7 +309,10 @@ class DemoBackend {
         if (pid == null) return _notFound();
         if (s.length == 2) {
           final p = _printers.where((e) => e['id'] == pid).firstOrNull;
-          return p == null ? _notFound() : _ok(p);
+          if (p == null) return _notFound();
+          // The access code is write-only on the real server too.
+          if (m == 'PATCH') p.addAll(body..remove('access_code'));
+          return _ok(p);
         }
         if (at(2, 'status')) return _ok(statusJson(pid));
         if (at(2, 'print')) {

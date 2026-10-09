@@ -15,4 +15,7 @@ Printer _$PrinterFromJson(Map<String, dynamic> json) => Printer(
   isActive: json['is_active'] as bool?,
   serialNumber: json['serial_number'] as String?,
   nozzleCount: (json['nozzle_count'] as num?)?.toInt(),
+  autoArchive: json['auto_archive'] as bool?,
+  wearCostPerHour: (json['wear_cost_per_hour'] as num?)?.toDouble(),
+  servesWearCost: _hasWearCostKey(json, 'serves_wear_cost') as bool? ?? false,
 );

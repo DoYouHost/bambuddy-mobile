@@ -74,6 +74,9 @@ abstract final class Endpoints {
   /// optional `location`) — options for model-based filament overrides.
   static const printersAvailableFilaments =
       '$apiPrefix/printers/available-filaments';
+
+  /// `PATCH` edits the printer — `printers:update`, refused to every API key.
+  static String printer(int printerId) => '$apiPrefix/printers/$printerId';
   static String printerStatus(int printerId) =>
       '$apiPrefix/printers/$printerId/status';
 

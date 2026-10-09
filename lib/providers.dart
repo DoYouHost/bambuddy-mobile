@@ -490,6 +490,20 @@ final identifiedPermissionProvider = Provider.family<bool, String>((ref, p) {
   return user != null && user.can(p);
 });
 
+/// Whether this session may change a printer — its settings, or the location
+/// it stands in. **An API-key session never may:** `printers:update` is outside
+/// the key scope allowlist, so it is decided on the auth mode rather than on
+/// what `/auth/me` claims, as in [identifiedPermissionProvider].
+///
+/// Unlike that provider an unknown identity answers yes: the server is the
+/// enforcer, and a server without auth has nobody to refuse.
+final canUpdatePrintersProvider = Provider<bool>((ref) {
+  if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
+    return false;
+  }
+  return ref.watch(permissionProvider(Permissions.printersUpdate));
+});
+
 /// The accounts on the server (`GET /users/`). Shares the authenticated Dio.
 final usersRepositoryProvider = Provider<UsersRepository>(
   (ref) => UsersRepository(ref.watch(apiClientProvider).dio),

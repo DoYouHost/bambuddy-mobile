@@ -179,6 +179,47 @@ class AppLocalizationsPl extends AppLocalizations {
       'Automatycznie archiwizuj ukończone wydruki';
 
   @override
+  String get editPrinterTitle => 'Edytuj drukarkę';
+
+  @override
+  String get editPrinterSubmit => 'Zapisz zmiany';
+
+  @override
+  String get editPrinterSaved => 'Zapisano drukarkę';
+
+  @override
+  String get editPrinterSerialLocked => 'Numeru seryjnego nie można zmienić';
+
+  @override
+  String get editPrinterAccessCodeKeep => 'Zostaw puste, aby zachować obecny';
+
+  @override
+  String get editPrinterMaintenance => 'Tryb konserwacji';
+
+  @override
+  String get editPrinterMaintenanceHelp =>
+      'Gdy włączony, Bambuddy rozłącza się z drukarką, nie wysyła do niej zadań z kolejki ani powiadomień o niej. Przydaje się przy naprawie, przy drugiej instalacji Bambuddy albo by na jakiś czas wyłączyć ją z użytku.';
+
+  @override
+  String editPrinterWearCost(String currency) {
+    return 'Koszt zużycia za godzinę druku ($currency)';
+  }
+
+  @override
+  String get editPrinterWearCostHelp =>
+      'Ile godzina drukowania kosztuje tę drukarkę w zużyciu i częściach. Od teraz dolicza się do kosztu każdego wydruku; wcześniejszych wydruków nie zmienia. Zostaw puste, aby wyłączyć.';
+
+  @override
+  String get editPrinterWearCostInvalid => 'Wpisz liczbę od 0 do 100000';
+
+  @override
+  String get editPrinterPreflightWarning =>
+      'Część testów połączenia nie przeszła. Drukarka może być widoczna jako offline. Przejrzyj wyniki poniżej, popraw, co się da, albo zapisz mimo to.';
+
+  @override
+  String get editPrinterSaveAnyway => 'Zapisz mimo to';
+
+  @override
   String get addPrinterScanTitle => 'Znajdź drukarki w sieci';
 
   @override

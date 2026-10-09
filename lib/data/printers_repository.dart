@@ -180,6 +180,15 @@ class PrintersRepository {
   /// the full result (individual checks can be "fail"/"warn" while the call
   /// itself succeeds). Serial/access code are optional — supplying both also
   /// probes the MQTT credentials.
+  /// `PATCH /printers/{id}` — needs `printers:update`, which no API key holds.
+  Future<Printer> updatePrinter(int id, PrinterUpdate data) => guard(() async {
+    final res = await _dio.patch<Map<String, dynamic>>(
+      Endpoints.printer(id),
+      data: data.toJson(),
+    );
+    return Printer.fromJson(res.data!);
+  });
+
   Future<PrinterDiagnosticResult> diagnose({
     required String ipAddress,
     String? serialNumber,

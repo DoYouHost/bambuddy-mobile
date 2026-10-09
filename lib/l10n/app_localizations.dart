@@ -416,6 +416,78 @@ abstract class AppLocalizations {
   /// **'Auto-archive completed prints'**
   String get addPrinterAutoArchive;
 
+  /// No description provided for @editPrinterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit printer'**
+  String get editPrinterTitle;
+
+  /// No description provided for @editPrinterSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get editPrinterSubmit;
+
+  /// No description provided for @editPrinterSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer saved'**
+  String get editPrinterSaved;
+
+  /// No description provided for @editPrinterSerialLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Serial number cannot be changed'**
+  String get editPrinterSerialLocked;
+
+  /// No description provided for @editPrinterAccessCodeKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to keep the current one'**
+  String get editPrinterAccessCodeKeep;
+
+  /// No description provided for @editPrinterMaintenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance mode'**
+  String get editPrinterMaintenance;
+
+  /// No description provided for @editPrinterMaintenanceHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'While on, Bambuddy disconnects from this printer, sends it no queued jobs and sends no notifications about it. Useful during a repair, for a second Bambuddy install, or to take it out of use for a while.'**
+  String get editPrinterMaintenanceHelp;
+
+  /// No description provided for @editPrinterWearCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Wear cost per printing hour ({currency})'**
+  String editPrinterWearCost(String currency);
+
+  /// No description provided for @editPrinterWearCostHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'What an hour of printing costs this printer in wear and parts. It is added to the cost of every print from now on; earlier prints are not changed. Leave empty to turn it off.'**
+  String get editPrinterWearCostHelp;
+
+  /// No description provided for @editPrinterWearCostInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number from 0 to 100000'**
+  String get editPrinterWearCostInvalid;
+
+  /// No description provided for @editPrinterPreflightWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Some connection checks failed. This printer may show as offline. Review the checks below, fix what you can, or save anyway.'**
+  String get editPrinterPreflightWarning;
+
+  /// No description provided for @editPrinterSaveAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Save anyway'**
+  String get editPrinterSaveAnyway;
+
   /// No description provided for @addPrinterScanTitle.
   ///
   /// In en, this message translates to:
