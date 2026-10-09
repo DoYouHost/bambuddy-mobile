@@ -17,6 +17,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../helpers.dart';
 
@@ -257,6 +258,46 @@ void main() {
       await openSheet(tester, chosen: false);
       expect(find.text(l10n.labelPrinterSetUp), findsOneWidget);
       expect(find.text(l10n.labelPrinterPrintOn), findsNothing);
+    });
+
+    testWidgets('the setup row opens the label printer settings', (
+      tester,
+    ) async {
+      final router = GoRouter(
+        routes: [
+          GoRoute(path: '/', builder: (_, _) => const InventoryScreen()),
+          GoRoute(
+            path: '/settings/label-printer',
+            builder: (_, _) => const Scaffold(body: Text('LABEL PRINTER')),
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            inventoryProvider.overrideWith(_CapturingInventory.new),
+            serverProfileProvider.overrideWith(_NullProfile.new),
+            inventoryRepositoryProvider.overrideWithValue(
+              _RenderingRepository(),
+            ),
+            labelPrinterUrlProvider.overrideWith(_NoUrl.new),
+          ],
+          child: MaterialApp.router(
+            locale: const Locale('pl'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            routerConfig: router,
+          ),
+        ),
+      );
+      await settle(tester);
+      await tester.tap(find.byTooltip(l10n.inventoryLabelsPrintAll));
+      await settle(tester);
+
+      await tester.tap(find.text(l10n.labelPrinterSetUp));
+      await settle(tester);
+
+      expect(find.text('LABEL PRINTER'), findsOneWidget);
     });
 
     testWidgets('the PDF goes to the server instead of the print dialog', (
