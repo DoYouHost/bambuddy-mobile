@@ -177,7 +177,6 @@ void main() {
           ServerFeature.usersSlimListing,
           ServerFeature.printLogCostEnergy,
           ServerFeature.labelStartingPosition,
-          ServerFeature.labelFields,
           ServerFeature.printerFilesDownloadJob,
           ServerFeature.scheduledDryings,
           ServerFeature.archivePrinterMedia,
@@ -206,6 +205,12 @@ void main() {
       parse('1.2.6b1').supports(ServerFeature.spoolMaterialNumber),
       isTrue,
     );
+  });
+
+  test('label lines, PNG and dpi arrive in 1.2.5.7 (#2981)', () {
+    expect(parse('1.2.5.6').supports(ServerFeature.labelFields), isFalse);
+    expect(parse('1.2.5.7').supports(ServerFeature.labelFields), isTrue);
+    expect(parse('1.2.6b1').supports(ServerFeature.labelFields), isTrue);
   });
 
   test('grouping by hand arrives in 0.2.4.8, in the old numbering', () {

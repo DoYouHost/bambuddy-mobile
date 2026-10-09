@@ -173,7 +173,9 @@ class ServerVersion implements Comparable<ServerVersion> {
     // on the 0.2.4.x servers that serve it.
     ServerFeature.printerSensorHistory: (0, 2, 4, 8),
     ServerFeature.labelStartingPosition: (1, 2, 6, 0),
-    ServerFeature.labelFields: (1, 2, 6, 0),
+    // Measured against the images, not read off the changelog: 1.2.5.6 answers
+    // a PDF to `format: png`, 1.2.5.7 answers the PNG.
+    ServerFeature.labelFields: (1, 2, 5, 7),
     ServerFeature.printerFilesDownloadJob: (1, 2, 6, 0),
     ServerFeature.scheduledDryings: (1, 2, 6, 0),
     ServerFeature.archivePrinterMedia: (1, 2, 6, 0),

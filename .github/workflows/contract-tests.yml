@@ -44,6 +44,10 @@ permissions:
   contents: read
 
 env:
+  # The label print server the label tests talk to, pinned to a commit: its
+  # behaviour is what the tests assert, so it moves when somebody moves it.
+  # https://github.com/DoYouHost/brother-ql-print-server
+  LABEL_PRINTER_REF: b6c91c44bba43ed8f75f45c0cb3ac6878753b27c
   ADMIN_USER: ci-admin
   # Server-side rule (backend/app/schemas/auth.py::_validate_password_complexity):
   # upper, lower, digit, special, >= 8. Not a secret — the instance is created
@@ -106,7 +110,9 @@ jobs:
           broker="fake-printer-${GITHUB_RUN_ID}-${{ matrix.tag }}"
           server="bambuddy-ci-${GITHUB_RUN_ID}-${{ matrix.tag }}"
           spoolman="spoolman-ci-${GITHUB_RUN_ID}-${{ matrix.tag }}"
+          labelprinter="label-printer-ci-${GITHUB_RUN_ID}-${{ matrix.tag }}"
           echo "broker=$broker" >> "$GITHUB_OUTPUT"
+          echo "labelprinter=$labelprinter" >> "$GITHUB_OUTPUT"
           echo "name=$server" >> "$GITHUB_OUTPUT"
           echo "spoolman=$spoolman" >> "$GITHUB_OUTPUT"
 
@@ -121,6 +127,19 @@ jobs:
           docker pull --quiet ghcr.io/donkie/spoolman:latest
           docker run -d --rm --name "$spoolman" ghcr.io/donkie/spoolman:latest
 
+          # The real label print server, printing into a file instead of a
+          # Brother printer. It installs itself on start (about a minute), so
+          # the step that waits for it is the next one.
+          docker pull --quiet python:3.13-slim
+          docker run -d --rm --name "$labelprinter" \
+            -p "${gateway}:8200:8000" \
+            -e PRINTER_IDENTIFIER=file:///tmp/lp0 \
+            -e LABEL_PRINTER_HOST=0.0.0.0 -e LABEL_PRINTER_PORT=8000 \
+            python:3.13-slim sh -c "apt-get update -qq \
+              && apt-get install -y -qq --no-install-recommends poppler-utils git >/dev/null \
+              && pip install -q 'git+https://github.com/DoYouHost/brother-ql-print-server@${LABEL_PRINTER_REF}' \
+              && : > /tmp/lp0 && python -m label_printer"
+
           docker pull --quiet "$BAMBUDDY_IMAGE"
           docker run -d --rm --name "$server" \
             -p "${gateway}:8000:8000" \
@@ -132,6 +151,20 @@ jobs:
           spoolman_ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$spoolman")"
           echo "spoolman_url=http://${spoolman_ip}:8000" >> "$GITHUB_OUTPUT"
           echo "base=http://${gateway}:8000" >> "$GITHUB_OUTPUT"
+          echo "labelprinter_url=http://${gateway}:8200" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for the label print server
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 100); do
+            if curl -sf "${{ steps.server.outputs.labelprinter_url }}/info" >/dev/null; then
+              exit 0
+            fi
+            sleep 3
+          done
+          docker logs "${{ steps.server.outputs.labelprinter }}" 2>&1 | tail -40
+          echo "the label print server never answered /info"
+          exit 1
 
       # Waits for /health itself, then walks the server up to one printer
       # reporting a job, one uploaded file and one queued item.
@@ -158,6 +191,11 @@ jobs:
           BAMBUDDY_CONTRACT_BROKER: ${{ steps.server.outputs.broker }}
           BAMBUDDY_CONTRACT_BROKER_IP: ${{ steps.server.outputs.broker_ip }}
           BAMBUDDY_CONTRACT_SPOOLMAN_URL: ${{ steps.server.outputs.spoolman_url }}
+          # The label print server prints into /tmp/lp0 inside its container;
+          # the tests read it back through `docker exec`.
+          LABEL_PRINTER_CONTRACT_URL: ${{ steps.server.outputs.labelprinter_url }}
+          LABEL_PRINTER_CONTRACT_CONTAINER: ${{ steps.server.outputs.labelprinter }}
+          LABEL_PRINTER_CONTRACT_OUT: /tmp/lp0
           # NOT decoration, and not cosmetic either: the runner is UTC, where a
           # naive timestamp read as local and the same one read as UTC are the
           # same instant — so the timestamp contract would pass no matter which
@@ -182,6 +220,9 @@ jobs:
           echo "::group::spoolman"
           docker logs "${{ steps.server.outputs.spoolman }}" 2>&1 | tail -50
           echo "::endgroup::"
+          echo "::group::label print server"
+          docker logs "${{ steps.server.outputs.labelprinter }}" 2>&1 | tail -80
+          echo "::endgroup::"
 
       # --rm covers the ordinary exit; this covers a cancelled job, and the
       # runner wrapper sweeps whatever survives even that before the next job.
@@ -191,3 +232,4 @@ jobs:
           docker rm -f "${{ steps.server.outputs.name }}" >/dev/null 2>&1 || true
           docker rm -f "${{ steps.server.outputs.broker }}" >/dev/null 2>&1 || true
           docker rm -f "${{ steps.server.outputs.spoolman }}" >/dev/null 2>&1 || true
+          docker rm -f "${{ steps.server.outputs.labelprinter }}" >/dev/null 2>&1 || true

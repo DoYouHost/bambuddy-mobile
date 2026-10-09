@@ -140,14 +140,17 @@ than the commit is told yes and prints from position 1, which is the same sheet
 it prints today: being early costs a wasted sheet of labels, not a refused
 request.
 
-### labelFields — 1.2.6 (server #2981)
+### labelFields — 1.2.5.7 (server #2981)
 
 `fields`, `format` and `dpi` on the two label routes — which lines a label
 carries, and a PNG (one label) or ZIP (several) instead of a PDF.
 
 Version-only, like `labelStartingPosition`: `LabelRequest` forbids no extra
 fields, so an older server takes all three and answers a PDF with the default
-lines. The response is still a valid file, so nothing can be observed. Being
+lines. The response is still a valid file, so nothing can be observed. The
+threshold was measured on the released images: 1.2.5.6 answers a PDF to
+`format: png`, 1.2.5.7 answers the PNG, a ZIP for several labels, and honours
+`fields` and `dpi` (`label_options_contract_test.dart` keeps both halves true). Being
 early costs a PDF where a PNG was asked for; the app checks the bytes it got
 against the format it asked for and says so instead of saving a PDF as `.png`.
 
