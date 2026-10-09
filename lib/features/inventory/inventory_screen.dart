@@ -53,6 +53,7 @@ import '../stats/stats_common.dart' show fmtGrams;
 import 'inventory_providers.dart';
 import 'spool_scanner_screen.dart';
 import '../../core/diagnostics/log_tag_material.dart';
+import '../../core/format/text_compare.dart';
 
 part 'inventory_filters.dart';
 part 'inventory_tiles.dart';
@@ -676,8 +677,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       for (final v in values)
         if (v != null && v.trim().isNotEmpty) v,
     };
-    final list = set.toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final list = set.toList()..sort(compareIgnoringCase);
     return list;
   }
 }

@@ -11,6 +11,7 @@ library;
 
 import '../models/k_profile.dart';
 import 'filament_naming.dart';
+import '../format/text_compare.dart';
 
 /// The picker's two groups: profiles that look like they belong to the selected
 /// preset, and everything else the printer holds.
@@ -67,7 +68,7 @@ KProfileChoices matchKProfiles({
   final other = _dedupe(
     profiles.where((p) => !claimed.contains(p.optionId)),
     extruderId,
-  )..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  )..sort((a, b) => compareIgnoringCase(a.name, b.name));
 
   return (matching: matching, other: other);
 }

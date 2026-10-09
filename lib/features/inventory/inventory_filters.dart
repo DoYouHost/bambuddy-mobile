@@ -223,9 +223,7 @@ class _FilterSheet extends ConsumerWidget {
                 children: [
                   for (final MapEntry(key: id, value: name)
                       in (suppliers.entries.toList()..sort(
-                        (a, b) => a.value.toLowerCase().compareTo(
-                          b.value.toLowerCase(),
-                        ),
+                        (a, b) => compareIgnoringCase(a.value, b.value),
                       )))
                     FilterChip(
                       label: Text(name),

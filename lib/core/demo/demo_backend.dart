@@ -10,6 +10,7 @@ import '../models/print_run.dart';
 import '../models/spool_label.dart';
 import 'demo_config.dart';
 import 'demo_labels.dart';
+import '../format/text_compare.dart';
 
 /// In-process fake bambuddy server for demo mode (see [DemoConfig]).
 ///
@@ -5069,7 +5070,7 @@ class DemoBackend {
         ..._locationRows.keys,
         for (final p in _printers)
           if (p['location'] case final String l when l.isNotEmpty) l,
-      }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      }.toList()..sort(compareIgnoringCase);
       return _ok([for (final n in names) _locationResponse(n)]);
     }
     if (s.length == 1 && m == 'POST') {
@@ -5164,11 +5165,7 @@ class DemoBackend {
     if (s.length == 2) {
       if (m == 'GET') {
         final rows = [..._suppliers]
-          ..sort(
-            (a, b) => '${a['name']}'.toLowerCase().compareTo(
-              '${b['name']}'.toLowerCase(),
-            ),
-          );
+          ..sort((a, b) => compareIgnoringCase('${a['name']}', '${b['name']}'));
         return _ok([for (final r in rows) _supplierResponse(r)]);
       }
       if (m == 'POST') {

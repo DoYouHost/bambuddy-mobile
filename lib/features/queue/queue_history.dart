@@ -19,6 +19,7 @@ import '../common/print_thumbnail.dart';
 import '../files/library_thumbnail.dart';
 import 'queue_edit_screen.dart';
 import 'queue_removal.dart';
+import '../../core/format/text_compare.dart';
 
 /// The queue's History tab, as the web's `QueuePage.tsx` (`HistorySection`,
 /// `CompactHistoryRow`) shows it: every finished, failed, skipped and
@@ -86,10 +87,7 @@ List<QueueItem> sortQueueHistory(
   List<QueueItem> items,
   QueueHistoryOrder order,
 ) {
-  // ponytail: lower-cased compareTo for the web's localeCompare; collation
-  // only differs for accented names.
-  int text(String? a, String? b) =>
-      (a ?? '').toLowerCase().compareTo((b ?? '').toLowerCase());
+  int text(String? a, String? b) => compareIgnoringCase(a ?? '', b ?? '');
   int millis(QueueItem i) =>
       (i.completedAt ?? i.createdAt)?.millisecondsSinceEpoch ?? 0;
   final sorted = [...items];

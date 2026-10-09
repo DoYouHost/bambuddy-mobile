@@ -7,6 +7,7 @@ import '../../core/models/library_stats.dart';
 import '../../core/models/library_tag.dart';
 import '../../core/models/trash_file.dart';
 import '../../providers.dart';
+import '../../core/format/text_compare.dart';
 
 /// File list sort keys (client-side — endpoint doesn't sort).
 enum FileSort { dateDesc, dateAsc, nameAsc, nameDesc, sizeDesc, sizeAsc }
@@ -133,7 +134,7 @@ class FileManagerState {
   /// Subfolders of current folder (sorted alphabetically).
   List<LibraryFolder> get subfolders {
     final list = allFolders.where((f) => f.parentId == currentFolderId).toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      ..sort((a, b) => compareIgnoringCase(a.name, b.name));
     return list;
   }
 
@@ -175,7 +176,7 @@ class FileManagerState {
     }).toList();
 
     int byName(LibraryFile a, LibraryFile b) =>
-        a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+        compareIgnoringCase(a.displayName, b.displayName);
     int byDate(LibraryFile a, LibraryFile b) {
       final da = a.createdAt, db = b.createdAt;
       if (da == null && db == null) return 0;

@@ -16,6 +16,7 @@ import '../../core/models/supplier.dart';
 import '../../data/inventory_repository.dart';
 import '../../data/inventory_source.dart';
 import '../../providers.dart';
+import '../../core/format/text_compare.dart';
 
 /// Inventory snapshot for the screen: all spools (including archived) plus a map
 /// `spoolId → assignment to AMS slot`. Filtering (search / show archived) is done
@@ -139,7 +140,7 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
         final byRemaining = a.remainingWeight.compareTo(b.remainingWeight);
         if (byRemaining != 0) return byRemaining;
       }
-      return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+      return compareIgnoringCase(a.displayName, b.displayName);
     });
     return InventoryState(
       spools: spools,
