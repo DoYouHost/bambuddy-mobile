@@ -166,6 +166,10 @@ can to do that:
 
 - **Internet / network state** — to reach the bambuddy server you configure, and the
   report relay if you choose to send a report.
+- **Wi-Fi multicast** — used **only** when you search for a label printer in Settings →
+  Label printer: the app asks the local network, by mDNS, which label print servers are
+  there. Nothing leaves your network. If you choose one, the spool labels you print are
+  sent to it (a PDF of the labels, over plain HTTP on your LAN) and to nobody else.
 - **Camera** — used **only** when you open the spool QR scanner. Frames are processed
   on-device to read a spool code; images are not stored or transmitted. The scanned
   spool identifier is sent only to your bambuddy server.
