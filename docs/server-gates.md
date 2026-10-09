@@ -389,7 +389,11 @@ Not on this path, on purpose: gates over `/settings` (`serverGate`, same idea
 over one warmed fetch), permissions from `/auth/me` (enter a gate as a
 synchronous input), and latches that choose *how* to call rather than whether a
 control exists (download jobs, media token, `StatsRepository._hasSlimListing`,
-the inventory backend from `/spoolman/status`).
+the inventory backend from `/spoolman/status`). Nor the Manyfold tab of Model
+Sources (#1471): the screen needs `/manyfold/status`'s payload anyway — whether
+a connection exists decides the tab too — so that one read, made each time the
+screen opens, answers 404 (older server) and 403 (no `manyfold:view`) as "no
+tab", and no latch would learn anything it does not.
 
 ## Adding a gate
 

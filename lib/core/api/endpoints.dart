@@ -1256,6 +1256,47 @@ abstract final class Endpoints {
   static String libraryTrashItem(int fileId) =>
       '$apiPrefix/library/trash/$fileId';
 
+  // --- Manyfold (#1471, server dev from 2026-10-04) ---
+  //
+  // A self-hosted model library, browsed through the server; nothing is
+  // mirrored. An older server 404s the whole family. Failures Manyfold causes
+  // answer `{"detail": {"code": "manyfold_…", "message"}}` with 409 (not set
+  // up), 404 (model or file gone) or 502 — never 401/403, which stay Bambuddy's
+  // own refusals (`routes/manyfold.py::_map_error`).
+
+  /// `GET` → `{configured, url}`. `manyfold:view`, which an API key's
+  /// `can_read_status` covers.
+  static const manyfoldStatus = '$apiPrefix/manyfold/status';
+
+  /// `GET ?q=&page=` → one page of `{id, name}`. `q` is Manyfold's own search
+  /// syntax (capped at 200 chars server-side).
+  static const manyfoldModels = '$apiPrefix/manyfold/models';
+
+  /// `GET` → the model and its files, each with the library file an earlier
+  /// import made.
+  static String manyfoldModel(String id) => '$apiPrefix/manyfold/models/$id';
+
+  /// `GET` → image bytes; 404 for a model without one. Behind the normal auth,
+  /// not the media token, so it is fetched rather than given to an image URL.
+  static String manyfoldPreview(String id) =>
+      '$apiPrefix/manyfold/models/$id/preview';
+
+  /// `POST {model_id, file_id, folder_id?}` → `{library_file_id, filename,
+  /// folder_id, was_existing}`. `manyfold:import` (a key's
+  /// `can_manage_library`). No folder files it under a top-level "Manyfold"
+  /// folder, created on first use.
+  static const manyfoldImport = '$apiPrefix/manyfold/import';
+
+  /// `GET` (`settings:read`) → `{url, client_id, has_client_secret,
+  /// configured}`; `PUT {url, client_id, client_secret?}` stores it and
+  /// `DELETE` forgets it (`settings:update`, never an API key). An empty
+  /// secret keeps the stored one.
+  static const manyfoldConfig = '$apiPrefix/manyfold/config';
+
+  /// `POST {url, client_id, client_secret?}` → `{model_count}`; stores
+  /// nothing. `settings:update`.
+  static const manyfoldConfigTest = '$apiPrefix/manyfold/config/test';
+
   // --- MakerWorld + Bambu Cloud ---
 
   /// MakerWorld integration status (`GET`): `{has_cloud_token, can_download}`.

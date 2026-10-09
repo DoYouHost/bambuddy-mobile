@@ -6722,17 +6722,413 @@ abstract class AppLocalizations {
   /// **'Pick at least one tag'**
   String get fmTagsPickSome;
 
-  /// Drawer entry: MakerWorld import
-  ///
-  /// In en, this message translates to:
-  /// **'MakerWorld'**
-  String get makerworldMenu;
-
   /// No description provided for @makerworldTitle.
   ///
   /// In en, this message translates to:
   /// **'MakerWorld'**
   String get makerworldTitle;
+
+  /// Drawer entry and title of the screen holding the MakerWorld and Manyfold tabs
+  ///
+  /// In en, this message translates to:
+  /// **'Model Sources'**
+  String get modelSourcesTitle;
+
+  /// Tab name: Manyfold, a self-hosted 3D model library (product name)
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold'**
+  String get manyfoldTitle;
+
+  /// Manyfold tab: description
+  ///
+  /// In en, this message translates to:
+  /// **'Browse and search your Manyfold library and import its files to slice and print them.'**
+  String get mfDescription;
+
+  /// Manyfold tab: notConnectedTitle
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold is not connected'**
+  String get mfNotConnectedTitle;
+
+  /// Manyfold tab: notConnectedBody
+  ///
+  /// In en, this message translates to:
+  /// **'Ask an administrator to connect your Manyfold library.'**
+  String get mfNotConnectedBody;
+
+  /// Manyfold tab: connectionTitle
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold connection'**
+  String get mfConnectionTitle;
+
+  /// Manyfold tab: connectionHelp
+  ///
+  /// In en, this message translates to:
+  /// **'In Manyfold, open Settings → API and create an application with the scopes “public” and “read”. Enter its client ID and secret here. Bambuddy sees the models the application\'s owner can see.'**
+  String get mfConnectionHelp;
+
+  /// Manyfold tab: url
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold URL'**
+  String get mfUrl;
+
+  /// Manyfold tab: urlPlaceholder
+  ///
+  /// In en, this message translates to:
+  /// **'http://192.168.1.10:3214'**
+  String get mfUrlPlaceholder;
+
+  /// Manyfold tab: clientId
+  ///
+  /// In en, this message translates to:
+  /// **'Client ID'**
+  String get mfClientId;
+
+  /// Manyfold tab: clientSecret
+  ///
+  /// In en, this message translates to:
+  /// **'Client secret'**
+  String get mfClientSecret;
+
+  /// Manyfold tab: clientSecretStored
+  ///
+  /// In en, this message translates to:
+  /// **'Stored. Leave empty to keep it.'**
+  String get mfClientSecretStored;
+
+  /// Manyfold tab: test
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection'**
+  String get mfTest;
+
+  /// Manyfold connection form: stores the URL, client ID and secret
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get mfSave;
+
+  /// Snackbar after the Manyfold connection was stored
+  ///
+  /// In en, this message translates to:
+  /// **'Settings saved'**
+  String get mfSaved;
+
+  /// Manyfold tab: testOk
+  ///
+  /// In en, this message translates to:
+  /// **'Connected. Models Bambuddy can see: {count}'**
+  String mfTestOk(int count);
+
+  /// Manyfold tab: disconnect
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get mfDisconnect;
+
+  /// Manyfold tab: disconnectTitle
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect Manyfold?'**
+  String get mfDisconnectTitle;
+
+  /// Manyfold tab: disconnectBody
+  ///
+  /// In en, this message translates to:
+  /// **'Bambuddy forgets the Manyfold URL, client ID and secret. Files you imported stay in your library.'**
+  String get mfDisconnectBody;
+
+  /// Manyfold tab: disconnected
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold disconnected'**
+  String get mfDisconnected;
+
+  /// Manyfold tab: editConnection
+  ///
+  /// In en, this message translates to:
+  /// **'Connection'**
+  String get mfEditConnection;
+
+  /// Manyfold tab: searchPlaceholder
+  ///
+  /// In en, this message translates to:
+  /// **'Search models'**
+  String get mfSearchPlaceholder;
+
+  /// Manyfold tab: modelCount
+  ///
+  /// In en, this message translates to:
+  /// **'Models: {count}'**
+  String mfModelCount(int count);
+
+  /// Manyfold tab: noModels
+  ///
+  /// In en, this message translates to:
+  /// **'No models found.'**
+  String get mfNoModels;
+
+  /// Manyfold tab: previous
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get mfPrevious;
+
+  /// Manyfold tab: next
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get mfNext;
+
+  /// Manyfold tab: page
+  ///
+  /// In en, this message translates to:
+  /// **'Page {page}'**
+  String mfPage(int page);
+
+  /// Manyfold tab: openInManyfold
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Manyfold'**
+  String get mfOpenInManyfold;
+
+  /// Manyfold tab: license
+  ///
+  /// In en, this message translates to:
+  /// **'License'**
+  String get mfLicense;
+
+  /// Manyfold tab: files
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get mfFiles;
+
+  /// Manyfold tab: noFiles
+  ///
+  /// In en, this message translates to:
+  /// **'This model has no files.'**
+  String get mfNoFiles;
+
+  /// Manyfold tab: importTo
+  ///
+  /// In en, this message translates to:
+  /// **'Import to'**
+  String get mfImportTo;
+
+  /// Manyfold tab: folderAuto
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold folder'**
+  String get mfFolderAuto;
+
+  /// Manyfold tab: import
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get mfImport;
+
+  /// Manyfold tab: importing
+  ///
+  /// In en, this message translates to:
+  /// **'Importing…'**
+  String get mfImporting;
+
+  /// Manyfold tab: imported
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {filename}'**
+  String mfImported(String filename);
+
+  /// Manyfold tab: alreadyInLibrary
+  ///
+  /// In en, this message translates to:
+  /// **'Already in your library'**
+  String get mfAlreadyInLibrary;
+
+  /// Manyfold tab: inLibrary
+  ///
+  /// In en, this message translates to:
+  /// **'In library'**
+  String get mfInLibrary;
+
+  /// Manyfold tab: showInLibrary
+  ///
+  /// In en, this message translates to:
+  /// **'Show in library'**
+  String get mfShowInLibrary;
+
+  /// Manyfold tab: notImportable
+  ///
+  /// In en, this message translates to:
+  /// **'Bambuddy can\'t slice or print this type'**
+  String get mfNotImportable;
+
+  /// Manyfold tab: selectAll
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get mfSelectAll;
+
+  /// Manyfold tab: selectFile
+  ///
+  /// In en, this message translates to:
+  /// **'Select {name}'**
+  String mfSelectFile(String name);
+
+  /// Manyfold tab: importSelected
+  ///
+  /// In en, this message translates to:
+  /// **'Import selected ({count})'**
+  String mfImportSelected(int count);
+
+  /// Manyfold tab: importAll
+  ///
+  /// In en, this message translates to:
+  /// **'Import all'**
+  String get mfImportAll;
+
+  /// Manyfold tab: importProgress
+  ///
+  /// In en, this message translates to:
+  /// **'Importing {current}/{total}'**
+  String mfImportProgress(int current, int total);
+
+  /// Manyfold tab: bulkDone
+  ///
+  /// In en, this message translates to:
+  /// **'Imported: {imported} · already in library: {existing} · failed: {failed}'**
+  String mfBulkDone(int imported, int existing, int failed);
+
+  /// Manyfold tab: bulkFailed
+  ///
+  /// In en, this message translates to:
+  /// **'Not imported: {names}. {reason}'**
+  String mfBulkFailed(String names, String reason);
+
+  /// Manyfold tab: bulkNothing
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to import: every printable file is already in your library.'**
+  String get mfBulkNothing;
+
+  /// Manyfold tab: selectModel
+  ///
+  /// In en, this message translates to:
+  /// **'Select {name}'**
+  String mfSelectModel(String name);
+
+  /// Manyfold tab: selectPage
+  ///
+  /// In en, this message translates to:
+  /// **'Select page'**
+  String get mfSelectPage;
+
+  /// Manyfold tab: modelsSelected
+  ///
+  /// In en, this message translates to:
+  /// **'Models selected: {count}'**
+  String mfModelsSelected(int count);
+
+  /// Manyfold tab: importModels
+  ///
+  /// In en, this message translates to:
+  /// **'Import their files'**
+  String get mfImportModels;
+
+  /// Manyfold tab: clearSelection
+  ///
+  /// In en, this message translates to:
+  /// **'Clear selection'**
+  String get mfClearSelection;
+
+  /// Manyfold tab: collectProgress
+  ///
+  /// In en, this message translates to:
+  /// **'Reading models {current}/{total}'**
+  String mfCollectProgress(int current, int total);
+
+  /// Manyfold tab: modelsUnreadable
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read: {names}'**
+  String mfModelsUnreadable(String names);
+
+  /// Manyfold tab: error text for server code manyfold_not_configured
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold is not connected.'**
+  String get mfErrNotConfigured;
+
+  /// Manyfold tab: error text for server code manyfold_credentials
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold did not accept the client ID or secret.'**
+  String get mfErrCredentials;
+
+  /// Manyfold tab: error text for server code manyfold_scope
+  ///
+  /// In en, this message translates to:
+  /// **'The Manyfold application needs the “read” scope. Edit it in Manyfold under Settings → API.'**
+  String get mfErrScope;
+
+  /// Manyfold tab: error text for server code manyfold_rate_limited
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold is limiting sign-ins. Try again in a few minutes.'**
+  String get mfErrRateLimited;
+
+  /// Manyfold tab: error text for server code manyfold_unreachable
+  ///
+  /// In en, this message translates to:
+  /// **'Bambuddy can\'t reach Manyfold. Check the URL and that Manyfold is running.'**
+  String get mfErrUnreachable;
+
+  /// Manyfold tab: error text for server code manyfold_forbidden
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold refused access. Check that the application\'s owner can see this model.'**
+  String get mfErrForbidden;
+
+  /// Manyfold tab: error text for server code manyfold_not_found
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold can\'t find this model or file.'**
+  String get mfErrNotFound;
+
+  /// Manyfold tab: error text for server code manyfold_too_large
+  ///
+  /// In en, this message translates to:
+  /// **'The file is larger than 200 MB.'**
+  String get mfErrTooLarge;
+
+  /// Manyfold tab: error text for server code manyfold_not_importable
+  ///
+  /// In en, this message translates to:
+  /// **'Only 3MF, STL and STEP files can be imported.'**
+  String get mfErrNotImportable;
+
+  /// Manyfold tab: error text for server code manyfold_bad_url
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the Manyfold URL starting with http:// or https://.'**
+  String get mfErrBadUrl;
+
+  /// Manyfold tab: error text for server code manyfold_secret_required
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the client secret.'**
+  String get mfErrSecretRequired;
+
+  /// Manyfold tab: error text for server code manyfold_failed
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold answered with an error.'**
+  String get mfErrFailed;
 
   /// No description provided for @mwIntro.
   ///

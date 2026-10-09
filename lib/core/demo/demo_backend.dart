@@ -10,6 +10,7 @@ import '../models/print_run.dart';
 import '../models/spool_label.dart';
 import 'demo_config.dart';
 import 'demo_labels.dart';
+import 'demo_manyfold.dart';
 import '../format/text_compare.dart';
 
 /// In-process fake bambuddy server for demo mode (see [DemoConfig]).
@@ -523,6 +524,10 @@ class DemoBackend {
 
       case 'projects':
         return _projectsRoute(m, s, q, body);
+
+      case 'manyfold':
+        if (at(1, 'import') && m == 'POST') return _manyfoldImport(body);
+        return _manyfold.route(m, s, q, body);
 
       case 'makerworld':
         if (at(1, 'status')) {
@@ -6037,6 +6042,70 @@ class DemoBackend {
       'update_available': false,
     },
   ];
+
+  // --- Manyfold ---
+
+  late final _manyfold = DemoManyfold(
+    libraryFileFor: (key) =>
+        _libraryFiles.where((f) => f[_manyfoldKey] == key).firstOrNull,
+  );
+
+  /// Which Manyfold file a library row came from — the server keeps it in
+  /// `source_url`; a private key here, since nothing in the app reads it.
+  static const _manyfoldKey = '_manyfold_source';
+
+  /// `routes/manyfold.py::import_file`: a file still in the library is answered
+  /// as it is, and no folder means a top-level "Manyfold" one.
+  DemoResult _manyfoldImport(Map<String, dynamic> body) {
+    final key = '${body['model_id']}/${body['file_id']}';
+    final existing = _libraryFiles.where((f) => f[_manyfoldKey] == key);
+    if (existing.firstOrNull case final file?) {
+      return _ok(_manyfoldImported(file, existing: true));
+    }
+    final source = _manyfold.fileFor(
+      '${body['model_id']}',
+      '${body['file_id']}',
+    );
+    if (source.error case final refused?) return refused;
+    final name = source.name!;
+    final ext = name.split('.').last.toLowerCase();
+    final file = _libFile(
+      _nextLibraryFileId++,
+      name,
+      toIntOrNull(body['folder_id']) ?? _manyfoldFolderId(),
+      400000 + name.length * 9973,
+      fileType: ext == 'stp' ? 'step' : ext,
+      model: null,
+    )..[_manyfoldKey] = key;
+    _libraryFiles.add(file);
+    return _ok(_manyfoldImported(file, existing: false));
+  }
+
+  Map<String, dynamic> _manyfoldImported(
+    Map<String, dynamic> file, {
+    required bool existing,
+  }) => {
+    'library_file_id': file['id'],
+    'filename': file['filename'],
+    'folder_id': file['folder_id'],
+    'was_existing': existing,
+  };
+
+  int _manyfoldFolderId() {
+    final found = _libraryFolders.where(
+      (f) => f['name'] == 'Manyfold' && f['parent_id'] == null,
+    );
+    if (found.firstOrNull case final folder?) return folder['id'] as int;
+    final folder = {
+      'id': _nextFolderId++,
+      'name': 'Manyfold',
+      'parent_id': null,
+      'file_count': 0,
+      'children': const <Object>[],
+    };
+    _libraryFolders.add(folder);
+    return folder['id']! as int;
+  }
 
   // --- Library ---
 

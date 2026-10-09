@@ -47,6 +47,7 @@ import 'data/location_sensors_repository.dart';
 import 'data/printer_locations_repository.dart';
 import 'data/suppliers_repository.dart';
 import 'data/makerworld_repository.dart';
+import 'data/manyfold_repository.dart';
 import 'data/pipelines_repository.dart';
 import 'data/inventory_repository.dart';
 import 'data/inventory_source.dart';
@@ -1182,6 +1183,20 @@ final makerworldRecentImportsProvider =
     FutureProvider.autoDispose<List<MakerWorldRecentImport>>(
       (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
     );
+
+/// Manyfold library (#1471). Shares authenticated Dio.
+final manyfoldRepositoryProvider = Provider<ManyfoldRepository>(
+  (ref) => ManyfoldRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Whether this session may connect Manyfold — `settings:update`, which an API
+/// key never holds; a server without auth refuses nobody.
+final canConfigureManyfoldProvider = Provider<bool>((ref) {
+  if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
+    return false;
+  }
+  return ref.watch(permissionProvider(Permissions.settingsUpdate));
+});
 
 /// The filament inventory the server runs — asked once per server, the server
 /// being where the choice is made. A failed ask is an error rather than a

@@ -3997,10 +3997,246 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fmTagsPickSome => 'Pick at least one tag';
 
   @override
-  String get makerworldMenu => 'MakerWorld';
+  String get makerworldTitle => 'MakerWorld';
 
   @override
-  String get makerworldTitle => 'MakerWorld';
+  String get modelSourcesTitle => 'Model Sources';
+
+  @override
+  String get manyfoldTitle => 'Manyfold';
+
+  @override
+  String get mfDescription =>
+      'Browse and search your Manyfold library and import its files to slice and print them.';
+
+  @override
+  String get mfNotConnectedTitle => 'Manyfold is not connected';
+
+  @override
+  String get mfNotConnectedBody =>
+      'Ask an administrator to connect your Manyfold library.';
+
+  @override
+  String get mfConnectionTitle => 'Manyfold connection';
+
+  @override
+  String get mfConnectionHelp =>
+      'In Manyfold, open Settings → API and create an application with the scopes “public” and “read”. Enter its client ID and secret here. Bambuddy sees the models the application\'s owner can see.';
+
+  @override
+  String get mfUrl => 'Manyfold URL';
+
+  @override
+  String get mfUrlPlaceholder => 'http://192.168.1.10:3214';
+
+  @override
+  String get mfClientId => 'Client ID';
+
+  @override
+  String get mfClientSecret => 'Client secret';
+
+  @override
+  String get mfClientSecretStored => 'Stored. Leave empty to keep it.';
+
+  @override
+  String get mfTest => 'Test connection';
+
+  @override
+  String get mfSave => 'Save';
+
+  @override
+  String get mfSaved => 'Settings saved';
+
+  @override
+  String mfTestOk(int count) {
+    return 'Connected. Models Bambuddy can see: $count';
+  }
+
+  @override
+  String get mfDisconnect => 'Disconnect';
+
+  @override
+  String get mfDisconnectTitle => 'Disconnect Manyfold?';
+
+  @override
+  String get mfDisconnectBody =>
+      'Bambuddy forgets the Manyfold URL, client ID and secret. Files you imported stay in your library.';
+
+  @override
+  String get mfDisconnected => 'Manyfold disconnected';
+
+  @override
+  String get mfEditConnection => 'Connection';
+
+  @override
+  String get mfSearchPlaceholder => 'Search models';
+
+  @override
+  String mfModelCount(int count) {
+    return 'Models: $count';
+  }
+
+  @override
+  String get mfNoModels => 'No models found.';
+
+  @override
+  String get mfPrevious => 'Previous';
+
+  @override
+  String get mfNext => 'Next';
+
+  @override
+  String mfPage(int page) {
+    return 'Page $page';
+  }
+
+  @override
+  String get mfOpenInManyfold => 'Open in Manyfold';
+
+  @override
+  String get mfLicense => 'License';
+
+  @override
+  String get mfFiles => 'Files';
+
+  @override
+  String get mfNoFiles => 'This model has no files.';
+
+  @override
+  String get mfImportTo => 'Import to';
+
+  @override
+  String get mfFolderAuto => 'Manyfold folder';
+
+  @override
+  String get mfImport => 'Import';
+
+  @override
+  String get mfImporting => 'Importing…';
+
+  @override
+  String mfImported(String filename) {
+    return 'Imported $filename';
+  }
+
+  @override
+  String get mfAlreadyInLibrary => 'Already in your library';
+
+  @override
+  String get mfInLibrary => 'In library';
+
+  @override
+  String get mfShowInLibrary => 'Show in library';
+
+  @override
+  String get mfNotImportable => 'Bambuddy can\'t slice or print this type';
+
+  @override
+  String get mfSelectAll => 'Select all';
+
+  @override
+  String mfSelectFile(String name) {
+    return 'Select $name';
+  }
+
+  @override
+  String mfImportSelected(int count) {
+    return 'Import selected ($count)';
+  }
+
+  @override
+  String get mfImportAll => 'Import all';
+
+  @override
+  String mfImportProgress(int current, int total) {
+    return 'Importing $current/$total';
+  }
+
+  @override
+  String mfBulkDone(int imported, int existing, int failed) {
+    return 'Imported: $imported · already in library: $existing · failed: $failed';
+  }
+
+  @override
+  String mfBulkFailed(String names, String reason) {
+    return 'Not imported: $names. $reason';
+  }
+
+  @override
+  String get mfBulkNothing =>
+      'Nothing to import: every printable file is already in your library.';
+
+  @override
+  String mfSelectModel(String name) {
+    return 'Select $name';
+  }
+
+  @override
+  String get mfSelectPage => 'Select page';
+
+  @override
+  String mfModelsSelected(int count) {
+    return 'Models selected: $count';
+  }
+
+  @override
+  String get mfImportModels => 'Import their files';
+
+  @override
+  String get mfClearSelection => 'Clear selection';
+
+  @override
+  String mfCollectProgress(int current, int total) {
+    return 'Reading models $current/$total';
+  }
+
+  @override
+  String mfModelsUnreadable(String names) {
+    return 'Could not read: $names';
+  }
+
+  @override
+  String get mfErrNotConfigured => 'Manyfold is not connected.';
+
+  @override
+  String get mfErrCredentials =>
+      'Manyfold did not accept the client ID or secret.';
+
+  @override
+  String get mfErrScope =>
+      'The Manyfold application needs the “read” scope. Edit it in Manyfold under Settings → API.';
+
+  @override
+  String get mfErrRateLimited =>
+      'Manyfold is limiting sign-ins. Try again in a few minutes.';
+
+  @override
+  String get mfErrUnreachable =>
+      'Bambuddy can\'t reach Manyfold. Check the URL and that Manyfold is running.';
+
+  @override
+  String get mfErrForbidden =>
+      'Manyfold refused access. Check that the application\'s owner can see this model.';
+
+  @override
+  String get mfErrNotFound => 'Manyfold can\'t find this model or file.';
+
+  @override
+  String get mfErrTooLarge => 'The file is larger than 200 MB.';
+
+  @override
+  String get mfErrNotImportable =>
+      'Only 3MF, STL and STEP files can be imported.';
+
+  @override
+  String get mfErrBadUrl =>
+      'Enter the Manyfold URL starting with http:// or https://.';
+
+  @override
+  String get mfErrSecretRequired => 'Enter the client secret.';
+
+  @override
+  String get mfErrFailed => 'Manyfold answered with an error.';
 
   @override
   String get mwIntro =>

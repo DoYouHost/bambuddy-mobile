@@ -4066,10 +4066,248 @@ class AppLocalizationsPl extends AppLocalizations {
   String get fmTagsPickSome => 'Wybierz przynajmniej jeden tag';
 
   @override
-  String get makerworldMenu => 'MakerWorld';
+  String get makerworldTitle => 'MakerWorld';
 
   @override
-  String get makerworldTitle => 'MakerWorld';
+  String get modelSourcesTitle => 'Źródła modeli';
+
+  @override
+  String get manyfoldTitle => 'Manyfold';
+
+  @override
+  String get mfDescription =>
+      'Przeglądaj i przeszukuj swoją bibliotekę Manyfold oraz importuj z niej pliki, aby je pociąć i wydrukować.';
+
+  @override
+  String get mfNotConnectedTitle => 'Manyfold nie jest połączony';
+
+  @override
+  String get mfNotConnectedBody =>
+      'Poproś administratora o połączenie Twojej biblioteki Manyfold.';
+
+  @override
+  String get mfConnectionTitle => 'Połączenie z Manyfold';
+
+  @override
+  String get mfConnectionHelp =>
+      'W Manyfold otwórz Ustawienia → API i utwórz aplikację z uprawnieniami „public” i „read”. Wpisz tu jej identyfikator klienta i sekret. Bambuddy widzi modele, które widzi właściciel aplikacji.';
+
+  @override
+  String get mfUrl => 'Adres URL Manyfold';
+
+  @override
+  String get mfUrlPlaceholder => 'http://192.168.1.10:3214';
+
+  @override
+  String get mfClientId => 'Identyfikator klienta';
+
+  @override
+  String get mfClientSecret => 'Sekret klienta';
+
+  @override
+  String get mfClientSecretStored => 'Zapisany. Zostaw puste, aby go zachować.';
+
+  @override
+  String get mfTest => 'Testuj połączenie';
+
+  @override
+  String get mfSave => 'Zapisz';
+
+  @override
+  String get mfSaved => 'Zapisano ustawienia';
+
+  @override
+  String mfTestOk(int count) {
+    return 'Połączono. Modele widoczne dla Bambuddy: $count';
+  }
+
+  @override
+  String get mfDisconnect => 'Rozłącz';
+
+  @override
+  String get mfDisconnectTitle => 'Rozłączyć Manyfold?';
+
+  @override
+  String get mfDisconnectBody =>
+      'Bambuddy zapomni adres URL, identyfikator klienta i sekret Manyfold. Zaimportowane pliki zostaną w bibliotece.';
+
+  @override
+  String get mfDisconnected => 'Rozłączono Manyfold';
+
+  @override
+  String get mfEditConnection => 'Połączenie';
+
+  @override
+  String get mfSearchPlaceholder => 'Szukaj modeli';
+
+  @override
+  String mfModelCount(int count) {
+    return 'Modele: $count';
+  }
+
+  @override
+  String get mfNoModels => 'Nie znaleziono modeli.';
+
+  @override
+  String get mfPrevious => 'Poprzednia';
+
+  @override
+  String get mfNext => 'Następna';
+
+  @override
+  String mfPage(int page) {
+    return 'Strona $page';
+  }
+
+  @override
+  String get mfOpenInManyfold => 'Otwórz w Manyfold';
+
+  @override
+  String get mfLicense => 'Licencja';
+
+  @override
+  String get mfFiles => 'Pliki';
+
+  @override
+  String get mfNoFiles => 'Ten model nie ma plików.';
+
+  @override
+  String get mfImportTo => 'Folder docelowy';
+
+  @override
+  String get mfFolderAuto => 'Folder „Manyfold”';
+
+  @override
+  String get mfImport => 'Importuj';
+
+  @override
+  String get mfImporting => 'Importowanie…';
+
+  @override
+  String mfImported(String filename) {
+    return 'Zaimportowano $filename';
+  }
+
+  @override
+  String get mfAlreadyInLibrary => 'Już jest w Twojej bibliotece';
+
+  @override
+  String get mfInLibrary => 'W bibliotece';
+
+  @override
+  String get mfShowInLibrary => 'Pokaż w bibliotece';
+
+  @override
+  String get mfNotImportable =>
+      'Bambuddy nie potrafi pociąć ani wydrukować tego typu pliku';
+
+  @override
+  String get mfSelectAll => 'Zaznacz wszystkie';
+
+  @override
+  String mfSelectFile(String name) {
+    return 'Zaznacz $name';
+  }
+
+  @override
+  String mfImportSelected(int count) {
+    return 'Importuj zaznaczone ($count)';
+  }
+
+  @override
+  String get mfImportAll => 'Importuj wszystkie';
+
+  @override
+  String mfImportProgress(int current, int total) {
+    return 'Importowanie $current/$total';
+  }
+
+  @override
+  String mfBulkDone(int imported, int existing, int failed) {
+    return 'Zaimportowane: $imported · już w bibliotece: $existing · nieudane: $failed';
+  }
+
+  @override
+  String mfBulkFailed(String names, String reason) {
+    return 'Nie zaimportowano: $names. $reason';
+  }
+
+  @override
+  String get mfBulkNothing =>
+      'Nie ma czego importować: każdy plik do druku jest już w Twojej bibliotece.';
+
+  @override
+  String mfSelectModel(String name) {
+    return 'Zaznacz $name';
+  }
+
+  @override
+  String get mfSelectPage => 'Zaznacz całą stronę';
+
+  @override
+  String mfModelsSelected(int count) {
+    return 'Zaznaczone modele: $count';
+  }
+
+  @override
+  String get mfImportModels => 'Importuj ich pliki';
+
+  @override
+  String get mfClearSelection => 'Wyczyść zaznaczenie';
+
+  @override
+  String mfCollectProgress(int current, int total) {
+    return 'Odczytywanie modeli $current/$total';
+  }
+
+  @override
+  String mfModelsUnreadable(String names) {
+    return 'Nie udało się odczytać: $names';
+  }
+
+  @override
+  String get mfErrNotConfigured => 'Manyfold nie jest połączony.';
+
+  @override
+  String get mfErrCredentials =>
+      'Manyfold nie przyjął identyfikatora klienta lub sekretu.';
+
+  @override
+  String get mfErrScope =>
+      'Aplikacja Manyfold potrzebuje uprawnienia „read”. Zmień to w Manyfold w Ustawienia → API.';
+
+  @override
+  String get mfErrRateLimited =>
+      'Manyfold ogranicza logowania. Spróbuj ponownie za kilka minut.';
+
+  @override
+  String get mfErrUnreachable =>
+      'Bambuddy nie może połączyć się z Manyfold. Sprawdź adres URL i czy Manyfold działa.';
+
+  @override
+  String get mfErrForbidden =>
+      'Manyfold odmówił dostępu. Sprawdź, czy właściciel aplikacji widzi ten model.';
+
+  @override
+  String get mfErrNotFound =>
+      'Manyfold nie może znaleźć tego modelu ani pliku.';
+
+  @override
+  String get mfErrTooLarge => 'Plik ma więcej niż 200 MB.';
+
+  @override
+  String get mfErrNotImportable =>
+      'Importować można tylko pliki 3MF, STL i STEP.';
+
+  @override
+  String get mfErrBadUrl =>
+      'Wpisz adres URL Manyfold zaczynający się od http:// lub https://.';
+
+  @override
+  String get mfErrSecretRequired => 'Wpisz sekret klienta.';
+
+  @override
+  String get mfErrFailed => 'Manyfold odpowiedział błędem.';
 
   @override
   String get mwIntro =>

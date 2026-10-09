@@ -94,7 +94,10 @@
   "editPrinterWearCost": "Wear cost per printing hour ({currency})",
   "@editPrinterWearCost": {
     "placeholders": {
-      "currency": {"type": "String", "example": "zł"}
+      "currency": {
+        "type": "String",
+        "example": "zł"
+      }
     }
   },
   "editPrinterWearCostHelp": "Added to new prints only. Leave empty to turn it off.",
@@ -2452,11 +2455,355 @@
     }
   },
   "fmTagsPickSome": "Pick at least one tag",
-  "makerworldMenu": "MakerWorld",
-  "@makerworldMenu": {
-    "description": "Drawer entry: MakerWorld import"
-  },
   "makerworldTitle": "MakerWorld",
+  "modelSourcesTitle": "Model Sources",
+  "@modelSourcesTitle": {
+    "description": "Drawer entry and title of the screen holding the MakerWorld and Manyfold tabs"
+  },
+  "manyfoldTitle": "Manyfold",
+  "@manyfoldTitle": {
+    "description": "Tab name: Manyfold, a self-hosted 3D model library (product name)"
+  },
+  "mfDescription": "Browse and search your Manyfold library and import its files to slice and print them.",
+  "@mfDescription": {
+    "description": "Manyfold tab: description"
+  },
+  "mfNotConnectedTitle": "Manyfold is not connected",
+  "@mfNotConnectedTitle": {
+    "description": "Manyfold tab: notConnectedTitle"
+  },
+  "mfNotConnectedBody": "Ask an administrator to connect your Manyfold library.",
+  "@mfNotConnectedBody": {
+    "description": "Manyfold tab: notConnectedBody"
+  },
+  "mfConnectionTitle": "Manyfold connection",
+  "@mfConnectionTitle": {
+    "description": "Manyfold tab: connectionTitle"
+  },
+  "mfConnectionHelp": "In Manyfold, open Settings → API and create an application with the scopes “public” and “read”. Enter its client ID and secret here. Bambuddy sees the models the application's owner can see.",
+  "@mfConnectionHelp": {
+    "description": "Manyfold tab: connectionHelp"
+  },
+  "mfUrl": "Manyfold URL",
+  "@mfUrl": {
+    "description": "Manyfold tab: url"
+  },
+  "mfUrlPlaceholder": "http://192.168.1.10:3214",
+  "@mfUrlPlaceholder": {
+    "description": "Manyfold tab: urlPlaceholder"
+  },
+  "mfClientId": "Client ID",
+  "@mfClientId": {
+    "description": "Manyfold tab: clientId"
+  },
+  "mfClientSecret": "Client secret",
+  "@mfClientSecret": {
+    "description": "Manyfold tab: clientSecret"
+  },
+  "mfClientSecretStored": "Stored. Leave empty to keep it.",
+  "@mfClientSecretStored": {
+    "description": "Manyfold tab: clientSecretStored"
+  },
+  "mfTest": "Test connection",
+  "@mfTest": {
+    "description": "Manyfold tab: test"
+  },
+  "mfSave": "Save",
+  "@mfSave": {
+    "description": "Manyfold connection form: stores the URL, client ID and secret"
+  },
+  "mfSaved": "Settings saved",
+  "@mfSaved": {
+    "description": "Snackbar after the Manyfold connection was stored"
+  },
+  "mfTestOk": "Connected. Models Bambuddy can see: {count}",
+  "@mfTestOk": {
+    "description": "Manyfold tab: testOk",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mfDisconnect": "Disconnect",
+  "@mfDisconnect": {
+    "description": "Manyfold tab: disconnect"
+  },
+  "mfDisconnectTitle": "Disconnect Manyfold?",
+  "@mfDisconnectTitle": {
+    "description": "Manyfold tab: disconnectTitle"
+  },
+  "mfDisconnectBody": "Bambuddy forgets the Manyfold URL, client ID and secret. Files you imported stay in your library.",
+  "@mfDisconnectBody": {
+    "description": "Manyfold tab: disconnectBody"
+  },
+  "mfDisconnected": "Manyfold disconnected",
+  "@mfDisconnected": {
+    "description": "Manyfold tab: disconnected"
+  },
+  "mfEditConnection": "Connection",
+  "@mfEditConnection": {
+    "description": "Manyfold tab: editConnection"
+  },
+  "mfSearchPlaceholder": "Search models",
+  "@mfSearchPlaceholder": {
+    "description": "Manyfold tab: searchPlaceholder"
+  },
+  "mfModelCount": "Models: {count}",
+  "@mfModelCount": {
+    "description": "Manyfold tab: modelCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mfNoModels": "No models found.",
+  "@mfNoModels": {
+    "description": "Manyfold tab: noModels"
+  },
+  "mfPrevious": "Previous",
+  "@mfPrevious": {
+    "description": "Manyfold tab: previous"
+  },
+  "mfNext": "Next",
+  "@mfNext": {
+    "description": "Manyfold tab: next"
+  },
+  "mfPage": "Page {page}",
+  "@mfPage": {
+    "description": "Manyfold tab: page",
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "mfOpenInManyfold": "Open in Manyfold",
+  "@mfOpenInManyfold": {
+    "description": "Manyfold tab: openInManyfold"
+  },
+  "mfLicense": "License",
+  "@mfLicense": {
+    "description": "Manyfold tab: license"
+  },
+  "mfFiles": "Files",
+  "@mfFiles": {
+    "description": "Manyfold tab: files"
+  },
+  "mfNoFiles": "This model has no files.",
+  "@mfNoFiles": {
+    "description": "Manyfold tab: noFiles"
+  },
+  "mfImportTo": "Import to",
+  "@mfImportTo": {
+    "description": "Manyfold tab: importTo"
+  },
+  "mfFolderAuto": "Manyfold folder",
+  "@mfFolderAuto": {
+    "description": "Manyfold tab: folderAuto"
+  },
+  "mfImport": "Import",
+  "@mfImport": {
+    "description": "Manyfold tab: import"
+  },
+  "mfImporting": "Importing…",
+  "@mfImporting": {
+    "description": "Manyfold tab: importing"
+  },
+  "mfImported": "Imported {filename}",
+  "@mfImported": {
+    "description": "Manyfold tab: imported",
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "mfAlreadyInLibrary": "Already in your library",
+  "@mfAlreadyInLibrary": {
+    "description": "Manyfold tab: alreadyInLibrary"
+  },
+  "mfInLibrary": "In library",
+  "@mfInLibrary": {
+    "description": "Manyfold tab: inLibrary"
+  },
+  "mfShowInLibrary": "Show in library",
+  "@mfShowInLibrary": {
+    "description": "Manyfold tab: showInLibrary"
+  },
+  "mfNotImportable": "Bambuddy can't slice or print this type",
+  "@mfNotImportable": {
+    "description": "Manyfold tab: notImportable"
+  },
+  "mfSelectAll": "Select all",
+  "@mfSelectAll": {
+    "description": "Manyfold tab: selectAll"
+  },
+  "mfSelectFile": "Select {name}",
+  "@mfSelectFile": {
+    "description": "Manyfold tab: selectFile",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mfImportSelected": "Import selected ({count})",
+  "@mfImportSelected": {
+    "description": "Manyfold tab: importSelected",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mfImportAll": "Import all",
+  "@mfImportAll": {
+    "description": "Manyfold tab: importAll"
+  },
+  "mfImportProgress": "Importing {current}/{total}",
+  "@mfImportProgress": {
+    "description": "Manyfold tab: importProgress",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "mfBulkDone": "Imported: {imported} · already in library: {existing} · failed: {failed}",
+  "@mfBulkDone": {
+    "description": "Manyfold tab: bulkDone",
+    "placeholders": {
+      "imported": {
+        "type": "int"
+      },
+      "existing": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "mfBulkFailed": "Not imported: {names}. {reason}",
+  "@mfBulkFailed": {
+    "description": "Manyfold tab: bulkFailed",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "mfBulkNothing": "Nothing to import: every printable file is already in your library.",
+  "@mfBulkNothing": {
+    "description": "Manyfold tab: bulkNothing"
+  },
+  "mfSelectModel": "Select {name}",
+  "@mfSelectModel": {
+    "description": "Manyfold tab: selectModel",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mfSelectPage": "Select page",
+  "@mfSelectPage": {
+    "description": "Manyfold tab: selectPage"
+  },
+  "mfModelsSelected": "Models selected: {count}",
+  "@mfModelsSelected": {
+    "description": "Manyfold tab: modelsSelected",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mfImportModels": "Import their files",
+  "@mfImportModels": {
+    "description": "Manyfold tab: importModels"
+  },
+  "mfClearSelection": "Clear selection",
+  "@mfClearSelection": {
+    "description": "Manyfold tab: clearSelection"
+  },
+  "mfCollectProgress": "Reading models {current}/{total}",
+  "@mfCollectProgress": {
+    "description": "Manyfold tab: collectProgress",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "mfModelsUnreadable": "Could not read: {names}",
+  "@mfModelsUnreadable": {
+    "description": "Manyfold tab: modelsUnreadable",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "mfErrNotConfigured": "Manyfold is not connected.",
+  "@mfErrNotConfigured": {
+    "description": "Manyfold tab: error text for server code manyfold_not_configured"
+  },
+  "mfErrCredentials": "Manyfold did not accept the client ID or secret.",
+  "@mfErrCredentials": {
+    "description": "Manyfold tab: error text for server code manyfold_credentials"
+  },
+  "mfErrScope": "The Manyfold application needs the “read” scope. Edit it in Manyfold under Settings → API.",
+  "@mfErrScope": {
+    "description": "Manyfold tab: error text for server code manyfold_scope"
+  },
+  "mfErrRateLimited": "Manyfold is limiting sign-ins. Try again in a few minutes.",
+  "@mfErrRateLimited": {
+    "description": "Manyfold tab: error text for server code manyfold_rate_limited"
+  },
+  "mfErrUnreachable": "Bambuddy can't reach Manyfold. Check the URL and that Manyfold is running.",
+  "@mfErrUnreachable": {
+    "description": "Manyfold tab: error text for server code manyfold_unreachable"
+  },
+  "mfErrForbidden": "Manyfold refused access. Check that the application's owner can see this model.",
+  "@mfErrForbidden": {
+    "description": "Manyfold tab: error text for server code manyfold_forbidden"
+  },
+  "mfErrNotFound": "Manyfold can't find this model or file.",
+  "@mfErrNotFound": {
+    "description": "Manyfold tab: error text for server code manyfold_not_found"
+  },
+  "mfErrTooLarge": "The file is larger than 200 MB.",
+  "@mfErrTooLarge": {
+    "description": "Manyfold tab: error text for server code manyfold_too_large"
+  },
+  "mfErrNotImportable": "Only 3MF, STL and STEP files can be imported.",
+  "@mfErrNotImportable": {
+    "description": "Manyfold tab: error text for server code manyfold_not_importable"
+  },
+  "mfErrBadUrl": "Enter the Manyfold URL starting with http:// or https://.",
+  "@mfErrBadUrl": {
+    "description": "Manyfold tab: error text for server code manyfold_bad_url"
+  },
+  "mfErrSecretRequired": "Enter the client secret.",
+  "@mfErrSecretRequired": {
+    "description": "Manyfold tab: error text for server code manyfold_secret_required"
+  },
+  "mfErrFailed": "Manyfold answered with an error.",
+  "@mfErrFailed": {
+    "description": "Manyfold tab: error text for server code manyfold_failed"
+  },
   "mwIntro": "Paste a MakerWorld model URL to import and print it directly from Bambuddy.",
   "mwUrlHint": "https://makerworld.com/en/models/… or any MakerWorld link",
   "mwResolve": "Resolve",

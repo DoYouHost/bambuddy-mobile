@@ -1,7 +1,7 @@
 import 'package:bambuddy_mobile/core/models/makerworld.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/data/makerworld_repository.dart';
-import 'package:bambuddy_mobile/features/makerworld/makerworld_screen.dart';
+import 'package:bambuddy_mobile/features/model_sources/model_sources_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +18,7 @@ import '../../helpers.dart';
 /// button colour.
 void main() {
   AppLocalizations l10n(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(MakerWorldScreen)));
+      AppLocalizations.of(tester.element(find.byType(ModelSourcesScreen)));
 
   testWidgets('an imported plate wears the accent, not the disabled grey', (
     tester,
@@ -44,7 +44,7 @@ void main() {
 
     await pumpPhone(
       tester,
-      const MakerWorldScreen(),
+      const ModelSourcesScreen(),
       overrides: [
         fakeServerProfileOverride(),
         makerworldRepositoryProvider.overrideWithValue(
@@ -78,7 +78,7 @@ void main() {
     expect(
       ink,
       DashTokens.of(
-        tester.element(find.byType(MakerWorldScreen)),
+        tester.element(find.byType(ModelSourcesScreen)),
       ).accentGreenInk.withValues(alpha: 0.6),
     );
   });

@@ -182,6 +182,11 @@ abstract final class Permissions {
   static const libraryDeleteAll = 'library:delete_all';
   static const libraryDeleteOwn = 'library:delete_own';
 
+  /// Importing a Manyfold file into the library (#1471); an API key's
+  /// `can_manage_library` covers it. Browsing (`manyfold:view`) is not mirrored:
+  /// the status route's 403 answers it.
+  static const manyfoldImport = 'manyfold:import';
+
   /// Recording an outcome verdict (`PATCH /archives/{id}`): update-own on the
   /// caller's own prints, update-all on anyone's. An API key's
   /// `can_manage_archives` covers both.
