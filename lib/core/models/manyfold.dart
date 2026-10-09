@@ -1,5 +1,7 @@
 import 'package:app_util/app_util.dart';
 
+import '../api/api_exceptions.dart';
+
 /// Shapes of the Manyfold routes (`backend/app/schemas/manyfold.py`, #1471).
 /// Manyfold ids are short public strings ("x7q3k2pa"), never numbers.
 
@@ -212,11 +214,15 @@ class ManyfoldConfig {
 /// "message"}}`); the app shows its own text for it, as the web does. Codes
 /// are the keys of the web's `manyfold.errors`.
 class ManyfoldFailure implements Exception {
-  const ManyfoldFailure(this.code, {this.statusCode});
+  const ManyfoldFailure(this.code, this.cause);
 
   final String code;
-  final int? statusCode;
+
+  /// The same failure as every other one maps, for the diagnostic log.
+  final AppApiException cause;
+
+  int? get statusCode => cause.statusCode;
 
   @override
-  String toString() => 'ManyfoldFailure($code, status=$statusCode)';
+  String toString() => 'ManyfoldFailure($code, $cause)';
 }

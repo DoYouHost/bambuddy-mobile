@@ -4062,6 +4062,234 @@ class AppLocalizationsEs extends AppLocalizations {
   String get manyfoldTitle => 'Manyfold';
 
   @override
+  String get mfDescription =>
+      'Explora y busca en tu biblioteca de Manyfold e importa sus archivos para laminarlos e imprimirlos.';
+
+  @override
+  String get mfNotConnectedTitle => 'Manyfold no está conectado';
+
+  @override
+  String get mfNotConnectedBody =>
+      'Pide a un administrador que conecte tu biblioteca de Manyfold.';
+
+  @override
+  String get mfConnectionTitle => 'Conexión con Manyfold';
+
+  @override
+  String get mfConnectionHelp =>
+      'En Manyfold, abre Ajustes → API y crea una aplicación con los permisos «public» y «read». Introduce aquí su ID de cliente y su secreto. Bambuddy ve los modelos que puede ver el propietario de la aplicación.';
+
+  @override
+  String get mfUrl => 'URL de Manyfold';
+
+  @override
+  String get mfUrlPlaceholder => 'http://192.168.1.10:3214';
+
+  @override
+  String get mfClientId => 'ID de cliente';
+
+  @override
+  String get mfClientSecret => 'Secreto de cliente';
+
+  @override
+  String get mfClientSecretStored => 'Guardado. Déjalo vacío para conservarlo.';
+
+  @override
+  String get mfTest => 'Probar conexión';
+
+  @override
+  String mfTestOk(int count) {
+    return 'Conectado. Modelos que Bambuddy puede ver: $count';
+  }
+
+  @override
+  String get mfDisconnect => 'Desconectar';
+
+  @override
+  String get mfDisconnectTitle => '¿Desconectar Manyfold?';
+
+  @override
+  String get mfDisconnectBody =>
+      'Bambuddy olvida la URL, el ID de cliente y el secreto de Manyfold. Los archivos importados se quedan en tu biblioteca.';
+
+  @override
+  String get mfDisconnected => 'Manyfold desconectado';
+
+  @override
+  String get mfEditConnection => 'Conexión';
+
+  @override
+  String get mfSearchPlaceholder => 'Buscar modelos';
+
+  @override
+  String mfModelCount(int count) {
+    return 'Modelos: $count';
+  }
+
+  @override
+  String get mfNoModels => 'No se encontraron modelos.';
+
+  @override
+  String get mfPrevious => 'Anterior';
+
+  @override
+  String get mfNext => 'Siguiente';
+
+  @override
+  String mfPage(int page) {
+    return 'Página $page';
+  }
+
+  @override
+  String get mfOpenInManyfold => 'Abrir en Manyfold';
+
+  @override
+  String get mfLicense => 'Licencia';
+
+  @override
+  String get mfFiles => 'Archivos';
+
+  @override
+  String get mfNoFiles => 'Este modelo no tiene archivos.';
+
+  @override
+  String get mfImportTo => 'Importar a';
+
+  @override
+  String get mfFolderAuto => 'Carpeta «Manyfold»';
+
+  @override
+  String get mfImport => 'Importar';
+
+  @override
+  String get mfImporting => 'Importando…';
+
+  @override
+  String mfImported(String filename) {
+    return '$filename importado';
+  }
+
+  @override
+  String get mfAlreadyInLibrary => 'Ya está en tu biblioteca';
+
+  @override
+  String get mfInLibrary => 'En la biblioteca';
+
+  @override
+  String get mfShowInLibrary => 'Mostrar en la biblioteca';
+
+  @override
+  String get mfNotImportable =>
+      'Bambuddy no puede laminar ni imprimir este tipo de archivo';
+
+  @override
+  String get mfSelectAll => 'Seleccionar todo';
+
+  @override
+  String mfSelectFile(String name) {
+    return 'Seleccionar $name';
+  }
+
+  @override
+  String mfImportSelected(int count) {
+    return 'Importar selección ($count)';
+  }
+
+  @override
+  String get mfImportAll => 'Importar todo';
+
+  @override
+  String mfImportProgress(int current, int total) {
+    return 'Importando $current/$total';
+  }
+
+  @override
+  String mfBulkDone(int imported, int existing, int failed) {
+    return 'Importados: $imported · ya en la biblioteca: $existing · fallidos: $failed';
+  }
+
+  @override
+  String mfBulkFailed(String names, String reason) {
+    return 'Sin importar: $names. $reason';
+  }
+
+  @override
+  String get mfBulkNothing =>
+      'Nada que importar: todos los archivos imprimibles ya están en tu biblioteca.';
+
+  @override
+  String mfSelectModel(String name) {
+    return 'Seleccionar $name';
+  }
+
+  @override
+  String get mfSelectPage => 'Seleccionar página';
+
+  @override
+  String mfModelsSelected(int count) {
+    return 'Modelos seleccionados: $count';
+  }
+
+  @override
+  String get mfImportModels => 'Importar sus archivos';
+
+  @override
+  String get mfClearSelection => 'Quitar selección';
+
+  @override
+  String mfCollectProgress(int current, int total) {
+    return 'Leyendo modelos $current/$total';
+  }
+
+  @override
+  String mfModelsUnreadable(String names) {
+    return 'No se pudieron leer: $names';
+  }
+
+  @override
+  String get mfErrNotConfigured => 'Manyfold no está conectado.';
+
+  @override
+  String get mfErrCredentials =>
+      'Manyfold no aceptó el ID de cliente o el secreto.';
+
+  @override
+  String get mfErrScope =>
+      'La aplicación de Manyfold necesita el permiso «read». Edítala en Manyfold en Ajustes → API.';
+
+  @override
+  String get mfErrRateLimited =>
+      'Manyfold está limitando los inicios de sesión. Inténtalo de nuevo en unos minutos.';
+
+  @override
+  String get mfErrUnreachable =>
+      'Bambuddy no puede conectar con Manyfold. Comprueba la URL y que Manyfold esté en marcha.';
+
+  @override
+  String get mfErrForbidden =>
+      'Manyfold denegó el acceso. Comprueba que el propietario de la aplicación pueda ver este modelo.';
+
+  @override
+  String get mfErrNotFound => 'Manyfold no encuentra este modelo o archivo.';
+
+  @override
+  String get mfErrTooLarge => 'El archivo ocupa más de 200 MB.';
+
+  @override
+  String get mfErrNotImportable =>
+      'Solo se pueden importar archivos 3MF, STL y STEP.';
+
+  @override
+  String get mfErrBadUrl =>
+      'Introduce la URL de Manyfold empezando por http:// o https://.';
+
+  @override
+  String get mfErrSecretRequired => 'Introduce el secreto de cliente.';
+
+  @override
+  String get mfErrFailed => 'Manyfold respondió con un error.';
+
+  @override
   String get mwIntro =>
       'Pega la URL de un modelo de MakerWorld para importarlo e imprimirlo directamente desde Bambuddy.';
 

@@ -41,7 +41,10 @@ import '../../core/format/text_compare.dart';
 /// File manager (library): folder navigation, thumbnails, file actions (print, queue,
 /// rename, move, delete), folder CRUD, upload, and trash. UI pattern consistent with archive screen.
 class FileManagerScreen extends ConsumerStatefulWidget {
-  const FileManagerScreen({super.key});
+  const FileManagerScreen({super.key, this.folderId});
+
+  /// The folder to open on arrival — where an import just landed.
+  final int? folderId;
 
   @override
   ConsumerState<FileManagerScreen> createState() => _FileManagerScreenState();
@@ -50,6 +53,21 @@ class FileManagerScreen extends ConsumerStatefulWidget {
 class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   final _searchController = TextEditingController();
   Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    final folderId = widget.folderId;
+    if (folderId == null) return;
+    // The root listing has to land first: opening a folder keeps its tree.
+    unawaited(
+      ref.read(fileManagerProvider.future).then((_) {
+        if (mounted) {
+          ref.read(fileManagerProvider.notifier).openFolder(folderId);
+        }
+      }, onError: (Object _) {}),
+    );
+  }
 
   @override
   void dispose() {

@@ -124,7 +124,7 @@ class ManyfoldRepository {
     } on DioException catch (e) {
       final code = manyfoldCodeOf(e.response?.data);
       if (code != null) {
-        throw ManyfoldFailure(code, statusCode: e.response?.statusCode);
+        throw ManyfoldFailure(code, mapDioException(e));
       }
       throw mapDioException(e);
     }

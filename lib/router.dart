@@ -187,7 +187,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Trash as subroute.
       GoRoute(
         path: '/files',
-        builder: (_, _) => const FileManagerScreen(),
+        builder: (_, state) => FileManagerScreen(
+          folderId: int.tryParse(state.uri.queryParameters['folder'] ?? ''),
+        ),
         routes: [
           GoRoute(path: 'trash', builder: (_, _) => const TrashScreen()),
           // Photos, link and notes of one file (#3077). After `trash`, which

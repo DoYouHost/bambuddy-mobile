@@ -4047,6 +4047,236 @@ class AppLocalizationsDe extends AppLocalizations {
   String get manyfoldTitle => 'Manyfold';
 
   @override
+  String get mfDescription =>
+      'Durchsuche deine Manyfold-Bibliothek und importiere ihre Dateien, um sie zu slicen und zu drucken.';
+
+  @override
+  String get mfNotConnectedTitle => 'Manyfold ist nicht verbunden';
+
+  @override
+  String get mfNotConnectedBody =>
+      'Bitte einen Administrator, deine Manyfold-Bibliothek zu verbinden.';
+
+  @override
+  String get mfConnectionTitle => 'Manyfold-Verbindung';
+
+  @override
+  String get mfConnectionHelp =>
+      'Öffne in Manyfold Einstellungen → API und lege eine Anwendung mit den Berechtigungen „public“ und „read“ an. Trage hier ihre Client-ID und ihr Secret ein. Bambuddy sieht die Modelle, die der Besitzer der Anwendung sehen kann.';
+
+  @override
+  String get mfUrl => 'Manyfold-URL';
+
+  @override
+  String get mfUrlPlaceholder => 'http://192.168.1.10:3214';
+
+  @override
+  String get mfClientId => 'Client-ID';
+
+  @override
+  String get mfClientSecret => 'Client-Secret';
+
+  @override
+  String get mfClientSecretStored =>
+      'Gespeichert. Leer lassen, um es zu behalten.';
+
+  @override
+  String get mfTest => 'Verbindung testen';
+
+  @override
+  String mfTestOk(int count) {
+    return 'Verbunden. Für Bambuddy sichtbare Modelle: $count';
+  }
+
+  @override
+  String get mfDisconnect => 'Trennen';
+
+  @override
+  String get mfDisconnectTitle => 'Manyfold trennen?';
+
+  @override
+  String get mfDisconnectBody =>
+      'Bambuddy vergisst URL, Client-ID und Secret von Manyfold. Importierte Dateien bleiben in deiner Bibliothek.';
+
+  @override
+  String get mfDisconnected => 'Manyfold getrennt';
+
+  @override
+  String get mfEditConnection => 'Verbindung';
+
+  @override
+  String get mfSearchPlaceholder => 'Modelle suchen';
+
+  @override
+  String mfModelCount(int count) {
+    return 'Modelle: $count';
+  }
+
+  @override
+  String get mfNoModels => 'Keine Modelle gefunden.';
+
+  @override
+  String get mfPrevious => 'Zurück';
+
+  @override
+  String get mfNext => 'Weiter';
+
+  @override
+  String mfPage(int page) {
+    return 'Seite $page';
+  }
+
+  @override
+  String get mfOpenInManyfold => 'In Manyfold öffnen';
+
+  @override
+  String get mfLicense => 'Lizenz';
+
+  @override
+  String get mfFiles => 'Dateien';
+
+  @override
+  String get mfNoFiles => 'Dieses Modell hat keine Dateien.';
+
+  @override
+  String get mfImportTo => 'Importieren nach';
+
+  @override
+  String get mfFolderAuto => 'Ordner „Manyfold“';
+
+  @override
+  String get mfImport => 'Importieren';
+
+  @override
+  String get mfImporting => 'Wird importiert…';
+
+  @override
+  String mfImported(String filename) {
+    return '$filename importiert';
+  }
+
+  @override
+  String get mfAlreadyInLibrary => 'Bereits in deiner Bibliothek';
+
+  @override
+  String get mfInLibrary => 'In der Bibliothek';
+
+  @override
+  String get mfShowInLibrary => 'In der Bibliothek zeigen';
+
+  @override
+  String get mfNotImportable =>
+      'Bambuddy kann diesen Dateityp weder slicen noch drucken';
+
+  @override
+  String get mfSelectAll => 'Alle auswählen';
+
+  @override
+  String mfSelectFile(String name) {
+    return '$name auswählen';
+  }
+
+  @override
+  String mfImportSelected(int count) {
+    return 'Auswahl importieren ($count)';
+  }
+
+  @override
+  String get mfImportAll => 'Alle importieren';
+
+  @override
+  String mfImportProgress(int current, int total) {
+    return 'Importiere $current/$total';
+  }
+
+  @override
+  String mfBulkDone(int imported, int existing, int failed) {
+    return 'Importiert: $imported · bereits in der Bibliothek: $existing · fehlgeschlagen: $failed';
+  }
+
+  @override
+  String mfBulkFailed(String names, String reason) {
+    return 'Nicht importiert: $names. $reason';
+  }
+
+  @override
+  String get mfBulkNothing =>
+      'Nichts zu importieren: Jede druckbare Datei ist bereits in deiner Bibliothek.';
+
+  @override
+  String mfSelectModel(String name) {
+    return '$name auswählen';
+  }
+
+  @override
+  String get mfSelectPage => 'Seite auswählen';
+
+  @override
+  String mfModelsSelected(int count) {
+    return 'Ausgewählte Modelle: $count';
+  }
+
+  @override
+  String get mfImportModels => 'Ihre Dateien importieren';
+
+  @override
+  String get mfClearSelection => 'Auswahl aufheben';
+
+  @override
+  String mfCollectProgress(int current, int total) {
+    return 'Lese Modelle $current/$total';
+  }
+
+  @override
+  String mfModelsUnreadable(String names) {
+    return 'Nicht lesbar: $names';
+  }
+
+  @override
+  String get mfErrNotConfigured => 'Manyfold ist nicht verbunden.';
+
+  @override
+  String get mfErrCredentials =>
+      'Manyfold hat Client-ID oder Secret nicht akzeptiert.';
+
+  @override
+  String get mfErrScope =>
+      'Die Manyfold-Anwendung braucht die Berechtigung „read“. Bearbeite sie in Manyfold unter Einstellungen → API.';
+
+  @override
+  String get mfErrRateLimited =>
+      'Manyfold begrenzt die Anmeldungen. Versuche es in ein paar Minuten erneut.';
+
+  @override
+  String get mfErrUnreachable =>
+      'Bambuddy erreicht Manyfold nicht. Prüfe die URL und ob Manyfold läuft.';
+
+  @override
+  String get mfErrForbidden =>
+      'Manyfold hat den Zugriff verweigert. Prüfe, ob der Besitzer der Anwendung dieses Modell sehen kann.';
+
+  @override
+  String get mfErrNotFound =>
+      'Manyfold findet dieses Modell oder diese Datei nicht.';
+
+  @override
+  String get mfErrTooLarge => 'Die Datei ist größer als 200 MB.';
+
+  @override
+  String get mfErrNotImportable =>
+      'Nur 3MF-, STL- und STEP-Dateien können importiert werden.';
+
+  @override
+  String get mfErrBadUrl =>
+      'Gib die Manyfold-URL mit http:// oder https:// am Anfang ein.';
+
+  @override
+  String get mfErrSecretRequired => 'Gib das Client-Secret ein.';
+
+  @override
+  String get mfErrFailed => 'Manyfold hat mit einem Fehler geantwortet.';
+
+  @override
   String get mwIntro =>
       'Füge eine MakerWorld-Modell-URL ein, um es direkt aus Bambuddy zu importieren und zu drucken.';
 
