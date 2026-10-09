@@ -139,6 +139,10 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   /// all: an edit matching the new preset's own value stops being an override.
   Map<String, Object> _processValues = {};
 
+  /// `GET /slicer/printer-models`, as of the last build — what a printer change
+  /// checks the kept picks against.
+  Map<String, String> _registry = const {};
+
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
@@ -169,7 +173,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final facets =
         ref.watch(ownedSpoolFacetsProvider).valueOrNull ??
         (materials: const <String>{}, brands: const <String>{});
-    final registry =
+    final registry = _registry =
         ref.watch(printerModelRegistryProvider).valueOrNull ??
         const <String, String>{};
 
@@ -750,10 +754,18 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   void _pickPrinter(SlicerPreset printer) {
     _printerPicked = true;
     _printer = printer;
-    _process = null;
-    _filaments = List.filled(_filaments.length, null);
-    _spoolOrigins = List.filled(_filaments.length, null);
-    _explicitFilaments.clear();
+    // The web's re-pick (#1325): a pick that still fits the new printer stays,
+    // the user's own included; one ruled out for it is chosen again.
+    bool ruledOut(SlicerPreset? p) =>
+        p != null &&
+        presetCompatibility(p, printer.name, _registry) == PresetFit.mismatch;
+    if (ruledOut(_process)) _process = null;
+    for (var i = 0; i < _filaments.length; i++) {
+      if (!ruledOut(_filaments[i])) continue;
+      _filaments[i] = null;
+      _spoolOrigins[i] = null;
+      _explicitFilaments.remove(i);
+    }
     _processValues = {};
   }
 

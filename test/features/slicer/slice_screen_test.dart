@@ -1336,6 +1336,63 @@ void main() {
       expect(body['process_preset'], forH2d.toRef());
     });
 
+    group('a printer change', () {
+      const standard = SlicerPreset(
+        source: 'standard',
+        id: 'std',
+        name: '0.20mm Standard',
+      );
+      const strength = SlicerPreset(
+        source: 'standard',
+        id: 'strength',
+        name: '0.20mm Strength',
+      );
+      const forX1cOnly = SlicerPreset(
+        source: 'standard',
+        id: 'x1c-only',
+        name: '0.20mm Fine @BBL X1C',
+      );
+
+      Future<void> pickProcessThenMove(
+        WidgetTester tester,
+        SlicerPreset process,
+      ) async {
+        await openSheet(
+          tester,
+          presets: const UnifiedPresets(
+            printers: [x1c, h2d],
+            processes: [standard, strength, forX1cOnly],
+            filaments: [generic],
+          ),
+          registry: registry,
+          loaded: const [],
+        );
+        await tester.tap(find.text(standard.name));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(process.name).last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(x1c.name));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(h2d.name).last);
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets('keeps a process the new printer can use', (tester) async {
+        await pickProcessThenMove(tester, strength);
+        final body = await slice(tester);
+        expect(body['printer_preset'], h2d.toRef());
+        expect(body['process_preset'], strength.toRef());
+      });
+
+      testWidgets('chooses again for one made for the old printer', (
+        tester,
+      ) async {
+        await pickProcessThenMove(tester, forX1cOnly);
+        final body = await slice(tester);
+        expect(body['process_preset'], standard.toRef());
+      });
+    });
+
     testWidgets('the move stays among the printers the user owns', (
       tester,
     ) async {
