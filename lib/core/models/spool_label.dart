@@ -17,8 +17,8 @@ import 'dart:ui' show Color;
 enum SpoolLabelTemplate {
   amsHolderSmall('ams_holder_74x33'),
   amsHolderLarge('ams_holder_75x55'),
-  box40x30('box_40x30'),
-  box62x29('box_62x29'),
+  box40x30('box_40x30', printerStock: '40x30'),
+  box62x29('box_62x29', printerStock: '62x29'),
   averyL7160(
     'avery_l7160',
     sheet: (columns: 3, rows: 7, widthMm: 63.5, heightMm: 38.1),
@@ -28,7 +28,12 @@ enum SpoolLabelTemplate {
     sheet: (columns: 3, rows: 10, widthMm: 66.675, heightMm: 25.4),
   );
 
-  const SpoolLabelTemplate(this.wire, {this.sheet});
+  const SpoolLabelTemplate(this.wire, {this.sheet, this.printerStock});
+
+  /// The label print server's id (`label.id` of its `/info`) for the stock this
+  /// template is drawn for, or null where no label printer takes it — an AMS
+  /// holder or a sheet of Avery labels.
+  final String? printerStock;
 
   /// Value sent as `template` in the request body.
   final String wire;

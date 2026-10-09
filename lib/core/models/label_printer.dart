@@ -3,13 +3,10 @@
 /// `/api/v1` prefix, and its own errors.
 library;
 
+import 'spool_label.dart';
+
 /// Port the server listens on unless `LABEL_PRINTER_PORT` says otherwise.
 const labelPrinterDefaultPort = 8000;
-
-/// The label stock the server is loaded with. Spool labels from bambuddy only
-/// match `box_62x29`, because the server refuses (`wrong_format`) anything whose
-/// proportions are not the loaded label's.
-const labelPrinterStockId = '62x29';
 
 /// `GET /info`.
 class LabelPrinterInfo {
@@ -49,8 +46,15 @@ class LabelPrinterInfo {
 
   final int? maxCopies;
 
-  /// The server only prints what has the loaded label's proportions.
-  bool get takesSpoolLabels => labelId == labelPrinterStockId;
+  /// Whether a [template] is drawn for the stock that is loaded. The server
+  /// refuses (`wrong_format`) anything with other proportions, so this is what
+  /// the app defaults to the label printer on — a choice the user can still
+  /// make by hand.
+  bool takes(SpoolLabelTemplate template) =>
+      template.printerStock != null && template.printerStock == labelId;
+
+  /// Whether any spool label template fits the loaded stock.
+  bool get takesAnySpoolLabel => SpoolLabelTemplate.values.any(takes);
 }
 
 /// A label print server address as the user typed it, made into a base URL:

@@ -249,29 +249,32 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     final startingPosition = await _pickStartingPosition(template);
     if (startingPosition == null || !mounted) return;
 
-    // Step 4: what goes on the label and where the file goes. Closed without
-    // "Print" cancels, like the steps before it.
-    final proceed = await dashSurfaceSheet<bool>(
-      context,
-      builder: (_) => _LabelOptionsSheet(template: template),
-    );
-    if (proceed != true || !mounted) return;
-
-    final prefs = ref.read(labelPrintPrefsProvider);
+    // Settled before the options sheet opens, not after it closes: the sheet
+    // offers PNG and the lines only to a server that has them, and a gate that
+    // answered in between would resolve the destination differently from what
+    // the user was shown. The three request extras mean nothing to an older
+    // server, which drops them and answers a PDF with the default lines.
     final providers = ProviderScope.containerOf(context, listen: false);
-    // The three request extras only mean something to a server that has them;
-    // an older one drops them and answers a PDF with the default lines.
     final canChoose = await settledGate(
       providers,
       labelFieldsProvider,
     ).catchError((Object _) => false);
     if (!mounted) return;
+
+    // Step 4: what goes on the label and where the file goes. Closed without
+    // "Print" cancels, like the steps before it.
+    final destination = await dashSurfaceSheet<LabelDestination>(
+      context,
+      builder: (_) => _LabelOptionsSheet(template: template),
+    );
+    if (destination == null || !mounted) return;
+
+    final prefs = ref.read(labelPrintPrefsProvider);
     final png = canChoose && prefs.format == SpoolLabelFormat.png;
     final chosenFields = prefs.fieldsFor(template);
-    final destination = prefs.resolveDestination(
-      printerSet: ref.read(labelPrinterRepositoryProvider) != null,
-      png: png,
-    );
+    // Read while the sheet is certainly still there: the hand-off below runs
+    // after it has been popped, and a `ref` is not usable once it is gone.
+    final labelPrinter = ref.read(labelPrinterRepositoryProvider);
 
     // Keep the sorted order — that's what makes "by colour" flow into an
     // Avery sheet instead of being re-sorted by id server-side.
@@ -306,7 +309,14 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
       final filename = 'bambuddy-labels-${template.wire}.${kind.extension}';
       switch (destination) {
         case LabelDestination.labelPrinter:
-          await _printOnLabelPrinter(file, filename, prefs, messenger, l10n);
+          await _printOnLabelPrinter(
+            labelPrinter!,
+            file,
+            filename,
+            prefs,
+            messenger,
+            l10n,
+          );
         case LabelDestination.share when kind == SpoolLabelFile.pdf:
           await Printing.sharePdf(bytes: file, filename: filename);
         case LabelDestination.share || LabelDestination.save:
@@ -329,8 +339,9 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
         action: 'labels.print',
       );
     } on Object {
-      if (!mounted) return;
-      setState(() => _busy = false);
+      // The sheet may already be closed: the hand-off runs after it. The
+      // message goes to the screen behind, so it does not depend on it.
+      if (mounted) setState(() => _busy = false);
       messenger.snack(l10n.inventoryLabelsFailed);
     }
   }
@@ -371,6 +382,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
   /// Sends the PDF to the label print server. Runs after the sheet is closed,
   /// so every outcome is a snack on the screen behind it.
   Future<void> _printOnLabelPrinter(
+    LabelPrinterRepository printer,
     Uint8List pdf,
     String filename,
     LabelPrintPrefs prefs,
@@ -378,15 +390,13 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     AppLocalizations l10n,
   ) async {
     try {
-      await ref
-          .read(labelPrinterRepositoryProvider)!
-          .printPdf(
-            pdf,
-            filename: filename,
-            copies: prefs.copies,
-            cutAtEnd: prefs.cutAtEnd,
-            cutEvery: prefs.cutEvery,
-          );
+      await printer.printPdf(
+        pdf,
+        filename: filename,
+        copies: prefs.copies,
+        cutAtEnd: prefs.cutAtEnd,
+        cutEvery: prefs.cutEvery,
+      );
       messenger.snack(l10n.labelPrinterSent);
     } on ApiException catch (e) {
       // The server's own sentence says which file was refused and why.

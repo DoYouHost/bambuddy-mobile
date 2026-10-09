@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/label_printer.dart';
+import '../../core/demo/demo_label_printer.dart';
 import '../../core/network/label_printer_discovery.dart';
 import '../../core/settings/label_print_prefs.dart';
 import '../../data/label_printer_repository.dart';
@@ -31,19 +32,39 @@ class LabelPrinterUrlNotifier extends Notifier<String?> {
   /// the server was found by search, looks for it again by name and takes its
   /// new address. Silent on every failure — the print itself reports a server
   /// that cannot be reached.
+  ///
+  /// An address is taken only once it answers as a label print server
+  /// ([verify]): the platform can report a service before its address has
+  /// resolved, which leaves a `.local` name that Android cannot use. Search
+  /// goes on past a record that names the saved address or one that does not
+  /// answer, because a fresher announcement may follow. And what the user
+  /// chose in the meantime wins: the scan takes seconds, and a printer removed
+  /// or replaced while it ran must not be put back.
   Future<void> refresh({
-    Stream<List<DiscoveredLabelPrinter>> Function() discover =
-        discoverLabelPrinters,
+    Stream<List<DiscoveredLabelPrinter>> Function()? discover,
+    Future<bool> Function(String baseUrl)? verify,
   }) async {
-    final name = ref.read(settingsRepositoryProvider).loadLabelPrinterName();
+    final settings = ref.read(settingsRepositoryProvider);
+    final name = settings.loadLabelPrinterName();
     final url = state;
     if (name == null || url == null) return;
     if (await ref.read(labelPrinterRepositoryProvider)?.info() != null) return;
+    final answers =
+        verify ??
+        (String baseUrl) async =>
+            await LabelPrinterRepository(
+              createLabelPrinterDio(baseUrl),
+            ).info() !=
+            null;
     try {
-      await for (final found in discover()) {
+      final Stream<List<DiscoveredLabelPrinter>> Function() search =
+          discover ?? ref.read(labelPrinterDiscoveryProvider);
+      await for (final found in search()) {
         final match = found.where((p) => p.name == name).firstOrNull;
-        if (match == null) continue;
-        if (match.baseUrl != url) await set(match.baseUrl, name: name);
+        if (match == null || match.baseUrl == url) continue;
+        if (!await answers(match.baseUrl)) continue;
+        if (state != url || settings.loadLabelPrinterName() != name) return;
+        await set(match.baseUrl, name: name);
         return;
       }
     } on Object {
@@ -54,14 +75,31 @@ class LabelPrinterUrlNotifier extends Notifier<String?> {
 
 /// A plain Dio, not [createBareDio]: that one feeds the bambuddy reachability
 /// tracker and the bambuddy log filters, and this host is neither.
-Dio createLabelPrinterDio(String baseUrl) => Dio(
-  BaseOptions(
-    baseUrl: baseUrl,
-    connectTimeout: const Duration(seconds: 4),
-    receiveTimeout: const Duration(seconds: 8),
-    sendTimeout: const Duration(seconds: 30),
-  ),
-);
+Dio createLabelPrinterDio(String baseUrl) {
+  final dio = Dio(
+    BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 4),
+      receiveTimeout: const Duration(seconds: 8),
+      sendTimeout: const Duration(seconds: 30),
+    ),
+  );
+  // The demo's printer has no network address, so it is told by its name and
+  // answered in process.
+  if (isDemoLabelPrinter(baseUrl)) {
+    dio.httpClientAdapter = demoLabelPrinterAdapter();
+  }
+  return dio;
+}
+
+/// The search for label print servers on the LAN — the demo's own in demo mode,
+/// which has no network to search.
+final labelPrinterDiscoveryProvider =
+    Provider<Stream<List<DiscoveredLabelPrinter>> Function()>(
+      (ref) => (ref.watch(serverProfileProvider)?.isDemo ?? false)
+          ? demoDiscoverLabelPrinters
+          : discoverLabelPrinters,
+    );
 
 /// Null while no server is chosen.
 final labelPrinterRepositoryProvider = Provider<LabelPrinterRepository?>((ref) {

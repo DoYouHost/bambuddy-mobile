@@ -3,8 +3,9 @@ part of 'inventory_screen.dart';
 /// Step 3 of label printing: what goes on the label and where the file goes.
 ///
 /// Every control writes straight to [labelPrintPrefsProvider], so the sheet
-/// opens next time as it was left; "Print" only closes it with `true`. The
-/// chosen lines are kept per [template] — a small label has room for less than
+/// opens next time as it was left; "Print" closes it with the destination it
+/// showed, so what the caller does is what the user saw. The chosen lines are
+/// kept per [template] — a small label has room for less than
 /// a large one.
 class _LabelOptionsSheet extends ConsumerWidget {
   const _LabelOptionsSheet({required this.template});
@@ -21,8 +22,14 @@ class _LabelOptionsSheet extends ConsumerWidget {
     final canChoose = ref.watch(labelFieldsProvider).orFalse;
     final printerSet = ref.watch(labelPrinterUrlProvider) != null;
     final png = canChoose && prefs.format == SpoolLabelFormat.png;
+    // Unknown while `/info` is out, and then not "fits": the default stays the
+    // print dialog until the printer has said which stock it holds.
+    final printerFits =
+        ref.watch(labelPrinterInfoProvider).valueOrNull?.takes(template) ??
+        false;
     final destination = prefs.resolveDestination(
       printerSet: printerSet,
+      printerFits: printerFits,
       png: png,
     );
     void update(LabelPrintPrefs next) =>
@@ -166,7 +173,7 @@ class _LabelOptionsSheet extends ConsumerWidget {
             child: SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: () => Navigator.of(context).pop(true),
+                onPressed: () => Navigator.of(context).pop(destination),
                 icon: Icon(switch (destination) {
                   LabelDestination.system ||
                   LabelDestination.labelPrinter => Icons.print_outlined,

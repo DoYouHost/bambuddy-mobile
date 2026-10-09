@@ -52,14 +52,16 @@ class _LabelPrinterScreenState extends ConsumerState<LabelPrinterScreen> {
       _found = const [];
     });
     _scan?.cancel();
-    _scan = discoverLabelPrinters().listen(
-      (found) => setState(() => _found = found),
-      onError: (Object _) => setState(() {
-        _discoveryFailed = true;
-        _scanning = false;
-      }),
-      onDone: () => setState(() => _scanning = false),
-    );
+    _scan = ref
+        .read(labelPrinterDiscoveryProvider)()
+        .listen(
+          (found) => setState(() => _found = found),
+          onError: (Object _) => setState(() {
+            _discoveryFailed = true;
+            _scanning = false;
+          }),
+          onDone: () => setState(() => _scanning = false),
+        );
   }
 
   /// Saves [raw] only if something there answers as a label print server — a
@@ -230,7 +232,7 @@ class _LabelPrinterScreenState extends ConsumerState<LabelPrinterScreen> {
               ).tagged('label_printer.remove'),
             ],
           ),
-          if (stock != null && !stock.takesSpoolLabels)
+          if (stock != null && !stock.takesAnySpoolLabel)
             Padding(
               padding: const EdgeInsets.only(right: DashSpace.md),
               child: InlineNote(

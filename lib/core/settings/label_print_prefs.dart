@@ -56,8 +56,13 @@ class LabelPrintPrefs {
   /// Where the file goes, given what is possible right now: a PNG cannot be
   /// printed or sent to the print server (which takes PDF), and a label printer
   /// that has since been removed leaves nothing to send to.
+  ///
+  /// With no choice made yet the label printer is the default only when it is
+  /// set up and [printerFits] the template — otherwise the first tap on
+  /// "Print" would be a refusal. A choice made by hand is kept either way.
   LabelDestination resolveDestination({
     required bool printerSet,
+    required bool printerFits,
     required bool png,
   }) {
     final chosen = destination;
@@ -67,7 +72,7 @@ class LabelPrintPrefs {
           : LabelDestination.share;
     }
     if (chosen == null) {
-      return printerSet
+      return printerSet && printerFits
           ? LabelDestination.labelPrinter
           : LabelDestination.system;
     }

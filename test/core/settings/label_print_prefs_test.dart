@@ -90,17 +90,24 @@ void main() {
     LabelDestination resolve(
       LabelDestination? chosen, {
       bool printerSet = true,
+      bool printerFits = true,
       bool png = false,
-    }) => LabelPrintPrefs(
-      destination: chosen,
-    ).resolveDestination(printerSet: printerSet, png: png);
+    }) => LabelPrintPrefs(destination: chosen).resolveDestination(
+      printerSet: printerSet,
+      printerFits: printerFits,
+      png: png,
+    );
 
-    test('an unchosen destination follows whether a printer is set up', () {
-      expect(resolve(null), LabelDestination.labelPrinter);
-      expect(resolve(null, printerSet: false), LabelDestination.system);
-    });
+    test(
+      'an unchosen destination is the printer only when it is set up and fits',
+      () {
+        expect(resolve(null), LabelDestination.labelPrinter);
+        expect(resolve(null, printerSet: false), LabelDestination.system);
+        expect(resolve(null, printerFits: false), LabelDestination.system);
+      },
+    );
 
-    test('a choice is kept', () {
+    test('a choice is kept, also a printer that does not fit', () {
       for (final d in [
         LabelDestination.system,
         LabelDestination.share,
@@ -108,6 +115,10 @@ void main() {
       ]) {
         expect(resolve(d), d);
       }
+      expect(
+        resolve(LabelDestination.labelPrinter, printerFits: false),
+        LabelDestination.labelPrinter,
+      );
     });
 
     test('a removed label printer falls back to the print dialog', () {

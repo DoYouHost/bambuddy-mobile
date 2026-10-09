@@ -136,8 +136,10 @@ void main() {
       expect(info, isNotNull);
       expect(info!.model, isNotEmpty);
       expect(info.connected, isTrue);
-      expect(info.labelId, labelPrinterStockId);
-      expect(info.takesSpoolLabels, isTrue);
+      // Which templates the app defaults to the printer for — and the ones it
+      // does not, which the server then refuses (see the 40 x 30 test below).
+      expect(info.takes(SpoolLabelTemplate.box62x29), isTrue);
+      expect(info.takes(SpoolLabelTemplate.box40x30), isFalse);
     });
 
     test('the copy limit the stepper uses is the server\'s', () async {

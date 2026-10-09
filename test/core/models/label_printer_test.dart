@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/models/label_printer.dart';
+import 'package:bambuddy_mobile/core/models/spool_label.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -45,7 +46,10 @@ void main() {
       });
       expect(info.model, 'QL-600');
       expect(info.connected, isTrue);
-      expect(info.takesSpoolLabels, isTrue);
+      expect(info.takes(SpoolLabelTemplate.box62x29), isTrue);
+      expect(info.takes(SpoolLabelTemplate.box40x30), isFalse);
+      expect(info.takes(SpoolLabelTemplate.averyL7160), isFalse);
+      expect(info.takesAnySpoolLabel, isTrue);
       expect(info.maxCopies, 50);
     });
 
@@ -55,7 +59,8 @@ void main() {
         'label': {'id': '54x29'},
       });
       expect(info.connected, isNull);
-      expect(info.takesSpoolLabels, isFalse);
+      expect(info.takes(SpoolLabelTemplate.box62x29), isFalse);
+      expect(info.takesAnySpoolLabel, isFalse);
     });
 
     test('tolerates missing blocks', () {

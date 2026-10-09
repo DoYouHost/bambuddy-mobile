@@ -27,6 +27,7 @@ import '../../core/slicer/preset_filters.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../data/inventory_source.dart' show InventoryBackend;
+import '../../data/label_printer_repository.dart';
 import '../../providers.dart';
 import '../../router.dart';
 import '../common/api_failure_snack.dart';

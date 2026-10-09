@@ -7,7 +7,9 @@ import 'package:app_util/app_util.dart';
 import '../models/json_utils.dart';
 import '../models/pipeline_run.dart';
 import '../models/print_run.dart';
+import '../models/spool_label.dart';
 import 'demo_config.dart';
+import 'demo_labels.dart';
 
 /// In-process fake bambuddy server for demo mode (see [DemoConfig]).
 ///
@@ -4897,6 +4899,10 @@ class DemoBackend {
     // Two spools of one product share a number, a third product has its own,
     // and the rest stay blank: the filter, the tile and the card all have
     // something to show without the demo hiding what an unnumbered shelf is.
+    // A note and a material number are lines a label can carry; a spool that
+    // has neither would draw nothing for them, and the choice would look dead.
+    spools[0]['note'] = 'Dry box 2';
+    spools[2]['note'] = 'Opened, use first';
     spools[0]['material_number'] = '15';
     spools[1]['material_number'] = '15';
     spools[2]['material_number'] = '22';
@@ -5327,6 +5333,73 @@ class DemoBackend {
     },
   ];
 
+  /// `POST /inventory/labels`, answered with what the server checks and sends
+  /// (`LabelRequest` and `_render_response` in its `labels.py`): the same
+  /// refusals, and the file the options ask for.
+  DemoResult _renderLabels(Map<String, dynamic> body) {
+    DemoResult refuse(String detail) => (status: 422, body: {'detail': detail});
+
+    final ids = [
+      for (final id in body['spool_ids'] as List? ?? const [])
+        if (id is num) id.toInt(),
+    ];
+    if (ids.isEmpty || ids.length > maxSpoolLabelsPerRequest) {
+      return refuse('spool_ids must hold 1 to $maxSpoolLabelsPerRequest ids');
+    }
+    final template = SpoolLabelTemplate.values
+        .where((t) => t.wire == body['template'])
+        .firstOrNull;
+    if (template == null) return refuse('unknown template ${body['template']}');
+
+    final capacity = template.sheetCapacity;
+    final start = (body['starting_position'] as num?)?.toInt() ?? 1;
+    if (start < 1 || start > (capacity ?? 1)) {
+      return refuse(
+        capacity == null
+            ? 'starting_position is only supported for sheet label templates'
+            : 'starting_position must be between 1 and $capacity '
+                  'for template ${template.wire}',
+      );
+    }
+
+    final format = body['format'] ?? 'pdf';
+    final dpi = (body['dpi'] as num?)?.toInt() ?? 300;
+    if (format != 'pdf' && format != 'png') return refuse('unknown format');
+    if (!spoolLabelDpiChoices.contains(dpi)) return refuse('unknown dpi');
+
+    final wanted = body['fields'];
+    final known = {for (final f in SpoolLabelField.values) f.wire};
+    if (wanted != null &&
+        (wanted is! List || wanted.any((f) => !known.contains(f)))) {
+      return refuse('unknown label field');
+    }
+    final fields = wanted == null
+        ? {for (final f in SpoolLabelField.defaults) f.wire}
+        : {for (final f in wanted as List) f as String};
+
+    final missing = [
+      for (final id in ids)
+        if (!_spools.any((x) => x['id'] == id)) id,
+    ];
+    if (missing.isNotEmpty) {
+      return (status: 404, body: {'detail': 'Spool(s) not found: $missing'});
+    }
+
+    final file = renderDemoLabels(
+      spools: [
+        for (final id in ids)
+          DemoLabelSpool.fromJson(_spools.firstWhere((x) => x['id'] == id)),
+      ],
+      template: template,
+      fields: fields,
+      monochrome: body['monochrome'] == true,
+      startingPosition: start,
+      png: format == 'png',
+      dpi: dpi,
+    );
+    return _file(file.bytes, file.contentType);
+  }
+
   DemoResult? _inventoryRoute(
     String m,
     List<String> s,
@@ -5336,6 +5409,8 @@ class DemoBackend {
   ) {
     if (s.length < 2) return _notFound();
     switch (s[1]) {
+      case 'labels':
+        return m == 'POST' && s.length == 2 ? _renderLabels(body) : _notFound();
       case 'spools':
         if (s.length == 2) {
           if (m == 'GET') {

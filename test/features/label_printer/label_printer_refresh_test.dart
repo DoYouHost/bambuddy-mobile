@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/network/label_printer_discovery.dart';
 import 'package:bambuddy_mobile/data/label_printer_repository.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_providers.dart';
@@ -60,6 +62,7 @@ void main() {
             ('other', 'http://10.0.0.9:8000'),
             ('rpi', 'http://10.0.0.7:8000'),
           ]),
+          verify: (_) async => true,
         );
     expect(c.read(labelPrinterUrlProvider), 'http://10.0.0.7:8000');
     expect(c.read(settingsRepositoryProvider).loadLabelPrinterName(), 'rpi');
@@ -93,4 +96,111 @@ void main() {
       expect(c.read(labelPrinterUrlProvider), old);
     },
   );
+
+  group('a moved server', () {
+    Future<bool> yes(String _) async => true;
+
+    test(
+      'is not given up on at a record that still names the old address',
+      () async {
+        // A cached announcement can arrive ahead of the fresh one.
+        final c = await container(stored: {'label_printer_name': 'rpi'});
+        final events = StreamController<List<DiscoveredLabelPrinter>>();
+        final done = c
+            .read(labelPrinterUrlProvider.notifier)
+            .refresh(discover: () => events.stream, verify: yes);
+
+        events.add([const DiscoveredLabelPrinter(name: 'rpi', baseUrl: old)]);
+        await pumpEventQueue();
+        expect(c.read(labelPrinterUrlProvider), old);
+
+        events.add([
+          const DiscoveredLabelPrinter(
+            name: 'rpi',
+            baseUrl: 'http://10.0.0.9:8000',
+          ),
+        ]);
+        await events.close();
+        await done;
+        expect(c.read(labelPrinterUrlProvider), 'http://10.0.0.9:8000');
+      },
+    );
+
+    test('is not moved to an address that does not answer', () async {
+      // The platform reports a service before its address has resolved, which
+      // leaves a `.local` name Android cannot use.
+      final c = await container(stored: {'label_printer_name': 'rpi'});
+      final tried = <String>[];
+      await c
+          .read(labelPrinterUrlProvider.notifier)
+          .refresh(
+            discover: () => Stream.fromIterable([
+              [
+                const DiscoveredLabelPrinter(
+                  name: 'rpi',
+                  baseUrl: 'http://rpi.local:8000',
+                ),
+              ],
+              [
+                const DiscoveredLabelPrinter(
+                  name: 'rpi',
+                  baseUrl: 'http://10.0.0.9:8000',
+                ),
+              ],
+            ]),
+            verify: (url) async {
+              tried.add(url);
+              return !url.contains('.local');
+            },
+          );
+
+      expect(tried, ['http://rpi.local:8000', 'http://10.0.0.9:8000']);
+      expect(c.read(labelPrinterUrlProvider), 'http://10.0.0.9:8000');
+    });
+
+    test('does not overwrite what the user chose while it searched', () async {
+      final c = await container(stored: {'label_printer_name': 'rpi'});
+      final notifier = c.read(labelPrinterUrlProvider.notifier);
+      final events = StreamController<List<DiscoveredLabelPrinter>>();
+      final done = notifier.refresh(discover: () => events.stream, verify: yes);
+      await pumpEventQueue();
+
+      // The user removes the printer, then picks another one.
+      await notifier.set('http://10.0.0.77:8000', name: 'other');
+      events.add([
+        const DiscoveredLabelPrinter(
+          name: 'rpi',
+          baseUrl: 'http://10.0.0.9:8000',
+        ),
+      ]);
+      await events.close();
+      await done;
+
+      expect(c.read(labelPrinterUrlProvider), 'http://10.0.0.77:8000');
+      expect(
+        c.read(settingsRepositoryProvider).loadLabelPrinterName(),
+        'other',
+      );
+    });
+
+    test('does not bring back a printer removed while it searched', () async {
+      final c = await container(stored: {'label_printer_name': 'rpi'});
+      final notifier = c.read(labelPrinterUrlProvider.notifier);
+      final events = StreamController<List<DiscoveredLabelPrinter>>();
+      final done = notifier.refresh(discover: () => events.stream, verify: yes);
+      await pumpEventQueue();
+
+      await notifier.set(null);
+      events.add([
+        const DiscoveredLabelPrinter(
+          name: 'rpi',
+          baseUrl: 'http://10.0.0.9:8000',
+        ),
+      ]);
+      await events.close();
+      await done;
+
+      expect(c.read(labelPrinterUrlProvider), isNull);
+    });
+  });
 }

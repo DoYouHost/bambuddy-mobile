@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
+import 'package:bambuddy_mobile/core/models/label_printer.dart';
 import 'package:bambuddy_mobile/core/models/spool_label.dart';
 import 'package:bambuddy_mobile/core/network/label_printer_discovery.dart';
 import 'package:bambuddy_mobile/core/settings/label_print_prefs.dart';
@@ -15,9 +16,13 @@ import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../helpers.dart';
@@ -63,10 +68,14 @@ class _RenderingRepository extends InventoryRepository {
 
   SpoolLabelRequest? request;
 
+  /// What the server "answers" — a PNG's first bytes make the sheet treat it as
+  /// one.
+  Uint8List bytes = Uint8List.fromList([1, 2, 3]);
+
   @override
   Future<Uint8List> renderLabels(SpoolLabelRequest labelRequest) async {
     request = labelRequest;
-    return Uint8List.fromList([1, 2, 3]);
+    return bytes;
   }
 }
 
@@ -102,6 +111,26 @@ class _MemoryPrefs extends LabelPrintPrefsNotifier {
   Future<void> set(LabelPrintPrefs prefs) async => state = prefs;
 }
 
+/// Preferences left on PNG by an earlier print.
+class _PngPrefs extends LabelPrintPrefsNotifier {
+  @override
+  LabelPrintPrefs build() =>
+      const LabelPrintPrefs(format: SpoolLabelFormat.png);
+
+  @override
+  Future<void> set(LabelPrintPrefs prefs) async => state = prefs;
+}
+
+/// A cache directory that fails, but not at once — after the label sheet has
+/// closed, which is when the hand-off runs.
+class _SlowFailingPaths extends PathProviderPlatform {
+  @override
+  Future<String?> getTemporaryPath() async {
+    await Future<void>.delayed(const Duration(seconds: 1));
+    throw const FileSystemException('disk full');
+  }
+}
+
 class _NoUrl extends LabelPrinterUrlNotifier {
   @override
   String? build() => null;
@@ -110,6 +139,7 @@ class _NoUrl extends LabelPrinterUrlNotifier {
   @override
   Future<void> refresh({
     Stream<List<DiscoveredLabelPrinter>> Function()? discover,
+    Future<bool> Function(String baseUrl)? verify,
   }) async {}
 }
 
@@ -121,6 +151,7 @@ class _ChosenUrl extends LabelPrinterUrlNotifier {
   @override
   Future<void> refresh({
     Stream<List<DiscoveredLabelPrinter>> Function()? discover,
+    Future<bool> Function(String baseUrl)? verify,
   }) async {}
 }
 
@@ -283,6 +314,9 @@ void main() {
       bool chosen = false,
       bool fieldsGate = false,
       _RecordingLabelPrinter? printer,
+      String stock = '62x29',
+      String templateLabel = '',
+      bool infoNeverArrives = false,
     }) async {
       rendering = _RenderingRepository();
       await pumpPhone(
@@ -300,6 +334,19 @@ void main() {
           labelPrinterUrlProvider.overrideWith(
             chosen ? _ChosenUrl.new : _NoUrl.new,
           ),
+          // What `/info` says the printer holds.
+          labelPrinterInfoProvider.overrideWith(
+            (ref) => infoNeverArrives
+                ? Completer<LabelPrinterInfo?>().future
+                : Future.value(
+                    LabelPrinterInfo(
+                      model: 'QL-600',
+                      connected: true,
+                      labelId: stock,
+                      maxCopies: 50,
+                    ),
+                  ),
+          ),
           if (printer != null)
             labelPrinterRepositoryProvider.overrideWithValue(printer),
         ],
@@ -309,7 +356,10 @@ void main() {
       await settle(tester);
       await tester.tap(find.text('${l10n.inventoryLabelsPrint} (1)'));
       await settle(tester);
-      await pickTemplate(tester, l10n.inventoryLabelsBox62);
+      await pickTemplate(
+        tester,
+        templateLabel.isEmpty ? l10n.inventoryLabelsBox62 : templateLabel,
+      );
       return ProviderScope.containerOf(
         tester.element(find.byType(InventoryScreen)),
       );
@@ -384,6 +434,73 @@ void main() {
       expect(printer.cutAtEnd, isTrue);
       expect(printer.cutEvery, 0);
       expect(find.text(l10n.labelPrinterSent), findsOneWidget);
+    });
+
+    testWidgets('a stock the printer does not hold is not the default', (
+      tester,
+    ) async {
+      final printer = _RecordingLabelPrinter();
+      await openOptions(
+        tester,
+        chosen: true,
+        printer: printer,
+        templateLabel: l10n.inventoryLabelsBox40,
+      );
+
+      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await settle(tester);
+
+      // The print dialog, which a widget test cannot serve — what matters is
+      // that the print server was not sent a label it would refuse.
+      expect(printer.sent, isNull);
+      expect(find.text(l10n.labelPrinterSent), findsNothing);
+    });
+
+    testWidgets('the printer is still there to be picked for it', (
+      tester,
+    ) async {
+      final printer = _RecordingLabelPrinter();
+      await openOptions(
+        tester,
+        chosen: true,
+        printer: printer,
+        templateLabel: l10n.inventoryLabelsBox40,
+      );
+
+      await tapOption(tester, find.text(l10n.labelSendPrinter));
+      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await settle(tester);
+
+      expect(printer.sent, [1, 2, 3]);
+    });
+
+    testWidgets('until the printer has said what it holds, the dialog is', (
+      tester,
+    ) async {
+      final printer = _RecordingLabelPrinter();
+      await openOptions(
+        tester,
+        chosen: true,
+        printer: printer,
+        infoNeverArrives: true,
+      );
+
+      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await settle(tester);
+
+      expect(printer.sent, isNull);
+    });
+
+    testWidgets('a printer holding other labels takes none of ours', (
+      tester,
+    ) async {
+      final printer = _RecordingLabelPrinter();
+      await openOptions(tester, chosen: true, printer: printer, stock: '54x29');
+
+      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await settle(tester);
+
+      expect(printer.sent, isNull);
     });
 
     testWidgets('copies and the cutter options reach the server', (
@@ -523,6 +640,77 @@ void main() {
       await settle(tester);
 
       expect(container.read(labelPrintPrefsProvider).monochrome, isTrue);
+    });
+
+    testWidgets('the gate is settled before the sheet opens, not after', (
+      tester,
+    ) async {
+      // PNG was left chosen by an earlier print. A sheet opened while the gate
+      // was still out hid it, and the answer arriving afterwards then turned
+      // the print into a PNG for a sheet that never offered one.
+      final gate = StateProvider<AsyncValue<bool>>((_) => const AsyncLoading());
+      await pumpPhone(
+        tester,
+        const InventoryScreen(),
+        overrides: [
+          inventoryProvider.overrideWith(_CapturingInventory.new),
+          serverProfileProvider.overrideWith(_NullProfile.new),
+          inventoryRepositoryProvider.overrideWithValue(_RenderingRepository()),
+          labelStartingPositionProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
+          labelFieldsProvider.overrideWith((ref) => ref.watch(gate)),
+          labelPrintPrefsProvider.overrideWith(_PngPrefs.new),
+          labelPrinterUrlProvider.overrideWith(_NoUrl.new),
+        ],
+      );
+      await settle(tester);
+      await tester.tap(find.byTooltip(l10n.inventoryLabelsPrintAll));
+      await settle(tester);
+      await tester.tap(find.text('${l10n.inventoryLabelsPrint} (1)'));
+      await settle(tester);
+      await pickTemplate(tester, l10n.inventoryLabelsBox62);
+
+      expect(find.text(l10n.labelOptionsTitle), findsNothing);
+
+      ProviderScope.containerOf(
+        tester.element(find.byType(InventoryScreen)),
+      ).read(gate.notifier).state = const AsyncData(
+        true,
+      );
+      await settle(tester);
+
+      expect(find.text(l10n.labelOptionsTitle), findsOneWidget);
+      expect(find.text('PNG'), findsOneWidget);
+    });
+
+    testWidgets('a hand-off that fails after the sheet closed still says so', (
+      tester,
+    ) async {
+      final previous = PathProviderPlatform.instance;
+      PathProviderPlatform.instance = _SlowFailingPaths();
+      addTearDown(() => PathProviderPlatform.instance = previous);
+
+      final container = await openOptions(tester, fieldsGate: true);
+      rendering.bytes = Uint8List.fromList([
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, //
+      ]);
+      await tapOption(tester, find.text('PNG'));
+      await tapOption(tester, find.text(l10n.inventoryLabelsPrint));
+      expect(
+        container.read(labelPrintPrefsProvider).format,
+        SpoolLabelFormat.png,
+      );
+
+      // The sheet closes at once; the cache directory fails a second later.
+      // In steps: one long pump fires the timer before the frame that takes
+      // the sheet down, and the sheet would still be there to report it.
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await settle(tester);
+
+      expect(find.text(l10n.inventoryLabelsFailed), findsOneWidget);
     });
   });
 }
