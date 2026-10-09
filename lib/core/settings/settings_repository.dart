@@ -34,6 +34,7 @@ class SettingsRepository {
   static const _wallLiveCameraKey = 'wall_live_camera';
   static const _sliceOnlyOnlineKey = 'slice_only_online_printers';
   static const _sliceOnlyLoadedKey = 'slice_only_loaded_spools';
+  static const _labelPrinterUrlKey = 'label_printer_url';
   static const _wallHiddenPrintersKey = 'wall_hidden_printer_ids';
 
   final SharedPreferences _prefs;
@@ -142,6 +143,14 @@ class SettingsRepository {
 
   /// Whether wall mode holds the screen on. Absent reads as on: an always-on
   /// view is what the mode is for.
+  /// Base URL of the label print server, or null while none is chosen. Not a
+  /// secret: the server has no authentication.
+  String? loadLabelPrinterUrl() => _prefs.getString(_labelPrinterUrlKey);
+
+  Future<void> saveLabelPrinterUrl(String? url) => url == null
+      ? _prefs.remove(_labelPrinterUrlKey)
+      : _prefs.setString(_labelPrinterUrlKey, url);
+
   bool loadWallKeepAwake() => _prefs.getBool(_wallKeepAwakeKey) ?? true;
 
   Future<void> saveWallKeepAwake(bool on) =>
