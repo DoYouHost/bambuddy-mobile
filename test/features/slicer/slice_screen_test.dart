@@ -1270,9 +1270,11 @@ void main() {
         registry: registry,
         prefs: {'slice_only_online_printers': true},
       );
-      await tester.tap(find.text(generic.name));
-      await tester.pumpAndSettle();
+      // On the X1C the H2D profile is ruled out, so the X1C one is the
+      // auto-pick; choosing it again makes it the user's own pick.
       await tester.tap(find.text(forX1c.name));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(forX1c.name).last);
       await tester.pumpAndSettle();
 
       await tester.pump(const Duration(seconds: 30));
@@ -1280,6 +1282,58 @@ void main() {
       final body = await slice(tester);
       expect(body['printer_preset'], h2d.toRef());
       expect(body['filament_preset'], generic.toRef());
+    });
+
+    testWidgets('a process for another printer is not the auto-pick, even '
+        'an imported one', (tester) async {
+      // The web's rule: an imported preset is ruled out by its own
+      // `compatible_printers`, not kept for being imported.
+      const forH2d = SlicerPreset(
+        source: 'local',
+        id: 'h2d-proc',
+        name: 'My 0.20mm',
+        compatiblePrinters: ['Bambu Lab H2D 0.4 nozzle'],
+      );
+      const untagged = SlicerPreset(
+        source: 'standard',
+        id: 'any',
+        name: '0.20mm Standard',
+      );
+      await openSheet(
+        tester,
+        presets: const UnifiedPresets(
+          printers: [x1c],
+          processes: [forH2d, untagged],
+          filaments: [basic],
+        ),
+        registry: registry,
+        loaded: const [],
+      );
+
+      final body = await slice(tester);
+      expect(body['process_preset'], untagged.toRef());
+    });
+
+    testWidgets('when every process is for another printer the list is not '
+        'left empty', (tester) async {
+      const forH2d = SlicerPreset(
+        source: 'standard',
+        id: 'h2d-proc',
+        name: '0.20mm Standard @BBL H2D',
+      );
+      await openSheet(
+        tester,
+        presets: const UnifiedPresets(
+          printers: [x1c],
+          processes: [forH2d],
+          filaments: [basic],
+        ),
+        registry: registry,
+        loaded: const [],
+      );
+
+      final body = await slice(tester);
+      expect(body['process_preset'], forH2d.toRef());
     });
 
     testWidgets('the move stays among the printers the user owns', (
@@ -1293,7 +1347,7 @@ void main() {
         loaded: online,
         loadedAfter: const Duration(seconds: 1),
         registry: registry,
-        ownedCodes: const {'X1 CARBON'},
+        ownedCodes: const {'X1C'},
         prefs: {'slice_only_online_printers': true},
       );
       await tester.pump(const Duration(seconds: 1));
@@ -1482,7 +1536,7 @@ void main() {
       await openSheet(
         tester,
         presets: const UnifiedPresets(
-          printers: [x1c, h2d],
+          printers: [h2d, x1c],
           processes: [
             SlicerPreset(source: 'standard', id: 'p', name: '0.20mm Standard'),
           ],
