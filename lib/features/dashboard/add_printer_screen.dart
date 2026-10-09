@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -364,7 +365,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
               location: _location.text.trim(),
               autoArchive: _autoArchive,
               isActive: _isActive,
-              wearCostPerHour: parseRate(_wearCost.text),
+              wearCostPerHour: parseUserDecimal(_wearCost.text),
               sendWearCost: printer.servesWearCost,
             ),
           );
@@ -954,18 +955,12 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
   );
 }
 
-/// The wear rate as typed: a comma counts as the decimal point, since that is
-/// what a Polish or German keyboard offers. Empty means "off".
-double? parseRate(String text) {
-  final t = text.trim().replaceAll(',', '.');
-  return t.isEmpty ? null : double.tryParse(t);
-}
-
 /// The server's own bound (`Field(ge=0, le=100000)`), checked before it 422s.
+/// Empty is allowed and means "off".
 bool rateIsValid(String text) {
   if (text.trim().isEmpty) return true;
-  final v = parseRate(text);
-  return v != null && v.isFinite && v >= 0 && v <= 100000;
+  final v = parseUserDecimal(text);
+  return v != null && v >= 0 && v <= 100000;
 }
 
 /// A stored rate back into the field, without a trailing `.0`.

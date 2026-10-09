@@ -57,16 +57,14 @@ Printer _printer({bool servesWearCost = true, double? rate = 0.25}) =>
 
 void main() {
   group('wear rate as typed', () {
-    test('a plain number and a comma decimal both parse', () {
-      expect(parseRate('0.25'), 0.25);
-      expect(parseRate(' 1,5 '), 1.5);
-      expect(rateIsValid('1,5'), isTrue);
+    test('a plain number and a comma decimal are both accepted', () {
+      expect(rateIsValid('0.25'), isTrue);
+      expect(rateIsValid(' 1,5 '), isTrue);
     });
 
     test('empty means off, and is allowed', () {
-      expect(parseRate(''), isNull);
-      expect(parseRate('   '), isNull);
       expect(rateIsValid(''), isTrue);
+      expect(rateIsValid('   '), isTrue);
     });
 
     test('odd input is refused before the server 422s it', () {
