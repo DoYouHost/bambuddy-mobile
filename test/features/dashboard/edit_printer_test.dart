@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bambuddy_mobile/core/models/printer_create.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/add_printer_screen.dart';
-import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations_pl.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
@@ -39,14 +38,6 @@ const _diagnoseBody = {
 };
 
 final _keyProfile = fakeServerProfileOverride(authMode: AuthMode.apiKey);
-
-class _InertDashboard extends DashboardNotifier {
-  @override
-  DashboardState build() => const DashboardState();
-
-  @override
-  Future<void> refresh() async {}
-}
 
 Printer _printer({bool servesWearCost = true, double? rate = 0.25}) =>
     Printer.fromJson({
@@ -170,7 +161,7 @@ void main() {
           ...extra,
           if (!extra.any((o) => o == _keyProfile)) noServerProfileOverride,
           printersRepositoryProvider.overrideWithValue(PrintersRepository(dio)),
-          dashboardProvider.overrideWith(_InertDashboard.new),
+          fixedDashboardOverride(),
           serverSettingsOverride(const {'currency': 'PLN'}),
         ],
       );

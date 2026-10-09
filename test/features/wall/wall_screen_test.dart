@@ -24,19 +24,6 @@ import '../../helpers.dart';
 
 const _window = MethodChannel('page.codeberg.morganmlgman.bambuddy/window');
 
-/// The dashboard state the wall reads, fixed: no poll, no server.
-class _FixedDashboard extends DashboardNotifier {
-  _FixedDashboard(this._fixed);
-
-  final DashboardState _fixed;
-
-  @override
-  DashboardState build() => _fixed;
-
-  @override
-  Future<void> refresh() async {}
-}
-
 /// Live statuses, fixed: what the socket would have delivered.
 class _FixedStatuses extends PrinterStatusesNotifier {
   _FixedStatuses(this._fixed);
@@ -153,9 +140,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(sp),
-          dashboardProvider.overrideWith(
-            () => _FixedDashboard(DashboardState(printers: printers ?? _farm)),
-          ),
+          fixedDashboardOverride(DashboardState(printers: printers ?? _farm)),
           queueProvider.overrideWith(() => _CountingQueue(queue)),
           ?profile,
           cameraTokenProvider.overrideWith((ref) async => 'tok'),

@@ -74,21 +74,6 @@ class _NoopNotifications implements NotificationService {
 
 late SharedPreferences _prefs;
 
-class _FakeDashboardNotifier extends DashboardNotifier {
-  _FakeDashboardNotifier(this._fixed);
-
-  final DashboardState _fixed;
-
-  @override
-  DashboardState build() => _fixed;
-
-  @override
-  Future<void> refresh() async {}
-
-  /// What a poll does when the session is rejected and cannot be renewed.
-  void expire() => state = const DashboardState(authExpired: true);
-}
-
 /// Background service with no Android underneath — the lifecycle tests check who
 /// the dashboard hands work to and takes it back from, not the service itself.
 class _FakeBackgroundMonitor implements BackgroundMonitor {
@@ -165,7 +150,7 @@ class _SpyFinishPhoto extends FinishPhotoNotifier {
 }
 
 List<Override> _overrides(DashboardState state) => [
-  dashboardProvider.overrideWith(() => _FakeDashboardNotifier(state)),
+  fixedDashboardOverride(state),
   fakeServerProfileOverride(),
   inertStatusesOverride,
   inertSmartPlugsOverride,
@@ -1138,7 +1123,7 @@ void main() {
           ProviderScope.containerOf(
                 tester.element(find.byType(DashboardScreen)),
               ).read(dashboardProvider.notifier)
-              as _FakeDashboardNotifier;
+              as FixedDashboard;
       notifier.expire();
       await tester.pumpAndSettle();
 
