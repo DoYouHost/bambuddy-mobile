@@ -26,6 +26,8 @@ import 'package:bambuddy_mobile/data/location_sensors_repository.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
 import 'package:bambuddy_mobile/data/makerworld_repository.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
+import 'package:bambuddy_mobile/core/models/printer_location.dart';
+import 'package:bambuddy_mobile/data/printer_locations_repository.dart';
 import 'package:bambuddy_mobile/core/models/printer_download_job.dart';
 import 'package:bambuddy_mobile/data/printer_files_repository.dart';
 import 'package:bambuddy_mobile/data/print_log_repository.dart';
@@ -1777,6 +1779,87 @@ void main() {
       for (final id in ids) {
         await source.deleteSpool(id);
       }
+    });
+  });
+
+  group('printer locations', () {
+    final repo = PrinterLocationsRepository(dio);
+
+    test('the list counts the printers, styled or not, and keeps an empty '
+        'location', () async {
+      final rows = await repo.list();
+      final byName = {for (final l in rows) l.name: l};
+
+      expect(byName['Workshop']!.printerCount, 4);
+      expect(byName['Workshop']!.icon, 'wrench');
+      expect(byName['Office']!.printerCount, 1);
+      expect(byName['Storage']!.printerCount, 0);
+      expect(rows.map((l) => l.name), orderedEquals([...byName.keys]..sort()));
+    });
+
+    test(
+      'a rename moves the printers with it and a case variant is a 409',
+      () async {
+        await expectLater(
+          repo.create(const PrinterLocationDraft(name: 'WORKSHOP')),
+          throwsA(
+            isA<AppApiException>().having((e) => e.statusCode, 'status', 409),
+          ),
+        );
+
+        final renamed = await repo.update(
+          const PrinterLocationDraft(
+            name: 'Office',
+            newName: 'Front office',
+            icon: 'home',
+          ),
+        );
+        expect(renamed.printerCount, 1);
+        expect(
+          (await PrintersRepository(
+            dio,
+          ).fetchAll()).where((p) => p.printer.location == 'Front office'),
+          hasLength(1),
+        );
+
+        await repo.update(
+          const PrinterLocationDraft(
+            name: 'Front office',
+            newName: 'Office',
+            icon: 'home',
+          ),
+        );
+      },
+    );
+
+    test('assign moves the ids named, null takes them out, an unknown id '
+        'is a 404', () async {
+      expect(await repo.assign([2], 'Storage'), 1);
+      expect(
+        (await repo.list()).firstWhere((l) => l.name == 'Storage').printerCount,
+        1,
+      );
+      await expectLater(
+        repo.assign([2, 999], 'Storage'),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 404),
+        ),
+      );
+      expect(await repo.assign([2], 'Office'), 1);
+    });
+
+    test('delete reports what it removed and ungrouped', () async {
+      final home = (await PrintersRepository(
+        dio,
+      ).fetchAll()).firstWhere((p) => p.printer.id == 5).printer.location;
+      await repo.create(const PrinterLocationDraft(name: 'Scratch'));
+      await repo.assign([5], 'Scratch');
+
+      final result = await repo.delete(['Scratch']);
+
+      expect(result.deleted, 1);
+      expect(result.printersUngrouped, 1);
+      await repo.assign([5], home);
     });
   });
 
