@@ -8132,4 +8132,165 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get labelSaved => 'Étiquettes enregistrées';
+
+  @override
+  String get printerLocationsMenu => 'Emplacements des imprimantes';
+
+  @override
+  String printerLocationsSubtitle(int grouped, int ungrouped) {
+    return 'Dans un emplacement : $grouped, sans emplacement : $ungrouped';
+  }
+
+  @override
+  String get printerLocationsSearch => 'Rechercher un emplacement';
+
+  @override
+  String get printerLocationsHideEmpty => 'Masquer les vides';
+
+  @override
+  String get printerLocationsSortNameAsc => 'Nom A→Z';
+
+  @override
+  String get printerLocationsSortNameDesc => 'Nom Z→A';
+
+  @override
+  String get printerLocationsSortCountAsc => 'Moins d\'imprimantes';
+
+  @override
+  String get printerLocationsSortCountDesc => 'Plus d\'imprimantes';
+
+  @override
+  String get printerLocationsSort => 'Trier';
+
+  @override
+  String get printerLocationsSelect => 'Sélectionner';
+
+  @override
+  String get printerLocationsDone => 'Terminé';
+
+  @override
+  String get printerLocationsNew => 'Nouvel emplacement';
+
+  @override
+  String get printerLocationsCreateTitle => 'Créer un emplacement';
+
+  @override
+  String get printerLocationsEditTitle => 'Modifier l\'emplacement';
+
+  @override
+  String get printerLocationsCreate => 'Créer';
+
+  @override
+  String get printerLocationsSave => 'Enregistrer';
+
+  @override
+  String get printerLocationsFieldName => 'Nom de l\'emplacement';
+
+  @override
+  String get printerLocationsFieldIcon => 'Icône';
+
+  @override
+  String get printerLocationsFieldColor => 'Couleur';
+
+  @override
+  String get printerLocationsNoColor => 'Aucune couleur';
+
+  @override
+  String get printerLocationsEmpty =>
+      'Aucun emplacement d\'imprimante pour l\'instant';
+
+  @override
+  String get printerLocationsNoResults =>
+      'Aucun emplacement ne correspond à la recherche';
+
+  @override
+  String printerLocationsPrinterCount(int count) {
+    return 'Imprimantes : $count';
+  }
+
+  @override
+  String get printerLocationsNoPrinters =>
+      'Aucune imprimante dans cet emplacement';
+
+  @override
+  String get printerLocationsSelectPrinter => 'Sélectionner l\'imprimante';
+
+  @override
+  String get printerLocationsMove => 'Déplacer vers un autre emplacement';
+
+  @override
+  String get printerLocationsMoveButton => 'Déplacer';
+
+  @override
+  String get printerLocationsRemoveFromLocation => 'Retirer de l\'emplacement';
+
+  @override
+  String printerLocationsUngrouped(int count) {
+    return 'Imprimantes sans emplacement : $count';
+  }
+
+  @override
+  String get printerLocationsSelectAll => 'Tout sélectionner';
+
+  @override
+  String get printerLocationsDeselectAll => 'Tout désélectionner';
+
+  @override
+  String printerLocationsSelected(int count) {
+    return 'Sélectionnées : $count';
+  }
+
+  @override
+  String get printerLocationsDeleteSelected => 'Supprimer la sélection';
+
+  @override
+  String get printerLocationsMoveTitle => 'Déplacer l\'imprimante';
+
+  @override
+  String printerLocationsMoveTitleMany(int count) {
+    return 'Déplacer les imprimantes ($count)';
+  }
+
+  @override
+  String get printerLocationsTargetHint => 'Choisir un emplacement';
+
+  @override
+  String get printerLocationsNoLocation => 'Aucun emplacement';
+
+  @override
+  String get printerLocationsDeleteTitle => 'Supprimer l\'emplacement';
+
+  @override
+  String printerLocationsDeleteTitleMany(int count) {
+    return 'Supprimer les emplacements ($count)';
+  }
+
+  @override
+  String printerLocationsDeleteMessage(String names, int count) {
+    return 'Supprimer $names ? Imprimantes restant sans emplacement : $count.';
+  }
+
+  @override
+  String get printerLocationsCreated => 'Emplacement créé';
+
+  @override
+  String get printerLocationsSaved => 'Emplacement enregistré';
+
+  @override
+  String printerLocationsDeleted(int count) {
+    return 'Emplacements supprimés : $count';
+  }
+
+  @override
+  String printerLocationsMoved(int count) {
+    return 'Imprimantes déplacées : $count';
+  }
+
+  @override
+  String get printerLocationsNameTaken =>
+      'Un emplacement portant ce nom existe déjà';
+
+  @override
+  String get printerLocationsReadOnly =>
+      'Seul un compte utilisateur peut modifier les emplacements ; une clé d\'API ne peut que les lire.';
 }

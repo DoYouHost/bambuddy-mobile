@@ -8032,4 +8032,162 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get labelSaved => 'Etiketten gespeichert';
+
+  @override
+  String get printerLocationsMenu => 'Druckerstandorte';
+
+  @override
+  String printerLocationsSubtitle(int grouped, int ungrouped) {
+    return 'An einem Standort: $grouped, ohne Standort: $ungrouped';
+  }
+
+  @override
+  String get printerLocationsSearch => 'Standorte suchen';
+
+  @override
+  String get printerLocationsHideEmpty => 'Leere ausblenden';
+
+  @override
+  String get printerLocationsSortNameAsc => 'Name A→Z';
+
+  @override
+  String get printerLocationsSortNameDesc => 'Name Z→A';
+
+  @override
+  String get printerLocationsSortCountAsc => 'Wenigste Drucker';
+
+  @override
+  String get printerLocationsSortCountDesc => 'Meiste Drucker';
+
+  @override
+  String get printerLocationsSort => 'Sortieren';
+
+  @override
+  String get printerLocationsSelect => 'Auswählen';
+
+  @override
+  String get printerLocationsDone => 'Fertig';
+
+  @override
+  String get printerLocationsNew => 'Neuer Standort';
+
+  @override
+  String get printerLocationsCreateTitle => 'Standort erstellen';
+
+  @override
+  String get printerLocationsEditTitle => 'Standort bearbeiten';
+
+  @override
+  String get printerLocationsCreate => 'Erstellen';
+
+  @override
+  String get printerLocationsSave => 'Speichern';
+
+  @override
+  String get printerLocationsFieldName => 'Name des Standorts';
+
+  @override
+  String get printerLocationsFieldIcon => 'Symbol';
+
+  @override
+  String get printerLocationsFieldColor => 'Farbe';
+
+  @override
+  String get printerLocationsNoColor => 'Keine Farbe';
+
+  @override
+  String get printerLocationsEmpty => 'Noch keine Druckerstandorte';
+
+  @override
+  String get printerLocationsNoResults => 'Kein Standort passt zur Suche';
+
+  @override
+  String printerLocationsPrinterCount(int count) {
+    return 'Drucker: $count';
+  }
+
+  @override
+  String get printerLocationsNoPrinters => 'Keine Drucker an diesem Standort';
+
+  @override
+  String get printerLocationsSelectPrinter => 'Drucker auswählen';
+
+  @override
+  String get printerLocationsMove => 'An einen anderen Standort verschieben';
+
+  @override
+  String get printerLocationsMoveButton => 'Verschieben';
+
+  @override
+  String get printerLocationsRemoveFromLocation => 'Vom Standort entfernen';
+
+  @override
+  String printerLocationsUngrouped(int count) {
+    return 'Drucker ohne Standort: $count';
+  }
+
+  @override
+  String get printerLocationsSelectAll => 'Alle auswählen';
+
+  @override
+  String get printerLocationsDeselectAll => 'Auswahl aufheben';
+
+  @override
+  String printerLocationsSelected(int count) {
+    return 'Ausgewählt: $count';
+  }
+
+  @override
+  String get printerLocationsDeleteSelected => 'Ausgewählte löschen';
+
+  @override
+  String get printerLocationsMoveTitle => 'Drucker verschieben';
+
+  @override
+  String printerLocationsMoveTitleMany(int count) {
+    return 'Drucker verschieben ($count)';
+  }
+
+  @override
+  String get printerLocationsTargetHint => 'Standort auswählen';
+
+  @override
+  String get printerLocationsNoLocation => 'Kein Standort';
+
+  @override
+  String get printerLocationsDeleteTitle => 'Standort löschen';
+
+  @override
+  String printerLocationsDeleteTitleMany(int count) {
+    return 'Standorte löschen ($count)';
+  }
+
+  @override
+  String printerLocationsDeleteMessage(String names, int count) {
+    return '$names löschen? Drucker ohne Standort danach: $count.';
+  }
+
+  @override
+  String get printerLocationsCreated => 'Standort erstellt';
+
+  @override
+  String get printerLocationsSaved => 'Standort gespeichert';
+
+  @override
+  String printerLocationsDeleted(int count) {
+    return 'Gelöschte Standorte: $count';
+  }
+
+  @override
+  String printerLocationsMoved(int count) {
+    return 'Verschobene Drucker: $count';
+  }
+
+  @override
+  String get printerLocationsNameTaken =>
+      'Ein Standort mit diesem Namen existiert bereits';
+
+  @override
+  String get printerLocationsReadOnly =>
+      'Standorte kann nur ein Benutzerkonto ändern — ein API-Schlüssel darf sie nur lesen.';
 }

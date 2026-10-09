@@ -143,6 +143,12 @@ abstract final class Permissions {
   static const pipelinesWrite = 'pipelines:write';
   static const pipelinesRun = 'pipelines:run';
 
+  /// Editing a printer, which is what every Printer Locations write asks for
+  /// (`routes/printer_locations.py`). **An API-key session never holds it**: it
+  /// is outside the key scope allowlist, so the screen is read-only for a key
+  /// whatever `/auth/me` says.
+  static const printersUpdate = 'printers:update';
+
   /// Writing the server's shared configuration (`PUT /settings/`). Reading it
   /// needs `settings:read`, which every session already has — it rides on an
   /// API key's `can_read_status` scope — so only the write is ever gated.

@@ -861,6 +861,19 @@ class _AppDrawer extends ConsumerWidget {
                     },
                     id: 'drawer.stats',
                   ),
+                  // The version table answers before the listing has: a 1.2.6
+                  // daily older than the feature shows the entry once, and the
+                  // empty listing it gets takes it away.
+                  if (ref.watch(printerLocationsSupportedProvider).orFalse)
+                    _DrawerTile(
+                      icon: Icons.place_outlined,
+                      label: l10n.printerLocationsMenu,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/locations');
+                      },
+                      id: 'drawer.locations',
+                    ),
                   // Absent until a call has proved the routes are there and this
                   // session may read them: an older server 404s, and an API key
                   // was refused every pipeline permission before server 1.2.5.3.

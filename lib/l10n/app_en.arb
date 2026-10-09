@@ -5086,5 +5086,120 @@
   "labelPrinterCutEveryHint": "0 means no cut between labels.",
   "labelCutEveryLess": "One label fewer between cuts",
   "labelCutEveryMore": "One label more between cuts",
-  "labelSaved": "Labels saved"
+  "labelSaved": "Labels saved",
+  "printerLocationsMenu": "Printer locations",
+  "printerLocationsSubtitle": "In a location: {grouped}, without one: {ungrouped}",
+  "@printerLocationsSubtitle": {
+    "placeholders": {
+      "grouped": {
+        "type": "int"
+      },
+      "ungrouped": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsSearch": "Search locations",
+  "printerLocationsHideEmpty": "Hide empty",
+  "printerLocationsSortNameAsc": "Name A→Z",
+  "printerLocationsSortNameDesc": "Name Z→A",
+  "printerLocationsSortCountAsc": "Fewest printers",
+  "printerLocationsSortCountDesc": "Most printers",
+  "printerLocationsSort": "Sort",
+  "printerLocationsSelect": "Select",
+  "printerLocationsDone": "Done",
+  "printerLocationsNew": "New location",
+  "printerLocationsCreateTitle": "Create location",
+  "printerLocationsEditTitle": "Edit location",
+  "printerLocationsCreate": "Create",
+  "printerLocationsSave": "Save",
+  "printerLocationsFieldName": "Location name",
+  "printerLocationsFieldIcon": "Icon",
+  "printerLocationsFieldColor": "Color",
+  "printerLocationsNoColor": "No color",
+  "printerLocationsEmpty": "No printer locations yet",
+  "printerLocationsNoResults": "No locations match your search",
+  "printerLocationsPrinterCount": "Printers: {count}",
+  "@printerLocationsPrinterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsNoPrinters": "No printers in this location",
+  "printerLocationsSelectPrinter": "Select printer",
+  "printerLocationsMove": "Move to another location",
+  "printerLocationsMoveButton": "Move",
+  "printerLocationsRemoveFromLocation": "Remove from location",
+  "printerLocationsUngrouped": "Printers without a location: {count}",
+  "@printerLocationsUngrouped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsSelectAll": "Select all",
+  "printerLocationsDeselectAll": "Deselect all",
+  "printerLocationsSelected": "Selected: {count}",
+  "@printerLocationsSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsDeleteSelected": "Delete selected",
+  "printerLocationsMoveTitle": "Move printer",
+  "printerLocationsMoveTitleMany": "Move printers ({count})",
+  "@printerLocationsMoveTitleMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsTargetHint": "Select a location",
+  "printerLocationsNoLocation": "No location",
+  "printerLocationsDeleteTitle": "Delete location",
+  "printerLocationsDeleteTitleMany": "Delete locations ({count})",
+  "@printerLocationsDeleteTitleMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsDeleteMessage": "Delete {names}? Printers left without a location: {count}.",
+  "@printerLocationsDeleteMessage": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsCreated": "Location created",
+  "printerLocationsSaved": "Location saved",
+  "printerLocationsDeleted": "Locations deleted: {count}",
+  "@printerLocationsDeleted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsMoved": "Printers moved: {count}",
+  "@printerLocationsMoved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsNameTaken": "A location with this name already exists",
+  "printerLocationsReadOnly": "Only a user account can change locations; an API key can only read them."
 }

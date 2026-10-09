@@ -13363,6 +13363,282 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Labels saved'**
   String get labelSaved;
+
+  /// No description provided for @printerLocationsMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer locations'**
+  String get printerLocationsMenu;
+
+  /// No description provided for @printerLocationsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'In a location: {grouped}, without one: {ungrouped}'**
+  String printerLocationsSubtitle(int grouped, int ungrouped);
+
+  /// No description provided for @printerLocationsSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search locations'**
+  String get printerLocationsSearch;
+
+  /// No description provided for @printerLocationsHideEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide empty'**
+  String get printerLocationsHideEmpty;
+
+  /// No description provided for @printerLocationsSortNameAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Name A→Z'**
+  String get printerLocationsSortNameAsc;
+
+  /// No description provided for @printerLocationsSortNameDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Name Z→A'**
+  String get printerLocationsSortNameDesc;
+
+  /// No description provided for @printerLocationsSortCountAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewest printers'**
+  String get printerLocationsSortCountAsc;
+
+  /// No description provided for @printerLocationsSortCountDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Most printers'**
+  String get printerLocationsSortCountDesc;
+
+  /// No description provided for @printerLocationsSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get printerLocationsSort;
+
+  /// No description provided for @printerLocationsSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get printerLocationsSelect;
+
+  /// No description provided for @printerLocationsDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get printerLocationsDone;
+
+  /// No description provided for @printerLocationsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New location'**
+  String get printerLocationsNew;
+
+  /// No description provided for @printerLocationsCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create location'**
+  String get printerLocationsCreateTitle;
+
+  /// No description provided for @printerLocationsEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit location'**
+  String get printerLocationsEditTitle;
+
+  /// No description provided for @printerLocationsCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get printerLocationsCreate;
+
+  /// No description provided for @printerLocationsSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get printerLocationsSave;
+
+  /// No description provided for @printerLocationsFieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Location name'**
+  String get printerLocationsFieldName;
+
+  /// No description provided for @printerLocationsFieldIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon'**
+  String get printerLocationsFieldIcon;
+
+  /// No description provided for @printerLocationsFieldColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get printerLocationsFieldColor;
+
+  /// No description provided for @printerLocationsNoColor.
+  ///
+  /// In en, this message translates to:
+  /// **'No color'**
+  String get printerLocationsNoColor;
+
+  /// No description provided for @printerLocationsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No printer locations yet'**
+  String get printerLocationsEmpty;
+
+  /// No description provided for @printerLocationsNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No locations match your search'**
+  String get printerLocationsNoResults;
+
+  /// No description provided for @printerLocationsPrinterCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Printers: {count}'**
+  String printerLocationsPrinterCount(int count);
+
+  /// No description provided for @printerLocationsNoPrinters.
+  ///
+  /// In en, this message translates to:
+  /// **'No printers in this location'**
+  String get printerLocationsNoPrinters;
+
+  /// No description provided for @printerLocationsSelectPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Select printer'**
+  String get printerLocationsSelectPrinter;
+
+  /// No description provided for @printerLocationsMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to another location'**
+  String get printerLocationsMove;
+
+  /// No description provided for @printerLocationsMoveButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get printerLocationsMoveButton;
+
+  /// No description provided for @printerLocationsRemoveFromLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from location'**
+  String get printerLocationsRemoveFromLocation;
+
+  /// No description provided for @printerLocationsUngrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'Printers without a location: {count}'**
+  String printerLocationsUngrouped(int count);
+
+  /// No description provided for @printerLocationsSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get printerLocationsSelectAll;
+
+  /// No description provided for @printerLocationsDeselectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all'**
+  String get printerLocationsDeselectAll;
+
+  /// No description provided for @printerLocationsSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected: {count}'**
+  String printerLocationsSelected(int count);
+
+  /// No description provided for @printerLocationsDeleteSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete selected'**
+  String get printerLocationsDeleteSelected;
+
+  /// No description provided for @printerLocationsMoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Move printer'**
+  String get printerLocationsMoveTitle;
+
+  /// No description provided for @printerLocationsMoveTitleMany.
+  ///
+  /// In en, this message translates to:
+  /// **'Move printers ({count})'**
+  String printerLocationsMoveTitleMany(int count);
+
+  /// No description provided for @printerLocationsTargetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a location'**
+  String get printerLocationsTargetHint;
+
+  /// No description provided for @printerLocationsNoLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'No location'**
+  String get printerLocationsNoLocation;
+
+  /// No description provided for @printerLocationsDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete location'**
+  String get printerLocationsDeleteTitle;
+
+  /// No description provided for @printerLocationsDeleteTitleMany.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete locations ({count})'**
+  String printerLocationsDeleteTitleMany(int count);
+
+  /// No description provided for @printerLocationsDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {names}? Printers left without a location: {count}.'**
+  String printerLocationsDeleteMessage(String names, int count);
+
+  /// No description provided for @printerLocationsCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Location created'**
+  String get printerLocationsCreated;
+
+  /// No description provided for @printerLocationsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Location saved'**
+  String get printerLocationsSaved;
+
+  /// No description provided for @printerLocationsDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Locations deleted: {count}'**
+  String printerLocationsDeleted(int count);
+
+  /// No description provided for @printerLocationsMoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Printers moved: {count}'**
+  String printerLocationsMoved(int count);
+
+  /// No description provided for @printerLocationsNameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'A location with this name already exists'**
+  String get printerLocationsNameTaken;
+
+  /// No description provided for @printerLocationsReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only a user account can change locations; an API key can only read them.'**
+  String get printerLocationsReadOnly;
 }
 
 class _AppLocalizationsDelegate

@@ -30,6 +30,7 @@ import 'features/settings/queue_settings_screen.dart';
 import 'features/label_printer/label_printer_screen.dart';
 import 'features/settings/app_settings_screen.dart';
 import 'features/settings/server_settings_screen.dart';
+import 'features/locations/printer_locations_screen.dart';
 import 'features/orders/order_edit_screen.dart';
 import 'features/orders/orders_screen.dart';
 import 'features/print_log/print_log_screen.dart';
@@ -151,6 +152,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ever reached through a pipeline, and a deep link to it on a server
       // without the routes would land on an error.
       GoRoute(path: '/pipelines', builder: (_, _) => const PipelinesScreen()),
+
+      // Printer locations — full screen outside shell (pushed from drawer).
+      GoRoute(
+        path: '/locations',
+        builder: (_, _) => const PrinterLocationsScreen(),
+      ),
 
       // Print log — per-run history, full screen outside shell (opened from the
       // archive's menu and from the Stats failure card).

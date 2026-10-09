@@ -8084,4 +8084,163 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get labelSaved => 'Zapisano etykiety';
+
+  @override
+  String get printerLocationsMenu => 'Lokalizacje drukarek';
+
+  @override
+  String printerLocationsSubtitle(int grouped, int ungrouped) {
+    return 'W lokalizacji: $grouped, bez lokalizacji: $ungrouped';
+  }
+
+  @override
+  String get printerLocationsSearch => 'Szukaj lokalizacji';
+
+  @override
+  String get printerLocationsHideEmpty => 'Ukryj puste';
+
+  @override
+  String get printerLocationsSortNameAsc => 'Nazwa A→Z';
+
+  @override
+  String get printerLocationsSortNameDesc => 'Nazwa Z→A';
+
+  @override
+  String get printerLocationsSortCountAsc => 'Najmniej drukarek';
+
+  @override
+  String get printerLocationsSortCountDesc => 'Najwięcej drukarek';
+
+  @override
+  String get printerLocationsSort => 'Sortuj';
+
+  @override
+  String get printerLocationsSelect => 'Zaznacz';
+
+  @override
+  String get printerLocationsDone => 'Gotowe';
+
+  @override
+  String get printerLocationsNew => 'Nowa lokalizacja';
+
+  @override
+  String get printerLocationsCreateTitle => 'Nowa lokalizacja';
+
+  @override
+  String get printerLocationsEditTitle => 'Edycja lokalizacji';
+
+  @override
+  String get printerLocationsCreate => 'Utwórz';
+
+  @override
+  String get printerLocationsSave => 'Zapisz';
+
+  @override
+  String get printerLocationsFieldName => 'Nazwa lokalizacji';
+
+  @override
+  String get printerLocationsFieldIcon => 'Ikona';
+
+  @override
+  String get printerLocationsFieldColor => 'Kolor';
+
+  @override
+  String get printerLocationsNoColor => 'Bez koloru';
+
+  @override
+  String get printerLocationsEmpty => 'Brak lokalizacji drukarek';
+
+  @override
+  String get printerLocationsNoResults =>
+      'Żadna lokalizacja nie pasuje do wyszukiwania';
+
+  @override
+  String printerLocationsPrinterCount(int count) {
+    return 'Drukarki: $count';
+  }
+
+  @override
+  String get printerLocationsNoPrinters => 'Brak drukarek w tej lokalizacji';
+
+  @override
+  String get printerLocationsSelectPrinter => 'Zaznacz drukarkę';
+
+  @override
+  String get printerLocationsMove => 'Przenieś do innej lokalizacji';
+
+  @override
+  String get printerLocationsMoveButton => 'Przenieś';
+
+  @override
+  String get printerLocationsRemoveFromLocation => 'Usuń z lokalizacji';
+
+  @override
+  String printerLocationsUngrouped(int count) {
+    return 'Drukarki bez lokalizacji: $count';
+  }
+
+  @override
+  String get printerLocationsSelectAll => 'Zaznacz wszystkie';
+
+  @override
+  String get printerLocationsDeselectAll => 'Odznacz wszystkie';
+
+  @override
+  String printerLocationsSelected(int count) {
+    return 'Zaznaczono: $count';
+  }
+
+  @override
+  String get printerLocationsDeleteSelected => 'Usuń zaznaczone';
+
+  @override
+  String get printerLocationsMoveTitle => 'Przenieś drukarkę';
+
+  @override
+  String printerLocationsMoveTitleMany(int count) {
+    return 'Przenieś drukarki ($count)';
+  }
+
+  @override
+  String get printerLocationsTargetHint => 'Wybierz lokalizację';
+
+  @override
+  String get printerLocationsNoLocation => 'Bez lokalizacji';
+
+  @override
+  String get printerLocationsDeleteTitle => 'Usuń lokalizację';
+
+  @override
+  String printerLocationsDeleteTitleMany(int count) {
+    return 'Usuń lokalizacje ($count)';
+  }
+
+  @override
+  String printerLocationsDeleteMessage(String names, int count) {
+    return 'Usunąć $names? Drukarki bez lokalizacji po usunięciu: $count.';
+  }
+
+  @override
+  String get printerLocationsCreated => 'Utworzono lokalizację';
+
+  @override
+  String get printerLocationsSaved => 'Zapisano lokalizację';
+
+  @override
+  String printerLocationsDeleted(int count) {
+    return 'Usunięte lokalizacje: $count';
+  }
+
+  @override
+  String printerLocationsMoved(int count) {
+    return 'Przeniesione drukarki: $count';
+  }
+
+  @override
+  String get printerLocationsNameTaken =>
+      'Lokalizacja o tej nazwie już istnieje';
+
+  @override
+  String get printerLocationsReadOnly =>
+      'Lokalizacje może zmieniać tylko konto użytkownika — klucz API może je jedynie odczytać.';
 }
