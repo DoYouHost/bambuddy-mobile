@@ -7879,4 +7879,66 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get queueBillingUseWeb =>
       'Este servidor tiene la facturación activada, así que cada trabajo necesita un centro de costes que la app aún no puede asignar. Encola, edita e inicia este trabajo en Bambuddy desde el navegador.';
+
+  @override
+  String get labelPrinterTitle => 'Impresora de etiquetas';
+
+  @override
+  String get labelPrinterEntrySubtitle =>
+      'Imprime etiquetas de bobinas en un servidor de impresión Brother QL de tu red';
+
+  @override
+  String get labelPrinterIntro =>
+      'Un servidor de impresión aparte para impresoras de etiquetas Brother QL. Las etiquetas de bobinas van directas a él, sin pasar por el diálogo de impresión del sistema.';
+
+  @override
+  String get labelPrinterNotSet => 'No hay impresora de etiquetas elegida';
+
+  @override
+  String labelPrinterReady(String model, String label) {
+    return '$model · etiquetas $label';
+  }
+
+  @override
+  String get labelPrinterPrinterOff =>
+      'El servidor responde, pero la impresora no está conectada';
+
+  @override
+  String get labelPrinterOffline => 'Sin respuesta';
+
+  @override
+  String labelPrinterWrongStock(String label) {
+    return 'Tiene cargadas etiquetas $label, y las de bobinas necesitan 62 × 29 mm';
+  }
+
+  @override
+  String get labelPrinterSearch => 'Buscar en la red';
+
+  @override
+  String get labelPrinterSearching => 'Buscando…';
+
+  @override
+  String get labelPrinterNoneFound =>
+      'No se encontró nada. Comprueba que el teléfono esté en la misma red Wi-Fi o escribe la dirección abajo.';
+
+  @override
+  String get labelPrinterDiscoveryFailed =>
+      'La búsqueda en la red no está disponible en este dispositivo';
+
+  @override
+  String get labelPrinterAddress => 'Dirección del servidor';
+
+  @override
+  String get labelPrinterSave => 'Guardar';
+
+  @override
+  String get labelPrinterRemove => 'Quitar';
+
+  @override
+  String get labelPrinterNotAServer =>
+      'En esa dirección no responde ningún servidor de impresión de etiquetas';
+
+  @override
+  String get labelPrinterVlanNote =>
+      'La búsqueda no atraviesa VLAN ni redes de invitados; en ese caso escribe la dirección a mano.';
 }

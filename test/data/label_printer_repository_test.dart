@@ -15,8 +15,7 @@ void main() {
 
   setUp(() {
     dio = testDio();
-    // Not `mockServer`: its exact-body match cannot compare a FormData.
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     repo = LabelPrinterRepository(dio);
   });
 

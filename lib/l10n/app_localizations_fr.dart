@@ -7952,4 +7952,66 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get queueBillingUseWeb =>
       'La facturation est activée sur ce serveur : chaque impression nécessite un centre de coûts que l’application ne sait pas encore définir. Mettez en file, modifiez et lancez cette impression dans Bambuddy depuis un navigateur.';
+
+  @override
+  String get labelPrinterTitle => 'Imprimante d\'étiquettes';
+
+  @override
+  String get labelPrinterEntrySubtitle =>
+      'Imprimez les étiquettes de bobines sur un serveur d\'impression Brother QL de votre réseau';
+
+  @override
+  String get labelPrinterIntro =>
+      'Un serveur d\'impression distinct pour imprimantes d\'étiquettes Brother QL. Les étiquettes de bobines lui sont envoyées directement, sans passer par la boîte de dialogue d\'impression du système.';
+
+  @override
+  String get labelPrinterNotSet => 'Aucune imprimante d\'étiquettes choisie';
+
+  @override
+  String labelPrinterReady(String model, String label) {
+    return '$model · étiquettes $label';
+  }
+
+  @override
+  String get labelPrinterPrinterOff =>
+      'Le serveur répond, mais l\'imprimante n\'est pas connectée';
+
+  @override
+  String get labelPrinterOffline => 'Aucune réponse';
+
+  @override
+  String labelPrinterWrongStock(String label) {
+    return 'Étiquettes $label chargées, alors que celles des bobines demandent du 62 × 29 mm';
+  }
+
+  @override
+  String get labelPrinterSearch => 'Chercher sur le réseau';
+
+  @override
+  String get labelPrinterSearching => 'Recherche…';
+
+  @override
+  String get labelPrinterNoneFound =>
+      'Rien trouvé. Vérifiez que le téléphone est sur le même Wi-Fi, ou saisissez l\'adresse ci-dessous.';
+
+  @override
+  String get labelPrinterDiscoveryFailed =>
+      'La recherche sur le réseau n\'est pas disponible sur cet appareil';
+
+  @override
+  String get labelPrinterAddress => 'Adresse du serveur';
+
+  @override
+  String get labelPrinterSave => 'Enregistrer';
+
+  @override
+  String get labelPrinterRemove => 'Retirer';
+
+  @override
+  String get labelPrinterNotAServer =>
+      'Aucun serveur d\'impression d\'étiquettes ne répond à cette adresse';
+
+  @override
+  String get labelPrinterVlanNote =>
+      'La recherche ne traverse ni les VLAN ni le Wi-Fi invité ; saisissez alors l\'adresse à la main.';
 }

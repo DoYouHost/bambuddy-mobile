@@ -3965,5 +3965,22 @@
   "queueHistoryBatch": "Lote",
   "queueHistoryRemoved": "Elemento de la cola eliminado",
   "queueHistoryKeptForOrder": "Cancelado en lugar de eliminado: es la única impresión desde la que el pedido puede volver a encolar esta placa",
-  "queueBillingUseWeb": "Este servidor tiene la facturación activada, así que cada trabajo necesita un centro de costes que la app aún no puede asignar. Encola, edita e inicia este trabajo en Bambuddy desde el navegador."
+  "queueBillingUseWeb": "Este servidor tiene la facturación activada, así que cada trabajo necesita un centro de costes que la app aún no puede asignar. Encola, edita e inicia este trabajo en Bambuddy desde el navegador.",
+  "labelPrinterTitle": "Impresora de etiquetas",
+  "labelPrinterEntrySubtitle": "Imprime etiquetas de bobinas en un servidor de impresión Brother QL de tu red",
+  "labelPrinterIntro": "Un servidor de impresión aparte para impresoras de etiquetas Brother QL. Las etiquetas de bobinas van directas a él, sin pasar por el diálogo de impresión del sistema.",
+  "labelPrinterNotSet": "No hay impresora de etiquetas elegida",
+  "labelPrinterReady": "{model} · etiquetas {label}",
+  "labelPrinterPrinterOff": "El servidor responde, pero la impresora no está conectada",
+  "labelPrinterOffline": "Sin respuesta",
+  "labelPrinterWrongStock": "Tiene cargadas etiquetas {label}, y las de bobinas necesitan 62 × 29 mm",
+  "labelPrinterSearch": "Buscar en la red",
+  "labelPrinterSearching": "Buscando…",
+  "labelPrinterNoneFound": "No se encontró nada. Comprueba que el teléfono esté en la misma red Wi-Fi o escribe la dirección abajo.",
+  "labelPrinterDiscoveryFailed": "La búsqueda en la red no está disponible en este dispositivo",
+  "labelPrinterAddress": "Dirección del servidor",
+  "labelPrinterSave": "Guardar",
+  "labelPrinterRemove": "Quitar",
+  "labelPrinterNotAServer": "En esa dirección no responde ningún servidor de impresión de etiquetas",
+  "labelPrinterVlanNote": "La búsqueda no atraviesa VLAN ni redes de invitados; en ese caso escribe la dirección a mano."
 }

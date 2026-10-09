@@ -3279,5 +3279,22 @@
   "queueHistoryBatch": "Partia",
   "queueHistoryRemoved": "Usunięto element kolejki",
   "queueHistoryKeptForOrder": "Anulowano, zamiast usunąć: tylko z tego wydruku zamówienie może ponownie dodać tę płytę do kolejki",
-  "queueBillingUseWeb": "Na tym serwerze jest włączony billing, więc każde zadanie wymaga centrum kosztów, a aplikacja jeszcze go nie ustawia. Dodaj, edytuj i uruchom to zadanie w Bambuddy w przeglądarce."
+  "queueBillingUseWeb": "Na tym serwerze jest włączony billing, więc każde zadanie wymaga centrum kosztów, a aplikacja jeszcze go nie ustawia. Dodaj, edytuj i uruchom to zadanie w Bambuddy w przeglądarce.",
+  "labelPrinterTitle": "Drukarka etykiet",
+  "labelPrinterEntrySubtitle": "Drukuj etykiety szpul na serwerze druku Brother QL w sieci",
+  "labelPrinterIntro": "Osobny serwer druku dla drukarek etykiet Brother QL. Etykiety szpul trafiają prosto do niego, z pominięciem systemowego okna drukowania.",
+  "labelPrinterNotSet": "Nie wybrano drukarki etykiet",
+  "labelPrinterReady": "{model} · etykiety {label}",
+  "labelPrinterPrinterOff": "Serwer odpowiada, ale drukarka nie jest podłączona",
+  "labelPrinterOffline": "Brak odpowiedzi",
+  "labelPrinterWrongStock": "Załadowane są etykiety {label}, a etykiety szpul wymagają 62 × 29 mm",
+  "labelPrinterSearch": "Szukaj w sieci",
+  "labelPrinterSearching": "Szukam…",
+  "labelPrinterNoneFound": "Nic nie znaleziono. Sprawdź, czy telefon jest w tej samej sieci Wi-Fi, albo wpisz adres poniżej.",
+  "labelPrinterDiscoveryFailed": "Wyszukiwanie w sieci jest niedostępne na tym urządzeniu",
+  "labelPrinterAddress": "Adres serwera",
+  "labelPrinterSave": "Zapisz",
+  "labelPrinterRemove": "Usuń",
+  "labelPrinterNotAServer": "Pod tym adresem nie odpowiada serwer druku etykiet",
+  "labelPrinterVlanNote": "Wykrywanie nie przechodzi przez VLAN-y ani sieć gości; w takiej sieci wpisz adres ręcznie."
 }

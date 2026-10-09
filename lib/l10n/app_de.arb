@@ -3965,5 +3965,22 @@
   "queueHistoryBatch": "Stapel",
   "queueHistoryRemoved": "Warteschlangenelement entfernt",
   "queueHistoryKeptForOrder": "Abgebrochen statt entfernt: Nur aus diesem Durchlauf kann der Stapelauftrag diese Platte erneut einreihen",
-  "queueBillingUseWeb": "Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, die die App noch nicht setzen kann. Reihe diesen Auftrag in Bambuddy im Browser ein, bearbeite und starte ihn dort."
+  "queueBillingUseWeb": "Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, die die App noch nicht setzen kann. Reihe diesen Auftrag in Bambuddy im Browser ein, bearbeite und starte ihn dort.",
+  "labelPrinterTitle": "Etikettendrucker",
+  "labelPrinterEntrySubtitle": "Spulenetiketten über einen Brother-QL-Druckserver im Netzwerk drucken",
+  "labelPrinterIntro": "Ein eigener Druckserver für Brother-QL-Etikettendrucker. Spulenetiketten gehen direkt dorthin, am System-Druckdialog vorbei.",
+  "labelPrinterNotSet": "Kein Etikettendrucker gewählt",
+  "labelPrinterReady": "{model} · {label}-Etiketten",
+  "labelPrinterPrinterOff": "Server antwortet, aber der Drucker ist nicht verbunden",
+  "labelPrinterOffline": "Keine Antwort",
+  "labelPrinterWrongStock": "Geladen sind {label}-Etiketten, Spulenetiketten brauchen 62 × 29 mm",
+  "labelPrinterSearch": "Im Netzwerk suchen",
+  "labelPrinterSearching": "Suche läuft …",
+  "labelPrinterNoneFound": "Nichts gefunden. Prüfe, ob das Handy im selben WLAN ist, oder gib unten die Adresse ein.",
+  "labelPrinterDiscoveryFailed": "Die Netzwerksuche ist auf diesem Gerät nicht verfügbar",
+  "labelPrinterAddress": "Serveradresse",
+  "labelPrinterSave": "Speichern",
+  "labelPrinterRemove": "Entfernen",
+  "labelPrinterNotAServer": "Unter dieser Adresse antwortet kein Etikettendruckserver",
+  "labelPrinterVlanNote": "Die Suche kommt nicht über VLANs oder ein Gast-WLAN hinaus; gib dort die Adresse von Hand ein."
 }

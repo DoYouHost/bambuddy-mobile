@@ -13039,6 +13039,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.'**
   String get queueBillingUseWeb;
+
+  /// No description provided for @labelPrinterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Label printer'**
+  String get labelPrinterTitle;
+
+  /// No description provided for @labelPrinterEntrySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print spool labels on a Brother QL print server on your network'**
+  String get labelPrinterEntrySubtitle;
+
+  /// No description provided for @labelPrinterIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'A separate print server for Brother QL label printers. Spool labels go straight to it instead of the system print dialog.'**
+  String get labelPrinterIntro;
+
+  /// No description provided for @labelPrinterNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'No label printer chosen'**
+  String get labelPrinterNotSet;
+
+  /// No description provided for @labelPrinterReady.
+  ///
+  /// In en, this message translates to:
+  /// **'{model} · {label} labels'**
+  String labelPrinterReady(String model, String label);
+
+  /// No description provided for @labelPrinterPrinterOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Server answers, but the printer is not connected'**
+  String get labelPrinterPrinterOff;
+
+  /// No description provided for @labelPrinterOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Not answering'**
+  String get labelPrinterOffline;
+
+  /// No description provided for @labelPrinterWrongStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Loaded with {label} labels; spool labels need 62 × 29 mm'**
+  String labelPrinterWrongStock(String label);
+
+  /// No description provided for @labelPrinterSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search network'**
+  String get labelPrinterSearch;
+
+  /// No description provided for @labelPrinterSearching.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching…'**
+  String get labelPrinterSearching;
+
+  /// No description provided for @labelPrinterNoneFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found. Check that the phone is on the same Wi-Fi, or enter the address below.'**
+  String get labelPrinterNoneFound;
+
+  /// No description provided for @labelPrinterDiscoveryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Network search is not available on this device'**
+  String get labelPrinterDiscoveryFailed;
+
+  /// No description provided for @labelPrinterAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Server address'**
+  String get labelPrinterAddress;
+
+  /// No description provided for @labelPrinterSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get labelPrinterSave;
+
+  /// No description provided for @labelPrinterRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get labelPrinterRemove;
+
+  /// No description provided for @labelPrinterNotAServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing at this address answers as a label print server'**
+  String get labelPrinterNotAServer;
+
+  /// No description provided for @labelPrinterVlanNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovery does not cross VLANs or a guest Wi-Fi; enter the address by hand there.'**
+  String get labelPrinterVlanNote;
 }
 
 class _AppLocalizationsDelegate

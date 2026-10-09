@@ -7853,4 +7853,66 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get queueBillingUseWeb =>
       'Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, die die App noch nicht setzen kann. Reihe diesen Auftrag in Bambuddy im Browser ein, bearbeite und starte ihn dort.';
+
+  @override
+  String get labelPrinterTitle => 'Etikettendrucker';
+
+  @override
+  String get labelPrinterEntrySubtitle =>
+      'Spulenetiketten über einen Brother-QL-Druckserver im Netzwerk drucken';
+
+  @override
+  String get labelPrinterIntro =>
+      'Ein eigener Druckserver für Brother-QL-Etikettendrucker. Spulenetiketten gehen direkt dorthin, am System-Druckdialog vorbei.';
+
+  @override
+  String get labelPrinterNotSet => 'Kein Etikettendrucker gewählt';
+
+  @override
+  String labelPrinterReady(String model, String label) {
+    return '$model · $label-Etiketten';
+  }
+
+  @override
+  String get labelPrinterPrinterOff =>
+      'Server antwortet, aber der Drucker ist nicht verbunden';
+
+  @override
+  String get labelPrinterOffline => 'Keine Antwort';
+
+  @override
+  String labelPrinterWrongStock(String label) {
+    return 'Geladen sind $label-Etiketten, Spulenetiketten brauchen 62 × 29 mm';
+  }
+
+  @override
+  String get labelPrinterSearch => 'Im Netzwerk suchen';
+
+  @override
+  String get labelPrinterSearching => 'Suche läuft …';
+
+  @override
+  String get labelPrinterNoneFound =>
+      'Nichts gefunden. Prüfe, ob das Handy im selben WLAN ist, oder gib unten die Adresse ein.';
+
+  @override
+  String get labelPrinterDiscoveryFailed =>
+      'Die Netzwerksuche ist auf diesem Gerät nicht verfügbar';
+
+  @override
+  String get labelPrinterAddress => 'Serveradresse';
+
+  @override
+  String get labelPrinterSave => 'Speichern';
+
+  @override
+  String get labelPrinterRemove => 'Entfernen';
+
+  @override
+  String get labelPrinterNotAServer =>
+      'Unter dieser Adresse antwortet kein Etikettendruckserver';
+
+  @override
+  String get labelPrinterVlanNote =>
+      'Die Suche kommt nicht über VLANs oder ein Gast-WLAN hinaus; gib dort die Adresse von Hand ein.';
 }

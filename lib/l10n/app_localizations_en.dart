@@ -7779,4 +7779,66 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get queueBillingUseWeb =>
       'Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.';
+
+  @override
+  String get labelPrinterTitle => 'Label printer';
+
+  @override
+  String get labelPrinterEntrySubtitle =>
+      'Print spool labels on a Brother QL print server on your network';
+
+  @override
+  String get labelPrinterIntro =>
+      'A separate print server for Brother QL label printers. Spool labels go straight to it instead of the system print dialog.';
+
+  @override
+  String get labelPrinterNotSet => 'No label printer chosen';
+
+  @override
+  String labelPrinterReady(String model, String label) {
+    return '$model · $label labels';
+  }
+
+  @override
+  String get labelPrinterPrinterOff =>
+      'Server answers, but the printer is not connected';
+
+  @override
+  String get labelPrinterOffline => 'Not answering';
+
+  @override
+  String labelPrinterWrongStock(String label) {
+    return 'Loaded with $label labels; spool labels need 62 × 29 mm';
+  }
+
+  @override
+  String get labelPrinterSearch => 'Search network';
+
+  @override
+  String get labelPrinterSearching => 'Searching…';
+
+  @override
+  String get labelPrinterNoneFound =>
+      'Nothing found. Check that the phone is on the same Wi-Fi, or enter the address below.';
+
+  @override
+  String get labelPrinterDiscoveryFailed =>
+      'Network search is not available on this device';
+
+  @override
+  String get labelPrinterAddress => 'Server address';
+
+  @override
+  String get labelPrinterSave => 'Save';
+
+  @override
+  String get labelPrinterRemove => 'Remove';
+
+  @override
+  String get labelPrinterNotAServer =>
+      'Nothing at this address answers as a label print server';
+
+  @override
+  String get labelPrinterVlanNote =>
+      'Discovery does not cross VLANs or a guest Wi-Fi; enter the address by hand there.';
 }
