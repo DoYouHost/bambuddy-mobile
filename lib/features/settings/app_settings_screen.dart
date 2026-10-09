@@ -87,6 +87,14 @@ class AppSettingsScreen extends ConsumerWidget {
               ),
             ],
             const SizedBox(height: DashSpace.xl),
+            SettingsEntryTile(
+              icon: Icons.label_outline,
+              title: l10n.labelPrinterTitle,
+              subtitle: l10n.labelPrinterEntrySubtitle,
+              onTap: () => context.push('/settings/label-printer'),
+              id: 'app_settings.label_printer',
+            ),
+            const SizedBox(height: DashSpace.xl),
             SettingsSectionHeader(l10n.notifSettingsTitle),
             SettingsEntryTile(
               icon: Icons.tune_rounded,

@@ -5008,5 +5008,83 @@
   "queueBillingUseWeb": "Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.",
   "@queueBillingUseWeb": {
     "description": "Shown on the print-job form, and in place of the server refusal on create, edit or start, when the server enforces cost-center billing, which the app does not support yet."
-  }
+  },
+  "labelPrinterTitle": "Label printer",
+  "labelPrinterEntrySubtitle": "Print spool labels on a Brother QL print server on your network",
+  "labelPrinterIntro": "A separate print server for Brother QL label printers. Spool labels go straight to it instead of the system print dialog.",
+  "labelPrinterNotSet": "No label printer chosen",
+  "labelPrinterReady": "{model} · {label} labels",
+  "@labelPrinterReady": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "labelPrinterPrinterOff": "Server answers, but the printer is not connected",
+  "labelPrinterOffline": "Not answering",
+  "labelPrinterWrongStock": "Loaded with {label} labels; spool labels need 62 × 29 mm",
+  "@labelPrinterWrongStock": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "labelPrinterSearch": "Search network",
+  "labelPrinterSearching": "Searching…",
+  "labelPrinterNoneFound": "Nothing found. Check that the phone is on the same Wi-Fi, or enter the address below.",
+  "labelPrinterDiscoveryFailed": "Network search is not available on this device",
+  "labelPrinterAddress": "Server address",
+  "labelPrinterSave": "Save",
+  "labelPrinterRemove": "Remove",
+  "labelPrinterNotAServer": "Nothing at this address answers as a label print server",
+  "labelPrinterVlanNote": "Discovery does not cross VLANs or a guest Wi-Fi; enter the address by hand there.",
+  "labelPrinterPrintOn": "Print on the label printer",
+  "labelPrinterSent": "Sent to the label printer",
+  "labelPrinterFailed": "The label printer did not accept the job",
+  "labelPrinterUnreachable": "The label printer does not answer",
+  "labelPrinterRefused": "The label printer refused the job: {detail}",
+  "@labelPrinterRefused": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "labelPrinterSetUp": "Set up a label printer",
+  "labelPrinterSetUpHint": "Print these labels on a Brother QL print server in your network",
+  "labelOptionsTitle": "Print options",
+  "labelFieldsTitle": "Print on the label",
+  "labelFieldsReset": "Reset to default",
+  "labelFieldBrand": "Brand",
+  "labelFieldMaterial": "Material and subtype",
+  "labelFieldHex": "Colour code",
+  "labelFieldName": "Colour or filament name",
+  "labelFieldLocation": "Storage location",
+  "labelFieldMaterialNumber": "Material number",
+  "labelFieldTemps": "Nozzle temperature",
+  "labelFieldWeight": "Net weight",
+  "labelFieldNote": "Note",
+  "labelFieldAdded": "Date added",
+  "labelFieldQr": "QR code",
+  "labelFieldSpoolId": "Spool ID",
+  "labelFormatTitle": "Output",
+  "labelFormatPngHint": "For label printer software that takes images. Match your printer's resolution; several labels come as a ZIP.",
+  "labelDpiTitle": "Resolution",
+  "labelSendToTitle": "Send to",
+  "labelSendSystem": "Print dialog",
+  "labelSendShare": "Share",
+  "labelSendSave": "Save to file",
+  "labelSendPrinter": "Label printer",
+  "labelPrinterCopies": "Copies",
+  "labelPrinterCutAtEnd": "Cut after the last label",
+  "labelPrinterCutEvery": "Labels between cuts",
+  "labelPrinterCutEveryHint": "0 means no cut between labels.",
+  "labelCutEveryLess": "One label fewer between cuts",
+  "labelCutEveryMore": "One label more between cuts",
+  "labelSaved": "Labels saved"
 }

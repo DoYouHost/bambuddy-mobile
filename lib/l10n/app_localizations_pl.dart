@@ -7906,4 +7906,182 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get queueBillingUseWeb =>
       'Na tym serwerze jest włączony billing, więc każde zadanie wymaga centrum kosztów, a aplikacja jeszcze go nie ustawia. Dodaj, edytuj i uruchom to zadanie w Bambuddy w przeglądarce.';
+
+  @override
+  String get labelPrinterTitle => 'Drukarka etykiet';
+
+  @override
+  String get labelPrinterEntrySubtitle =>
+      'Drukuj etykiety szpul na serwerze druku Brother QL w sieci';
+
+  @override
+  String get labelPrinterIntro =>
+      'Osobny serwer druku dla drukarek etykiet Brother QL. Etykiety szpul trafiają prosto do niego, z pominięciem systemowego okna drukowania.';
+
+  @override
+  String get labelPrinterNotSet => 'Nie wybrano drukarki etykiet';
+
+  @override
+  String labelPrinterReady(String model, String label) {
+    return '$model · etykiety $label';
+  }
+
+  @override
+  String get labelPrinterPrinterOff =>
+      'Serwer odpowiada, ale drukarka nie jest podłączona';
+
+  @override
+  String get labelPrinterOffline => 'Brak odpowiedzi';
+
+  @override
+  String labelPrinterWrongStock(String label) {
+    return 'Załadowane są etykiety $label, a etykiety szpul wymagają 62 × 29 mm';
+  }
+
+  @override
+  String get labelPrinterSearch => 'Szukaj w sieci';
+
+  @override
+  String get labelPrinterSearching => 'Szukam…';
+
+  @override
+  String get labelPrinterNoneFound =>
+      'Nic nie znaleziono. Sprawdź, czy telefon jest w tej samej sieci Wi-Fi, albo wpisz adres poniżej.';
+
+  @override
+  String get labelPrinterDiscoveryFailed =>
+      'Wyszukiwanie w sieci jest niedostępne na tym urządzeniu';
+
+  @override
+  String get labelPrinterAddress => 'Adres serwera';
+
+  @override
+  String get labelPrinterSave => 'Zapisz';
+
+  @override
+  String get labelPrinterRemove => 'Usuń';
+
+  @override
+  String get labelPrinterNotAServer =>
+      'Pod tym adresem nie odpowiada serwer druku etykiet';
+
+  @override
+  String get labelPrinterVlanNote =>
+      'Wykrywanie nie przechodzi przez VLAN-y ani sieć gości; w takiej sieci wpisz adres ręcznie.';
+
+  @override
+  String get labelPrinterPrintOn => 'Drukuj na drukarce etykiet';
+
+  @override
+  String get labelPrinterSent => 'Wysłano do drukarki etykiet';
+
+  @override
+  String get labelPrinterFailed => 'Drukarka etykiet nie przyjęła zadania';
+
+  @override
+  String get labelPrinterUnreachable => 'Drukarka etykiet nie odpowiada';
+
+  @override
+  String labelPrinterRefused(String detail) {
+    return 'Drukarka etykiet odrzuciła zadanie: $detail';
+  }
+
+  @override
+  String get labelPrinterSetUp => 'Skonfiguruj drukarkę etykiet';
+
+  @override
+  String get labelPrinterSetUpHint =>
+      'Drukuj te etykiety na serwerze druku Brother QL w Twojej sieci';
+
+  @override
+  String get labelOptionsTitle => 'Opcje wydruku';
+
+  @override
+  String get labelFieldsTitle => 'Co wydrukować na etykiecie';
+
+  @override
+  String get labelFieldsReset => 'Przywróć domyślne';
+
+  @override
+  String get labelFieldBrand => 'Marka';
+
+  @override
+  String get labelFieldMaterial => 'Materiał i podtyp';
+
+  @override
+  String get labelFieldHex => 'Kod koloru';
+
+  @override
+  String get labelFieldName => 'Kolor lub nazwa filamentu';
+
+  @override
+  String get labelFieldLocation => 'Miejsce przechowywania';
+
+  @override
+  String get labelFieldMaterialNumber => 'Numer materiału';
+
+  @override
+  String get labelFieldTemps => 'Temperatura dyszy';
+
+  @override
+  String get labelFieldWeight => 'Masa netto';
+
+  @override
+  String get labelFieldNote => 'Notatka';
+
+  @override
+  String get labelFieldAdded => 'Data dodania';
+
+  @override
+  String get labelFieldQr => 'Kod QR';
+
+  @override
+  String get labelFieldSpoolId => 'ID szpuli';
+
+  @override
+  String get labelFormatTitle => 'Wynik';
+
+  @override
+  String get labelFormatPngHint =>
+      'Dla oprogramowania drukarek etykiet, które przyjmuje obrazy. Dopasuj rozdzielczość do drukarki; kilka etykiet trafia do archiwum ZIP.';
+
+  @override
+  String get labelDpiTitle => 'Rozdzielczość';
+
+  @override
+  String get labelSendToTitle => 'Wyślij do';
+
+  @override
+  String get labelSendSystem => 'Okno drukowania';
+
+  @override
+  String get labelSendShare => 'Udostępnij';
+
+  @override
+  String get labelSendSave => 'Zapisz do pliku';
+
+  @override
+  String get labelSendPrinter => 'Drukarka etykiet';
+
+  @override
+  String get labelPrinterCopies => 'Kopie';
+
+  @override
+  String get labelPrinterCutAtEnd => 'Cięcie po ostatniej etykiecie';
+
+  @override
+  String get labelPrinterCutEvery => 'Etykiet między cięciami';
+
+  @override
+  String get labelPrinterCutEveryHint =>
+      '0 oznacza brak cięcia między etykietami.';
+
+  @override
+  String get labelCutEveryLess => 'Jedna etykieta mniej między cięciami';
+
+  @override
+  String get labelCutEveryMore => 'Jedna etykieta więcej między cięciami';
+
+  @override
+  String get labelSaved => 'Zapisano etykiety';
 }

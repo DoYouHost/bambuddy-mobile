@@ -207,6 +207,12 @@ void main() {
     );
   });
 
+  test('label lines, PNG and dpi arrive in 1.2.5.7 (#2981)', () {
+    expect(parse('1.2.5.6').supports(ServerFeature.labelFields), isFalse);
+    expect(parse('1.2.5.7').supports(ServerFeature.labelFields), isTrue);
+    expect(parse('1.2.6b1').supports(ServerFeature.labelFields), isTrue);
+  });
+
   test('grouping by hand arrives in 0.2.4.8, in the old numbering', () {
     expect(parse('0.2.4.7').supports(ServerFeature.batchGrouping), isFalse);
     expect(parse('0.2.4.8').supports(ServerFeature.batchGrouping), isTrue);

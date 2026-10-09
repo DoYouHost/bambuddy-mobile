@@ -772,6 +772,13 @@ final labelStartingPositionProvider = capabilityGate(
       ref.watch(inventoryRepositoryProvider).labelStartingPositionCapability,
 );
 
+/// Whether the label sheet may choose the printed lines and a PNG output
+/// (server #2981). Version-only, like the start position: an older server takes
+/// the fields and answers a PDF with every default line on it.
+final labelFieldsProvider = capabilityGate(
+  (ref) => ref.watch(inventoryRepositoryProvider).labelFieldsCapability,
+);
+
 /// Whether "Add to queue" in the file manager may ask which printer or model
 /// the files are for (server #3112). Version-only, like the label sheet's.
 final libraryQueueTargetProvider = capabilityGate(

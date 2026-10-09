@@ -7952,4 +7952,184 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get queueBillingUseWeb =>
       'La facturation est activée sur ce serveur : chaque impression nécessite un centre de coûts que l’application ne sait pas encore définir. Mettez en file, modifiez et lancez cette impression dans Bambuddy depuis un navigateur.';
+
+  @override
+  String get labelPrinterTitle => 'Imprimante d\'étiquettes';
+
+  @override
+  String get labelPrinterEntrySubtitle =>
+      'Imprimez les étiquettes de bobines sur un serveur d\'impression Brother QL de votre réseau';
+
+  @override
+  String get labelPrinterIntro =>
+      'Un serveur d\'impression distinct pour imprimantes d\'étiquettes Brother QL. Les étiquettes de bobines lui sont envoyées directement, sans passer par la boîte de dialogue d\'impression du système.';
+
+  @override
+  String get labelPrinterNotSet => 'Aucune imprimante d\'étiquettes choisie';
+
+  @override
+  String labelPrinterReady(String model, String label) {
+    return '$model · étiquettes $label';
+  }
+
+  @override
+  String get labelPrinterPrinterOff =>
+      'Le serveur répond, mais l\'imprimante n\'est pas connectée';
+
+  @override
+  String get labelPrinterOffline => 'Aucune réponse';
+
+  @override
+  String labelPrinterWrongStock(String label) {
+    return 'Étiquettes $label chargées, alors que celles des bobines demandent du 62 × 29 mm';
+  }
+
+  @override
+  String get labelPrinterSearch => 'Chercher sur le réseau';
+
+  @override
+  String get labelPrinterSearching => 'Recherche…';
+
+  @override
+  String get labelPrinterNoneFound =>
+      'Rien trouvé. Vérifiez que le téléphone est sur le même Wi-Fi, ou saisissez l\'adresse ci-dessous.';
+
+  @override
+  String get labelPrinterDiscoveryFailed =>
+      'La recherche sur le réseau n\'est pas disponible sur cet appareil';
+
+  @override
+  String get labelPrinterAddress => 'Adresse du serveur';
+
+  @override
+  String get labelPrinterSave => 'Enregistrer';
+
+  @override
+  String get labelPrinterRemove => 'Retirer';
+
+  @override
+  String get labelPrinterNotAServer =>
+      'Aucun serveur d\'impression d\'étiquettes ne répond à cette adresse';
+
+  @override
+  String get labelPrinterVlanNote =>
+      'La recherche ne traverse ni les VLAN ni le Wi-Fi invité ; saisissez alors l\'adresse à la main.';
+
+  @override
+  String get labelPrinterPrintOn => 'Imprimer sur l\'imprimante d\'étiquettes';
+
+  @override
+  String get labelPrinterSent => 'Envoyé à l\'imprimante d\'étiquettes';
+
+  @override
+  String get labelPrinterFailed =>
+      'L\'imprimante d\'étiquettes n\'a pas accepté le travail';
+
+  @override
+  String get labelPrinterUnreachable =>
+      'L\'imprimante d\'étiquettes ne répond pas';
+
+  @override
+  String labelPrinterRefused(String detail) {
+    return 'L\'imprimante d\'étiquettes a refusé le travail : $detail';
+  }
+
+  @override
+  String get labelPrinterSetUp => 'Configurer une imprimante d\'étiquettes';
+
+  @override
+  String get labelPrinterSetUpHint =>
+      'Imprimez ces étiquettes sur un serveur d\'impression Brother QL de votre réseau';
+
+  @override
+  String get labelOptionsTitle => 'Options d\'impression';
+
+  @override
+  String get labelFieldsTitle => 'Imprimer sur l\'étiquette';
+
+  @override
+  String get labelFieldsReset => 'Rétablir les valeurs par défaut';
+
+  @override
+  String get labelFieldBrand => 'Marque';
+
+  @override
+  String get labelFieldMaterial => 'Matériau et sous-type';
+
+  @override
+  String get labelFieldHex => 'Code couleur';
+
+  @override
+  String get labelFieldName => 'Couleur ou nom du filament';
+
+  @override
+  String get labelFieldLocation => 'Emplacement de stockage';
+
+  @override
+  String get labelFieldMaterialNumber => 'Numéro de matériau';
+
+  @override
+  String get labelFieldTemps => 'Température de la buse';
+
+  @override
+  String get labelFieldWeight => 'Poids net';
+
+  @override
+  String get labelFieldNote => 'Note';
+
+  @override
+  String get labelFieldAdded => 'Date d\'ajout';
+
+  @override
+  String get labelFieldQr => 'Code QR';
+
+  @override
+  String get labelFieldSpoolId => 'ID de la bobine';
+
+  @override
+  String get labelFormatTitle => 'Sortie';
+
+  @override
+  String get labelFormatPngHint =>
+      'Pour les logiciels d\'imprimantes d\'étiquettes qui acceptent des images. Réglez la résolution sur celle de votre imprimante ; plusieurs étiquettes arrivent dans un ZIP.';
+
+  @override
+  String get labelDpiTitle => 'Résolution';
+
+  @override
+  String get labelSendToTitle => 'Envoyer vers';
+
+  @override
+  String get labelSendSystem => 'Boîte d\'impression';
+
+  @override
+  String get labelSendShare => 'Partager';
+
+  @override
+  String get labelSendSave => 'Enregistrer dans un fichier';
+
+  @override
+  String get labelSendPrinter => 'Imprimante d\'étiquettes';
+
+  @override
+  String get labelPrinterCopies => 'Copies';
+
+  @override
+  String get labelPrinterCutAtEnd => 'Couper après la dernière étiquette';
+
+  @override
+  String get labelPrinterCutEvery => 'Étiquettes entre deux coupes';
+
+  @override
+  String get labelPrinterCutEveryHint =>
+      'Avec 0, il n\'y a pas de coupe entre les étiquettes.';
+
+  @override
+  String get labelCutEveryLess => 'Une étiquette de moins entre les coupes';
+
+  @override
+  String get labelCutEveryMore => 'Une étiquette de plus entre les coupes';
+
+  @override
+  String get labelSaved => 'Étiquettes enregistrées';
 }

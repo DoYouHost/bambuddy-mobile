@@ -7779,4 +7779,181 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get queueBillingUseWeb =>
       'Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.';
+
+  @override
+  String get labelPrinterTitle => 'Label printer';
+
+  @override
+  String get labelPrinterEntrySubtitle =>
+      'Print spool labels on a Brother QL print server on your network';
+
+  @override
+  String get labelPrinterIntro =>
+      'A separate print server for Brother QL label printers. Spool labels go straight to it instead of the system print dialog.';
+
+  @override
+  String get labelPrinterNotSet => 'No label printer chosen';
+
+  @override
+  String labelPrinterReady(String model, String label) {
+    return '$model · $label labels';
+  }
+
+  @override
+  String get labelPrinterPrinterOff =>
+      'Server answers, but the printer is not connected';
+
+  @override
+  String get labelPrinterOffline => 'Not answering';
+
+  @override
+  String labelPrinterWrongStock(String label) {
+    return 'Loaded with $label labels; spool labels need 62 × 29 mm';
+  }
+
+  @override
+  String get labelPrinterSearch => 'Search network';
+
+  @override
+  String get labelPrinterSearching => 'Searching…';
+
+  @override
+  String get labelPrinterNoneFound =>
+      'Nothing found. Check that the phone is on the same Wi-Fi, or enter the address below.';
+
+  @override
+  String get labelPrinterDiscoveryFailed =>
+      'Network search is not available on this device';
+
+  @override
+  String get labelPrinterAddress => 'Server address';
+
+  @override
+  String get labelPrinterSave => 'Save';
+
+  @override
+  String get labelPrinterRemove => 'Remove';
+
+  @override
+  String get labelPrinterNotAServer =>
+      'Nothing at this address answers as a label print server';
+
+  @override
+  String get labelPrinterVlanNote =>
+      'Discovery does not cross VLANs or a guest Wi-Fi; enter the address by hand there.';
+
+  @override
+  String get labelPrinterPrintOn => 'Print on the label printer';
+
+  @override
+  String get labelPrinterSent => 'Sent to the label printer';
+
+  @override
+  String get labelPrinterFailed => 'The label printer did not accept the job';
+
+  @override
+  String get labelPrinterUnreachable => 'The label printer does not answer';
+
+  @override
+  String labelPrinterRefused(String detail) {
+    return 'The label printer refused the job: $detail';
+  }
+
+  @override
+  String get labelPrinterSetUp => 'Set up a label printer';
+
+  @override
+  String get labelPrinterSetUpHint =>
+      'Print these labels on a Brother QL print server in your network';
+
+  @override
+  String get labelOptionsTitle => 'Print options';
+
+  @override
+  String get labelFieldsTitle => 'Print on the label';
+
+  @override
+  String get labelFieldsReset => 'Reset to default';
+
+  @override
+  String get labelFieldBrand => 'Brand';
+
+  @override
+  String get labelFieldMaterial => 'Material and subtype';
+
+  @override
+  String get labelFieldHex => 'Colour code';
+
+  @override
+  String get labelFieldName => 'Colour or filament name';
+
+  @override
+  String get labelFieldLocation => 'Storage location';
+
+  @override
+  String get labelFieldMaterialNumber => 'Material number';
+
+  @override
+  String get labelFieldTemps => 'Nozzle temperature';
+
+  @override
+  String get labelFieldWeight => 'Net weight';
+
+  @override
+  String get labelFieldNote => 'Note';
+
+  @override
+  String get labelFieldAdded => 'Date added';
+
+  @override
+  String get labelFieldQr => 'QR code';
+
+  @override
+  String get labelFieldSpoolId => 'Spool ID';
+
+  @override
+  String get labelFormatTitle => 'Output';
+
+  @override
+  String get labelFormatPngHint =>
+      'For label printer software that takes images. Match your printer\'s resolution; several labels come as a ZIP.';
+
+  @override
+  String get labelDpiTitle => 'Resolution';
+
+  @override
+  String get labelSendToTitle => 'Send to';
+
+  @override
+  String get labelSendSystem => 'Print dialog';
+
+  @override
+  String get labelSendShare => 'Share';
+
+  @override
+  String get labelSendSave => 'Save to file';
+
+  @override
+  String get labelSendPrinter => 'Label printer';
+
+  @override
+  String get labelPrinterCopies => 'Copies';
+
+  @override
+  String get labelPrinterCutAtEnd => 'Cut after the last label';
+
+  @override
+  String get labelPrinterCutEvery => 'Labels between cuts';
+
+  @override
+  String get labelPrinterCutEveryHint => '0 means no cut between labels.';
+
+  @override
+  String get labelCutEveryLess => 'One label fewer between cuts';
+
+  @override
+  String get labelCutEveryMore => 'One label more between cuts';
+
+  @override
+  String get labelSaved => 'Labels saved';
 }

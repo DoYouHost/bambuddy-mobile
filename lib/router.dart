@@ -27,6 +27,7 @@ import 'features/maintenance/maintenance_settings.dart';
 import 'features/makerworld/makerworld_screen.dart';
 import 'features/notifications/notification_settings_screen.dart';
 import 'features/settings/queue_settings_screen.dart';
+import 'features/label_printer/label_printer_screen.dart';
 import 'features/settings/app_settings_screen.dart';
 import 'features/settings/server_settings_screen.dart';
 import 'features/orders/order_edit_screen.dart';
@@ -99,6 +100,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/app',
         builder: (_, _) => const AppSettingsScreen(),
+      ),
+
+      GoRoute(
+        path: '/settings/label-printer',
+        builder: (_, _) => const LabelPrinterScreen(),
       ),
 
       // Notification settings — full screen outside shell (pushed from the

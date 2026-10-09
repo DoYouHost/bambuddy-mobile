@@ -7879,4 +7879,183 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get queueBillingUseWeb =>
       'Este servidor tiene la facturación activada, así que cada trabajo necesita un centro de costes que la app aún no puede asignar. Encola, edita e inicia este trabajo en Bambuddy desde el navegador.';
+
+  @override
+  String get labelPrinterTitle => 'Impresora de etiquetas';
+
+  @override
+  String get labelPrinterEntrySubtitle =>
+      'Imprime etiquetas de bobinas en un servidor de impresión Brother QL de tu red';
+
+  @override
+  String get labelPrinterIntro =>
+      'Un servidor de impresión aparte para impresoras de etiquetas Brother QL. Las etiquetas de bobinas van directas a él, sin pasar por el diálogo de impresión del sistema.';
+
+  @override
+  String get labelPrinterNotSet => 'No hay impresora de etiquetas elegida';
+
+  @override
+  String labelPrinterReady(String model, String label) {
+    return '$model · etiquetas $label';
+  }
+
+  @override
+  String get labelPrinterPrinterOff =>
+      'El servidor responde, pero la impresora no está conectada';
+
+  @override
+  String get labelPrinterOffline => 'Sin respuesta';
+
+  @override
+  String labelPrinterWrongStock(String label) {
+    return 'Tiene cargadas etiquetas $label, y las de bobinas necesitan 62 × 29 mm';
+  }
+
+  @override
+  String get labelPrinterSearch => 'Buscar en la red';
+
+  @override
+  String get labelPrinterSearching => 'Buscando…';
+
+  @override
+  String get labelPrinterNoneFound =>
+      'No se encontró nada. Comprueba que el teléfono esté en la misma red Wi-Fi o escribe la dirección abajo.';
+
+  @override
+  String get labelPrinterDiscoveryFailed =>
+      'La búsqueda en la red no está disponible en este dispositivo';
+
+  @override
+  String get labelPrinterAddress => 'Dirección del servidor';
+
+  @override
+  String get labelPrinterSave => 'Guardar';
+
+  @override
+  String get labelPrinterRemove => 'Quitar';
+
+  @override
+  String get labelPrinterNotAServer =>
+      'En esa dirección no responde ningún servidor de impresión de etiquetas';
+
+  @override
+  String get labelPrinterVlanNote =>
+      'La búsqueda no atraviesa VLAN ni redes de invitados; en ese caso escribe la dirección a mano.';
+
+  @override
+  String get labelPrinterPrintOn => 'Imprimir en la impresora de etiquetas';
+
+  @override
+  String get labelPrinterSent => 'Enviado a la impresora de etiquetas';
+
+  @override
+  String get labelPrinterFailed =>
+      'La impresora de etiquetas no aceptó el trabajo';
+
+  @override
+  String get labelPrinterUnreachable => 'La impresora de etiquetas no responde';
+
+  @override
+  String labelPrinterRefused(String detail) {
+    return 'La impresora de etiquetas rechazó el trabajo: $detail';
+  }
+
+  @override
+  String get labelPrinterSetUp => 'Configurar una impresora de etiquetas';
+
+  @override
+  String get labelPrinterSetUpHint =>
+      'Imprime estas etiquetas en un servidor de impresión Brother QL de tu red';
+
+  @override
+  String get labelOptionsTitle => 'Opciones de impresión';
+
+  @override
+  String get labelFieldsTitle => 'Imprimir en la etiqueta';
+
+  @override
+  String get labelFieldsReset => 'Restablecer valores';
+
+  @override
+  String get labelFieldBrand => 'Marca';
+
+  @override
+  String get labelFieldMaterial => 'Material y subtipo';
+
+  @override
+  String get labelFieldHex => 'Código de color';
+
+  @override
+  String get labelFieldName => 'Color o nombre del filamento';
+
+  @override
+  String get labelFieldLocation => 'Ubicación de almacenamiento';
+
+  @override
+  String get labelFieldMaterialNumber => 'Número de material';
+
+  @override
+  String get labelFieldTemps => 'Temperatura de la boquilla';
+
+  @override
+  String get labelFieldWeight => 'Peso neto';
+
+  @override
+  String get labelFieldNote => 'Nota';
+
+  @override
+  String get labelFieldAdded => 'Fecha de alta';
+
+  @override
+  String get labelFieldQr => 'Código QR';
+
+  @override
+  String get labelFieldSpoolId => 'ID de bobina';
+
+  @override
+  String get labelFormatTitle => 'Salida';
+
+  @override
+  String get labelFormatPngHint =>
+      'Para software de impresoras de etiquetas que acepta imágenes. Ajusta la resolución a la de tu impresora; varias etiquetas llegan en un ZIP.';
+
+  @override
+  String get labelDpiTitle => 'Resolución';
+
+  @override
+  String get labelSendToTitle => 'Enviar a';
+
+  @override
+  String get labelSendSystem => 'Diálogo de impresión';
+
+  @override
+  String get labelSendShare => 'Compartir';
+
+  @override
+  String get labelSendSave => 'Guardar en archivo';
+
+  @override
+  String get labelSendPrinter => 'Impresora de etiquetas';
+
+  @override
+  String get labelPrinterCopies => 'Copias';
+
+  @override
+  String get labelPrinterCutAtEnd => 'Cortar tras la última etiqueta';
+
+  @override
+  String get labelPrinterCutEvery => 'Etiquetas entre cortes';
+
+  @override
+  String get labelPrinterCutEveryHint =>
+      '0 significa sin corte entre etiquetas.';
+
+  @override
+  String get labelCutEveryLess => 'Una etiqueta menos entre cortes';
+
+  @override
+  String get labelCutEveryMore => 'Una etiqueta más entre cortes';
+
+  @override
+  String get labelSaved => 'Etiquetas guardadas';
 }

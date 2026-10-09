@@ -13039,6 +13039,330 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.'**
   String get queueBillingUseWeb;
+
+  /// No description provided for @labelPrinterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Label printer'**
+  String get labelPrinterTitle;
+
+  /// No description provided for @labelPrinterEntrySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print spool labels on a Brother QL print server on your network'**
+  String get labelPrinterEntrySubtitle;
+
+  /// No description provided for @labelPrinterIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'A separate print server for Brother QL label printers. Spool labels go straight to it instead of the system print dialog.'**
+  String get labelPrinterIntro;
+
+  /// No description provided for @labelPrinterNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'No label printer chosen'**
+  String get labelPrinterNotSet;
+
+  /// No description provided for @labelPrinterReady.
+  ///
+  /// In en, this message translates to:
+  /// **'{model} · {label} labels'**
+  String labelPrinterReady(String model, String label);
+
+  /// No description provided for @labelPrinterPrinterOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Server answers, but the printer is not connected'**
+  String get labelPrinterPrinterOff;
+
+  /// No description provided for @labelPrinterOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Not answering'**
+  String get labelPrinterOffline;
+
+  /// No description provided for @labelPrinterWrongStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Loaded with {label} labels; spool labels need 62 × 29 mm'**
+  String labelPrinterWrongStock(String label);
+
+  /// No description provided for @labelPrinterSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search network'**
+  String get labelPrinterSearch;
+
+  /// No description provided for @labelPrinterSearching.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching…'**
+  String get labelPrinterSearching;
+
+  /// No description provided for @labelPrinterNoneFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found. Check that the phone is on the same Wi-Fi, or enter the address below.'**
+  String get labelPrinterNoneFound;
+
+  /// No description provided for @labelPrinterDiscoveryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Network search is not available on this device'**
+  String get labelPrinterDiscoveryFailed;
+
+  /// No description provided for @labelPrinterAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Server address'**
+  String get labelPrinterAddress;
+
+  /// No description provided for @labelPrinterSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get labelPrinterSave;
+
+  /// No description provided for @labelPrinterRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get labelPrinterRemove;
+
+  /// No description provided for @labelPrinterNotAServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing at this address answers as a label print server'**
+  String get labelPrinterNotAServer;
+
+  /// No description provided for @labelPrinterVlanNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovery does not cross VLANs or a guest Wi-Fi; enter the address by hand there.'**
+  String get labelPrinterVlanNote;
+
+  /// No description provided for @labelPrinterPrintOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Print on the label printer'**
+  String get labelPrinterPrintOn;
+
+  /// No description provided for @labelPrinterSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to the label printer'**
+  String get labelPrinterSent;
+
+  /// No description provided for @labelPrinterFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The label printer did not accept the job'**
+  String get labelPrinterFailed;
+
+  /// No description provided for @labelPrinterUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'The label printer does not answer'**
+  String get labelPrinterUnreachable;
+
+  /// No description provided for @labelPrinterRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The label printer refused the job: {detail}'**
+  String labelPrinterRefused(String detail);
+
+  /// No description provided for @labelPrinterSetUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up a label printer'**
+  String get labelPrinterSetUp;
+
+  /// No description provided for @labelPrinterSetUpHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print these labels on a Brother QL print server in your network'**
+  String get labelPrinterSetUpHint;
+
+  /// No description provided for @labelOptionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print options'**
+  String get labelOptionsTitle;
+
+  /// No description provided for @labelFieldsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print on the label'**
+  String get labelFieldsTitle;
+
+  /// No description provided for @labelFieldsReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to default'**
+  String get labelFieldsReset;
+
+  /// No description provided for @labelFieldBrand.
+  ///
+  /// In en, this message translates to:
+  /// **'Brand'**
+  String get labelFieldBrand;
+
+  /// No description provided for @labelFieldMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Material and subtype'**
+  String get labelFieldMaterial;
+
+  /// No description provided for @labelFieldHex.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour code'**
+  String get labelFieldHex;
+
+  /// No description provided for @labelFieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour or filament name'**
+  String get labelFieldName;
+
+  /// No description provided for @labelFieldLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage location'**
+  String get labelFieldLocation;
+
+  /// No description provided for @labelFieldMaterialNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Material number'**
+  String get labelFieldMaterialNumber;
+
+  /// No description provided for @labelFieldTemps.
+  ///
+  /// In en, this message translates to:
+  /// **'Nozzle temperature'**
+  String get labelFieldTemps;
+
+  /// No description provided for @labelFieldWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Net weight'**
+  String get labelFieldWeight;
+
+  /// No description provided for @labelFieldNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get labelFieldNote;
+
+  /// No description provided for @labelFieldAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Date added'**
+  String get labelFieldAdded;
+
+  /// No description provided for @labelFieldQr.
+  ///
+  /// In en, this message translates to:
+  /// **'QR code'**
+  String get labelFieldQr;
+
+  /// No description provided for @labelFieldSpoolId.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool ID'**
+  String get labelFieldSpoolId;
+
+  /// No description provided for @labelFormatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Output'**
+  String get labelFormatTitle;
+
+  /// No description provided for @labelFormatPngHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For label printer software that takes images. Match your printer\'s resolution; several labels come as a ZIP.'**
+  String get labelFormatPngHint;
+
+  /// No description provided for @labelDpiTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution'**
+  String get labelDpiTitle;
+
+  /// No description provided for @labelSendToTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to'**
+  String get labelSendToTitle;
+
+  /// No description provided for @labelSendSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Print dialog'**
+  String get labelSendSystem;
+
+  /// No description provided for @labelSendShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get labelSendShare;
+
+  /// No description provided for @labelSendSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to file'**
+  String get labelSendSave;
+
+  /// No description provided for @labelSendPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Label printer'**
+  String get labelSendPrinter;
+
+  /// No description provided for @labelPrinterCopies.
+  ///
+  /// In en, this message translates to:
+  /// **'Copies'**
+  String get labelPrinterCopies;
+
+  /// No description provided for @labelPrinterCutAtEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut after the last label'**
+  String get labelPrinterCutAtEnd;
+
+  /// No description provided for @labelPrinterCutEvery.
+  ///
+  /// In en, this message translates to:
+  /// **'Labels between cuts'**
+  String get labelPrinterCutEvery;
+
+  /// No description provided for @labelPrinterCutEveryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'0 means no cut between labels.'**
+  String get labelPrinterCutEveryHint;
+
+  /// No description provided for @labelCutEveryLess.
+  ///
+  /// In en, this message translates to:
+  /// **'One label fewer between cuts'**
+  String get labelCutEveryLess;
+
+  /// No description provided for @labelCutEveryMore.
+  ///
+  /// In en, this message translates to:
+  /// **'One label more between cuts'**
+  String get labelCutEveryMore;
+
+  /// No description provided for @labelSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Labels saved'**
+  String get labelSaved;
 }
 
 class _AppLocalizationsDelegate

@@ -7853,4 +7853,183 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get queueBillingUseWeb =>
       'Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, die die App noch nicht setzen kann. Reihe diesen Auftrag in Bambuddy im Browser ein, bearbeite und starte ihn dort.';
+
+  @override
+  String get labelPrinterTitle => 'Etikettendrucker';
+
+  @override
+  String get labelPrinterEntrySubtitle =>
+      'Spulenetiketten über einen Brother-QL-Druckserver im Netzwerk drucken';
+
+  @override
+  String get labelPrinterIntro =>
+      'Ein eigener Druckserver für Brother-QL-Etikettendrucker. Spulenetiketten gehen direkt dorthin, am System-Druckdialog vorbei.';
+
+  @override
+  String get labelPrinterNotSet => 'Kein Etikettendrucker gewählt';
+
+  @override
+  String labelPrinterReady(String model, String label) {
+    return '$model · $label-Etiketten';
+  }
+
+  @override
+  String get labelPrinterPrinterOff =>
+      'Server antwortet, aber der Drucker ist nicht verbunden';
+
+  @override
+  String get labelPrinterOffline => 'Keine Antwort';
+
+  @override
+  String labelPrinterWrongStock(String label) {
+    return 'Geladen sind $label-Etiketten, Spulenetiketten brauchen 62 × 29 mm';
+  }
+
+  @override
+  String get labelPrinterSearch => 'Im Netzwerk suchen';
+
+  @override
+  String get labelPrinterSearching => 'Suche läuft …';
+
+  @override
+  String get labelPrinterNoneFound =>
+      'Nichts gefunden. Prüfe, ob das Handy im selben WLAN ist, oder gib unten die Adresse ein.';
+
+  @override
+  String get labelPrinterDiscoveryFailed =>
+      'Die Netzwerksuche ist auf diesem Gerät nicht verfügbar';
+
+  @override
+  String get labelPrinterAddress => 'Serveradresse';
+
+  @override
+  String get labelPrinterSave => 'Speichern';
+
+  @override
+  String get labelPrinterRemove => 'Entfernen';
+
+  @override
+  String get labelPrinterNotAServer =>
+      'Unter dieser Adresse antwortet kein Etikettendruckserver';
+
+  @override
+  String get labelPrinterVlanNote =>
+      'Die Suche kommt nicht über VLANs oder ein Gast-WLAN hinaus; gib dort die Adresse von Hand ein.';
+
+  @override
+  String get labelPrinterPrintOn => 'Auf dem Etikettendrucker drucken';
+
+  @override
+  String get labelPrinterSent => 'An den Etikettendrucker gesendet';
+
+  @override
+  String get labelPrinterFailed =>
+      'Der Etikettendrucker hat den Auftrag nicht angenommen';
+
+  @override
+  String get labelPrinterUnreachable => 'Der Etikettendrucker antwortet nicht';
+
+  @override
+  String labelPrinterRefused(String detail) {
+    return 'Der Etikettendrucker hat den Auftrag abgelehnt: $detail';
+  }
+
+  @override
+  String get labelPrinterSetUp => 'Etikettendrucker einrichten';
+
+  @override
+  String get labelPrinterSetUpHint =>
+      'Diese Etiketten über einen Brother-QL-Druckserver in deinem Netzwerk drucken';
+
+  @override
+  String get labelOptionsTitle => 'Druckoptionen';
+
+  @override
+  String get labelFieldsTitle => 'Auf das Etikett drucken';
+
+  @override
+  String get labelFieldsReset => 'Auf Standard zurücksetzen';
+
+  @override
+  String get labelFieldBrand => 'Marke';
+
+  @override
+  String get labelFieldMaterial => 'Material und Untertyp';
+
+  @override
+  String get labelFieldHex => 'Farbcode';
+
+  @override
+  String get labelFieldName => 'Farb- oder Filamentname';
+
+  @override
+  String get labelFieldLocation => 'Lagerort';
+
+  @override
+  String get labelFieldMaterialNumber => 'Materialnummer';
+
+  @override
+  String get labelFieldTemps => 'Düsentemperatur';
+
+  @override
+  String get labelFieldWeight => 'Nettogewicht';
+
+  @override
+  String get labelFieldNote => 'Notiz';
+
+  @override
+  String get labelFieldAdded => 'Hinzugefügt am';
+
+  @override
+  String get labelFieldQr => 'QR-Code';
+
+  @override
+  String get labelFieldSpoolId => 'Spulen-ID';
+
+  @override
+  String get labelFormatTitle => 'Ausgabe';
+
+  @override
+  String get labelFormatPngHint =>
+      'Für Etikettendruck-Software, die Bilder annimmt. Passe die Auflösung an deinen Drucker an; mehrere Etiketten kommen als ZIP.';
+
+  @override
+  String get labelDpiTitle => 'Auflösung';
+
+  @override
+  String get labelSendToTitle => 'Senden an';
+
+  @override
+  String get labelSendSystem => 'Druckdialog';
+
+  @override
+  String get labelSendShare => 'Teilen';
+
+  @override
+  String get labelSendSave => 'In Datei speichern';
+
+  @override
+  String get labelSendPrinter => 'Etikettendrucker';
+
+  @override
+  String get labelPrinterCopies => 'Kopien';
+
+  @override
+  String get labelPrinterCutAtEnd => 'Nach dem letzten Etikett schneiden';
+
+  @override
+  String get labelPrinterCutEvery => 'Etiketten zwischen Schnitten';
+
+  @override
+  String get labelPrinterCutEveryHint =>
+      '0 bedeutet kein Schnitt zwischen den Etiketten.';
+
+  @override
+  String get labelCutEveryLess => 'Ein Etikett weniger zwischen den Schnitten';
+
+  @override
+  String get labelCutEveryMore => 'Ein Etikett mehr zwischen den Schnitten';
+
+  @override
+  String get labelSaved => 'Etiketten gespeichert';
 }
