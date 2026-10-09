@@ -45,9 +45,9 @@ class PrinterUpdate {
     required this.ipAddress,
     required this.autoArchive,
     required this.isActive,
+    required this.location,
     this.accessCode,
     this.model,
-    this.location,
     this.wearCostPerHour,
     this.sendWearCost = false,
   });
@@ -75,7 +75,7 @@ class PrinterUpdate {
     'is_active': isActive,
     // Left out when not set, as the web does.
     if (model != null && model!.isNotEmpty) 'model': model,
-    // Null clears the location; leaving it out would keep the old one.
+    // Always sent, as the web does: null or empty clears it.
     'location': (location == null || location!.isEmpty) ? null : location,
     if (accessCode != null && accessCode!.isNotEmpty) 'access_code': accessCode,
     if (sendWearCost)

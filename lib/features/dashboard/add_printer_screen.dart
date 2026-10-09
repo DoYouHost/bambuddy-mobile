@@ -330,6 +330,10 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       if (result.checks.any((c) => c.status == 'fail')) failed = result;
     } on AppApiException {
       // Diagnostic infrastructure failed — save without it, as the web does.
+    } catch (_) {
+      // Anything else still propagates, but must not leave the form locked.
+      if (mounted) setState(() => _busy = false);
+      rethrow;
     }
     if (!mounted) return;
     if (failed != null) {
@@ -347,10 +351,13 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final printer = widget.printer!;
+    // "Save anyway" comes from under fields that stayed editable.
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    // The warning stays up until the save lands, so a refused save can be
+    // retried without running the checks again — as on the web.
     setState(() {
       _busy = true;
       _error = null;
-      _saveWarning = null;
     });
     try {
       await ref

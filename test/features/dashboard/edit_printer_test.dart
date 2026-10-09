@@ -266,6 +266,57 @@ void main() {
       expect(log.statuses, [200, 200]);
     });
 
+    testWidgets('a refused save keeps the warning to retry from', (
+      tester,
+    ) async {
+      await pump(tester, _printer());
+      server
+        ..onPost(
+          Endpoints.printersDiagnostic,
+          (s) => s.reply(200, _failing),
+          data: _diagnoseBody,
+        )
+        ..onPatch(
+          Endpoints.printer(1),
+          (s) => s.reply(403, {'detail': 'Only an admin can do that.'}),
+          data: {
+            'name': 'X1 Carbon',
+            'ip_address': '192.168.4.21',
+            'auto_archive': true,
+            'is_active': true,
+            'model': 'X1C',
+            'location': 'Workshop',
+            'wear_cost_per_hour': 0.25,
+          },
+        );
+      await tester.tap(find.text(_l10n.editPrinterSubmit));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(_l10n.editPrinterSaveAnyway));
+      await tester.pumpAndSettle();
+
+      expect(log.statuses, [200, 403]);
+      expect(find.text(_l10n.editPrinterSaveAnyway), findsOneWidget);
+    });
+
+    testWidgets('save anyway still checks the fields edited meanwhile', (
+      tester,
+    ) async {
+      await pump(tester, _printer());
+      server.onPost(
+        Endpoints.printersDiagnostic,
+        (s) => s.reply(200, _failing),
+        data: _diagnoseBody,
+      );
+      await tester.tap(find.text(_l10n.editPrinterSubmit));
+      await tester.pumpAndSettle();
+      await tester.enterText(wearField(), 'abc');
+      await tester.tap(find.text(_l10n.editPrinterSaveAnyway));
+      await tester.pumpAndSettle();
+
+      expect(find.text(_l10n.editPrinterWearCostInvalid), findsOneWidget);
+      expect(patched(), isNull);
+    });
+
     testWidgets('a rate the server would refuse is stopped in the form', (
       tester,
     ) async {
