@@ -27,6 +27,10 @@ class LabelPrinterRepository {
 
   /// Prints [pdf] — every page is one label — [copies] times each.
   ///
+  /// [cutEvery] counts labels across the whole job, copies included: 1 cuts
+  /// after every label, 0 never in between. [cutAtEnd] is the cut after the
+  /// last one.
+  ///
   /// The server's own sentence (`detail`) is kept for a 400: it names the file
   /// and why it was refused (`wrong_format` with the size found), which nothing
   /// in the app knows.
@@ -34,12 +38,16 @@ class LabelPrinterRepository {
     Uint8List pdf, {
     required String filename,
     int copies = 1,
+    bool cutAtEnd = true,
+    int cutEvery = 0,
   }) => guardKeepingDetail(() async {
     await _dio.post<Object?>(
       '/print',
       data: FormData.fromMap({
         'files': MultipartFile.fromBytes(pdf, filename: filename),
         'copies': copies,
+        'cut_at_end': cutAtEnd,
+        'cut_every': cutEvery,
       }),
       // A Pi Zero needs seconds per label; the default 15 s would cut a job.
       options: Options(receiveTimeout: const Duration(minutes: 2)),

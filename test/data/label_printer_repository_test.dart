@@ -52,8 +52,32 @@ void main() {
     final form = log.requests.single.data as FormData;
     expect(form.files.single.key, 'files');
     expect(form.files.single.value.filename, 'a.pdf');
-    expect(form.fields.single.key, 'copies');
-    expect(form.fields.single.value, '2');
+    expect(
+      {for (final f in form.fields) f.key: f.value},
+      {'copies': '2', 'cut_at_end': 'true', 'cut_every': '0'},
+    );
+  });
+
+  test('printPdf() passes the cut options on', () async {
+    final log = captureRequests(dio);
+    adapter.onPost(
+      '/print',
+      (s) => s.reply(200, {'status': 'ok'}),
+      data: Matchers.any,
+    );
+
+    await repo.printPdf(
+      Uint8List(1),
+      filename: 'a.pdf',
+      cutAtEnd: false,
+      cutEvery: 5,
+    );
+
+    final form = log.requests.single.data as FormData;
+    expect(
+      {for (final f in form.fields) f.key: f.value},
+      {'copies': '1', 'cut_at_end': 'false', 'cut_every': '5'},
+    );
   });
 
   test('a 400 keeps the server sentence', () async {

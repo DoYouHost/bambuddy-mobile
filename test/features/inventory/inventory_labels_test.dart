@@ -69,13 +69,23 @@ class _RecordingLabelPrinter extends LabelPrinterRepository {
   _RecordingLabelPrinter() : super(Dio());
 
   Uint8List? sent;
+  int? copies;
+  bool? cutAtEnd;
+  int? cutEvery;
 
   @override
   Future<void> printPdf(
     Uint8List pdf, {
     required String filename,
     int copies = 1,
-  }) async => sent = pdf;
+    bool cutAtEnd = true,
+    int cutEvery = 0,
+  }) async {
+    sent = pdf;
+    this.copies = copies;
+    this.cutAtEnd = cutAtEnd;
+    this.cutEvery = cutEvery;
+  }
 }
 
 class _NoUrl extends LabelPrinterUrlNotifier {

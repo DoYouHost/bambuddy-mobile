@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/swatch_code.dart';
 import '../notifications/notification_prefs.dart';
+import 'label_print_prefs.dart';
 import 'print_options.dart';
 import 'server_profile.dart';
 import 'sign_in_reason.dart';
@@ -35,6 +36,7 @@ class SettingsRepository {
   static const _sliceOnlyOnlineKey = 'slice_only_online_printers';
   static const _sliceOnlyLoadedKey = 'slice_only_loaded_spools';
   static const _labelPrinterUrlKey = 'label_printer_url';
+  static const _labelPrintPrefsKey = 'label_print_prefs';
   static const _labelPrinterNameKey = 'label_printer_name';
   static const _wallHiddenPrintersKey = 'wall_hidden_printer_ids';
 
@@ -160,6 +162,19 @@ class SettingsRepository {
   Future<void> saveLabelPrinterName(String? name) => name == null
       ? _prefs.remove(_labelPrinterNameKey)
       : _prefs.setString(_labelPrinterNameKey, name);
+
+  LabelPrintPrefs loadLabelPrintPrefs() {
+    final raw = _prefs.getString(_labelPrintPrefsKey);
+    if (raw == null) return const LabelPrintPrefs();
+    try {
+      return LabelPrintPrefs.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } on Object {
+      return const LabelPrintPrefs();
+    }
+  }
+
+  Future<void> saveLabelPrintPrefs(LabelPrintPrefs prefs) =>
+      _prefs.setString(_labelPrintPrefsKey, jsonEncode(prefs.toJson()));
 
   bool loadWallKeepAwake() => _prefs.getBool(_wallKeepAwakeKey) ?? true;
 

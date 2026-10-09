@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/label_printer.dart';
 import '../../core/network/label_printer_discovery.dart';
+import '../../core/settings/label_print_prefs.dart';
 import '../../data/label_printer_repository.dart';
 import '../../providers.dart';
 
@@ -75,3 +76,20 @@ final labelPrinterRepositoryProvider = Provider<LabelPrinterRepository?>((ref) {
 final labelPrinterInfoProvider = FutureProvider.autoDispose<LabelPrinterInfo?>(
   (ref) => ref.watch(labelPrinterRepositoryProvider)?.info() ?? Future.value(),
 );
+
+/// What the label sheet remembers between uses.
+final labelPrintPrefsProvider =
+    NotifierProvider<LabelPrintPrefsNotifier, LabelPrintPrefs>(
+      LabelPrintPrefsNotifier.new,
+    );
+
+class LabelPrintPrefsNotifier extends Notifier<LabelPrintPrefs> {
+  @override
+  LabelPrintPrefs build() =>
+      ref.watch(settingsRepositoryProvider).loadLabelPrintPrefs();
+
+  Future<void> set(LabelPrintPrefs prefs) async {
+    state = prefs;
+    await ref.read(settingsRepositoryProvider).saveLabelPrintPrefs(prefs);
+  }
+}
