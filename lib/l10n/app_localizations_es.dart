@@ -7966,4 +7966,96 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get labelPrinterSetUpHint =>
       'Imprime estas etiquetas en un servidor de impresión Brother QL de tu red';
+
+  @override
+  String get labelOptionsTitle => 'Opciones de impresión';
+
+  @override
+  String get labelFieldsTitle => 'Imprimir en la etiqueta';
+
+  @override
+  String get labelFieldsReset => 'Restablecer valores';
+
+  @override
+  String get labelFieldBrand => 'Marca';
+
+  @override
+  String get labelFieldMaterial => 'Material y subtipo';
+
+  @override
+  String get labelFieldHex => 'Código de color';
+
+  @override
+  String get labelFieldName => 'Color o nombre del filamento';
+
+  @override
+  String get labelFieldLocation => 'Ubicación de almacenamiento';
+
+  @override
+  String get labelFieldMaterialNumber => 'Número de material';
+
+  @override
+  String get labelFieldTemps => 'Temperatura de la boquilla';
+
+  @override
+  String get labelFieldWeight => 'Peso neto';
+
+  @override
+  String get labelFieldNote => 'Nota';
+
+  @override
+  String get labelFieldAdded => 'Fecha de alta';
+
+  @override
+  String get labelFieldQr => 'Código QR';
+
+  @override
+  String get labelFieldSpoolId => 'ID de bobina';
+
+  @override
+  String get labelFormatTitle => 'Salida';
+
+  @override
+  String get labelFormatPngHint =>
+      'Para software de impresoras de etiquetas que acepta imágenes. Ajusta la resolución a la de tu impresora; varias etiquetas llegan en un ZIP.';
+
+  @override
+  String get labelDpiTitle => 'Resolución';
+
+  @override
+  String get labelSendToTitle => 'Enviar a';
+
+  @override
+  String get labelSendSystem => 'Diálogo de impresión';
+
+  @override
+  String get labelSendShare => 'Compartir';
+
+  @override
+  String get labelSendSave => 'Guardar en archivo';
+
+  @override
+  String get labelSendPrinter => 'Impresora de etiquetas';
+
+  @override
+  String get labelPrinterCopies => 'Copias';
+
+  @override
+  String get labelPrinterCutAtEnd => 'Cortar tras la última etiqueta';
+
+  @override
+  String get labelPrinterCutEvery => 'Etiquetas entre cortes';
+
+  @override
+  String get labelPrinterCutEveryHint =>
+      '0 significa sin corte entre etiquetas.';
+
+  @override
+  String get labelCutEveryLess => 'Una etiqueta menos entre cortes';
+
+  @override
+  String get labelCutEveryMore => 'Una etiqueta más entre cortes';
+
+  @override
+  String get labelSaved => 'Etiquetas guardadas';
 }

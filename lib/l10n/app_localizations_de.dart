@@ -7940,4 +7940,96 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get labelPrinterSetUpHint =>
       'Diese Etiketten über einen Brother-QL-Druckserver in deinem Netzwerk drucken';
+
+  @override
+  String get labelOptionsTitle => 'Druckoptionen';
+
+  @override
+  String get labelFieldsTitle => 'Auf das Etikett drucken';
+
+  @override
+  String get labelFieldsReset => 'Auf Standard zurücksetzen';
+
+  @override
+  String get labelFieldBrand => 'Marke';
+
+  @override
+  String get labelFieldMaterial => 'Material und Untertyp';
+
+  @override
+  String get labelFieldHex => 'Farbcode';
+
+  @override
+  String get labelFieldName => 'Farb- oder Filamentname';
+
+  @override
+  String get labelFieldLocation => 'Lagerort';
+
+  @override
+  String get labelFieldMaterialNumber => 'Materialnummer';
+
+  @override
+  String get labelFieldTemps => 'Düsentemperatur';
+
+  @override
+  String get labelFieldWeight => 'Nettogewicht';
+
+  @override
+  String get labelFieldNote => 'Notiz';
+
+  @override
+  String get labelFieldAdded => 'Hinzugefügt am';
+
+  @override
+  String get labelFieldQr => 'QR-Code';
+
+  @override
+  String get labelFieldSpoolId => 'Spulen-ID';
+
+  @override
+  String get labelFormatTitle => 'Ausgabe';
+
+  @override
+  String get labelFormatPngHint =>
+      'Für Etikettendruck-Software, die Bilder annimmt. Passe die Auflösung an deinen Drucker an; mehrere Etiketten kommen als ZIP.';
+
+  @override
+  String get labelDpiTitle => 'Auflösung';
+
+  @override
+  String get labelSendToTitle => 'Senden an';
+
+  @override
+  String get labelSendSystem => 'Druckdialog';
+
+  @override
+  String get labelSendShare => 'Teilen';
+
+  @override
+  String get labelSendSave => 'In Datei speichern';
+
+  @override
+  String get labelSendPrinter => 'Etikettendrucker';
+
+  @override
+  String get labelPrinterCopies => 'Kopien';
+
+  @override
+  String get labelPrinterCutAtEnd => 'Nach dem letzten Etikett schneiden';
+
+  @override
+  String get labelPrinterCutEvery => 'Etiketten zwischen Schnitten';
+
+  @override
+  String get labelPrinterCutEveryHint =>
+      '0 bedeutet kein Schnitt zwischen den Etiketten.';
+
+  @override
+  String get labelCutEveryLess => 'Ein Etikett weniger zwischen den Schnitten';
+
+  @override
+  String get labelCutEveryMore => 'Ein Etikett mehr zwischen den Schnitten';
+
+  @override
+  String get labelSaved => 'Etiketten gespeichert';
 }

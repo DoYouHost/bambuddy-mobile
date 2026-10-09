@@ -8,8 +8,12 @@ enum LabelDestination {
   /// The platform print dialog (which also offers "Save as PDF").
   system,
 
-  /// The share sheet — also how a PNG or ZIP is saved.
+  /// The share sheet.
   share,
+
+  /// A "Save as…" dialog — how a PNG or ZIP is kept, for software that takes
+  /// images.
+  save,
 
   /// The LAN label print server.
   labelPrinter,
@@ -48,6 +52,30 @@ class LabelPrintPrefs {
   final int copies;
   final bool cutAtEnd;
   final int cutEvery;
+
+  /// Where the file goes, given what is possible right now: a PNG cannot be
+  /// printed or sent to the print server (which takes PDF), and a label printer
+  /// that has since been removed leaves nothing to send to.
+  LabelDestination resolveDestination({
+    required bool printerSet,
+    required bool png,
+  }) {
+    final chosen = destination;
+    if (png) {
+      return chosen == LabelDestination.save
+          ? LabelDestination.save
+          : LabelDestination.share;
+    }
+    if (chosen == null) {
+      return printerSet
+          ? LabelDestination.labelPrinter
+          : LabelDestination.system;
+    }
+    if (chosen == LabelDestination.labelPrinter && !printerSet) {
+      return LabelDestination.system;
+    }
+    return chosen;
+  }
 
   Set<SpoolLabelField> fieldsFor(SpoolLabelTemplate template) =>
       fields[template] ?? SpoolLabelField.defaults;

@@ -7865,4 +7865,95 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get labelPrinterSetUpHint =>
       'Print these labels on a Brother QL print server in your network';
+
+  @override
+  String get labelOptionsTitle => 'Print options';
+
+  @override
+  String get labelFieldsTitle => 'Print on the label';
+
+  @override
+  String get labelFieldsReset => 'Reset to default';
+
+  @override
+  String get labelFieldBrand => 'Brand';
+
+  @override
+  String get labelFieldMaterial => 'Material and subtype';
+
+  @override
+  String get labelFieldHex => 'Colour code';
+
+  @override
+  String get labelFieldName => 'Colour or filament name';
+
+  @override
+  String get labelFieldLocation => 'Storage location';
+
+  @override
+  String get labelFieldMaterialNumber => 'Material number';
+
+  @override
+  String get labelFieldTemps => 'Nozzle temperature';
+
+  @override
+  String get labelFieldWeight => 'Net weight';
+
+  @override
+  String get labelFieldNote => 'Note';
+
+  @override
+  String get labelFieldAdded => 'Date added';
+
+  @override
+  String get labelFieldQr => 'QR code';
+
+  @override
+  String get labelFieldSpoolId => 'Spool ID';
+
+  @override
+  String get labelFormatTitle => 'Output';
+
+  @override
+  String get labelFormatPngHint =>
+      'For label printer software that takes images. Match your printer\'s resolution; several labels come as a ZIP.';
+
+  @override
+  String get labelDpiTitle => 'Resolution';
+
+  @override
+  String get labelSendToTitle => 'Send to';
+
+  @override
+  String get labelSendSystem => 'Print dialog';
+
+  @override
+  String get labelSendShare => 'Share';
+
+  @override
+  String get labelSendSave => 'Save to file';
+
+  @override
+  String get labelSendPrinter => 'Label printer';
+
+  @override
+  String get labelPrinterCopies => 'Copies';
+
+  @override
+  String get labelPrinterCutAtEnd => 'Cut after the last label';
+
+  @override
+  String get labelPrinterCutEvery => 'Labels between cuts';
+
+  @override
+  String get labelPrinterCutEveryHint => '0 means no cut between labels.';
+
+  @override
+  String get labelCutEveryLess => 'One label fewer between cuts';
+
+  @override
+  String get labelCutEveryMore => 'One label more between cuts';
+
+  @override
+  String get labelSaved => 'Labels saved';
 }

@@ -1,6 +1,8 @@
 import 'package:bambuddy_mobile/core/models/spool_label.dart';
 import 'package:bambuddy_mobile/core/settings/label_print_prefs.dart';
+import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test('everything survives a round trip', () {
@@ -82,5 +84,81 @@ void main() {
       LabelPrintPrefs.fromJson({'copies': labelPrinterMaxCopies}).copies,
       labelPrinterMaxCopies,
     );
+  });
+
+  group('resolveDestination', () {
+    LabelDestination resolve(
+      LabelDestination? chosen, {
+      bool printerSet = true,
+      bool png = false,
+    }) => LabelPrintPrefs(
+      destination: chosen,
+    ).resolveDestination(printerSet: printerSet, png: png);
+
+    test('an unchosen destination follows whether a printer is set up', () {
+      expect(resolve(null), LabelDestination.labelPrinter);
+      expect(resolve(null, printerSet: false), LabelDestination.system);
+    });
+
+    test('a choice is kept', () {
+      for (final d in [
+        LabelDestination.system,
+        LabelDestination.share,
+        LabelDestination.save,
+      ]) {
+        expect(resolve(d), d);
+      }
+    });
+
+    test('a removed label printer falls back to the print dialog', () {
+      expect(
+        resolve(LabelDestination.labelPrinter, printerSet: false),
+        LabelDestination.system,
+      );
+    });
+
+    test('a PNG is shared unless saving was chosen', () {
+      expect(resolve(null, png: true), LabelDestination.share);
+      expect(
+        resolve(LabelDestination.system, png: true),
+        LabelDestination.share,
+      );
+      expect(
+        resolve(LabelDestination.labelPrinter, png: true),
+        LabelDestination.share,
+      );
+      expect(resolve(LabelDestination.save, png: true), LabelDestination.save);
+    });
+  });
+
+  group('SettingsRepository', () {
+    Future<SettingsRepository> open([
+      Map<String, Object> stored = const {},
+    ]) async {
+      SharedPreferences.setMockInitialValues(stored);
+      return SettingsRepository(await SharedPreferences.getInstance());
+    }
+
+    test('nothing stored reads as the defaults', () async {
+      final prefs = (await open()).loadLabelPrintPrefs();
+      expect(prefs.destination, isNull);
+      expect(prefs.cutAtEnd, isTrue);
+    });
+
+    test('what was saved is read back', () async {
+      final repo = await open();
+      await repo.saveLabelPrintPrefs(
+        const LabelPrintPrefs(monochrome: true, copies: 4, cutEvery: 3),
+      );
+      final back = repo.loadLabelPrintPrefs();
+      expect(back.monochrome, isTrue);
+      expect(back.copies, 4);
+      expect(back.cutEvery, 3);
+    });
+
+    test('a corrupt blob reads as the defaults', () async {
+      final repo = await open({'label_print_prefs': '{not json'});
+      expect(repo.loadLabelPrintPrefs().copies, 1);
+    });
   });
 }

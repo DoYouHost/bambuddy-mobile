@@ -28,13 +28,6 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
   String _query = '';
   String? _material;
   var _sort = _LabelSort.id;
-  bool _monochrome = false;
-  bool _share = false;
-
-  /// Whether the PDF goes to the LAN label print server instead of the system
-  /// dialog. On by default once a server is chosen — setting one up was the
-  /// decision.
-  late bool _toLabelPrinter = ref.read(labelPrinterUrlProvider) != null;
   bool _busy = false;
 
   @override
@@ -225,23 +218,8 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
           ),
 
           _LabelFooter(
-            monochrome: _monochrome,
-            share: _share,
-            labelPrinter: ref.watch(labelPrinterUrlProvider) == null
-                ? null
-                : _toLabelPrinter,
-            onSetUpLabelPrinter: () => context.push('/settings/label-printer'),
             busy: _busy,
             count: _selected.length,
-            onMonochrome: (v) => setState(() => _monochrome = v),
-            onShare: (v) => setState(() {
-              _share = v;
-              if (v) _toLabelPrinter = false;
-            }),
-            onLabelPrinter: (v) => setState(() {
-              _toLabelPrinter = v;
-              if (v) _share = false;
-            }),
             onPrint: _selected.isEmpty || _busy ? null : _pickTemplate,
           ),
         ],
@@ -271,6 +249,30 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     final startingPosition = await _pickStartingPosition(template);
     if (startingPosition == null || !mounted) return;
 
+    // Step 4: what goes on the label and where the file goes. Closed without
+    // "Print" cancels, like the steps before it.
+    final proceed = await dashSurfaceSheet<bool>(
+      context,
+      builder: (_) => _LabelOptionsSheet(template: template),
+    );
+    if (proceed != true || !mounted) return;
+
+    final prefs = ref.read(labelPrintPrefsProvider);
+    final providers = ProviderScope.containerOf(context, listen: false);
+    // The three request extras only mean something to a server that has them;
+    // an older one drops them and answers a PDF with the default lines.
+    final canChoose = await settledGate(
+      providers,
+      labelFieldsProvider,
+    ).catchError((Object _) => false);
+    if (!mounted) return;
+    final png = canChoose && prefs.format == SpoolLabelFormat.png;
+    final chosenFields = prefs.fieldsFor(template);
+    final destination = prefs.resolveDestination(
+      printerSet: ref.read(labelPrinterRepositoryProvider) != null,
+      png: png,
+    );
+
     // Keep the sorted order — that's what makes "by colour" flow into an
     // Avery sheet instead of being re-sorted by id server-side.
     final ids = [
@@ -280,31 +282,43 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
 
     setState(() => _busy = true);
     try {
-      final pdf = await ref
+      final file = await ref
           .read(inventoryRepositoryProvider)
           .renderLabels(
             SpoolLabelRequest(
               spoolIds: ids,
               template: template,
-              monochrome: _monochrome,
+              monochrome: prefs.monochrome,
               startingPosition: startingPosition,
+              // Only what differs from the server's own default goes out.
+              fields:
+                  canChoose &&
+                      !setEquals(chosenFields, SpoolLabelField.defaults)
+                  ? chosenFields
+                  : null,
+              format: png ? SpoolLabelFormat.png : SpoolLabelFormat.pdf,
+              dpi: prefs.dpi,
             ),
           );
       if (!mounted) return;
       Navigator.of(context).pop();
-      final filename = 'bambuddy-labels-${template.wire}.pdf';
-      if (_toLabelPrinter && ref.read(labelPrinterRepositoryProvider) != null) {
-        await _printOnLabelPrinter(pdf, filename, messenger, l10n);
-      } else if (_share) {
-        await Printing.sharePdf(bytes: pdf, filename: filename);
-      } else {
-        await Printing.layoutPdf(
-          onLayout: (_) => pdf,
-          name: filename,
-          // Label stock is a fixed physical size — reflowing it to the
-          // printer's page would defeat the whole point of the template.
-          dynamicLayout: false,
-        );
+      final kind = SpoolLabelFile.of(file) ?? SpoolLabelFile.pdf;
+      final filename = 'bambuddy-labels-${template.wire}.${kind.extension}';
+      switch (destination) {
+        case LabelDestination.labelPrinter:
+          await _printOnLabelPrinter(file, filename, prefs, messenger, l10n);
+        case LabelDestination.share when kind == SpoolLabelFile.pdf:
+          await Printing.sharePdf(bytes: file, filename: filename);
+        case LabelDestination.share || LabelDestination.save:
+          await _handOff(file, filename, kind, destination, messenger, l10n);
+        case LabelDestination.system:
+          await Printing.layoutPdf(
+            onLayout: (_) => file,
+            name: filename,
+            // Label stock is a fixed physical size — reflowing it to the
+            // printer's page would defeat the whole point of the template.
+            dynamicLayout: false,
+          );
       }
     } on AppApiException catch (e) {
       if (mounted) setState(() => _busy = false);
@@ -321,18 +335,58 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     }
   }
 
+  /// Gives a PNG, a ZIP or a PDF to the share sheet or a "Save as…" dialog.
+  /// Both take a file, so the bytes go to the cache first.
+  Future<void> _handOff(
+    Uint8List bytes,
+    String filename,
+    SpoolLabelFile kind,
+    LabelDestination destination,
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+  ) async {
+    final dir = await getTemporaryDirectory();
+    final file = await File('${dir.path}/$filename').writeAsBytes(bytes);
+    if (destination == LabelDestination.share) {
+      // Not deleted here: the sheet closes before the receiving app reads it.
+      await shareDownloadedFile(file, mimeType: kind.mimeType);
+      return;
+    }
+    final saved = await saveDownloadedFile(
+      file,
+      fileName: filename,
+      mimeType: kind.mimeType,
+    );
+    await discardCacheCopy(file);
+    switch (saved.outcome) {
+      case DeviceFileOutcome.done:
+        messenger.snack(l10n.labelSaved);
+      case DeviceFileOutcome.failed:
+        messenger.snack(l10n.inventoryLabelsFailed);
+      case DeviceFileOutcome.cancelled:
+        break;
+    }
+  }
+
   /// Sends the PDF to the label print server. Runs after the sheet is closed,
   /// so every outcome is a snack on the screen behind it.
   Future<void> _printOnLabelPrinter(
     Uint8List pdf,
     String filename,
+    LabelPrintPrefs prefs,
     ScaffoldMessengerState messenger,
     AppLocalizations l10n,
   ) async {
     try {
       await ref
           .read(labelPrinterRepositoryProvider)!
-          .printPdf(pdf, filename: filename);
+          .printPdf(
+            pdf,
+            filename: filename,
+            copies: prefs.copies,
+            cutAtEnd: prefs.cutAtEnd,
+            cutEvery: prefs.cutEvery,
+          );
       messenger.snack(l10n.labelPrinterSent);
     } on ApiException catch (e) {
       // The server's own sentence says which file was refused and why.
@@ -434,33 +488,16 @@ class _LabelSpoolRow extends StatelessWidget {
   }
 }
 
-/// Pinned bottom of the label sheet: print options plus the primary action.
+/// Pinned bottom of the label sheet: the primary action.
 class _LabelFooter extends StatelessWidget {
   const _LabelFooter({
-    required this.monochrome,
-    required this.share,
-    required this.labelPrinter,
     required this.busy,
     required this.count,
-    required this.onMonochrome,
-    required this.onShare,
-    required this.onLabelPrinter,
-    required this.onSetUpLabelPrinter,
     required this.onPrint,
   });
 
-  final bool monochrome;
-  final bool share;
-
-  /// Null while no label print server is chosen: the row then leads to the
-  /// settings screen instead of being a checkbox.
-  final bool? labelPrinter;
   final bool busy;
   final int count;
-  final ValueChanged<bool> onMonochrome;
-  final ValueChanged<bool> onShare;
-  final ValueChanged<bool> onLabelPrinter;
-  final VoidCallback onSetUpLabelPrinter;
   final VoidCallback? onPrint;
 
   @override
@@ -477,65 +514,15 @@ class _LabelFooter extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: t.subCardBorder)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _CheckRow(
-            value: monochrome,
-            onChanged: onMonochrome,
-            label: l10n.inventoryLabelsMonochrome,
-            hint: l10n.inventoryLabelsMonochromeHint,
-          ),
-          _CheckRow(
-            value: share,
-            onChanged: onShare,
-            label: l10n.inventoryLabelsShare,
-          ),
-          if (labelPrinter case final on?)
-            _CheckRow(
-              value: on,
-              onChanged: onLabelPrinter,
-              label: l10n.labelPrinterPrintOn,
-            )
-          else
-            InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: onSetUpLabelPrinter,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-                child: Row(
-                  children: [
-                    Icon(Icons.label_outline, size: 20, color: t.textTertiary),
-                    const SizedBox(width: DashSpace.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(l10n.labelPrinterSetUp, style: t.body),
-                          Text(l10n.labelPrinterSetUpHint, style: t.microSoft),
-                        ],
-                      ),
-                    ),
-                    Icon(Icons.chevron_right, size: 20, color: t.textTertiary),
-                  ],
-                ),
-              ),
-            ).tagged('labels.set_up_label_printer'),
-          const SizedBox(height: DashSpace.md),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: onPrint,
-              icon: busy
-                  ? DashSpinner(color: t.onAccent)
-                  : Icon(
-                      share ? Icons.ios_share : Icons.print_outlined,
-                      size: 18,
-                    ),
-              label: Text('${l10n.inventoryLabelsPrint} ($count)'),
-            ).tagged('labels.print'),
-          ),
-        ],
+      child: SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: onPrint,
+          icon: busy
+              ? DashSpinner(color: t.onAccent)
+              : const Icon(Icons.print_outlined, size: 18),
+          label: Text('${l10n.inventoryLabelsPrint} ($count)'),
+        ).tagged('labels.print'),
       ),
     );
   }
@@ -840,12 +827,16 @@ class _TextAction extends StatelessWidget {
 /// Checkbox row with an optional secondary hint line.
 class _CheckRow extends StatelessWidget {
   const _CheckRow({
+    required this.id,
     required this.value,
     required this.onChanged,
     required this.label,
     this.hint,
   });
 
+  /// The diagnostic id: a shared row must not name itself, or every use of it
+  /// reports under one name.
+  final String id;
   final bool value;
   final ValueChanged<bool> onChanged;
   final String label;
@@ -880,6 +871,6 @@ class _CheckRow extends StatelessWidget {
           ],
         ),
       ),
-    ).tagged('labels.check');
+    ).tagged(id);
   }
 }

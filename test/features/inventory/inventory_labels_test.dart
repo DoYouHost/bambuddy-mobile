@@ -4,6 +4,7 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/spool_label.dart';
 import 'package:bambuddy_mobile/core/network/label_printer_discovery.dart';
+import 'package:bambuddy_mobile/core/settings/label_print_prefs.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/inventory_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
@@ -60,9 +61,13 @@ class _UnusedSource implements SpoolInventorySource {
 class _RenderingRepository extends InventoryRepository {
   _RenderingRepository() : super(_UnusedSource());
 
+  SpoolLabelRequest? request;
+
   @override
-  Future<Uint8List> renderLabels(SpoolLabelRequest labelRequest) async =>
-      Uint8List.fromList([1, 2, 3]);
+  Future<Uint8List> renderLabels(SpoolLabelRequest labelRequest) async {
+    request = labelRequest;
+    return Uint8List.fromList([1, 2, 3]);
+  }
 }
 
 class _RecordingLabelPrinter extends LabelPrinterRepository {
@@ -86,6 +91,15 @@ class _RecordingLabelPrinter extends LabelPrinterRepository {
     this.cutAtEnd = cutAtEnd;
     this.cutEvery = cutEvery;
   }
+}
+
+/// The preferences without the disk: every change lands in memory only.
+class _MemoryPrefs extends LabelPrintPrefsNotifier {
+  @override
+  LabelPrintPrefs build() => const LabelPrintPrefs();
+
+  @override
+  Future<void> set(LabelPrintPrefs prefs) async => state = prefs;
 }
 
 class _NoUrl extends LabelPrinterUrlNotifier {
@@ -137,6 +151,8 @@ void main() {
         inventoryProvider.overrideWith(_CapturingInventory.new),
         serverProfileProvider.overrideWith(_NullProfile.new),
         labelPrinterUrlProvider.overrideWith(_NoUrl.new),
+        labelPrintPrefsProvider.overrideWith(_MemoryPrefs.new),
+        labelFieldsProvider.overrideWithValue(const AsyncData(false)),
         inventoryRepositoryProvider.overrideWithValue(repo),
         labelStartingPositionProvider.overrideWithValue(
           gate ?? AsyncData(startingPositionSupported),
@@ -166,6 +182,12 @@ void main() {
     await settle(tester);
   }
 
+  /// The step after the stock: the options sheet, closed with its Print button.
+  Future<void> pressPrint(WidgetTester tester) async {
+    await tester.tap(find.text(l10n.inventoryLabelsPrint));
+    await settle(tester);
+  }
+
   testWidgets('an Avery sheet asks which slot to start at', (tester) async {
     final repo = await openTemplatePicker(
       tester,
@@ -185,6 +207,7 @@ void main() {
     await settle(tester);
     await tester.tap(find.text('7'));
     await settle(tester);
+    await pressPrint(tester);
     expect(repo.request!.template, SpoolLabelTemplate.averyL7160);
     expect(repo.request!.startingPosition, 7);
   });
@@ -197,8 +220,8 @@ void main() {
         startingPositionSupported: true,
       );
       await pickTemplate(tester, l10n.inventoryLabelsBox40);
-
       expect(find.text(l10n.inventoryLabelsStartTitle), findsNothing);
+      await pressPrint(tester);
       expect(repo.request!.template, SpoolLabelTemplate.box40x30);
       expect(repo.request!.startingPosition, 1);
     },
@@ -214,8 +237,9 @@ void main() {
       startingPositionSupported: false,
     );
     await pickTemplate(tester, l10n.inventoryLabelsAveryL7160);
-
     expect(find.text(l10n.inventoryLabelsStartTitle), findsNothing);
+    await pressPrint(tester);
+
     expect(repo.request!.startingPosition, 1);
   });
 
@@ -230,28 +254,49 @@ void main() {
         gate: AsyncError(StateError('no profile'), StackTrace.empty),
       );
       await pickTemplate(tester, l10n.inventoryLabelsAveryL7160);
-
       expect(find.text(l10n.inventoryLabelsStartTitle), findsNothing);
+      await pressPrint(tester);
+
       expect(repo.request!.startingPosition, 1);
     },
   );
 
-  group('label print server', () {
-    Future<void> openSheet(
+  group('print options', () {
+    late _RenderingRepository rendering;
+
+    /// Taps [target], scrolling the options sheet to it first: the rows below
+    /// the fold are not built until they are in range.
+    Future<void> tapOption(WidgetTester tester, Finder target) async {
+      await tester.scrollUntilVisible(
+        target.hitTestable(),
+        120,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(target);
+      await tester.pump();
+    }
+
+    /// Opens the label sheet, picks the 62 x 29 stock and stops on the options
+    /// sheet.
+    Future<ProviderContainer> openOptions(
       WidgetTester tester, {
-      required bool chosen,
+      bool chosen = false,
+      bool fieldsGate = false,
       _RecordingLabelPrinter? printer,
     }) async {
+      rendering = _RenderingRepository();
       await pumpPhone(
         tester,
         const InventoryScreen(),
         overrides: [
           inventoryProvider.overrideWith(_CapturingInventory.new),
           serverProfileProvider.overrideWith(_NullProfile.new),
-          inventoryRepositoryProvider.overrideWithValue(_RenderingRepository()),
+          inventoryRepositoryProvider.overrideWithValue(rendering),
           labelStartingPositionProvider.overrideWithValue(
             const AsyncData(false),
           ),
+          labelFieldsProvider.overrideWithValue(AsyncData(fieldsGate)),
+          labelPrintPrefsProvider.overrideWith(_MemoryPrefs.new),
           labelPrinterUrlProvider.overrideWith(
             chosen ? _ChosenUrl.new : _NoUrl.new,
           ),
@@ -262,12 +307,18 @@ void main() {
       await settle(tester);
       await tester.tap(find.byTooltip(l10n.inventoryLabelsPrintAll));
       await settle(tester);
+      await tester.tap(find.text('${l10n.inventoryLabelsPrint} (1)'));
+      await settle(tester);
+      await pickTemplate(tester, l10n.inventoryLabelsBox62);
+      return ProviderScope.containerOf(
+        tester.element(find.byType(InventoryScreen)),
+      );
     }
 
     testWidgets('without a server the row leads to its setup', (tester) async {
-      await openSheet(tester, chosen: false);
+      await openOptions(tester);
       expect(find.text(l10n.labelPrinterSetUp), findsOneWidget);
-      expect(find.text(l10n.labelPrinterPrintOn), findsNothing);
+      expect(find.text(l10n.labelSendPrinter), findsNothing);
     });
 
     testWidgets('the setup row opens the label printer settings', (
@@ -290,6 +341,11 @@ void main() {
             inventoryRepositoryProvider.overrideWithValue(
               _RenderingRepository(),
             ),
+            labelStartingPositionProvider.overrideWithValue(
+              const AsyncData(false),
+            ),
+            labelFieldsProvider.overrideWithValue(const AsyncData(false)),
+            labelPrintPrefsProvider.overrideWith(_MemoryPrefs.new),
             labelPrinterUrlProvider.overrideWith(_NoUrl.new),
           ],
           child: MaterialApp.router(
@@ -303,27 +359,170 @@ void main() {
       await settle(tester);
       await tester.tap(find.byTooltip(l10n.inventoryLabelsPrintAll));
       await settle(tester);
+      await tester.tap(find.text('${l10n.inventoryLabelsPrint} (1)'));
+      await settle(tester);
+      await pickTemplate(tester, l10n.inventoryLabelsBox62);
 
-      await tester.tap(find.text(l10n.labelPrinterSetUp));
+      await tapOption(tester, find.text(l10n.labelPrinterSetUp));
       await settle(tester);
 
       expect(find.text('LABEL PRINTER'), findsOneWidget);
     });
 
-    testWidgets('the PDF goes to the server instead of the print dialog', (
+    testWidgets('a chosen server is where the labels go by default', (
       tester,
     ) async {
       final printer = _RecordingLabelPrinter();
-      await openSheet(tester, chosen: true, printer: printer);
-      expect(find.text(l10n.labelPrinterPrintOn), findsOneWidget);
+      await openOptions(tester, chosen: true, printer: printer);
       expect(find.text(l10n.labelPrinterSetUp), findsNothing);
 
-      await tester.tap(find.text('${l10n.inventoryLabelsPrint} (1)'));
+      await tester.tap(find.text(l10n.inventoryLabelsPrint));
       await settle(tester);
-      await pickTemplate(tester, l10n.inventoryLabelsBox62);
 
       expect(printer.sent, [1, 2, 3]);
+      expect(printer.copies, 1);
+      expect(printer.cutAtEnd, isTrue);
+      expect(printer.cutEvery, 0);
       expect(find.text(l10n.labelPrinterSent), findsOneWidget);
+    });
+
+    testWidgets('copies and the cutter options reach the server', (
+      tester,
+    ) async {
+      final printer = _RecordingLabelPrinter();
+      await openOptions(tester, chosen: true, printer: printer);
+
+      await tapOption(tester, find.byTooltip(l10n.copiesMore));
+      await tapOption(tester, find.byTooltip(l10n.copiesMore));
+      await tapOption(tester, find.text(l10n.labelPrinterCutAtEnd));
+      await tapOption(tester, find.byTooltip(l10n.labelCutEveryMore));
+      await tapOption(tester, find.byTooltip(l10n.labelCutEveryMore));
+      await settle(tester);
+      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await settle(tester);
+
+      expect(printer.copies, 3);
+      expect(printer.cutAtEnd, isFalse);
+      expect(printer.cutEvery, 2);
+    });
+
+    testWidgets('the printer options are only shown for the printer', (
+      tester,
+    ) async {
+      await openOptions(
+        tester,
+        chosen: true,
+        printer: _RecordingLabelPrinter(),
+      );
+      expect(find.text(l10n.labelPrinterCopies), findsOneWidget);
+
+      await tapOption(tester, find.text(l10n.labelSendShare));
+      await settle(tester);
+      expect(find.text(l10n.labelPrinterCopies), findsNothing);
+    });
+
+    testWidgets('an older server is not offered lines or PNG', (tester) async {
+      await openOptions(tester);
+      expect(find.text(l10n.labelFieldsTitle), findsNothing);
+      expect(find.text('PNG'), findsNothing);
+    });
+
+    testWidgets('unchanged lines are not sent at all', (tester) async {
+      await openOptions(tester, fieldsGate: true);
+      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await settle(tester);
+
+      expect(rendering.request!.fields, isNull);
+    });
+
+    testWidgets('a changed selection is sent, and remembered per stock', (
+      tester,
+    ) async {
+      final container = await openOptions(tester, fieldsGate: true);
+      await tapOption(tester, find.text(l10n.labelFieldBrand));
+      await tapOption(tester, find.text(l10n.labelFieldMaterialNumber));
+      await settle(tester);
+
+      expect(
+        container
+            .read(labelPrintPrefsProvider)
+            .fieldsFor(SpoolLabelTemplate.box62x29),
+        {
+          SpoolLabelField.material,
+          SpoolLabelField.hex,
+          SpoolLabelField.name,
+          SpoolLabelField.location,
+          SpoolLabelField.qr,
+          SpoolLabelField.spoolId,
+          SpoolLabelField.materialNumber,
+        },
+      );
+      // Another stock keeps its own lines.
+      expect(
+        container
+            .read(labelPrintPrefsProvider)
+            .fieldsFor(SpoolLabelTemplate.box40x30),
+        SpoolLabelField.defaults,
+      );
+
+      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await settle(tester);
+      expect(rendering.request!.fields, isNot(contains(SpoolLabelField.brand)));
+      expect(
+        rendering.request!.fields,
+        contains(SpoolLabelField.materialNumber),
+      );
+    });
+
+    testWidgets('reset puts the default lines back', (tester) async {
+      final container = await openOptions(tester, fieldsGate: true);
+      await tapOption(tester, find.text(l10n.labelFieldBrand));
+      await settle(tester);
+      // Back to the top, where the reset link is.
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, 800));
+      await tester.pump();
+      await tester.tap(find.text(l10n.labelFieldsReset));
+      await settle(tester);
+
+      expect(
+        container
+            .read(labelPrintPrefsProvider)
+            .fieldsFor(SpoolLabelTemplate.box62x29),
+        SpoolLabelField.defaults,
+      );
+    });
+
+    testWidgets('PNG takes a resolution and leaves out the printer', (
+      tester,
+    ) async {
+      await openOptions(
+        tester,
+        chosen: true,
+        fieldsGate: true,
+        printer: _RecordingLabelPrinter(),
+      );
+      await tapOption(tester, find.text('PNG'));
+      await settle(tester);
+      await tapOption(tester, find.text('203 dpi'));
+      await settle(tester);
+
+      // A PNG cannot be printed or sent to the print server.
+      expect(find.text(l10n.labelSendSystem), findsNothing);
+      expect(find.text(l10n.labelSendPrinter), findsNothing);
+      expect(find.text(l10n.labelSendSave), findsOneWidget);
+
+      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await settle(tester);
+      expect(rendering.request!.format, SpoolLabelFormat.png);
+      expect(rendering.request!.dpi, 203);
+    });
+
+    testWidgets('what was chosen is still there the next time', (tester) async {
+      final container = await openOptions(tester);
+      await tapOption(tester, find.text(l10n.inventoryLabelsMonochrome));
+      await settle(tester);
+
+      expect(container.read(labelPrintPrefsProvider).monochrome, isTrue);
     });
   });
 }

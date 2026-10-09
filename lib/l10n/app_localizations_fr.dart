@@ -8040,4 +8040,96 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get labelPrinterSetUpHint =>
       'Imprimez ces étiquettes sur un serveur d\'impression Brother QL de votre réseau';
+
+  @override
+  String get labelOptionsTitle => 'Options d\'impression';
+
+  @override
+  String get labelFieldsTitle => 'Imprimer sur l\'étiquette';
+
+  @override
+  String get labelFieldsReset => 'Rétablir les valeurs par défaut';
+
+  @override
+  String get labelFieldBrand => 'Marque';
+
+  @override
+  String get labelFieldMaterial => 'Matériau et sous-type';
+
+  @override
+  String get labelFieldHex => 'Code couleur';
+
+  @override
+  String get labelFieldName => 'Couleur ou nom du filament';
+
+  @override
+  String get labelFieldLocation => 'Emplacement de stockage';
+
+  @override
+  String get labelFieldMaterialNumber => 'Numéro de matériau';
+
+  @override
+  String get labelFieldTemps => 'Température de la buse';
+
+  @override
+  String get labelFieldWeight => 'Poids net';
+
+  @override
+  String get labelFieldNote => 'Note';
+
+  @override
+  String get labelFieldAdded => 'Date d\'ajout';
+
+  @override
+  String get labelFieldQr => 'Code QR';
+
+  @override
+  String get labelFieldSpoolId => 'ID de la bobine';
+
+  @override
+  String get labelFormatTitle => 'Sortie';
+
+  @override
+  String get labelFormatPngHint =>
+      'Pour les logiciels d\'imprimantes d\'étiquettes qui acceptent des images. Réglez la résolution sur celle de votre imprimante ; plusieurs étiquettes arrivent dans un ZIP.';
+
+  @override
+  String get labelDpiTitle => 'Résolution';
+
+  @override
+  String get labelSendToTitle => 'Envoyer vers';
+
+  @override
+  String get labelSendSystem => 'Boîte d\'impression';
+
+  @override
+  String get labelSendShare => 'Partager';
+
+  @override
+  String get labelSendSave => 'Enregistrer dans un fichier';
+
+  @override
+  String get labelSendPrinter => 'Imprimante d\'étiquettes';
+
+  @override
+  String get labelPrinterCopies => 'Copies';
+
+  @override
+  String get labelPrinterCutAtEnd => 'Couper après la dernière étiquette';
+
+  @override
+  String get labelPrinterCutEvery => 'Étiquettes entre deux coupes';
+
+  @override
+  String get labelPrinterCutEveryHint =>
+      'Avec 0, il n\'y a pas de coupe entre les étiquettes.';
+
+  @override
+  String get labelCutEveryLess => 'Une étiquette de moins entre les coupes';
+
+  @override
+  String get labelCutEveryMore => 'Une étiquette de plus entre les coupes';
+
+  @override
+  String get labelSaved => 'Étiquettes enregistrées';
 }
