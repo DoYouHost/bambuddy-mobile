@@ -353,4 +353,37 @@ void main() {
 
     expect(byLogId('locations.new'), findsNothing);
   });
+
+  testWidgets('an edit sends the style the location keeps along with the '
+      'rename', (tester) async {
+    await pumpScreen(tester);
+    adapter.onPatch(
+      _path,
+      (s) => s.reply(200, {
+        'id': 1,
+        'name': 'Workshop 2',
+        'icon': 'wrench',
+        'color': '#f97316',
+        'printer_count': 2,
+      }),
+      data: {
+        'name': 'Workshop',
+        'new_name': 'Workshop 2',
+        'icon': 'wrench',
+        'color': '#f97316',
+      },
+    );
+
+    // Attic, Office, Workshop: the third card.
+    await tester.tap(byLogId('locations.edit').at(2));
+    await tester.pumpAndSettle();
+    await tester.enterText(byLogId('location_form.name'), 'Workshop 2');
+    await tester.tap(byLogId('location_form.save'));
+    await tester.pumpAndSettle();
+
+    final patches = sent.requests.where((r) => r.method == 'PATCH').toList();
+    expect(patches.single.data, containsPair('icon', 'wrench'));
+    expect(patches.single.data, containsPair('color', '#f97316'));
+    expect(patches.single.data, containsPair('new_name', 'Workshop 2'));
+  });
 }

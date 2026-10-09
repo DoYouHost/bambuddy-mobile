@@ -59,13 +59,18 @@ class _PrinterLocationsScreenState
 
   /// Re-reads the locations and the roster, and waits for both: a write that
   /// let go of the screen before the list was back left a deleted location on
-  /// show, with its buttons enabled.
+  /// show, with its buttons enabled. A failed re-read is the list's own error
+  /// state, never this call's, so nothing is thrown.
   Future<void> _reload(ProviderContainer container) async {
     container.invalidate(printerLocationsProvider);
-    await Future.wait([
-      container.read(printerLocationsProvider.future).then((_) {}),
-      container.read(dashboardProvider.notifier).refresh(),
-    ]);
+    try {
+      await Future.wait([
+        container.read(printerLocationsProvider.future).then((_) {}),
+        container.read(dashboardProvider.notifier).refresh(),
+      ]);
+    } on Object {
+      // See above.
+    }
   }
 
   Future<void> _refresh() =>
@@ -96,12 +101,7 @@ class _PrinterLocationsScreenState
         message: e.statusCode == 409 ? l10n.printerLocationsNameTaken : null,
       );
     } finally {
-      try {
-        await _reload(container);
-      } on Object {
-        // The write's own outcome is already on screen; a failed re-read is
-        // the list's error state, not this call's.
-      }
+      await _reload(container);
       if (mounted) setState(() => _busy = false);
     }
     return ok;
@@ -110,10 +110,17 @@ class _PrinterLocationsScreenState
   Future<void> _edit(PrinterLocation location) async {
     final saved = await openPrinterLocationForm(context, existing: location);
     if (saved == null || !mounted) return;
-    // A rename moved the printers along; the roster has to follow, and the
-    // card that was open stays open under its new name.
-    if (_expanded == location.name) setState(() => _expanded = saved.name);
-    await _reload(ProviderScope.containerOf(context, listen: false));
+    final container = ProviderScope.containerOf(context, listen: false);
+    setState(() => _busy = true);
+    // A rename moved the printers along; the roster has to follow before the
+    // card that was open can stay open under its new name, or it would show
+    // empty until the printers arrive.
+    await _reload(container);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      if (_expanded == location.name) _expanded = saved.name;
+    });
   }
 
   Future<void> _delete(List<String> names, {required String action}) async {
@@ -186,7 +193,7 @@ class _PrinterLocationsScreenState
     // A server that answered 404 to the listing has nothing to write to.
     final canEdit =
         ref.watch(canEditPrinterLocationsProvider) &&
-        (ref.watch(printerLocationsSupportedProvider).valueOrNull ?? true);
+        ref.watch(printerLocationsSupportedProvider).orFalse;
     final async = ref.watch(printerLocationsProvider);
     final roster = withLiveStatuses(
       ref.watch(dashboardProvider).printers ?? const [],

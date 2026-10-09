@@ -78,7 +78,8 @@ class _PrinterLocationFormState extends ConsumerState<_PrinterLocationForm> {
           ),
         );
       }
-      container.invalidate(printerLocationsProvider);
+      // An edit hands the re-read to the screen, which waits for it.
+      if (existing == null) container.invalidate(printerLocationsProvider);
       if (!mounted) return;
       Navigator.of(context).pop(saved);
       messenger.snack(

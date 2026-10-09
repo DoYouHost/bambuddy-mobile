@@ -59,7 +59,8 @@ class PrinterLocationDraft {
   final String? color;
 
   /// `PATCH`: `icon` and `color` are changed only when sent, and `null` clears
-  /// them — so both always go, and a field the user emptied is cleared.
+  /// them — so both always go. An edit therefore has to pass back the icon and
+  /// colour the location keeps; leaving them out clears them.
   Map<String, dynamic> toUpdateJson() => {
     'name': name,
     if (newName != null && newName != name) 'new_name': newName,
