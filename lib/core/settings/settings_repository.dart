@@ -37,6 +37,7 @@ class SettingsRepository {
   static const _sliceOnlyLoadedKey = 'slice_only_loaded_spools';
   static const _labelPrinterUrlKey = 'label_printer_url';
   static const _labelPrintPrefsKey = 'label_print_prefs';
+  static const _dashboardViewKey = 'dashboard_view';
   static const _labelPrinterNameKey = 'label_printer_name';
   static const _wallHiddenPrintersKey = 'wall_hidden_printer_ids';
 
@@ -175,6 +176,21 @@ class SettingsRepository {
 
   Future<void> saveLabelPrintPrefs(LabelPrintPrefs prefs) =>
       _prefs.setString(_labelPrintPrefsKey, jsonEncode(prefs.toJson()));
+
+  /// The dashboard's filters, sort and folded sections as one JSON object —
+  /// empty when nothing was saved or it cannot be read.
+  Map<String, dynamic> loadDashboardView() {
+    final raw = _prefs.getString(_dashboardViewKey);
+    if (raw == null) return const {};
+    try {
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } on Object {
+      return const {};
+    }
+  }
+
+  Future<void> saveDashboardView(Map<String, dynamic> view) =>
+      _prefs.setString(_dashboardViewKey, jsonEncode(view));
 
   bool loadWallKeepAwake() => _prefs.getBool(_wallKeepAwakeKey) ?? true;
 
