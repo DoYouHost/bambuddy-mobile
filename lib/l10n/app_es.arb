@@ -4006,7 +4006,7 @@
   "labelFieldQr": "Código QR",
   "labelFieldSpoolId": "ID de bobina",
   "labelFormatTitle": "Salida",
-  "labelFormatPngHint": "Para software de impresoras de etiquetas que acepta imágenes. Ajusta la resolución a la de tu impresora; varias etiquetas llegan en un ZIP.",
+  "labelFormatPngHint": "Ajusta la resolución a la de tu impresora. Varias etiquetas llegan en un ZIP.",
   "labelDpiTitle": "Resolución",
   "labelSendToTitle": "Enviar a",
   "labelSendSystem": "Diálogo de impresión",

@@ -7991,7 +7991,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get labelFormatPngHint =>
-      'Für Etikettendruck-Software, die Bilder annimmt. Passe die Auflösung an deinen Drucker an; mehrere Etiketten kommen als ZIP.';
+      'Passe die Auflösung an deinen Drucker an. Mehrere Etiketten kommen als ZIP.';
 
   @override
   String get labelDpiTitle => 'Auflösung';

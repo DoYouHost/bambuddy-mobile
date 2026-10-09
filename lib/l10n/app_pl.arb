@@ -3320,7 +3320,7 @@
   "labelFieldQr": "Kod QR",
   "labelFieldSpoolId": "ID szpuli",
   "labelFormatTitle": "Wynik",
-  "labelFormatPngHint": "Dla oprogramowania drukarek etykiet, które przyjmuje obrazy. Dopasuj rozdzielczość do drukarki; kilka etykiet trafia do archiwum ZIP.",
+  "labelFormatPngHint": "Dopasuj rozdzielczość do drukarki. Kilka etykiet trafia do archiwum ZIP.",
   "labelDpiTitle": "Rozdzielczość",
   "labelSendToTitle": "Wyślij do",
   "labelSendSystem": "Okno drukowania",

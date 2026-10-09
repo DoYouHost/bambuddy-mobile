@@ -114,7 +114,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                     ),
                     Text(
                       l10n.inventorySelectedCount(_selected.length),
-                      style: t.monoLabel,
+                      style: t.monoLabel.legible,
                     ),
                   ],
                 ),
@@ -152,7 +152,9 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                     Expanded(
                       child: Text(
                         l10n.inventoryLabelsPickSpools,
-                        style: t.labelSoft.copyWith(color: t.textSecondary),
+                        style: t.labelSoft.legible.copyWith(
+                          color: t.textSecondary,
+                        ),
                       ),
                     ),
                     _TextAction(
@@ -490,7 +492,7 @@ class _LabelSpoolRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: DashSpace.sm),
-            Text('#${spool.id}', style: t.monoMicro),
+            Text('#${spool.id}', style: t.monoMicro.legible),
           ],
         ),
       ),
@@ -611,7 +613,7 @@ class _TemplateSheet extends StatelessWidget {
                       children: [
                         Text(label, style: t.titleSm),
                         const SizedBox(height: DashSpace.xs),
-                        Text(hint, style: t.labelSoft),
+                        Text(hint, style: t.labelSoft.legible),
                       ],
                     ),
                   ),
@@ -656,7 +658,7 @@ class _StartingPositionSheet extends StatelessWidget {
         children: [
           Text(l10n.inventoryLabelsStartTitle, style: t.titleLg),
           const SizedBox(height: DashSpace.sm),
-          Text(l10n.inventoryLabelsStartHint, style: t.labelSoft),
+          Text(l10n.inventoryLabelsStartHint, style: t.labelSoft.legible),
           const SizedBox(height: DashSpace.lg),
           GridView.builder(
             shrinkWrap: true,
@@ -705,7 +707,7 @@ class _StartingPositionSlot extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: t.subCardBorder),
             ),
-            child: Text('$position', style: t.monoLabel),
+            child: Text('$position', style: t.monoLabel.legible),
           ),
         ).tagged('labels.start_position'),
       ),
@@ -732,7 +734,7 @@ class _ChipRow<T> extends StatelessWidget {
     final t = DashTokens.of(context);
     return Row(
       children: [
-        Text(label, style: t.microSoft),
+        Text(label, style: t.microSoft.legible),
         const SizedBox(width: DashSpace.sm),
         Expanded(
           child: SingleChildScrollView(
@@ -792,7 +794,7 @@ class _MiniChip extends StatelessWidget {
           ),
           child: Text(
             label,
-            style: t.micro.copyWith(
+            style: t.micro.legible.copyWith(
               color: selected ? t.accentGreenInk : t.textSecondary,
             ),
           ),
@@ -825,7 +827,7 @@ class _TextAction extends StatelessWidget {
         padding: const EdgeInsets.all(DashSpace.xs),
         child: Text(
           label,
-          style: t.micro.copyWith(
+          style: t.micro.legible.copyWith(
             color: onPressed == null ? color.withValues(alpha: 0.4) : color,
           ),
         ),
@@ -874,7 +876,7 @@ class _CheckRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label, style: t.body),
-                  if (hint != null) Text(hint!, style: t.microSoft),
+                  if (hint != null) Text(hint!, style: t.microSoft.legible),
                 ],
               ),
             ),
@@ -883,4 +885,10 @@ class _CheckRow extends StatelessWidget {
       ),
     ).tagged(id);
   }
+}
+
+extension on TextStyle {
+  /// The shared micro/label tokens are 11–12 px, too small to read on a phone
+  /// in the print sheets; floor them at 13.
+  TextStyle get legible => (fontSize ?? 0) < 13 ? copyWith(fontSize: 13) : this;
 }
