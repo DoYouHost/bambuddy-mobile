@@ -13283,7 +13283,7 @@ abstract class AppLocalizations {
   /// No description provided for @labelFormatPngHint.
   ///
   /// In en, this message translates to:
-  /// **'For label printer software that takes images. Match your printer\'s resolution; several labels come as a ZIP.'**
+  /// **'Match your printer\'s resolution. Several labels come as a ZIP.'**
   String get labelFormatPngHint;
 
   /// No description provided for @labelDpiTitle.

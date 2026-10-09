@@ -4006,7 +4006,7 @@
   "labelFieldQr": "QR-Code",
   "labelFieldSpoolId": "Spulen-ID",
   "labelFormatTitle": "Ausgabe",
-  "labelFormatPngHint": "Für Etikettendruck-Software, die Bilder annimmt. Passe die Auflösung an deinen Drucker an; mehrere Etiketten kommen als ZIP.",
+  "labelFormatPngHint": "Passe die Auflösung an deinen Drucker an. Mehrere Etiketten kommen als ZIP.",
   "labelDpiTitle": "Auflösung",
   "labelSendToTitle": "Senden an",
   "labelSendSystem": "Druckdialog",

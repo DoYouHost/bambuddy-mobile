@@ -8091,7 +8091,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get labelFormatPngHint =>
-      'Pour les logiciels d\'imprimantes d\'étiquettes qui acceptent des images. Réglez la résolution sur celle de votre imprimante ; plusieurs étiquettes arrivent dans un ZIP.';
+      'Réglez la résolution sur celle de votre imprimante. Plusieurs étiquettes arrivent dans un ZIP.';
 
   @override
   String get labelDpiTitle => 'Résolution';

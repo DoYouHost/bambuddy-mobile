@@ -8043,7 +8043,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get labelFormatPngHint =>
-      'Dla oprogramowania drukarek etykiet, które przyjmuje obrazy. Dopasuj rozdzielczość do drukarki; kilka etykiet trafia do archiwum ZIP.';
+      'Dopasuj rozdzielczość do drukarki. Kilka etykiet trafia do archiwum ZIP.';
 
   @override
   String get labelDpiTitle => 'Rozdzielczość';

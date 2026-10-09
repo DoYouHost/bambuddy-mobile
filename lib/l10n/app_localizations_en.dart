@@ -7916,7 +7916,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get labelFormatPngHint =>
-      'For label printer software that takes images. Match your printer\'s resolution; several labels come as a ZIP.';
+      'Match your printer\'s resolution. Several labels come as a ZIP.';
 
   @override
   String get labelDpiTitle => 'Resolution';

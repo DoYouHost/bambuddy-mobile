@@ -5073,7 +5073,7 @@
   "labelFieldQr": "QR code",
   "labelFieldSpoolId": "Spool ID",
   "labelFormatTitle": "Output",
-  "labelFormatPngHint": "For label printer software that takes images. Match your printer's resolution; several labels come as a ZIP.",
+  "labelFormatPngHint": "Match your printer's resolution. Several labels come as a ZIP.",
   "labelDpiTitle": "Resolution",
   "labelSendToTitle": "Send to",
   "labelSendSystem": "Print dialog",

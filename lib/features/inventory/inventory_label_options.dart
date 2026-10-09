@@ -137,7 +137,10 @@ class _LabelOptionsSheet extends ConsumerWidget {
                     ),
                     Padding(
                       padding: const EdgeInsets.only(top: DashSpace.xs),
-                      child: Text(l10n.labelFormatPngHint, style: t.microSoft),
+                      child: Text(
+                        l10n.labelFormatPngHint,
+                        style: t.microSoft.legible,
+                      ),
                     ),
                   ],
                   const SizedBox(height: DashSpace.md),
@@ -237,7 +240,7 @@ class _LabelOptionsSheet extends ConsumerWidget {
       ),
       Padding(
         padding: const EdgeInsets.only(top: DashSpace.xs),
-        child: Text(l10n.labelPrinterCutEveryHint, style: t.microSoft),
+        child: Text(l10n.labelPrinterCutEveryHint, style: t.microSoft.legible),
       ),
     ];
   }
@@ -264,7 +267,7 @@ class _SetUpLabelPrinterRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(l10n.labelPrinterSetUp, style: t.body),
-                  Text(l10n.labelPrinterSetUpHint, style: t.microSoft),
+                  Text(l10n.labelPrinterSetUpHint, style: t.microSoft.legible),
                 ],
               ),
             ),
