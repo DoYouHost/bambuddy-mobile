@@ -160,7 +160,7 @@ class _ManyfoldConnectionCardState
         mounted ? messenger : null,
         e,
         l10n,
-        action: 'manyfold.disconnect.confirm',
+        action: 'manyfold.disconnect',
       );
     } finally {
       if (mounted) setState(() => _busy = false);
