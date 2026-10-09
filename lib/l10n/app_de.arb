@@ -29,7 +29,7 @@
     }
   },
   "noPrintersMatchFilters": "Keine Drucker entsprechen den aktuellen Filtern",
-  "dashboardFilters": "Filter",
+  "dashboardFilters": "Filter und Sortierung",
   "filterStatus": "Status",
   "filtersClear": "Zurücksetzen",
   "hideOffline": "Offline ausblenden",
@@ -4065,5 +4065,16 @@
   "printerLocationsDeleted": "Gelöschte Standorte: {count}",
   "printerLocationsMoved": "Verschobene Drucker: {count}",
   "printerLocationsNameTaken": "Ein Standort mit diesem Namen existiert bereits",
-  "printerLocationsReadOnly": "Standorte kann nur ein Benutzerkonto ändern — ein API-Schlüssel darf sie nur lesen."
+  "printerLocationsReadOnly": "Standorte kann nur ein Benutzerkonto ändern — ein API-Schlüssel darf sie nur lesen.",
+  "dashboardSortTitle": "Sortieren nach",
+  "dashboardSortName": "Name",
+  "dashboardSortModel": "Modell",
+  "dashboardSortLocation": "Standort",
+  "dashboardSortEta": "Restzeit",
+  "dashboardSortAscending": "Aufsteigend",
+  "dashboardSortDescending": "Absteigend",
+  "dashboardLocationAll": "Alle Standorte",
+  "dashboardLocationsManage": "Standorte verwalten",
+  "dashboardGroupUngrouped": "Ohne Standort",
+  "dashboardGroupUnknownModel": "Unbekanntes Modell"
 }

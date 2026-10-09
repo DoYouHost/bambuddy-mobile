@@ -239,7 +239,7 @@ abstract class AppLocalizations {
   /// Title of the dashboard filter sheet / filter button tooltip
   ///
   /// In en, this message translates to:
-  /// **'Filters'**
+  /// **'Filters and sort'**
   String get dashboardFilters;
 
   /// No description provided for @filterStatus.
@@ -13639,6 +13639,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Only a user account can change locations; an API key can only read them.'**
   String get printerLocationsReadOnly;
+
+  /// No description provided for @dashboardSortTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get dashboardSortTitle;
+
+  /// No description provided for @dashboardSortName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get dashboardSortName;
+
+  /// No description provided for @dashboardSortModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get dashboardSortModel;
+
+  /// No description provided for @dashboardSortLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get dashboardSortLocation;
+
+  /// No description provided for @dashboardSortEta.
+  ///
+  /// In en, this message translates to:
+  /// **'Time left'**
+  String get dashboardSortEta;
+
+  /// No description provided for @dashboardSortAscending.
+  ///
+  /// In en, this message translates to:
+  /// **'Ascending'**
+  String get dashboardSortAscending;
+
+  /// No description provided for @dashboardSortDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Descending'**
+  String get dashboardSortDescending;
+
+  /// No description provided for @dashboardLocationAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All locations'**
+  String get dashboardLocationAll;
+
+  /// No description provided for @dashboardLocationsManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage locations'**
+  String get dashboardLocationsManage;
+
+  /// No description provided for @dashboardGroupUngrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'No location'**
+  String get dashboardGroupUngrouped;
+
+  /// No description provided for @dashboardGroupUnknownModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown model'**
+  String get dashboardGroupUnknownModel;
 }
 
 class _AppLocalizationsDelegate

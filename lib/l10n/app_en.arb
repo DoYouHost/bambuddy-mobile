@@ -50,9 +50,9 @@
     }
   },
   "noPrintersMatchFilters": "No printers match the current filters",
-  "dashboardFilters": "Filters",
+  "dashboardFilters": "Filters and sort",
   "@dashboardFilters": {
-    "description": "Title of the dashboard filter sheet / filter button tooltip"
+    "description": "Title of the dashboard filter and sort sheet / its button tooltip"
   },
   "filterStatus": "Status",
   "filtersClear": "Clear",
@@ -5201,5 +5201,16 @@
     }
   },
   "printerLocationsNameTaken": "A location with this name already exists",
-  "printerLocationsReadOnly": "Only a user account can change locations; an API key can only read them."
+  "printerLocationsReadOnly": "Only a user account can change locations; an API key can only read them.",
+  "dashboardSortTitle": "Sort by",
+  "dashboardSortName": "Name",
+  "dashboardSortModel": "Model",
+  "dashboardSortLocation": "Location",
+  "dashboardSortEta": "Time left",
+  "dashboardSortAscending": "Ascending",
+  "dashboardSortDescending": "Descending",
+  "dashboardLocationAll": "All locations",
+  "dashboardLocationsManage": "Manage locations",
+  "dashboardGroupUngrouped": "No location",
+  "dashboardGroupUnknownModel": "Unknown model"
 }

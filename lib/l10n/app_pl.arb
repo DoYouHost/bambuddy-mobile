@@ -22,7 +22,7 @@
   "noPrinters": "Brak drukarek — dodaj je na serwerze",
   "noSearchResults": "Brak wyników dla „{query}”",
   "noPrintersMatchFilters": "Żadna drukarka nie pasuje do filtrów",
-  "dashboardFilters": "Filtry",
+  "dashboardFilters": "Filtry i sortowanie",
   "filterStatus": "Status",
   "filtersClear": "Wyczyść",
   "hideOffline": "Ukryj offline",
@@ -3379,5 +3379,16 @@
   "printerLocationsDeleted": "Usunięte lokalizacje: {count}",
   "printerLocationsMoved": "Przeniesione drukarki: {count}",
   "printerLocationsNameTaken": "Lokalizacja o tej nazwie już istnieje",
-  "printerLocationsReadOnly": "Lokalizacje może zmieniać tylko konto użytkownika — klucz API może je jedynie odczytać."
+  "printerLocationsReadOnly": "Lokalizacje może zmieniać tylko konto użytkownika — klucz API może je jedynie odczytać.",
+  "dashboardSortTitle": "Sortuj wg",
+  "dashboardSortName": "Nazwa",
+  "dashboardSortModel": "Model",
+  "dashboardSortLocation": "Lokalizacja",
+  "dashboardSortEta": "Pozostały czas",
+  "dashboardSortAscending": "Rosnąco",
+  "dashboardSortDescending": "Malejąco",
+  "dashboardLocationAll": "Wszystkie lokalizacje",
+  "dashboardLocationsManage": "Zarządzaj lokalizacjami",
+  "dashboardGroupUngrouped": "Bez lokalizacji",
+  "dashboardGroupUnknownModel": "Nieznany model"
 }

@@ -85,7 +85,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Ninguna impresora coincide con los filtros actuales';
 
   @override
-  String get dashboardFilters => 'Filtros';
+  String get dashboardFilters => 'Filtros y orden';
 
   @override
   String get filterStatus => 'Estado';
@@ -8218,4 +8218,37 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get printerLocationsReadOnly =>
       'Solo una cuenta de usuario puede cambiar las ubicaciones; una clave de API solo puede leerlas.';
+
+  @override
+  String get dashboardSortTitle => 'Ordenar por';
+
+  @override
+  String get dashboardSortName => 'Nombre';
+
+  @override
+  String get dashboardSortModel => 'Modelo';
+
+  @override
+  String get dashboardSortLocation => 'Ubicación';
+
+  @override
+  String get dashboardSortEta => 'Tiempo restante';
+
+  @override
+  String get dashboardSortAscending => 'Ascendente';
+
+  @override
+  String get dashboardSortDescending => 'Descendente';
+
+  @override
+  String get dashboardLocationAll => 'Todas las ubicaciones';
+
+  @override
+  String get dashboardLocationsManage => 'Gestionar ubicaciones';
+
+  @override
+  String get dashboardGroupUngrouped => 'Sin ubicación';
+
+  @override
+  String get dashboardGroupUnknownModel => 'Modelo desconocido';
 }

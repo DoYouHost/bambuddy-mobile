@@ -28,6 +28,8 @@ import '../common/server_version_text.dart';
 import '../common/dash_search_field.dart';
 import 'card_collapse_providers.dart';
 import 'dashboard_filters.dart';
+import 'dashboard_sort.dart';
+import 'dashboard_view_store.dart';
 import 'providers.dart';
 import 'scheduled_drying_providers.dart';
 import 'smart_plugs_providers.dart';
@@ -464,7 +466,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final state = ref.watch(dashboardProvider);
     final profile = ref.watch(serverProfileProvider);
     final statuses = ref.watch(printerStatusesProvider);
+    ref.watch(dashboardViewPersistenceProvider);
     final filters = ref.watch(dashboardFiltersProvider);
+    final sort = ref.watch(dashboardSortProvider);
+    final collapsedGroups = ref.watch(dashboardCollapsedGroupsProvider);
     final collapse = ref.watch(printerCardCollapseProvider);
     final wsState = ref.watch(wsConnectionStateProvider).valueOrNull;
     final t = DashTokens.of(context);
@@ -555,7 +560,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 tone: BannerTone.info,
               ),
             Expanded(
-              child: _body(context, state, statuses, filters, collapse, l10n),
+              child: _body(
+                context,
+                state,
+                statuses,
+                filters,
+                sort,
+                collapsedGroups,
+                collapse,
+                l10n,
+              ),
             ),
           ],
         ),
@@ -573,6 +587,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     DashboardState state,
     Map<int, PrinterStatus> statuses,
     DashboardFilters filters,
+    DashboardSort sort,
+    Set<String> collapsedGroups,
     PrinterCardCollapse collapse,
     AppLocalizations l10n,
   ) {
@@ -602,12 +618,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     // Roster from polling, statuses from the WS + poll lanes.
     final printers = withLiveStatuses(state.printers!, statuses);
+    final locations = printerLocationsOf([
+      for (final p in printers) p.printer.location,
+    ]);
+    // A saved location can outlive what it matched — renamed, cleared, or the
+    // only printer that had it gone. Left in place it would hide every printer,
+    // and with it the control to undo it (the web's #2833).
+    if (filters.location != null && !locations.contains(filters.location)) {
+      Future.microtask(
+        () => ref.read(dashboardFiltersProvider.notifier).state = ref
+            .read(dashboardFiltersProvider)
+            .copyWith(location: null),
+      );
+    }
     final q = _query.trim().toLowerCase();
-    final filtered = [
+    final filtered = sortPrinters([
       for (final p in printers)
         if ((q.isEmpty || p.printer.name.toLowerCase().contains(q)) &&
-            filters.matches(classifyPrinter(p.status)))
+            filters.matches(classifyPrinter(p.status), p.printer.location))
           p,
+    ], sort);
+    final groups = groupPrinters(filtered, sort);
+    // Headers and printers in one flat list, so a folded section simply has
+    // none of its printers in it.
+    final rows = <Object>[
+      if (groups == null)
+        ...filtered
+      else
+        for (final g in groups) ...[
+          g,
+          if (!collapsedGroups.contains(g.key)) ...g.printers,
+        ],
     ];
 
     // Show the search + filter row whenever there is more than one printer, or
@@ -672,12 +713,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             SliverPadding(
               padding: const EdgeInsets.only(bottom: DashSpace.sm),
               sliver: SliverList.builder(
-                itemCount: filtered.length,
+                itemCount: rows.length,
                 itemBuilder: (_, i) {
-                  final id = filtered[i].printer.id;
+                  final row = rows[i];
+                  if (row is PrinterGroup) {
+                    return _GroupHeader(
+                      group: row,
+                      open: !collapsedGroups.contains(row.key),
+                      onToggle: () =>
+                          ref
+                              .read(dashboardCollapsedGroupsProvider.notifier)
+                              .state = {
+                            ...collapsedGroups.difference({row.key}),
+                            if (!collapsedGroups.contains(row.key)) row.key,
+                          },
+                    );
+                  }
+                  final item = row as PrinterWithStatus;
+                  final id = item.printer.id;
                   return PrinterCard(
                     key: ValueKey(id),
-                    item: filtered[i],
+                    item: item,
                     inTouchSince: ref
                         .read(printerStatusesProvider.notifier)
                         .inTouchSince,
@@ -694,6 +750,84 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 }
+
+/// The heading of one section of the list — a location, a model or a status
+/// — with its count; a tap folds the printers under it away.
+class _GroupHeader extends StatelessWidget {
+  const _GroupHeader({
+    required this.group,
+    required this.open,
+    required this.onToggle,
+  });
+
+  final PrinterGroup group;
+  final bool open;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final bucket = group.bucket;
+    final label = bucket != null
+        ? statusBucketLabel(l10n, bucket)
+        : group.name ??
+              (group.key.startsWith('location:')
+                  ? l10n.dashboardGroupUngrouped
+                  : l10n.dashboardGroupUnknownModel);
+    final dot = switch (bucket) {
+      null ||
+      PrinterStatusBucket.idle ||
+      PrinterStatusBucket.printing => t.accentGreen,
+      PrinterStatusBucket.error => t.danger,
+      PrinterStatusBucket.paused => t.warning,
+      PrinterStatusBucket.finished => t.accentBlue,
+      _ => t.textTertiary,
+    };
+    return logTag(
+      'dashboard.group',
+      expanded: open,
+      InkWell(
+        onTap: onToggle,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            DashSpace.md,
+            DashSpace.gutter,
+            DashSpace.xs,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                open ? Icons.expand_more : Icons.chevron_right,
+                color: t.textSecondary,
+              ),
+              const SizedBox(width: DashSpace.sm),
+              DecoratedBox(
+                decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                child: const SizedBox.square(dimension: _groupDotSize),
+              ),
+              const SizedBox(width: DashSpace.sm),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.titleMd,
+                ),
+              ),
+              const SizedBox(width: DashSpace.sm),
+              Text('(${group.printers.length})', style: t.bodyPlain),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The coloured dot before a section's name.
+const _groupDotSize = 8.0;
 
 /// Navigation drawer with "app-level" screens (secondary to bottom bar tabs):
 /// Statistics, Notifications, change server. Hamburger auto-appears in
@@ -861,19 +995,6 @@ class _AppDrawer extends ConsumerWidget {
                     },
                     id: 'drawer.stats',
                   ),
-                  // The version table answers before any request: a 1.2.6 daily
-                  // older than the feature shows the entry, and the 404 the
-                  // screen then meets on its listing takes it away.
-                  if (ref.watch(printerLocationsSupportedProvider).orFalse)
-                    _DrawerTile(
-                      icon: Icons.place_outlined,
-                      label: l10n.printerLocationsMenu,
-                      onTap: () {
-                        Navigator.pop(context);
-                        context.push('/locations');
-                      },
-                      id: 'drawer.locations',
-                    ),
                   // Absent until a call has proved the routes are there and this
                   // session may read them: an older server 404s, and an API key
                   // was refused every pipeline permission before server 1.2.5.3.

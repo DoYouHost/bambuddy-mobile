@@ -7,6 +7,8 @@ import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../dashboard/dashboard_filters.dart';
+import '../dashboard/widgets/dashboard_filter_sheet.dart'
+    show statusBucketLabel;
 import 'printer_location_icons.dart';
 
 /// The colour stripe on a [LocationIconTile].
@@ -214,33 +216,13 @@ class LocationPrinterRow extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final bucket = classifyPrinter(printer.status);
-    final (label, accent, ink) = switch (bucket) {
-      PrinterStatusBucket.printing => (
-        l10n.statusPrinting,
-        t.accentOrange,
-        t.accentOrangeInk,
-      ),
-      PrinterStatusBucket.paused => (
-        l10n.statusPaused,
-        t.warning,
-        t.warningInk,
-      ),
-      PrinterStatusBucket.finished => (
-        l10n.statusFinished,
-        t.accentGreen,
-        t.accentGreenInk,
-      ),
-      PrinterStatusBucket.error => (
-        l10n.statusErrorFilter,
-        t.danger,
-        t.dangerInk,
-      ),
-      PrinterStatusBucket.offline => (
-        l10n.statusOfflineFilter,
-        t.textTertiary,
-        t.textSecondary,
-      ),
-      _ => (l10n.statusIdle, t.textSecondary, t.textSecondary),
+    final (accent, ink) = switch (bucket) {
+      PrinterStatusBucket.printing => (t.accentOrange, t.accentOrangeInk),
+      PrinterStatusBucket.paused => (t.warning, t.warningInk),
+      PrinterStatusBucket.finished => (t.accentGreen, t.accentGreenInk),
+      PrinterStatusBucket.error => (t.danger, t.dangerInk),
+      PrinterStatusBucket.offline => (t.textTertiary, t.textSecondary),
+      _ => (t.textSecondary, t.textSecondary),
     };
     final model = printer.printer.model;
     return Padding(
@@ -292,7 +274,7 @@ class LocationPrinterRow extends StatelessWidget {
               ),
               const SizedBox(width: DashSpace.sm),
               DashPill(
-                label: label,
+                label: statusBucketLabel(l10n, bucket),
                 accent: accent,
                 accentInk: ink,
                 leadingDot: true,
