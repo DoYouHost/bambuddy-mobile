@@ -6,6 +6,7 @@
 library;
 
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' show Color;
 
 /// Label stock the server can render onto. Wire values must match the
@@ -50,6 +51,87 @@ enum SpoolLabelTemplate {
   }
 }
 
+/// One line a label can carry (`LabelField` in the server's `label_renderer.py`).
+/// Declared in the order the web picker lists them, which is the order the
+/// app's picker uses.
+enum SpoolLabelField {
+  brand('brand'),
+  material('material'),
+  hex('hex'),
+  name('name'),
+  location('location'),
+  materialNumber('material_number'),
+  temps('temps'),
+  weight('weight'),
+  note('note'),
+  added('added'),
+  qr('qr'),
+  spoolId('spool_id');
+
+  const SpoolLabelField(this.wire);
+
+  final String wire;
+
+  /// What a label carried before the choice existed
+  /// (`DEFAULT_LABEL_FIELDS`), and what the server prints when `fields` is
+  /// left out.
+  static const defaults = {brand, material, hex, name, location, qr, spoolId};
+
+  static SpoolLabelField? fromWire(Object? wire) =>
+      values.where((f) => f.wire == wire).firstOrNull;
+}
+
+/// What the server answers with: a PDF, or PNG images of it.
+enum SpoolLabelFormat {
+  pdf('pdf'),
+  png('png');
+
+  const SpoolLabelFormat(this.wire);
+
+  final String wire;
+
+  static SpoolLabelFormat fromName(Object? name) =>
+      values.where((f) => f.name == name).firstOrNull ?? pdf;
+}
+
+/// Resolutions the server rasterises at (`dpi` is a `Literal[203, 300, 600]`;
+/// anything else is a 422). 203 and 300 are the common thermal printers.
+const spoolLabelDpiChoices = [203, 300, 600];
+
+/// What the label route sent back, told from the first bytes: the response has
+/// a `Content-Type`, but the repository hands on bytes alone.
+enum SpoolLabelFile {
+  pdf('pdf', 'application/pdf'),
+  png('png', 'image/png'),
+  zip('zip', 'application/zip');
+
+  const SpoolLabelFile(this.extension, this.mimeType);
+
+  final String extension;
+  final String mimeType;
+
+  /// Null for anything else — a captive portal, an older build without the
+  /// route, the demo backend's `{}`.
+  static SpoolLabelFile? of(Uint8List bytes) {
+    bool starts(List<int> magic) =>
+        bytes.length >= magic.length &&
+        [
+          for (var i = 0; i < magic.length; i++) bytes[i] == magic[i],
+        ].every((same) => same);
+    if (starts(const [0x25, 0x50, 0x44, 0x46])) return pdf; // %PDF
+    if (starts(const [0x89, 0x50, 0x4E, 0x47])) return png; // \x89PNG
+    if (starts(const [0x50, 0x4B, 0x03, 0x04])) return zip; // PK\x03\x04
+    return null;
+  }
+
+  /// Whether this is what a request for [format] is answered with: a PNG
+  /// request gets one PNG or, for several labels, a ZIP of them.
+  bool answers(SpoolLabelFormat format) => switch (format) {
+    SpoolLabelFormat.pdf => this == pdf,
+    SpoolLabelFormat.png => this == png || this == zip,
+  };
+}
+
 /// Server-side cap on one label request (`MAX_LABELS_PER_REQUEST`). Asking for
 /// more is a 422, so the UI blocks the print instead of sending it.
 const maxSpoolLabelsPerRequest = 500;
@@ -67,6 +149,9 @@ class SpoolLabelRequest {
     required this.template,
     this.monochrome = false,
     this.startingPosition = 1,
+    this.fields,
+    this.format = SpoolLabelFormat.pdf,
+    this.dpi = 300,
   }) : assert(startingPosition >= 1, 'sheet positions are numbered from 1');
 
   /// Also the print order: the server renders in the order it receives ids, so
@@ -84,6 +169,17 @@ class SpoolLabelRequest {
   /// the only value a roll template accepts.
   final int startingPosition;
 
+  /// The lines to print, or null for the server's own default. Only for a
+  /// server that has them — see [ServerFeature.labelFields].
+  final Set<SpoolLabelField>? fields;
+
+  /// [SpoolLabelFormat.png] answers one PNG, or a ZIP of them for several
+  /// labels. Only for a server that has it.
+  final SpoolLabelFormat format;
+
+  /// PNG only; the server ignores it for a PDF.
+  final int dpi;
+
   Map<String, dynamic> toJson() => {
     'spool_ids': spoolIds,
     'template': template.wire,
@@ -93,6 +189,10 @@ class SpoolLabelRequest {
     // it unasked would put a key on the wire that proves nothing about who
     // honoured it.
     if (startingPosition > 1) 'starting_position': startingPosition,
+    // The same rule for the three below: absent is the server's default, and
+    // an older server would drop them without a word.
+    if (fields != null) 'fields': [for (final f in fields!) f.wire],
+    if (format != SpoolLabelFormat.pdf) ...{'format': format.wire, 'dpi': dpi},
   };
 }
 

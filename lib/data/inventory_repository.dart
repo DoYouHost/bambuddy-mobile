@@ -63,6 +63,14 @@ class InventoryRepository {
     _serverVersion,
   );
 
+  /// Whether a label request may carry `fields`, `format` and `dpi` (server
+  /// #2981). Never observed, like [labelStartingPositionCapability]: an older
+  /// server answers a valid PDF to a request that asked for a PNG.
+  late final labelFieldsCapability = ObservedCapability(
+    ServerFeature.labelFields,
+    _serverVersion,
+  );
+
   /// Whether this server stores a material number on a spool (#2870). One
   /// latch for both backends: Spoolman rows carry the key too, and only the
   /// native one is writable.

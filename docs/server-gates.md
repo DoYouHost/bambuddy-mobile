@@ -140,6 +140,17 @@ than the commit is told yes and prints from position 1, which is the same sheet
 it prints today: being early costs a wasted sheet of labels, not a refused
 request.
 
+### labelFields — 1.2.6 (server #2981)
+
+`fields`, `format` and `dpi` on the two label routes — which lines a label
+carries, and a PNG (one label) or ZIP (several) instead of a PDF.
+
+Version-only, like `labelStartingPosition`: `LabelRequest` forbids no extra
+fields, so an older server takes all three and answers a PDF with the default
+lines. The response is still a valid file, so nothing can be observed. Being
+early costs a PDF where a PNG was asked for; the app checks the bytes it got
+against the format it asked for and says so instead of saving a PDF as `.png`.
+
 ### printerFilesDownloadJob — 1.2.6 (server #2850)
 
 `POST /printers/{id}/files/download-job` and the two routes that go with it — a

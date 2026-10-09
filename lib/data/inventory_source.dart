@@ -200,18 +200,11 @@ abstract class SpoolInventorySource {
   );
 }
 
-/// Whether [bytes] open with `%PDF`, the magic number every PDF starts with.
-bool _looksLikePdf(Uint8List bytes) =>
-    bytes.length >= 4 &&
-    bytes[0] == 0x25 && // %
-    bytes[1] == 0x50 && // P
-    bytes[2] == 0x44 && // D
-    bytes[3] == 0x46; //  F
-
 /// Shared label-render call — the two backends differ only in path, since both
-/// routes take the same body and stream back a PDF.
+/// routes take the same body and stream back a PDF, or PNG images of it.
 ///
-/// The result is verified to actually BE a PDF before it reaches the caller.
+/// The result is verified to actually BE what the request asked for before it
+/// reaches the caller — an older server answers a PDF to a PNG request.
 /// A server that answers 200 with something else (an older build without the
 /// label routes, a captive portal, the demo backend — whose catch-all answers
 /// every unrouted POST with `{}`) would otherwise reach the platform print
@@ -225,16 +218,17 @@ Future<Uint8List> _postLabels(
   final res = await dio.post<List<int>>(
     path,
     data: request.toJson(),
-    // The response is a PDF stream, not JSON — without this Dio's default
+    // The response is a file, not JSON — without this Dio's default
     // JSON transformer would try to decode it and throw.
     options: Options(responseType: ResponseType.bytes),
   );
   final bytes = Uint8List.fromList(res.data ?? const []);
-  if (!_looksLikePdf(bytes)) {
+  if (!(SpoolLabelFile.of(bytes)?.answers(request.format) ?? false)) {
     throw ApiException(
       AppErrorCode.malformedResponse,
       statusCode: res.statusCode,
-      detail: 'Expected a PDF from $path, got ${bytes.length} bytes',
+      detail:
+          'Expected ${request.format.wire} from $path, got ${bytes.length} bytes',
     );
   }
   return bytes;

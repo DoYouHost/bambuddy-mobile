@@ -177,6 +177,7 @@ void main() {
           ServerFeature.usersSlimListing,
           ServerFeature.printLogCostEnergy,
           ServerFeature.labelStartingPosition,
+          ServerFeature.labelFields,
           ServerFeature.printerFilesDownloadJob,
           ServerFeature.scheduledDryings,
           ServerFeature.archivePrinterMedia,

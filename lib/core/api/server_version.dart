@@ -35,6 +35,9 @@ enum ServerFeature {
   /// `starting_position` on the two label routes, taken and ignored below it.
   labelStartingPosition,
 
+  /// `fields`, `format` and `dpi` on the two label routes, taken and ignored below it.
+  labelFields,
+
   /// `POST /printers/{id}/files/download-job` and the two routes with it.
   printerFilesDownloadJob,
 
@@ -170,6 +173,7 @@ class ServerVersion implements Comparable<ServerVersion> {
     // on the 0.2.4.x servers that serve it.
     ServerFeature.printerSensorHistory: (0, 2, 4, 8),
     ServerFeature.labelStartingPosition: (1, 2, 6, 0),
+    ServerFeature.labelFields: (1, 2, 6, 0),
     ServerFeature.printerFilesDownloadJob: (1, 2, 6, 0),
     ServerFeature.scheduledDryings: (1, 2, 6, 0),
     ServerFeature.archivePrinterMedia: (1, 2, 6, 0),
