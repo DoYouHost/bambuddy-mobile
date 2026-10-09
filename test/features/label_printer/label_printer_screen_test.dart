@@ -92,7 +92,7 @@ void main() {
       tester,
       stored: {'label_printer_url': 'http://10.0.0.5:8000'},
     );
-    await tester.tap(find.text(l10n.labelPrinterRemove));
+    await tester.tap(find.byTooltip(l10n.labelPrinterRemove));
     await tester.pumpAndSettle();
 
     expect(prefs.getString('label_printer_url'), isNull);

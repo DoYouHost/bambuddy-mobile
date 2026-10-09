@@ -192,22 +192,51 @@ class _LabelPrinterScreenState extends ConsumerState<LabelPrinterScreen> {
     );
     final stock = info.valueOrNull;
     return Padding(
-      padding: const EdgeInsets.all(DashSpace.md),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.md,
+        DashSpace.md,
+        DashSpace.xs,
+        DashSpace.md,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(saved, style: t.monoLabel),
-          const SizedBox(height: DashSpace.xs),
-          Text(line, style: t.body),
-          if (stock != null && !stock.takesSpoolLabels)
-            InlineNote(l10n.labelPrinterWrongStock(stock.labelId ?? '?')),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: _remove,
-              child: Text(l10n.labelPrinterRemove),
-            ).tagged('label_printer.remove'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: DashSpace.xs),
+                child: Icon(
+                  Icons.print_outlined,
+                  size: 20,
+                  color: t.accentGreenInk,
+                ),
+              ),
+              const SizedBox(width: DashSpace.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(line, style: t.bodyBold),
+                    const SizedBox(height: DashSpace.xs),
+                    Text(saved, style: t.microSoft),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _remove,
+                tooltip: l10n.labelPrinterRemove,
+                icon: const Icon(Icons.delete_outline),
+              ).tagged('label_printer.remove'),
+            ],
           ),
+          if (stock != null && !stock.takesSpoolLabels)
+            Padding(
+              padding: const EdgeInsets.only(right: DashSpace.md),
+              child: InlineNote(
+                l10n.labelPrinterWrongStock(stock.labelId ?? '?'),
+              ),
+            ),
         ],
       ),
     );
