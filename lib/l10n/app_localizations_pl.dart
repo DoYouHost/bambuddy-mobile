@@ -7985,4 +7985,11 @@ class AppLocalizationsPl extends AppLocalizations {
   String labelPrinterRefused(String detail) {
     return 'Drukarka etykiet odrzuciła zadanie: $detail';
   }
+
+  @override
+  String get labelPrinterSetUp => 'Skonfiguruj drukarkę etykiet';
+
+  @override
+  String get labelPrinterSetUpHint =>
+      'Drukuj te etykiety na serwerze druku Brother QL w Twojej sieci';
 }

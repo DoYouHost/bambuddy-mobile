@@ -3987,5 +3987,7 @@
   "labelPrinterSent": "An den Etikettendrucker gesendet",
   "labelPrinterFailed": "Der Etikettendrucker hat den Auftrag nicht angenommen",
   "labelPrinterUnreachable": "Der Etikettendrucker antwortet nicht",
-  "labelPrinterRefused": "Der Etikettendrucker hat den Auftrag abgelehnt: {detail}"
+  "labelPrinterRefused": "Der Etikettendrucker hat den Auftrag abgelehnt: {detail}",
+  "labelPrinterSetUp": "Etikettendrucker einrichten",
+  "labelPrinterSetUpHint": "Diese Etiketten über einen Brother-QL-Druckserver in deinem Netzwerk drucken"
 }

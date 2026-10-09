@@ -13171,6 +13171,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The label printer refused the job: {detail}'**
   String labelPrinterRefused(String detail);
+
+  /// No description provided for @labelPrinterSetUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up a label printer'**
+  String get labelPrinterSetUp;
+
+  /// No description provided for @labelPrinterSetUpHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print these labels on a Brother QL print server in your network'**
+  String get labelPrinterSetUpHint;
 }
 
 class _AppLocalizationsDelegate

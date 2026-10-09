@@ -37,6 +37,14 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
   late bool _toLabelPrinter = ref.read(labelPrinterUrlProvider) != null;
   bool _busy = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // Follows a print server that got a new address; the row below reads the
+    // result through the provider whenever it lands.
+    unawaited(ref.read(labelPrinterUrlProvider.notifier).refresh());
+  }
+
   /// Spools in print order. The backend prints labels in the order it receives
   /// ids, so sorting here is what makes "by colour" reach the sheet.
   List<Spool> get _sorted {
@@ -222,6 +230,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
             labelPrinter: ref.watch(labelPrinterUrlProvider) == null
                 ? null
                 : _toLabelPrinter,
+            onSetUpLabelPrinter: () => context.push('/settings/label-printer'),
             busy: _busy,
             count: _selected.length,
             onMonochrome: (v) => setState(() => _monochrome = v),
@@ -436,19 +445,22 @@ class _LabelFooter extends StatelessWidget {
     required this.onMonochrome,
     required this.onShare,
     required this.onLabelPrinter,
+    required this.onSetUpLabelPrinter,
     required this.onPrint,
   });
 
   final bool monochrome;
   final bool share;
 
-  /// Null while no label print server is chosen, which hides the row.
+  /// Null while no label print server is chosen: the row then leads to the
+  /// settings screen instead of being a checkbox.
   final bool? labelPrinter;
   final bool busy;
   final int count;
   final ValueChanged<bool> onMonochrome;
   final ValueChanged<bool> onShare;
   final ValueChanged<bool> onLabelPrinter;
+  final VoidCallback onSetUpLabelPrinter;
   final VoidCallback? onPrint;
 
   @override
@@ -479,12 +491,36 @@ class _LabelFooter extends StatelessWidget {
             onChanged: onShare,
             label: l10n.inventoryLabelsShare,
           ),
-          if (labelPrinter != null)
+          if (labelPrinter case final on?)
             _CheckRow(
-              value: labelPrinter!,
+              value: on,
               onChanged: onLabelPrinter,
               label: l10n.labelPrinterPrintOn,
-            ),
+            )
+          else
+            InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: onSetUpLabelPrinter,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+                child: Row(
+                  children: [
+                    Icon(Icons.label_outline, size: 20, color: t.textTertiary),
+                    const SizedBox(width: DashSpace.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(l10n.labelPrinterSetUp, style: t.body),
+                          Text(l10n.labelPrinterSetUpHint, style: t.microSoft),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, size: 20, color: t.textTertiary),
+                  ],
+                ),
+              ),
+            ).tagged('labels.set_up_label_printer'),
           const SizedBox(height: DashSpace.md),
           SizedBox(
             width: double.infinity,

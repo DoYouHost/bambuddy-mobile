@@ -3301,5 +3301,7 @@
   "labelPrinterSent": "Wysłano do drukarki etykiet",
   "labelPrinterFailed": "Drukarka etykiet nie przyjęła zadania",
   "labelPrinterUnreachable": "Drukarka etykiet nie odpowiada",
-  "labelPrinterRefused": "Drukarka etykiet odrzuciła zadanie: {detail}"
+  "labelPrinterRefused": "Drukarka etykiet odrzuciła zadanie: {detail}",
+  "labelPrinterSetUp": "Skonfiguruj drukarkę etykiet",
+  "labelPrinterSetUpHint": "Drukuj te etykiety na serwerze druku Brother QL w Twojej sieci"
 }

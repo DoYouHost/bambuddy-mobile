@@ -7959,4 +7959,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String labelPrinterRefused(String detail) {
     return 'La impresora de etiquetas rechazó el trabajo: $detail';
   }
+
+  @override
+  String get labelPrinterSetUp => 'Configurar una impresora de etiquetas';
+
+  @override
+  String get labelPrinterSetUpHint =>
+      'Imprime estas etiquetas en un servidor de impresión Brother QL de tu red';
 }

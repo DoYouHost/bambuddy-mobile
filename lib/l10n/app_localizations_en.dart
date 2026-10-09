@@ -7858,4 +7858,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String labelPrinterRefused(String detail) {
     return 'The label printer refused the job: $detail';
   }
+
+  @override
+  String get labelPrinterSetUp => 'Set up a label printer';
+
+  @override
+  String get labelPrinterSetUpHint =>
+      'Print these labels on a Brother QL print server in your network';
 }

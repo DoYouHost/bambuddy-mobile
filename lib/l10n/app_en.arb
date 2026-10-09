@@ -5054,5 +5054,7 @@
         "type": "String"
       }
     }
-  }
+  },
+  "labelPrinterSetUp": "Set up a label printer",
+  "labelPrinterSetUpHint": "Print these labels on a Brother QL print server in your network"
 }

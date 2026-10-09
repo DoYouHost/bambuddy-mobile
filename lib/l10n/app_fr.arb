@@ -3987,5 +3987,7 @@
   "labelPrinterSent": "Envoyé à l'imprimante d'étiquettes",
   "labelPrinterFailed": "L'imprimante d'étiquettes n'a pas accepté le travail",
   "labelPrinterUnreachable": "L'imprimante d'étiquettes ne répond pas",
-  "labelPrinterRefused": "L'imprimante d'étiquettes a refusé le travail : {detail}"
+  "labelPrinterRefused": "L'imprimante d'étiquettes a refusé le travail : {detail}",
+  "labelPrinterSetUp": "Configurer une imprimante d'étiquettes",
+  "labelPrinterSetUpHint": "Imprimez ces étiquettes sur un serveur d'impression Brother QL de votre réseau"
 }

@@ -8033,4 +8033,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String labelPrinterRefused(String detail) {
     return 'L\'imprimante d\'étiquettes a refusé le travail : $detail';
   }
+
+  @override
+  String get labelPrinterSetUp => 'Configurer une imprimante d\'étiquettes';
+
+  @override
+  String get labelPrinterSetUpHint =>
+      'Imprimez ces étiquettes sur un serveur d\'impression Brother QL de votre réseau';
 }

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/spool_label.dart';
+import 'package:bambuddy_mobile/core/network/label_printer_discovery.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/inventory_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
@@ -79,11 +80,23 @@ class _RecordingLabelPrinter extends LabelPrinterRepository {
 class _NoUrl extends LabelPrinterUrlNotifier {
   @override
   String? build() => null;
+
+  // The real one reads preferences these tests do not provide.
+  @override
+  Future<void> refresh({
+    Stream<List<DiscoveredLabelPrinter>> Function()? discover,
+  }) async {}
 }
 
 class _ChosenUrl extends LabelPrinterUrlNotifier {
   @override
   String? build() => 'http://10.0.0.5:8000';
+
+  // The real one reads preferences these tests do not provide.
+  @override
+  Future<void> refresh({
+    Stream<List<DiscoveredLabelPrinter>> Function()? discover,
+  }) async {}
 }
 
 class _NullProfile extends ServerProfileNotifier {
@@ -240,10 +253,9 @@ void main() {
       await settle(tester);
     }
 
-    testWidgets('the option is offered only once a server is chosen', (
-      tester,
-    ) async {
+    testWidgets('without a server the row leads to its setup', (tester) async {
       await openSheet(tester, chosen: false);
+      expect(find.text(l10n.labelPrinterSetUp), findsOneWidget);
       expect(find.text(l10n.labelPrinterPrintOn), findsNothing);
     });
 
@@ -253,6 +265,7 @@ void main() {
       final printer = _RecordingLabelPrinter();
       await openSheet(tester, chosen: true, printer: printer);
       expect(find.text(l10n.labelPrinterPrintOn), findsOneWidget);
+      expect(find.text(l10n.labelPrinterSetUp), findsNothing);
 
       await tester.tap(find.text('${l10n.inventoryLabelsPrint} (1)'));
       await settle(tester);

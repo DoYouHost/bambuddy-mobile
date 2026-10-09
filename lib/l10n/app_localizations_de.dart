@@ -7933,4 +7933,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String labelPrinterRefused(String detail) {
     return 'Der Etikettendrucker hat den Auftrag abgelehnt: $detail';
   }
+
+  @override
+  String get labelPrinterSetUp => 'Etikettendrucker einrichten';
+
+  @override
+  String get labelPrinterSetUpHint =>
+      'Diese Etiketten über einen Brother-QL-Druckserver in deinem Netzwerk drucken';
 }
