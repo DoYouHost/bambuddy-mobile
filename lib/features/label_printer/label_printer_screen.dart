@@ -64,7 +64,7 @@ class _LabelPrinterScreenState extends ConsumerState<LabelPrinterScreen> {
 
   /// Saves [raw] only if something there answers as a label print server — a
   /// typo kept silently would surface as a failed print much later.
-  Future<void> _use(String raw) async {
+  Future<void> _use(String raw, {String? name}) async {
     final url = normalizeLabelPrinterUrl(raw);
     if (url.isEmpty) return;
     setState(() {
@@ -82,7 +82,7 @@ class _LabelPrinterScreenState extends ConsumerState<LabelPrinterScreen> {
       });
       return;
     }
-    await ref.read(labelPrinterUrlProvider.notifier).set(url);
+    await ref.read(labelPrinterUrlProvider.notifier).set(url, name: name);
     if (!mounted) return;
     _address.text = url;
     setState(() => _checking = false);
@@ -140,7 +140,7 @@ class _LabelPrinterScreenState extends ConsumerState<LabelPrinterScreen> {
                 icon: Icons.print_outlined,
                 title: p.name,
                 subtitle: p.baseUrl,
-                onTap: _checking ? () {} : () => _use(p.baseUrl),
+                onTap: _checking ? () {} : () => _use(p.baseUrl, name: p.name),
                 id: 'label_printer.found',
               ),
             const SizedBox(height: DashSpace.xl),

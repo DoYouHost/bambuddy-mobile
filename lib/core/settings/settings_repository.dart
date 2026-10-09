@@ -35,6 +35,7 @@ class SettingsRepository {
   static const _sliceOnlyOnlineKey = 'slice_only_online_printers';
   static const _sliceOnlyLoadedKey = 'slice_only_loaded_spools';
   static const _labelPrinterUrlKey = 'label_printer_url';
+  static const _labelPrinterNameKey = 'label_printer_name';
   static const _wallHiddenPrintersKey = 'wall_hidden_printer_ids';
 
   final SharedPreferences _prefs;
@@ -150,6 +151,15 @@ class SettingsRepository {
   Future<void> saveLabelPrinterUrl(String? url) => url == null
       ? _prefs.remove(_labelPrinterUrlKey)
       : _prefs.setString(_labelPrinterUrlKey, url);
+
+  /// The mDNS instance name of the chosen label print server, kept so its
+  /// address can be found again when the router hands it a new one. Null for an
+  /// address typed by hand.
+  String? loadLabelPrinterName() => _prefs.getString(_labelPrinterNameKey);
+
+  Future<void> saveLabelPrinterName(String? name) => name == null
+      ? _prefs.remove(_labelPrinterNameKey)
+      : _prefs.setString(_labelPrinterNameKey, name);
 
   bool loadWallKeepAwake() => _prefs.getBool(_wallKeepAwakeKey) ?? true;
 

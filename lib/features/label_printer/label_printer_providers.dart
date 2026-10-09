@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/label_printer.dart';
+import '../../core/network/label_printer_discovery.dart';
 import '../../data/label_printer_repository.dart';
 import '../../providers.dart';
 
@@ -16,9 +17,37 @@ class LabelPrinterUrlNotifier extends Notifier<String?> {
   String? build() =>
       ref.watch(settingsRepositoryProvider).loadLabelPrinterUrl();
 
-  Future<void> set(String? url) async {
-    await ref.read(settingsRepositoryProvider).saveLabelPrinterUrl(url);
+  /// [name] is the mDNS instance name when the server was found by search; it
+  /// is what [refresh] looks for after the address changes.
+  Future<void> set(String? url, {String? name}) async {
+    final settings = ref.read(settingsRepositoryProvider);
+    await settings.saveLabelPrinterUrl(url);
+    await settings.saveLabelPrinterName(url == null ? null : name);
     state = url;
+  }
+
+  /// Follows a server that moved: when the saved address no longer answers and
+  /// the server was found by search, looks for it again by name and takes its
+  /// new address. Silent on every failure — the print itself reports a server
+  /// that cannot be reached.
+  Future<void> refresh({
+    Stream<List<DiscoveredLabelPrinter>> Function() discover =
+        discoverLabelPrinters,
+  }) async {
+    final name = ref.read(settingsRepositoryProvider).loadLabelPrinterName();
+    final url = state;
+    if (name == null || url == null) return;
+    if (await ref.read(labelPrinterRepositoryProvider)?.info() != null) return;
+    try {
+      await for (final found in discover()) {
+        final match = found.where((p) => p.name == name).firstOrNull;
+        if (match == null) continue;
+        if (match.baseUrl != url) await set(match.baseUrl, name: name);
+        return;
+      }
+    } on Object {
+      // No discovery on this device or network: the saved address stays.
+    }
   }
 }
 
