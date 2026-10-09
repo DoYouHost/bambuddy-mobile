@@ -28,13 +28,8 @@ void main() {
       ]);
     });
 
-    LibraryFolder? find(List<LibraryFolder> tree, String name) {
-      for (final f in tree) {
-        if (f.name == name) return f;
-        if (find(f.children, name) case final hit?) return hit;
-      }
-      return null;
-    }
+    LibraryFolder find(List<LibraryFolder> tree, String name) =>
+        flattenFolders(tree).firstWhere((f) => f.name == name);
 
     Future<bool> goesThrough(Future<void> Function() write) async {
       try {
@@ -50,7 +45,7 @@ void main() {
     /// exactly when the tile offers it.
     Future<void> offeredMatchesServer(String name) async {
       final repo = LibraryRepository(user);
-      final folder = find(await repo.listFolders(), name)!;
+      final folder = find(await repo.listFolders(), name);
       expect(
         await goesThrough(() => repo.renameFolder(folder.id, name)),
         folder.mayRename(me),
@@ -78,7 +73,7 @@ void main() {
       final repo = LibraryRepository(admin);
       await repo.createFolder(name);
       addTearDown(() => _deleteByName(admin, name));
-      final made = find(await repo.listFolders(), name)!;
+      final made = find(await repo.listFolders(), name);
       // Not empty, so delete_own is refused on a pre-#3201 server as well
       // (#1781) and the delete is a refusal on both generations.
       await repo.createFolder('$name-sub', parentId: made.id);
@@ -88,7 +83,7 @@ void main() {
         data: {'shared': true},
       );
 
-      final seen = find(await LibraryRepository(user).listFolders(), name)!;
+      final seen = find(await LibraryRepository(user).listFolders(), name);
       if (seen.canRename != null) {
         expect(seen.canWrite, isTrue);
         expect(seen.canRename, isFalse);
