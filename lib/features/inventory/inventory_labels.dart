@@ -127,6 +127,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                 const SizedBox(height: DashSpace.md),
                 if (_materials.length > 1) ...[
                   _ChipRow(
+                    id: 'spool_labels.material',
                     label: l10n.inventoryLabelsMaterial,
                     options: {
                       null: l10n.inventoryLabelsAllMaterials,
@@ -138,6 +139,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                   const SizedBox(height: DashSpace.sm),
                 ],
                 _ChipRow(
+                  id: 'spool_labels.sort',
                   label: l10n.inventoryLabelsSort,
                   options: {
                     _LabelSort.id: l10n.inventoryLabelsSortById,
@@ -715,15 +717,17 @@ class _StartingPositionSlot extends StatelessWidget {
   }
 }
 
-/// Labelled row of single-choice chips (material filter, sort mode).
+/// Single-choice select (material filter, sort mode, output format, ...).
 class _ChipRow<T> extends StatelessWidget {
   const _ChipRow({
+    required this.id,
     required this.label,
     required this.options,
     required this.value,
     required this.onChanged,
   });
 
+  final String id;
   final String label;
   final Map<T, String> options;
   final T value;
@@ -732,74 +736,23 @@ class _ChipRow<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    return Row(
-      children: [
-        Text(label, style: t.microSoft.legible),
-        const SizedBox(width: DashSpace.sm),
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final e in options.entries)
-                  Padding(
-                    padding: const EdgeInsets.only(right: DashSpace.sm),
-                    child: _MiniChip(
-                      label: e.value,
-                      selected: e.key == value,
-                      onTap: () => onChanged(e.key),
-                    ),
-                  ),
-              ],
-            ),
+    return dashCombo<T>(
+      context,
+      id: id,
+      label: Text(label),
+      textStyle: t.body,
+      initialSelection: value,
+      onSelected: (v) => onChanged(v as T),
+      entries: [
+        for (final e in options.entries)
+          DropdownMenuEntry(
+            value: e.key,
+            label: e.value,
+            // The menu opens in a route of its own, so the field's tag does
+            // not reach its rows.
+            labelWidget: logTag('$id.option', Text(e.value)),
           ),
-        ),
       ],
-    );
-  }
-}
-
-class _MiniChip extends StatelessWidget {
-  const _MiniChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Material(
-      color: selected ? t.accentGreen.withValues(alpha: 0.18) : t.subCard,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: DashSpace.md,
-            vertical: DashSpace.xs,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: selected
-                  ? t.accentGreen.withValues(alpha: 0.6)
-                  : t.subCardBorder,
-            ),
-          ),
-          child: Text(
-            label,
-            style: t.micro.legible.copyWith(
-              color: selected ? t.accentGreenInk : t.textSecondary,
-            ),
-          ),
-        ),
-      ).tagged('labels.chip'),
     );
   }
 }
