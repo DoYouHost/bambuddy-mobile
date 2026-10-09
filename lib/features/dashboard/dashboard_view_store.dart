@@ -20,19 +20,17 @@ class DashboardView {
   /// longer offers would filter every printer out with nothing to explain why
   /// (the web validates the status for the same reason).
   factory DashboardView.fromJson(Map<String, dynamic> json) {
-    T? named<T extends Enum>(List<T> values, Object? name) =>
-        values.where((v) => v.name == name).firstOrNull;
     final location = json['location'];
     return DashboardView(
       filters: DashboardFilters(
         status:
-            named(PrinterStatusBucket.values, json['status']) ??
+            PrinterStatusBucket.values.asNameMap()[json['status']] ??
             PrinterStatusBucket.all,
         hideOffline: json['hide_offline'] == true,
         location: location is String && location.isNotEmpty ? location : null,
       ),
       sort: DashboardSort(
-        by: named(PrinterSort.values, json['sort']) ?? PrinterSort.name,
+        by: PrinterSort.values.asNameMap()[json['sort']] ?? PrinterSort.name,
         ascending: json['ascending'] != false,
       ),
       collapsed: {

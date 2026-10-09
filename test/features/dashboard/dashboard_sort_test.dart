@@ -87,6 +87,31 @@ void main() {
       );
     });
 
+    test('by status a failed print sorts with the errors and a preparing one '
+        'with the printing, as the sections have them', () {
+      final mixed = [
+        _p(1, 'idle'),
+        _p(2, 'failed', state: 'FAILED'),
+        _p(3, 'preparing', state: 'PREPARE'),
+        _p(4, 'run', state: 'RUNNING'),
+      ];
+      expect(
+        _names(
+          sortPrinters(mixed, const DashboardSort(by: PrinterSort.status)),
+        ),
+        ['failed', 'preparing', 'run', 'idle'],
+      );
+    });
+
+    test('names that differ only in case keep one order whichever way they '
+        'arrive', () {
+      final a = [_p(1, 'alpha'), _p(2, 'Alpha')];
+      expect(
+        _names(sortPrinters(a, const DashboardSort())),
+        _names(sortPrinters(a.reversed.toList(), const DashboardSort())),
+      );
+    });
+
     test('by time left: soonest first, then printing without an estimate, '
         'idle, offline', () {
       final mixed = [
@@ -128,9 +153,20 @@ void main() {
       expect(g.map((x) => x.key), [
         'location:Attic',
         'location:Workshop',
-        'location:Ungrouped',
+        'location:',
       ]);
       expect(_names(g[1].printers), ['bravo', 'Delta']);
+    });
+
+    test('a location really called "Ungrouped" is not the section of printers '
+        'with none', () {
+      final odd = [_p(1, 'a', location: 'Ungrouped'), _p(2, 'b')];
+      const by = DashboardSort(by: PrinterSort.location);
+
+      final g = groupPrinters(sortPrinters(odd, by), by)!;
+
+      expect(g.map((x) => x.key), ['location:Ungrouped', 'location:']);
+      expect(g.map((x) => x.name), ['Ungrouped', null]);
     });
 
     test('descending turns the sections round with the printers', () {
@@ -142,7 +178,7 @@ void main() {
 
     test('by model: printers without one share the unknown section', () {
       final g = groups(const DashboardSort(by: PrinterSort.model));
-      expect(g.map((x) => x.key), ['model:Unknown', 'model:P1S', 'model:X1C']);
+      expect(g.map((x) => x.key), ['model:', 'model:P1S', 'model:X1C']);
     });
 
     test('by status: the fixed order, error to offline, empty ones left '

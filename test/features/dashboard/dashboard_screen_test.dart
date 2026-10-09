@@ -622,6 +622,17 @@ void main() {
         'not left hiding the list', (tester) async {
       await remember({'location': 'Gone'});
       await pumpFarm(tester);
+
+      // Already drawn without it, not an empty list for one frame.
+      expect(find.text('Bench'), findsOneWidget);
+      expect(
+        find.text(
+          AppLocalizations.of(
+            tester.element(find.byType(Scaffold).first),
+          ).noPrintersMatchFilters,
+        ),
+        findsNothing,
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Bench'), findsOneWidget);

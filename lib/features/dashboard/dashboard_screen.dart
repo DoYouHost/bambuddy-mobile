@@ -586,7 +586,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     BuildContext context,
     DashboardState state,
     Map<int, PrinterStatus> statuses,
-    DashboardFilters filters,
+    DashboardFilters savedFilters,
     DashboardSort sort,
     Set<String> collapsedGroups,
     PrinterCardCollapse collapse,
@@ -623,13 +623,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ]);
     // A saved location can outlive what it matched — renamed, cleared, or the
     // only printer that had it gone. Left in place it would hide every printer,
-    // and with it the control to undo it (the web's #2833).
-    if (filters.location != null && !locations.contains(filters.location)) {
-      Future.microtask(
-        () => ref.read(dashboardFiltersProvider.notifier).state = ref
-            .read(dashboardFiltersProvider)
-            .copyWith(location: null),
-      );
+    // and with it the control to undo it (the web's #2833). This frame already
+    // draws without it; the saved one is let go of right after.
+    final stale =
+        savedFilters.location != null &&
+        !locations.contains(savedFilters.location);
+    final filters = stale
+        ? savedFilters.copyWith(location: null)
+        : savedFilters;
+    if (stale) {
+      Future.microtask(() {
+        if (mounted) {
+          ref.read(dashboardFiltersProvider.notifier).state = filters;
+        }
+      });
     }
     final q = _query.trim().toLowerCase();
     final filtered = sortPrinters([
@@ -714,19 +721,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               padding: const EdgeInsets.only(bottom: DashSpace.sm),
               sliver: SliverList.builder(
                 itemCount: rows.length,
+                // Cards and headers move when a section folds; finding them by
+                // key keeps a card's state instead of building it again.
+                findChildIndexCallback: (key) {
+                  final i = rows.indexWhere(
+                    (r) => switch (r) {
+                      PrinterGroup g => ValueKey(g.key) == key,
+                      PrinterWithStatus p => ValueKey(p.printer.id) == key,
+                      _ => false,
+                    },
+                  );
+                  return i < 0 ? null : i;
+                },
                 itemBuilder: (_, i) {
                   final row = rows[i];
                   if (row is PrinterGroup) {
                     return _GroupHeader(
+                      key: ValueKey(row.key),
                       group: row,
                       open: !collapsedGroups.contains(row.key),
-                      onToggle: () =>
-                          ref
-                              .read(dashboardCollapsedGroupsProvider.notifier)
-                              .state = {
-                            ...collapsedGroups.difference({row.key}),
-                            if (!collapsedGroups.contains(row.key)) row.key,
-                          },
+                      onToggle: () {
+                        // Read now, not the set this frame was built with.
+                        final folded = ref.read(
+                          dashboardCollapsedGroupsProvider,
+                        );
+                        ref
+                            .read(dashboardCollapsedGroupsProvider.notifier)
+                            .state = {
+                          ...folded.difference({row.key}),
+                          if (!folded.contains(row.key)) row.key,
+                        };
+                      },
                     );
                   }
                   final item = row as PrinterWithStatus;
@@ -755,6 +780,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 /// — with its count; a tap folds the printers under it away.
 class _GroupHeader extends StatelessWidget {
   const _GroupHeader({
+    super.key,
     required this.group,
     required this.open,
     required this.onToggle,
@@ -772,7 +798,7 @@ class _GroupHeader extends StatelessWidget {
     final label = bucket != null
         ? statusBucketLabel(l10n, bucket)
         : group.name ??
-              (group.key.startsWith('location:')
+              (group.by == PrinterSort.location
                   ? l10n.dashboardGroupUngrouped
                   : l10n.dashboardGroupUnknownModel);
     final dot = switch (bucket) {

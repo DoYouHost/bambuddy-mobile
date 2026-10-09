@@ -1,7 +1,6 @@
 import 'package:collection/collection.dart';
 
 import '../../core/models/printer_status.dart';
-import '../../core/notifications/hms_catalog.dart';
 import '../../data/printers_repository.dart';
 import 'dashboard_filters.dart';
 
@@ -31,20 +30,25 @@ class DashboardSort {
       by == PrinterSort.location;
 }
 
-// ponytail: lower-cased compareTo for the web's localeCompare; collation only
-// differs for accented names.
-int _text(String a, String b) => a.toLowerCase().compareTo(b.toLowerCase());
-
-/// `HMS error > printing > idle > offline`, the web's `status` order. Paused
-/// and finished count as idle here; the sections tell them apart.
-int _statusRank(PrinterStatus? s) {
-  if (!(s?.connected ?? false)) return 3;
-  if (firstDisplayableHmsError(s!, describe: HmsCatalog.instance.describe) !=
-      null) {
-    return 0;
-  }
-  return s.state?.toUpperCase() == 'RUNNING' ? 1 : 2;
+// ponytail: lower-cased compareTo standing in for the web's localeCompare, with
+// the raw strings as tie-break so "Alpha" and "alpha" keep one order whichever
+// way the list arrived. It compares UTF-16 code units, so an accented letter
+// sorts after "z" instead of beside its base letter; real collation needs the
+// intl package's Collator-like support, which Dart does not ship.
+int _text(String a, String b) {
+  final c = a.toLowerCase().compareTo(b.toLowerCase());
+  return c != 0 ? c : a.compareTo(b);
 }
+
+/// Error, printing, idle, offline — the web's `status` order, read off the
+/// same buckets the sections use so the order inside a section and the sections
+/// agree. Paused and finished count as idle here; the sections tell them apart.
+int _statusRank(PrinterStatus? s) => switch (classifyPrinter(s)) {
+  PrinterStatusBucket.error => 0,
+  PrinterStatusBucket.printing => 1,
+  PrinterStatusBucket.offline => 3,
+  _ => 2,
+};
 
 /// The web's `eta` tiers: printing with a time left, printing without, idle,
 /// offline.
@@ -73,6 +77,17 @@ List<PrinterWithStatus> sortPrinters(
     return c != 0 ? c : byName(a, b);
   }
 
+  // Printing with a time left comes by that time, the other tiers by name.
+  int byEta(PrinterWithStatus a, PrinterWithStatus b) {
+    final tier = _etaTier(a.status).compareTo(_etaTier(b.status));
+    if (tier != 0) return tier;
+    if (_etaTier(a.status) == 0) {
+      final left = a.status!.remainingTime!.compareTo(b.status!.remainingTime!);
+      if (left != 0) return left;
+    }
+    return byName(a, b);
+  }
+
   final sorted = [...printers];
   mergeSort(
     sorted,
@@ -83,40 +98,30 @@ List<PrinterWithStatus> sortPrinters(
       PrinterSort.status => _statusRank(
         a.status,
       ).compareTo(_statusRank(b.status)),
-      PrinterSort.eta => _etaOrder(a, b, byName),
+      PrinterSort.eta => byEta(a, b),
     },
   );
   return sort.ascending ? sorted : sorted.reversed.toList();
 }
 
-int _etaOrder(
-  PrinterWithStatus a,
-  PrinterWithStatus b,
-  int Function(PrinterWithStatus, PrinterWithStatus) byName,
-) {
-  final tier = _etaTier(a.status).compareTo(_etaTier(b.status));
-  if (tier != 0) return tier;
-  if (_etaTier(a.status) == 0) {
-    final left = (a.status!.remainingTime ?? 0).compareTo(
-      b.status!.remainingTime ?? 0,
-    );
-    if (left != 0) return left;
-  }
-  return byName(a, b);
-}
-
 /// One headed section of the list.
 class PrinterGroup {
   const PrinterGroup({
+    required this.by,
     required this.key,
     required this.printers,
     this.name,
     this.bucket,
   });
 
+  /// The sort that made this section.
+  final PrinterSort by;
+
   /// What the collapsed state is stored under, with the sort in front of it
   /// (`location:Workshop`): the same printers are grouped differently under
-  /// another sort, and folding one should not fold the other.
+  /// another sort, and folding one should not fold the other. The section of
+  /// printers with no location or model has an empty name (`location:`), so a
+  /// location that is really called "Ungrouped" is a section of its own.
   final String key;
 
   /// The location or model, or null for the section of printers that have
@@ -149,6 +154,7 @@ List<PrinterGroup>? groupPrinters(
     return [
       for (final b in sort.ascending ? order : order.reversed)
         PrinterGroup(
+          by: sort.by,
           key: 'status:${b.name}',
           bucket: b,
           printers: byBucket[b]!,
@@ -166,7 +172,8 @@ List<PrinterGroup>? groupPrinters(
   return [
     for (final e in byName.entries)
       PrinterGroup(
-        key: '${sort.by.name}:${e.key ?? (location ? 'Ungrouped' : 'Unknown')}',
+        by: sort.by,
+        key: '${sort.by.name}:${e.key ?? ''}',
         name: e.key,
         printers: e.value,
       ),
