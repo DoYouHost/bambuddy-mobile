@@ -307,6 +307,25 @@ void main() {
       await tester.pump();
     }
 
+    /// Opens the select named [field] and picks [option] from its menu.
+    Future<void> pickOption(
+      WidgetTester tester,
+      String field,
+      String option,
+    ) async {
+      // The label sits under the field's own text input, so it is scrolled to
+      // by itself and tapped through the field rather than hit-tested.
+      await tester.scrollUntilVisible(
+        find.text(field),
+        120,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(find.text(field), warnIfMissed: false);
+      await settle(tester);
+      await tester.tap(find.text(option).last);
+      await settle(tester);
+    }
+
     /// Opens the label sheet, picks the 62 x 29 stock and stops on the options
     /// sheet.
     Future<ProviderContainer> openOptions(
@@ -467,7 +486,7 @@ void main() {
         templateLabel: l10n.inventoryLabelsBox40,
       );
 
-      await tapOption(tester, find.text(l10n.labelSendPrinter));
+      await pickOption(tester, l10n.labelSendToTitle, l10n.labelSendPrinter);
       await tester.tap(find.text(l10n.inventoryLabelsPrint));
       await settle(tester);
 
@@ -533,7 +552,7 @@ void main() {
       );
       expect(find.text(l10n.labelPrinterCopies), findsOneWidget);
 
-      await tapOption(tester, find.text(l10n.labelSendShare));
+      await pickOption(tester, l10n.labelSendToTitle, l10n.labelSendShare);
       await settle(tester);
       expect(find.text(l10n.labelPrinterCopies), findsNothing);
     });
@@ -541,7 +560,7 @@ void main() {
     testWidgets('an older server is not offered lines or PNG', (tester) async {
       await openOptions(tester);
       expect(find.text(l10n.labelFieldsTitle), findsNothing);
-      expect(find.text('PNG'), findsNothing);
+      expect(find.text(l10n.labelFormatTitle), findsNothing);
     });
 
     testWidgets('unchanged lines are not sent at all', (tester) async {
@@ -618,12 +637,13 @@ void main() {
         fieldsGate: true,
         printer: _RecordingLabelPrinter(),
       );
-      await tapOption(tester, find.text('PNG'));
-      await settle(tester);
-      await tapOption(tester, find.text('203 dpi'));
+      await pickOption(tester, l10n.labelFormatTitle, 'PNG');
+      await pickOption(tester, l10n.labelDpiTitle, '203 dpi');
       await settle(tester);
 
       // A PNG cannot be printed or sent to the print server.
+      await tester.tap(find.text(l10n.labelSendToTitle), warnIfMissed: false);
+      await settle(tester);
       expect(find.text(l10n.labelSendSystem), findsNothing);
       expect(find.text(l10n.labelSendPrinter), findsNothing);
       expect(find.text(l10n.labelSendSave), findsOneWidget);
@@ -681,7 +701,7 @@ void main() {
       await settle(tester);
 
       expect(find.text(l10n.labelOptionsTitle), findsOneWidget);
-      expect(find.text('PNG'), findsOneWidget);
+      expect(find.text(l10n.labelFormatTitle), findsOneWidget);
     });
 
     testWidgets('a hand-off that fails after the sheet closed still says so', (
@@ -695,7 +715,7 @@ void main() {
       rendering.bytes = Uint8List.fromList([
         0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, //
       ]);
-      await tapOption(tester, find.text('PNG'));
+      await pickOption(tester, l10n.labelFormatTitle, 'PNG');
       await tapOption(tester, find.text(l10n.inventoryLabelsPrint));
       expect(
         container.read(labelPrintPrefsProvider).format,

@@ -117,6 +117,7 @@ class _LabelOptionsSheet extends ConsumerWidget {
                 const SizedBox(height: DashSpace.md),
                 if (canChoose) ...[
                   _ChipRow(
+                    id: 'label_options.format',
                     label: l10n.labelFormatTitle,
                     options: const {
                       SpoolLabelFormat.pdf: 'PDF',
@@ -128,6 +129,7 @@ class _LabelOptionsSheet extends ConsumerWidget {
                   if (png) ...[
                     const SizedBox(height: DashSpace.sm),
                     _ChipRow(
+                      id: 'label_options.dpi',
                       label: l10n.labelDpiTitle,
                       options: {
                         for (final d in spoolLabelDpiChoices) d: '$d dpi',
@@ -146,6 +148,7 @@ class _LabelOptionsSheet extends ConsumerWidget {
                   const SizedBox(height: DashSpace.md),
                 ],
                 _ChipRow(
+                  id: 'label_options.destination',
                   label: l10n.labelSendToTitle,
                   options: {
                     if (!png) LabelDestination.system: l10n.labelSendSystem,
