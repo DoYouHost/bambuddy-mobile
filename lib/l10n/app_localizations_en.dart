@@ -7841,4 +7841,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get labelPrinterVlanNote =>
       'Discovery does not cross VLANs or a guest Wi-Fi; enter the address by hand there.';
+
+  @override
+  String get labelPrinterPrintOn => 'Print on the label printer';
+
+  @override
+  String get labelPrinterSent => 'Sent to the label printer';
+
+  @override
+  String get labelPrinterFailed => 'The label printer did not accept the job';
+
+  @override
+  String get labelPrinterUnreachable => 'The label printer does not answer';
+
+  @override
+  String labelPrinterRefused(String detail) {
+    return 'The label printer refused the job: $detail';
+  }
 }

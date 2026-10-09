@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +29,7 @@ import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../common/dash_stepper.dart';
 import '../common/refresh_when_shown.dart';
+import '../label_printer/label_printer_providers.dart';
 import '../common/dash_progress_bar.dart';
 import '../common/dash_search_field.dart';
 import '../common/dashed_line.dart';

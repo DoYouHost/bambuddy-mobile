@@ -30,6 +30,11 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
   var _sort = _LabelSort.id;
   bool _monochrome = false;
   bool _share = false;
+
+  /// Whether the PDF goes to the LAN label print server instead of the system
+  /// dialog. On by default once a server is chosen — setting one up was the
+  /// decision.
+  late bool _toLabelPrinter = ref.read(labelPrinterUrlProvider) != null;
   bool _busy = false;
 
   /// Spools in print order. The backend prints labels in the order it receives
@@ -214,10 +219,20 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
           _LabelFooter(
             monochrome: _monochrome,
             share: _share,
+            labelPrinter: ref.watch(labelPrinterUrlProvider) == null
+                ? null
+                : _toLabelPrinter,
             busy: _busy,
             count: _selected.length,
             onMonochrome: (v) => setState(() => _monochrome = v),
-            onShare: (v) => setState(() => _share = v),
+            onShare: (v) => setState(() {
+              _share = v;
+              if (v) _toLabelPrinter = false;
+            }),
+            onLabelPrinter: (v) => setState(() {
+              _toLabelPrinter = v;
+              if (v) _share = false;
+            }),
             onPrint: _selected.isEmpty || _busy ? null : _pickTemplate,
           ),
         ],
@@ -269,7 +284,9 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
       if (!mounted) return;
       Navigator.of(context).pop();
       final filename = 'bambuddy-labels-${template.wire}.pdf';
-      if (_share) {
+      if (_toLabelPrinter && ref.read(labelPrinterRepositoryProvider) != null) {
+        await _printOnLabelPrinter(pdf, filename, messenger, l10n);
+      } else if (_share) {
         await Printing.sharePdf(bytes: pdf, filename: filename);
       } else {
         await Printing.layoutPdf(
@@ -292,6 +309,32 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
       if (!mounted) return;
       setState(() => _busy = false);
       messenger.snack(l10n.inventoryLabelsFailed);
+    }
+  }
+
+  /// Sends the PDF to the label print server. Runs after the sheet is closed,
+  /// so every outcome is a snack on the screen behind it.
+  Future<void> _printOnLabelPrinter(
+    Uint8List pdf,
+    String filename,
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+  ) async {
+    try {
+      await ref
+          .read(labelPrinterRepositoryProvider)!
+          .printPdf(pdf, filename: filename);
+      messenger.snack(l10n.labelPrinterSent);
+    } on ApiException catch (e) {
+      // The server's own sentence says which file was refused and why.
+      final detail = e.detail;
+      messenger.snack(
+        e.statusCode == 400 && detail != null
+            ? l10n.labelPrinterRefused(detail)
+            : l10n.labelPrinterFailed,
+      );
+    } on Object {
+      messenger.snack(l10n.labelPrinterUnreachable);
     }
   }
 
@@ -387,19 +430,25 @@ class _LabelFooter extends StatelessWidget {
   const _LabelFooter({
     required this.monochrome,
     required this.share,
+    required this.labelPrinter,
     required this.busy,
     required this.count,
     required this.onMonochrome,
     required this.onShare,
+    required this.onLabelPrinter,
     required this.onPrint,
   });
 
   final bool monochrome;
   final bool share;
+
+  /// Null while no label print server is chosen, which hides the row.
+  final bool? labelPrinter;
   final bool busy;
   final int count;
   final ValueChanged<bool> onMonochrome;
   final ValueChanged<bool> onShare;
+  final ValueChanged<bool> onLabelPrinter;
   final VoidCallback? onPrint;
 
   @override
@@ -430,6 +479,12 @@ class _LabelFooter extends StatelessWidget {
             onChanged: onShare,
             label: l10n.inventoryLabelsShare,
           ),
+          if (labelPrinter != null)
+            _CheckRow(
+              value: labelPrinter!,
+              onChanged: onLabelPrinter,
+              label: l10n.labelPrinterPrintOn,
+            ),
           const SizedBox(height: DashSpace.md),
           SizedBox(
             width: double.infinity,

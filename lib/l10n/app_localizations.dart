@@ -13141,6 +13141,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Discovery does not cross VLANs or a guest Wi-Fi; enter the address by hand there.'**
   String get labelPrinterVlanNote;
+
+  /// No description provided for @labelPrinterPrintOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Print on the label printer'**
+  String get labelPrinterPrintOn;
+
+  /// No description provided for @labelPrinterSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to the label printer'**
+  String get labelPrinterSent;
+
+  /// No description provided for @labelPrinterFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The label printer did not accept the job'**
+  String get labelPrinterFailed;
+
+  /// No description provided for @labelPrinterUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'The label printer does not answer'**
+  String get labelPrinterUnreachable;
+
+  /// No description provided for @labelPrinterRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The label printer refused the job: {detail}'**
+  String labelPrinterRefused(String detail);
 }
 
 class _AppLocalizationsDelegate

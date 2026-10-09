@@ -8014,4 +8014,23 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get labelPrinterVlanNote =>
       'La recherche ne traverse ni les VLAN ni le Wi-Fi invité ; saisissez alors l\'adresse à la main.';
+
+  @override
+  String get labelPrinterPrintOn => 'Imprimer sur l\'imprimante d\'étiquettes';
+
+  @override
+  String get labelPrinterSent => 'Envoyé à l\'imprimante d\'étiquettes';
+
+  @override
+  String get labelPrinterFailed =>
+      'L\'imprimante d\'étiquettes n\'a pas accepté le travail';
+
+  @override
+  String get labelPrinterUnreachable =>
+      'L\'imprimante d\'étiquettes ne répond pas';
+
+  @override
+  String labelPrinterRefused(String detail) {
+    return 'L\'imprimante d\'étiquettes a refusé le travail : $detail';
+  }
 }

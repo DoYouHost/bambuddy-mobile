@@ -6,7 +6,10 @@ import 'package:bambuddy_mobile/core/models/spool_label.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/inventory_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
+import 'package:bambuddy_mobile/data/label_printer_repository.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
+import 'package:bambuddy_mobile/features/label_printer/label_printer_providers.dart';
+import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -51,6 +54,38 @@ class _UnusedSource implements SpoolInventorySource {
       throw UnimplementedError(invocation.memberName.toString());
 }
 
+/// Hands out a PDF, so the print goes on to the destination under test.
+class _RenderingRepository extends InventoryRepository {
+  _RenderingRepository() : super(_UnusedSource());
+
+  @override
+  Future<Uint8List> renderLabels(SpoolLabelRequest labelRequest) async =>
+      Uint8List.fromList([1, 2, 3]);
+}
+
+class _RecordingLabelPrinter extends LabelPrinterRepository {
+  _RecordingLabelPrinter() : super(Dio());
+
+  Uint8List? sent;
+
+  @override
+  Future<void> printPdf(
+    Uint8List pdf, {
+    required String filename,
+    int copies = 1,
+  }) async => sent = pdf;
+}
+
+class _NoUrl extends LabelPrinterUrlNotifier {
+  @override
+  String? build() => null;
+}
+
+class _ChosenUrl extends LabelPrinterUrlNotifier {
+  @override
+  String? build() => 'http://10.0.0.5:8000';
+}
+
 class _NullProfile extends ServerProfileNotifier {
   @override
   ServerProfile? build() => null;
@@ -77,6 +112,7 @@ void main() {
       overrides: [
         inventoryProvider.overrideWith(_CapturingInventory.new),
         serverProfileProvider.overrideWith(_NullProfile.new),
+        labelPrinterUrlProvider.overrideWith(_NoUrl.new),
         inventoryRepositoryProvider.overrideWithValue(repo),
         labelStartingPositionProvider.overrideWithValue(
           gate ?? AsyncData(startingPositionSupported),
@@ -175,4 +211,55 @@ void main() {
       expect(repo.request!.startingPosition, 1);
     },
   );
+
+  group('label print server', () {
+    Future<void> openSheet(
+      WidgetTester tester, {
+      required bool chosen,
+      _RecordingLabelPrinter? printer,
+    }) async {
+      await pumpPhone(
+        tester,
+        const InventoryScreen(),
+        overrides: [
+          inventoryProvider.overrideWith(_CapturingInventory.new),
+          serverProfileProvider.overrideWith(_NullProfile.new),
+          inventoryRepositoryProvider.overrideWithValue(_RenderingRepository()),
+          labelStartingPositionProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
+          labelPrinterUrlProvider.overrideWith(
+            chosen ? _ChosenUrl.new : _NoUrl.new,
+          ),
+          if (printer != null)
+            labelPrinterRepositoryProvider.overrideWithValue(printer),
+        ],
+      );
+      await settle(tester);
+      await tester.tap(find.byTooltip(l10n.inventoryLabelsPrintAll));
+      await settle(tester);
+    }
+
+    testWidgets('the option is offered only once a server is chosen', (
+      tester,
+    ) async {
+      await openSheet(tester, chosen: false);
+      expect(find.text(l10n.labelPrinterPrintOn), findsNothing);
+    });
+
+    testWidgets('the PDF goes to the server instead of the print dialog', (
+      tester,
+    ) async {
+      final printer = _RecordingLabelPrinter();
+      await openSheet(tester, chosen: true, printer: printer);
+      expect(find.text(l10n.labelPrinterPrintOn), findsOneWidget);
+
+      await tester.tap(find.text('${l10n.inventoryLabelsPrint} (1)'));
+      await settle(tester);
+      await pickTemplate(tester, l10n.inventoryLabelsBox62);
+
+      expect(printer.sent, [1, 2, 3]);
+      expect(find.text(l10n.labelPrinterSent), findsOneWidget);
+    });
+  });
 }

@@ -7968,4 +7968,21 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get labelPrinterVlanNote =>
       'Wykrywanie nie przechodzi przez VLAN-y ani sieć gości; w takiej sieci wpisz adres ręcznie.';
+
+  @override
+  String get labelPrinterPrintOn => 'Drukuj na drukarce etykiet';
+
+  @override
+  String get labelPrinterSent => 'Wysłano do drukarki etykiet';
+
+  @override
+  String get labelPrinterFailed => 'Drukarka etykiet nie przyjęła zadania';
+
+  @override
+  String get labelPrinterUnreachable => 'Drukarka etykiet nie odpowiada';
+
+  @override
+  String labelPrinterRefused(String detail) {
+    return 'Drukarka etykiet odrzuciła zadanie: $detail';
+  }
 }

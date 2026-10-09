@@ -7915,4 +7915,22 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get labelPrinterVlanNote =>
       'Die Suche kommt nicht über VLANs oder ein Gast-WLAN hinaus; gib dort die Adresse von Hand ein.';
+
+  @override
+  String get labelPrinterPrintOn => 'Auf dem Etikettendrucker drucken';
+
+  @override
+  String get labelPrinterSent => 'An den Etikettendrucker gesendet';
+
+  @override
+  String get labelPrinterFailed =>
+      'Der Etikettendrucker hat den Auftrag nicht angenommen';
+
+  @override
+  String get labelPrinterUnreachable => 'Der Etikettendrucker antwortet nicht';
+
+  @override
+  String labelPrinterRefused(String detail) {
+    return 'Der Etikettendrucker hat den Auftrag abgelehnt: $detail';
+  }
 }

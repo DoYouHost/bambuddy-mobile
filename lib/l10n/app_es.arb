@@ -3982,5 +3982,10 @@
   "labelPrinterSave": "Guardar",
   "labelPrinterRemove": "Quitar",
   "labelPrinterNotAServer": "En esa dirección no responde ningún servidor de impresión de etiquetas",
-  "labelPrinterVlanNote": "La búsqueda no atraviesa VLAN ni redes de invitados; en ese caso escribe la dirección a mano."
+  "labelPrinterVlanNote": "La búsqueda no atraviesa VLAN ni redes de invitados; en ese caso escribe la dirección a mano.",
+  "labelPrinterPrintOn": "Imprimir en la impresora de etiquetas",
+  "labelPrinterSent": "Enviado a la impresora de etiquetas",
+  "labelPrinterFailed": "La impresora de etiquetas no aceptó el trabajo",
+  "labelPrinterUnreachable": "La impresora de etiquetas no responde",
+  "labelPrinterRefused": "La impresora de etiquetas rechazó el trabajo: {detail}"
 }

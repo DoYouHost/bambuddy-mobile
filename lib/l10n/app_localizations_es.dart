@@ -7941,4 +7941,22 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get labelPrinterVlanNote =>
       'La búsqueda no atraviesa VLAN ni redes de invitados; en ese caso escribe la dirección a mano.';
+
+  @override
+  String get labelPrinterPrintOn => 'Imprimir en la impresora de etiquetas';
+
+  @override
+  String get labelPrinterSent => 'Enviado a la impresora de etiquetas';
+
+  @override
+  String get labelPrinterFailed =>
+      'La impresora de etiquetas no aceptó el trabajo';
+
+  @override
+  String get labelPrinterUnreachable => 'La impresora de etiquetas no responde';
+
+  @override
+  String labelPrinterRefused(String detail) {
+    return 'La impresora de etiquetas rechazó el trabajo: $detail';
+  }
 }

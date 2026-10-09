@@ -3982,5 +3982,10 @@
   "labelPrinterSave": "Enregistrer",
   "labelPrinterRemove": "Retirer",
   "labelPrinterNotAServer": "Aucun serveur d'impression d'étiquettes ne répond à cette adresse",
-  "labelPrinterVlanNote": "La recherche ne traverse ni les VLAN ni le Wi-Fi invité ; saisissez alors l'adresse à la main."
+  "labelPrinterVlanNote": "La recherche ne traverse ni les VLAN ni le Wi-Fi invité ; saisissez alors l'adresse à la main.",
+  "labelPrinterPrintOn": "Imprimer sur l'imprimante d'étiquettes",
+  "labelPrinterSent": "Envoyé à l'imprimante d'étiquettes",
+  "labelPrinterFailed": "L'imprimante d'étiquettes n'a pas accepté le travail",
+  "labelPrinterUnreachable": "L'imprimante d'étiquettes ne répond pas",
+  "labelPrinterRefused": "L'imprimante d'étiquettes a refusé le travail : {detail}"
 }

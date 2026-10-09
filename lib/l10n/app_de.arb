@@ -3982,5 +3982,10 @@
   "labelPrinterSave": "Speichern",
   "labelPrinterRemove": "Entfernen",
   "labelPrinterNotAServer": "Unter dieser Adresse antwortet kein Etikettendruckserver",
-  "labelPrinterVlanNote": "Die Suche kommt nicht über VLANs oder ein Gast-WLAN hinaus; gib dort die Adresse von Hand ein."
+  "labelPrinterVlanNote": "Die Suche kommt nicht über VLANs oder ein Gast-WLAN hinaus; gib dort die Adresse von Hand ein.",
+  "labelPrinterPrintOn": "Auf dem Etikettendrucker drucken",
+  "labelPrinterSent": "An den Etikettendrucker gesendet",
+  "labelPrinterFailed": "Der Etikettendrucker hat den Auftrag nicht angenommen",
+  "labelPrinterUnreachable": "Der Etikettendrucker antwortet nicht",
+  "labelPrinterRefused": "Der Etikettendrucker hat den Auftrag abgelehnt: {detail}"
 }

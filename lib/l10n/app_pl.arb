@@ -3296,5 +3296,10 @@
   "labelPrinterSave": "Zapisz",
   "labelPrinterRemove": "Usuń",
   "labelPrinterNotAServer": "Pod tym adresem nie odpowiada serwer druku etykiet",
-  "labelPrinterVlanNote": "Wykrywanie nie przechodzi przez VLAN-y ani sieć gości; w takiej sieci wpisz adres ręcznie."
+  "labelPrinterVlanNote": "Wykrywanie nie przechodzi przez VLAN-y ani sieć gości; w takiej sieci wpisz adres ręcznie.",
+  "labelPrinterPrintOn": "Drukuj na drukarce etykiet",
+  "labelPrinterSent": "Wysłano do drukarki etykiet",
+  "labelPrinterFailed": "Drukarka etykiet nie przyjęła zadania",
+  "labelPrinterUnreachable": "Drukarka etykiet nie odpowiada",
+  "labelPrinterRefused": "Drukarka etykiet odrzuciła zadanie: {detail}"
 }
