@@ -511,36 +511,37 @@ class _Raster implements _Canvas {
     }
   }
 
-  Uint8List toPng() {
-    final raw = BytesBuilder();
-    for (var y = 0; y < height; y++) {
-      raw.addByte(0); // filter: none
-      raw.add(
-        Uint8List.sublistView(pixels, y * width * 3, (y + 1) * width * 3),
-      );
-    }
-    final ihdr = ByteData(13)
-      ..setUint32(0, width)
-      ..setUint32(4, height)
-      ..setUint8(8, 8) // bit depth
-      ..setUint8(9, 2); // colour type: RGB
-    final out = BytesBuilder()
-      ..add(const [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
-    void chunk(String type, List<int> data) {
-      final body = [...latin1.encode(type), ...data];
-      final length = ByteData(4)..setUint32(0, data.length);
-      final crc = ByteData(4)..setUint32(0, demoCrc32(body));
-      out
-        ..add(length.buffer.asUint8List())
-        ..add(body)
-        ..add(crc.buffer.asUint8List());
-    }
+  Uint8List toPng() => demoPng(width, height, pixels);
+}
 
-    chunk('IHDR', ihdr.buffer.asUint8List());
-    chunk('IDAT', ZLibEncoder().convert(raw.toBytes()));
-    chunk('IEND', const []);
-    return out.toBytes();
+/// An RGB image ([pixels] row-major, three bytes each) as an unfiltered PNG.
+Uint8List demoPng(int width, int height, Uint8List pixels) {
+  final raw = BytesBuilder();
+  for (var y = 0; y < height; y++) {
+    raw.addByte(0); // filter: none
+    raw.add(Uint8List.sublistView(pixels, y * width * 3, (y + 1) * width * 3));
   }
+  final ihdr = ByteData(13)
+    ..setUint32(0, width)
+    ..setUint32(4, height)
+    ..setUint8(8, 8) // bit depth
+    ..setUint8(9, 2); // colour type: RGB
+  final out = BytesBuilder()
+    ..add(const [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+  void chunk(String type, List<int> data) {
+    final body = [...latin1.encode(type), ...data];
+    final length = ByteData(4)..setUint32(0, data.length);
+    final crc = ByteData(4)..setUint32(0, demoCrc32(body));
+    out
+      ..add(length.buffer.asUint8List())
+      ..add(body)
+      ..add(crc.buffer.asUint8List());
+  }
+
+  chunk('IHDR', ihdr.buffer.asUint8List());
+  chunk('IDAT', ZLibEncoder().convert(raw.toBytes()));
+  chunk('IEND', const []);
+  return out.toBytes();
 }
 
 // --- ZIP, stored ---

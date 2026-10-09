@@ -25,6 +25,8 @@ import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/data/location_sensors_repository.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
 import 'package:bambuddy_mobile/data/makerworld_repository.dart';
+import 'package:bambuddy_mobile/core/models/manyfold.dart';
+import 'package:bambuddy_mobile/data/manyfold_repository.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/core/models/printer_location.dart';
 import 'package:bambuddy_mobile/data/printer_locations_repository.dart';
@@ -1273,6 +1275,85 @@ void main() {
         );
       },
     );
+  });
+
+  group('manyfold', () {
+    test('browses, previews and imports into a "Manyfold" folder', () async {
+      final repo = ManyfoldRepository(dio);
+      expect((await repo.status())?.configured, isTrue);
+
+      final first = await repo.models();
+      expect(first.models, hasLength(4));
+      expect(first.hasNext, isTrue);
+      final second = await repo.models(page: 2);
+      expect(second.hasPrevious, isTrue);
+      expect((await repo.models(query: 'gear')).models.single.id, 'r2t6yb8s');
+
+      final dragon = await repo.model('k3x9pq2a');
+      expect(dragon.files.map((f) => f.importable), [true, true, false]);
+      expect(await repo.preview('k3x9pq2a'), isNotEmpty);
+      // The model with neither, for both empty states.
+      expect((await repo.model('z9c1fk5u')).files, isEmpty);
+      expect(await repo.preview('z9c1fk5u'), isNull);
+
+      final imported = await repo.import(
+        modelId: 'k3x9pq2a',
+        fileId: 'f1dragon',
+      );
+      expect(imported.wasExisting, isFalse);
+      final again = await repo.import(modelId: 'k3x9pq2a', fileId: 'f1dragon');
+      expect(again.wasExisting, isTrue);
+      expect(again.libraryFileId, imported.libraryFileId);
+      expect(
+        (await repo.model('k3x9pq2a')).files.first.libraryFile?.id,
+        imported.libraryFileId,
+      );
+      final folders = await LibraryRepository(dio).listFolders();
+      expect(
+        folders.where((f) => f.id == imported.folderId).single.name,
+        'Manyfold',
+      );
+
+      await expectLater(
+        repo.import(modelId: 'k3x9pq2a', fileId: 'f3readme'),
+        throwsA(
+          isA<ManyfoldFailure>().having(
+            (f) => f.code,
+            'code',
+            'manyfold_not_importable',
+          ),
+        ),
+      );
+    });
+
+    test('the connection tests, disconnects and reconnects', () async {
+      final repo = ManyfoldRepository(dio);
+      expect((await repo.config()).hasClientSecret, isTrue);
+      expect(
+        await repo.testConfig(url: 'http://mf:3214', clientId: 'x'),
+        greaterThan(0),
+      );
+      await expectLater(
+        repo.testConfig(url: 'mf:3214', clientId: 'x'),
+        throwsA(isA<ManyfoldFailure>()),
+      );
+
+      await repo.deleteConfig();
+      expect((await repo.status())?.configured, isFalse);
+      await expectLater(repo.models(), throwsA(isA<ManyfoldFailure>()));
+      // With nothing stored, the secret has to be typed.
+      await expectLater(
+        repo.saveConfig(url: 'http://mf:3214', clientId: 'x'),
+        throwsA(isA<ManyfoldFailure>()),
+      );
+
+      await repo.saveConfig(
+        url: 'http://mf:3214',
+        clientId: 'x',
+        clientSecret: 'secret',
+      );
+      expect((await repo.status())?.configured, isTrue);
+    });
   });
 
   group('printer commands (mutate simulation — keep last)', () {
