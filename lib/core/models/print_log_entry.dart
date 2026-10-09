@@ -42,6 +42,7 @@ class PrintLogEntry with PrintRun {
     this.cost,
     this.energyKwh,
     this.energyCost,
+    this.wearCost,
     this.failureReason,
     this.thumbnailPath,
     this.createdById,
@@ -67,6 +68,7 @@ class PrintLogEntry with PrintRun {
     cost: toDoubleOrNull(json['cost']),
     energyKwh: toDoubleOrNull(json['energy_kwh']),
     energyCost: toDoubleOrNull(json['energy_cost']),
+    wearCost: toDoubleOrNull(json['wear_cost']),
     failureReason: toStringOrNull(json['failure_reason']),
     thumbnailPath: toStringOrNull(json['thumbnail_path']),
     createdById: toIntOrNull(json['created_by_id']),
@@ -116,6 +118,9 @@ class PrintLogEntry with PrintRun {
   /// from a server older than 1.2.6.
   final double? energyKwh;
   final double? energyCost;
+
+  /// Printer wear charged to this run (#694) — see [ArchiveSlim.wearCost].
+  final double? wearCost;
 
   /// One of [printLogFailureReasons], or free text: older web builds saved the
   /// translated label instead of the key, and the archive-side `PATCH` that

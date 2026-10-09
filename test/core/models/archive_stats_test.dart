@@ -18,6 +18,7 @@ void main() {
         'time_accuracy_by_printer': {'1': 92.3},
         'total_energy_kwh': 133.47,
         'total_energy_cost': 133.47,
+        'total_wear_cost': 21.5,
         'energy_data_warming_up': false,
       });
 
@@ -33,6 +34,7 @@ void main() {
       expect(stats.averageTimeAccuracy, 92.3);
       expect(stats.timeAccuracyByPrinter['1'], 92.3);
       expect(stats.totalEnergyKwh, 133.47);
+      expect(stats.totalWearCost, 21.5);
       expect(stats.energyDataWarmingUp, isFalse);
       expect(stats.isEmpty, isFalse);
     });
@@ -53,6 +55,7 @@ void main() {
     test('an older server sends no printer_names at all', () {
       final stats = ArchiveStats.fromJson(const {'total_prints': 4});
       expect(stats.printerNames, isEmpty);
+      expect(stats.totalWearCost, 0);
     });
 
     test('successRate calculated from successes relative to resolved', () {
