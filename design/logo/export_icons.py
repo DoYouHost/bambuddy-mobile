@@ -76,6 +76,11 @@ place(simple, ks, simple_centre, 1024, 512 * LAYER_FILL, tint=(255, 255, 255)).s
 place(full, kf, FULL_CENTRE, 1024, 1024 * 36 / 108, background=BG).save(
     f'{ROOT}/assets/icon/icon.png')
 
+# in-app logo (drawer header, About): shown whole in a rounded tile, so it gets
+# the Play icon's fill rather than the launcher's 108 dp margins
+place(full, kf, FULL_CENTRE, 512, 512 * 0.40, background=BG).convert('RGB').save(
+    f'{ROOT}/assets/icon/app_logo.png', optimize=True)
+
 # Google Play, 512 px; Play rounds the corners itself
 place(full, kf, FULL_CENTRE, 512, 512 * 0.38, background=BG).convert('RGB').save(
     f'{ROOT}/docs/store-assets/play-icon-512.png')

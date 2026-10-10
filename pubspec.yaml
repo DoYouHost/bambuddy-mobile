@@ -122,7 +122,7 @@ flutter:
     - assets/slicer/process-ui-tree.json
     - assets/slicer/process-toggle-rules.json
     - assets/icons/
-    - assets/icon/icon.png
+    - assets/icon/app_logo.png
     # The in-app G-code preview: the page shell, the bundle, and the app's
     # own faces subset into a stylesheet — all built by tool/gcode_viewer (see
     # its PROVENANCE). The three are inlined into one document at runtime, so

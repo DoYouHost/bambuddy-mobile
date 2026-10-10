@@ -48,10 +48,10 @@ class AboutScreen extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
                   child: Image.asset(
-                    'assets/icon/icon.png',
+                    'assets/icon/app_logo.png',
                     width: _iconSize,
                     height: _iconSize,
-                    // Same 1024x1024 launcher source as the drawer header —
+                    // Same 512x512 source as the drawer header —
                     // and a second cache entry, since the resized provider is
                     // keyed apart from the plain one.
                     cacheWidth:
