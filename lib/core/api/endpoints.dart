@@ -1297,6 +1297,23 @@ abstract final class Endpoints {
   /// nothing. `settings:update`.
   static const manyfoldConfigTest = '$apiPrefix/manyfold/config/test';
 
+  // --- Announcements (server 1.2.5.7 and the 1.2.6 dailies, 5eb37cd4) ---
+  //
+  // Messages from the Bambuddy maintainers, which the server pulls from a
+  // signed feed. Not a permission gate but `_may_see`: an admin, everyone
+  // signed in once `announcements_all_users` is on, anyone with auth off — and
+  // never an API key, which is answered `visible: false` rather than 403. An
+  // older server 404s both.
+
+  /// `GET` → `{visible, announcements: [{id, level, texts, link_url,
+  /// published_at, expires_at, archived, read}]}`, newest first.
+  static const announcements = '$apiPrefix/announcements';
+
+  /// `POST`, no body → 204. 404 for an unknown id, and for every id when this
+  /// session may not see announcements.
+  static String announcementRead(String id) =>
+      '$apiPrefix/announcements/$id/read';
+
   // --- MakerWorld + Bambu Cloud ---
 
   /// MakerWorld integration status (`GET`): `{has_cloud_token, can_download}`.

@@ -406,6 +406,7 @@ class WsProbe {
     // Both frames the parser folds into one; the log keeps the distinction
     // out of it for the same reason the parser does.
     WsInventoryChanged() => 'inventory_changed',
+    WsAnnouncementsChanged() => 'announcements_changed',
     WsPong() => 'pong',
     WsUnknown(type: final type) => _knownShape(type),
     null => 'unparsed',

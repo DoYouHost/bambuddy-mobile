@@ -100,6 +100,27 @@ void main() {
     });
   });
 
+  test('an announcements frame reaches its own stream', () {
+    fakeAsync((async) {
+      final (:client, :conns) = build();
+      var heard = 0;
+      client.announcementChanges.listen((_) => heard++);
+
+      client.start();
+      async.flushMicrotasks();
+      conns[0].connectOk();
+      async.flushMicrotasks();
+
+      conns[0].push('{"type":"announcements_changed"}');
+      async.flushMicrotasks();
+
+      expect(heard, 1);
+
+      client.dispose();
+      async.flushMicrotasks();
+    });
+  });
+
   test(
     'happy path: connecting → connected, frame → status, ping after 25s',
     () {

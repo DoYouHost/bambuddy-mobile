@@ -4155,5 +4155,17 @@
   "dashboardSortDescending": "Décroissant",
   "dashboardLocationAll": "Tous les emplacements",
   "dashboardGroupUngrouped": "Sans emplacement",
-  "dashboardGroupUnknownModel": "Modèle inconnu"
+  "dashboardGroupUnknownModel": "Modèle inconnu",
+  "announcementsTitle": "Annonces",
+  "announcementsUnread": "Annonces non lues : {count}",
+  "announcementsEmpty": "Aucune annonce pour le moment.",
+  "announcementsEarlier": "Précédentes ({count})",
+  "announcementsNew": "Nouveau",
+  "announcementsReadMore": "En savoir plus",
+  "announcementsReadMoreCount": "En savoir plus (+{count})",
+  "announcementsGotIt": "Compris",
+  "announcementsSource": "Des développeurs de Bambuddy, récupérées depuis GitHub.",
+  "announcementLevelInfo": "Information",
+  "announcementLevelImportant": "Importante",
+  "announcementLevelCritical": "Critique"
 }
