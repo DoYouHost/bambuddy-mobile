@@ -30,19 +30,20 @@ class _ScriptedRepo implements AnnouncementsRepository {
   }
 }
 
-AnnouncementFeed _feed({bool read = false}) => AnnouncementFeed.fromJson({
-  'visible': true,
-  'announcements': [
-    {
-      'id': 'a',
-      'level': 'info',
-      'texts': {
-        'en': {'title': 'T', 'body': 'B'},
-      },
-      'read': read,
-    },
-  ],
-});
+AnnouncementFeed _feed({List<String> ids = const ['a']}) =>
+    AnnouncementFeed.fromJson({
+      'visible': true,
+      'announcements': [
+        for (final id in ids)
+          {
+            'id': id,
+            'level': 'info',
+            'texts': {
+              'en': {'title': 'T', 'body': 'B'},
+            },
+          },
+      ],
+    });
 
 void main() {
   late _ScriptedRepo repo;
@@ -59,14 +60,17 @@ void main() {
     addTearDown(container.dispose);
     container.listen(announcementsProvider, (_, _) {});
     await Future<void>.delayed(Duration.zero);
-    repo.fetches.single.complete(_feed());
+    repo.fetches.single.complete(_feed(ids: ['a', 'b']));
     await container.read(announcementsProvider.future);
   });
 
   AnnouncementsNotifier notifier() =>
       container.read(announcementsProvider.notifier);
-  bool unread() =>
-      container.read(announcementsProvider).requireValue.unreadCount > 0;
+  Set<String> unreadIds() => {
+    for (final a in container.read(announcementsProvider).requireValue.items)
+      if (a.unread) a.id,
+  };
+  bool unread() => unreadIds().contains('a');
 
   test('a re-read sent before a read cannot bring it back', () async {
     final refreshing = notifier().refresh();
@@ -83,6 +87,30 @@ void main() {
     expect(unread(), isFalse);
   });
 
+  test('a re-read sent during a write cannot land after it either', () async {
+    final reading = notifier().markRead('a');
+    final refreshing = notifier().refresh();
+    repo.writes.single.complete();
+    await reading;
+
+    // Answered before the write committed, delivered after it finished.
+    repo.fetches.last.complete(_feed(ids: ['a', 'b']));
+    await refreshing;
+    expect(unread(), isFalse);
+  });
+
+  test('mark all keeps what the server took before one failed', () async {
+    final reading = notifier().markAllRead();
+    expect(unreadIds(), isEmpty);
+    repo.writes[0].complete();
+    await Future<void>.delayed(Duration.zero);
+    repo.writes[1].completeError(
+      const NetworkException(AppErrorCode.serverUnreachable),
+    );
+    await reading;
+    expect(unreadIds(), {'b'});
+  });
+
   test('a failed read is rolled back, then re-read', () async {
     final reading = notifier().markRead('a');
     expect(unread(), isFalse);
@@ -94,6 +122,7 @@ void main() {
     expect(unread(), isTrue);
 
     // The re-read failing too leaves the rolled-back inbox in place.
+    await Future<void>.delayed(Duration.zero);
     repo.fetches.last.completeError(
       const NetworkException(AppErrorCode.serverUnreachable),
     );

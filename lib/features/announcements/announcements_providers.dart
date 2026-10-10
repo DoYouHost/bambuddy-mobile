@@ -30,19 +30,22 @@ class AnnouncementsNotifier extends AutoDisposeAsyncNotifier<AnnouncementFeed> {
     return ref.read(announcementsRepositoryProvider).fetch();
   }
 
-  /// Bumped by every local write, so a re-read sent before it cannot land
-  /// after it and bring back what the user just read.
+  /// Writes started so far, and those still waiting for the server. A re-read
+  /// that overlapped one may carry the server's state from before it
+  /// committed, so its answer is dropped.
   int _writes = 0;
+  int _writesInFlight = 0;
 
   /// Keeps the inbox on screen while it loads; a failed re-read keeps the
   /// last one rather than dropping the entry.
   Future<void> refresh() async {
     if (ref.read(serverProfileProvider) == null) return;
     final writesBefore = _writes;
+    final overlapped = _writesInFlight > 0;
     final next = await AsyncValue.guard(
       () => ref.read(announcementsRepositoryProvider).fetch(),
     );
-    if (_writes != writesBefore) return;
+    if (overlapped || _writes != writesBefore) return;
     if (next.hasValue || !state.hasValue) state = next;
   }
 
@@ -64,19 +67,26 @@ class AnnouncementsNotifier extends AutoDisposeAsyncNotifier<AnnouncementFeed> {
     final feed = state.valueOrNull;
     if (feed == null || ids.isEmpty) return;
     final optimistic = feed.markedRead(ids);
+    final recorded = <String>{};
     _writes++;
+    _writesInFlight++;
     state = AsyncData(optimistic);
     try {
       for (final id in ids) {
         await ref.read(announcementsRepositoryProvider).markRead(id);
+        recorded.add(id);
       }
     } catch (e) {
-      // Back to what it was unless something newer replaced it meanwhile; the
-      // re-read then settles which of [ids] the server did record.
-      if (identical(state.valueOrNull, optimistic)) state = AsyncData(feed);
-      _writes++;
+      _writesInFlight--;
+      // Back to what it was, less what the server already took, unless
+      // something newer replaced it meanwhile.
+      if (identical(state.valueOrNull, optimistic)) {
+        state = AsyncData(feed.markedRead(recorded));
+      }
       unawaited(refresh());
       if (e is! AppApiException) rethrow;
+      return;
     }
+    _writesInFlight--;
   }
 }
