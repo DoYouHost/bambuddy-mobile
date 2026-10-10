@@ -3473,10 +3473,9 @@
   "announcementsEarlier": "Wcześniejsze ({count})",
   "announcementsNew": "Nowe",
   "announcementsReadMore": "Czytaj więcej",
-  "announcementsReadMoreCount": "Czytaj więcej (+{count})",
-  "announcementsGotIt": "Rozumiem",
   "announcementsSource": "Od twórców Bambuddy, pobierane z GitHuba.",
   "announcementLevelInfo": "Informacja",
   "announcementLevelImportant": "Ważne",
-  "announcementLevelCritical": "Krytyczne"
+  "announcementLevelCritical": "Krytyczne",
+  "announcementsMarkAllRead": "Oznacz wszystkie jako przeczytane"
 }

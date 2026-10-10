@@ -80,7 +80,7 @@ class Announcement {
   final String? linkUrl;
   final DateTime? publishedAt;
 
-  /// Past its expiry: history, never unread and never a banner.
+  /// Past its expiry: history, never unread.
   final bool archived;
 
   /// Per user, on the server — read on the web is read here too.
@@ -153,17 +153,8 @@ class AnnouncementFeed {
 
   int get unreadCount => items.where((a) => a.unread).length;
 
-  /// The banner's pick: unread important or critical, most severe first.
-  List<Announcement> get bannerItems => [
-    for (final level in const [
-      AnnouncementLevel.critical,
-      AnnouncementLevel.important,
-    ])
-      ...items.where((a) => a.unread && a.level == level),
-  ];
-
-  AnnouncementFeed markedRead(String id) => AnnouncementFeed(
+  AnnouncementFeed markedRead(Set<String> ids) => AnnouncementFeed(
     visible: visible,
-    items: [for (final a in items) a.id == id ? a.asRead() : a],
+    items: [for (final a in items) ids.contains(a.id) ? a.asRead() : a],
   );
 }

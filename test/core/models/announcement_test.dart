@@ -100,12 +100,8 @@ void main() {
       expect(feed.unreadCount, 3);
     });
 
-    test('the banner takes unread important and critical, worst first', () {
-      expect([for (final a in feed.bannerItems) a.id], ['crit', 'imp']);
-    });
-
     test('marking read changes that one row only', () {
-      final next = feed.markedRead('crit');
+      final next = feed.markedRead({'crit'});
       expect(next.unreadCount, 2);
       expect(next.items.firstWhere((a) => a.id == 'crit').read, isTrue);
       expect(next.visible, isTrue);

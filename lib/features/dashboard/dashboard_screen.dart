@@ -551,7 +551,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         body: Column(
           children: [
-            const AnnouncementBanner(),
             if (state.stale)
               ConnectionBanner(message: l10n.serverUnreachableStale)
             // WS resuming connection, but polling still provides fresh data —

@@ -8559,14 +8559,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get announcementsReadMore => 'Leer más';
 
   @override
-  String announcementsReadMoreCount(int count) {
-    return 'Leer más (+$count)';
-  }
-
-  @override
-  String get announcementsGotIt => 'Entendido';
-
-  @override
   String get announcementsSource =>
       'De los desarrolladores de Bambuddy, obtenidos de GitHub.';
 
@@ -8578,4 +8570,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get announcementLevelCritical => 'Crítico';
+
+  @override
+  String get announcementsMarkAllRead => 'Marcar todo como leído';
 }

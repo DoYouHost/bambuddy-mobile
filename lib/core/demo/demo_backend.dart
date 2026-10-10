@@ -6057,22 +6057,21 @@ class DemoBackend {
 
   // --- Manyfold ---
 
-  /// One message per level the app draws differently: an important one that
-  /// raises the banner, an info one that only lights the dot, and an expired
-  /// one under "Earlier".
+  /// Two unread messages at different levels, for the dot, the count and the
+  /// level labels, and an expired one under "Earlier".
   late final _announcements = <Map<String, dynamic>>[
     _demoAnnouncement(
       'demo-important',
       'important',
       en: (
         'An important message from the Bambuddy team',
-        'Important and critical messages show up as a banner on the printers '
-            'screen until you tap Got it.',
+        'Messages from the people who make Bambuddy land here. Opening one '
+            'marks it read, here and on the web.',
       ),
       pl: (
         'Ważna wiadomość od zespołu Bambuddy',
-        'Ważne i krytyczne wiadomości pojawiają się jako baner na ekranie '
-            'drukarek, dopóki nie stukniesz Rozumiem.',
+        'Tutaj trafiają wiadomości od twórców Bambuddy. Otwarcie oznacza '
+            'wiadomość jako przeczytaną, tu i w przeglądarce.',
       ),
       daysAgo: 1,
     ),
@@ -6081,13 +6080,11 @@ class DemoBackend {
       'info',
       en: (
         'A regular update from the Bambuddy team',
-        'Info messages get no banner; they only light the dot on the menu '
-            'button.',
+        'While anything is unread, the menu button carries a dot.',
       ),
       pl: (
         'Zwykła informacja od zespołu Bambuddy',
-        'Informacje nie dostają banera, zapalają tylko kropkę na przycisku '
-            'menu.',
+        'Dopóki coś jest nieprzeczytane, przycisk menu ma kropkę.',
       ),
       daysAgo: 9,
     ),

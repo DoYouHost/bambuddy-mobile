@@ -16,10 +16,7 @@ import 'announcements_providers.dart';
 /// marked until it is opened — opening is what marks it read — and expired
 /// ones under a collapsed "Earlier".
 class AnnouncementsScreen extends ConsumerStatefulWidget {
-  const AnnouncementsScreen({super.key, this.openId});
-
-  /// Expanded on arrival: the banner's "Read more" lands on its message.
-  final String? openId;
+  const AnnouncementsScreen({super.key});
 
   @override
   ConsumerState<AnnouncementsScreen> createState() =>
@@ -27,12 +24,8 @@ class AnnouncementsScreen extends ConsumerStatefulWidget {
 }
 
 class _AnnouncementsScreenState extends ConsumerState<AnnouncementsScreen> {
-  late final Set<String> _expanded = {?widget.openId};
+  final _expanded = <String>{};
   bool _earlierOpen = false;
-
-  /// The banner's message, read once the inbox is here — on a cold start it
-  /// may not be yet.
-  late String? _pendingRead = widget.openId;
 
   void _markRead(String id) {
     final feed = ref.read(announcementsProvider).valueOrNull;
@@ -57,20 +50,25 @@ class _AnnouncementsScreenState extends ConsumerState<AnnouncementsScreen> {
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: dashAppBar(context, title: l10n.announcementsTitle),
+        appBar: dashAppBar(
+          context,
+          title: l10n.announcementsTitle,
+          actions: [
+            if ((feed.valueOrNull?.unreadCount ?? 0) > 0)
+              IconButton(
+                tooltip: l10n.announcementsMarkAllRead,
+                icon: const Icon(Icons.done_all),
+                onPressed: () => unawaited(
+                  ref.read(announcementsProvider.notifier).markAllRead(),
+                ),
+              ).tagged('announcements.mark_all_read'),
+          ],
+        ),
         body: dashAsync(
           context,
           feed,
           onRetry: () => ref.read(announcementsProvider.notifier).refresh(),
           data: (feed) {
-            final pending = _pendingRead;
-            if (pending != null) {
-              _pendingRead = null;
-              // Not during build: the notifier's state is written.
-              WidgetsBinding.instance.addPostFrameCallback(
-                (_) => _markRead(pending),
-              );
-            }
             final current = feed.items.where((a) => !a.archived).toList();
             final earlier = feed.items.where((a) => a.archived).toList();
             return RefreshIndicator(

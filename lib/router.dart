@@ -147,8 +147,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       GoRoute(
         path: '/announcements',
-        builder: (_, state) =>
-            AnnouncementsScreen(openId: state.uri.queryParameters['open']),
+        builder: (_, _) => const AnnouncementsScreen(),
       ),
 
       // Archive statistics — full screen outside shell (pushed from drawer).

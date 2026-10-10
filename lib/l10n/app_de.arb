@@ -4162,10 +4162,9 @@
   "announcementsEarlier": "Frühere ({count})",
   "announcementsNew": "Neu",
   "announcementsReadMore": "Mehr erfahren",
-  "announcementsReadMoreCount": "Mehr erfahren (+{count})",
-  "announcementsGotIt": "Verstanden",
   "announcementsSource": "Von den Bambuddy-Entwicklern, über GitHub bereitgestellt.",
   "announcementLevelInfo": "Hinweis",
   "announcementLevelImportant": "Wichtig",
-  "announcementLevelCritical": "Kritisch"
+  "announcementLevelCritical": "Kritisch",
+  "announcementsMarkAllRead": "Alle als gelesen markieren"
 }

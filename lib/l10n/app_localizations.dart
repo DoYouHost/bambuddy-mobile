@@ -14216,18 +14216,6 @@ abstract class AppLocalizations {
   /// **'Read more'**
   String get announcementsReadMore;
 
-  /// No description provided for @announcementsReadMoreCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Read more (+{count})'**
-  String announcementsReadMoreCount(int count);
-
-  /// No description provided for @announcementsGotIt.
-  ///
-  /// In en, this message translates to:
-  /// **'Got it'**
-  String get announcementsGotIt;
-
   /// No description provided for @announcementsSource.
   ///
   /// In en, this message translates to:
@@ -14251,6 +14239,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Critical'**
   String get announcementLevelCritical;
+
+  /// No description provided for @announcementsMarkAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all as read'**
+  String get announcementsMarkAllRead;
 }
 
 class _AppLocalizationsDelegate

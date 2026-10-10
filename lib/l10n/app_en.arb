@@ -5601,17 +5601,9 @@
   },
   "announcementsNew": "New",
   "announcementsReadMore": "Read more",
-  "announcementsReadMoreCount": "Read more (+{count})",
-  "@announcementsReadMoreCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "announcementsGotIt": "Got it",
   "announcementsSource": "From the Bambuddy maintainers, fetched from GitHub.",
   "announcementLevelInfo": "Info",
   "announcementLevelImportant": "Important",
-  "announcementLevelCritical": "Critical"
+  "announcementLevelCritical": "Critical",
+  "announcementsMarkAllRead": "Mark all as read"
 }

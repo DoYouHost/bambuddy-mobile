@@ -60,7 +60,6 @@ void main() {
   Widget drawerHost() => Scaffold(
     appBar: AppBar(leading: const AnnouncementsDrawerButton()),
     drawer: const Drawer(child: Row(children: [AnnouncementsHeaderButton()])),
-    body: const AnnouncementBanner(),
   );
 
   Future<void> openDrawer(WidgetTester tester) async {
@@ -68,9 +67,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('an API key session has no entry, no dot and no banner', (
-    tester,
-  ) async {
+  testWidgets('an API key session has no entry and no dot', (tester) async {
     inbox(false);
     await pumpPhone(tester, drawerHost(), overrides: overrides);
     await tester.pumpAndSettle();
@@ -79,7 +76,6 @@ void main() {
       (tester.widget(find.byType(Badge)) as Badge).isLabelVisible,
       isFalse,
     );
-    expect(find.byType(TextButton), findsNothing);
     await openDrawer(tester);
     expect(find.byIcon(Icons.campaign_outlined), findsNothing);
   });
@@ -121,26 +117,6 @@ void main() {
     );
     await openDrawer(tester);
     expect(find.text('1'), findsOneWidget);
-    // Info never raises the banner.
-    expect(find.text(l10n(tester).announcementsGotIt), findsNothing);
-  });
-
-  testWidgets('the banner shows the worst unread one; Got it reads it', (
-    tester,
-  ) async {
-    inbox(true, [row('imp', 'important'), row('crit', 'critical')]);
-    server.onPost('/api/v1/announcements/crit/read', (s) => s.reply(204, null));
-    await pumpPhone(tester, drawerHost(), overrides: overrides);
-    await tester.pumpAndSettle();
-    final t = l10n(tester);
-    expect(find.text('PL crit'), findsOneWidget);
-    expect(find.text(t.announcementsReadMoreCount(1)), findsOneWidget);
-
-    await tester.tap(find.text(t.announcementsGotIt));
-    await tester.pumpAndSettle();
-    expect(log.calls, contains('POST /api/v1/announcements/crit/read'));
-    expect(find.text('PL imp'), findsOneWidget);
-    expect(find.text(t.announcementsReadMore), findsOneWidget);
   });
 
   testWidgets('the screen reads a message when it is opened, not before', (
@@ -170,19 +146,35 @@ void main() {
     expect(find.text('PL old'), findsOneWidget);
   });
 
-  testWidgets('arriving from the banner opens and reads that message', (
+  testWidgets('mark all reads every unread one, then the button goes', (
     tester,
   ) async {
-    inbox(true, [row('a', 'important')]);
-    server.onPost('/api/v1/announcements/a/read', (s) => s.reply(204, null));
-    await pumpPhone(
-      tester,
-      const AnnouncementsScreen(openId: 'a'),
-      overrides: overrides,
-    );
+    inbox(true, [
+      row('a', 'important'),
+      row('b', 'info'),
+      row('c', 'info', read: true),
+      row('d', 'info', archived: true),
+    ]);
+    for (final id in ['a', 'b']) {
+      server.onPost(
+        '/api/v1/announcements/$id/read',
+        (s) => s.reply(204, null),
+      );
+    }
+    await pumpPhone(tester, const AnnouncementsScreen(), overrides: overrides);
     await tester.pumpAndSettle();
-    expect(find.text('treść a'), findsOneWidget);
-    expect(log.calls.last, 'POST /api/v1/announcements/a/read');
+    final t = l10n(tester);
+    expect(find.text(t.announcementsNew), findsNWidgets(2));
+
+    await tester.tap(find.byTooltip(t.announcementsMarkAllRead));
+    await tester.pumpAndSettle();
+    expect(find.text(t.announcementsNew), findsNothing);
+    expect(find.byTooltip(t.announcementsMarkAllRead), findsNothing);
+    expect(log.calls, [
+      'GET /api/v1/announcements',
+      'POST /api/v1/announcements/a/read',
+      'POST /api/v1/announcements/b/read',
+    ]);
   });
 
   testWidgets('a refused read puts the message back', (tester) async {
@@ -191,12 +183,12 @@ void main() {
       '/api/v1/announcements/a/read',
       (s) => s.reply(404, {'detail': 'Announcement not found'}),
     );
-    await pumpPhone(tester, drawerHost(), overrides: overrides);
+    await pumpPhone(tester, const AnnouncementsScreen(), overrides: overrides);
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n(tester).announcementsGotIt));
+    await tester.tap(find.text('PL a'));
     await tester.pumpAndSettle();
-    // The re-read answers the same inbox, so the banner is back.
-    expect(find.text('PL a'), findsOneWidget);
+    // The re-read answers the same inbox, so it is unread again.
+    expect(find.text(l10n(tester).announcementsNew), findsOneWidget);
     expect(log.calls.last, 'GET /api/v1/announcements');
   });
 }
