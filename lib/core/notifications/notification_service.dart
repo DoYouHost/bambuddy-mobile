@@ -128,7 +128,7 @@ class LocalNotificationService implements NotificationService {
   @override
   Future<void> init() async {
     const settings = InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      android: AndroidInitializationSettings('@drawable/ic_stat_notify'),
     );
     await _plugin.initialize(
       settings: settings,

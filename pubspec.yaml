@@ -180,8 +180,9 @@ flutter_launcher_icons:
   ios: false
   image_path: "assets/icon/icon.png"
   min_sdk_android: 24
-  adaptive_icon_background: "#1A2233"
+  adaptive_icon_background: "#0E1512"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
-  # Android 13+ tints this layer to the wallpaper palette. Same art as the
-  # foreground, because only its alpha silhouette is used.
-  adaptive_icon_monochrome: "assets/icon/icon_foreground.png"
+  # Android 13+ tints this layer to the wallpaper palette. The simple B, not the
+  # full mark: only the alpha silhouette is used, and the spool, leaves and
+  # hotend turn into noise at that size. design/logo/export_icons.py renders it.
+  adaptive_icon_monochrome: "assets/icon/icon_monochrome.png"
