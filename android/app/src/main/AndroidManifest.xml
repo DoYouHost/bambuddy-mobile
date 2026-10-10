@@ -83,6 +83,15 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- The status-bar glyph for every notification. Never the launcher icon:
+             the system draws an adaptive icon's whole canvas, insets included,
+             so the logo shrank to half a status-bar icon (One UI 9). Read by
+             flutter_foreground_task through this meta-data; the reference also
+             keeps the drawable through resource shrinking, which the
+             notification plugin's by-name lookup alone would not. -->
+        <meta-data
+            android:name="page.codeberg.morganmlgman.bambuddy_mobile.NOTIFICATION_ICON"
+            android:resource="@drawable/ic_stat_notify" />
         <!-- flutter_foreground_task's foreground service — hosts a separate Dart
              isolate that keeps the WebSocket open and posts print notifications
              in the background. Do NOT rename the service (plugin requirement).

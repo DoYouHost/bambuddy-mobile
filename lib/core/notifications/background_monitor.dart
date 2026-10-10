@@ -53,6 +53,12 @@ class ForegroundServiceMonitor implements BackgroundMonitor {
       serviceTypes: const [ForegroundServiceTypes.connectedDevice],
       notificationTitle: l10n.bgServiceTitle,
       notificationText: l10n.bgServiceText,
+      // The manifest's meta-data names `ic_stat_notify`; without it the
+      // plugin falls back to the launcher icon. Kept across `updateService`.
+      notificationIcon: const NotificationIcon(
+        metaDataName:
+            'page.codeberg.morganmlgman.bambuddy_mobile.NOTIFICATION_ICON',
+      ),
       callback: startCallback,
     );
     return true;

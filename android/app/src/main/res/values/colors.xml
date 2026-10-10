@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#1A2233</color>
+    <color name="ic_launcher_background">#0E1512</color>
 
     <!-- Home screen widget colors. Design 2026-07: near-black card with a green
          tint and a strong mint accent (#5FE08A). Offline/idle = neutral grey;

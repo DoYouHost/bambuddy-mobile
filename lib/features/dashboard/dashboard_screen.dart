@@ -934,7 +934,7 @@ class _AppDrawer extends ConsumerWidget {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(15),
                               child: Image.asset(
-                                'assets/icon/icon.png',
+                                'assets/icon/app_logo.png',
                                 width: _iconSize,
                                 height: _iconSize,
                                 cacheWidth: iconDecodeWidth,
