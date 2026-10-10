@@ -100,15 +100,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
           child: Form(
             key: _formKey,
             child: ListView(
-              padding: withSystemNavInset(
-                context,
-                const EdgeInsets.fromLTRB(
-                  DashSpace.gutter,
-                  DashSpace.md,
-                  DashSpace.gutter,
-                  DashSpace.xxl,
-                ),
-              ),
+              padding: screenListPadding(context),
               children: [
                 TextFormField(
                   controller: _username,

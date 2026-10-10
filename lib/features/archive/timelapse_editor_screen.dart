@@ -226,15 +226,7 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
     final output = (trim.end - trim.start) / _speed;
 
     return ListView(
-      padding: withSystemNavInset(
-        context,
-        const EdgeInsets.fromLTRB(
-          DashSpace.gutter,
-          DashSpace.sm,
-          DashSpace.gutter,
-          DashSpace.xl,
-        ),
-      ),
+      padding: screenListPadding(context),
       children: [
         if (_preview case final preview?) ...[
           _Preview(

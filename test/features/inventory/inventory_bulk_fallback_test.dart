@@ -15,7 +15,15 @@ import '../../helpers.dart';
 /// is published against servers the maintainer does not control, so the
 /// per-spool path has to keep working there.
 class _FakeSource implements SpoolInventorySource {
-  _FakeSource({this.bulkFailure, this.failingSpoolIds = const {}});
+  _FakeSource({
+    this.bulkFailure,
+    this.failingSpoolIds = const {},
+    this.brokenSpoolIds = const {},
+    this.perSpoolFailure,
+  });
+
+  /// Thrown by every per-spool call: a refusal that is not about one spool.
+  final AppApiException? perSpoolFailure;
 
   /// Thrown by every bulk call, to stand for a server that answers 404 (no
   /// such route) or 403 (a key without `filaments:update`).
@@ -23,6 +31,9 @@ class _FakeSource implements SpoolInventorySource {
 
   /// Ids whose per-spool call fails, for the fallback's own tally.
   final Set<int> failingSpoolIds;
+
+  /// Ids whose per-spool call hits a bug in the app rather than the server.
+  final Set<int> brokenSpoolIds;
 
   final List<List<int>> bulkCalls = [];
   final List<int> perSpoolCalls = [];
@@ -52,6 +63,8 @@ class _FakeSource implements SpoolInventorySource {
     if (failingSpoolIds.contains(spoolId)) {
       throw const ApiException(AppErrorCode.badResponse, statusCode: 500);
     }
+    if (brokenSpoolIds.contains(spoolId)) throw StateError('app bug');
+    if (perSpoolFailure case final failure?) throw failure;
   }
 
   // Everything else is out of this test's way. Reaching one of them is a bug
@@ -161,4 +174,50 @@ void main() {
 
     expect(source.loads, 2);
   });
+
+  test(
+    'a bug in the fallback propagates, and the shelf still reloads',
+    () async {
+      final (container, source) = await harness(
+        _FakeSource(
+          bulkFailure: const ApiException(
+            AppErrorCode.badResponse,
+            statusCode: 404,
+          ),
+          brokenSpoolIds: {2},
+        ),
+      );
+      final loadsBefore = source.loads;
+
+      await expectLater(
+        container.read(inventoryProvider.notifier).archiveSpools([1, 2, 3]),
+        throwsA(isA<StateError>()),
+      );
+      expect(source.perSpoolCalls, [1, 2]);
+      expect(source.loads, loadsBefore + 1);
+    },
+  );
+
+  for (final (name, failure) in [
+    ('a 403', const AuthException(AppErrorCode.forbidden)),
+    ('a dead server', const NetworkException(AppErrorCode.serverUnreachable)),
+  ]) {
+    test('$name stops the fallback and reaches the caller', () async {
+      final (container, source) = await harness(
+        _FakeSource(
+          bulkFailure: const ApiException(
+            AppErrorCode.badResponse,
+            statusCode: 404,
+          ),
+          perSpoolFailure: failure,
+        ),
+      );
+
+      await expectLater(
+        container.read(inventoryProvider.notifier).archiveSpools([1, 2, 3]),
+        throwsA(same(failure)),
+      );
+      expect(source.perSpoolCalls, [1]);
+    });
+  }
 }

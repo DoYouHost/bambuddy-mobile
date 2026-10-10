@@ -2,7 +2,6 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/models/manyfold.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -90,10 +89,9 @@ class _ManyfoldConnectionCardState
         setState(() => _testResult = (ok: true, text: l10n.mfTestOk(count)));
       }
     } on Object catch (e) {
-      if (e is! ManyfoldFailure && e is! AppApiException) rethrow;
-      if (e case ManyfoldFailure(:final cause) || final AppApiException cause) {
-        recordActionFailure(cause, action: 'manyfold.test', shown: mounted);
-      }
+      final cause = manyfoldCause(e);
+      if (cause == null) rethrow;
+      recordActionFailure(cause, action: 'manyfold.test', shown: mounted);
       if (mounted) {
         setState(
           () => _testResult = (ok: false, text: manyfoldErrorText(e, l10n)),
@@ -122,7 +120,7 @@ class _ManyfoldConnectionCardState
       _refresh();
       widget.onDone?.call();
     } on Object catch (e) {
-      if (e is! ManyfoldFailure && e is! AppApiException) rethrow;
+      if (manyfoldCause(e) == null) rethrow;
       showManyfoldFailure(
         mounted ? messenger : null,
         e,
@@ -155,7 +153,7 @@ class _ManyfoldConnectionCardState
       messenger.snack(l10n.mfDisconnected);
       if (mounted) _refresh();
     } on Object catch (e) {
-      if (e is! ManyfoldFailure && e is! AppApiException) rethrow;
+      if (manyfoldCause(e) == null) rethrow;
       showManyfoldFailure(
         mounted ? messenger : null,
         e,

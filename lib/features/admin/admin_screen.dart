@@ -26,15 +26,7 @@ class AdminScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.adminTitle),
         body: ListView(
-          padding: withSystemNavInset(
-            context,
-            const EdgeInsets.fromLTRB(
-              DashSpace.gutter,
-              DashSpace.sm,
-              DashSpace.gutter,
-              DashSpace.xl,
-            ),
-          ),
+          padding: screenListPadding(context),
           children: [
             if (user != null) _SignedInAs(username: user.username),
             if (ref.watch(canReadUsersProvider))

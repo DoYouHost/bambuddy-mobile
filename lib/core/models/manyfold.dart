@@ -226,3 +226,12 @@ class ManyfoldFailure implements Exception {
   @override
   String toString() => 'ManyfoldFailure($code, $cause)';
 }
+
+/// The API failure under [error] — a [ManyfoldFailure]'s cause, or the
+/// exception itself — and `null` for anything a Manyfold call does not raise,
+/// which the caller rethrows.
+AppApiException? manyfoldCause(Object error) => switch (error) {
+  ManyfoldFailure(:final cause) => cause,
+  AppApiException e => e,
+  _ => null,
+};

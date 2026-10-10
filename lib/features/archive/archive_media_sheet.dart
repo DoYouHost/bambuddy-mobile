@@ -15,6 +15,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_async.dart';
 import '../common/device_files.dart';
 import '../common/file_export.dart';
 import '../common/inline_note.dart';
@@ -456,7 +457,7 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
               ),
       ),
       if (_loading)
-        _Searching(label: l10n.archiveMediaSearching, t: t)
+        BusyLine(l10n.archiveMediaSearching)
       else if (_error case final error?) ...[
         Text(error, style: t.body.copyWith(color: t.dangerInk)),
         // A search over five FTP listings fails for reasons that pass — the
@@ -617,22 +618,6 @@ class _SectionHeader extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Searching extends StatelessWidget {
-  const _Searching({required this.label, required this.t});
-
-  final String label;
-  final DashTokens t;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      const DashSpinner(size: 18),
-      const SizedBox(width: DashSpace.md),
-      Expanded(child: Text(label, style: t.bodySoft)),
-    ],
-  );
 }
 
 /// One row of the sheet: a name, what it is, and a leading mark that says which

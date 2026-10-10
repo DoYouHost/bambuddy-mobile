@@ -199,15 +199,7 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
       body: AbsorbPointer(
         absorbing: busy,
         child: ListView(
-          padding: withSystemNavInset(
-            context,
-            const EdgeInsets.fromLTRB(
-              DashSpace.gutter,
-              DashSpace.md,
-              DashSpace.gutter,
-              DashSpace.xxl,
-            ),
-          ),
+          padding: screenListPadding(context),
           children: [
             TextField(
               controller: _name,

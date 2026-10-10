@@ -227,15 +227,7 @@ class _StatsBody extends ConsumerWidget {
     final computed = ref.watch(statsComputedProvider);
 
     return ListView(
-      padding: withSystemNavInset(
-        context,
-        const EdgeInsets.fromLTRB(
-          DashSpace.gutter,
-          DashSpace.md,
-          DashSpace.gutter,
-          DashSpace.xl,
-        ),
-      ),
+      padding: screenListPadding(context),
       children: [
         _OverviewCard(data: data),
         const SizedBox(height: DashSpace.md),

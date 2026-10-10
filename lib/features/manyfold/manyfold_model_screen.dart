@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/models/current_user.dart';
+import '../../core/models/library_file.dart';
 import '../../core/models/manyfold.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -66,7 +66,7 @@ class _ManyfoldModelScreenState extends ConsumerState<ManyfoldModelScreen> {
       );
       if (mounted) _reload();
     } on Object catch (e) {
-      if (e is! ManyfoldFailure && e is! AppApiException) rethrow;
+      if (manyfoldCause(e) == null) rethrow;
       showManyfoldFailure(
         mounted ? messenger : null,
         e,
@@ -123,15 +123,7 @@ class _ManyfoldModelScreenState extends ConsumerState<ManyfoldModelScreen> {
               ? manyfoldErrorText(model.error!, l10n)
               : null,
           data: (model) => ListView(
-            padding: withSystemNavInset(
-              context,
-              const EdgeInsets.fromLTRB(
-                DashSpace.gutter,
-                DashSpace.sm,
-                DashSpace.gutter,
-                DashSpace.xxl,
-              ),
-            ),
+            padding: screenListPadding(context),
             children: [
               _Header(model: model),
               const SizedBox(height: DashSpace.lg),
@@ -192,13 +184,7 @@ class _ManyfoldModelScreenState extends ConsumerState<ManyfoldModelScreen> {
               title: Text(l10n.mfSelectAll, style: t.body),
             ).tagged('manyfold.select_all', selected: allSelected),
             if (progress != null)
-              Row(
-                children: [
-                  const DashSpinner(size: 16),
-                  const SizedBox(width: DashSpace.sm),
-                  Expanded(child: Text(progress, style: t.bodySoft)),
-                ],
-              )
+              BusyLine(progress)
             else
               ButtonPair(
                 primaryLabel: l10n.mfImportSelected(selected.length),
@@ -422,7 +408,7 @@ class _FileRow extends StatelessWidget {
                         ),
                         child: Text(l10n.mfShowInLibrary),
                       ).tagged('manyfold.show_in_library'),
-                      if (canSlice && !_sliced(imported.filename))
+                      if (canSlice && !isSlicedFilename(imported.filename))
                         TextButton(
                           onPressed: () => showSliceScreen(
                             context,
@@ -449,12 +435,5 @@ class _FileRow extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  /// Already sliced output — `LibraryFile.isPrintable`'s name rule, the one the
-  /// file manager offers Slice by.
-  static bool _sliced(String filename) {
-    final name = filename.toLowerCase();
-    return name.endsWith('.gcode') || name.endsWith('.gcode.3mf');
   }
 }

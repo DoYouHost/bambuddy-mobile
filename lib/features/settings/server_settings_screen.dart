@@ -31,15 +31,7 @@ class ServerSettingsScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.serverSettingsTitle),
         body: ListView(
-          padding: withSystemNavInset(
-            context,
-            const EdgeInsets.fromLTRB(
-              DashSpace.gutter,
-              DashSpace.sm,
-              DashSpace.gutter,
-              DashSpace.xl,
-            ),
-          ),
+          padding: screenListPadding(context),
           children: [
             SettingsEntryTile(
               icon: Icons.local_fire_department_outlined,

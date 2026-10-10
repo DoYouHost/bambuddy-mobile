@@ -119,15 +119,7 @@ class _MakerWorldTabState extends ConsumerState<MakerWorldTab> {
     final canDownload = status?.canDownload ?? false;
 
     return ListView(
-      padding: withSystemNavInset(
-        context,
-        const EdgeInsets.fromLTRB(
-          DashSpace.gutter,
-          DashSpace.sm,
-          DashSpace.gutter,
-          DashSpace.xxl,
-        ),
-      ),
+      padding: screenListPadding(context),
       children: [
         Text(l10n.mwIntro, style: t.bodySoft),
         const SizedBox(height: DashSpace.lg),

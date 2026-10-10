@@ -108,15 +108,7 @@ class _LabelPrinterScreenState extends ConsumerState<LabelPrinterScreen> {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.labelPrinterTitle),
         body: ListView(
-          padding: withSystemNavInset(
-            context,
-            const EdgeInsets.fromLTRB(
-              DashSpace.gutter,
-              DashSpace.sm,
-              DashSpace.gutter,
-              DashSpace.xl,
-            ),
-          ),
+          padding: screenListPadding(context),
           children: [
             Text(l10n.labelPrinterIntro, style: t.bodyPlain),
             const SizedBox(height: DashSpace.lg),

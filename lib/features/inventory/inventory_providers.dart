@@ -315,9 +315,12 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     }
   }
 
-  /// One call per spool, for a server without the bulk routes. One failure
-  /// doesn't abort the rest — the tally it builds is the same shape the bulk
-  /// routes answer with, minus the detail they carry.
+  /// One call per spool, for a server without the bulk routes. One spool the
+  /// server refuses doesn't abort the rest — the tally it builds is the same
+  /// shape the bulk routes answer with, minus the detail they carry. What is
+  /// not about one spool propagates as it does from [_bulk]: a 401/403 or a
+  /// dead server would refuse every spool the same way, and anything else is a
+  /// bug in the app that belongs in the log.
   Future<BulkOutcome> _perSpoolFallback(
     InventoryRepository repo,
     List<int> ids,
@@ -329,7 +332,7 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
       try {
         await action(repo, id);
         ok++;
-      } on Object {
+      } on ApiException {
         failed++;
       }
     }

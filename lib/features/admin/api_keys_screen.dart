@@ -14,6 +14,7 @@ import 'api_key_form_screen.dart';
 import 'api_key_labels.dart';
 import 'api_keys_providers.dart';
 import 'user_messages.dart';
+import '../common/tappable_card.dart';
 
 /// The API keys issued on this server (full screen, pushed from the drawer).
 ///
@@ -58,14 +59,9 @@ class ApiKeysScreen extends ConsumerWidget {
                     icon: Icons.key_outlined,
                   )
                 : ListView.builder(
-                    padding: withSystemNavInset(
+                    padding: screenListPadding(
                       context,
-                      EdgeInsets.fromLTRB(
-                        DashSpace.gutter,
-                        DashSpace.sm,
-                        DashSpace.gutter,
-                        canCreate ? DashSpace.fabClearance : DashSpace.xl,
-                      ),
+                      bottom: canCreate ? DashSpace.fabClearance : DashSpace.xl,
                     ),
                     itemCount: keys.length,
                     itemBuilder: (_, i) => _ApiKeyCard(apiKey: keys[i]),
@@ -101,112 +97,97 @@ class _ApiKeyCard extends ConsumerWidget {
         l10n.apiKeysNeverUsed,
     ];
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
-      child: Material(
-        color: Colors.transparent,
-        child: logTag(
-          'api_keys.key',
-          InkWell(
-            borderRadius: BorderRadius.circular(22),
-            onTap: canEdit ? () => openApiKeyEdit(context, apiKey) : null,
-            child: Container(
-              padding: const EdgeInsets.all(DashSpace.lg),
-              decoration: t.cardBox,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.key_outlined, size: 20, color: accent),
-                      const SizedBox(width: DashSpace.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              apiKey.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: t.titleMd.copyWith(
-                                color: live ? t.textPrimary : t.textTertiary,
-                              ),
-                            ),
-                            const SizedBox(height: DashSpace.xs),
-                            Text(subtitle.join(' · '), style: t.monoMicro),
-                          ],
-                        ),
+    return TappableCard(
+      id: 'api_keys.key',
+      onTap: canEdit ? () => openApiKeyEdit(context, apiKey) : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.key_outlined, size: 20, color: accent),
+              const SizedBox(width: DashSpace.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      apiKey.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.titleMd.copyWith(
+                        color: live ? t.textPrimary : t.textTertiary,
                       ),
-                      if (canRevoke)
-                        IconButton(
-                          icon: Icon(
-                            Icons.delete_outline,
-                            size: 20,
-                            color: t.dangerInk,
-                          ),
-                          tooltip: l10n.apiKeysRevoke,
-                          onPressed: () => _revoke(context, ref),
-                        ).tagged('api_keys.revoke'),
-                    ],
-                  ),
-                  const SizedBox(height: DashSpace.md),
-                  Wrap(
-                    spacing: DashSpace.sm,
-                    runSpacing: DashSpace.sm,
-                    children: [
-                      if (!apiKey.enabled)
-                        DashPill(
-                          label: l10n.apiKeysDisabled,
-                          accent: t.danger,
-                          accentInk: t.dangerInk,
-                          icon: Icons.pause_circle_outline,
-                        )
-                      else if (expired)
-                        DashPill(
-                          label: l10n.apiKeysExpired,
-                          accent: t.danger,
-                          accentInk: t.dangerInk,
-                          icon: Icons.schedule,
-                        ),
-                      if (apiKey.expiresAt != null && !expired)
-                        DashPill(
-                          label: l10n.apiKeysExpiresOn(
-                            fmt.dateNamedMonth(apiKey.expiresAt!),
-                          ),
-                          accent: t.accentOrange,
-                          accentInk: t.accentOrangeInk,
-                          icon: Icons.schedule,
-                        ),
-                      if (apiKey.printerIds != null)
-                        DashPill(
-                          label: l10n.apiKeysPrinterLimited(
-                            apiKey.printerIds!.length,
-                          ),
-                          accent: t.accentBlue,
-                          icon: Icons.print_outlined,
-                        ),
-                      if (apiKey.isLegacy)
-                        DashPill(
-                          label: l10n.apiKeysLegacy,
-                          accent: t.accentOrange,
-                          accentInk: t.accentOrangeInk,
-                          icon: Icons.history,
-                        ),
-                      for (final scope in ApiKeyScope.values)
-                        if (apiKey.scopes.contains(scope))
-                          DashPill(
-                            label: apiKeyScopeLabel(l10n, scope),
-                            accent: t.textSecondary,
-                            accentInk: t.textSecondary,
-                          ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: DashSpace.xs),
+                    Text(subtitle.join(' · '), style: t.monoMicro),
+                  ],
+                ),
               ),
-            ),
+              if (canRevoke)
+                IconButton(
+                  icon: Icon(
+                    Icons.delete_outline,
+                    size: 20,
+                    color: t.dangerInk,
+                  ),
+                  tooltip: l10n.apiKeysRevoke,
+                  onPressed: () => _revoke(context, ref),
+                ).tagged('api_keys.revoke'),
+            ],
           ),
-        ),
+          const SizedBox(height: DashSpace.md),
+          Wrap(
+            spacing: DashSpace.sm,
+            runSpacing: DashSpace.sm,
+            children: [
+              if (!apiKey.enabled)
+                DashPill(
+                  label: l10n.apiKeysDisabled,
+                  accent: t.danger,
+                  accentInk: t.dangerInk,
+                  icon: Icons.pause_circle_outline,
+                )
+              else if (expired)
+                DashPill(
+                  label: l10n.apiKeysExpired,
+                  accent: t.danger,
+                  accentInk: t.dangerInk,
+                  icon: Icons.schedule,
+                ),
+              if (apiKey.expiresAt != null && !expired)
+                DashPill(
+                  label: l10n.apiKeysExpiresOn(
+                    fmt.dateNamedMonth(apiKey.expiresAt!),
+                  ),
+                  accent: t.accentOrange,
+                  accentInk: t.accentOrangeInk,
+                  icon: Icons.schedule,
+                ),
+              if (apiKey.printerIds != null)
+                DashPill(
+                  label: l10n.apiKeysPrinterLimited(apiKey.printerIds!.length),
+                  accent: t.accentBlue,
+                  icon: Icons.print_outlined,
+                ),
+              if (apiKey.isLegacy)
+                DashPill(
+                  label: l10n.apiKeysLegacy,
+                  accent: t.accentOrange,
+                  accentInk: t.accentOrangeInk,
+                  icon: Icons.history,
+                ),
+              for (final scope in ApiKeyScope.values)
+                if (apiKey.scopes.contains(scope))
+                  DashPill(
+                    label: apiKeyScopeLabel(l10n, scope),
+                    accent: t.textSecondary,
+                    accentInk: t.textSecondary,
+                  ),
+            ],
+          ),
+        ],
       ),
     );
   }

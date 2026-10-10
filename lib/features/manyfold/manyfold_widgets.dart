@@ -43,11 +43,7 @@ void showManyfoldFailure(
   AppLocalizations l10n, {
   required String action,
 }) {
-  final cause = switch (error) {
-    ManyfoldFailure(:final cause) => cause,
-    AppApiException e => e,
-    _ => null,
-  };
+  final cause = manyfoldCause(error);
   if (cause != null) {
     recordActionFailure(cause, action: action, shown: messenger != null);
   }
@@ -90,12 +86,11 @@ Future<void> importManyfoldFiles(
       );
       result.wasExisting ? existing++ : imported++;
     } on Object catch (e) {
-      if (e is! ManyfoldFailure && e is! AppApiException) rethrow;
+      final cause = manyfoldCause(e);
+      if (cause == null) rethrow;
       failed.add(item.name);
       firstError ??= e;
-      if (e case ManyfoldFailure(:final cause) || final AppApiException cause) {
-        recordActionFailure(cause, action: action, shown: mounted());
-      }
+      recordActionFailure(cause, action: action, shown: mounted());
     }
   }
   if (!mounted()) return;

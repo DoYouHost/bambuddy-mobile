@@ -99,15 +99,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
           child: Form(
             key: _formKey,
             child: ListView(
-              padding: withSystemNavInset(
-                context,
-                const EdgeInsets.fromLTRB(
-                  DashSpace.gutter,
-                  DashSpace.md,
-                  DashSpace.gutter,
-                  DashSpace.xxl,
-                ),
-              ),
+              padding: screenListPadding(context),
               children: [
                 TextFormField(
                   controller: _name,

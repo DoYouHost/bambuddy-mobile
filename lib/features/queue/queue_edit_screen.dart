@@ -307,15 +307,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         body: AbsorbPointer(
           absorbing: _saving,
           child: ListView(
-            padding: withSystemNavInset(
-              context,
-              const EdgeInsets.fromLTRB(
-                DashSpace.gutter,
-                DashSpace.md,
-                DashSpace.gutter,
-                DashSpace.xxl,
-              ),
-            ),
+            padding: screenListPadding(context),
             children: [
               _header(l10n, t),
               // The server refuses the job without a cost center, and the
