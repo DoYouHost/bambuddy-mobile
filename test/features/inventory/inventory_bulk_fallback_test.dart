@@ -19,7 +19,11 @@ class _FakeSource implements SpoolInventorySource {
     this.bulkFailure,
     this.failingSpoolIds = const {},
     this.brokenSpoolIds = const {},
+    this.perSpoolFailure,
   });
+
+  /// Thrown by every per-spool call: a refusal that is not about one spool.
+  final AppApiException? perSpoolFailure;
 
   /// Thrown by every bulk call, to stand for a server that answers 404 (no
   /// such route) or 403 (a key without `filaments:update`).
@@ -60,6 +64,7 @@ class _FakeSource implements SpoolInventorySource {
       throw const ApiException(AppErrorCode.badResponse, statusCode: 500);
     }
     if (brokenSpoolIds.contains(spoolId)) throw StateError('app bug');
+    if (perSpoolFailure case final failure?) throw failure;
   }
 
   // Everything else is out of this test's way. Reaching one of them is a bug
@@ -192,4 +197,27 @@ void main() {
       expect(source.loads, loadsBefore + 1);
     },
   );
+
+  for (final (name, failure) in [
+    ('a 403', const AuthException(AppErrorCode.forbidden)),
+    ('a dead server', const NetworkException(AppErrorCode.serverUnreachable)),
+  ]) {
+    test('$name stops the fallback and reaches the caller', () async {
+      final (container, source) = await harness(
+        _FakeSource(
+          bulkFailure: const ApiException(
+            AppErrorCode.badResponse,
+            statusCode: 404,
+          ),
+          perSpoolFailure: failure,
+        ),
+      );
+
+      await expectLater(
+        container.read(inventoryProvider.notifier).archiveSpools([1, 2, 3]),
+        throwsA(same(failure)),
+      );
+      expect(source.perSpoolCalls, [1]);
+    });
+  }
 }
