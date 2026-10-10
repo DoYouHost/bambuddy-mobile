@@ -7,7 +7,7 @@ import math
 import os
 import subprocess
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 BG = (14, 21, 18)  # #0E1512, also adaptive_icon_background in pubspec.yaml
@@ -91,3 +91,29 @@ for density, scale in {'mdpi': 1, 'hdpi': 1.5, 'xhdpi': 2, 'xxhdpi': 3, 'xxxhdpi
     a.paste(g, ((canvas - g.width) // 2, (canvas - g.height) // 2))
     out.putalpha(a)
     out.save(f'{ROOT}/android/app/src/main/res/drawable-{density}/ic_stat_notify.png', optimize=True)
+
+# Google Play feature graphic, 1024x500: mark on the left, name and line on the
+# right, the text sized to the room it has rather than to a fixed point size
+W, H = 1024, 500
+banner = Image.new('RGB', (W, H), BG)
+glow = Image.new('L', (W, H), 0)
+ImageDraw.Draw(glow).ellipse((40, 20, 440, 480), fill=38)   # soft lift behind the mark
+banner.paste(Image.new('RGB', (W, H), (40, 70, 52)), (0, 0), glow.filter(ImageFilter.GaussianBlur(70)))
+mark = place(full, kf, FULL_CENTRE, 400, 190)
+banner.paste(mark, (40, 50), mark)
+font = lambda w, s: ImageFont.truetype(f'{ROOT}/assets/fonts/Manrope-{w}.ttf', s)
+d = ImageDraw.Draw(banner)
+left, right = 470, W - 60
+lines = ('Companion for a self-hosted', 'Bambu Lab printer manager')
+size = 110
+while d.textlength('Bambuddy', font=font(800, size)) > right - left:
+    size -= 2
+sub = 40
+while max(d.textlength(l, font=font(600, sub)) for l in lines) > right - left:
+    sub -= 1
+title_h, gap, line_h = size, 26, round(sub * 1.3)
+top = (H - (title_h + gap + line_h * 2)) // 2
+d.text((left, top), 'Bambuddy', font=font(800, size), fill=(242, 245, 243), anchor='lt')
+for k, l in enumerate(lines):
+    d.text((left + 3, top + title_h + gap + k * line_h), l, font=font(600, sub), fill=(52, 196, 110), anchor='lt')
+banner.save(f'{ROOT}/docs/store-assets/play-feature-1024x500.png')
