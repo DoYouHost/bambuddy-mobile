@@ -153,6 +153,34 @@ jobs:
           echo "base=http://${gateway}:8000" >> "$GITHUB_OUTPUT"
           echo "labelprinter_url=http://${gateway}:8200" >> "$GITHUB_OUTPUT"
 
+      # A real Manyfold behind the server's Manyfold routes (#1471), so the
+      # tests browse and import rather than only meet the refusals. Daily only:
+      # no release has those routes yet, and the image is 1.5 GB. Started here
+      # so its first boot overlaps the label server's install and the seed.
+      - name: Start Manyfold
+        id: manyfold
+        if: matrix.tag == 'daily'
+        run: |
+          set -euo pipefail
+          name="manyfold-ci-${GITHUB_RUN_ID}"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          library="$RUNNER_TEMP/manyfold-library"
+          mkdir -p "$library/Contract model"
+          printf 'solid t\nfacet normal 0 0 1\nouter loop\nvertex 0 0 0\nvertex 10 0 0\nvertex 0 10 0\nendloop\nendfacet\nendsolid t\n' \
+            > "$library/Contract model/contract.stl"
+          echo "not printable" > "$library/Contract model/readme.txt"
+          chmod -R a+rX "$library"
+
+          docker pull --quiet ghcr.io/manyfold3d/manyfold-solo:latest
+          docker create --rm --name "$name" \
+            -e SECRET_KEY_BASE="$(openssl rand -hex 64)" \
+            ghcr.io/manyfold3d/manyfold-solo:latest >/dev/null
+          # docker cp rather than -v: the daemon's filesystem is not the runner's.
+          docker cp "$library/." "$name":/libraries
+          docker start "$name" >/dev/null
+          ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$name")"
+          echo "url=http://${ip}:3214" >> "$GITHUB_OUTPUT"
+
       - name: Wait for the label print server
         run: |
           set -euo pipefail
@@ -176,6 +204,31 @@ jobs:
             --broker-container "${{ steps.server.outputs.broker }}" \
             --admin-user "$ADMIN_USER" --admin-pass "$ADMIN_PASS"
 
+      # Retried because `rails runner` fails until the first boot has migrated
+      # the database, which takes longer than any fixed sleep worth writing.
+      - name: Set up Manyfold
+        id: manyfold_app
+        if: matrix.tag == 'daily'
+        run: |
+          set -euo pipefail
+          name="${{ steps.manyfold.outputs.name }}"
+          docker cp tool/ci/manyfold_setup.rb "$name":/tmp/manyfold_setup.rb
+          for _ in $(seq 1 30); do
+            if out="$(docker exec "$name" sh -c 'cd /usr/src/app && bin/rails runner /tmp/manyfold_setup.rb' 2>&1)" \
+              && grep -q '^CLIENT_SECRET=' <<<"$out"; then
+              id="$(grep '^CLIENT_ID=' <<<"$out" | cut -d= -f2-)"
+              secret="$(grep '^CLIENT_SECRET=' <<<"$out" | cut -d= -f2-)"
+              echo "::add-mask::$secret"
+              echo "client_id=$id" >> "$GITHUB_OUTPUT"
+              echo "client_secret=$secret" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 10
+          done
+          tail -40 <<<"$out"
+          echo "Manyfold never finished its setup"
+          exit 1
+
       - name: Dependencies
         run: flutter pub get --enforce-lockfile
 
@@ -196,6 +249,9 @@ jobs:
           LABEL_PRINTER_CONTRACT_URL: ${{ steps.server.outputs.labelprinter_url }}
           LABEL_PRINTER_CONTRACT_CONTAINER: ${{ steps.server.outputs.labelprinter }}
           LABEL_PRINTER_CONTRACT_OUT: /tmp/lp0
+          BAMBUDDY_CONTRACT_MANYFOLD_URL: ${{ steps.manyfold.outputs.url }}
+          BAMBUDDY_CONTRACT_MANYFOLD_CLIENT_ID: ${{ steps.manyfold_app.outputs.client_id }}
+          BAMBUDDY_CONTRACT_MANYFOLD_CLIENT_SECRET: ${{ steps.manyfold_app.outputs.client_secret }}
           # NOT decoration, and not cosmetic either: the runner is UTC, where a
           # naive timestamp read as local and the same one read as UTC are the
           # same instant — so the timestamp contract would pass no matter which
@@ -223,6 +279,11 @@ jobs:
           echo "::group::label print server"
           docker logs "${{ steps.server.outputs.labelprinter }}" 2>&1 | tail -80
           echo "::endgroup::"
+          if [ -n "${{ steps.manyfold.outputs.name }}" ]; then
+            echo "::group::manyfold"
+            docker logs "${{ steps.manyfold.outputs.name }}" 2>&1 | tail -80
+            echo "::endgroup::"
+          fi
 
       # --rm covers the ordinary exit; this covers a cancelled job, and the
       # runner wrapper sweeps whatever survives even that before the next job.
@@ -233,3 +294,4 @@ jobs:
           docker rm -f "${{ steps.server.outputs.broker }}" >/dev/null 2>&1 || true
           docker rm -f "${{ steps.server.outputs.spoolman }}" >/dev/null 2>&1 || true
           docker rm -f "${{ steps.server.outputs.labelprinter }}" >/dev/null 2>&1 || true
+          docker rm -f "${{ steps.manyfold.outputs.name }}" >/dev/null 2>&1 || true
