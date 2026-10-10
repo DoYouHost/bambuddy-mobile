@@ -141,6 +141,10 @@ do not stay silent because it was not part of the task.
 - [docs/scheduled-workflows.md](docs/scheduled-workflows.md) — why
   `server-drift` and `contract-tests` are dispatched by Dagu on `lxc-dagu`
   instead of a `schedule:` trigger, and where to change their times.
+- [docs/oidc-native-login.md](docs/oidc-native-login.md) — OIDC sign-in in
+  the app: the two upstream PRs it waits on (native redirect + client PKCE +
+  consent screen; rotating refresh tokens), their threat model, and the app
+  side, including the Remember-me rule for every login path.
 - [docs/play-store-listing.md](docs/play-store-listing.md),
   [docs/privacy-policy.md](docs/privacy-policy.md), `docs/store-assets/` — what
   Google Play shows.
