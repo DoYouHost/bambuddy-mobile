@@ -98,6 +98,13 @@ class WsInventoryChanged extends WsMessage {
   const WsInventoryChanged();
 }
 
+/// The maintainers' announcements changed on the server: its periodic fetch of
+/// the feed brought something new (`services/announcements.py`). Carries
+/// nothing; the inbox is re-read.
+class WsAnnouncementsChanged extends WsMessage {
+  const WsAnnouncementsChanged();
+}
+
 /// Any arriving frame resets the watchdog; this one is told apart so the
 /// manager can separate control traffic from data.
 class WsPong extends WsMessage {
@@ -182,6 +189,8 @@ WsMessage? parseWsMessage(String raw) {
       if (run is! Map<String, dynamic>) return WsUnknown(type);
       if (toIntOrNull(run['id']) == null) return WsUnknown(type);
       return WsPipelineRunUpdated(run);
+    case 'announcements_changed':
+      return const WsAnnouncementsChanged();
     case 'pong':
       return const WsPong();
     default:

@@ -8610,4 +8610,42 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get dashboardGroupUnknownModel => 'Modèle inconnu';
+
+  @override
+  String get announcementsTitle => 'Annonces';
+
+  @override
+  String announcementsUnread(int count) {
+    return 'Annonces non lues : $count';
+  }
+
+  @override
+  String get announcementsEmpty => 'Aucune annonce pour le moment.';
+
+  @override
+  String announcementsEarlier(int count) {
+    return 'Précédentes ($count)';
+  }
+
+  @override
+  String get announcementsNew => 'Nouveau';
+
+  @override
+  String get announcementsReadMore => 'En savoir plus';
+
+  @override
+  String get announcementsSource =>
+      'Des développeurs de Bambuddy, récupérées depuis GitHub.';
+
+  @override
+  String get announcementLevelInfo => 'Information';
+
+  @override
+  String get announcementLevelImportant => 'Importante';
+
+  @override
+  String get announcementLevelCritical => 'Critique';
+
+  @override
+  String get announcementsMarkAllRead => 'Tout marquer comme lu';
 }

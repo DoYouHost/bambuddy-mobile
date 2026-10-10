@@ -150,6 +150,8 @@ class WsClient {
   final _pipelineRunController =
       StreamController<WsPipelineRunUpdated>.broadcast();
   final _inventoryController = StreamController<WsInventoryChanged>.broadcast();
+  final _announcementsController =
+      StreamController<WsAnnouncementsChanged>.broadcast();
   final _confirmController =
       StreamController<WsPrintConfirmRequest>.broadcast();
 
@@ -196,6 +198,9 @@ class WsClient {
   Stream<WsInventoryChanged> get inventoryChanges =>
       _inventoryController.stream;
 
+  Stream<WsAnnouncementsChanged> get announcementChanges =>
+      _announcementsController.stream;
+
   /// A finished print asking how it came out.
   Stream<WsPrintConfirmRequest> get confirmRequests =>
       _confirmController.stream;
@@ -239,6 +244,7 @@ class WsClient {
     await _plateController.close();
     await _printController.close();
     await _inventoryController.close();
+    await _announcementsController.close();
     await _archiveController.close();
     await _pipelineRunController.close();
     await _confirmController.close();
@@ -345,6 +351,9 @@ class WsClient {
       _pipelineRunController.add(msg);
     } else if (msg is WsInventoryChanged && !_inventoryController.isClosed) {
       _inventoryController.add(msg);
+    } else if (msg is WsAnnouncementsChanged &&
+        !_announcementsController.isClosed) {
+      _announcementsController.add(msg);
     } else if (msg is WsPrintConfirmRequest && !_confirmController.isClosed) {
       _confirmController.add(msg);
     }

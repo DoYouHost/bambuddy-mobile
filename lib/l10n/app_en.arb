@@ -5580,5 +5580,30 @@
   "dashboardSortDescending": "Descending",
   "dashboardLocationAll": "All locations",
   "dashboardGroupUngrouped": "No location",
-  "dashboardGroupUnknownModel": "Unknown model"
+  "dashboardGroupUnknownModel": "Unknown model",
+  "announcementsTitle": "Announcements",
+  "announcementsUnread": "Unread announcements: {count}",
+  "@announcementsUnread": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "announcementsEmpty": "No announcements right now.",
+  "announcementsEarlier": "Earlier ({count})",
+  "@announcementsEarlier": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "announcementsNew": "New",
+  "announcementsReadMore": "Read more",
+  "announcementsSource": "From the Bambuddy maintainers, fetched from GitHub.",
+  "announcementLevelInfo": "Info",
+  "announcementLevelImportant": "Important",
+  "announcementLevelCritical": "Critical",
+  "announcementsMarkAllRead": "Mark all as read"
 }

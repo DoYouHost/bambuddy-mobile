@@ -525,6 +525,18 @@ class DemoBackend {
       case 'projects':
         return _projectsRoute(m, s, q, body);
 
+      case 'announcements':
+        if (s.length == 1 && m == 'GET') {
+          return _ok({'visible': true, 'announcements': _announcements});
+        }
+        if (s.length == 3 && at(2, 'read') && m == 'POST') {
+          final hit = _announcements.where((a) => a['id'] == s[1]).firstOrNull;
+          if (hit == null) return _notFound();
+          hit['read'] = true;
+          return (status: 204, body: null);
+        }
+        return _notFound();
+
       case 'manyfold':
         if (at(1, 'import') && m == 'POST') return _manyfoldImport(body);
         return _manyfold.route(m, s, q, body);
@@ -6044,6 +6056,74 @@ class DemoBackend {
   ];
 
   // --- Manyfold ---
+
+  /// Two unread messages at different levels, for the dot, the count and the
+  /// level labels, and an expired one under "Earlier".
+  late final _announcements = <Map<String, dynamic>>[
+    _demoAnnouncement(
+      'demo-important',
+      'important',
+      en: (
+        'An important message from the Bambuddy team',
+        'Messages from the people who make Bambuddy land here. Opening one '
+            'marks it read, here and on the web.',
+      ),
+      pl: (
+        'Ważna wiadomość od zespołu Bambuddy',
+        'Tutaj trafiają wiadomości od twórców Bambuddy. Otwarcie oznacza '
+            'wiadomość jako przeczytaną, tu i w przeglądarce.',
+      ),
+      daysAgo: 1,
+    ),
+    _demoAnnouncement(
+      'demo-info',
+      'info',
+      en: (
+        'A regular update from the Bambuddy team',
+        'While anything is unread, the menu button carries a dot.',
+      ),
+      pl: (
+        'Zwykła informacja od zespołu Bambuddy',
+        'Dopóki coś jest nieprzeczytane, przycisk menu ma kropkę.',
+      ),
+      daysAgo: 9,
+    ),
+    _demoAnnouncement(
+      'demo-expired',
+      'info',
+      en: (
+        'An expired message',
+        'Messages past their expiry stay here as history.',
+      ),
+      pl: (
+        'Wygasła wiadomość',
+        'Wiadomości po terminie zostają tutaj jako historia.',
+      ),
+      daysAgo: 45,
+      expired: true,
+    ),
+  ];
+
+  static Map<String, dynamic> _demoAnnouncement(
+    String id,
+    String level, {
+    required (String, String) en,
+    required (String, String) pl,
+    required int daysAgo,
+    bool expired = false,
+  }) => {
+    'id': id,
+    'level': level,
+    'texts': {
+      'en': {'title': en.$1, 'body': en.$2},
+      'pl': {'title': pl.$1, 'body': pl.$2},
+    },
+    'link_url': 'https://github.com/maziggy/bambuddy',
+    'published_at': _iso(_daysAgo(daysAgo)),
+    'expires_at': expired ? _iso(_daysAgo(daysAgo - 30)) : null,
+    'archived': expired,
+    'read': expired,
+  };
 
   late final _manyfold = DemoManyfold(
     libraryFileFor: (key) =>

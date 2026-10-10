@@ -108,6 +108,13 @@ void main() {
       }
     });
 
+    test('announcements_changed is a bare trigger', () {
+      expect(
+        parseWsMessage('{"type":"announcements_changed"}'),
+        isA<WsAnnouncementsChanged>(),
+      );
+    });
+
     test('archive_updated with photo_added is a WsArchiveUpdated', () {
       final raw = jsonEncode({
         'type': 'archive_updated',

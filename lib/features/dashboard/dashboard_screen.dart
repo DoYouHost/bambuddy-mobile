@@ -1,3 +1,4 @@
+import '../announcements/announcements_widgets.dart';
 import '../common/dash_icon_tile.dart';
 import 'dart:async';
 
@@ -499,7 +500,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             scrolledUnderElevation: 0,
             // Same button AppBar would build implicitly, but named for the log —
             // this screen always has a drawer, so there is no condition to keep.
-            leading: logTag('chrome.drawer', const DrawerButton()),
+            leading: logTag('chrome.drawer', const AnnouncementsDrawerButton()),
             title: Text(
               l10n.printersTitle,
               style: t.displayLg.copyWith(letterSpacing: -0.5),
@@ -870,8 +871,8 @@ class _AppDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    // The asset is the 1024x1024 launcher source, so without this it decodes at
-    // full size for a 52 dp tile. Width alone, as in `MediaImage`.
+    // The asset is 512x512, so without this it decodes at full size for a
+    // 52 dp tile. Width alone, as in `MediaImage`.
     final iconDecodeWidth = (_iconSize * MediaQuery.devicePixelRatioOf(context))
         .round();
     return Drawer(
@@ -957,6 +958,7 @@ class _AppDrawer extends ConsumerWidget {
                               ],
                             ),
                           ),
+                          const AnnouncementsHeaderButton(),
                         ],
                       ),
                     ),

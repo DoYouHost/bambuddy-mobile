@@ -1,5 +1,7 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart';
+import 'package:bambuddy_mobile/core/models/announcement.dart';
+import 'package:bambuddy_mobile/features/announcements/announcements_providers.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -63,6 +65,18 @@ class TempDirProvider extends PathProviderPlatform {
 final inertFirmwareOverride = printerFirmwareProvider.overrideWith(
   (ref, id) => null,
 );
+
+/// No announcements for widget tests: the dashboard reads the inbox for its
+/// drawer dot and banner — the same hanging-timer trap as
+/// [inertFirmwareOverride].
+final inertAnnouncementsOverride = announcementsProvider.overrideWith(
+  _InertAnnouncements.new,
+);
+
+class _InertAnnouncements extends AnnouncementsNotifier {
+  @override
+  Future<AnnouncementFeed> build() async => AnnouncementFeed.hidden;
+}
 
 /// Inert total print time for widget tests: the printer card reads it from the
 /// maintenance overview while it renders. Null keeps that off the network, the

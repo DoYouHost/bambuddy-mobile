@@ -14179,6 +14179,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unknown model'**
   String get dashboardGroupUnknownModel;
+
+  /// No description provided for @announcementsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Announcements'**
+  String get announcementsTitle;
+
+  /// No description provided for @announcementsUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread announcements: {count}'**
+  String announcementsUnread(int count);
+
+  /// No description provided for @announcementsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No announcements right now.'**
+  String get announcementsEmpty;
+
+  /// No description provided for @announcementsEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier ({count})'**
+  String announcementsEarlier(int count);
+
+  /// No description provided for @announcementsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get announcementsNew;
+
+  /// No description provided for @announcementsReadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Read more'**
+  String get announcementsReadMore;
+
+  /// No description provided for @announcementsSource.
+  ///
+  /// In en, this message translates to:
+  /// **'From the Bambuddy maintainers, fetched from GitHub.'**
+  String get announcementsSource;
+
+  /// No description provided for @announcementLevelInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get announcementLevelInfo;
+
+  /// No description provided for @announcementLevelImportant.
+  ///
+  /// In en, this message translates to:
+  /// **'Important'**
+  String get announcementLevelImportant;
+
+  /// No description provided for @announcementLevelCritical.
+  ///
+  /// In en, this message translates to:
+  /// **'Critical'**
+  String get announcementLevelCritical;
+
+  /// No description provided for @announcementsMarkAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all as read'**
+  String get announcementsMarkAllRead;
 }
 
 class _AppLocalizationsDelegate

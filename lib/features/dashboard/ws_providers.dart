@@ -164,6 +164,11 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
     );
     ref.onDispose(archiveSub.cancel);
 
+    final announcementsSub = client.announcementChanges.listen(
+      (_) => ref.read(announcementsChangedProvider.notifier).bump(),
+    );
+    ref.onDispose(announcementsSub.cancel);
+
     // The shell owns the sheet; this only hands it the question.
     final confirmSub = client.confirmRequests.listen(
       (request) => outcomePrompts.post(request.archiveId),

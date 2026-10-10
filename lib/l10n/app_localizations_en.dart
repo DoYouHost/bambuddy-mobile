@@ -8427,4 +8427,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashboardGroupUnknownModel => 'Unknown model';
+
+  @override
+  String get announcementsTitle => 'Announcements';
+
+  @override
+  String announcementsUnread(int count) {
+    return 'Unread announcements: $count';
+  }
+
+  @override
+  String get announcementsEmpty => 'No announcements right now.';
+
+  @override
+  String announcementsEarlier(int count) {
+    return 'Earlier ($count)';
+  }
+
+  @override
+  String get announcementsNew => 'New';
+
+  @override
+  String get announcementsReadMore => 'Read more';
+
+  @override
+  String get announcementsSource =>
+      'From the Bambuddy maintainers, fetched from GitHub.';
+
+  @override
+  String get announcementLevelInfo => 'Info';
+
+  @override
+  String get announcementLevelImportant => 'Important';
+
+  @override
+  String get announcementLevelCritical => 'Critical';
+
+  @override
+  String get announcementsMarkAllRead => 'Mark all as read';
 }

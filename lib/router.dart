@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart';
+import 'features/announcements/announcements_screen.dart';
 import 'features/about/about_screen.dart';
 import 'features/admin/admin_screen.dart';
 import 'features/admin/api_keys_screen.dart';
@@ -143,6 +144,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Wall mode — outside the shell, so it covers the navigation bar. Pushed
       // from the dashboard, which has to stay mounted under it (WallScreen).
       GoRoute(path: '/wall', builder: (_, _) => const WallScreen()),
+
+      GoRoute(
+        path: '/announcements',
+        builder: (_, _) => const AnnouncementsScreen(),
+      ),
 
       // Archive statistics — full screen outside shell (pushed from drawer).
       GoRoute(path: '/stats', builder: (_, _) => const StatisticsScreen()),

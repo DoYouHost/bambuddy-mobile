@@ -47,6 +47,7 @@ import 'data/location_sensors_repository.dart';
 import 'data/printer_locations_repository.dart';
 import 'data/suppliers_repository.dart';
 import 'data/makerworld_repository.dart';
+import 'data/announcements_repository.dart';
 import 'data/manyfold_repository.dart';
 import 'data/pipelines_repository.dart';
 import 'data/inventory_repository.dart';
@@ -668,6 +669,9 @@ final archiveChangedProvider = NotifierProvider<Epoch, int>(Epoch.new);
 /// reading it re-fetches when it is the tab being looked at.
 final inventoryChangedProvider = NotifierProvider<Epoch, int>(Epoch.new);
 
+/// Bumped when the server says its announcements changed.
+final announcementsChangedProvider = NotifierProvider<Epoch, int>(Epoch.new);
+
 /// The connected server's version, for a synchronous reader. Warmed by the
 /// shell at start, and asked again on every regained contact — a read that
 /// failed while the network was down would otherwise wait out the service's
@@ -1183,6 +1187,11 @@ final makerworldRecentImportsProvider =
     FutureProvider.autoDispose<List<MakerWorldRecentImport>>(
       (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
     );
+
+/// Announcements from the Bambuddy maintainers. Shares authenticated Dio.
+final announcementsRepositoryProvider = Provider<AnnouncementsRepository>(
+  (ref) => AnnouncementsRepository(ref.watch(apiClientProvider).dio),
+);
 
 /// Manyfold library (#1471). Shares authenticated Dio.
 final manyfoldRepositoryProvider = Provider<ManyfoldRepository>(
