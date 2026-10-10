@@ -189,15 +189,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
                   ),
                 )
               : ListView(
-                  padding: withSystemNavInset(
-                    context,
-                    const EdgeInsets.fromLTRB(
-                      DashSpace.gutter,
-                      DashSpace.sm,
-                      DashSpace.gutter,
-                      DashSpace.xl,
-                    ),
-                  ),
+                  padding: screenListPadding(context),
                   children: [
                     for (final page in shown) ...[
                       // Only worth a heading when several pages are on screen at

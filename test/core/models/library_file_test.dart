@@ -20,4 +20,13 @@ void main() {
       expect(file().displayName, 'Mug Holder.3mf');
     });
   });
+
+  test('isSlicedFilename: sliced outputs in any case, nothing else', () {
+    expect(isSlicedFilename('part.gcode'), isTrue);
+    expect(isSlicedFilename('Plate 1.GCODE.3MF'), isTrue);
+    expect(isSlicedFilename('model.3mf'), isFalse);
+    expect(isSlicedFilename('model.stl'), isFalse);
+    expect(isSlicedFilename('gcode'), isFalse);
+    expect(isSlicedFilename(''), isFalse);
+  });
 }

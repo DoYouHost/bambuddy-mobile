@@ -4,7 +4,6 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/manyfold.dart';
 import '../../core/theme/dash_theme.dart';
@@ -105,7 +104,7 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
             ));
           }
         } on Object catch (e) {
-          if (e is! ManyfoldFailure && e is! AppApiException) rethrow;
+          if (manyfoldCause(e) == null) rethrow;
           unreadable.add(name);
         }
         if (!mounted) return;
@@ -142,15 +141,7 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
     if (!configured || _editingConnection) {
       if (!canConfigure) return _NotConnected(l10n: l10n);
       return ListView(
-        padding: withSystemNavInset(
-          context,
-          const EdgeInsets.fromLTRB(
-            DashSpace.gutter,
-            DashSpace.lg,
-            DashSpace.gutter,
-            DashSpace.xxl,
-          ),
-        ),
+        padding: screenListPadding(context),
         children: [
           ManyfoldConnectionCard(
             onDone: configured
@@ -167,15 +158,7 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
     final busy = _progress != null;
 
     return ListView(
-      padding: withSystemNavInset(
-        context,
-        const EdgeInsets.fromLTRB(
-          DashSpace.gutter,
-          DashSpace.lg,
-          DashSpace.gutter,
-          DashSpace.xxl,
-        ),
-      ),
+      padding: screenListPadding(context),
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -433,13 +416,7 @@ class _SelectionBar extends StatelessWidget {
           ),
           const SizedBox(height: DashSpace.md),
           if (progress != null)
-            Row(
-              children: [
-                const DashSpinner(size: 16),
-                const SizedBox(width: DashSpace.sm),
-                Expanded(child: Text(progress, style: t.bodySoft)),
-              ],
-            )
+            BusyLine(progress)
           else
             ButtonPair(
               primaryLabel: l10n.mfImportModels,

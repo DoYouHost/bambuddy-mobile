@@ -33,15 +33,7 @@ class AboutScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.aboutTitle),
         body: ListView(
-          padding: withSystemNavInset(
-            context,
-            const EdgeInsets.fromLTRB(
-              DashSpace.gutter,
-              DashSpace.sm,
-              DashSpace.gutter,
-              DashSpace.xl,
-            ),
-          ),
+          padding: screenListPadding(context),
           children: [
             Column(
               children: [

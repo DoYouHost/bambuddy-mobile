@@ -66,15 +66,7 @@ class QueueSettingsScreen extends ConsumerWidget {
                     icon: Icons.tune,
                   )
                 : ListView(
-                    padding: withSystemNavInset(
-                      context,
-                      const EdgeInsets.fromLTRB(
-                        DashSpace.gutter,
-                        DashSpace.sm,
-                        DashSpace.gutter,
-                        DashSpace.xl,
-                      ),
-                    ),
+                    padding: screenListPadding(context),
                     children: [
                       if (_lockReason(l10n, lock) case final reason?) ...[
                         InlineNote(

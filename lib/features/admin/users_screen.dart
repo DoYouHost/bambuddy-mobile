@@ -13,6 +13,7 @@ import 'user_delete_dialog.dart';
 import 'user_form_screen.dart';
 import 'user_messages.dart';
 import 'users_providers.dart';
+import '../common/tappable_card.dart';
 
 /// The accounts on the server (full screen, pushed from the dashboard drawer).
 ///
@@ -89,109 +90,92 @@ class _UserCard extends ConsumerWidget {
       currentUserProvider.select((u) => u.valueOrNull?.id == user.id),
     );
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
-      child: Material(
-        color: Colors.transparent,
-        child: logTag(
-          'users.account',
-          InkWell(
-            borderRadius: BorderRadius.circular(22),
-            onTap: () => showUserDetailSheet(context, user),
-            child: Container(
-              padding: const EdgeInsets.all(DashSpace.lg),
-              decoration: t.cardBox,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _Avatar(user: user),
-                  const SizedBox(width: DashSpace.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                user.username,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: t.titleMd,
-                              ),
-                            ),
-                            if (isSelf) ...[
-                              const SizedBox(width: DashSpace.sm),
-                              Text(
-                                l10n.usersYou,
-                                style: t.micro.copyWith(
-                                  color: t.accentGreenInk,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        if (user.email != null && user.email!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: DashSpace.xs),
-                            child: Text(
-                              user.email!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: t.labelSoft.copyWith(
-                                color: t.textSecondary,
-                              ),
-                            ),
-                          ),
-                        const SizedBox(height: DashSpace.sm),
-                        Wrap(
-                          spacing: DashSpace.sm,
-                          runSpacing: DashSpace.sm,
-                          children: [
-                            if (user.isAdmin)
-                              DashPill(
-                                label: l10n.usersRoleAdmin,
-                                accent: t.accentGreen,
-                                accentInk: t.accentGreenInk,
-                                icon: Icons.shield_outlined,
-                              )
-                            else
-                              DashPill(
-                                label: l10n.usersRoleUser,
-                                accent: t.accentBlue,
-                                icon: Icons.person_outline,
-                              ),
-                            if (!user.isActive)
-                              DashPill(
-                                label: l10n.usersInactive,
-                                accent: t.danger,
-                                accentInk: t.dangerInk,
-                                icon: Icons.block,
-                              ),
-                            if (user.authSource != 'local')
-                              DashPill(
-                                label: user.authSource.toUpperCase(),
-                                accent: t.accentOrange,
-                                accentInk: t.accentOrangeInk,
-                                icon: Icons.dns_outlined,
-                              ),
-                            for (final g in user.groups)
-                              DashPill(
-                                label: g.name,
-                                accent: t.textSecondary,
-                                accentInk: t.textSecondary,
-                                icon: Icons.group_outlined,
-                              ),
-                          ],
-                        ),
-                      ],
+    return TappableCard(
+      id: 'users.account',
+      onTap: () => showUserDetailSheet(context, user),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _Avatar(user: user),
+          const SizedBox(width: DashSpace.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        user.username,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.titleMd,
+                      ),
+                    ),
+                    if (isSelf) ...[
+                      const SizedBox(width: DashSpace.sm),
+                      Text(
+                        l10n.usersYou,
+                        style: t.micro.copyWith(color: t.accentGreenInk),
+                      ),
+                    ],
+                  ],
+                ),
+                if (user.email != null && user.email!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: DashSpace.xs),
+                    child: Text(
+                      user.email!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.labelSoft.copyWith(color: t.textSecondary),
                     ),
                   ),
-                ],
-              ),
+                const SizedBox(height: DashSpace.sm),
+                Wrap(
+                  spacing: DashSpace.sm,
+                  runSpacing: DashSpace.sm,
+                  children: [
+                    if (user.isAdmin)
+                      DashPill(
+                        label: l10n.usersRoleAdmin,
+                        accent: t.accentGreen,
+                        accentInk: t.accentGreenInk,
+                        icon: Icons.shield_outlined,
+                      )
+                    else
+                      DashPill(
+                        label: l10n.usersRoleUser,
+                        accent: t.accentBlue,
+                        icon: Icons.person_outline,
+                      ),
+                    if (!user.isActive)
+                      DashPill(
+                        label: l10n.usersInactive,
+                        accent: t.danger,
+                        accentInk: t.dangerInk,
+                        icon: Icons.block,
+                      ),
+                    if (user.authSource != 'local')
+                      DashPill(
+                        label: user.authSource.toUpperCase(),
+                        accent: t.accentOrange,
+                        accentInk: t.accentOrangeInk,
+                        icon: Icons.dns_outlined,
+                      ),
+                    for (final g in user.groups)
+                      DashPill(
+                        label: g.name,
+                        accent: t.textSecondary,
+                        accentInk: t.textSecondary,
+                        icon: Icons.group_outlined,
+                      ),
+                  ],
+                ),
+              ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -75,7 +75,7 @@ class _SignedInState extends ConsumerState<_SignedIn> {
     final t = DashTokens.of(context);
     final status = widget.status;
     return ListView(
-      padding: withSystemNavInset(context, const EdgeInsets.all(DashSpace.lg)),
+      padding: screenListPadding(context),
       children: [
         Container(
           padding: const EdgeInsets.all(DashSpace.lg),
@@ -241,7 +241,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
     final t = DashTokens.of(context);
     TextStyle fieldStyle() => t.bodyStrong;
     return ListView(
-      padding: withSystemNavInset(context, const EdgeInsets.all(DashSpace.lg)),
+      padding: screenListPadding(context),
       children: [
         Container(
           padding: const EdgeInsets.all(DashSpace.lg),

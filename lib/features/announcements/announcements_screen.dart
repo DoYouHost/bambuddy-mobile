@@ -11,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
 import '../common/web_link.dart';
 import 'announcements_providers.dart';
+import '../common/tappable_card.dart';
 
 /// The web's announcements panel as a screen: newest first, an unread one
 /// marked until it is opened — opening is what marks it read — and expired
@@ -75,15 +76,7 @@ class _AnnouncementsScreenState extends ConsumerState<AnnouncementsScreen> {
               onRefresh: () =>
                   ref.read(announcementsProvider.notifier).refresh(),
               child: ListView(
-                padding: withSystemNavInset(
-                  context,
-                  const EdgeInsets.fromLTRB(
-                    DashSpace.gutter,
-                    DashSpace.sm,
-                    DashSpace.gutter,
-                    DashSpace.xl,
-                  ),
-                ),
+                padding: screenListPadding(context),
                 children: [
                   if (current.isEmpty)
                     Padding(
@@ -159,81 +152,65 @@ class AnnouncementTile extends StatelessWidget {
     final text = a.textFor(Localizations.localeOf(context).toLanguageTag());
     final link = a.safeLink;
     final published = a.publishedAt;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
-      child: Material(
-        color: Colors.transparent,
-        child: logTag(
-          'announcements.item',
-          InkWell(
-            borderRadius: BorderRadius.circular(22),
-            onTap: onToggle,
-            child: Container(
-              padding: const EdgeInsets.all(DashSpace.lg),
-              decoration: t.cardBox,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Wrap(
-                          spacing: DashSpace.sm,
-                          runSpacing: DashSpace.xs,
-                          children: [
-                            _levelPill(t, l10n, a.level),
-                            if (a.unread)
-                              DashPill(
-                                label: l10n.announcementsNew,
-                                accent: t.accentGreen,
-                                accentInk: t.accentGreenInk,
-                                dense: true,
-                              ),
-                          ],
-                        ),
-                      ),
-                      if (published != null)
-                        Text(
-                          DateTimeFormats.of(context).date(published),
-                          style: t.monoMicro.copyWith(color: t.textTertiary),
-                        ),
-                      Icon(
-                        expanded ? Icons.expand_less : Icons.expand_more,
-                        color: t.textTertiary,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: DashSpace.sm),
-                  Text(
-                    text.title,
-                    style: t.titleMd.copyWith(
-                      color: a.unread ? t.textPrimary : t.textSecondary,
-                    ),
-                  ),
-                  if (expanded) ...[
-                    const SizedBox(height: DashSpace.sm),
-                    Text(
-                      text.body,
-                      style: t.labelSoft.copyWith(color: t.textSecondary),
-                    ),
-                    if (link != null)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                          onPressed: () =>
-                              openWebLink(context, link.toString()),
-                          icon: const Icon(Icons.open_in_new, size: 16),
-                          label: Text(
-                            text.linkLabel ?? l10n.announcementsReadMore,
-                          ),
-                        ).tagged('announcements.link'),
+    return TappableCard(
+      id: 'announcements.item',
+      onTap: onToggle,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Wrap(
+                  spacing: DashSpace.sm,
+                  runSpacing: DashSpace.xs,
+                  children: [
+                    _levelPill(t, l10n, a.level),
+                    if (a.unread)
+                      DashPill(
+                        label: l10n.announcementsNew,
+                        accent: t.accentGreen,
+                        accentInk: t.accentGreenInk,
+                        dense: true,
                       ),
                   ],
-                ],
+                ),
               ),
+              if (published != null)
+                Text(
+                  DateTimeFormats.of(context).date(published),
+                  style: t.monoMicro.copyWith(color: t.textTertiary),
+                ),
+              Icon(
+                expanded ? Icons.expand_less : Icons.expand_more,
+                color: t.textTertiary,
+              ),
+            ],
+          ),
+          const SizedBox(height: DashSpace.sm),
+          Text(
+            text.title,
+            style: t.titleMd.copyWith(
+              color: a.unread ? t.textPrimary : t.textSecondary,
             ),
           ),
-        ),
+          if (expanded) ...[
+            const SizedBox(height: DashSpace.sm),
+            Text(
+              text.body,
+              style: t.labelSoft.copyWith(color: t.textSecondary),
+            ),
+            if (link != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => openWebLink(context, link.toString()),
+                  icon: const Icon(Icons.open_in_new, size: 16),
+                  label: Text(text.linkLabel ?? l10n.announcementsReadMore),
+                ).tagged('announcements.link'),
+              ),
+          ],
+        ],
       ),
     );
   }

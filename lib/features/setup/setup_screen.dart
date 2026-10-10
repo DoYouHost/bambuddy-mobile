@@ -123,10 +123,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           ],
         ),
         body: SingleChildScrollView(
-          padding: withSystemNavInset(
-            context,
-            const EdgeInsets.all(DashSpace.lg),
-          ),
+          padding: screenListPadding(context),
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(DashSpace.lg),

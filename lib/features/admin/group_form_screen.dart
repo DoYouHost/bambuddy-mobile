@@ -90,15 +90,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
           child: Form(
             key: _formKey,
             child: ListView(
-              padding: withSystemNavInset(
-                context,
-                const EdgeInsets.fromLTRB(
-                  DashSpace.gutter,
-                  DashSpace.md,
-                  DashSpace.gutter,
-                  DashSpace.xxl,
-                ),
-              ),
+              padding: screenListPadding(context),
               children: [
                 if (_locked) ...[
                   _LockedNotice(text: l10n.groupsSystemFormNote),

@@ -51,15 +51,7 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
             await ref.read(maintenanceOverviewProvider.notifier).refresh();
           },
           child: ListView(
-            padding: withSystemNavInset(
-              context,
-              const EdgeInsets.fromLTRB(
-                DashSpace.gutter,
-                DashSpace.sm,
-                DashSpace.gutter,
-                DashSpace.xl,
-              ),
-            ),
+            padding: screenListPadding(context),
             children: [
               // --- Maintenance types ---
               _SectionHeader(

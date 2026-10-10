@@ -343,3 +343,19 @@ class _WhenServerReturnsState extends State<_WhenServerReturns> {
   @override
   Widget build(BuildContext context) => widget.builder(context, _last);
 }
+
+/// Work in progress said in one line: a small spinner and what is happening.
+class BusyLine extends StatelessWidget {
+  const BusyLine(this.label, {super.key});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      const DashSpinner(size: 16),
+      const SizedBox(width: DashSpace.sm),
+      Expanded(child: Text(label, style: DashTokens.of(context).bodySoft)),
+    ],
+  );
+}

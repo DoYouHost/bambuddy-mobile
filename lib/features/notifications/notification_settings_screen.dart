@@ -45,15 +45,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.notifSettingsTitle),
         body: ListView(
-          padding: withSystemNavInset(
-            context,
-            const EdgeInsets.fromLTRB(
-              DashSpace.gutter,
-              DashSpace.sm,
-              DashSpace.gutter,
-              DashSpace.xl,
-            ),
-          ),
+          padding: screenListPadding(context),
           children: [
             if (ref.watch(_notificationsBlockedProvider).orFalse)
               _BlockedBanner(l10n.notificationsBlocked),

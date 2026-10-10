@@ -129,13 +129,15 @@ class LibraryFile {
 
   /// Whether file is printable (sliced g-code). Print endpoint only accepts these
   /// — see `FilePrint` in API.
-  bool get isPrintable {
-    final t = fileType.toLowerCase();
-    final name = filename.toLowerCase();
-    return t == 'gcode' ||
-        name.endsWith('.gcode') ||
-        name.endsWith('.gcode.3mf');
-  }
+  bool get isPrintable =>
+      fileType.toLowerCase() == 'gcode' || isSlicedFilename(filename);
+}
+
+/// A sliced output's name (`.gcode`, `.gcode.3mf`) — what a library file is
+/// before its type is known, e.g. a file Manyfold is about to import.
+bool isSlicedFilename(String filename) {
+  final name = filename.toLowerCase();
+  return name.endsWith('.gcode') || name.endsWith('.gcode.3mf');
 }
 
 List<LibraryTag> _tagsFromJson(dynamic value) =>
