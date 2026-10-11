@@ -115,8 +115,10 @@ void main() {
   ) async {
     // Tall enough that the wall step's card, preview and all, leaves the top
     // of the screen uncovered, as it does on a phone held upright.
-    await tester.binding.setSurfaceSize(const Size(800, 1280));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    tester.view
+      ..physicalSize = const Size(800, 1280)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     final before = DemoBackend.instance;
     await pumpPhone(
       tester,
@@ -277,8 +279,10 @@ void main() {
   testWidgets('the card scrolls on a phone on its side with large text', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(800, 360));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    tester.view
+      ..physicalSize = const Size(800, 360)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await pumpPhone(
       tester,
       Builder(

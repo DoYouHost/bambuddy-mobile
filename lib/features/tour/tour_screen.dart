@@ -614,8 +614,29 @@ class _TourCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(l10n.tourStepCounter(number, total), style: t.label),
-          const SizedBox(height: DashSpace.sm),
+          // Skip as a corner ✕ rather than a second full-width button: the
+          // card covered too much of the screen it is explaining.
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.tourStepCounter(number, total),
+                  style: t.label,
+                ),
+              ),
+              // A label, not a tooltip: the card sits beside the navigator,
+              // where there is no overlay for a tooltip to open in.
+              IconButton.outlined(
+                onPressed: onSkip,
+                visualDensity: VisualDensity.compact,
+                style: IconButton.styleFrom(
+                  foregroundColor: t.dangerInk,
+                  side: BorderSide(color: t.danger),
+                ),
+                icon: Icon(Icons.close, semanticLabel: l10n.tourSkip),
+              ).tagged('tour.skip'),
+            ],
+          ),
           Text(step.text(l10n), style: t.bodyStrong),
           if (step.wallPreview) ...[
             const SizedBox(height: DashSpace.md),
@@ -660,30 +681,14 @@ class _TourCard extends StatelessWidget {
           ],
           const SizedBox(height: DashSpace.sm),
           Text(l10n.tourDemoNote, style: t.microSoft),
-          const SizedBox(height: DashSpace.md),
-          if (done)
-            ButtonPair(
-              primaryLabel: last ? l10n.tourFinish : l10n.tourNext,
-              secondaryLabel: l10n.tourSkip,
-              primary: FilledButton.icon(
-                onPressed: onNext,
-                icon: Icon(last ? Icons.check : Icons.arrow_forward),
-                label: Text(last ? l10n.tourFinish : l10n.tourNext),
-              ).tagged(last ? 'tour.finish' : 'tour.next'),
-              secondary: OutlinedButton.icon(
-                onPressed: onSkip,
-                icon: const Icon(Icons.close),
-                label: Text(l10n.tourSkip),
-              ).tagged('tour.skip'),
-            )
-          else
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: onSkip,
-                child: Text(l10n.tourSkip),
-              ).tagged('tour.skip'),
-            ),
+          if (done) ...[
+            const SizedBox(height: DashSpace.md),
+            FilledButton.icon(
+              onPressed: onNext,
+              icon: Icon(last ? Icons.check : Icons.arrow_forward),
+              label: Text(last ? l10n.tourFinish : l10n.tourNext),
+            ).tagged(last ? 'tour.finish' : 'tour.next'),
+          ],
         ],
       ),
     );
