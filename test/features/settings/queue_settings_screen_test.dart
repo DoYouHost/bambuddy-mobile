@@ -6,7 +6,6 @@ import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/features/common/settings_rows.dart';
 import 'package:bambuddy_mobile/features/settings/queue_settings_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -20,12 +19,6 @@ import '../../helpers.dart';
 /// silently when wrong — an unknown key is written and dropped, a refused write
 /// leaves a row reading the opposite of the truth — so both are pinned here.
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   /// The queue block as a current server answers it. `GET /settings` always
   /// carries every field the schema knows, so a modern server has all of them.
   Map<String, dynamic> modernSettings({
@@ -95,11 +88,11 @@ void main() {
       await pumpScreen(tester, const {'use_slicer_api': true});
 
       expect(
-        find.text(l10n.queueSettingsQueueHeader.toUpperCase()),
+        find.text(pl.queueSettingsQueueHeader.toUpperCase()),
         findsNothing,
       );
       expect(
-        find.text(l10n.queueSettingsKeepWarmHeader.toUpperCase()),
+        find.text(pl.queueSettingsKeepWarmHeader.toUpperCase()),
         findsNothing,
       );
       expect(find.byType(Switch), findsNothing);
@@ -107,20 +100,20 @@ void main() {
       // Not a blank grey page: a settings map that came back empty means
       // either an old server or a read that failed, and the user is owed the
       // sentence and a way to retry.
-      expect(find.text(l10n.queueSettingsUnavailable), findsOneWidget);
+      expect(find.text(pl.queueSettingsUnavailable), findsOneWidget);
     });
 
     testWidgets('a modern server shows all three sections', (tester) async {
       await pumpScreen(tester, modernSettings());
 
       for (final header in [
-        l10n.queueSettingsQueueHeader,
-        l10n.queueSettingsPreheatHeader,
-        l10n.queueSettingsKeepWarmHeader,
+        pl.queueSettingsQueueHeader,
+        pl.queueSettingsPreheatHeader,
+        pl.queueSettingsKeepWarmHeader,
       ]) {
         expect(find.text(header.toUpperCase()), findsOneWidget);
       }
-      expect(find.text(l10n.queueSettingsKeepWarmTitle), findsOneWidget);
+      expect(find.text(pl.queueSettingsKeepWarmTitle), findsOneWidget);
     });
 
     testWidgets('every slider says what its number changes', (tester) async {
@@ -150,20 +143,20 @@ void main() {
       });
 
       expect(
-        find.text(l10n.queueSettingsQueueHeader.toUpperCase()),
+        find.text(pl.queueSettingsQueueHeader.toUpperCase()),
         findsOneWidget,
       );
       expect(
-        find.text(l10n.queueSettingsKeepWarmHeader.toUpperCase()),
+        find.text(pl.queueSettingsKeepWarmHeader.toUpperCase()),
         findsOneWidget,
       );
       expect(
-        find.text(l10n.queueSettingsPreheatHeader.toUpperCase()),
+        find.text(pl.queueSettingsPreheatHeader.toUpperCase()),
         findsNothing,
         reason: 'no preheat key answered, so no preheat row to write',
       );
       expect(
-        find.text(l10n.queueSettingsKeepWarmOffNote),
+        find.text(pl.queueSettingsKeepWarmOffNote),
         findsOneWidget,
         reason:
             'the note is about the bed-temperature row, and this server '
@@ -171,7 +164,7 @@ void main() {
       );
       // The keep-warm section is there, minus the row the server lacks: the
       // bed temperature has a slider, the hold duration has none.
-      expect(find.text(l10n.queueSettingsKeepWarmTitle), findsOneWidget);
+      expect(find.text(pl.queueSettingsKeepWarmTitle), findsOneWidget);
       expect(find.byType(Slider), findsOneWidget);
     });
   });
@@ -186,10 +179,10 @@ void main() {
       'queue_keep_bed_warm': false,
     });
 
-    expect(find.text(l10n.queueSettingsPreheatTitle), findsOneWidget);
-    expect(find.text(l10n.queueSettingsPreheatOffNote), findsNothing);
-    expect(find.text(l10n.queueSettingsKeepWarmTitle), findsOneWidget);
-    expect(find.text(l10n.queueSettingsKeepWarmOffNote), findsNothing);
+    expect(find.text(pl.queueSettingsPreheatTitle), findsOneWidget);
+    expect(find.text(pl.queueSettingsPreheatOffNote), findsNothing);
+    expect(find.text(pl.queueSettingsKeepWarmTitle), findsOneWidget);
+    expect(find.text(pl.queueSettingsKeepWarmOffNote), findsNothing);
   });
 
   // #1898, from 1.2.6 on. A server before it sends none of the three keys,
@@ -208,11 +201,11 @@ void main() {
       }, viewHeight: 9000);
 
       expect(
-        find.text(l10n.queueSettingsOutcomeHeader.toUpperCase()),
+        find.text(pl.queueSettingsOutcomeHeader.toUpperCase()),
         findsOneWidget,
       );
       expect(
-        switchFor(tester, l10n.queueSettingsOutcomeExternalTitle).value,
+        switchFor(tester, pl.queueSettingsOutcomeExternalTitle).value,
         isTrue,
       );
     });
@@ -221,7 +214,7 @@ void main() {
       await pumpScreen(tester, modernSettings());
 
       expect(
-        find.text(l10n.queueSettingsOutcomeHeader.toUpperCase()),
+        find.text(pl.queueSettingsOutcomeHeader.toUpperCase()),
         findsNothing,
       );
     });
@@ -232,11 +225,11 @@ void main() {
         ...outcome,
       }, viewHeight: 9000);
 
-      await tester.tap(find.text(l10n.queueSettingsOutcomeDefaultTitle));
+      await tester.tap(find.text(pl.queueSettingsOutcomeDefaultTitle));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(l10n.queueSettingsOutcomeExternalTitle));
+      await tester.tap(find.text(pl.queueSettingsOutcomeExternalTitle));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(l10n.queueSettingsOutcomePlateClearTitle));
+      await tester.tap(find.text(pl.queueSettingsOutcomePlateClearTitle));
       await tester.pumpAndSettle();
 
       expect(repo.writes, [
@@ -251,7 +244,7 @@ void main() {
     testWidgets('a switch writes exactly its own key', (tester) async {
       final repo = await pumpScreen(tester, modernSettings());
 
-      await tester.tap(find.text(l10n.queueSettingsKeepWarmTitle));
+      await tester.tap(find.text(pl.queueSettingsKeepWarmTitle));
       await tester.pumpAndSettle();
 
       expect(repo.writes, [
@@ -274,24 +267,24 @@ void main() {
       );
 
       expect(
-        find.text(l10n.queueSettingsReadOnlyPermission),
+        find.text(pl.queueSettingsReadOnlyPermission),
         findsNothing,
         reason: 'nothing refused yet, so the form is offered',
       );
 
-      await tester.tap(find.text(l10n.queueSettingsKeepWarmTitle));
+      await tester.tap(find.text(pl.queueSettingsKeepWarmTitle));
       await tester.pumpAndSettle();
 
       expect(repo.writes, hasLength(1), reason: 'it did try');
       expect(
-        find.text(l10n.queueSettingsReadOnlyPermission),
+        find.text(pl.queueSettingsReadOnlyPermission),
         findsOneWidget,
         reason: 'the refusal closes the form instead of failing every tap',
       );
       final keepWarm = tester.widget<Switch>(
         find.descendant(
           of: find.ancestor(
-            of: find.text(l10n.queueSettingsKeepWarmTitle),
+            of: find.text(pl.queueSettingsKeepWarmTitle),
             matching: find.byType(Row),
           ),
           matching: find.byType(Switch),
@@ -333,7 +326,7 @@ void main() {
     ) async {
       await pumpScreen(tester, modernSettings(preheat: false));
 
-      expect(find.text(l10n.queueSettingsPreheatOffNote), findsOneWidget);
+      expect(find.text(pl.queueSettingsPreheatOffNote), findsOneWidget);
       final sliders = tester
           .widgetList<Slider>(find.byType(Slider))
           .where((s) => s.onChanged == null);
@@ -355,19 +348,19 @@ void main() {
       repo.gates['require_plate_clear'] = holding;
       repo.failKey = 'queue_keep_bed_warm';
 
-      await tester.tap(find.text(l10n.queueSettingsPlateClearTitle));
+      await tester.tap(find.text(pl.queueSettingsPlateClearTitle));
       await tester.pump();
-      await tester.tap(find.text(l10n.queueSettingsKeepWarmTitle));
+      await tester.tap(find.text(pl.queueSettingsKeepWarmTitle));
       await tester.pumpAndSettle();
 
       expect(repo.writes, hasLength(2));
       expect(
-        switchFor(tester, l10n.queueSettingsPlateClearTitle).value,
+        switchFor(tester, pl.queueSettingsPlateClearTitle).value,
         isTrue,
         reason: 'its own write is still on its way; nothing reverted it',
       );
       expect(
-        switchFor(tester, l10n.queueSettingsKeepWarmTitle).value,
+        switchFor(tester, pl.queueSettingsKeepWarmTitle).value,
         isFalse,
         reason: 'the write that failed is the one that goes back',
       );
@@ -403,7 +396,7 @@ void main() {
       expect(s.onChanged, isNull, reason: 'unresolved is not writable');
     }
     expect(
-      find.text(l10n.queueSettingsReadOnlyPermission),
+      find.text(pl.queueSettingsReadOnlyPermission),
       findsNothing,
       reason: 'and no banner flashes up for a session that turns out allowed',
     );
@@ -424,7 +417,7 @@ void main() {
       final repo = await pumpScreen(tester, modernSettings(keepWarm: false));
       final readsAfterLoad = repo.reads;
 
-      await tester.tap(find.text(l10n.queueSettingsKeepWarmTitle));
+      await tester.tap(find.text(pl.queueSettingsKeepWarmTitle));
       await tester.pumpAndSettle();
 
       expect(repo.writes, hasLength(1));
@@ -435,7 +428,7 @@ void main() {
             'PUT answers with the whole of AppSettings; asking again is a '
             'request that can only agree, or fail',
       );
-      expect(switchFor(tester, l10n.queueSettingsKeepWarmTitle).value, isTrue);
+      expect(switchFor(tester, pl.queueSettingsKeepWarmTitle).value, isTrue);
     });
 
     testWidgets('a read that fails afterwards cannot blank the screen', (
@@ -443,7 +436,7 @@ void main() {
     ) async {
       final repo = await pumpScreen(tester, modernSettings(keepWarm: false));
 
-      await tester.tap(find.text(l10n.queueSettingsKeepWarmTitle));
+      await tester.tap(find.text(pl.queueSettingsKeepWarmTitle));
       await tester.pumpAndSettle();
 
       // Whatever else asks for the settings next, a dropped answer must not
@@ -452,8 +445,8 @@ void main() {
       await containerOf(tester).read(serverSettingsProvider.notifier).refresh();
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n.queueSettingsUnavailable), findsNothing);
-      expect(switchFor(tester, l10n.queueSettingsKeepWarmTitle).value, isTrue);
+      expect(find.text(pl.queueSettingsUnavailable), findsNothing);
+      expect(switchFor(tester, pl.queueSettingsKeepWarmTitle).value, isTrue);
     });
   });
 
@@ -476,17 +469,17 @@ void main() {
 
     // The top row, because the short window this test needs to overscroll at
     // all does not build the ones further down.
-    await tester.tap(find.text(l10n.queueSettingsPlateClearTitle));
+    await tester.tap(find.text(pl.queueSettingsPlateClearTitle));
     await tester.pumpAndSettle();
-    expect(find.text(l10n.queueSettingsReadOnlyPermission), findsOneWidget);
+    expect(find.text(pl.queueSettingsReadOnlyPermission), findsOneWidget);
 
     repo.allowAgain();
     await tester.fling(find.byType(ListView), const Offset(0, 400), 1000);
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.queueSettingsReadOnlyPermission), findsNothing);
+    expect(find.text(pl.queueSettingsReadOnlyPermission), findsNothing);
     expect(
-      switchFor(tester, l10n.queueSettingsPlateClearTitle).onChanged,
+      switchFor(tester, pl.queueSettingsPlateClearTitle).onChanged,
       isNotNull,
       reason: 'the form reopens without restarting the app',
     );
@@ -502,9 +495,9 @@ void main() {
         authMode: AuthMode.apiKey,
       );
 
-      expect(find.text(l10n.queueSettingsReadOnlyApiKey), findsOneWidget);
+      expect(find.text(pl.queueSettingsReadOnlyApiKey), findsOneWidget);
       expect(
-        find.text(l10n.queueSettingsKeepWarmTitle),
+        find.text(pl.queueSettingsKeepWarmTitle),
         findsOneWidget,
         reason: 'the value stays readable — the verdict is on the write',
       );
@@ -512,7 +505,7 @@ void main() {
         expect(s.onChanged, isNull);
       }
 
-      await tester.tap(find.text(l10n.queueSettingsKeepWarmTitle));
+      await tester.tap(find.text(pl.queueSettingsKeepWarmTitle));
       await tester.pumpAndSettle();
       expect(repo.writes, isEmpty);
     });
@@ -533,8 +526,8 @@ void main() {
         ),
       );
 
-      expect(find.text(l10n.queueSettingsReadOnlyPermission), findsOneWidget);
-      expect(find.text(l10n.queueSettingsReadOnlyApiKey), findsNothing);
+      expect(find.text(pl.queueSettingsReadOnlyPermission), findsOneWidget);
+      expect(find.text(pl.queueSettingsReadOnlyApiKey), findsNothing);
     });
 
     testWidgets('a server with authentication off is writable, not locked', (
@@ -544,10 +537,10 @@ void main() {
       // `RequirePermissionIfAuthEnabled` has nobody to refuse.
       final repo = await pumpScreen(tester, modernSettings());
 
-      expect(find.text(l10n.queueSettingsReadOnlyApiKey), findsNothing);
-      expect(find.text(l10n.queueSettingsReadOnlyPermission), findsNothing);
+      expect(find.text(pl.queueSettingsReadOnlyApiKey), findsNothing);
+      expect(find.text(pl.queueSettingsReadOnlyPermission), findsNothing);
 
-      await tester.tap(find.text(l10n.queueSettingsPlateClearTitle));
+      await tester.tap(find.text(pl.queueSettingsPlateClearTitle));
       await tester.pumpAndSettle();
       expect(repo.writes, [
         {'require_plate_clear': true},

@@ -12,7 +12,6 @@ import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_screen.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -145,7 +144,6 @@ void main() {
       'status': 'pending',
       'manual_start': true,
     });
-    final l10n = lookupAppLocalizations(const Locale('pl'));
 
     Widget screen({required bool held}) => ProviderScope(
       overrides: [
@@ -162,8 +160,8 @@ void main() {
       await tester.pumpWidget(screen(held: true));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n.queueBadgeAwaitingReview), findsOneWidget);
-      expect(find.text(l10n.queueStartNext), findsNothing);
+      expect(find.text(pl.queueBadgeAwaitingReview), findsOneWidget);
+      expect(find.text(pl.queueStartNext), findsNothing);
       await tester.tap(byLogId('queue.actions'));
       await tester.pumpAndSettle();
       expect(byLogId('queue.action.start'), findsNothing);
@@ -176,8 +174,8 @@ void main() {
       await tester.pumpWidget(screen(held: false));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n.queueBadgeStaged), findsOneWidget);
-      expect(find.text(l10n.queueStartNext), findsOneWidget);
+      expect(find.text(pl.queueBadgeStaged), findsOneWidget);
+      expect(find.text(pl.queueStartNext), findsOneWidget);
       await tester.tap(byLogId('queue.actions'));
       await tester.pumpAndSettle();
       expect(byLogId('queue.action.start'), findsOneWidget);

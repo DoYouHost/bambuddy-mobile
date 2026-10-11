@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../helpers.dart';
 
 class _DemoProfile extends ServerProfileNotifier {
   @override
@@ -24,12 +25,6 @@ class _DemoProfile extends ServerProfileNotifier {
 /// The demo's label print server: found by a search, answering `/info`, taking
 /// a job and refusing what the real one refuses.
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   LabelPrinterRepository demoPrinter() =>
       LabelPrinterRepository(createLabelPrinterDio(demoLabelPrinterUrl));
 
@@ -138,7 +133,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(l10n.labelPrinterSearch));
+    await tester.tap(find.text(pl.labelPrinterSearch));
     // The search and the answers are timed, on the test's clock here.
     await tester.pump(const Duration(milliseconds: 1200));
     expect(find.text('Demo label printer'), findsOneWidget);

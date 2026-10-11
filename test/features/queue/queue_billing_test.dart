@@ -124,7 +124,7 @@ void main() {
   ) async {
     await pump(tester);
 
-    expect(find.text(formL10n.queueBillingUseWeb), findsOneWidget);
+    expect(find.text(pl.queueBillingUseWeb), findsOneWidget);
     expect(submit(tester, 'queue_create.save').onPressed, isNull);
   });
 
@@ -134,7 +134,7 @@ void main() {
     // `update_queue_item` checks the budget on every PATCH.
     await pump(tester, item: queued());
 
-    expect(find.text(formL10n.queueBillingUseWeb), findsOneWidget);
+    expect(find.text(pl.queueBillingUseWeb), findsOneWidget);
     expect(submit(tester, 'queue_edit.save').onPressed, isNull);
   });
 
@@ -143,7 +143,7 @@ void main() {
   ) async {
     await pump(tester, item: queued(costCenter: 3));
 
-    expect(find.text(formL10n.queueBillingUseWeb), findsNothing);
+    expect(find.text(pl.queueBillingUseWeb), findsNothing);
     expect(submit(tester, 'queue_edit.save').onPressed, isNotNull);
   });
 
@@ -160,7 +160,7 @@ void main() {
     await tester.pump();
 
     expect(submit(tester, 'queue_create.save').onPressed, isNull);
-    expect(find.text(formL10n.queueBillingUseWeb), findsNothing);
+    expect(find.text(pl.queueBillingUseWeb), findsNothing);
 
     flags.complete({'billing_enabled': false});
     await tester.pumpAndSettle();

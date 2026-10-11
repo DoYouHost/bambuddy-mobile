@@ -6,7 +6,6 @@ import 'package:bambuddy_mobile/features/pipelines/pipeline_eligibility_view.dar
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_screen.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -40,12 +39,6 @@ const _presets = UnifiedPresets(
 );
 
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   Future<void> pump(
     WidgetTester tester, {
     List<SlicerPipeline> pipelines = const [],
@@ -168,8 +161,8 @@ void main() {
       await tester.tap(find.byIcon(Icons.more_vert));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n.pipelineEditTitle), findsOneWidget);
-      expect(find.text(l10n.pipelineDelete), findsOneWidget);
+      expect(find.text(pl.pipelineEditTitle), findsOneWidget);
+      expect(find.text(pl.pipelineDelete), findsOneWidget);
     });
 
     testWidgets('every row grows with the system font size', (tester) async {
@@ -242,17 +235,14 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      final l10n = AppLocalizations.of(
-        tester.element(find.byType(EligibilityView)),
-      );
 
       expect(
         tester.getSemantics(find.text('X1C left')),
-        matchesSemantics(label: '${l10n.pipelineEligible}\nX1C left'),
+        matchesSemantics(label: '${pl.pipelineEligible}\nX1C left'),
       );
       expect(
         tester.getSemantics(find.text('X1C right')),
-        matchesSemantics(label: '${l10n.pipelineIneligible}\nX1C right'),
+        matchesSemantics(label: '${pl.pipelineIneligible}\nX1C right'),
       );
     });
 
@@ -292,11 +282,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      final l10n = AppLocalizations.of(
-        tester.element(find.byType(EligibilityView)),
-      );
 
-      final offline = find.text(l10n.pipelineIssuePrinterOffline);
+      final offline = find.text(pl.pipelineIssuePrinterOffline);
       expect(offline, findsOneWidget);
       // Indented past the printer rows, which is what says it belongs to one.
       expect(
@@ -348,7 +335,7 @@ void main() {
       final sheet = find.byType(DropdownMenu<int?>);
       expect(sheet, findsOneWidget, reason: 'the sheet is open');
 
-      final done = find.widgetWithText(FilledButton, l10n.pipelineRunsDone);
+      final done = find.widgetWithText(FilledButton, pl.pipelineRunsDone);
       await tester.ensureVisible(done);
       await tester.pumpAndSettle();
       await tester.tap(done);

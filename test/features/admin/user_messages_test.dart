@@ -4,6 +4,7 @@ import 'package:bambuddy_mobile/features/admin/user_messages.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../helpers.dart';
 
 /// The rules `users.py` enforces, quoted verbatim from the route source
 /// (`backend/app/api/routes/users.py`, the `detail=` of each `HTTPException`).
@@ -12,11 +13,9 @@ import 'package:flutter_test/flutter_test.dart';
 /// table matching the words it actually sends.
 void main() {
   late AppLocalizations en;
-  late AppLocalizations pl;
 
   setUpAll(() async {
     en = await AppLocalizations.delegate.load(const Locale('en'));
-    pl = await AppLocalizations.delegate.load(const Locale('pl'));
   });
 
   ActionOutcome refused(String? detail) => ActionOutcome.failed(

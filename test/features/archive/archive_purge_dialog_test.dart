@@ -51,7 +51,7 @@ Future<AppLocalizations> _openDialog(
     ),
   );
   await tester.pumpAndSettle();
-  final l10n = AppLocalizations.of(tester.element(find.byType(ArchiveScreen)));
+  final l10n = pl;
 
   await tester.tap(find.byType(PopupMenuButton<String>));
   await tester.pumpAndSettle();

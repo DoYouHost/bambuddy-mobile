@@ -8,7 +8,6 @@ import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/data/manyfold_repository.dart';
 import 'package:bambuddy_mobile/features/manyfold/manyfold_model_screen.dart';
 import 'package:bambuddy_mobile/features/model_sources/model_sources_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -22,9 +21,6 @@ void main() {
   late Dio dio;
   late DioAdapter server;
   late List<Override> overrides;
-
-  AppLocalizations l10n(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(Scaffold).first));
 
   CurrentUser user(Set<String> permissions) => CurrentUser(
     id: 2,
@@ -126,7 +122,7 @@ void main() {
       status(404);
       await open(tester, extra: [currentUserOverride(user({}))]);
       expect(find.byType(TabBar), findsNothing);
-      expect(find.text(l10n(tester).mwResolve), findsOneWidget);
+      expect(find.text(pl.mwResolve), findsOneWidget);
     });
 
     testWidgets('is absent for a session refused manyfold:view', (
@@ -150,11 +146,11 @@ void main() {
       listing();
       await open(tester, extra: [currentUserOverride(user({}))]);
 
-      await tester.tap(find.text(l10n(tester).manyfoldTitle));
+      await tester.tap(find.text(pl.manyfoldTitle));
       await tester.pumpAndSettle();
 
       expect(find.text('Dragon'), findsOneWidget);
-      expect(find.text(l10n(tester).mfModelCount(2)), findsOneWidget);
+      expect(find.text(pl.mfModelCount(2)), findsOneWidget);
       // Ticking is for whoever may import.
       expect(find.byType(Checkbox), findsNothing);
     });
@@ -175,7 +171,7 @@ void main() {
       queryParameters: {'q': 'gear', 'page': 1},
     );
     await open(tester, extra: [currentUserOverride(user({}))]);
-    await tester.tap(find.text(l10n(tester).manyfoldTitle));
+    await tester.tap(find.text(pl.manyfoldTitle));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'gear');
@@ -183,7 +179,7 @@ void main() {
     expect(find.text('Dragon'), findsOneWidget);
     await tester.pumpAndSettle(const Duration(milliseconds: 500));
 
-    expect(find.text(l10n(tester).mfNoModels), findsOneWidget);
+    expect(find.text(pl.mfNoModels), findsOneWidget);
   });
 
   testWidgets('ticked models import every printable file not in the library, '
@@ -200,25 +196,21 @@ void main() {
         currentUserOverride(user({Permissions.manyfoldImport})),
       ],
     );
-    await tester.tap(find.text(l10n(tester).manyfoldTitle));
+    await tester.tap(find.text(pl.manyfoldTitle));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(l10n(tester).mfSelectPage));
+    await tester.tap(find.text(pl.mfSelectPage));
     await tester.pumpAndSettle();
-    expect(find.text(l10n(tester).mfModelsSelected(2)), findsOneWidget);
+    expect(find.text(pl.mfModelsSelected(2)), findsOneWidget);
 
-    await tester.tap(find.text(l10n(tester).mfImportModels));
+    await tester.tap(find.text(pl.mfImportModels));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n(tester).mfBulkDone(1, 0, 1)), findsOneWidget);
-    expect(find.text(l10n(tester).mfModelsSelected(2)), findsNothing);
+    expect(find.text(pl.mfBulkDone(1, 0, 1)), findsOneWidget);
+    expect(find.text(pl.mfModelsSelected(2)), findsNothing);
     await tester.pumpAndSettle(const Duration(seconds: 5));
     expect(
-      find.text(
-        l10n(
-          tester,
-        ).mfBulkFailed('Swatch box: d.stl', l10n(tester).mfErrUnreachable),
-      ),
+      find.text(pl.mfBulkFailed('Swatch box: d.stl', pl.mfErrUnreachable)),
       findsOneWidget,
     );
   });
@@ -237,14 +229,14 @@ void main() {
         ),
       ],
     );
-    await tester.tap(find.text(l10n(tester).manyfoldTitle));
+    await tester.tap(find.text(pl.manyfoldTitle));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n(tester).mfSelectPage));
+    await tester.tap(find.text(pl.mfSelectPage));
     await tester.pumpAndSettle();
 
     final errors = <Object>[];
     await runZonedGuarded(
-      () => tester.tap(find.text(l10n(tester).mfImportModels)),
+      () => tester.tap(find.text(pl.mfImportModels)),
       (e, _) => errors.add(e),
     );
     await tester.pumpAndSettle();
@@ -252,8 +244,8 @@ void main() {
     // Unexpected errors still go up to the error reporter...
     expect(errors.single, isA<StateError>());
     // ...but no longer leave the progress line standing in for the buttons.
-    expect(find.text(l10n(tester).mfImportModels), findsOneWidget);
-    expect(find.text(l10n(tester).mfCollectProgress(1, 2)), findsNothing);
+    expect(find.text(pl.mfImportModels), findsOneWidget);
+    expect(find.text(pl.mfCollectProgress(1, 2)), findsNothing);
   });
 
   group('a model', () {
@@ -279,22 +271,22 @@ void main() {
     testWidgets('shows each file state', (tester) async {
       await openModel(tester, {Permissions.manyfoldImport});
 
-      expect(find.text(l10n(tester).mfNotImportable), findsOneWidget);
-      expect(find.text(l10n(tester).mfInLibrary), findsOneWidget);
-      expect(find.text(l10n(tester).mfShowInLibrary), findsOneWidget);
-      expect(find.text(l10n(tester).mfImport), findsOneWidget);
+      expect(find.text(pl.mfNotImportable), findsOneWidget);
+      expect(find.text(pl.mfInLibrary), findsOneWidget);
+      expect(find.text(pl.mfShowInLibrary), findsOneWidget);
+      expect(find.text(pl.mfImport), findsOneWidget);
       // The folder field starts on the automatic "Manyfold" folder.
       expect(
         tester
             .widget<DropdownMenu<int?>>(find.byType(DropdownMenu<int?>))
             .controller
             ?.text,
-        anyOf(isNull, l10n(tester).mfFolderAuto),
+        anyOf(isNull, pl.mfFolderAuto),
       );
       expect(
         find.descendant(
           of: find.byType(DropdownMenu<int?>),
-          matching: find.text(l10n(tester).mfFolderAuto),
+          matching: find.text(pl.mfFolderAuto),
         ),
         findsWidgets,
       );
@@ -306,17 +298,17 @@ void main() {
       import('m1', 'a');
       await openModel(tester, {Permissions.manyfoldImport});
 
-      await tester.tap(find.text(l10n(tester).mfImport));
+      await tester.tap(find.text(pl.mfImport));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n(tester).mfImported('a.stl')), findsOneWidget);
+      expect(find.text(pl.mfImported('a.stl')), findsOneWidget);
     });
 
     testWidgets('offers no import without manyfold:import', (tester) async {
       await openModel(tester, {});
 
-      expect(find.text(l10n(tester).mfImport), findsNothing);
-      expect(find.text(l10n(tester).mfImportTo), findsNothing);
+      expect(find.text(pl.mfImport), findsNothing);
+      expect(find.text(pl.mfImportTo), findsNothing);
       expect(find.byType(Checkbox), findsNothing);
     });
   });
@@ -373,10 +365,10 @@ void main() {
           data: sent,
         );
       await open(tester, extra: admin);
-      await tester.tap(find.text(l10n(tester).manyfoldTitle));
+      await tester.tap(find.text(pl.manyfoldTitle));
       await tester.pumpAndSettle();
 
-      final save = find.widgetWithText(FilledButton, l10n(tester).mfSave);
+      final save = find.widgetWithText(FilledButton, pl.mfSave);
       expect(tester.widget<FilledButton>(save).onPressed, isNull);
 
       final fields = find.byType(TextField);
@@ -385,16 +377,16 @@ void main() {
       await tester.enterText(fields.at(2), 's3cret');
       await tester.pump();
 
-      await tester.tap(find.text(l10n(tester).mfTest));
+      await tester.tap(find.text(pl.mfTest));
       await tester.pumpAndSettle();
-      expect(find.text(l10n(tester).mfTestOk(12)), findsOneWidget);
+      expect(find.text(pl.mfTestOk(12)), findsOneWidget);
 
       // What the server answers once the connection is stored.
       status(200, {'configured': true, 'url': 'http://mf:3214'});
       listing();
       await tester.tap(save);
       await tester.pumpAndSettle();
-      expect(find.text(l10n(tester).mfSaved), findsOneWidget);
+      expect(find.text(pl.mfSaved), findsOneWidget);
       // The first connection leads straight on to browsing.
       expect(find.text('Dragon'), findsOneWidget);
     });
@@ -415,18 +407,18 @@ void main() {
         data: {'url': 'mf', 'client_id': 'app'},
       );
       await open(tester, extra: admin);
-      await tester.tap(find.text(l10n(tester).manyfoldTitle));
+      await tester.tap(find.text(pl.manyfoldTitle));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n(tester).mfClientSecretStored), findsOneWidget);
+      expect(find.text(pl.mfClientSecretStored), findsOneWidget);
       final fields = find.byType(TextField);
       await tester.enterText(fields.at(0), 'mf');
       await tester.enterText(fields.at(1), 'app');
       await tester.pump();
-      await tester.tap(find.text(l10n(tester).mfTest));
+      await tester.tap(find.text(pl.mfTest));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n(tester).mfErrBadUrl), findsOneWidget);
+      expect(find.text(pl.mfErrBadUrl), findsOneWidget);
     });
 
     testWidgets('disconnects after asking', (tester) async {
@@ -440,18 +432,18 @@ void main() {
       });
       server.onDelete('/api/v1/manyfold/config', (s) => s.reply(204, null));
       await open(tester, extra: admin);
-      await tester.tap(find.text(l10n(tester).manyfoldTitle));
+      await tester.tap(find.text(pl.manyfoldTitle));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(l10n(tester).mfEditConnection));
+      await tester.tap(find.text(pl.mfEditConnection));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text(l10n(tester).mfDisconnect));
-      await tester.tap(find.text(l10n(tester).mfDisconnect));
+      await tester.ensureVisible(find.text(pl.mfDisconnect));
+      await tester.tap(find.text(pl.mfDisconnect));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(l10n(tester).mfDisconnect).last);
+      await tester.tap(find.text(pl.mfDisconnect).last);
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n(tester).mfDisconnected), findsOneWidget);
+      expect(find.text(pl.mfDisconnected), findsOneWidget);
     });
   });
 }

@@ -2,7 +2,6 @@ import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/no_3mf_warning.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,14 +47,11 @@ void main() {
     _prefs = await SharedPreferences.getInstance();
   });
 
-  AppLocalizations l10n(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(ArchiveScreen)));
-
   testWidgets('a run with a chosen plate says which one', (tester) async {
     await tester.pumpWidget(_screen([_archive(plateId: 3)]));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining(l10n(tester).archivePlate(3)), findsOneWidget);
+    expect(find.textContaining(pl.archivePlate(3)), findsOneWidget);
   });
 
   testWidgets('a run with no plate recorded says nothing about plates', (
@@ -66,7 +62,7 @@ void main() {
 
     // Not even plate 1: an app-started print never sends a plate, so claiming
     // one would be inventing it.
-    expect(find.textContaining(l10n(tester).archivePlate(1)), findsNothing);
+    expect(find.textContaining(pl.archivePlate(1)), findsNothing);
     expect(find.textContaining('PETG'), findsOneWidget);
   });
 
@@ -79,7 +75,7 @@ void main() {
     await tester.pumpWidget(_screen([_archive(plateId: 0)]));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining(l10n(tester).archivePlate(0)), findsNothing);
+    expect(find.textContaining(pl.archivePlate(0)), findsNothing);
     expect(find.textContaining('PETG'), findsOneWidget);
   });
 }

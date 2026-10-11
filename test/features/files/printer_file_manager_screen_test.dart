@@ -127,9 +127,7 @@ void main() {
       ],
     );
     await tester.pumpAndSettle();
-    return AppLocalizations.of(
-      tester.element(find.byType(PrinterFileManagerScreen)),
-    );
+    return pl;
   }
 
   testWidgets('an empty folder still reads as an empty folder', (tester) async {

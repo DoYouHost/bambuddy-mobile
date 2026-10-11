@@ -1445,7 +1445,6 @@ void main() {
     group('a tagged slot in Spoolman mode', () {
       // The server binds such a spool by its tag at every AMS sync and charges
       // usage to it first; the web offers no assign or unassign there.
-      final l10n = lookupAppLocalizations(const Locale('pl'));
 
       // These ids carry the material after an `@`.
       Finder control(String id) => find.byWidgetPredicate(
@@ -1466,9 +1465,9 @@ void main() {
         expect(control('assign_spool.current'), findsOneWidget);
         expect(control('assign_spool.unassign'), findsNothing);
         expect(control('assign_spool.option'), findsNothing);
-        expect(find.text(l10n.inventoryAssignPick), findsNothing);
-        await reveal(tester, find.text(l10n.inventoryTagBound));
-        expect(find.text(l10n.inventoryTagBound), findsOneWidget);
+        expect(find.text(pl.inventoryAssignPick), findsNothing);
+        await reveal(tester, find.text(pl.inventoryTagBound));
+        expect(find.text(pl.inventoryTagBound), findsOneWidget);
       });
 
       testWidgets('a slot assignment outranks the tag, as the web', (
@@ -1496,7 +1495,7 @@ void main() {
         // The reason would sit at the very end of a lazy list: scrolled to,
         // so its absence is not merely its not being built yet.
         await scrollSheetDown(tester);
-        expect(find.text(l10n.inventoryTagBound), findsNothing);
+        expect(find.text(pl.inventoryTagBound), findsNothing);
       });
 
       testWidgets('an unknown tag still lets a spool be picked', (
@@ -1512,9 +1511,9 @@ void main() {
           backend: InventoryBackend.spoolman,
         );
 
-        await reveal(tester, find.text(l10n.inventoryAssignPick));
-        expect(find.text(l10n.inventoryAssignPick), findsOneWidget);
-        expect(find.text(l10n.inventoryTagBound), findsNothing);
+        await reveal(tester, find.text(pl.inventoryAssignPick));
+        expect(find.text(pl.inventoryAssignPick), findsOneWidget);
+        expect(find.text(pl.inventoryTagBound), findsNothing);
       });
 
       testWidgets('the built-in inventory still lets it be picked', (
@@ -1528,9 +1527,9 @@ void main() {
         );
 
         expect(control('assign_spool.current'), findsNothing);
-        await reveal(tester, find.text(l10n.inventoryAssignPick));
-        expect(find.text(l10n.inventoryAssignPick), findsOneWidget);
-        expect(find.text(l10n.inventoryTagBound), findsNothing);
+        await reveal(tester, find.text(pl.inventoryAssignPick));
+        expect(find.text(pl.inventoryAssignPick), findsOneWidget);
+        expect(find.text(pl.inventoryTagBound), findsNothing);
       });
 
       testWidgets('an untagged slot is still assigned by hand', (tester) async {
@@ -1541,9 +1540,9 @@ void main() {
           backend: InventoryBackend.spoolman,
         );
 
-        await reveal(tester, find.text(l10n.inventoryAssignPick));
-        expect(find.text(l10n.inventoryAssignPick), findsOneWidget);
-        expect(find.text(l10n.inventoryTagBound), findsNothing);
+        await reveal(tester, find.text(pl.inventoryAssignPick));
+        expect(find.text(pl.inventoryAssignPick), findsOneWidget);
+        expect(find.text(pl.inventoryTagBound), findsNothing);
       });
     });
 
@@ -3146,7 +3145,6 @@ void main() {
     ) async {
       // Server #2896: a start the firmware accepted and never ran keeps its
       // full dry_time forever; the countdown on the chip would be a lie.
-      final l10n = lookupAppLocalizations(const Locale('pl'));
       await pumpCard(
         tester,
         _StubScheduledDrying(),
@@ -3154,14 +3152,14 @@ void main() {
         stalled: true,
       );
 
-      expect(find.text(l10n.ctrlDryNotRunning), findsOneWidget);
+      expect(find.text(pl.ctrlDryNotRunning), findsOneWidget);
       expect(find.byIcon(Icons.local_fire_department), findsNothing);
 
-      await tester.tap(find.text(l10n.ctrlDryNotRunning));
+      await tester.tap(find.text(pl.ctrlDryNotRunning));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n.ctrlDryNotRunningHint), findsOneWidget);
-      expect(find.text(l10n.ctrlStop), findsOneWidget);
+      expect(find.text(pl.ctrlDryNotRunningHint), findsOneWidget);
+      expect(find.text(pl.ctrlStop), findsOneWidget);
     });
 
     testWidgets('an older server offers the sheet without the later modes', (
@@ -3994,8 +3992,6 @@ void main() {
   });
 
   group('Z jog direction (#1334)', () {
-    final l10n = lookupAppLocalizations(const Locale('pl'));
-
     // The model only on the printer row: a status polled over REST has none,
     // which is how the card once read an A1 as bed-on-Z.
     PrinterWithStatus idle(String? model) => PrinterWithStatus(
@@ -4034,9 +4030,9 @@ void main() {
         'A1 mini',
         BedJogConvention.direct,
       );
-      expect(find.text(l10n.ctrlMoveZToolhead), findsOneWidget);
+      expect(find.text(pl.ctrlMoveZToolhead), findsOneWidget);
 
-      await tester.tap(find.text(l10n.ctrlMoveZUp));
+      await tester.tap(find.text(pl.ctrlMoveZUp));
       await tester.pumpAndSettle();
       expect(repo.distances, [10.0]);
     });
@@ -4050,7 +4046,7 @@ void main() {
         BedJogConvention.flippedOnA1,
       );
 
-      await tester.tap(find.text(l10n.ctrlMoveZUp));
+      await tester.tap(find.text(pl.ctrlMoveZUp));
       await tester.pumpAndSettle();
       expect(repo.distances, [-10.0]);
     });
@@ -4064,9 +4060,9 @@ void main() {
         BedJogConvention.unknown,
       );
 
-      expect(find.text(l10n.ctrlMoveZUnknownDirection), findsOneWidget);
-      expect(find.text(l10n.ctrlMoveZUp), findsNothing);
-      expect(find.text(l10n.ctrlMoveZDown), findsNothing);
+      expect(find.text(pl.ctrlMoveZUnknownDirection), findsOneWidget);
+      expect(find.text(pl.ctrlMoveZUp), findsNothing);
+      expect(find.text(pl.ctrlMoveZDown), findsNothing);
       expect(repo.distances, isEmpty);
     });
 
@@ -4075,8 +4071,8 @@ void main() {
     ) async {
       final repo = await openMovement(tester, null, BedJogConvention.direct);
 
-      expect(find.text(l10n.ctrlMoveZNoModel), findsOneWidget);
-      expect(find.text(l10n.ctrlMoveZUp), findsNothing);
+      expect(find.text(pl.ctrlMoveZNoModel), findsOneWidget);
+      expect(find.text(pl.ctrlMoveZUp), findsNothing);
       expect(repo.distances, isEmpty);
     });
 
@@ -4101,17 +4097,17 @@ void main() {
       await tester.tap(byLogId('printer.move'));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n.ctrlMoveZUnknownDirection), findsOneWidget);
-      expect(find.text(l10n.ctrlMoveZUp), findsNothing);
+      expect(find.text(pl.ctrlMoveZUnknownDirection), findsOneWidget);
+      expect(find.text(pl.ctrlMoveZUp), findsNothing);
     });
 
     testWidgets('X1C: up raises the plate, whatever the server', (
       tester,
     ) async {
       final repo = await openMovement(tester, 'X1C', BedJogConvention.unknown);
-      expect(find.text(l10n.ctrlMoveZ), findsOneWidget);
+      expect(find.text(pl.ctrlMoveZ), findsOneWidget);
 
-      await tester.tap(find.text(l10n.ctrlMoveZUp));
+      await tester.tap(find.text(pl.ctrlMoveZUp));
       await tester.pumpAndSettle();
       expect(repo.distances, [-10.0]);
     });

@@ -1,7 +1,6 @@
 import 'package:bambuddy_mobile/core/models/user_summary.dart';
 import 'package:bambuddy_mobile/features/stats/statistics_screen.dart';
 import 'package:bambuddy_mobile/features/stats/stats_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -31,9 +30,6 @@ void main() {
 
   /// Labels come from the running locale rather than being hardcoded, so the
   /// test keeps passing when a translation is reworded.
-  AppLocalizations l10nOf(WidgetTester tester) =>
-      AppLocalizations.of(screen(tester));
-
   ProviderContainer containerOf(WidgetTester tester) =>
       ProviderScope.containerOf(screen(tester));
 
@@ -60,7 +56,7 @@ void main() {
     expect(container.read(statsFilterProvider).createdById, 8);
 
     // The regression itself: with a user selected, return to "all".
-    await pick(tester, l10nOf(tester).statsAllUsers);
+    await pick(tester, pl.statsAllUsers);
     expect(
       container.read(statsFilterProvider).createdById,
       isNull,
@@ -72,7 +68,7 @@ void main() {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
 
-    await pick(tester, l10nOf(tester).statsNoUser);
+    await pick(tester, pl.statsNoUser);
 
     // -1 is the server's "prints with no author" filter; the "all users"
     // sentinel must not collide with it in either direction.

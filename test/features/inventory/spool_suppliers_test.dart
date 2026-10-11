@@ -3,7 +3,6 @@ import 'package:bambuddy_mobile/core/models/supplier.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -59,12 +58,6 @@ const _linked = Spool(
 );
 
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   Future<(FakeSuppliers, _FakeInventory)> openForm(
     WidgetTester tester, {
     Spool? existing = _linked,
@@ -127,7 +120,7 @@ void main() {
 
   testWidgets('no section on a server without suppliers', (tester) async {
     await openForm(tester, supported: false);
-    expect(find.text(l10n.inventorySupplierLinksHint), findsNothing);
+    expect(find.text(pl.inventorySupplierLinksHint), findsNothing);
   });
 
   testWidgets('the supplier cards line up with each other and the button', (
@@ -220,7 +213,7 @@ void main() {
     await tester.enterText(byLogId('spool_form.supplier_price').last, '-2');
     await save(tester);
 
-    expect(find.text(l10n.inventoryFieldNegative), findsOneWidget);
+    expect(find.text(pl.inventoryFieldNegative), findsOneWidget);
     expect(inventory.writes, isEmpty);
     expect(suppliers.savedLinks, isEmpty);
   });
@@ -300,12 +293,12 @@ void main() {
 
     await tester.tap(byLogId('spool_form.supplier_add'));
     await settle(tester);
-    expect(find.text(l10n.inventorySupplierNoneLeft), findsOneWidget);
+    expect(find.text(pl.inventorySupplierNoneLeft), findsOneWidget);
     await tester.tap(byLogId('supplier_picker.new'));
     await settle(tester);
     await tester.enterText(
       find.ancestor(
-        of: find.text('${l10n.inventorySupplierFieldName} *'),
+        of: find.text('${pl.inventorySupplierFieldName} *'),
         matching: find.byType(TextFormField),
       ),
       'Prusament',
@@ -354,15 +347,15 @@ void main() {
       // the line under it, and a supplier with nothing noted has no such line.
       expect(
         find.text(
-          '${l10n.inventorySupplierArticleValue('NX2-1')} · '
-          '${l10n.inventorySupplierQuotedPrice('24.50')}',
+          '${pl.inventorySupplierArticleValue('NX2-1')} · '
+          '${pl.inventorySupplierQuotedPrice('24.50')}',
         ),
         findsOneWidget,
       );
       final extrudr = tester.getTopLeft(find.text('Extrudr')).dy;
       final shop = tester.getTopLeft(find.text('Filamentworld')).dy;
       expect(extrudr, lessThan(shop));
-      expect(find.text(l10n.inventorySupplierBoughtHere), findsOneWidget);
+      expect(find.text(pl.inventorySupplierBoughtHere), findsOneWidget);
     });
 
     testWidgets('the card fits a narrow phone at a large text size', (
@@ -398,8 +391,8 @@ void main() {
       await scrollSheetDown(tester);
 
       // An overflow is reported as an exception, which fails the test.
-      expect(find.text(l10n.inventorySupplierBoughtHere), findsOneWidget);
-      expect(find.text(l10n.inventoryDetailConsumedSinceReset), findsOneWidget);
+      expect(find.text(pl.inventorySupplierBoughtHere), findsOneWidget);
+      expect(find.text(pl.inventoryDetailConsumedSinceReset), findsOneWidget);
     });
 
     testWidgets('every value ends on the same right edge', (tester) async {

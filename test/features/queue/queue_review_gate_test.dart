@@ -189,7 +189,7 @@ void main() {
     // off-screen; "only if previous succeeded" is always right under it.
     Future<void> scrollToSchedule(WidgetTester tester) async {
       await tester.scrollUntilVisible(
-        find.text(formL10n.queueEditRequirePrevious),
+        find.text(pl.queueEditRequirePrevious),
         200,
         scrollable: find.byType(Scrollable).first,
       );
@@ -219,8 +219,8 @@ void main() {
       await tester.pumpAndSettle();
       await scrollToSchedule(tester);
 
-      expect(find.text(formL10n.queueEditRequireManualStart), findsNothing);
-      expect(find.text(formL10n.queueEditAwaitingReviewNote), findsOneWidget);
+      expect(find.text(pl.queueEditRequireManualStart), findsNothing);
+      expect(find.text(pl.queueEditAwaitingReviewNote), findsOneWidget);
       await submitQueueForm(tester);
       expect(capturedBody?['manual_start'], isTrue);
     });
@@ -270,8 +270,8 @@ void main() {
       await tester.pumpAndSettle();
       await scrollToSchedule(tester);
 
-      expect(find.text(formL10n.queueEditRequireManualStart), findsOneWidget);
-      expect(find.text(formL10n.queueEditAwaitingReviewNote), findsNothing);
+      expect(find.text(pl.queueEditRequireManualStart), findsOneWidget);
+      expect(find.text(pl.queueEditAwaitingReviewNote), findsNothing);
       await submitQueueForm(tester);
       expect(capturedBody?['manual_start'], isFalse);
     });

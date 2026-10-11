@@ -131,9 +131,7 @@ void main() {
     await tester.pump();
 
     await addCopies(tester, 2);
-    await tester.tap(
-      find.widgetWithText(FilledButton, formL10n.queueCreateSubmit),
-    );
+    await tester.tap(find.widgetWithText(FilledButton, pl.queueCreateSubmit));
     await tester.pump(const Duration(seconds: 6));
     await tester.pumpAndSettle();
 
@@ -290,9 +288,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await addCopies(tester, 1);
-    await tester.tap(
-      find.widgetWithText(FilledButton, formL10n.queueCreateSubmit),
-    );
+    await tester.tap(find.widgetWithText(FilledButton, pl.queueCreateSubmit));
     // Read before the form's own route finishes popping: pumped as the root,
     // it leaves no Scaffold to show a snack on afterwards.
     for (var i = 0; i < 5; i++) {
@@ -300,7 +296,7 @@ void main() {
     }
 
     // Said, since the form promised an order.
-    expect(find.text(formL10n.queueEditOrderRefused), findsOneWidget);
+    expect(find.text(pl.queueEditOrderRefused), findsOneWidget);
     await tester.pumpAndSettle();
     expect(capturedBody?['quantity'], 2);
     expect(capturedBody?.containsKey('batch_id'), isFalse);

@@ -2,7 +2,6 @@ import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -31,12 +30,6 @@ class _Shelf extends InventoryNotifier {
 const _spool = Spool(id: 7, material: 'PLA', brand: 'Bambu', costPerKg: 20.5);
 
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   Future<_Shelf> openForm(WidgetTester tester, InventoryBackend backend) async {
     final shelf = _Shelf();
     await pumpPhone(
@@ -80,7 +73,7 @@ void main() {
     await tester.enterText(inputOf('spool_form.brand'), '');
     await tester.pump();
 
-    expect(find.text(l10n.inventorySpoolmanCannotClear), findsOneWidget);
+    expect(find.text(pl.inventorySpoolmanCannotClear), findsOneWidget);
     await save(tester);
     expect(shelf.drafts, isEmpty);
   });
@@ -91,7 +84,7 @@ void main() {
     await tester.enterText(inputOf('spool_form.cost_per_kg'), '');
     await tester.pump();
 
-    expect(find.text(l10n.inventorySpoolmanCannotClear), findsOneWidget);
+    expect(find.text(pl.inventorySpoolmanCannotClear), findsOneWidget);
     await save(tester);
     expect(shelf.drafts, isEmpty);
   });
@@ -103,7 +96,7 @@ void main() {
     await tester.enterText(inputOf('spool_form.brand'), 'Polymaker');
     await tester.pump();
 
-    expect(find.text(l10n.inventorySpoolmanCannotClear), findsNothing);
+    expect(find.text(pl.inventorySpoolmanCannotClear), findsNothing);
     await save(tester);
     expect(shelf.drafts.single.brand, 'Polymaker');
   });
@@ -115,7 +108,7 @@ void main() {
     await tester.enterText(inputOf('spool_form.brand'), '');
     await tester.pump();
 
-    expect(find.text(l10n.inventorySpoolmanCannotClear), findsNothing);
+    expect(find.text(pl.inventorySpoolmanCannotClear), findsNothing);
     await save(tester);
     expect(shelf.drafts.single.clears, contains('brand'));
   });

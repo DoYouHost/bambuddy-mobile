@@ -2,7 +2,6 @@ import 'package:bambuddy_mobile/core/models/makerworld.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/data/makerworld_repository.dart';
 import 'package:bambuddy_mobile/features/model_sources/model_sources_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -17,9 +16,6 @@ import '../../helpers.dart';
 /// it existed, and nothing could notice: no test in the suite read a rendered
 /// button colour.
 void main() {
-  AppLocalizations l10n(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(ModelSourcesScreen)));
-
   testWidgets('an imported plate wears the accent, not the disabled grey', (
     tester,
   ) async {
@@ -63,13 +59,13 @@ void main() {
       find.byType(TextField),
       'https://makerworld.com/models/7',
     );
-    await tester.tap(find.widgetWithText(FilledButton, l10n(tester).mwResolve));
+    await tester.tap(find.widgetWithText(FilledButton, pl.mwResolve));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(FilledButton, l10n(tester).mwImport));
+    await tester.tap(find.widgetWithText(FilledButton, pl.mwImport));
     await tester.pumpAndSettle();
 
-    final label = l10n(tester).mwInLibrary;
+    final label = pl.mwInLibrary;
     final ink = (tester.renderObject(find.text(label)) as RenderParagraph)
         .text
         .style

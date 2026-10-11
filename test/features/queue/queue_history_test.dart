@@ -5,7 +5,6 @@ import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:bambuddy_mobile/features/queue/queue_history.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -17,8 +16,6 @@ import '../../helpers.dart';
 
 /// The queue's History tab, against the web's `HistorySection` and
 /// `CompactHistoryRow` (`QueuePage.tsx`).
-
-final _l10n = lookupAppLocalizations(const Locale('pl'));
 
 QueueItem _item(
   int id, {
@@ -107,7 +104,7 @@ Future<void> _openHistory(
     ),
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.text(_l10n.queueHistory));
+  await tester.tap(find.text(pl.queueHistory));
   await tester.pumpAndSettle();
 }
 
@@ -216,7 +213,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repo.deleted, [1]);
-    expect(find.text(_l10n.queueHistoryRemoved), findsOneWidget);
+    expect(find.text(pl.queueHistoryRemoved), findsOneWidget);
     expect(find.text('part-1.3mf'), findsNothing);
     expect(find.text('part-2.3mf'), findsOneWidget);
   });
@@ -233,7 +230,7 @@ void main() {
     expect(repo.deleted, [1, 2, 3]);
     expect(
       find.text(
-        '${_l10n.queueHistoryCleared(2)} ${_l10n.queueHistoryKeptForOrders(1)}',
+        '${pl.queueHistoryCleared(2)} ${pl.queueHistoryKeptForOrders(1)}',
       ),
       findsOneWidget,
     );
@@ -303,7 +300,7 @@ void main() {
       400,
       scrollable: list,
     );
-    expect(find.text(_l10n.queueHistoryShowing(50, 51)), findsOneWidget);
+    expect(find.text(pl.queueHistoryShowing(50, 51)), findsOneWidget);
     await tester.tap(byLogId('queue_history.show_more'));
     await tester.pumpAndSettle();
 
@@ -350,7 +347,7 @@ void main() {
   testWidgets('an empty history says what will appear there', (tester) async {
     await _openHistory(tester, _History(const []));
 
-    expect(find.text(_l10n.queueHistoryEmpty), findsOneWidget);
+    expect(find.text(pl.queueHistoryEmpty), findsOneWidget);
   });
 
   testWidgets('only the tab on screen is polled', (tester) async {
@@ -376,7 +373,7 @@ void main() {
     await tester.tap(byLogId('queue_history.remove_confirm.confirm'));
     await tester.pumpAndSettle();
 
-    expect(find.text(_l10n.queueHistoryKeptForOrder), findsOneWidget);
+    expect(find.text(pl.queueHistoryKeptForOrder), findsOneWidget);
     expect(find.text('part-1.3mf'), findsOneWidget);
   });
 
@@ -384,7 +381,7 @@ void main() {
     await _openHistory(tester, _History([_item(1)]));
     final before = _NoQueue.refreshes;
 
-    await tester.tap(find.text(_l10n.navQueue).last);
+    await tester.tap(find.text(pl.navQueue).last);
     await tester.pumpAndSettle();
 
     expect(_NoQueue.refreshes, before + 1);

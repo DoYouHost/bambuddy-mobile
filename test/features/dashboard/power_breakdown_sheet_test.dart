@@ -3,7 +3,6 @@ import 'package:bambuddy_mobile/core/models/smart_plug.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/power_breakdown_sheet.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -102,12 +101,7 @@ void main() {
     // reading is a dash on the printer row.
     expect(find.text('A1 plug'), findsOneWidget);
     expect(find.text('—'), findsOneWidget);
-    expect(
-      find.bySemanticsLabel(
-        lookupAppLocalizations(const Locale('pl')).plugStateOn,
-      ),
-      findsNWidgets(4),
-    );
+    expect(find.bySemanticsLabel(pl.plugStateOn), findsNWidgets(4));
     // The bar has a run for X1 and the lamp, none for the silent A1 — in the
     // colours of their tiles (X1 first, A1 second, the lamp third).
     final runs = tester

@@ -7,7 +7,6 @@ import 'package:bambuddy_mobile/data/api_keys_repository.dart';
 import 'package:bambuddy_mobile/features/admin/api_key_form_screen.dart';
 import 'package:bambuddy_mobile/features/admin/api_keys_providers.dart';
 import 'package:bambuddy_mobile/features/admin/api_keys_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -179,17 +178,16 @@ void main() {
       // Tall enough for every scope row to be built, or the absence below
       // would hold for a row that was merely off screen.
       usePhoneWindow(tester, dp: 2400);
-      final l10n = lookupAppLocalizations(const Locale('pl'));
       final notifications = find.widgetWithText(
         SwitchListTile,
-        l10n.apiKeyScopeNotifications,
+        pl.apiKeyScopeNotifications,
       );
       await tester.pumpWidget(
         _app(const ApiKeyFormScreen(), repo: repo, signedInAs: _admin),
       );
       await tester.pumpAndSettle();
       expect(
-        find.widgetWithText(SwitchListTile, l10n.apiKeyScopeEnergy),
+        find.widgetWithText(SwitchListTile, pl.apiKeyScopeEnergy),
         findsOneWidget,
       );
       expect(notifications, findsNothing);
@@ -277,7 +275,6 @@ void main() {
       tester,
     ) async {
       usePhoneWindow(tester, dp: 2400);
-      final l10n = lookupAppLocalizations(const Locale('pl'));
       await tester.pumpWidget(
         _app(
           ApiKeyFormScreen(
@@ -296,7 +293,7 @@ void main() {
 
       final notifications = find.widgetWithText(
         SwitchListTile,
-        l10n.apiKeyScopeNotifications,
+        pl.apiKeyScopeNotifications,
       );
       expect(notifications, findsOneWidget);
 

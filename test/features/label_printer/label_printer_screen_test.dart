@@ -7,14 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../helpers.dart';
 
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   Future<SharedPreferences> pump(
     WidgetTester tester, {
     Map<String, Object> stored = const {},
@@ -42,7 +37,7 @@ void main() {
 
   testWidgets('no server chosen says so', (tester) async {
     await pump(tester);
-    expect(find.text(l10n.labelPrinterNotSet), findsOneWidget);
+    expect(find.text(pl.labelPrinterNotSet), findsOneWidget);
   });
 
   testWidgets('a chosen server shows what it answers', (tester) async {
@@ -57,10 +52,7 @@ void main() {
       ),
     );
     expect(find.text('http://10.0.0.5:8000'), findsWidgets);
-    expect(
-      find.text(l10n.labelPrinterReady('QL-600', '62x29')),
-      findsOneWidget,
-    );
+    expect(find.text(pl.labelPrinterReady('QL-600', '62x29')), findsOneWidget);
   });
 
   testWidgets('warns when the loaded stock is not 62x29', (tester) async {
@@ -74,16 +66,16 @@ void main() {
         maxCopies: 50,
       ),
     );
-    expect(find.text(l10n.labelPrinterWrongStock('54x29')), findsOneWidget);
+    expect(find.text(pl.labelPrinterWrongStock('54x29')), findsOneWidget);
   });
 
   testWidgets('an address nothing answers on is not saved', (tester) async {
     final prefs = await pump(tester);
     await tester.enterText(find.byType(TextField), '10.255.255.1');
-    await tester.tap(find.text(l10n.labelPrinterSave));
+    await tester.tap(find.text(pl.labelPrinterSave));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.labelPrinterNotAServer), findsOneWidget);
+    expect(find.text(pl.labelPrinterNotAServer), findsOneWidget);
     expect(prefs.getString('label_printer_url'), isNull);
   });
 
@@ -92,10 +84,10 @@ void main() {
       tester,
       stored: {'label_printer_url': 'http://10.0.0.5:8000'},
     );
-    await tester.tap(find.byTooltip(l10n.labelPrinterRemove));
+    await tester.tap(find.byTooltip(pl.labelPrinterRemove));
     await tester.pumpAndSettle();
 
     expect(prefs.getString('label_printer_url'), isNull);
-    expect(find.text(l10n.labelPrinterNotSet), findsOneWidget);
+    expect(find.text(pl.labelPrinterNotSet), findsOneWidget);
   });
 }

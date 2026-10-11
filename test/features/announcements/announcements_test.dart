@@ -2,7 +2,6 @@ import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/announcements_repository.dart';
 import 'package:bambuddy_mobile/features/announcements/announcements_screen.dart';
 import 'package:bambuddy_mobile/features/announcements/announcements_widgets.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -17,9 +16,6 @@ void main() {
   late DioAdapter server;
   late RequestLog log;
   late List<Override> overrides;
-
-  AppLocalizations l10n(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(Scaffold).first));
 
   Map<String, dynamic> row(
     String id,
@@ -129,7 +125,7 @@ void main() {
     server.onPost('/api/v1/announcements/new/read', (s) => s.reply(204, null));
     await pumpPhone(tester, const AnnouncementsScreen(), overrides: overrides);
     await tester.pumpAndSettle();
-    final t = l10n(tester);
+    final t = pl;
     expect(find.text(t.announcementsNew), findsOneWidget);
     expect(find.text('treść new'), findsNothing);
     expect(find.text('PL old'), findsNothing);
@@ -163,7 +159,7 @@ void main() {
     }
     await pumpPhone(tester, const AnnouncementsScreen(), overrides: overrides);
     await tester.pumpAndSettle();
-    final t = l10n(tester);
+    final t = pl;
     expect(find.text(t.announcementsNew), findsNWidgets(2));
 
     await tester.tap(find.byTooltip(t.announcementsMarkAllRead));
@@ -188,7 +184,7 @@ void main() {
     await tester.tap(find.text('PL a'));
     await tester.pumpAndSettle();
     // The re-read answers the same inbox, so it is unread again.
-    expect(find.text(l10n(tester).announcementsNew), findsOneWidget);
+    expect(find.text(pl.announcementsNew), findsOneWidget);
     expect(log.calls.last, 'GET /api/v1/announcements');
   });
 }

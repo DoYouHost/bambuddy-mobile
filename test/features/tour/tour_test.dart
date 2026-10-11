@@ -29,7 +29,6 @@ Future<SettingsRepository> _settings(Map<String, Object> values) async {
 }
 
 /// The harness runs in Polish (`plApp`).
-final _pl = lookupAppLocalizations(const Locale('pl'));
 
 Finder _target(String id) =>
     find.byWidgetPredicate((w) => w is TourTarget && w.id == id);
@@ -145,19 +144,19 @@ void main() {
     );
 
     // 1. Every tab; "Next" only once all four were opened.
-    for (final tab in [_pl.navQueue, _pl.navArchive, _pl.navMaintenance]) {
+    for (final tab in [pl.navQueue, pl.navArchive, pl.navMaintenance]) {
       await tester.tap(find.text(tab));
       await settle(tester);
       expect(byLogId('tour.next'), findsNothing);
     }
-    await tester.tap(find.text(_pl.navFilaments));
+    await tester.tap(find.text(pl.navFilaments));
     await settle(tester);
     await next();
 
     // 2. Outside the spotlight nothing reacts: the menu next to it stays shut.
     await tester.tap(byLogId('dashboard.menu'), warnIfMissed: false);
     await settle(tester);
-    expect(find.text(_pl.wallModeTitle), findsNothing);
+    expect(find.text(pl.wallModeTitle), findsNothing);
     await tester.tap(byLogId('chrome.drawer'));
     await settle(tester);
     await next();
@@ -201,7 +200,7 @@ void main() {
 
     // 8. The tour opens the drawer; the user taps its Statistics row. Closed
     // again (Back does that), the button that opens it is the way back in.
-    expect(find.text(_pl.menuStatistics), findsOneWidget);
+    expect(find.text(pl.menuStatistics), findsOneWidget);
     tester
         .firstState<ScaffoldState>(
           find.ancestor(
@@ -213,7 +212,7 @@ void main() {
     await settle(tester);
     await tester.tap(byLogId('chrome.drawer'));
     await settle(tester);
-    await tester.tap(find.text(_pl.menuStatistics));
+    await tester.tap(find.text(pl.menuStatistics));
     await settle(tester);
     expect(find.byType(StatisticsScreen), findsOneWidget);
     await next();

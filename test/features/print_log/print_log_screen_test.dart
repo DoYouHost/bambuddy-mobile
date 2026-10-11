@@ -5,7 +5,6 @@ import 'package:bambuddy_mobile/features/print_log/print_log_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/print_log/print_log_screen.dart';
 import 'package:bambuddy_mobile/features/stats/stats_common.dart' show fmtNum;
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -102,12 +101,6 @@ class _PresetFilters extends PrintLogFiltersNotifier {
 }
 
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   Future<_FakePrintLog> pumpScreen(
     WidgetTester tester, {
     List<PrintLogEntry>? entries,
@@ -175,8 +168,8 @@ void main() {
     );
     await openSheet(tester, 'Spiral vase');
 
-    await pick(tester, reasonCombo, l10n.failureReasonLayerShift);
-    await tester.tap(find.widgetWithText(FilledButton, l10n.printLogSave));
+    await pick(tester, reasonCombo, pl.failureReasonLayerShift);
+    await tester.tap(find.widgetWithText(FilledButton, pl.printLogSave));
     await settle(tester);
 
     expect(fake.lastEdit?.reason, 'layerShift');
@@ -191,8 +184,8 @@ void main() {
     );
     await openSheet(tester, 'Benchy');
 
-    await pick(tester, reasonCombo, l10n.printLogNoClassification);
-    await tester.tap(find.widgetWithText(FilledButton, l10n.printLogSave));
+    await pick(tester, reasonCombo, pl.printLogNoClassification);
+    await tester.tap(find.widgetWithText(FilledButton, pl.printLogSave));
     await settle(tester);
 
     expect(fake.lastEdit?.cleared, isTrue);
@@ -205,10 +198,10 @@ void main() {
     await pumpScreen(tester);
     await openSheet(tester, 'Benchy');
 
-    final save = find.widgetWithText(FilledButton, l10n.printLogSave);
+    final save = find.widgetWithText(FilledButton, pl.printLogSave);
     expect(tester.widget<FilledButton>(save).onPressed, isNull);
 
-    await pick(tester, reasonCombo, l10n.failureReasonWarping);
+    await pick(tester, reasonCombo, pl.failureReasonWarping);
 
     expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
   });
@@ -221,11 +214,11 @@ void main() {
     await pumpScreen(tester, entries: [_entry(status: 'failed')]);
     await openSheet(tester, 'Benchy');
 
-    expect(find.text(l10n.printLogCountsAsFailure), findsOneWidget);
+    expect(find.text(pl.printLogCountsAsFailure), findsOneWidget);
 
-    await pick(tester, statusCombo, l10n.printLogStatusCompleted);
+    await pick(tester, statusCombo, pl.printLogStatusCompleted);
 
-    expect(find.text(l10n.printLogNotCountedAsFailure), findsOneWidget);
+    expect(find.text(pl.printLogNotCountedAsFailure), findsOneWidget);
   });
 
   testWidgets('an unwritable status is offered, and flagged as one-way', (
@@ -235,7 +228,7 @@ void main() {
     await openSheet(tester, 'Benchy');
 
     expect(
-      find.text(l10n.printLogStatusOneWay(l10n.printLogStatusAborted)),
+      find.text(pl.printLogStatusOneWay(pl.printLogStatusAborted)),
       findsOneWidget,
     );
   });
@@ -244,7 +237,7 @@ void main() {
     await pumpScreen(tester, costEnergy: true);
 
     expect(
-      find.textContaining(l10n.printLogEnergy(fmtNum(0.42))),
+      find.textContaining(pl.printLogEnergy(fmtNum(0.42))),
       findsOneWidget,
     );
   });
@@ -254,10 +247,7 @@ void main() {
     // the app inventing one — and a zero would read as a measurement.
     await pumpScreen(tester, costEnergy: false);
 
-    expect(
-      find.textContaining(l10n.printLogEnergy(fmtNum(0.42))),
-      findsNothing,
-    );
+    expect(find.textContaining(pl.printLogEnergy(fmtNum(0.42))), findsNothing);
   });
 
   testWidgets('the sort menu shows the current state, not the next action', (
@@ -283,21 +273,21 @@ void main() {
 
     // Both groups are captioned; a column name on its own says nothing about
     // what the menu is for.
-    expect(find.text(l10n.printLogSort), findsOneWidget);
-    expect(find.text(l10n.printLogSortDirection), findsOneWidget);
-    expect(checked(l10n.printLogSortDate), isTrue);
-    expect(checked(l10n.printLogSortDescending), isTrue);
-    expect(checked(l10n.printLogSortAscending), isFalse);
+    expect(find.text(pl.printLogSort), findsOneWidget);
+    expect(find.text(pl.printLogSortDirection), findsOneWidget);
+    expect(checked(pl.printLogSortDate), isTrue);
+    expect(checked(pl.printLogSortDescending), isTrue);
+    expect(checked(pl.printLogSortAscending), isFalse);
 
-    final ascending = find.text(l10n.printLogSortAscending);
+    final ascending = find.text(pl.printLogSortAscending);
     await tester.ensureVisible(ascending);
     await tester.pump();
     await tester.tap(ascending);
     await settle(tester);
     await openMenu();
 
-    expect(checked(l10n.printLogSortAscending), isTrue);
-    expect(checked(l10n.printLogSortDescending), isFalse);
+    expect(checked(pl.printLogSortAscending), isTrue);
+    expect(checked(pl.printLogSortDescending), isFalse);
   });
 
   testWidgets('the sheet spells out what the row can only abbreviate', (
@@ -308,12 +298,12 @@ void main() {
     await pumpScreen(tester);
     await openSheet(tester, 'Benchy');
 
-    expect(find.text(l10n.printLogDetailStarted), findsOneWidget);
-    expect(find.text(l10n.printLogDetailFinished), findsOneWidget);
-    expect(find.text(l10n.printLogDetailDuration), findsOneWidget);
-    expect(find.text(l10n.printLogDetailFilament), findsOneWidget);
-    expect(find.text(l10n.printLogDetailCost), findsOneWidget);
-    expect(find.text(l10n.printLogDetailEnergy), findsOneWidget);
+    expect(find.text(pl.printLogDetailStarted), findsOneWidget);
+    expect(find.text(pl.printLogDetailFinished), findsOneWidget);
+    expect(find.text(pl.printLogDetailDuration), findsOneWidget);
+    expect(find.text(pl.printLogDetailFilament), findsOneWidget);
+    expect(find.text(pl.printLogDetailCost), findsOneWidget);
+    expect(find.text(pl.printLogDetailEnergy), findsOneWidget);
     // The server's currency, on the side that currency writes it. Twice over:
     // the row underneath the sheet carries it too.
     expect(find.textContaining('1.23 zł'), findsWidgets);
@@ -325,9 +315,9 @@ void main() {
     await pumpScreen(tester, costEnergy: false);
     await openSheet(tester, 'Benchy');
 
-    expect(find.text(l10n.printLogDetailDuration), findsOneWidget);
-    expect(find.text(l10n.printLogDetailCost), findsNothing);
-    expect(find.text(l10n.printLogDetailEnergy), findsNothing);
+    expect(find.text(pl.printLogDetailDuration), findsOneWidget);
+    expect(find.text(pl.printLogDetailCost), findsNothing);
+    expect(find.text(pl.printLogDetailEnergy), findsNothing);
   });
 
   testWidgets('a run with nothing recorded shows no empty rows', (
@@ -338,8 +328,8 @@ void main() {
     await pumpScreen(tester, entries: [_entry(cost: null, energyKwh: null)]);
     await openSheet(tester, 'Benchy');
 
-    expect(find.text(l10n.printLogDetailCost), findsNothing);
-    expect(find.text(l10n.printLogDetailEnergy), findsNothing);
+    expect(find.text(pl.printLogDetailCost), findsNothing);
+    expect(find.text(pl.printLogDetailEnergy), findsNothing);
   });
 
   testWidgets('the printer filter reports "any" as no filter at all', (
@@ -372,7 +362,7 @@ void main() {
     // flag exists for — a null `printerId` alone means "leave it alone".
     await tester.tap(find.byType(DropdownMenu<int?>));
     await settle(tester);
-    final any = find.text(l10n.printLogAnyPrinter).last;
+    final any = find.text(pl.printLogAnyPrinter).last;
     await tester.ensureVisible(any);
     await tester.pump();
     await tester.tap(any);
@@ -385,7 +375,7 @@ void main() {
   testWidgets('an orphan run is marked as one', (tester) async {
     await pumpScreen(tester, entries: [_entry(archiveId: null)]);
 
-    expect(find.text(l10n.printLogOrphan), findsOneWidget);
+    expect(find.text(pl.printLogOrphan), findsOneWidget);
   });
 
   testWidgets('clearing the log asks first, and names the count', (
@@ -401,13 +391,13 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.more_vert));
     await settle(tester);
-    await tester.tap(find.text(l10n.printLogClear).last);
+    await tester.tap(find.text(pl.printLogClear).last);
     await settle(tester);
 
-    expect(find.text(l10n.printLogClearBody(2)), findsOneWidget);
+    expect(find.text(pl.printLogClearBody(2)), findsOneWidget);
     expect(fake.cleared, 0, reason: 'nothing goes before the answer');
 
-    await tester.tap(find.widgetWithText(FilledButton, l10n.printLogClear));
+    await tester.tap(find.widgetWithText(FilledButton, pl.printLogClear));
     await settle(tester);
 
     expect(fake.cleared, 1);
@@ -430,13 +420,13 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.more_vert));
     await settle(tester);
-    await tester.tap(find.text(l10n.printLogClear).last);
+    await tester.tap(find.text(pl.printLogClear).last);
     await settle(tester);
 
-    expect(find.text(l10n.printLogClearBody(2)), findsNothing);
-    expect(find.text(l10n.printLogClearBodyFiltered), findsOneWidget);
+    expect(find.text(pl.printLogClearBody(2)), findsNothing);
+    expect(find.text(pl.printLogClearBodyFiltered), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(FilledButton, l10n.printLogClear));
+    await tester.tap(find.widgetWithText(FilledButton, pl.printLogClear));
     await settle(tester);
     expect(fake.cleared, 1, reason: 'it still clears everything');
   });
@@ -445,11 +435,11 @@ void main() {
     final fake = await pumpScreen(tester);
     await openSheet(tester, 'Benchy');
 
-    await tester.tap(find.widgetWithText(TextButton, l10n.printLogDelete));
+    await tester.tap(find.widgetWithText(TextButton, pl.printLogDelete));
     await settle(tester);
     expect(fake.deleted, isNull);
 
-    await tester.tap(find.widgetWithText(FilledButton, l10n.printLogDelete));
+    await tester.tap(find.widgetWithText(FilledButton, pl.printLogDelete));
     await settle(tester);
 
     expect(fake.deleted, 7);
@@ -466,11 +456,11 @@ void main() {
     );
     await openSheet(tester, 'Benchy');
 
-    await pick(tester, reasonCombo, l10n.failureReasonOther);
-    await tester.tap(find.widgetWithText(FilledButton, l10n.printLogSave));
+    await pick(tester, reasonCombo, pl.failureReasonOther);
+    await tester.tap(find.widgetWithText(FilledButton, pl.printLogSave));
     await settle(tester);
 
-    expect(find.text(l10n.printLogSaveFailed), findsOneWidget);
-    expect(find.text(l10n.printLogFailureCause), findsWidgets);
+    expect(find.text(pl.printLogSaveFailed), findsOneWidget);
+    expect(find.text(pl.printLogFailureCause), findsWidgets);
   });
 }

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'queue_form_harness.dart';
+import '../../helpers.dart';
 
 /// "Ask for outcome" on the print form (#1898). An older server takes the
 /// flag and drops it, so the switch is only there where the server keeps it,
@@ -15,7 +16,7 @@ import 'queue_form_harness.dart';
 void main() {
   setUp(setUpQueueForm);
 
-  final label = formL10n.queueOptConfirmOutcome;
+  final label = pl.queueOptConfirmOutcome;
 
   List<Override> outcome({
     required bool supported,
@@ -120,9 +121,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(
-      find.widgetWithText(FilledButton, formL10n.queueCreateSubmit),
-    );
+    await tester.tap(find.widgetWithText(FilledButton, pl.queueCreateSubmit));
     await tester.pump();
     settings.complete(true);
     await tester.pumpAndSettle();
@@ -150,7 +149,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(formL10n.queueOptConfirmOutcomeSticky), findsOneWidget);
+    expect(find.text(pl.queueOptConfirmOutcomeSticky), findsOneWidget);
     await submitQueueForm(tester);
     expect(capturedBody?['confirm_outcome'], true);
   });

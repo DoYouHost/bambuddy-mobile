@@ -3,6 +3,7 @@ import 'package:bambuddy_mobile/features/slicer/slice_refusal.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../helpers.dart';
 
 /// The sentences the server actually writes, copied from
 /// `routes/library.py::slice_library_file` and `routes/archives.py::slice_archive`.
@@ -20,11 +21,9 @@ AppApiException _refusal([String? detail]) =>
 
 void main() {
   late AppLocalizations en;
-  late AppLocalizations pl;
 
   setUpAll(() async {
     en = await AppLocalizations.delegate.load(const Locale('en'));
-    pl = await AppLocalizations.delegate.load(const Locale('pl'));
   });
 
   test('a STEP source is named, not left as the server\'s paragraph', () {

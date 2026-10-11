@@ -15,7 +15,6 @@ import 'package:bambuddy_mobile/features/dashboard/ams_slot_config_providers.dar
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -1031,9 +1030,6 @@ void main() {
   group('where the sliced file landed', () {
     /// The result dialog's text, read through the localization API rather than
     /// spelled out — the harness runs in Polish.
-    AppLocalizations l10n(WidgetTester tester) =>
-        AppLocalizations.of(tester.element(find.byType(AlertDialog)));
-
     testWidgets('a file filed somewhere else says so, and why', (tester) async {
       // The slice succeeded; it just did not land in the external folder the
       // source lives in. Silence here is what made #2810 unreproducible from
@@ -1048,8 +1044,8 @@ void main() {
 
       expect(
         find.text(
-          '${l10n(tester).sliceExternalFallback} '
-          '${l10n(tester).sliceExternalReadonly}',
+          '${pl.sliceExternalFallback} '
+          '${pl.sliceExternalReadonly}',
         ),
         findsOneWidget,
       );
@@ -1077,7 +1073,7 @@ void main() {
         await slice(tester);
 
         expect(
-          find.text(l10n(tester).sliceExternalFallback),
+          find.text(pl.sliceExternalFallback),
           findsNothing,
           reason: '$reason rendered without a reason clause',
         );
@@ -1098,7 +1094,7 @@ void main() {
       await openSheet(tester);
       await slice(tester);
 
-      expect(find.text(l10n(tester).sliceExternalFallback), findsOneWidget);
+      expect(find.text(pl.sliceExternalFallback), findsOneWidget);
     });
 
     testWidgets('a normal slice says nothing about folders', (tester) async {
@@ -1106,10 +1102,7 @@ void main() {
       await openSheet(tester);
       await slice(tester);
 
-      expect(
-        find.textContaining(l10n(tester).sliceExternalFallback),
-        findsNothing,
-      );
+      expect(find.textContaining(pl.sliceExternalFallback), findsNothing);
     });
   });
 
@@ -1480,22 +1473,19 @@ void main() {
       tester,
     ) async {
       await open(tester, loaded: const [], onlyOnline: true);
-      final l10n = lookupAppLocalizations(const Locale('pl'));
-      expect(find.text(l10n.sliceNoneOnline), findsOneWidget);
+      expect(find.text(pl.sliceNoneOnline), findsOneWidget);
       expect((await slice(tester))['printer_preset'], x1c.toRef());
     });
-
-    final l10n = lookupAppLocalizations(const Locale('pl'));
 
     /// Opens the filament row's sheet. The row sits below the fold once the
     /// filters are on screen.
     Future<void> openFilament(WidgetTester tester) async {
       await tester.scrollUntilVisible(
-        find.text(l10n.sliceFilament),
+        find.text(pl.sliceFilament),
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.tap(find.text(l10n.sliceFilament));
+      await tester.tap(find.text(pl.sliceFilament));
       await tester.pumpAndSettle();
     }
 
@@ -1508,7 +1498,7 @@ void main() {
       await tester.tap(byLogId('slice.spool_tile'));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n.sliceSpoolFrom('H2D one · A1')), findsOneWidget);
+      expect(find.text(pl.sliceSpoolFrom('H2D one · A1')), findsOneWidget);
       final body = await slice(tester);
       expect(body['filament_preset'], basic.toRef());
       expect(body['filament_colours'], ['#FF8800']);
@@ -1522,7 +1512,7 @@ void main() {
       await tester.tap(byLogId('slice.spool_tile'));
       await tester.pumpAndSettle();
       await openFilament(tester);
-      await tester.tap(find.text(l10n.sliceTabProfiles));
+      await tester.tap(find.text(pl.sliceTabProfiles));
       await tester.pumpAndSettle();
       await tester.tap(find.text(generic.name).last);
       await tester.pumpAndSettle();
@@ -1566,12 +1556,12 @@ void main() {
       );
       await openFilament(tester);
       expect(byLogId('slice.spool_tile'), findsNothing);
-      expect(find.text(l10n.sliceSpoolsUnavailable), findsOneWidget);
+      expect(find.text(pl.sliceSpoolsUnavailable), findsOneWidget);
       expect(
-        find.text('A1 · PA-CF · ${l10n.sliceSpoolNoProfileShort}'),
+        find.text('A1 · PA-CF · ${pl.sliceSpoolNoProfileShort}'),
         findsOneWidget,
       );
-      expect(find.text('A2 · ${l10n.sliceSpoolEmpty}'), findsOneWidget);
+      expect(find.text('A2 · ${pl.sliceSpoolEmpty}'), findsOneWidget);
     });
 
     testWidgets('the spools tab says when no printer of the model is online', (
@@ -1579,7 +1569,7 @@ void main() {
     ) async {
       await open(tester);
       await openFilament(tester);
-      expect(find.text(l10n.sliceLoadedNoneOfModel), findsOneWidget);
+      expect(find.text(pl.sliceLoadedNoneOfModel), findsOneWidget);
     });
 
     testWidgets('the sheet lists every owned printer\'s presets, starting '
@@ -1635,7 +1625,6 @@ void main() {
         PlateInfo(index: 2, name: 'Lid'),
       ],
     );
-    final l10n = lookupAppLocalizations(const Locale('pl'));
 
     testWidgets('a single-plate source names no plate', (tester) async {
       await openSheet(tester);
@@ -1680,7 +1669,7 @@ void main() {
       );
       // The second row sits below the fold with the plate card above it.
       await tester.scrollUntilVisible(
-        find.text(l10n.sliceFilamentUnused),
+        find.text(pl.sliceFilamentUnused),
         200,
         scrollable: find.byType(Scrollable).first,
       );
@@ -1692,14 +1681,14 @@ void main() {
       await tester.tap(byLogId('slice.all_plates'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
-        find.text(l10n.sliceFilamentNumbered('2')),
+        find.text(pl.sliceFilamentNumbered('2')),
         200,
         scrollable: find.byType(Scrollable).first,
       );
 
-      expect(find.text(l10n.sliceFilamentUnused), findsNothing);
-      expect(find.text(l10n.sliceAllPlates(2)), findsWidgets);
-      await tester.tap(find.text(l10n.sliceAllPlates(2)).last);
+      expect(find.text(pl.sliceFilamentUnused), findsNothing);
+      expect(find.text(pl.sliceAllPlates(2)), findsWidgets);
+      await tester.tap(find.text(pl.sliceAllPlates(2)).last);
       for (var i = 0; i < 5; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }

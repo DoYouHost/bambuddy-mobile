@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'queue_form_harness.dart';
+import '../../helpers.dart';
 
 /// `filament_overrides` on a job for one printer, as the web's
 /// `printerOverridesForPlate` sends it: only the slots whose filament was
@@ -52,12 +53,12 @@ void main() {
   };
 
   Future<void> toggleForce(WidgetTester tester) async {
-    await tester.ensureVisible(find.text(formL10n.queueEditMappingAuto));
-    await tester.tap(find.text(formL10n.queueEditMappingAuto));
+    await tester.ensureVisible(find.text(pl.queueEditMappingAuto));
+    await tester.tap(find.text(pl.queueEditMappingAuto));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(Checkbox).last);
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, formL10n.fmSave).last);
+    await tester.tap(find.widgetWithText(FilledButton, pl.fmSave).last);
     await tester.pumpAndSettle();
   }
 
@@ -118,8 +119,8 @@ void main() {
   ) async {
     await tester.pumpWidget(form(overrides: [changed]));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text(formL10n.queueEditMappingAuto));
-    await tester.tap(find.text(formL10n.queueEditMappingAuto));
+    await tester.ensureVisible(find.text(pl.queueEditMappingAuto));
+    await tester.tap(find.text(pl.queueEditMappingAuto));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(Checkbox).last);
     await tester.pumpAndSettle();

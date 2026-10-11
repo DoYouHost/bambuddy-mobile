@@ -16,12 +16,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../helpers.dart';
 
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   Future<ProviderContainer> pumpScreen(
     WidgetTester tester, {
     List<Override> extra = const [],
@@ -74,7 +68,7 @@ void main() {
 
     expect(collapseSwitch().value, isFalse);
 
-    await tester.tap(find.text(l10n.collapsePrinterCardsTitle));
+    await tester.tap(find.text(pl.collapsePrinterCardsTitle));
     await tester.pumpAndSettle();
 
     expect(collapseSwitch().value, isTrue);
@@ -98,7 +92,7 @@ void main() {
 
       expect(wallSwitch().value, isTrue);
 
-      await tester.tap(find.text(l10n.wallKeepAwakeTitle));
+      await tester.tap(find.text(pl.wallKeepAwakeTitle));
       await tester.pumpAndSettle();
 
       expect(wallSwitch().value, isFalse);
@@ -113,7 +107,7 @@ void main() {
   testWidgets('notification settings are one entry away', (tester) async {
     await pumpScreen(tester);
 
-    await tester.tap(find.text(l10n.notifEventsMenu));
+    await tester.tap(find.text(pl.notifEventsMenu));
     await tester.pumpAndSettle();
 
     expect(find.text('NOTIFICATIONS'), findsOneWidget);

@@ -4,7 +4,6 @@ import 'package:bambuddy_mobile/core/models/location_sensor.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/data/location_sensors_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -177,11 +176,9 @@ void main() {
   testWidgets('a shelf within range reads as plain storage conditions', (
     tester,
   ) async {
-    final l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-
     await pumpShelf(tester, climates: {'dry box': calmClimate});
 
-    expect(find.byTooltip(l10n.inventoryClimateTitle), findsOneWidget);
+    expect(find.byTooltip(pl.inventoryClimateTitle), findsOneWidget);
   });
 
   testWidgets('the app bar says an alert out loud, not only in amber', (
@@ -190,12 +187,11 @@ void main() {
     // The amber ink is the whole of how the icon shows this to a sighted user,
     // and a tooltip is an icon button's semantic label — so the sentence has
     // to change with the colour.
-    final l10n = await AppLocalizations.delegate.load(const Locale('pl'));
 
     await pumpShelf(tester, climates: {'dry box': climate});
 
-    expect(find.byTooltip(l10n.inventoryClimateTitleAlerting), findsOneWidget);
-    expect(find.byTooltip(l10n.inventoryClimateTitle), findsNothing);
+    expect(find.byTooltip(pl.inventoryClimateTitleAlerting), findsOneWidget);
+    expect(find.byTooltip(pl.inventoryClimateTitle), findsNothing);
   });
 
   testWidgets('the app bar opens the sheet where a sensor is bound', (

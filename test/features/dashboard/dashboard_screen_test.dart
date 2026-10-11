@@ -635,14 +635,7 @@ void main() {
 
       // Already drawn without it, not an empty list for one frame.
       expect(find.text('Bench'), findsOneWidget);
-      expect(
-        find.text(
-          AppLocalizations.of(
-            tester.element(find.byType(Scaffold).first),
-          ).noPrintersMatchFilters,
-        ),
-        findsNothing,
-      );
+      expect(find.text(pl.noPrintersMatchFilters), findsNothing);
       await tester.pumpAndSettle();
 
       expect(find.text('Bench'), findsOneWidget);

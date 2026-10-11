@@ -8,7 +8,6 @@ import 'package:bambuddy_mobile/features/archive/archive_filament_edit.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_screen.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -110,32 +109,25 @@ void main() {
           runCount: runCount,
         );
 
-    late AppLocalizations l10n;
-
-    setUpAll(
-      () async =>
-          l10n = await AppLocalizations.delegate.load(const Locale('pl')),
-    );
-
     // The usual print: one run, no tracked spool, so the entry inherited the
     // estimate. A line saying the same number twice is noise.
     test('a run that used what the file estimated adds nothing', () {
-      expect(filamentActualCaption(archive(actual: 15.8), l10n), isNull);
+      expect(filamentActualCaption(archive(actual: 15.8), pl), isNull);
     });
 
     // Every server older than the run aggregate reports no runs, so the row
     // has to look exactly as it did before the field existed.
     test('a file with no logged runs adds nothing', () {
       expect(
-        filamentActualCaption(archive(actual: null, runCount: 0), l10n),
+        filamentActualCaption(archive(actual: null, runCount: 0), pl),
         isNull,
       );
     });
 
     test('a run that stopped partway shows what it drew', () {
       expect(
-        filamentActualCaption(archive(grams: 88.1, actual: 35.2), l10n),
-        l10n.archiveFilamentActual(l10n.archiveFilamentGrams('35.2'), 1),
+        filamentActualCaption(archive(grams: 88.1, actual: 35.2), pl),
+        pl.archiveFilamentActual(pl.archiveFilamentGrams('35.2'), 1),
       );
     });
 
@@ -144,7 +136,7 @@ void main() {
       () {
         final caption = filamentActualCaption(
           archive(actual: 47.4, runCount: 3),
-          l10n,
+          pl,
         );
         expect(caption, contains('47.4'));
         expect(caption, contains('3'));
@@ -158,8 +150,8 @@ void main() {
       'runs that recorded nothing say that, rather than claiming a zero',
       () {
         expect(
-          filamentActualCaption(archive(actual: null), l10n),
-          l10n.archiveFilamentNoActual,
+          filamentActualCaption(archive(actual: null), pl),
+          pl.archiveFilamentNoActual,
         );
       },
     );
@@ -168,8 +160,8 @@ void main() {
     // estimate either, and a run that measured something.
     test('a measured run counts even where the file estimated nothing', () {
       expect(
-        filamentActualCaption(archive(grams: null, actual: 6.3), l10n),
-        l10n.archiveFilamentActual(l10n.archiveFilamentGrams('6.3'), 1),
+        filamentActualCaption(archive(grams: null, actual: 6.3), pl),
+        pl.archiveFilamentActual(pl.archiveFilamentGrams('6.3'), 1),
       );
     });
   });
@@ -192,15 +184,12 @@ void main() {
       filamentUsedGrams: grams,
     );
 
-    AppLocalizations l10n(WidgetTester tester) =>
-        AppLocalizations.of(tester.element(find.byType(ArchiveFilamentRow)));
-
     /// Opens the dialog, types [text] and saves.
     Future<void> edit(WidgetTester tester, String text) async {
       await tester.tap(find.byType(ArchiveFilamentRow));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), text);
-      await tester.tap(find.widgetWithText(FilledButton, l10n(tester).fmSave));
+      await tester.tap(find.widgetWithText(FilledButton, pl.fmSave));
       await tester.pumpAndSettle();
     }
 
@@ -212,7 +201,7 @@ void main() {
       await tester.pumpWidget(row(archive()));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n(tester).archiveFilamentNone), findsOneWidget);
+      expect(find.text(pl.archiveFilamentNone), findsOneWidget);
     });
 
     // The row is one thing to touch, so it has to be one thing to read: the
@@ -241,17 +230,14 @@ void main() {
     ) async {
       await tester.pumpWidget(row(archive(grams: 17.1)));
       await tester.pumpAndSettle();
-      expect(
-        find.text(l10n(tester).archiveFilamentGrams('17.1')),
-        findsOneWidget,
-      );
+      expect(find.text(pl.archiveFilamentGrams('17.1')), findsOneWidget);
 
       await edit(tester, '42');
 
       expect(repository.sent, [42.0]);
-      expect(find.text(l10n(tester).archiveFilamentSaved), findsOneWidget);
+      expect(find.text(pl.archiveFilamentSaved), findsOneWidget);
       expect(
-        find.text(l10n(tester).archiveFilamentGrams('42')),
+        find.text(pl.archiveFilamentGrams('42')),
         findsOneWidget,
         reason: 'the row follows the stored value the PATCH answered with',
       );
@@ -289,7 +275,7 @@ void main() {
       await edit(tester, '17.1');
 
       expect(repository.sent, isEmpty);
-      expect(find.text(l10n(tester).archiveFilamentSaved), findsNothing);
+      expect(find.text(pl.archiveFilamentSaved), findsNothing);
     });
 
     testWidgets('an emptied field clears the weight', (tester) async {
@@ -299,7 +285,7 @@ void main() {
       await edit(tester, '');
 
       expect(repository.sent, [null]);
-      expect(find.text(l10n(tester).archiveFilamentNone), findsOneWidget);
+      expect(find.text(pl.archiveFilamentNone), findsOneWidget);
     });
 
     // The case a 200 cannot be trusted for: an older server answers the same
@@ -314,15 +300,9 @@ void main() {
 
       await edit(tester, '42');
 
-      expect(
-        find.text(l10n(tester).archiveFilamentUnsupported),
-        findsOneWidget,
-      );
-      expect(find.text(l10n(tester).archiveFilamentSaved), findsNothing);
-      expect(
-        find.text(l10n(tester).archiveFilamentGrams('17.1')),
-        findsOneWidget,
-      );
+      expect(find.text(pl.archiveFilamentUnsupported), findsOneWidget);
+      expect(find.text(pl.archiveFilamentSaved), findsNothing);
+      expect(find.text(pl.archiveFilamentGrams('17.1')), findsOneWidget);
     });
 
     // Letters never get this far — the field's formatter drops them as they are
@@ -337,7 +317,7 @@ void main() {
       await edit(tester, '1.2.3');
 
       expect(repository.sent, isEmpty);
-      expect(find.text(l10n(tester).archiveFilamentNotANumber), findsOneWidget);
+      expect(find.text(pl.archiveFilamentNotANumber), findsOneWidget);
       expect(find.byType(TextField), findsOneWidget, reason: 'still open');
       expect(
         tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
@@ -376,7 +356,7 @@ void main() {
 
       await edit(tester, '1.2.3');
 
-      expect(announced, [l10n(tester).archiveFilamentNotANumber]);
+      expect(announced, [pl.archiveFilamentNotANumber]);
     });
 
     testWidgets('a refusal is worded, and the row keeps the stored weight', (
@@ -393,11 +373,8 @@ void main() {
       await edit(tester, '42');
 
       expect(tester.takeException(), isNull);
-      expect(
-        find.text(l10n(tester).archiveFilamentGrams('17.1')),
-        findsOneWidget,
-      );
-      expect(find.text(l10n(tester).archiveFilamentSaved), findsNothing);
+      expect(find.text(pl.archiveFilamentGrams('17.1')), findsOneWidget);
+      expect(find.text(pl.archiveFilamentSaved), findsNothing);
     });
   });
 
