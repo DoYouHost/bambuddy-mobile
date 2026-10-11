@@ -3941,8 +3941,6 @@
   "outcomeSavedReject": "Marquée comme rebut",
   "outcomeCleared": "Verdict effacé",
   "outcomeUnsupported": "Le serveur n'a pas enregistré le verdict. Mettez bambuddy à jour pour consigner le résultat des impressions.",
-  "outcomeRate": "Évaluer",
-  "outcomeChange": "Modifier",
   "queueOptConfirmOutcome": "Demander le résultat",
   "queueOptConfirmOutcomeDesc": "Demander si l'impression est bien sortie une fois terminée",
   "queueSettingsOutcomeHeader": "Résultat de l'impression",
@@ -4170,5 +4168,13 @@
   "announcementLevelInfo": "Information",
   "announcementLevelImportant": "Importante",
   "announcementLevelCritical": "Critique",
-  "announcementsMarkAllRead": "Tout marquer comme lu"
+  "announcementsMarkAllRead": "Tout marquer comme lu",
+  "archiveRunCount": "{count, plural, =1{1 passage} other{{count} passages}}",
+  "archiveLayerCount": "{count, plural, =1{1 couche} other{{count} couches}}",
+  "archiveObjectCount": "{count, plural, =1{1 objet} other{{count} objets}}",
+  "archivePrintCost": "Coût d’impression",
+  "archiveSlicedFor": "Tranché pour {model}",
+  "archiveTimeDetail": "Estimé {estimated}, réel {actual}",
+  "archiveOpenLink": "Lien",
+  "archiveSlot": "emplacement {slot}"
 }

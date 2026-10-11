@@ -7708,12 +7708,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der Server hat die Bewertung nicht gespeichert. Aktualisieren Sie bambuddy, um Druckergebnisse zu erfassen.';
 
   @override
-  String get outcomeRate => 'Bewerten';
-
-  @override
-  String get outcomeChange => 'Ändern';
-
-  @override
   String get queueOptConfirmOutcome => 'Nach Ergebnis fragen';
 
   @override
@@ -8558,4 +8552,58 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get announcementsMarkAllRead => 'Alle als gelesen markieren';
+
+  @override
+  String archiveRunCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Durchläufe',
+      one: '1 Durchlauf',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveLayerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Schichten',
+      one: '1 Schicht',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveObjectCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Objekte',
+      one: '1 Objekt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivePrintCost => 'Druckkosten';
+
+  @override
+  String archiveSlicedFor(String model) {
+    return 'Gesliced für $model';
+  }
+
+  @override
+  String archiveTimeDetail(String estimated, String actual) {
+    return 'Geschätzt $estimated, tatsächlich $actual';
+  }
+
+  @override
+  String get archiveOpenLink => 'Link';
+
+  @override
+  String archiveSlot(int slot) {
+    return 'Slot $slot';
+  }
 }

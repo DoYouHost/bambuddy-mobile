@@ -3001,6 +3001,15 @@ class DemoBackend {
       bool confirmRequested = false,
       String? verdict,
       String? verdictSource,
+      // What the archive detail shows beyond the numbers: the project chip,
+      // the user's tags and note, the link button, the run-count chip and the
+      // per-slot filament lines a sliced multi-material file carries.
+      int? projectId,
+      String? tags,
+      String? notes,
+      String? externalUrl,
+      int runCount = 1,
+      List<Map<String, dynamic>>? filamentSlots,
     }) {
       final started = _daysAgo(daysAgo, hours: 3);
       final actualSec = status == 'completed'
@@ -3009,8 +3018,10 @@ class DemoBackend {
       return {
         'id': id++,
         'printer_id': printerId,
-        'project_id': null,
-        'project_name': null,
+        'project_id': projectId,
+        'project_name': projectId == null
+            ? null
+            : _projects.firstWhere((p) => p['id'] == projectId)['name'],
         'filename': '$name.gcode.3mf',
         'file_path': 'archive/demo/$name.gcode.3mf',
         'file_size': 1500000 + name.length * 37000,
@@ -3038,10 +3049,11 @@ class DemoBackend {
         'status': status,
         'started_at': _iso(started),
         'completed_at': _iso(started.add(Duration(seconds: actualSec))),
-        'extra_data': const <String, dynamic>{},
+        'extra_data': <String, dynamic>{'filament_slots': ?filamentSlots},
+        'external_url': externalUrl,
         'is_favorite': false,
-        'tags': null,
-        'notes': null,
+        'tags': tags,
+        'notes': notes,
         'cost': cost ?? _r1(grams * 0.025),
         'photos': const <Object>[],
         'failure_reason': failureReason,
@@ -3054,7 +3066,8 @@ class DemoBackend {
             ? _r1(actualSec / 3600 * _demoWearCostPerHour)
             : null,
         'created_at': _iso(started),
-        'run_count': 1,
+        'created_by_username': DemoConfig.username,
+        'run_count': runCount,
         'last_run_at': _iso(started),
         'total_filament_actual_grams': noUsageRecorded
             ? null
@@ -3080,8 +3093,19 @@ class DemoBackend {
         1,
         estSec: 5400,
         grams: 96.2,
-        color: '#000000',
+        color: '#000000,#FFFFFF',
         plateId: 2,
+        projectId: 1,
+        tags: 'workshop,storage',
+        notes: 'Plate 1 printed separately; the dividers go on plate 2.',
+        runCount: 3,
+        // Listed per plate, as the server's parser stores a multi-plate
+        // export: slot 1 twice, which the app sums.
+        filamentSlots: const [
+          {'slot_id': 1, 'used_g': 48.1, 'type': 'PLA', 'color': '#000000'},
+          {'slot_id': 1, 'used_g': 33.6, 'type': 'PLA', 'color': '#000000'},
+          {'slot_id': 2, 'used_g': 14.5, 'type': 'PLA', 'color': '#FFFFFF'},
+        ],
       ),
       a(
         'Benchy',
@@ -3091,6 +3115,7 @@ class DemoBackend {
         grams: 15.8,
         color: '#FF6A13',
         confirmRequested: true,
+        externalUrl: 'https://www.3dbenchy.com/',
       ),
       a(
         'Raspberry Pi 5 case',

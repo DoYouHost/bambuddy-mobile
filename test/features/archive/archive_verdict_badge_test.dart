@@ -55,9 +55,24 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(_l10n.outcomeAwaiting), findsOneWidget);
-    expect(find.text(_l10n.outcomeGoodPart), findsOneWidget);
-    expect(find.text(_l10n.outcomeRejected), findsOneWidget);
+    // A mark on the thumbnail, named for a screen reader, not a row of text
+    // that made a judged card taller than the rest. The card merges it into
+    // its own label, hence the pattern.
+    expect(
+      find.bySemanticsLabel(RegExp(RegExp.escape(_l10n.outcomeAwaiting))),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(RegExp(RegExp.escape(_l10n.outcomeGoodPart))),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(RegExp(RegExp.escape(_l10n.outcomeRejected))),
+      findsOneWidget,
+    );
+    expect(find.byType(ArchiveVerdictMark), findsNWidgets(4));
+    expect(find.byIcon(Icons.hourglass_top), findsOneWidget);
+    expect(find.text(_l10n.outcomeGoodPart), findsNothing);
   });
 
   testWidgets('the sheet names the verdict and how it was recorded', (
@@ -87,7 +102,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(_l10n.outcomeGoodPart), findsNothing);
+    expect(
+      find.bySemanticsLabel(RegExp(RegExp.escape(_l10n.outcomeGoodPart))),
+      findsNothing,
+    );
   });
 
   testWidgets('a verdict the archive carries is shown before the gate says', (
@@ -116,7 +134,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(_l10n.outcomeAwaiting), findsWidgets);
-    expect(find.text(_l10n.outcomeRate), findsNothing);
+    final thumbs = tester.widgetList<IconButton>(
+      find.descendant(
+        of: find.byType(ArchiveOutcomeRow),
+        matching: find.byType(IconButton),
+      ),
+    );
+    expect(thumbs, hasLength(2));
+    expect(thumbs.every((b) => b.onPressed == null), isTrue);
   });
 
   testWidgets('a server without verdicts has no line for one', (tester) async {

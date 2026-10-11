@@ -52,23 +52,89 @@ QueueItem archiveQueueDraft(Archive archive, {bool manualStart = false}) =>
 /// the app is on screen, and from the outcome notification. The archive is
 /// re-read rather than handed in: the finish photo is attached after the print
 /// ends, and a prompt can be answered elsewhere while this one waits.
-Future<void> showOutcomeSheet(BuildContext context, int archiveId) =>
-    dashSheet<void>(
-      context,
-      builder: (_) => OutcomeSheet(archiveId: archiveId),
+///
+/// [rejecting] opens it on the reason step, for a reject the archive detail has
+/// just recorded with its thumb.
+Future<void> showOutcomeSheet(
+  BuildContext context,
+  int archiveId, {
+  bool rejecting = false,
+}) => dashSheet<void>(
+  context,
+  builder: (_) => OutcomeSheet(archiveId: archiveId, rejecting: rejecting),
+);
+
+/// Writes [verdict] (null clears it) and keeps the screen's list and the
+/// outcome notification in step with what the server stored.
+///
+/// The cause goes with a reject as chosen — "No reason" included, which
+/// clears one the print still carries. Leaving a reject clears its cause,
+/// as the web's edit dialog does; anything else leaves it alone.
+Future<({Archive archive, bool applied})> writeVerdict(
+  ProviderContainer providers,
+  Archive archive,
+  PrintVerdict? verdict, {
+  String? reason,
+}) async {
+  final chosen = (reason ?? '').isEmpty ? null : reason;
+  final carried = archive.failureReason != null;
+  final result = await providers
+      .read(archiveRepositoryProvider)
+      .setVerdict(
+        archive.id,
+        verdict,
+        reason: chosen,
+        clearReason: verdict == PrintVerdict.reject
+            ? chosen == null && carried
+            : archive.userVerdict == PrintVerdict.reject && carried,
+      );
+  // Only a list somebody is looking at: building it here would fetch every
+  // archive the server has to change one row.
+  if (providers.exists(archiveProvider)) {
+    providers.read(archiveProvider.notifier).replace(result.archive);
+  }
+  // Answered here, so the notification asking the same thing has nothing
+  // left to ask.
+  if (result.applied) {
+    unawaited(
+      cancelOutcomeAlert(
+        archive.id,
+        memory: FinishAlertMemory(providers.read(sharedPreferencesProvider)),
+      ),
     );
+  }
+  return result;
+}
+
+/// The snack confirming what [writeVerdict] did.
+String verdictSavedMessage(
+  AppLocalizations l10n,
+  PrintVerdict? verdict, {
+  required bool applied,
+}) => !applied
+    ? l10n.outcomeUnsupported
+    : switch (verdict) {
+        PrintVerdict.good => l10n.outcomeSavedGood,
+        PrintVerdict.reject => l10n.outcomeSavedReject,
+        null => l10n.outcomeCleared,
+      };
 
 class OutcomeSheet extends ConsumerStatefulWidget {
-  const OutcomeSheet({super.key, required this.archiveId});
+  const OutcomeSheet({
+    super.key,
+    required this.archiveId,
+    this.rejecting = false,
+  });
 
   final int archiveId;
+  final bool rejecting;
 
   @override
   ConsumerState<OutcomeSheet> createState() => _OutcomeSheetState();
 }
 
 class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
-  bool _rejecting = false;
+  late bool _rejecting = widget.rejecting;
   String? _reason;
   bool _saving = false;
 
@@ -186,7 +252,7 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
       context,
       id: 'outcome.reason',
       label: Text(l10n.outcomeRejectReason),
-      initialSelection: _reason ?? '',
+      initialSelection: _reason ?? archive.failureReason ?? '',
       onSelected: (v) => setState(() => _reason = v),
       entries: failureReasonEntries(
         l10n,
@@ -211,7 +277,7 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
               : () => _save(
                   archive,
                   PrintVerdict.reject,
-                  reason: _reason,
+                  reason: _reason ?? archive.failureReason,
                   logId: 'outcome.reject_save',
                 ),
           child: Text(l10n.outcomeSaveReject),
@@ -227,7 +293,7 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
               : () => _save(
                   archive,
                   PrintVerdict.reject,
-                  reason: _reason,
+                  reason: _reason ?? archive.failureReason,
                   reprint: true,
                   logId: 'outcome.reject_reprint',
                 ),
@@ -245,10 +311,6 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
   ];
 
   /// Writes [verdict] (null clears it) and closes the sheet once it landed.
-  ///
-  /// The cause goes with a reject as chosen — "No reason" included, which
-  /// clears one the print still carries. Leaving a reject clears its cause,
-  /// as the web's edit dialog does; anything else leaves it alone.
   Future<void> _save(
     Archive archive,
     PrintVerdict? verdict, {
@@ -260,8 +322,6 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
     // buttons, and two verdicts in flight land in whichever order they like.
     if (_saving) return;
     final l10n = AppLocalizations.of(context);
-    final chosen = (reason ?? '').isEmpty ? null : reason;
-    final carried = archive.failureReason != null;
     // The sheet can be dismissed while the PATCH is out, and the server
     // stores the verdict anyway.
     final (:providers, :messenger) = detachFrom(context);
@@ -270,41 +330,14 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
     final host = Navigator.of(context).context;
     setState(() => _saving = true);
     try {
-      final result = await providers
-          .read(archiveRepositoryProvider)
-          .setVerdict(
-            archive.id,
-            verdict,
-            reason: chosen,
-            clearReason: verdict == PrintVerdict.reject
-                ? chosen == null && carried
-                : archive.userVerdict == PrintVerdict.reject && carried,
-          );
-      // Only a list somebody is looking at: building it here would fetch every
-      // archive the server has to change one row.
-      if (providers.exists(archiveProvider)) {
-        providers.read(archiveProvider.notifier).replace(result.archive);
-      }
-      // Answered here, so the notification asking the same thing has nothing
-      // left to ask.
-      if (result.applied) {
-        unawaited(
-          cancelOutcomeAlert(
-            archive.id,
-            memory: FinishAlertMemory(
-              providers.read(sharedPreferencesProvider),
-            ),
-          ),
-        );
-      }
+      final result = await writeVerdict(
+        providers,
+        archive,
+        verdict,
+        reason: reason,
+      );
       messenger.snack(
-        !result.applied
-            ? l10n.outcomeUnsupported
-            : switch (verdict) {
-                PrintVerdict.good => l10n.outcomeSavedGood,
-                PrintVerdict.reject => l10n.outcomeSavedReject,
-                null => l10n.outcomeCleared,
-              },
+        verdictSavedMessage(l10n, verdict, applied: result.applied),
       );
       // Only while this sheet is still the route: dismissed during the
       // request, the navigator's top is somebody else's screen.

@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
-import '../../core/format/datetime_format.dart';
 import '../../core/format/filament_colour.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
@@ -34,6 +33,7 @@ import '../../data/pipelines_repository.dart' show PipelineSource;
 import '../pipelines/pipeline_run_screen.dart';
 import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
+import 'archive_details.dart';
 import 'archive_filament_edit.dart';
 import 'archive_providers.dart';
 import 'outcome_sheet.dart';
@@ -283,15 +283,16 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         onSlice: () => _slice(archive),
         onRunPipeline: () => _runPipeline(archive),
         onDelete: () => _deleteFromSheet(archive),
-        onRate: () => _rate(archive),
+        onReject: () => _rejectReason(archive),
       ),
     );
   }
 
-  /// Swaps the detail sheet for the outcome one rather than stacking them.
-  Future<void> _rate(Archive archive) async {
+  /// Swaps the detail sheet for the outcome one, on its reason step, rather
+  /// than stacking them.
+  Future<void> _rejectReason(Archive archive) async {
     Navigator.pop(context);
-    await showOutcomeSheet(context, archive.id);
+    await showOutcomeSheet(context, archive.id, rejecting: true);
   }
 
   /// Toggle an archive's favorite flag (optimistic; the list live-updates).
@@ -732,22 +733,6 @@ class _ArchiveCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    final meta = <String>[
-      // Only a run that printed a chosen plate of a multi-plate file carries
-      // one, which is exactly when the name alone cannot tell two rows apart.
-      //
-      // Guarded on the value, not just on null: plates are numbered from 1
-      // (`Metadata/plate_1.gcode` upward) and the server puts no lower bound on
-      // the column, while 0 is what the slicer's own API means by "every plate".
-      // Whatever wrote a 0 here, it did not print plate zero.
-      if ((archive.plateId ?? 0) > 0)
-        AppLocalizations.of(context).archivePlate(archive.plateId!),
-      if (archive.filamentType != null) archive.filamentType!,
-      if (archive.filamentUsedGrams != null)
-        '${archive.filamentUsedGrams!.toStringAsFixed(0)} g',
-      if (archive.createdAt != null)
-        DateTimeFormats.of(context).date(archive.createdAt!),
-    ];
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: DashSpace.gutter,
@@ -791,6 +776,11 @@ class _ArchiveCard extends StatelessWidget {
                           children: [
                             PrintThumbnail(archiveId: archive.id, size: 52),
                             Positioned(
+                              left: -4,
+                              top: -4,
+                              child: ArchiveVerdictMark(archive: archive),
+                            ),
+                            Positioned(
                               right: -4,
                               bottom: -4,
                               child: _MediaBadges(archive: archive),
@@ -809,20 +799,8 @@ class _ArchiveCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: t.titleSm,
                         ),
-                        if (meta.isNotEmpty) ...[
-                          const SizedBox(height: DashSpace.xs),
-                          Text(
-                            meta.join(' · '),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: t.monoLabel,
-                          ),
-                        ],
-                        if (archive.userVerdict != null ||
-                            archive.awaitsVerdict) ...[
-                          const SizedBox(height: DashSpace.xs),
-                          ArchiveVerdictBadge(archive: archive),
-                        ],
+                        const SizedBox(height: DashSpace.xs),
+                        ArchiveRowMeta(archive: archive),
                       ],
                     ),
                   ),
@@ -903,7 +881,7 @@ class _MediaBadges extends StatelessWidget {
   );
 }
 
-class _ArchiveSheet extends StatelessWidget {
+class _ArchiveSheet extends ConsumerWidget {
   const _ArchiveSheet({
     required this.archive,
     required this.onReprint,
@@ -913,11 +891,11 @@ class _ArchiveSheet extends StatelessWidget {
     required this.onSlice,
     required this.onRunPipeline,
     required this.onDelete,
-    required this.onRate,
+    required this.onReject,
   });
 
   final Archive archive;
-  final VoidCallback onRate;
+  final VoidCallback onReject;
   final VoidCallback onReprint;
   final VoidCallback onAddToQueue;
   final VoidCallback onPreviewGcode;
@@ -927,9 +905,19 @@ class _ArchiveSheet extends StatelessWidget {
   final VoidCallback onDelete;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    // The list is the screen's copy of this print and every write here puts
+    // the stored row back into it, so the sheet follows a verdict or a weight
+    // edit without being reopened.
+    final archive =
+        ref
+            .watch(archiveProvider)
+            .valueOrNull
+            ?.where((a) => a.id == this.archive.id)
+            .firstOrNull ??
+        this.archive;
     return logTag(
       'sheet.archive_detail',
       SafeArea(
@@ -979,6 +967,8 @@ class _ArchiveSheet extends StatelessWidget {
                                 style: theme.textTheme.bodySmall,
                               ),
                             ),
+                          const SizedBox(height: DashSpace.sm),
+                          ArchiveHeaderChips(archive: archive),
                         ],
                       ),
                     ),
@@ -990,8 +980,17 @@ class _ArchiveSheet extends StatelessWidget {
                   onReprint: onReprint,
                 ),
                 const SizedBox(height: DashSpace.sm),
-                ArchiveOutcomeRow(archive: archive, onRate: onRate),
+                _SliceArchiveButton(
+                  archive: archive,
+                  onSlice: onSlice,
+                  onRunPipeline: onRunPipeline,
+                ),
+                ArchiveOutcomeRow(archive: archive, onReject: onReject),
                 ArchiveFilamentRow(archive: archive),
+                ArchiveStatsPanel(archive: archive),
+                ArchiveTagsAndNote(archive: archive),
+                ArchiveFooter(archive: archive),
+                ArchiveLinkButton(archive: archive),
                 SizedBox(
                   width: double.infinity,
                   child: logTag(
@@ -1005,11 +1004,6 @@ class _ArchiveSheet extends StatelessWidget {
                 ),
                 _ArchiveMediaButton(archive: archive, onMedia: onMedia),
                 const SizedBox(height: DashSpace.sm),
-                _SliceArchiveButton(
-                  archive: archive,
-                  onSlice: onSlice,
-                  onRunPipeline: onRunPipeline,
-                ),
                 SizedBox(
                   width: double.infinity,
                   child: logTag(

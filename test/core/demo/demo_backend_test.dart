@@ -90,6 +90,24 @@ void main() {
   });
 
   group('queue + archives + stats', () {
+    // Every part of the archive detail has a print to stand on.
+    test('archives carry what the detail sheet shows', () async {
+      final list = await ArchiveRepository(dio).list();
+      final drawer = list.firstWhere(
+        (a) => a.printName == 'Drawer organizer x4',
+      );
+      expect(drawer.filamentSlots.map((s) => s.slot), [1, 2]);
+      expect(drawer.filamentSlots.first.grams, closeTo(81.7, 1e-9));
+      expect(drawer.projectName, isNotNull);
+      expect(drawer.tagList, isNotEmpty);
+      expect(drawer.notes, isNotNull);
+      expect(drawer.runCount, greaterThan(1));
+      expect(list.where((a) => a.link != null), isNotEmpty);
+      expect(list.where((a) => a.timeAccuracy != null), isNotEmpty);
+      expect(list.where((a) => a.wearCost != null), isNotEmpty);
+      expect(list.every((a) => a.createdByUsername != null), isTrue);
+    });
+
     test('queue has pending items', () async {
       final items = await QueueRepository(dio).fetch();
       expect(items.length, greaterThanOrEqualTo(2));

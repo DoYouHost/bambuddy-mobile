@@ -3941,8 +3941,6 @@
   "outcomeSavedReject": "Marcada como rechazada",
   "outcomeCleared": "Veredicto eliminado",
   "outcomeUnsupported": "El servidor no guardó el veredicto. Actualice bambuddy para registrar el resultado de las impresiones.",
-  "outcomeRate": "Valorar",
-  "outcomeChange": "Cambiar",
   "queueOptConfirmOutcome": "Preguntar el resultado",
   "queueOptConfirmOutcomeDesc": "Preguntar si la impresión ha salido bien después de completarse",
   "queueSettingsOutcomeHeader": "Resultado de la impresión",
@@ -4170,5 +4168,13 @@
   "announcementLevelInfo": "Aviso",
   "announcementLevelImportant": "Importante",
   "announcementLevelCritical": "Crítico",
-  "announcementsMarkAllRead": "Marcar todo como leído"
+  "announcementsMarkAllRead": "Marcar todo como leído",
+  "archiveRunCount": "{count, plural, =1{1 ejecución} other{{count} ejecuciones}}",
+  "archiveLayerCount": "{count, plural, =1{1 capa} other{{count} capas}}",
+  "archiveObjectCount": "{count, plural, =1{1 objeto} other{{count} objetos}}",
+  "archivePrintCost": "Coste de impresión",
+  "archiveSlicedFor": "Laminado para {model}",
+  "archiveTimeDetail": "Estimado {estimated}, real {actual}",
+  "archiveOpenLink": "Enlace",
+  "archiveSlot": "ranura {slot}"
 }
