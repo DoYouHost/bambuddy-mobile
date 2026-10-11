@@ -8,9 +8,7 @@ import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/label_printer_repository.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_providers.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -123,12 +121,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           serverProfileProvider.overrideWith(_DemoProfile.new),
         ],
-        child: MaterialApp(
-          locale: const Locale('pl'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: const LabelPrinterScreen(),
-        ),
+        child: plApp(const LabelPrinterScreen()),
       ),
     );
     await tester.pumpAndSettle();

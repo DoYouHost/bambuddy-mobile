@@ -1,7 +1,6 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/screens/wear_printer_control_screen.dart';
 import 'package:bambuddy_mobile/wear/wear_providers.dart';
@@ -90,17 +89,8 @@ Future<void> _pumpHost(
 }) async {
   useWatchFace(tester, shape, face);
   await tester.pumpWidget(
-    MaterialApp(
-      locale: const Locale('pl'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(textScale)),
-        child: wearShapeBuilder(context, child),
-      ),
-      home: WearScreen(
+    plApp(
+      WearScreen(
         child: Builder(
           builder: (context) {
             hostContext = context;
@@ -121,6 +111,12 @@ Future<void> _pumpHost(
             );
           },
         ),
+      ),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: wearShapeBuilder(context, child),
       ),
     ),
   );

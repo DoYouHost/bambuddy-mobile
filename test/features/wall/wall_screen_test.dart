@@ -11,7 +11,6 @@ import 'package:bambuddy_mobile/features/wall/wall_tile.dart';
 import 'package:bambuddy_mobile/features/wall/wall_camera.dart';
 import 'package:bambuddy_mobile/features/wall/wall_providers.dart';
 import 'package:bambuddy_mobile/features/wall/wall_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -152,12 +151,7 @@ void main() {
         child: Consumer(
           builder: (context, ref, _) {
             container = ProviderScope.containerOf(context, listen: false);
-            return MaterialApp.router(
-              locale: const Locale('pl'),
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              routerConfig: router,
-            );
+            return plRouterApp(router);
           },
         ),
       ),

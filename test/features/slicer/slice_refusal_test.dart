@@ -1,7 +1,5 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_refusal.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';
 
@@ -20,12 +18,6 @@ AppApiException _refusal([String? detail]) =>
     ApiException(AppErrorCode.badResponse, statusCode: 400, detail: detail);
 
 void main() {
-  late AppLocalizations en;
-
-  setUpAll(() async {
-    en = await AppLocalizations.delegate.load(const Locale('en'));
-  });
-
   test('a STEP source is named, not left as the server\'s paragraph', () {
     expect(sliceRefusalMessage(en, _refusal(_step)), en.sliceRefusedStep);
     expect(sliceRefusalMessage(pl, _refusal(_step)), pl.sliceRefusedStep);

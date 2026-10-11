@@ -8,9 +8,7 @@ import 'package:bambuddy_mobile/data/maintenance_repository.dart';
 import 'package:bambuddy_mobile/features/notifications/maintenance_monitor.dart';
 import 'package:bambuddy_mobile/features/notifications/print_monitor.dart'
     show alertBandWidth;
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -88,7 +86,7 @@ void main() {
     initialNotified: persisted,
     persist: (s) async => persisted = {...s},
     reload: reload,
-    l10n: () => lookupAppLocalizations(const Locale('en')),
+    l10n: () => en,
   );
 
   setUp(() {

@@ -4,11 +4,10 @@ import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/features/queue/queue_removal.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'contract_harness.dart';
+import '../helpers.dart';
 
 /// A billing server, as the app's stop-gap reads it: the flag it detects
 /// billing by, and the refusal it words when a new item has no cost center
@@ -22,7 +21,6 @@ void main() {
       final dio = await authenticatedDio();
       final settings = ServerSettingsRepository(dio);
       final queue = QueueRepository(dio);
-      final en = lookupAppLocalizations(const Locale('en'));
       final file = (await LibraryRepository(
         dio,
       ).listFiles()).firstWhere((f) => f.filename == 'contract-probe.3mf');

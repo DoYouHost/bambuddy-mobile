@@ -1,13 +1,10 @@
 import 'package:bambuddy_mobile/core/format/duration_format.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';
 
 void main() {
   // The wording lives in the .arb files, so the assertions read it from there
   // rather than restating it — a translator changing "min" must not fail these.
-  final en = lookupAppLocalizations(const Locale('en'));
 
   group('from minutes', () {
     test('under an hour is minutes alone', () {

@@ -14,7 +14,6 @@ import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_providers.dart';
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'dart:async';
 import 'dart:io';
@@ -411,12 +410,7 @@ void main() {
             labelPrintPrefsProvider.overrideWith(_MemoryPrefs.new),
             labelPrinterUrlProvider.overrideWith(_NoUrl.new),
           ],
-          child: MaterialApp.router(
-            locale: const Locale('pl'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            routerConfig: router,
-          ),
+          child: plRouterApp(router),
         ),
       );
       await settle(tester);

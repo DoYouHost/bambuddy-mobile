@@ -2,13 +2,10 @@ import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/features/queue/queue_removal.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations_en.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations_pl.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../helpers.dart';
 
 void main() {
-  final en = AppLocalizationsEn();
-
   group('queueRemovalFor', () {
     test('a waiting item is cancelled', () {
       for (final status in [
@@ -160,10 +157,10 @@ void main() {
     test('the refusal is translated, not quoted in English', () {
       expect(
         queueWriteMessage(
-          AppLocalizationsPl(),
+          pl,
           _refused("Cannot cancel item with status 'printing'", 400),
         ),
-        AppLocalizationsPl().queueRemovalStatusChanged,
+        pl.queueRemovalStatusChanged,
       );
     });
 

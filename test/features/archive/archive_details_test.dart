@@ -5,7 +5,6 @@ import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/features/archive/archive_details.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/print_outcome.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations_pl.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,8 +12,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
-
-final _l10n = AppLocalizationsPl();
 
 /// The archive #237 from the web card the feature was copied from.
 const _part = Archive(
@@ -128,11 +125,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('-10%'), findsOneWidget);
-      expect(find.text(_l10n.archiveLayerCount(66)), findsNothing);
-      expect(find.text('${_l10n.archiveLayerCount(66)} · 0.18 mm'), findsOne);
-      expect(find.text(_l10n.archiveObjectCount(3)), findsOneWidget);
-      expect(find.bySemanticsLabel(_l10n.archiveSlicedFor('X2D')), findsOne);
-      expect(find.text(_l10n.archivePrintCost), findsOneWidget);
+      expect(find.text(pl.archiveLayerCount(66)), findsNothing);
+      expect(find.text('${pl.archiveLayerCount(66)} · 0.18 mm'), findsOne);
+      expect(find.text(pl.archiveObjectCount(3)), findsOneWidget);
+      expect(find.bySemanticsLabel(pl.archiveSlicedFor('X2D')), findsOne);
+      expect(find.text(pl.archivePrintCost), findsOneWidget);
       expect(find.text('0.42'), findsOneWidget);
       expect(find.text('0.17'), findsOneWidget);
       expect(find.text('0.07'), findsOneWidget);
@@ -176,7 +173,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text(_l10n.archiveSlot(1)), findsOneWidget);
+      expect(find.text(pl.archiveSlot(1)), findsOneWidget);
       expect(find.text('18.2 g'), findsOneWidget);
       expect(find.text('4.1 g'), findsOneWidget);
       // The joined field would say the same twice, unpaired.
@@ -227,7 +224,7 @@ void main() {
 
   testWidgets('the link button needs a link', (tester) async {
     await _pump(tester, const ArchiveLinkButton(archive: _part));
-    expect(find.text(_l10n.archiveOpenLink), findsNothing);
+    expect(find.text(pl.archiveOpenLink), findsNothing);
 
     await _pump(
       tester,
@@ -235,7 +232,7 @@ void main() {
         archive: _part.copyWith(makerworldUrl: 'https://makerworld.com/m/1'),
       ),
     );
-    expect(find.text(_l10n.archiveOpenLink), findsOneWidget);
+    expect(find.text(pl.archiveOpenLink), findsOneWidget);
   });
 
   group('verdict thumbs', () {
@@ -269,7 +266,7 @@ void main() {
     testWidgets('a thumb up records a good part', (tester) async {
       await open(tester, testArchive(confirmRequested: true));
 
-      await tester.tap(thumb(_l10n.outcomeGood));
+      await tester.tap(thumb(pl.outcomeGood));
       await tester.pumpAndSettle();
 
       expect(repo.sent.single, PrintVerdict.good);
@@ -283,7 +280,7 @@ void main() {
 
       expect(find.byIcon(Icons.thumb_up_alt), findsOneWidget);
       expect(find.byIcon(Icons.thumb_down_alt_outlined), findsOneWidget);
-      await tester.tap(thumb(_l10n.outcomeGood));
+      await tester.tap(thumb(pl.outcomeGood));
       await tester.pumpAndSettle();
 
       expect(repo.sent.single, isNull);
@@ -292,7 +289,7 @@ void main() {
     testWidgets('a thumb down records the reject and asks why', (tester) async {
       await open(tester, testArchive(confirmRequested: true));
 
-      await tester.tap(thumb(_l10n.outcomeReject));
+      await tester.tap(thumb(pl.outcomeReject));
       await tester.pumpAndSettle();
 
       expect(repo.sent.single, PrintVerdict.reject);
@@ -309,7 +306,7 @@ void main() {
         testArchive(confirmRequested: true).copyWith(failureReason: 'warping'),
       );
 
-      await tester.tap(thumb(_l10n.outcomeReject));
+      await tester.tap(thumb(pl.outcomeReject));
       await tester.pumpAndSettle();
 
       expect(repo.reasons.single, (reason: 'warping', clearReason: false));
@@ -319,11 +316,11 @@ void main() {
       await open(tester, testArchive(confirmRequested: true));
       repo.applied = false;
 
-      await tester.tap(thumb(_l10n.outcomeReject));
+      await tester.tap(thumb(pl.outcomeReject));
       await tester.pumpAndSettle();
 
       expect(rejected, 0);
-      expect(find.text(_l10n.outcomeUnsupported), findsOneWidget);
+      expect(find.text(pl.outcomeUnsupported), findsOneWidget);
     });
   });
 }

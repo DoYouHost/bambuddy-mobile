@@ -1,7 +1,6 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart';
 import 'package:bambuddy_mobile/features/bug_report/report_wiring.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/router.dart';
 import 'package:flutter/material.dart';
@@ -46,15 +45,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp.router(
-          locale: const Locale('pl'),
-          localizationsDelegates: [
-            ...AppLocalizations.localizationsDelegates,
-            ReportLocalizations.delegate,
-          ],
-          supportedLocales: AppLocalizations.supportedLocales,
-          routerConfig: router,
-        ),
+        child: plRouterApp(router),
       ),
     );
     await tester.pumpAndSettle();

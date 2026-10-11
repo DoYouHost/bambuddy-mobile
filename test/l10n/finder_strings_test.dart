@@ -98,6 +98,11 @@ void main() {
       );
     });
 
+    test('reads the leading property of matchesSemantics', () {
+      expect(texts("matchesSemantics(label: 'a', isButton: true)"), ['a']);
+      expect(texts('matchesSemantics(isButton: true)'), isEmpty);
+    });
+
     test('reads the second argument of widgetWithText', () {
       expect(texts("find.widgetWithText(FilledButton, 'Zapisz')"), ['Zapisz']);
       expect(
@@ -137,10 +142,12 @@ Iterable<File> _testFiles() => Directory('test')
 typedef FinderLiteral = ({String text, int at});
 
 final _finder = RegExp(
-  r'find\.(text|textContaining|byTooltip|bySemanticsLabel|widgetWithText)\(',
+  r'find\.(text|textContaining|byTooltip|bySemanticsLabel|widgetWithText)\(|'
+  r'(matchesSemantics)\(\s*(?:label|tooltip|hint|value):',
 );
 
-/// The text argument of every `find.text(…)`-style call in [source]; calls whose
+/// The text argument of every `find.text(…)`-style call (and the first
+/// property of a `matchesSemantics(…)`) in [source]; calls whose
 /// text is not one plain literal (a variable, an interpolation, `'a' + b`) are
 /// skipped, because there is nothing to compare.
 List<FinderLiteral> finderLiterals(String source) {

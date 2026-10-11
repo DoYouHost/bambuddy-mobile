@@ -10,7 +10,6 @@ import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/notifications/server_tag.dart';
 import 'package:bambuddy_mobile/features/notifications/print_monitor.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -126,7 +125,7 @@ void main() {
       PrintMonitor(
         fake,
         serverUrl: _server,
-        l10n: () => lookupAppLocalizations(const Locale('en')),
+        l10n: () => en,
         formats: () =>
             DateTimeFormats.forTest(locale: 'en_US', use24Hour: use24Hour),
       );
@@ -183,11 +182,7 @@ void main() {
     addTearDown(() => DateTimeFormats.rememberSystemClock(null));
 
     final fake = RecordingNotifications();
-    PrintMonitor(
-      fake,
-      serverUrl: _server,
-      l10n: () => lookupAppLocalizations(const Locale('en')),
-    ).update({
+    PrintMonitor(fake, serverUrl: _server, l10n: () => en).update({
       1: _status(
         state: 'RUNNING',
         progress: 42,
@@ -574,7 +569,7 @@ void main() {
     fake,
     serverUrl: _server,
     prefs: _allOn,
-    l10n: () => lookupAppLocalizations(const Locale('en')),
+    l10n: () => en,
     timerFactory: timer,
     hmsDescribe: hmsDescribe,
   );
@@ -601,7 +596,7 @@ void main() {
   // HMS error alerts: the id is now unique per (printer, code), so we look them
   // up by title rather than by a fixed id. Each has its own id, so several
   // concurrent faults produce several separate notifications (different ids).
-  final errorTitle = lookupAppLocalizations(const Locale('en')).notifErrorTitle;
+  final errorTitle = en.notifErrorTitle;
   List<Map<String, Object?>> errorAlerts(RecordingNotifications fake) => [
     for (final a in fake.alerts)
       if (a['title'] == errorTitle) a,
@@ -981,7 +976,7 @@ void main() {
       fake,
       serverUrl: _server,
       prefs: const NotificationPrefs(enabled: {}),
-      l10n: () => lookupAppLocalizations(const Locale('en')),
+      l10n: () => en,
     );
     off.onPlateNotEmpty(1, 'X1C');
     expect(alertById(fake, bandId(6)), isNull);
@@ -1242,7 +1237,7 @@ void main() {
       fake,
       serverUrl: _server,
       prefs: prefs,
-      l10n: () => lookupAppLocalizations(const Locale('en')),
+      l10n: () => en,
       timerFactory: timers.call,
       hmsDescribe: describe ?? describeAll,
     );
@@ -2527,7 +2522,7 @@ void main() {
       LoggingNotifications(fake),
       serverUrl: _server,
       prefs: prefs,
-      l10n: () => lookupAppLocalizations(const Locale('en')),
+      l10n: () => en,
       timerFactory: timer,
       hmsDescribe: hmsDescribe,
       onPrintEnded: onPrintEnded,

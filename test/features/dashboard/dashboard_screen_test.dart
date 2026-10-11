@@ -7,7 +7,6 @@ import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
@@ -173,15 +172,12 @@ Widget _app(
   TextScaler textScaler = TextScaler.noScaling,
 }) => ProviderScope(
   overrides: [..._overrides(state), ...extra],
-  child: MaterialApp(
-    locale: const Locale('pl'),
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
+  child: plApp(
+    const DashboardScreen(),
     builder: (context, child) => MediaQuery(
       data: MediaQuery.of(context).copyWith(textScaler: textScaler),
       child: child!,
     ),
-    home: const DashboardScreen(),
   ),
 );
 
@@ -199,12 +195,7 @@ Widget _routedApp(DashboardState state) {
   );
   return ProviderScope(
     overrides: _overrides(state),
-    child: MaterialApp.router(
-      locale: const Locale('pl'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      routerConfig: router,
-    ),
+    child: plRouterApp(router),
   );
 }
 

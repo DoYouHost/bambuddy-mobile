@@ -33,7 +33,6 @@ import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_slot_config_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/router.dart';
 import 'package:flutter/material.dart';
@@ -1381,12 +1380,7 @@ void main() {
             _assignedSpool.id,
           ).overrideWith((ref) async => const <SpoolUsageEntry>[]),
         ],
-        child: MaterialApp.router(
-          locale: const Locale('pl'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          routerConfig: router,
-        ),
+        child: plRouterApp(router),
       );
     }
 

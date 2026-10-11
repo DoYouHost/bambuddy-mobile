@@ -1,8 +1,6 @@
 import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/features/admin/user_messages.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';
 
@@ -12,12 +10,6 @@ import '../../helpers.dart';
 /// only thing that says which one was hit — and these are what keeps the
 /// table matching the words it actually sends.
 void main() {
-  late AppLocalizations en;
-
-  setUpAll(() async {
-    en = await AppLocalizations.delegate.load(const Locale('en'));
-  });
-
   ActionOutcome refused(String? detail) => ActionOutcome.failed(
     ApiException(AppErrorCode.badResponse, statusCode: 400, detail: detail),
   );

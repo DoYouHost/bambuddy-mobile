@@ -6,7 +6,6 @@ import 'package:bambuddy_mobile/features/tour/tour_beacon.dart';
 import 'package:bambuddy_mobile/features/tour/tour_sandbox.dart';
 import 'package:bambuddy_mobile/features/tour/tour_screen.dart';
 import 'package:bambuddy_mobile/features/wall/wall_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'dart:async';
 
@@ -247,11 +246,8 @@ void main() {
     );
     addTearDown(router.dispose);
     await tester.pumpWidget(
-      MaterialApp.router(
-        locale: const Locale('pl'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        routerConfig: router,
+      plRouterApp(
+        router,
         builder: (context, child) => TourHost(
           backButtonDispatcher: router.backButtonDispatcher,
           child: child!,

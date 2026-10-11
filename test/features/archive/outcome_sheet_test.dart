@@ -5,7 +5,6 @@ import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/features/archive/outcome_sheet.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations_pl.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,8 +12,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
-
-final _l10n = AppLocalizationsPl();
 
 /// The sheet that asks how a print came out. What it sends is the point: the
 /// server counts a completed reject out of the project's good parts and yield,
@@ -66,32 +63,32 @@ void main() {
   testWidgets('Good records a good part as given in the app', (tester) async {
     await open(tester, testArchive(confirmRequested: true));
 
-    await tapText(tester, _l10n.outcomeGood);
+    await tapText(tester, pl.outcomeGood);
 
     expect(repo.sent.single, (
       verdict: PrintVerdict.good,
       reason: null,
       clearReason: false,
     ));
-    expect(find.text(_l10n.outcomeSavedGood), findsOneWidget);
+    expect(find.text(pl.outcomeSavedGood), findsOneWidget);
     expect(find.byType(OutcomeSheet), findsNothing);
   });
 
   testWidgets('a reject carries the cause picked for it', (tester) async {
     await open(tester, testArchive(confirmRequested: true));
 
-    await tapText(tester, _l10n.outcomeReject);
+    await tapText(tester, pl.outcomeReject);
     await tester.tap(find.byType(DropdownMenu<String>));
     await tester.pumpAndSettle();
-    await tapText(tester, _l10n.failureReasonWarping);
-    await tapText(tester, _l10n.outcomeSaveReject);
+    await tapText(tester, pl.failureReasonWarping);
+    await tapText(tester, pl.outcomeSaveReject);
 
     expect(repo.sent.single, (
       verdict: PrintVerdict.reject,
       reason: 'warping',
       clearReason: false,
     ));
-    expect(find.text(_l10n.outcomeSavedReject), findsOneWidget);
+    expect(find.text(pl.outcomeSavedReject), findsOneWidget);
   });
 
   // "No reason" is a choice, not an absence: kept silent, the cause a print
@@ -104,11 +101,11 @@ void main() {
       _withReason(testArchive(userVerdict: PrintVerdict.reject), 'warping'),
     );
 
-    await tapText(tester, _l10n.outcomeReject);
+    await tapText(tester, pl.outcomeReject);
     await tester.tap(find.byType(DropdownMenu<String>));
     await tester.pumpAndSettle();
-    await tapText(tester, _l10n.outcomeNoReason);
-    await tapText(tester, _l10n.outcomeSaveReject);
+    await tapText(tester, pl.outcomeNoReason);
+    await tapText(tester, pl.outcomeSaveReject);
 
     expect(repo.sent.single, (
       verdict: PrintVerdict.reject,
@@ -127,8 +124,8 @@ void main() {
     );
 
     expect(find.byType(DropdownMenu<String>), findsOneWidget);
-    expect(find.text(_l10n.outcomeSaveReject), findsOneWidget);
-    expect(find.text(_l10n.outcomeGood), findsNothing);
+    expect(find.text(pl.outcomeSaveReject), findsOneWidget);
+    expect(find.text(pl.outcomeGood), findsNothing);
   });
 
   // Saved untouched, the reason step must not take off the cause it opened
@@ -142,7 +139,7 @@ void main() {
       rejecting: true,
     );
 
-    await tapText(tester, _l10n.outcomeSaveReject);
+    await tapText(tester, pl.outcomeSaveReject);
 
     expect(repo.sent.single, (
       verdict: PrintVerdict.reject,
@@ -157,7 +154,7 @@ void main() {
       _withReason(testArchive(userVerdict: PrintVerdict.reject), 'warping'),
     );
 
-    await tapText(tester, _l10n.outcomeGood);
+    await tapText(tester, pl.outcomeGood);
 
     expect(repo.sent.single, (
       verdict: PrintVerdict.good,
@@ -169,11 +166,11 @@ void main() {
   testWidgets('a verdict already given can be cleared', (tester) async {
     await open(tester, testArchive(userVerdict: PrintVerdict.good));
 
-    expect(find.text(_l10n.outcomeLater), findsNothing);
-    await tapText(tester, _l10n.outcomeClear);
+    expect(find.text(pl.outcomeLater), findsNothing);
+    await tapText(tester, pl.outcomeClear);
 
     expect(repo.sent.single.verdict, isNull);
-    expect(find.text(_l10n.outcomeCleared), findsOneWidget);
+    expect(find.text(pl.outcomeCleared), findsOneWidget);
   });
 
   testWidgets('a verdict the server dropped is not reported as saved', (
@@ -182,20 +179,20 @@ void main() {
     await open(tester, testArchive(confirmRequested: true));
     repo.applied = false;
 
-    await tapText(tester, _l10n.outcomeGood);
+    await tapText(tester, pl.outcomeGood);
 
-    expect(find.text(_l10n.outcomeUnsupported), findsOneWidget);
-    expect(find.text(_l10n.outcomeSavedGood), findsNothing);
+    expect(find.text(pl.outcomeUnsupported), findsOneWidget);
+    expect(find.text(pl.outcomeSavedGood), findsNothing);
   });
 
   testWidgets('a refusal keeps the sheet open and says why', (tester) async {
     await open(tester, testArchive(confirmRequested: true));
     repo.error = const AuthException(AppErrorCode.forbidden);
 
-    await tapText(tester, _l10n.outcomeGood);
+    await tapText(tester, pl.outcomeGood);
 
     expect(find.byType(OutcomeSheet), findsOneWidget);
-    expect(find.text(_l10n.outcomeSavedGood), findsNothing);
+    expect(find.text(pl.outcomeSavedGood), findsNothing);
   });
 
   // The sheet's navigator outlives the sheet: popping it after a dismissal
@@ -206,7 +203,7 @@ void main() {
     await open(tester, testArchive(confirmRequested: true));
     repo.held = Completer<void>();
 
-    await tester.tap(find.text(_l10n.outcomeGood).last);
+    await tester.tap(find.text(pl.outcomeGood).last);
     await tester.pump();
     Navigator.of(tester.element(find.byType(OutcomeSheet))).pop();
     await tester.pumpAndSettle();
@@ -220,8 +217,8 @@ void main() {
     await open(tester, testArchive(confirmRequested: true));
     repo.held = Completer<void>();
 
-    await tester.tap(find.text(_l10n.outcomeGood).last);
-    await tester.tap(find.text(_l10n.outcomeGood).last, warnIfMissed: false);
+    await tester.tap(find.text(pl.outcomeGood).last);
+    await tester.tap(find.text(pl.outcomeGood).last, warnIfMissed: false);
     repo.held!.complete();
     await tester.pumpAndSettle();
 
@@ -234,7 +231,7 @@ void main() {
       _withReason(testArchive(userVerdict: PrintVerdict.reject), 'Stringy'),
     );
 
-    await tapText(tester, _l10n.outcomeReject);
+    await tapText(tester, pl.outcomeReject);
 
     expect(find.text('Stringy'), findsWidgets);
   });
@@ -242,8 +239,8 @@ void main() {
   testWidgets('print again opens the form on the same file', (tester) async {
     await open(tester, testArchive(confirmRequested: true));
 
-    await tapText(tester, _l10n.outcomeReject);
-    await tapText(tester, _l10n.outcomeRejectAndReprint);
+    await tapText(tester, pl.outcomeReject);
+    await tapText(tester, pl.outcomeRejectAndReprint);
 
     expect(repo.sent.single.verdict, PrintVerdict.reject);
     final form = tester.widget<QueueEditScreen>(find.byType(QueueEditScreen));

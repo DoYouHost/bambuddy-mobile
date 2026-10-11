@@ -6,7 +6,6 @@ import 'package:bambuddy_mobile/core/models/no_3mf_warning.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -30,10 +29,7 @@ class _HeldPreviews extends ArchiveRepository {
 }
 
 /// The archive screen with [repository] behind it, and its purge dialog open.
-Future<AppLocalizations> _openDialog(
-  WidgetTester tester,
-  _HeldPreviews repository,
-) async {
+Future<void> _openDialog(WidgetTester tester, _HeldPreviews repository) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
   await tester.pumpWidget(
@@ -51,27 +47,25 @@ Future<AppLocalizations> _openDialog(
     ),
   );
   await tester.pumpAndSettle();
-  final l10n = pl;
 
   await tester.tap(find.byType(PopupMenuButton<String>));
   await tester.pumpAndSettle();
-  await tester.tap(find.text(l10n.archivePurgeOlder));
+  await tester.tap(find.text(pl.archivePurgeOlder));
   await tester.pump();
   await tester.pump();
-  return l10n;
 }
 
 void main() {
   testWidgets('a late answer for an older threshold does not replace the '
       'newer preview', (tester) async {
     final repository = _HeldPreviews();
-    final l10n = await _openDialog(tester, repository);
+    await _openDialog(tester, repository);
 
     // The dialog asked for its default threshold; switch before it answers.
     // `pumpAndSettle` would wait on the loading bar forever.
     await tester.tap(find.byType(DropdownMenu<int>));
     await tester.pump(const Duration(milliseconds: 500));
-    await tester.tap(find.text(l10n.archivePurgeDaysOption(365)).last);
+    await tester.tap(find.text(pl.archivePurgeDaysOption(365)).last);
     await tester.pump(const Duration(milliseconds: 500));
 
     repository.pending[365]!.complete(
@@ -91,12 +85,12 @@ void main() {
     tester,
   ) async {
     final repository = _HeldPreviews();
-    final l10n = await _openDialog(tester, repository);
+    await _openDialog(tester, repository);
 
     repository.pending[90]!.completeError(StateError('bug'));
     await tester.pump();
 
-    expect(find.text(l10n.archivePurgePreviewError), findsOneWidget);
+    expect(find.text(pl.archivePurgePreviewError), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsNothing);
   });
 }

@@ -2,7 +2,6 @@ import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/features/archive/archive_screen.dart';
 import 'package:bambuddy_mobile/features/archive/print_outcome.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations_pl.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,8 +11,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../helpers.dart';
 
 late SharedPreferences _prefs;
-final _l10n = AppLocalizationsPl();
-
 Widget _screen(
   List<Archive> items, {
   bool supported = true,
@@ -59,20 +56,20 @@ void main() {
     // that made a judged card taller than the rest. The card merges it into
     // its own label, hence the pattern.
     expect(
-      find.bySemanticsLabel(RegExp(RegExp.escape(_l10n.outcomeAwaiting))),
+      find.bySemanticsLabel(RegExp(RegExp.escape(pl.outcomeAwaiting))),
       findsOneWidget,
     );
     expect(
-      find.bySemanticsLabel(RegExp(RegExp.escape(_l10n.outcomeGoodPart))),
+      find.bySemanticsLabel(RegExp(RegExp.escape(pl.outcomeGoodPart))),
       findsOneWidget,
     );
     expect(
-      find.bySemanticsLabel(RegExp(RegExp.escape(_l10n.outcomeRejected))),
+      find.bySemanticsLabel(RegExp(RegExp.escape(pl.outcomeRejected))),
       findsOneWidget,
     );
     expect(find.byType(ArchiveVerdictMark), findsNWidgets(4));
     expect(find.byIcon(Icons.hourglass_top), findsOneWidget);
-    expect(find.text(_l10n.outcomeGoodPart), findsNothing);
+    expect(find.text(pl.outcomeGoodPart), findsNothing);
   });
 
   testWidgets('the sheet names the verdict and how it was recorded', (
@@ -91,7 +88,7 @@ void main() {
     await tester.tap(find.text('Benchy'));
     await tester.pumpAndSettle();
 
-    expect(find.text(_l10n.outcomeSourcePlateClear), findsOneWidget);
+    expect(find.text(pl.outcomeSourcePlateClear), findsOneWidget);
   });
 
   // The web draws these on completed prints only; a failed one already has
@@ -103,7 +100,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.bySemanticsLabel(RegExp(RegExp.escape(_l10n.outcomeGoodPart))),
+      find.bySemanticsLabel(RegExp(RegExp.escape(pl.outcomeGoodPart))),
       findsNothing,
     );
   });
@@ -120,7 +117,7 @@ void main() {
     await tester.tap(find.text('Benchy'));
     await tester.pumpAndSettle();
 
-    expect(find.text(_l10n.outcomeSourceApi), findsOneWidget);
+    expect(find.text(pl.outcomeSourceApi), findsOneWidget);
   });
 
   testWidgets('who may not write a verdict is not offered to', (tester) async {
@@ -133,7 +130,7 @@ void main() {
     await tester.tap(find.text('Benchy'));
     await tester.pumpAndSettle();
 
-    expect(find.text(_l10n.outcomeAwaiting), findsWidgets);
+    expect(find.text(pl.outcomeAwaiting), findsWidgets);
     final thumbs = tester.widgetList<IconButton>(
       find.descendant(
         of: find.byType(ArchiveOutcomeRow),
@@ -150,7 +147,7 @@ void main() {
     await tester.tap(find.text('Benchy'));
     await tester.pumpAndSettle();
 
-    expect(find.text(_l10n.outcomeNotRecorded), findsNothing);
+    expect(find.text(pl.outcomeNotRecorded), findsNothing);
   });
 
   testWidgets('the filter is only offered where verdicts exist', (
@@ -158,12 +155,9 @@ void main() {
   ) async {
     await tester.pumpWidget(_screen([testArchive()], supported: false));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(_l10n.archiveFilters));
+    await tester.tap(find.byTooltip(pl.archiveFilters));
     await tester.pumpAndSettle();
 
-    expect(
-      find.widgetWithText(FilterChip, _l10n.outcomeAwaiting),
-      findsNothing,
-    );
+    expect(find.widgetWithText(FilterChip, pl.outcomeAwaiting), findsNothing);
   });
 }
