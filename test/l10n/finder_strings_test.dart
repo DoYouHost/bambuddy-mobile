@@ -78,6 +78,11 @@ void main() {
       expect(copy.explain('Anuluj', allowed: {}), isNotNull);
       expect(copy.explain('Zaznaczono: 2', allowed: {}), isNotNull);
       expect(copy.explain('Pominięto cokolwiek', allowed: {}), isNotNull);
+      expect(
+        copy.explain('przestanie działać natychmiast', allowed: {}),
+        'part of pl.apiKeysRevokeBody',
+        reason: 'a fragment names its message even when it has diacritics',
+      );
       expect(copy.explain('X1C Warsztat', allowed: {}), isNull);
       expect(copy.explain('part-1.3mf', allowed: {}), isNull);
     });
@@ -98,8 +103,13 @@ void main() {
       );
     });
 
-    test('reads the leading property of matchesSemantics', () {
+    test('reads every text property of matchesSemantics, in any order', () {
       expect(texts("matchesSemantics(label: 'a', isButton: true)"), ['a']);
+      expect(texts("matchesSemantics(isButton: true, label: 'a')"), ['a']);
+      expect(
+        texts("matchesSemantics(tooltip: 'a', hint: 'b', isEnabled: true)"),
+        ['a', 'b'],
+      );
       expect(texts('matchesSemantics(isButton: true)'), isEmpty);
     });
 
@@ -115,6 +125,7 @@ void main() {
     test('decodes escapes and joins adjacent literals', () {
       expect(texts(r"find.text('a b\'c\n')"), ['a b\'c\n']);
       expect(texts("find.text('one '\n    'two')"), ['one two']);
+      expect(texts(r"find.text('w\xa0tle')"), ['w\u00A0tle']);
       expect(texts(r"find.text(r'\n')"), [r'\n']);
     });
 
@@ -135,7 +146,7 @@ Iterable<File> _testFiles() => Directory('test')
       (f) =>
           f.path.endsWith('.dart') &&
           // This file quotes literals on purpose.
-          !f.path.endsWith('l10n/finder_strings_test.dart'),
+          !f.path.endsWith('finder_strings_test.dart'),
     );
 
 /// One string literal found as a finder's text argument.
@@ -143,8 +154,10 @@ typedef FinderLiteral = ({String text, int at});
 
 final _finder = RegExp(
   r'find\.(text|textContaining|byTooltip|bySemanticsLabel|widgetWithText)\(|'
-  r'(matchesSemantics)\(\s*(?:label|tooltip|hint|value):',
+  r'(matchesSemantics)\(',
 );
+
+final _semanticsText = RegExp(r'\b(?:label|tooltip|hint|value):');
 
 /// The text argument of every `find.text(…)`-style call (and the first
 /// property of a `matchesSemantics(…)`) in [source]; calls whose
@@ -154,6 +167,18 @@ List<FinderLiteral> finderLiterals(String source) {
   final found = <FinderLiteral>[];
   for (final match in _finder.allMatches(source)) {
     var i = match.end;
+    if (match.group(2) != null) {
+      // Any order, any number of the text properties.
+      final call = source.substring(
+        i,
+        _endOfArgument(source, i, stopAtComma: false),
+      );
+      for (final property in _semanticsText.allMatches(call)) {
+        final literal = _readLiterals(call, property.end);
+        if (literal != null) found.add((text: literal.$1, at: match.start));
+      }
+      continue;
+    }
     if (match.group(1) == 'widgetWithText') {
       i = _endOfArgument(source, i);
       if (i >= source.length) continue;
@@ -167,7 +192,7 @@ List<FinderLiteral> finderLiterals(String source) {
 
 /// Index of the comma that ends the argument starting at [from] (or the
 /// closing parenthesis), ignoring commas nested in `()`, `[]`, `{}` and `<>`.
-int _endOfArgument(String s, int from) {
+int _endOfArgument(String s, int from, {bool stopAtComma = true}) {
   var depth = 0;
   for (var i = from; i < s.length; i++) {
     switch (s[i]) {
@@ -176,7 +201,7 @@ int _endOfArgument(String s, int from) {
       case ')' || ']' || '}' || '>':
         if (depth == 0) return i;
         depth--;
-      case ',' when depth == 0:
+      case ',' when depth == 0 && stopAtComma:
         return i;
     }
   }
@@ -237,6 +262,11 @@ const _escapes = {
         final hex = s.substring(braced ? i + 3 : i + 2, end);
         out.writeCharCode(int.parse(hex, radix: 16));
         i = braced ? end + 1 : end;
+        continue;
+      }
+      if (n == 'x') {
+        out.writeCharCode(int.parse(s.substring(i + 2, i + 4), radix: 16));
+        i += 4;
         continue;
       }
       out.write(_escapes[n] ?? n);
@@ -312,7 +342,6 @@ class _PolishCopy {
     for (final MapEntry(:key, :value) in _templates.entries) {
       if (value.any((rx) => rx.hasMatch(literal))) return 'pl.$key(…)';
     }
-    if (_polish.hasMatch(literal)) return 'Polish text: pl.<key>';
     // A long fragment of one message ("przestanie działać natychmiast").
     if (literal.trim().length >= 8) {
       for (final MapEntry(:key, :value) in _plain.entries) {
@@ -321,6 +350,7 @@ class _PolishCopy {
         }
       }
     }
+    if (_polish.hasMatch(literal)) return 'Polish text: pl.<key>';
     return null;
   }
 

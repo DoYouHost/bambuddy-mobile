@@ -315,7 +315,9 @@ do not stay silent because it was not part of the task.
   `find.text('Anuluj')` — `pl` is the Polish `AppLocalizations` exported by
   [test/helpers.dart](test/helpers.dart), so a copy change (a no-break space, a
   reworded label) touches the `.arb` and no test. Text that is a plural or takes
-  a parameter is `pl.key(3)`; a message with a name inside it is `'${pl.key}…'`.
+  a parameter is `pl.key(3)` or `pl.key('name')`; a copy fragment next to server
+  data is composed (`'${pl.nextAvailableLabel}X1C Warsztat'`) — the scan skips
+  interpolated literals.
   Server data (printer names, HMS text, fixture bodies) stays literal.
   `finder_strings_test.dart` refuses a literal that equals an `.arb` value,
   fits one of its templates or carries a Polish diacritic; the few exceptions
