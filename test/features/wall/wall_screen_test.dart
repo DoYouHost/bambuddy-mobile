@@ -236,7 +236,7 @@ void main() {
       expect(find.byType(WallCamera), findsNWidgets(5));
     });
 
-    testWidgets('keeps the demo status-only: it serves no camera', (
+    testWidgets('draws the demo printers on the frames the demo ships', (
       tester,
     ) async {
       await pumpDashboardWithWall(
@@ -249,7 +249,13 @@ void main() {
         ),
       );
 
-      expect(byLogId('wall.tile'), findsNothing);
+      final frames = tester
+          .widgetList<Image>(find.byType(Image))
+          .map((i) => i.image)
+          .map((p) => p is ResizeImage ? p.imageProvider : p)
+          .whereType<AssetImage>()
+          .map((a) => a.assetName);
+      expect(frames, contains(startsWith('assets/demo/')));
       expect(find.text('X1C-01'), findsOneWidget);
     });
 

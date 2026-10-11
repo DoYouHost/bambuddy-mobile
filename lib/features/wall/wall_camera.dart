@@ -9,6 +9,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../camera/camera_view.dart';
 import '../camera/mjpeg_view.dart';
+import '../camera/demo_camera_feed.dart';
 
 /// A printer's camera filling its wall tile (docs/tv-flavor.md §13.2, D12).
 ///
@@ -83,7 +84,16 @@ class _WallCameraState extends ConsumerState<WallCamera> {
 
   @override
   Widget build(BuildContext context) {
-    final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
+    final profile = ref.watch(serverProfileProvider);
+    if (profile?.isDemo ?? false) {
+      return DemoCameraFeed(
+        printerId: widget.printerId,
+        fit: BoxFit.cover,
+        cacheWidth: widget.cacheWidth,
+        empty: const SizedBox.expand(),
+      );
+    }
+    final baseUrl = profile?.baseUrl;
     final token = ref.watch(cameraTokenProvider).valueOrNull;
     if (baseUrl == null || token == null) return const SizedBox.expand();
     return MjpegView(

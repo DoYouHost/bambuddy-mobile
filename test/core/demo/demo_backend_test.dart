@@ -93,9 +93,7 @@ void main() {
     // Every part of the archive detail has a print to stand on.
     test('archives carry what the detail sheet shows', () async {
       final list = await ArchiveRepository(dio).list();
-      final drawer = list.firstWhere(
-        (a) => a.printName == 'Drawer organizer x4',
-      );
+      final drawer = list.firstWhere((a) => a.printName == 'Bag dispenser');
       expect(drawer.filamentSlots.map((s) => s.slot), [1, 2]);
       expect(drawer.filamentSlots.first.grams, closeTo(81.7, 1e-9));
       expect(drawer.projectName, isNotNull);
@@ -231,7 +229,7 @@ void main() {
       final list = await repo.list();
       expect(list.length, greaterThanOrEqualTo(10));
       expect(list.first.printName, isNotNull);
-      final found = await repo.search('benchy');
+      final found = await repo.search('mikrus');
       expect(found, isNotEmpty);
       final preview = await repo.purgePreview(olderThanDays: 5);
       expect(preview.count, greaterThan(0));
@@ -369,7 +367,7 @@ void main() {
       expect(failed.items, isNotEmpty);
       expect(failed.items.every((e) => e.status == 'failed'), isTrue);
 
-      final searched = await repo.list(search: 'benchy');
+      final searched = await repo.list(search: 'mikrus');
       expect(searched.items, hasLength(1));
       expect(searched.total, 1);
     });
@@ -1041,20 +1039,20 @@ void main() {
       final one = '${dir.path}/one.3mf';
       await PrinterFilesRepository(
         dio,
-      ).downloadFileTo(1, '/cache/Benchy.gcode.3mf', one);
+      ).downloadFileTo(1, '/cache/Mikrus slot.gcode.3mf', one);
       // The listing claims 2 108 509 bytes for this one; the cap is what lands.
       expect(File(one).lengthSync(), 2 * 1024 * 1024);
 
       final small = '${dir.path}/small.3mf';
       await PrinterFilesRepository(
         dio,
-      ).downloadFileTo(1, '/cache/Cable clips x8.gcode.3mf', small);
+      ).downloadFileTo(1, '/cache/Gridfinity bin 2×1×9.gcode.3mf', small);
       expect(File(small).lengthSync(), 1524736);
 
       final zip = '${dir.path}/bundle.zip';
       await PrinterFilesRepository(dio).downloadZipTo(1, const [
-        '/cache/Benchy.gcode.3mf',
-        '/cache/Cable clips x8.gcode.3mf',
+        '/cache/Mikrus slot.gcode.3mf',
+        '/cache/Gridfinity bin 2×1×9.gcode.3mf',
       ], zip);
       // The 22 bytes of an empty archive, starting with the ZIP signature.
       expect(File(zip).readAsBytesSync().take(4), [0x50, 0x4B, 0x05, 0x06]);
@@ -1066,8 +1064,8 @@ void main() {
     test('a download the server prepares first runs end to end', () async {
       final repo = PrinterFilesRepository(dio);
       final paths = const [
-        '/cache/Benchy.gcode.3mf',
-        '/cache/Cable clips x8.gcode.3mf',
+        '/cache/Mikrus slot.gcode.3mf',
+        '/cache/Gridfinity bin 2×1×9.gcode.3mf',
       ];
 
       final started = await repo.startDownloadJob(
@@ -1118,9 +1116,9 @@ void main() {
       final repo = PrinterFilesRepository(dio);
       final started = await repo.startDownloadJob(
         1,
-        paths: const ['/cache/Benchy.gcode.3mf'],
+        paths: const ['/cache/Mikrus slot.gcode.3mf'],
         sizes: const {},
-        filename: 'Benchy.gcode.3mf',
+        filename: 'Mikrus slot.gcode.3mf',
         asZip: false,
       );
 
@@ -1630,9 +1628,14 @@ void main() {
 
     test('only the archive that kept its source can be re-sliced', () async {
       final archives = await ArchiveRepository(dio).list();
-      final benchy = archives.firstWhere((a) => a.printName == 'Benchy');
-      final other = archives.firstWhere((a) => a.printName != 'Benchy');
-      expect((await slicer.archiveCapabilities(benchy.id)).sliceable, isTrue);
+      final sliceable = archives.firstWhere(
+        (a) => a.printName == 'Mikrus slot',
+      );
+      final other = archives.firstWhere((a) => a.printName != 'Mikrus slot');
+      expect(
+        (await slicer.archiveCapabilities(sliceable.id)).sliceable,
+        isTrue,
+      );
       expect((await slicer.archiveCapabilities(other.id)).sliceable, isFalse);
     });
 
@@ -1713,11 +1716,11 @@ void main() {
         DemoBackend.sliceSeconds = 1;
         addTearDown(() => DemoBackend.sliceSeconds = 9);
         final archives = ArchiveRepository(dio);
-        final benchy = (await archives.list()).firstWhere(
-          (a) => a.printName == 'Benchy',
+        final sliceable = (await archives.list()).firstWhere(
+          (a) => a.printName == 'Mikrus slot',
         );
 
-        final jobId = await slicer.sliceArchive(benchy.id, {
+        final jobId = await slicer.sliceArchive(sliceable.id, {
           'printer_preset': {'source': 'local', 'id': 'p-p1s-04'},
           'process_preset': {'source': 'local', 'id': 'q-020-std'},
           'filament_preset': {'source': 'local', 'id': 'f-petg-white'},
@@ -1727,13 +1730,13 @@ void main() {
 
         expect(
           result.printTimeSeconds,
-          benchy.printTimeSeconds,
+          sliceable.printTimeSeconds,
           reason:
               'same layer height as the source, so the same estimate — an '
               'archive knows what it costs and need not be guessed at',
         );
         final resliced = (await archives.list()).firstWhere(
-          (a) => a.printName == 'Benchy (re-sliced)',
+          (a) => a.printName == 'Mikrus slot (re-sliced)',
         );
         expect(resliced.slicedForModel, 'P1S');
         expect(resliced.completedAt, isNull, reason: 'sliced, never printed');
@@ -1797,8 +1800,8 @@ void main() {
       DemoBackend.printingPrinters = 2;
       final status = DemoBackend.instance.statusJson(2);
 
-      expect(status['current_print'], 'Bracket v2.3mf');
-      expect(status['subtask_name'], 'Bracket v2');
+      expect(status['current_print'], 'Mop station.3mf');
+      expect(status['subtask_name'], 'Mop station');
       expect(status['total_layers'], greaterThan(0));
       expect(status['remaining_time'], greaterThan(0));
       // The card reads a target to call it heating rather than cooling.

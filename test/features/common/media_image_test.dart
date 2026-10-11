@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/api/media_auth.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/features/common/media_image.dart';
 import 'package:flutter/material.dart';
@@ -23,13 +24,14 @@ void main() {
     WidgetTester tester, {
     required Override auth,
     Override? profile,
+    String path = '/api/v1/archives/7/thumbnail',
   }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [profile ?? fakeServerProfileOverride(), auth],
         child: plApp(
           MediaImage(
-            path: '/api/v1/archives/7/thumbnail',
+            path: path,
             width: 52,
             height: 52,
             placeholder: (status) => Text('placeholder:${status.name}'),
@@ -179,5 +181,43 @@ void main() {
     await tester.pump();
 
     expect(tester.widget<Image>(find.byType(Image)).image, isA<NetworkImage>());
+  });
+
+  group('in demo mode', () {
+    final demo = serverProfileOverride(
+      const ServerProfile(baseUrl: 'http://demo', authMode: AuthMode.none),
+    );
+
+    testWidgets('draws the picture the demo ships, without a credential', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        auth: mediaAuthOverride(),
+        profile: demo,
+        path: '/api/v1/archives/40/thumbnail',
+      );
+
+      final provider = tester.widget<Image>(find.byType(Image)).image;
+      expect(
+        ((provider is ResizeImage ? provider.imageProvider : provider)
+                as AssetImage)
+            .assetName,
+        'assets/demo/thumbs/bag-dispenser.webp',
+      );
+    });
+
+    testWidgets('says unavailable where the demo has no picture', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        auth: mediaAuthOverride(),
+        profile: demo,
+        path: '/api/v1/library/files/9/thumbnail',
+      );
+
+      expect(find.text('placeholder:unavailable'), findsOneWidget);
+    });
   });
 }

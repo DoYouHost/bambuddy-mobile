@@ -692,7 +692,7 @@
   "cameraTooltip": "Kamera",
   "cameraConnecting": "Verbindung zur Kamera wird hergestellt…",
   "cameraError": "Kamerastream konnte nicht geladen werden",
-  "cameraDemoUnavailable": "Kameravorschau ist im Demo-Modus nicht verfügbar",
+  "cameraDemoUnavailable": "Dieser Demo-Drucker ist offline, daher gibt es kein Kamerabild.",
   "externalSpool": "Externe Spule",
   "traySlotEmpty": "Leer",
   "amsSlotFilament": "Filament",

@@ -260,11 +260,10 @@ class _WallGrid extends ConsumerWidget {
     final inTouchSince = ref
         .read(printerStatusesProvider.notifier)
         .inTouchSince;
-    // No live tile count cap (D12). The demo serves no MJPEG, so its tiles
-    // stay status-only.
-    final profile = ref.watch(serverProfileProvider);
+    // No live tile count cap (D12).
     final camera =
-        profile != null && !profile.isDemo && ref.watch(wallLiveCameraProvider);
+        ref.watch(serverProfileProvider) != null &&
+        ref.watch(wallLiveCameraProvider);
     return LayoutBuilder(
       builder: (context, box) {
         final cols = wallColumns(

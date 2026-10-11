@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
+import 'package:bambuddy_mobile/features/camera/demo_camera_feed.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/features/camera/mjpeg_view.dart';
 import 'package:flutter/material.dart';
@@ -11,21 +12,38 @@ import '../../helpers.dart';
 
 void main() {
   group('CameraView', () {
-    testWidgets('renders demo unavailable banner when in demo mode', (
+    Future<void> pumpDemo(WidgetTester tester, int printerId) => pumpPhone(
+      tester,
+      CameraView(printerId: printerId, printerName: 'Demo X1C'),
+      overrides: [
+        serverProfileOverride(
+          const ServerProfile(baseUrl: 'http://demo', authMode: AuthMode.none),
+        ),
+      ],
+    );
+
+    testWidgets('in demo mode loops the recording of the printing job', (
       tester,
     ) async {
-      await pumpPhone(
-        tester,
-        const CameraView(printerId: 1, printerName: 'Demo X1C'),
-        overrides: [
-          serverProfileOverride(
-            const ServerProfile(
-              baseUrl: 'http://demo',
-              authMode: AuthMode.none,
-            ),
-          ),
-        ],
-      );
+      String shown() {
+        final p = tester.widget<Image>(find.byType(Image)).image;
+        return ((p is ResizeImage ? p.imageProvider : p) as AssetImage)
+            .assetName;
+      }
+
+      await pumpDemo(tester, 1);
+      await tester.pump();
+      expect(shown(), 'assets/demo/camera/bag-dispenser-00.webp');
+
+      await tester.pump(DemoCameraFeed.frameEvery);
+      expect(shown(), 'assets/demo/camera/bag-dispenser-01.webp');
+      expect(find.byIcon(Icons.videocam_off), findsNothing);
+    });
+
+    testWidgets('in demo mode explains a printer with no frame (offline)', (
+      tester,
+    ) async {
+      await pumpDemo(tester, 3);
       await settle(tester);
 
       expect(find.byIcon(Icons.videocam_off), findsOneWidget);

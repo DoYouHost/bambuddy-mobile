@@ -1394,7 +1394,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cameraDemoUnavailable =>
-      'Camera preview is not available in demo mode';
+      'This demo printer is offline, so there is no camera picture.';
 
   @override
   String get externalSpool => 'External spool';

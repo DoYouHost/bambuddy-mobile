@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers.dart';
 import 'media_auth_image_recovery.dart';
+import 'demo_media.dart';
 
 /// Why a [MediaImage] is showing its placeholder.
 ///
@@ -69,10 +70,12 @@ class _MediaImageState extends ConsumerState<MediaImage>
   @override
   Widget build(BuildContext context) {
     // No profile is terminal, not transient: there is no server to ask.
-    final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
+    final profile = ref.watch(serverProfileProvider);
+    final baseUrl = profile?.baseUrl;
     if (baseUrl == null) {
       return widget.placeholder(MediaImageStatus.unavailable);
     }
+    if (profile!.isDemo) return _demo();
 
     return ref
         .watch(mediaAuthProvider)
@@ -101,6 +104,24 @@ class _MediaImageState extends ConsumerState<MediaImage>
             ),
           ),
         );
+  }
+
+  /// The demo has no image server: its pictures ship with the app.
+  Widget _demo() {
+    final asset = demoAssetFor(widget.path);
+    if (asset == null) return widget.placeholder(MediaImageStatus.unavailable);
+    return _clipped(
+      Image.asset(
+        asset,
+        key: widget.imageKey,
+        width: widget.width,
+        height: widget.height,
+        cacheWidth: _decodeWidth,
+        fit: widget.fit,
+        errorBuilder: (_, _, _) =>
+            widget.placeholder(MediaImageStatus.unavailable),
+      ),
+    );
   }
 
   Widget _clipped(Widget image) {

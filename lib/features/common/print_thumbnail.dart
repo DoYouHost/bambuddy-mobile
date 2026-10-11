@@ -81,10 +81,9 @@ class PrintThumbnail extends ConsumerWidget {
             : (archiveId == null
                   ? null
                   : Endpoints.archiveThumbnail(archiveId!)));
-    // Neither demo mode nor an unconfigured app has a render to serve, and
-    // neither is a broken thumbnail — say nothing rather than draw a fault.
-    final profile = ref.watch(serverProfileProvider);
-    if (route == null || profile == null || profile.isDemo) {
+    // An unconfigured app has no render to serve, and that is not a broken
+    // thumbnail — say nothing rather than draw a fault.
+    if (route == null || ref.watch(serverProfileProvider) == null) {
       return placeholder();
     }
 
