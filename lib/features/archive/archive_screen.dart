@@ -39,6 +39,7 @@ import 'archive_providers.dart';
 import 'outcome_sheet.dart';
 import 'print_outcome.dart';
 import '../common/web_link.dart';
+import '../tour/tour_beacon.dart';
 
 /// Archive screen for prints (M5): browsing with search and thumbnails,
 /// reprint and add to queue (both require printer selection).
@@ -247,7 +248,12 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                               onTap: () => _selectionMode
                                   ? _toggleSelect(archive.id)
                                   : _openSheet(archive),
-                              onLongPress: () => _toggleSelect(archive.id),
+                              onLongPress: () {
+                                ref
+                                    .read(tourBeaconProvider)
+                                    ?.signal('archive.select');
+                                _toggleSelect(archive.id);
+                              },
                               // No favorite toggle while multi-selecting — taps
                               // there belong to the selection gesture.
                               onToggleFavorite: _selectionMode
@@ -255,9 +261,10 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                                   : () => _toggleFavorite(archive),
                             );
                             // No swipe-to-delete while multi-selecting.
-                            return _selectionMode
-                                ? card
-                                : _deletable(archive, card);
+                            return (_selectionMode
+                                    ? card
+                                    : _deletable(archive, card))
+                                .tourTarget('archive.item.${archive.id}');
                           },
                         ),
                       ),

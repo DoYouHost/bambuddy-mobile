@@ -8525,4 +8525,116 @@ class AppLocalizationsEn extends AppLocalizations {
   String archiveSlot(int slot) {
     return 'slot $slot';
   }
+
+  @override
+  String get tourDemoNote =>
+      'Demo data: nothing you do here reaches your printers.';
+
+  @override
+  String get tourSkip => 'Skip tour';
+
+  @override
+  String get tourNext => 'Next';
+
+  @override
+  String get tourFinish => 'Finish';
+
+  @override
+  String tourStepCounter(int current, int total) {
+    return 'Step $current of $total';
+  }
+
+  @override
+  String get tourStepTabs =>
+      'The bar at the bottom holds the main sections: Queue, Archive, Maintenance and Filaments. Open each of them.';
+
+  @override
+  String get tourStepDrawer =>
+      'Open the menu. The other sections are there: File Manager, Statistics, Projects, Model Sources and the settings.';
+
+  @override
+  String get tourStepEditPrinter =>
+      'Press and hold a printer\'s name to edit the printer.';
+
+  @override
+  String get tourStepReorder =>
+      'Grab the handle and drag the job to change the print order.';
+
+  @override
+  String get tourStepSwipe =>
+      'Swipe a job to the left to remove it from the queue.';
+
+  @override
+  String get tourStepSelect =>
+      'Press and hold a print to select several at once. File Manager and Filaments work the same way.';
+
+  @override
+  String get tourStepWall =>
+      'Wall mode shows the whole farm on one screen, for example on a tablet by the printers. You open it from this menu.';
+
+  @override
+  String get tourStepStats =>
+      'Statistics show filament use, costs and how many prints succeed. Tap Statistics to open them.';
+
+  @override
+  String get tourStepDone =>
+      'That\'s all. Every gesture is listed in App settings → Tips, and you can run this tour again from there.';
+
+  @override
+  String get tipsTitle => 'Tips';
+
+  @override
+  String get tipsSubtitle => 'Hidden gestures and the guided tour';
+
+  @override
+  String get tipsRunTour => 'Run the guided tour';
+
+  @override
+  String get tipsEditPrinterTitle => 'Editing a printer';
+
+  @override
+  String get tipsEditPrinterBody =>
+      'Press and hold the printer\'s name on its card.';
+
+  @override
+  String get tipsReorderTitle => 'Print order';
+
+  @override
+  String get tipsReorderBody =>
+      'In the Queue, drag a job by the handle on its left.';
+
+  @override
+  String get tipsSwipeTitle => 'Removing';
+
+  @override
+  String get tipsSwipeBody =>
+      'Swipe a job in the Queue or a print in the Archive to the left.';
+
+  @override
+  String get tipsSelectTitle => 'Selecting several';
+
+  @override
+  String get tipsSelectBody =>
+      'Press and hold an item in the Archive, File Manager or Filaments.';
+
+  @override
+  String get tipsZoomTitle => 'Skipping objects';
+
+  @override
+  String get tipsZoomBody =>
+      'Pinch to zoom in on the plate; double-tap to zoom back out.';
+
+  @override
+  String get tipsTrimTitle => 'Trimming a timelapse';
+
+  @override
+  String get tipsTrimBody =>
+      'Drag the handles on the filmstrip; tap or drag anywhere else to move the playback position.';
+
+  @override
+  String get tipsWallTitle => 'Wall mode';
+
+  @override
+  String get tipsWallBody =>
+      'On the Printers screen, open the ⋮ menu and choose Wall mode.';
 }

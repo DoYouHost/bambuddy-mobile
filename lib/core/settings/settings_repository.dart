@@ -40,6 +40,7 @@ class SettingsRepository {
   static const _dashboardViewKey = 'dashboard_view';
   static const _labelPrinterNameKey = 'label_printer_name';
   static const _wallHiddenPrintersKey = 'wall_hidden_printer_ids';
+  static const _tourSeenKey = 'tour_seen';
 
   final SharedPreferences _prefs;
 
@@ -77,6 +78,31 @@ class SettingsRepository {
       _prefs.setString(_profileKey, jsonEncode(profile.toJson()));
 
   Future<void> clearProfile() => _prefs.remove(_profileKey);
+
+  /// Whether the guided tour still has to run on its own. Absent on an install
+  /// that has not met it either way; see [markTourDue] and
+  /// [settleTourForExistingInstall] for how it gets a value.
+  bool get tourDue => _prefs.getBool(_tourSeenKey) == false;
+
+  /// The first successful sign-in on this install owes the user the tour.
+  /// Later sign-ins (change server) find the key already set and leave it.
+  Future<void> markTourDue() async {
+    if (!_prefs.containsKey(_tourSeenKey)) {
+      await _prefs.setBool(_tourSeenKey, false);
+    }
+  }
+
+  Future<void> saveTourSeen() => _prefs.setBool(_tourSeenKey, true);
+
+  /// An install that was signed in before the tour existed: its user knows the
+  /// app, so the tour waits in Tips instead of starting by itself. Runs on
+  /// every start and only ever acts once — a tour cut short by the app being
+  /// killed has its key set to `false` and is not mistaken for one of these.
+  Future<void> settleTourForExistingInstall() async {
+    if (loadProfile() != null && !_prefs.containsKey(_tourSeenKey)) {
+      await saveTourSeen();
+    }
+  }
 
   /// Whether the remembered login can no longer restore a session on its own,
   /// so the user has to sign in by hand again. Set from wherever that is

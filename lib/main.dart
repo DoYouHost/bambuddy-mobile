@@ -22,6 +22,7 @@ Future<void> main() async {
   // in the APK reaches the licence page no other way.
   registerDashFontLicenses();
   final prefs = await SharedPreferences.getInstance();
+  await SettingsRepository(prefs).settleTourForExistingInstall();
   // The demo's printer count, before anything can ask the demo for a status.
   // Read here rather than from the provider that owns the setting: nothing
   // watches that provider until the settings screen is opened, so on a cold

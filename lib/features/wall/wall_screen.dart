@@ -30,7 +30,11 @@ const _landscape = [
 /// foreground service and the token refreshers, which must keep running under
 /// the wall.
 class WallScreen extends ConsumerStatefulWidget {
-  const WallScreen({super.key});
+  const WallScreen({super.key, this.preview = false});
+
+  /// The guided tour's miniature: the wall as drawn, without anything it does
+  /// to the phone — no landscape lock, no hidden bars, no screen kept awake.
+  final bool preview;
 
   /// Below this width the side panel starts as a rail (D16). Provisional:
   /// set from the spike screenshots — phones in landscape stay under it, a
@@ -62,7 +66,7 @@ class WallScreen extends ConsumerStatefulWidget {
 class _WallScreenState extends ConsumerState<WallScreen> {
   // Read once here: `dispose` must still reach it, and `ref` is gone by then.
   late final ScreenAwake _awake;
-  late final AppLifecycleListener _lifecycle;
+  AppLifecycleListener? _lifecycle;
   Timer? _burnIn;
   int _shift = 0;
   Timer? _queuePoll;
@@ -72,6 +76,7 @@ class _WallScreenState extends ConsumerState<WallScreen> {
   void initState() {
     super.initState();
     _awake = ref.read(screenAwakeProvider);
+    if (widget.preview) return;
     unawaited(SystemChrome.setPreferredOrientations(_landscape));
     unawaited(
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky),
@@ -130,9 +135,13 @@ class _WallScreenState extends ConsumerState<WallScreen> {
 
   @override
   void dispose() {
-    _lifecycle.dispose();
+    _lifecycle?.dispose();
     _stopQueuePoll();
     _stopBurnIn();
+    if (widget.preview) {
+      super.dispose();
+      return;
+    }
     // Every way out lands here — Back, the exit button, and `/setup` replacing
     // the whole stack when the session expires — so the rest of the app gets
     // its free rotation, its bars and its screen timeout back on each of them.
@@ -171,7 +180,9 @@ class _WallScreenState extends ConsumerState<WallScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<bool>(wallKeepAwakeProvider, (_, on) => _awake.set(on));
+    if (!widget.preview) {
+      ref.listen<bool>(wallKeepAwakeProvider, (_, on) => _awake.set(on));
+    }
     final choice = ref.watch(wallPanelExpandedProvider);
 
     return DashBackground(

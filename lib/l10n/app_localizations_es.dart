@@ -8633,4 +8633,116 @@ class AppLocalizationsEs extends AppLocalizations {
   String archiveSlot(int slot) {
     return 'ranura $slot';
   }
+
+  @override
+  String get tourDemoNote =>
+      'Datos de demostración: nada de lo que hagas aquí llega a tus impresoras.';
+
+  @override
+  String get tourSkip => 'Saltar la guía';
+
+  @override
+  String get tourNext => 'Siguiente';
+
+  @override
+  String get tourFinish => 'Terminar';
+
+  @override
+  String tourStepCounter(int current, int total) {
+    return 'Paso $current de $total';
+  }
+
+  @override
+  String get tourStepTabs =>
+      'La barra inferior reúne las secciones principales: Cola, Archivo, Mantenimiento y Filamentos. Abre cada una.';
+
+  @override
+  String get tourStepDrawer =>
+      'Abre el menú. Ahí están las demás secciones: Gestor de archivos, Estadísticas, Proyectos, Fuentes de modelos y los ajustes.';
+
+  @override
+  String get tourStepEditPrinter =>
+      'Mantén pulsado el nombre de una impresora para editarla.';
+
+  @override
+  String get tourStepReorder =>
+      'Agarra el asa y arrastra el trabajo para cambiar el orden de impresión.';
+
+  @override
+  String get tourStepSwipe =>
+      'Desliza un trabajo hacia la izquierda para quitarlo de la cola.';
+
+  @override
+  String get tourStepSelect =>
+      'Mantén pulsada una impresión para seleccionar varias a la vez. En el Gestor de archivos y en Filamentos funciona igual.';
+
+  @override
+  String get tourStepWall =>
+      'El modo pared muestra toda la granja en una pantalla, por ejemplo en una tableta junto a las impresoras. Se abre desde este menú.';
+
+  @override
+  String get tourStepStats =>
+      'Las estadísticas muestran el consumo de filamento, los costes y cuántas impresiones salen bien. Toca Estadísticas para abrirlas.';
+
+  @override
+  String get tourStepDone =>
+      'Eso es todo. Todos los gestos están en Ajustes de la app → Consejos, y desde ahí puedes repetir esta guía.';
+
+  @override
+  String get tipsTitle => 'Consejos';
+
+  @override
+  String get tipsSubtitle => 'Gestos ocultos y la guía';
+
+  @override
+  String get tipsRunTour => 'Iniciar la guía';
+
+  @override
+  String get tipsEditPrinterTitle => 'Editar una impresora';
+
+  @override
+  String get tipsEditPrinterBody =>
+      'Mantén pulsado el nombre de la impresora en su tarjeta.';
+
+  @override
+  String get tipsReorderTitle => 'Orden de impresión';
+
+  @override
+  String get tipsReorderBody =>
+      'En la Cola, arrastra un trabajo por el asa de su izquierda.';
+
+  @override
+  String get tipsSwipeTitle => 'Eliminar';
+
+  @override
+  String get tipsSwipeBody =>
+      'Desliza hacia la izquierda un trabajo de la Cola o una impresión del Archivo.';
+
+  @override
+  String get tipsSelectTitle => 'Seleccionar varios';
+
+  @override
+  String get tipsSelectBody =>
+      'Mantén pulsado un elemento en el Archivo, el Gestor de archivos o Filamentos.';
+
+  @override
+  String get tipsZoomTitle => 'Omitir objetos';
+
+  @override
+  String get tipsZoomBody =>
+      'Separa dos dedos para ampliar la placa; toca dos veces para volver a verla entera.';
+
+  @override
+  String get tipsTrimTitle => 'Recortar un timelapse';
+
+  @override
+  String get tipsTrimBody =>
+      'Arrastra los tiradores de la tira de fotogramas; toca o arrastra en cualquier otro punto para mover el cabezal.';
+
+  @override
+  String get tipsWallTitle => 'Modo pared';
+
+  @override
+  String get tipsWallBody =>
+      'En la pantalla Impresoras, abre el menú ⋮ y elige Modo pared.';
 }

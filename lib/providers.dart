@@ -334,6 +334,7 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
     await settings.saveProfile(profile);
     // Signing in is what the warning asks for, so getting here answers it.
     await settings.saveSignInRequired(false);
+    await settings.markTourDue();
     state = profile;
   }
 

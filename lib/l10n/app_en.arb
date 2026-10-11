@@ -5678,5 +5678,137 @@
         "type": "int"
       }
     }
+  },
+  "tourDemoNote": "Demo data: nothing you do here reaches your printers.",
+  "@tourDemoNote": {
+    "description": "Caption on every guided-tour card: the tour runs on the built-in demo, not on the user's server"
+  },
+  "tourSkip": "Skip tour",
+  "@tourSkip": {
+    "description": "Button on a guided-tour card that ends the tour for good"
+  },
+  "tourNext": "Next",
+  "@tourNext": {
+    "description": "Button on a guided-tour card that moves to the next step"
+  },
+  "tourFinish": "Finish",
+  "@tourFinish": {
+    "description": "Button on the last guided-tour card"
+  },
+  "tourStepCounter": "Step {current} of {total}",
+  "@tourStepCounter": {
+    "description": "Progress line on a guided-tour card",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "tourStepTabs": "The bar at the bottom holds the main sections: Queue, Archive, Maintenance and Filaments. Open each of them.",
+  "@tourStepTabs": {
+    "description": "Guided tour, step 1; the step ends once every tab named here was opened. Tab names must match navQueue, navArchive, navMaintenance, navFilaments"
+  },
+  "tourStepDrawer": "Open the menu. The other sections are there: File Manager, Statistics, Projects, Model Sources and the settings.",
+  "@tourStepDrawer": {
+    "description": "Guided tour, step 2; ends when the drawer opens"
+  },
+  "tourStepEditPrinter": "Press and hold a printer's name to edit the printer.",
+  "@tourStepEditPrinter": {
+    "description": "Guided tour, step 3; ends on the long press"
+  },
+  "tourStepReorder": "Grab the handle and drag the job to change the print order.",
+  "@tourStepReorder": {
+    "description": "Guided tour, step 4; ends when the job is dropped in a new place"
+  },
+  "tourStepSwipe": "Swipe a job to the left to remove it from the queue.",
+  "@tourStepSwipe": {
+    "description": "Guided tour, step 5; ends when the delete confirmation opens"
+  },
+  "tourStepSelect": "Press and hold a print to select several at once. File Manager and Filaments work the same way.",
+  "@tourStepSelect": {
+    "description": "Guided tour, step 6, on the Archive tab; ends on the long press"
+  },
+  "tourStepWall": "Wall mode shows the whole farm on one screen, for example on a tablet by the printers. You open it from this menu.",
+  "@tourStepWall": {
+    "description": "Guided tour, step 7: points at the dashboard's overflow menu and shows a small preview of wall mode"
+  },
+  "tourStepStats": "Statistics show filament use, costs and how many prints succeed. Tap Statistics to open them.",
+  "@tourStepStats": {
+    "description": "Guided tour, step 8: the tour opens the drawer itself; ends when the Statistics screen opens. The name must match menuStatistics"
+  },
+  "tourStepDone": "That's all. Every gesture is listed in App settings → Tips, and you can run this tour again from there.",
+  "@tourStepDone": {
+    "description": "Last guided-tour card. The path must match appSettingsMenu and tipsTitle"
+  },
+  "tipsTitle": "Tips",
+  "@tipsTitle": {
+    "description": "Title of the screen listing hidden gestures, and its entry in app settings"
+  },
+  "tipsSubtitle": "Hidden gestures and the guided tour",
+  "@tipsSubtitle": {
+    "description": "Subtitle of the Tips entry in app settings"
+  },
+  "tipsRunTour": "Run the guided tour",
+  "@tipsRunTour": {
+    "description": "Button on the Tips screen that starts the guided tour again"
+  },
+  "tipsEditPrinterTitle": "Editing a printer",
+  "@tipsEditPrinterTitle": {
+    "description": "Tips screen entry title"
+  },
+  "tipsEditPrinterBody": "Press and hold the printer's name on its card.",
+  "@tipsEditPrinterBody": {
+    "description": "Tips screen entry text"
+  },
+  "tipsReorderTitle": "Print order",
+  "@tipsReorderTitle": {
+    "description": "Tips screen entry title"
+  },
+  "tipsReorderBody": "In the Queue, drag a job by the handle on its left.",
+  "@tipsReorderBody": {
+    "description": "Tips screen entry text"
+  },
+  "tipsSwipeTitle": "Removing",
+  "@tipsSwipeTitle": {
+    "description": "Tips screen entry title"
+  },
+  "tipsSwipeBody": "Swipe a job in the Queue or a print in the Archive to the left.",
+  "@tipsSwipeBody": {
+    "description": "Tips screen entry text"
+  },
+  "tipsSelectTitle": "Selecting several",
+  "@tipsSelectTitle": {
+    "description": "Tips screen entry title"
+  },
+  "tipsSelectBody": "Press and hold an item in the Archive, File Manager or Filaments.",
+  "@tipsSelectBody": {
+    "description": "Tips screen entry text"
+  },
+  "tipsZoomTitle": "Skipping objects",
+  "@tipsZoomTitle": {
+    "description": "Tips screen entry title; same feature as skipObjectsTitle"
+  },
+  "tipsZoomBody": "Pinch to zoom in on the plate; double-tap to zoom back out.",
+  "@tipsZoomBody": {
+    "description": "Tips screen entry text"
+  },
+  "tipsTrimTitle": "Trimming a timelapse",
+  "@tipsTrimTitle": {
+    "description": "Tips screen entry title"
+  },
+  "tipsTrimBody": "Drag the handles on the filmstrip; tap or drag anywhere else to move the playback position.",
+  "@tipsTrimBody": {
+    "description": "Tips screen entry text"
+  },
+  "tipsWallTitle": "Wall mode",
+  "@tipsWallTitle": {
+    "description": "Tips screen entry title; same as wallModeTitle"
+  },
+  "tipsWallBody": "On the Printers screen, open the ⋮ menu and choose Wall mode.",
+  "@tipsWallBody": {
+    "description": "Tips screen entry text"
   }
 }

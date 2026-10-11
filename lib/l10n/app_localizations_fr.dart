@@ -8708,4 +8708,116 @@ class AppLocalizationsFr extends AppLocalizations {
   String archiveSlot(int slot) {
     return 'emplacement $slot';
   }
+
+  @override
+  String get tourDemoNote =>
+      'Données de démo : rien de ce que vous faites ici n\'atteint vos imprimantes.';
+
+  @override
+  String get tourSkip => 'Passer la visite';
+
+  @override
+  String get tourNext => 'Suivant';
+
+  @override
+  String get tourFinish => 'Terminer';
+
+  @override
+  String tourStepCounter(int current, int total) {
+    return 'Étape $current sur $total';
+  }
+
+  @override
+  String get tourStepTabs =>
+      'La barre du bas regroupe les sections principales : File d\'attente, Archives, Maintenance et Filaments. Ouvrez chacune d\'elles.';
+
+  @override
+  String get tourStepDrawer =>
+      'Ouvrez le menu. Les autres sections s\'y trouvent : Gestionnaire de fichiers, Statistiques, Projets, Sources de modèles et les paramètres.';
+
+  @override
+  String get tourStepEditPrinter =>
+      'Appuyez longuement sur le nom d\'une imprimante pour la modifier.';
+
+  @override
+  String get tourStepReorder =>
+      'Saisissez la poignée et faites glisser la tâche pour changer l\'ordre d\'impression.';
+
+  @override
+  String get tourStepSwipe =>
+      'Balayez une tâche vers la gauche pour la retirer de la file d\'attente.';
+
+  @override
+  String get tourStepSelect =>
+      'Appuyez longuement sur une impression pour en sélectionner plusieurs à la fois. Le Gestionnaire de fichiers et les Filaments fonctionnent de la même façon.';
+
+  @override
+  String get tourStepWall =>
+      'Le mode mural affiche toute la ferme sur un seul écran, par exemple sur une tablette près des imprimantes. Il s\'ouvre depuis ce menu.';
+
+  @override
+  String get tourStepStats =>
+      'Les statistiques montrent la consommation de filament, les coûts et la part des impressions réussies. Touchez Statistiques pour les ouvrir.';
+
+  @override
+  String get tourStepDone =>
+      'C\'est tout. Tous les gestes sont listés dans Paramètres de l\'application → Astuces, d\'où vous pouvez aussi relancer cette visite.';
+
+  @override
+  String get tipsTitle => 'Astuces';
+
+  @override
+  String get tipsSubtitle => 'Gestes cachés et visite guidée';
+
+  @override
+  String get tipsRunTour => 'Lancer la visite guidée';
+
+  @override
+  String get tipsEditPrinterTitle => 'Modifier une imprimante';
+
+  @override
+  String get tipsEditPrinterBody =>
+      'Appuyez longuement sur le nom de l\'imprimante sur sa carte.';
+
+  @override
+  String get tipsReorderTitle => 'Ordre d\'impression';
+
+  @override
+  String get tipsReorderBody =>
+      'Dans la file d\'attente, faites glisser une tâche par la poignée à sa gauche.';
+
+  @override
+  String get tipsSwipeTitle => 'Supprimer';
+
+  @override
+  String get tipsSwipeBody =>
+      'Balayez vers la gauche une tâche de la file d\'attente ou une impression des archives.';
+
+  @override
+  String get tipsSelectTitle => 'Sélectionner plusieurs éléments';
+
+  @override
+  String get tipsSelectBody =>
+      'Appuyez longuement sur un élément des archives, du gestionnaire de fichiers ou des filaments.';
+
+  @override
+  String get tipsZoomTitle => 'Ignorer des objets';
+
+  @override
+  String get tipsZoomBody =>
+      'Écartez deux doigts pour agrandir le plateau ; touchez deux fois pour revenir à la vue d\'ensemble.';
+
+  @override
+  String get tipsTrimTitle => 'Découper un timelapse';
+
+  @override
+  String get tipsTrimBody =>
+      'Faites glisser les poignées de la bande d\'images ; touchez ou faites glisser ailleurs pour déplacer la tête de lecture.';
+
+  @override
+  String get tipsWallTitle => 'Mode mural';
+
+  @override
+  String get tipsWallBody =>
+      'Sur l\'écran Imprimantes, ouvrez le menu ⋮ et choisissez Mode mural.';
 }

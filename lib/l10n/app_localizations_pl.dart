@@ -8661,4 +8661,115 @@ class AppLocalizationsPl extends AppLocalizations {
   String archiveSlot(int slot) {
     return 'slot $slot';
   }
+
+  @override
+  String get tourDemoNote =>
+      'Dane demo: nic, co tu zrobisz, nie trafi do Twoich drukarek.';
+
+  @override
+  String get tourSkip => 'Pomiń przewodnik';
+
+  @override
+  String get tourNext => 'Dalej';
+
+  @override
+  String get tourFinish => 'Zakończ';
+
+  @override
+  String tourStepCounter(int current, int total) {
+    return 'Krok $current z $total';
+  }
+
+  @override
+  String get tourStepTabs =>
+      'Na dolnym pasku są główne sekcje: Kolejka, Archiwum, Konserwacja i Filamenty. Zajrzyj do każdej.';
+
+  @override
+  String get tourStepDrawer =>
+      'Otwórz menu. Są w nim pozostałe sekcje: Menedżer plików, Statystyki, Projekty, Źródła modeli i ustawienia.';
+
+  @override
+  String get tourStepEditPrinter =>
+      'Przytrzymaj nazwę drukarki, żeby ją edytować.';
+
+  @override
+  String get tourStepReorder =>
+      'Złap za uchwyt i przeciągnij zadanie, żeby zmienić kolejność druku.';
+
+  @override
+  String get tourStepSwipe =>
+      'Przesuń zadanie w lewo, żeby usunąć je z kolejki.';
+
+  @override
+  String get tourStepSelect =>
+      'Przytrzymaj wydruk, żeby zaznaczyć kilka naraz. Tak samo działa to w Menedżerze plików i w Filamentach.';
+
+  @override
+  String get tourStepWall =>
+      'Tryb ściany pokazuje całą farmę na jednym ekranie, np. na tablecie przy drukarkach. Włączysz go z tego menu.';
+
+  @override
+  String get tourStepStats =>
+      'Statystyki pokazują zużycie filamentu, koszty i to, ile wydruków się udaje. Stuknij Statystyki, żeby je otworzyć.';
+
+  @override
+  String get tourStepDone =>
+      'To wszystko. Wszystkie gesty znajdziesz w Ustawieniach aplikacji → Wskazówki. Stamtąd uruchomisz też ten przewodnik ponownie.';
+
+  @override
+  String get tipsTitle => 'Wskazówki';
+
+  @override
+  String get tipsSubtitle => 'Ukryte gesty i przewodnik';
+
+  @override
+  String get tipsRunTour => 'Uruchom przewodnik';
+
+  @override
+  String get tipsEditPrinterTitle => 'Edycja drukarki';
+
+  @override
+  String get tipsEditPrinterBody => 'Przytrzymaj nazwę drukarki na jej karcie.';
+
+  @override
+  String get tipsReorderTitle => 'Kolejność druku';
+
+  @override
+  String get tipsReorderBody =>
+      'W Kolejce przeciągnij zadanie za uchwyt po lewej.';
+
+  @override
+  String get tipsSwipeTitle => 'Usuwanie';
+
+  @override
+  String get tipsSwipeBody =>
+      'Przesuń w lewo zadanie w Kolejce albo wydruk w Archiwum.';
+
+  @override
+  String get tipsSelectTitle => 'Zaznaczanie kilku pozycji';
+
+  @override
+  String get tipsSelectBody =>
+      'Przytrzymaj pozycję w Archiwum, Menedżerze plików albo Filamentach.';
+
+  @override
+  String get tipsZoomTitle => 'Pomijanie obiektów';
+
+  @override
+  String get tipsZoomBody =>
+      'Rozsuń palce, żeby powiększyć płytę; stuknij dwukrotnie, żeby wrócić do całości.';
+
+  @override
+  String get tipsTrimTitle => 'Przycinanie timelapse\'a';
+
+  @override
+  String get tipsTrimBody =>
+      'Przeciągnij uchwyty na pasku klatek; stuknij albo przeciągnij w innym miejscu, żeby przesunąć znacznik odtwarzania.';
+
+  @override
+  String get tipsWallTitle => 'Tryb ściany';
+
+  @override
+  String get tipsWallBody =>
+      'Na ekranie Drukarki otwórz menu ⋮ i wybierz Tryb ściany.';
 }

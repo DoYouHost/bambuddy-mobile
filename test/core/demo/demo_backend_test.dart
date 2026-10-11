@@ -1147,8 +1147,8 @@ void main() {
       // REST poll, and the service isolate — which polls no statuses of its
       // own — never: the notification said "2 printing" while the dashboard
       // said three.
-      expect(DemoBackend.printerIds, hasLength(5));
-      expect(DemoBackend.printerIds, containsAll([1, 2, 3, 4, 5]));
+      expect(DemoBackend.instance.printerIds, hasLength(5));
+      expect(DemoBackend.instance.printerIds, containsAll([1, 2, 3, 4, 5]));
     });
 
     test('a poke broadcasts now, instead of at the next tick', () async {
@@ -1169,13 +1169,36 @@ void main() {
       await conn.close();
     });
 
+    test(
+      'a socket keeps the demo it opened on when the tour lends a fresh one',
+      () async {
+        // The app's own socket stays open, offstage, while the guided tour runs
+        // on a demo of its own; its frames must not start describing the tour.
+        final previous = DemoBackend.instance;
+        addTearDown(() => DemoBackend.instance = previous);
+        final own = DemoBackend.instance = DemoBackend.fresh();
+        own.handle('POST', Uri.parse('/api/v1/printers/1/print/pause'), null);
+        final conn = DemoWsConnection();
+
+        DemoBackend.instance = DemoBackend.fresh();
+        final frames = await conn.stream.take(5).toList();
+        await conn.close();
+
+        final first = [
+          for (final f in frames)
+            (parseWsMessage(f as String) as WsPrinterStatus).status,
+        ].firstWhere((s) => s.id == 1);
+        expect(first.state, 'PAUSE');
+      },
+    );
+
     test('the fleet frames cover the machines the count can pick', () async {
       DemoBackend.printingPrinters = DemoBackend.maxPrintingPrinters;
       addTearDown(() => DemoBackend.printingPrinters = 1);
 
       final conn = DemoWsConnection();
       final frames = await conn.stream
-          .take(DemoBackend.printerIds.length)
+          .take(DemoBackend.instance.printerIds.length)
           .toList();
       await conn.close();
 

@@ -8606,4 +8606,116 @@ class AppLocalizationsDe extends AppLocalizations {
   String archiveSlot(int slot) {
     return 'Slot $slot';
   }
+
+  @override
+  String get tourDemoNote =>
+      'Demodaten: Nichts, was du hier tust, erreicht deine Drucker.';
+
+  @override
+  String get tourSkip => 'Tour überspringen';
+
+  @override
+  String get tourNext => 'Weiter';
+
+  @override
+  String get tourFinish => 'Fertig';
+
+  @override
+  String tourStepCounter(int current, int total) {
+    return 'Schritt $current von $total';
+  }
+
+  @override
+  String get tourStepTabs =>
+      'In der Leiste unten liegen die Hauptbereiche: Warteschlange, Archiv, Wartung und Filamente. Öffne jeden davon.';
+
+  @override
+  String get tourStepDrawer =>
+      'Öffne das Menü. Dort liegen die übrigen Bereiche: Dateimanager, Statistiken, Projekte, Modellquellen und die Einstellungen.';
+
+  @override
+  String get tourStepEditPrinter =>
+      'Halte den Namen eines Druckers gedrückt, um den Drucker zu bearbeiten.';
+
+  @override
+  String get tourStepReorder =>
+      'Greife den Griff und ziehe den Auftrag, um die Druckreihenfolge zu ändern.';
+
+  @override
+  String get tourStepSwipe =>
+      'Wische einen Auftrag nach links, um ihn aus der Warteschlange zu entfernen.';
+
+  @override
+  String get tourStepSelect =>
+      'Halte einen Druck gedrückt, um mehrere auf einmal auszuwählen. Im Dateimanager und bei den Filamenten geht das genauso.';
+
+  @override
+  String get tourStepWall =>
+      'Der Wandmodus zeigt die ganze Farm auf einem Bildschirm, etwa auf einem Tablet neben den Druckern. Du öffnest ihn über dieses Menü.';
+
+  @override
+  String get tourStepStats =>
+      'Die Statistiken zeigen Filamentverbrauch, Kosten und wie viele Drucke gelingen. Tippe auf Statistiken, um sie zu öffnen.';
+
+  @override
+  String get tourStepDone =>
+      'Das ist alles. Alle Gesten findest du unter App-Einstellungen → Tipps, dort kannst du diese Tour auch erneut starten.';
+
+  @override
+  String get tipsTitle => 'Tipps';
+
+  @override
+  String get tipsSubtitle => 'Versteckte Gesten und die Tour';
+
+  @override
+  String get tipsRunTour => 'Tour starten';
+
+  @override
+  String get tipsEditPrinterTitle => 'Drucker bearbeiten';
+
+  @override
+  String get tipsEditPrinterBody =>
+      'Halte den Namen des Druckers auf seiner Karte gedrückt.';
+
+  @override
+  String get tipsReorderTitle => 'Druckreihenfolge';
+
+  @override
+  String get tipsReorderBody =>
+      'Ziehe in der Warteschlange einen Auftrag am Griff links.';
+
+  @override
+  String get tipsSwipeTitle => 'Entfernen';
+
+  @override
+  String get tipsSwipeBody =>
+      'Wische einen Auftrag in der Warteschlange oder einen Druck im Archiv nach links.';
+
+  @override
+  String get tipsSelectTitle => 'Mehrere auswählen';
+
+  @override
+  String get tipsSelectBody =>
+      'Halte einen Eintrag im Archiv, im Dateimanager oder bei den Filamenten gedrückt.';
+
+  @override
+  String get tipsZoomTitle => 'Objekte überspringen';
+
+  @override
+  String get tipsZoomBody =>
+      'Zieh mit zwei Fingern auf, um die Platte zu vergrößern; tippe doppelt, um wieder herauszuzoomen.';
+
+  @override
+  String get tipsTrimTitle => 'Zeitraffer kürzen';
+
+  @override
+  String get tipsTrimBody =>
+      'Ziehe die Griffe auf dem Filmstreifen; tippe oder ziehe an einer anderen Stelle, um den Abspielkopf zu bewegen.';
+
+  @override
+  String get tipsWallTitle => 'Wandmodus';
+
+  @override
+  String get tipsWallBody =>
+      'Öffne auf dem Bildschirm Drucker das Menü ⋮ und wähle Wandmodus.';
 }

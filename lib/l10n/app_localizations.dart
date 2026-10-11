@@ -14305,6 +14305,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'slot {slot}'**
   String archiveSlot(int slot);
+
+  /// Caption on every guided-tour card: the tour runs on the built-in demo, not on the user's server
+  ///
+  /// In en, this message translates to:
+  /// **'Demo data: nothing you do here reaches your printers.'**
+  String get tourDemoNote;
+
+  /// Button on a guided-tour card that ends the tour for good
+  ///
+  /// In en, this message translates to:
+  /// **'Skip tour'**
+  String get tourSkip;
+
+  /// Button on a guided-tour card that moves to the next step
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get tourNext;
+
+  /// Button on the last guided-tour card
+  ///
+  /// In en, this message translates to:
+  /// **'Finish'**
+  String get tourFinish;
+
+  /// Progress line on a guided-tour card
+  ///
+  /// In en, this message translates to:
+  /// **'Step {current} of {total}'**
+  String tourStepCounter(int current, int total);
+
+  /// Guided tour, step 1; the step ends once every tab named here was opened. Tab names must match navQueue, navArchive, navMaintenance, navFilaments
+  ///
+  /// In en, this message translates to:
+  /// **'The bar at the bottom holds the main sections: Queue, Archive, Maintenance and Filaments. Open each of them.'**
+  String get tourStepTabs;
+
+  /// Guided tour, step 2; ends when the drawer opens
+  ///
+  /// In en, this message translates to:
+  /// **'Open the menu. The other sections are there: File Manager, Statistics, Projects, Model Sources and the settings.'**
+  String get tourStepDrawer;
+
+  /// Guided tour, step 3; ends on the long press
+  ///
+  /// In en, this message translates to:
+  /// **'Press and hold a printer\'s name to edit the printer.'**
+  String get tourStepEditPrinter;
+
+  /// Guided tour, step 4; ends when the job is dropped in a new place
+  ///
+  /// In en, this message translates to:
+  /// **'Grab the handle and drag the job to change the print order.'**
+  String get tourStepReorder;
+
+  /// Guided tour, step 5; ends when the delete confirmation opens
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe a job to the left to remove it from the queue.'**
+  String get tourStepSwipe;
+
+  /// Guided tour, step 6, on the Archive tab; ends on the long press
+  ///
+  /// In en, this message translates to:
+  /// **'Press and hold a print to select several at once. File Manager and Filaments work the same way.'**
+  String get tourStepSelect;
+
+  /// Guided tour, step 7: points at the dashboard's overflow menu and shows a small preview of wall mode
+  ///
+  /// In en, this message translates to:
+  /// **'Wall mode shows the whole farm on one screen, for example on a tablet by the printers. You open it from this menu.'**
+  String get tourStepWall;
+
+  /// Guided tour, step 8: the tour opens the drawer itself; ends when the Statistics screen opens. The name must match menuStatistics
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics show filament use, costs and how many prints succeed. Tap Statistics to open them.'**
+  String get tourStepStats;
+
+  /// Last guided-tour card. The path must match appSettingsMenu and tipsTitle
+  ///
+  /// In en, this message translates to:
+  /// **'That\'s all. Every gesture is listed in App settings → Tips, and you can run this tour again from there.'**
+  String get tourStepDone;
+
+  /// Title of the screen listing hidden gestures, and its entry in app settings
+  ///
+  /// In en, this message translates to:
+  /// **'Tips'**
+  String get tipsTitle;
+
+  /// Subtitle of the Tips entry in app settings
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden gestures and the guided tour'**
+  String get tipsSubtitle;
+
+  /// Button on the Tips screen that starts the guided tour again
+  ///
+  /// In en, this message translates to:
+  /// **'Run the guided tour'**
+  String get tipsRunTour;
+
+  /// Tips screen entry title
+  ///
+  /// In en, this message translates to:
+  /// **'Editing a printer'**
+  String get tipsEditPrinterTitle;
+
+  /// Tips screen entry text
+  ///
+  /// In en, this message translates to:
+  /// **'Press and hold the printer\'s name on its card.'**
+  String get tipsEditPrinterBody;
+
+  /// Tips screen entry title
+  ///
+  /// In en, this message translates to:
+  /// **'Print order'**
+  String get tipsReorderTitle;
+
+  /// Tips screen entry text
+  ///
+  /// In en, this message translates to:
+  /// **'In the Queue, drag a job by the handle on its left.'**
+  String get tipsReorderBody;
+
+  /// Tips screen entry title
+  ///
+  /// In en, this message translates to:
+  /// **'Removing'**
+  String get tipsSwipeTitle;
+
+  /// Tips screen entry text
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe a job in the Queue or a print in the Archive to the left.'**
+  String get tipsSwipeBody;
+
+  /// Tips screen entry title
+  ///
+  /// In en, this message translates to:
+  /// **'Selecting several'**
+  String get tipsSelectTitle;
+
+  /// Tips screen entry text
+  ///
+  /// In en, this message translates to:
+  /// **'Press and hold an item in the Archive, File Manager or Filaments.'**
+  String get tipsSelectBody;
+
+  /// Tips screen entry title; same feature as skipObjectsTitle
+  ///
+  /// In en, this message translates to:
+  /// **'Skipping objects'**
+  String get tipsZoomTitle;
+
+  /// Tips screen entry text
+  ///
+  /// In en, this message translates to:
+  /// **'Pinch to zoom in on the plate; double-tap to zoom back out.'**
+  String get tipsZoomBody;
+
+  /// Tips screen entry title
+  ///
+  /// In en, this message translates to:
+  /// **'Trimming a timelapse'**
+  String get tipsTrimTitle;
+
+  /// Tips screen entry text
+  ///
+  /// In en, this message translates to:
+  /// **'Drag the handles on the filmstrip; tap or drag anywhere else to move the playback position.'**
+  String get tipsTrimBody;
+
+  /// Tips screen entry title; same as wallModeTitle
+  ///
+  /// In en, this message translates to:
+  /// **'Wall mode'**
+  String get tipsWallTitle;
+
+  /// Tips screen entry text
+  ///
+  /// In en, this message translates to:
+  /// **'On the Printers screen, open the ⋮ menu and choose Wall mode.'**
+  String get tipsWallBody;
 }
 
 class _AppLocalizationsDelegate
