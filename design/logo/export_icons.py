@@ -15,11 +15,16 @@ BG = (14, 21, 18)  # #0E1512, also adaptive_icon_background in pubspec.yaml
 # Where the launcher mark is centred, in the logo's 2048 viewBox: halfway between
 # the bamboo and the hotend's heatsink across, the B's axis down.
 FULL_CENTRE = ((913 + 1035) / 2, 1206)
+# The launcher layer only: centred on FULL_CENTRE the hotend alone touches the
+# safe circle. 44 units higher is where it and the spool touch it together,
+# so the mark sits ~2 dp lower and comes out 6 % larger.
+FOREGROUND_CENTRE = (FULL_CENTRE[0], FULL_CENTRE[1] - 44)
 
 # flutter_launcher_icons insets the foreground and monochrome layers by 16 % of
 # 108 dp, so their PNG spans the middle 73.44 dp. The mark must stay inside the
-# 72 dp the launcher masks show, hence this share of the PNG's half-width.
-LAYER_FILL = 36 / (108 * 0.68 / 2)
+# 66 dp safe circle, not the 72 dp mask: sized to 72, One UI's squircle cut the
+# filament arc and the heatsink off the top.
+LAYER_FILL = 33 / (108 * 0.68 / 2)
 
 
 def rasterise(svg):
@@ -67,7 +72,7 @@ simple, ks = rasterise('logo_simple.svg')
 simple_centre = mass_centre(simple, ks)
 
 # adaptive layers (1024 px each, the generator scales them per density)
-place(full, kf, FULL_CENTRE, 1024, 512 * LAYER_FILL).save(
+place(full, kf, FOREGROUND_CENTRE, 1024, 512 * LAYER_FILL).save(
     f'{ROOT}/assets/icon/icon_foreground.png')
 place(simple, ks, simple_centre, 1024, 512 * LAYER_FILL, tint=(255, 255, 255)).save(
     f'{ROOT}/assets/icon/icon_monochrome.png')

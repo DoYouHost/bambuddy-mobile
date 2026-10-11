@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 
@@ -77,4 +79,44 @@ void main() {
       );
     }
   });
+
+  test('the mark stays inside the 66 dp safe circle', () async {
+    // Each layer PNG spans 108 dp minus the 16 % inset on both sides. Sized to
+    // the 72 dp mask instead, One UI's squircle cut the top off the mark.
+    const layerDp = 108 * 0.68;
+    for (final layer in ['ic_launcher_foreground', 'ic_launcher_monochrome']) {
+      final path = 'android/app/src/main/res/drawable-xxxhdpi/$layer.png';
+      final far = await _farthestOpaque(path);
+      final farDp = far * layerDp;
+      expect(
+        farDp,
+        lessThanOrEqualTo(33.3),
+        reason:
+            '$path reaches ${farDp.toStringAsFixed(1)} dp from the centre. '
+            'Lower LAYER_FILL in design/logo/export_icons.py, run it, then '
+            '`dart run flutter_launcher_icons`.',
+      );
+    }
+  });
+}
+
+/// Farthest pixel with alpha over 40 from the image centre, as a share of the
+/// image width.
+Future<double> _farthestOpaque(String path) async {
+  final codec = await ui.instantiateImageCodec(File(path).readAsBytesSync());
+  final image = (await codec.getNextFrame()).image;
+  final rgba = (await image.toByteData())!;
+  final w = image.width, h = image.height;
+  var far = 0.0;
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      if (rgba.getUint8((y * w + x) * 4 + 3) > 40) {
+        far = math.max(
+          far,
+          math.sqrt(math.pow(x + .5 - w / 2, 2) + math.pow(y + .5 - h / 2, 2)),
+        );
+      }
+    }
+  }
+  return far / w;
 }
