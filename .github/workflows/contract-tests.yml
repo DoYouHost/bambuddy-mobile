@@ -59,20 +59,21 @@ jobs:
     name: parse real server responses (${{ matrix.tag }})
     runs-on: [self-hosted, ci-docker]
     timeout-minutes: 30
-    # Two generations of the server, because the app talks to both: `latest`
-    # is the last release, `daily` the development branch, where a feature
-    # lands weeks before it ships. Tests detect which one they got and assert
-    # the matching half, so a new field is checked on `daily` while `latest`
-    # still proves the older server's silent drop.
+    # Three generations of the server, because the app talks to all of them:
+    # `latest` is the last release, `daily` the development branch, where a
+    # feature lands weeks before it ships, and `1.2.5` a fixed older release
+    # that stays put when `latest` moves on. Tests detect which one they got
+    # and assert the matching half, so a new field is checked on `daily` while
+    # the older two still prove the silent drop.
     #
-    # One at a time: there is one runner with the Docker daemon, and both
+    # One at a time: there is one runner with the Docker daemon, and the
     # jobs publish the server on the same bridge-gateway port. fail-fast off,
     # so a break on `daily` (upstream moving) never hides the release result.
     strategy:
       fail-fast: false
       max-parallel: 1
       matrix:
-        tag: [latest, daily]
+        tag: [latest, daily, "1.2.5"]
     env:
       BAMBUDDY_IMAGE: ghcr.io/maziggy/bambuddy:${{ matrix.tag }}
 
