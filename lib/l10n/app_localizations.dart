@@ -12890,18 +12890,6 @@ abstract class AppLocalizations {
   /// **'The server did not store the verdict. Update bambuddy to record print outcomes.'**
   String get outcomeUnsupported;
 
-  /// Button in the archive detail sheet: open the outcome sheet for a print with no verdict
-  ///
-  /// In en, this message translates to:
-  /// **'Rate'**
-  String get outcomeRate;
-
-  /// Button in the archive detail sheet: open the outcome sheet to change a verdict
-  ///
-  /// In en, this message translates to:
-  /// **'Change'**
-  String get outcomeChange;
-
   /// Print form switch: ask how the print came out once it completes
   ///
   /// In en, this message translates to:
@@ -14269,6 +14257,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mark all as read'**
   String get announcementsMarkAllRead;
+
+  /// How many times this archive was printed, on a chip in the archive detail
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 run} other{{count} runs}}'**
+  String archiveRunCount(int count);
+
+  /// Layer count of a sliced print
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 layer} other{{count} layers}}'**
+  String archiveLayerCount(int count);
+
+  /// Printable objects on the plate
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 object} other{{count} objects}}'**
+  String archiveObjectCount(int count);
+
+  /// Heading of the summed cost (filament, energy, printer wear) in the archive detail
+  ///
+  /// In en, this message translates to:
+  /// **'Print cost'**
+  String get archivePrintCost;
+
+  /// Screen-reader label of the printer model a file was sliced for
+  ///
+  /// In en, this message translates to:
+  /// **'Sliced for {model}'**
+  String archiveSlicedFor(String model);
+
+  /// Tooltip on the print time: slicer estimate and measured duration
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated {estimated}, actual {actual}'**
+  String archiveTimeDetail(String estimated, String actual);
+
+  /// Button opening the model page (MakerWorld or a user link)
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get archiveOpenLink;
+
+  /// AMS slot number beside one filament of a multi-material print
+  ///
+  /// In en, this message translates to:
+  /// **'slot {slot}'**
+  String archiveSlot(int slot);
 }
 
 class _AppLocalizationsDelegate

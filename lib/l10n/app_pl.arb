@@ -3252,8 +3252,6 @@
   "outcomeSavedReject": "Oznaczono jako odrzucony",
   "outcomeCleared": "Usunięto ocenę",
   "outcomeUnsupported": "Serwer nie zapisał oceny. Zaktualizuj bambuddy, aby zapisywać oceny wydruków.",
-  "outcomeRate": "Oceń",
-  "outcomeChange": "Zmień",
   "queueOptConfirmOutcome": "Zapytaj o wynik",
   "queueOptConfirmOutcomeDesc": "Po zakończeniu zapyta, czy wydruk wyszedł dobrze",
   "queueSettingsOutcomeHeader": "Ocena wydruku",
@@ -3481,5 +3479,13 @@
   "announcementLevelInfo": "Informacja",
   "announcementLevelImportant": "Ważne",
   "announcementLevelCritical": "Krytyczne",
-  "announcementsMarkAllRead": "Oznacz wszystkie jako przeczytane"
+  "announcementsMarkAllRead": "Oznacz wszystkie jako przeczytane",
+  "archiveRunCount": "{count, plural, =1{1 przebieg} few{{count} przebiegi} many{{count} przebiegów} other{{count} przebiegu}}",
+  "archiveLayerCount": "{count, plural, =1{1 warstwa} few{{count} warstwy} many{{count} warstw} other{{count} warstwy}}",
+  "archiveObjectCount": "{count, plural, =1{1 obiekt} few{{count} obiekty} many{{count} obiektów} other{{count} obiektu}}",
+  "archivePrintCost": "Koszt wydruku",
+  "archiveSlicedFor": "Pocięto dla {model}",
+  "archiveTimeDetail": "Szacowany czas {estimated}, rzeczywisty {actual}",
+  "archiveOpenLink": "Link",
+  "archiveSlot": "slot {slot}"
 }

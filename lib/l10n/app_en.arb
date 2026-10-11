@@ -4914,14 +4914,6 @@
   "@outcomeUnsupported": {
     "description": "Shown when the server answered but did not store the verdict (a server older than the feature)"
   },
-  "outcomeRate": "Rate",
-  "@outcomeRate": {
-    "description": "Button in the archive detail sheet: open the outcome sheet for a print with no verdict"
-  },
-  "outcomeChange": "Change",
-  "@outcomeChange": {
-    "description": "Button in the archive detail sheet: open the outcome sheet to change a verdict"
-  },
   "queueOptConfirmOutcome": "Ask for outcome",
   "@queueOptConfirmOutcome": {
     "description": "Print form switch: ask how the print came out once it completes"
@@ -5621,5 +5613,70 @@
   "announcementLevelInfo": "Info",
   "announcementLevelImportant": "Important",
   "announcementLevelCritical": "Critical",
-  "announcementsMarkAllRead": "Mark all as read"
+  "announcementsMarkAllRead": "Mark all as read",
+  "archiveRunCount": "{count, plural, =1{1 run} other{{count} runs}}",
+  "@archiveRunCount": {
+    "description": "How many times this archive was printed, on a chip in the archive detail",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveLayerCount": "{count, plural, =1{1 layer} other{{count} layers}}",
+  "@archiveLayerCount": {
+    "description": "Layer count of a sliced print",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveObjectCount": "{count, plural, =1{1 object} other{{count} objects}}",
+  "@archiveObjectCount": {
+    "description": "Printable objects on the plate",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archivePrintCost": "Print cost",
+  "@archivePrintCost": {
+    "description": "Heading of the summed cost (filament, energy, printer wear) in the archive detail"
+  },
+  "archiveSlicedFor": "Sliced for {model}",
+  "@archiveSlicedFor": {
+    "description": "Screen-reader label of the printer model a file was sliced for",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveTimeDetail": "Estimated {estimated}, actual {actual}",
+  "@archiveTimeDetail": {
+    "description": "Tooltip on the print time: slicer estimate and measured duration",
+    "placeholders": {
+      "estimated": {
+        "type": "String"
+      },
+      "actual": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveOpenLink": "Link",
+  "@archiveOpenLink": {
+    "description": "Button opening the model page (MakerWorld or a user link)"
+  },
+  "archiveSlot": "slot {slot}",
+  "@archiveSlot": {
+    "description": "AMS slot number beside one filament of a multi-material print",
+    "placeholders": {
+      "slot": {
+        "type": "int"
+      }
+    }
+  }
 }

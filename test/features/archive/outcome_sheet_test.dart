@@ -22,7 +22,11 @@ final _l10n = AppLocalizationsPl();
 void main() {
   late _FakeArchives repo;
 
-  Future<void> open(WidgetTester tester, Archive archive) async {
+  Future<void> open(
+    WidgetTester tester,
+    Archive archive, {
+    bool rejecting = false,
+  }) async {
     repo = _FakeArchives(archive);
     SharedPreferences.setMockInitialValues({});
     // The reprint form reads the print options this phone remembers.
@@ -38,7 +42,8 @@ void main() {
           Scaffold(
             body: Builder(
               builder: (context) => TextButton(
-                onPressed: () => showOutcomeSheet(context, archive.id),
+                onPressed: () =>
+                    showOutcomeSheet(context, archive.id, rejecting: rejecting),
                 child: const Text('open'),
               ),
             ),
@@ -109,6 +114,40 @@ void main() {
       verdict: PrintVerdict.reject,
       reason: null,
       clearReason: true,
+    ));
+  });
+
+  // The archive detail's thumb down has already stored the reject; what is
+  // left to ask is why.
+  testWidgets('opened for a reject it starts on the reason', (tester) async {
+    await open(
+      tester,
+      testArchive(userVerdict: PrintVerdict.reject),
+      rejecting: true,
+    );
+
+    expect(find.byType(DropdownMenu<String>), findsOneWidget);
+    expect(find.text(_l10n.outcomeSaveReject), findsOneWidget);
+    expect(find.text(_l10n.outcomeGood), findsNothing);
+  });
+
+  // Saved untouched, the reason step must not take off the cause it opened
+  // with.
+  testWidgets('opened for a reject it keeps the cause until changed', (
+    tester,
+  ) async {
+    await open(
+      tester,
+      _withReason(testArchive(userVerdict: PrintVerdict.reject), 'warping'),
+      rejecting: true,
+    );
+
+    await tapText(tester, _l10n.outcomeSaveReject);
+
+    expect(repo.sent.single, (
+      verdict: PrintVerdict.reject,
+      reason: 'warping',
+      clearReason: false,
     ));
   });
 

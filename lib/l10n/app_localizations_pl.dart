@@ -7757,12 +7757,6 @@ class AppLocalizationsPl extends AppLocalizations {
       'Serwer nie zapisał oceny. Zaktualizuj bambuddy, aby zapisywać oceny wydruków.';
 
   @override
-  String get outcomeRate => 'Oceń';
-
-  @override
-  String get outcomeChange => 'Zmień';
-
-  @override
   String get queueOptConfirmOutcome => 'Zapytaj o wynik';
 
   @override
@@ -8607,4 +8601,64 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get announcementsMarkAllRead => 'Oznacz wszystkie jako przeczytane';
+
+  @override
+  String archiveRunCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count przebiegu',
+      many: '$count przebiegów',
+      few: '$count przebiegi',
+      one: '1 przebieg',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveLayerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count warstwy',
+      many: '$count warstw',
+      few: '$count warstwy',
+      one: '1 warstwa',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveObjectCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count obiektu',
+      many: '$count obiektów',
+      few: '$count obiekty',
+      one: '1 obiekt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivePrintCost => 'Koszt wydruku';
+
+  @override
+  String archiveSlicedFor(String model) {
+    return 'Pocięto dla $model';
+  }
+
+  @override
+  String archiveTimeDetail(String estimated, String actual) {
+    return 'Szacowany czas $estimated, rzeczywisty $actual';
+  }
+
+  @override
+  String get archiveOpenLink => 'Link';
+
+  @override
+  String archiveSlot(int slot) {
+    return 'slot $slot';
+  }
 }

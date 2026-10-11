@@ -268,4 +268,115 @@ void main() {
       );
     });
   });
+
+  group('fields the web card shows', () {
+    Archive parse(Map<String, dynamic> extra) => Archive.fromJson({
+      'id': 1,
+      'filename': 'a.gcode.3mf',
+      'status': 'completed',
+      ...extra,
+    });
+
+    test('reads time, cost, counts and the user\'s own fields', () {
+      final a = parse({
+        'print_time_seconds': 1400,
+        'actual_time_seconds': 1260,
+        'time_accuracy': 111.1,
+        'object_count': 3,
+        'project_name': 'Workshop',
+        'tags': 'jig, workshop,,',
+        'notes': 'no supports',
+        'external_url': 'https://printables.com/model/1',
+        'makerworld_url': 'https://makerworld.com/models/2',
+        'energy_kwh': 0.123,
+        'energy_cost': 0.07,
+        'wear_cost': 0.18,
+        'cost': 0.17,
+        'created_by_username': 'morgan',
+      });
+      expect(a.shownTimeSeconds, 1260);
+      expect(a.timeAccuracy, 111.1);
+      expect(a.objectCount, 3);
+      expect(a.projectName, 'Workshop');
+      expect(a.tagList, ['jig', 'workshop']);
+      expect(a.link, 'https://printables.com/model/1');
+      expect(a.totalCost, closeTo(0.42, 1e-9));
+      expect(a.createdByUsername, 'morgan');
+    });
+
+    test('the estimate stands in until the print has really run', () {
+      expect(parse({'print_time_seconds': 1400}).shownTimeSeconds, 1400);
+    });
+
+    test('an older server sends none of it, and nothing is made up', () {
+      final a = parse(const {});
+      expect(a.shownTimeSeconds, isNull);
+      expect(a.totalCost, isNull);
+      expect(a.link, isNull);
+      expect(a.tagList, isEmpty);
+      expect(a.filamentSlots, isEmpty);
+    });
+
+    test('an empty user link falls back to MakerWorld', () {
+      expect(
+        parse({
+          'external_url': '',
+          'makerworld_url': 'https://makerworld.com/models/2',
+        }).link,
+        'https://makerworld.com/models/2',
+      );
+    });
+
+    test('a cost the server does not track is left out of the sum', () {
+      expect(
+        parse({'cost': 0.17, 'energy_cost': 0.07}).totalCost,
+        closeTo(0.24, 1e-9),
+      );
+    });
+  });
+
+  group('filament slots', () {
+    Archive withSlots(Object? slots) => Archive.fromJson({
+      'id': 1,
+      'filename': 'a.gcode.3mf',
+      'status': 'completed',
+      'extra_data': {'filament_slots': slots},
+    });
+
+    test('one entry per slot, in slot order', () {
+      final a = withSlots([
+        {'slot_id': 3, 'used_g': 4.1, 'type': 'PETG', 'color': '#2C6BE0'},
+        {'slot_id': 1, 'used_g': 18.2, 'type': 'PLA', 'color': '#E23B3B'},
+      ]);
+      expect(a.filamentSlots, [
+        (slot: 1, type: 'PLA', color: '#E23B3B', grams: 18.2),
+        (slot: 3, type: 'PETG', color: '#2C6BE0', grams: 4.1),
+      ]);
+    });
+
+    // A multi-plate export lists every slot once per plate.
+    test('a slot listed for two plates is summed', () {
+      final a = withSlots([
+        {'slot_id': 1, 'used_g': 10, 'type': 'PLA', 'color': '#FFFFFF'},
+        {'slot_id': 1, 'used_g': 5.5, 'type': 'PLA', 'color': '#FFFFFF'},
+      ]);
+      expect(a.filamentSlots.single.grams, 15.5);
+    });
+
+    test('odd entries are skipped, not guessed at', () {
+      final a = withSlots([
+        'nope',
+        {'used_g': 3, 'type': 'PLA'},
+        {'slot_id': 2, 'used_g': 0, 'type': 'PLA'},
+        {'slot_id': 'x', 'used_g': 3},
+        {'slot_id': 4, 'used_g': 2.2},
+      ]);
+      expect(a.filamentSlots, [(slot: 4, type: '', color: '', grams: 2.2)]);
+    });
+
+    test('no list is no slots', () {
+      expect(withSlots(null).filamentSlots, isEmpty);
+      expect(withSlots('PLA').filamentSlots, isEmpty);
+    });
+  });
 }

@@ -3941,8 +3941,6 @@
   "outcomeSavedReject": "Als Ausschuss markiert",
   "outcomeCleared": "Bewertung entfernt",
   "outcomeUnsupported": "Der Server hat die Bewertung nicht gespeichert. Aktualisieren Sie bambuddy, um Druckergebnisse zu erfassen.",
-  "outcomeRate": "Bewerten",
-  "outcomeChange": "Ändern",
   "queueOptConfirmOutcome": "Nach Ergebnis fragen",
   "queueOptConfirmOutcomeDesc": "Nach Abschluss fragen, ob der Druck gut geworden ist",
   "queueSettingsOutcomeHeader": "Druckergebnis",
@@ -4170,5 +4168,13 @@
   "announcementLevelInfo": "Hinweis",
   "announcementLevelImportant": "Wichtig",
   "announcementLevelCritical": "Kritisch",
-  "announcementsMarkAllRead": "Alle als gelesen markieren"
+  "announcementsMarkAllRead": "Alle als gelesen markieren",
+  "archiveRunCount": "{count, plural, =1{1 Durchlauf} other{{count} Durchläufe}}",
+  "archiveLayerCount": "{count, plural, =1{1 Schicht} other{{count} Schichten}}",
+  "archiveObjectCount": "{count, plural, =1{1 Objekt} other{{count} Objekte}}",
+  "archivePrintCost": "Druckkosten",
+  "archiveSlicedFor": "Gesliced für {model}",
+  "archiveTimeDetail": "Geschätzt {estimated}, tatsächlich {actual}",
+  "archiveOpenLink": "Link",
+  "archiveSlot": "Slot {slot}"
 }
