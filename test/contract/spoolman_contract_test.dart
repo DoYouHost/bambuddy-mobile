@@ -37,6 +37,10 @@ void main() {
         'spoolman_enabled': 'true',
         'spoolman_url': contractSpoolmanUrl,
       });
+      // What the web's "Connect" does. Through 1.2.5 it is the only thing that
+      // registers the `tag` extra field in Spoolman, which rejects unknown
+      // extra keys; later servers register it on every write.
+      await dio.post<dynamic>('/api/v1/spoolman/connect');
       source = SpoolmanInventorySource(dio);
       final printers = (await dio.get<List<dynamic>>(
         '/api/v1/printers/',
