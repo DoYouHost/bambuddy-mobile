@@ -43,7 +43,10 @@ void main() {
 
     /// Renames [name] and then deletes it as [user], each expected to succeed
     /// exactly when the tile offers it.
-    Future<void> offeredMatchesServer(String name) async {
+    Future<void> offeredMatchesServer(
+      String name, {
+      bool deleteRefused = false,
+    }) async {
       final repo = LibraryRepository(user);
       final folder = find(await repo.listFolders(), name);
       expect(
@@ -51,6 +54,16 @@ void main() {
         folder.mayRename(me),
         reason: 'rename of $name',
       );
+      if (deleteRefused) {
+        // A refusal the app gets as a typed `forbidden` (anything else is
+        // rethrown by goesThrough) and can word, whatever the tile offered.
+        expect(
+          await goesThrough(() => repo.deleteFolder(folder.id)),
+          isFalse,
+          reason: 'delete of $name',
+        );
+        return;
+      }
       expect(
         await goesThrough(() => repo.deleteFolder(folder.id)),
         folder.mayDelete(me),
@@ -65,7 +78,13 @@ void main() {
       final name = fresh('own');
       await LibraryRepository(user).createFolder(name);
       addTearDown(() => _deleteByName(admin, name));
-      await offeredMatchesServer(name);
+      // Before 1.2.5.2 a folder could only be deleted with delete_all, while
+      // the web of that release offers it to a delete_own user as well. The
+      // app follows the web, so the tile offers a delete the server refuses and
+      // the answer must come back as a refusal; no payload says which rule the
+      // server has, hence the version.
+      final older = (await contractServerVersion()).baseBelow((1, 2, 5, 2));
+      await offeredMatchesServer(name, deleteRefused: older);
     });
 
     test('someone else\'s shared folder', () async {

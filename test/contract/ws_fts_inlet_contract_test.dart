@@ -22,7 +22,7 @@ void main() {
 
       // `ams[].info` bits 8-11 = 0xE (behind the switch), bits 24-27 = 1
       // (inlet A) — `bambu_mqtt.py`, the AMS info decode.
-      await publishReport(serial, {
+      final report = <String, Object?>{
         'device': {
           'fila_switch': {'in': [], 'out': [], 'stat': 0, 'info': 0},
         },
@@ -49,7 +49,20 @@ void main() {
           ],
           'ams_exist_bits': '1',
         },
-      });
+      };
+
+      // The inlet map came in 1.2.5.4. An older server has no such key in its
+      // status: the app has to read the status all the same and show no inlet.
+      final listed = (await dio.get<Map<String, dynamic>>(
+        '/api/v1/printers/$printerId/status',
+      )).data!;
+      await publishReport(serial, report);
+      if (!listed.containsKey('ams_switch_inlet')) {
+        final older = await printers.fetchStatus(printerId);
+        expect(older, isNotNull);
+        expect(older!.amsSwitchInlet, isNull);
+        return;
+      }
 
       final status = await pollUntil('the switch inlet', () async {
         final s = await printers.fetchStatus(printerId);
