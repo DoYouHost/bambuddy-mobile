@@ -724,6 +724,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get totalPowerTooltip => 'Total power draw across all plugs';
 
   @override
+  String get powerBreakdownTitle => 'Power draw';
+
+  @override
+  String get powerUnassignedPlugs => 'Not assigned to a printer';
+
+  @override
+  String get plugStateOn => 'On';
+
+  @override
+  String get plugStateOff => 'Off';
+
+  @override
   String get queueEmpty => 'The queue is empty';
 
   @override

@@ -738,6 +738,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String get totalPowerTooltip => 'Gesamte Leistungsaufnahme aller Steckdosen';
 
   @override
+  String get powerBreakdownTitle => 'Leistungsaufnahme';
+
+  @override
+  String get powerUnassignedPlugs => 'Keinem Drucker zugeordnet';
+
+  @override
+  String get plugStateOn => 'Ein';
+
+  @override
+  String get plugStateOff => 'Aus';
+
+  @override
   String get queueEmpty => 'Die Warteschlange ist leer';
 
   @override

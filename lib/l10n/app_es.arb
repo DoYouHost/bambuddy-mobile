@@ -334,6 +334,10 @@
     }
   },
   "totalPowerTooltip": "Consumo total de todos los enchufes",
+  "powerBreakdownTitle": "Consumo de energía",
+  "powerUnassignedPlugs": "Sin impresora asignada",
+  "plugStateOn": "Encendido",
+  "plugStateOff": "Apagado",
   "queueEmpty": "La cola está vacía",
   "queueAmsFromSlicer": "AMS del laminador",
   "queueAnyOfModels": "Cualquiera de: {models}",

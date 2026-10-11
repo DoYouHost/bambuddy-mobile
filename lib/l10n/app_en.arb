@@ -443,6 +443,22 @@
   "@totalPowerTooltip": {
     "description": "Dashboard header power sum tooltip"
   },
+  "powerBreakdownTitle": "Power draw",
+  "@powerBreakdownTitle": {
+    "description": "Title of the sheet splitting the dashboard power total per printer"
+  },
+  "powerUnassignedPlugs": "Not assigned to a printer",
+  "@powerUnassignedPlugs": {
+    "description": "Power sheet group for smart plugs with no printer assigned"
+  },
+  "plugStateOn": "On",
+  "@plugStateOn": {
+    "description": "Screen-reader label of a smart plug state dot: switched on"
+  },
+  "plugStateOff": "Off",
+  "@plugStateOff": {
+    "description": "Screen-reader label of a smart plug state dot: switched off"
+  },
   "queueEmpty": "The queue is empty",
   "queueAmsFromSlicer": "AMS from slicer",
   "queueAnyOfModels": "Any of: {models}",

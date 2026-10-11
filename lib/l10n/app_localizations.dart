@@ -1364,6 +1364,30 @@ abstract class AppLocalizations {
   /// **'Total power draw across all plugs'**
   String get totalPowerTooltip;
 
+  /// Title of the sheet splitting the dashboard power total per printer
+  ///
+  /// In en, this message translates to:
+  /// **'Power draw'**
+  String get powerBreakdownTitle;
+
+  /// Power sheet group for smart plugs with no printer assigned
+  ///
+  /// In en, this message translates to:
+  /// **'Not assigned to a printer'**
+  String get powerUnassignedPlugs;
+
+  /// Screen-reader label of a smart plug state dot: switched on
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get plugStateOn;
+
+  /// Screen-reader label of a smart plug state dot: switched off
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get plugStateOff;
+
   /// No description provided for @queueEmpty.
   ///
   /// In en, this message translates to:

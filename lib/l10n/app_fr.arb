@@ -334,6 +334,10 @@
     }
   },
   "totalPowerTooltip": "Consommation totale de toutes les prises",
+  "powerBreakdownTitle": "Consommation électrique",
+  "powerUnassignedPlugs": "Non attribuées à une imprimante",
+  "plugStateOn": "Allumé",
+  "plugStateOff": "Éteint",
   "queueEmpty": "La file d'attente est vide",
   "queueAmsFromSlicer": "AMS depuis le slicer",
   "queueAnyOfModels": "Au choix parmi : {models}",

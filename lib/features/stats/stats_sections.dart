@@ -822,17 +822,6 @@ class ByMaterialCard extends StatefulWidget {
 class _ByMaterialCardState extends State<ByMaterialCard> {
   StatMetric _metric = StatMetric.weight;
 
-  static const _palette = [
-    Color(0xFF22C55E),
-    Color(0xFF3B82F6),
-    Color(0xFFF59E0B),
-    Color(0xFFEF4444),
-    Color(0xFFA855F7),
-    Color(0xFF14B8A6),
-    Color(0xFFEC4899),
-    Color(0xFF84CC16),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -848,15 +837,15 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
     //    a rendering glitch rather than as data;
     //  - past the palette it would *reuse* a colour already on the ring, so two
     //    legend rows would carry the same dot and neither would identify its
-    //    own arc (the old `i % _palette.length`).
+    //    own arc (the old `i % seriesPalette.length`).
     //
     // The legend keeps every row and every number — nothing is hidden, the tail
     // just stops pretending to be individually findable on a 120px ring.
     const pooledShare = 0.02;
     bool pooled(int i) =>
-        i >= _palette.length ||
+        i >= seriesPalette.length ||
         (total > 0 && _metric.of(entries[i].value) / total < pooledShare);
-    Color colorFor(int i) => pooled(i) ? t.textTertiary : _palette[i];
+    Color colorFor(int i) => pooled(i) ? t.textTertiary : seriesPalette[i];
 
     final pooledTotal = [
       for (var i = 0; i < entries.length; i++)

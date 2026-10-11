@@ -334,6 +334,10 @@
     }
   },
   "totalPowerTooltip": "Gesamte Leistungsaufnahme aller Steckdosen",
+  "powerBreakdownTitle": "Leistungsaufnahme",
+  "powerUnassignedPlugs": "Keinem Drucker zugeordnet",
+  "plugStateOn": "Ein",
+  "plugStateOff": "Aus",
   "queueEmpty": "Die Warteschlange ist leer",
   "queueAmsFromSlicer": "AMS aus Slicer",
   "queueAnyOfModels": "Eines von: {models}",

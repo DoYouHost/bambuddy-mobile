@@ -738,6 +738,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get totalPowerTooltip => 'Consumo total de todos los enchufes';
 
   @override
+  String get powerBreakdownTitle => 'Consumo de energía';
+
+  @override
+  String get powerUnassignedPlugs => 'Sin impresora asignada';
+
+  @override
+  String get plugStateOn => 'Encendido';
+
+  @override
+  String get plugStateOff => 'Apagado';
+
+  @override
   String get queueEmpty => 'La cola está vacía';
 
   @override

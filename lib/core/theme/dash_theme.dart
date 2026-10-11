@@ -14,6 +14,20 @@ const bambuddyBrand = DashBrand(
   onAccent: Color(0xFF0A0C08),
 );
 
+/// Categorical colours for a chart's series, in the order they are handed out.
+/// Past the end a chart pools the rest in `textTertiary` rather than reusing a
+/// colour, so two legend rows never share a dot.
+const seriesPalette = [
+  Color(0xFF22C55E),
+  Color(0xFF3B82F6),
+  Color(0xFFF59E0B),
+  Color(0xFFEF4444),
+  Color(0xFFA855F7),
+  Color(0xFF14B8A6),
+  Color(0xFFEC4899),
+  Color(0xFF84CC16),
+];
+
 /// The accent under the name the screens were written with.
 extension BambuddyAccent on DashTokens {
   Color get accentGreen => accent;

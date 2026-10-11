@@ -735,6 +735,18 @@ class AppLocalizationsPl extends AppLocalizations {
   String get totalPowerTooltip => 'Łączny pobór mocy ze wszystkich gniazdek';
 
   @override
+  String get powerBreakdownTitle => 'Pobór mocy';
+
+  @override
+  String get powerUnassignedPlugs => 'Bez przypisanej drukarki';
+
+  @override
+  String get plugStateOn => 'Włączone';
+
+  @override
+  String get plugStateOff => 'Wyłączone';
+
+  @override
   String get queueEmpty => 'Kolejka jest pusta';
 
   @override

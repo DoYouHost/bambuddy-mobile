@@ -38,6 +38,7 @@ import '../../core/theme/dash_theme.dart';
 import 'widgets/connection_banner.dart';
 import 'widgets/connection_mode_chip.dart';
 import 'widgets/dashboard_filter_sheet.dart';
+import 'widgets/power_breakdown_sheet.dart';
 import 'widgets/printer_card.dart';
 import 'ws_providers.dart';
 
@@ -1585,20 +1586,36 @@ class _SummaryHeader extends ConsumerWidget {
               const SizedBox(width: DashSpace.md),
             Tooltip(
               message: l10n.totalPowerTooltip,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.bolt, size: 15, color: t.accentGreenInk),
-                  const SizedBox(width: DashSpace.xs),
-                  Text(
-                    l10n.powerWatts(totalPowerW.round()),
-                    style: t.monoValue.copyWith(
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => showPowerBreakdownSheet(
+                  context,
+                  printers: [
+                    for (final p in sortPrinters(
+                      printers,
+                      ref.read(dashboardSortProvider),
+                    ))
+                      p.printer,
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(DashSpace.xs),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.bolt, size: 15, color: t.accentGreenInk),
+                      const SizedBox(width: DashSpace.xs),
+                      Text(
+                        l10n.powerWatts(totalPowerW.round()),
+                        style: t.monoValue.copyWith(
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ).tagged('dashboard.power'),
           ],
         ],
       ),

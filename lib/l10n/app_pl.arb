@@ -303,6 +303,10 @@
     }
   },
   "totalPowerTooltip": "Łączny pobór mocy ze wszystkich gniazdek",
+  "powerBreakdownTitle": "Pobór mocy",
+  "powerUnassignedPlugs": "Bez przypisanej drukarki",
+  "plugStateOn": "Włączone",
+  "plugStateOff": "Wyłączone",
   "queueEmpty": "Kolejka jest pusta",
   "queueAmsFromSlicer": "AMS ze slicera",
   "queueAnyOfModels": "Dowolny z: {models}",
