@@ -225,6 +225,24 @@ void main() {
         ),
       );
 
+      // The field came in 1.2.5.3. An older server does not list it and drops
+      // what is sent without a word: the app has to write it without an error
+      // and read it back as "not chosen".
+      final listed =
+          (await dio.get<List<dynamic>>('/api/v1/queue/')).data!.first
+              as Map<String, dynamic>;
+      if (!listed.containsKey('nozzle_rack_choice')) {
+        await queue.updateItem(
+          item.id,
+          printerId: printerId,
+          targetModel: null,
+          nozzleRackChoice: const {1: 3, 2: 3},
+        );
+        final read = (await queue.fetch()).firstWhere((i) => i.id == item.id);
+        expect(read.nozzleRackChoice, isNull);
+        return;
+      }
+
       await queue.updateItem(
         item.id,
         printerId: printerId,

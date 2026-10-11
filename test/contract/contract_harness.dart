@@ -18,6 +18,8 @@ import 'dart:io';
 
 import 'package:bambuddy_mobile/core/api/api_client.dart';
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
+import 'package:bambuddy_mobile/core/api/server_version.dart';
+import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/group_write.dart';
 import 'package:bambuddy_mobile/core/models/user_write.dart';
@@ -230,4 +232,15 @@ Future<T> pollUntil<T extends Object>(
     }
     await Future<void>.delayed(every);
   }
+}
+
+/// The version the server reports, for behaviour that no payload field gives
+/// away. Where a field does, read the field instead: a contract test that asks
+/// "does the answer carry it" survives a version string that is wrong or a
+/// feature that was backported.
+Future<ServerVersion> contractServerVersion() async {
+  final version = await ServerVersionService(
+    Dio(BaseOptions(baseUrl: contractBaseUrl)),
+  ).current();
+  return version!;
 }
