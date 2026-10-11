@@ -104,6 +104,10 @@ final inertHistorySupportOverrides = [
   amsHistorySupportedProvider.overrideWithValue(const AsyncData(true)),
 ];
 
+/// The Polish strings the tests assert on. Finders read their text from here,
+/// never from a literal, so a copy change does not touch the tests.
+final pl = lookupAppLocalizations(const Locale('pl'));
+
 /// Wraps a widget in a MaterialApp with Polish localization — the tests assert
 /// Polish strings, so the locale is forced to `pl`.
 ///

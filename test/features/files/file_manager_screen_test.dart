@@ -527,11 +527,11 @@ void main() {
 
       final sheet = find.byType(BottomSheet);
       await tester.dragUntilVisible(
-        find.text('Usuń'),
+        find.text(pl.fmDelete),
         sheet,
         const Offset(0, -60),
       );
-      expect(find.text('Usuń'), findsOneWidget);
+      expect(find.text(pl.fmDelete), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -554,8 +554,8 @@ void main() {
       await pump(tester, file: file);
       await openFileSheet(tester, file);
 
-      expect(find.text('Potnij'), findsOneWidget);
-      expect(find.text('Drukuj'), findsNothing);
+      expect(find.text(pl.sliceAction), findsOneWidget);
+      expect(find.text(pl.fmPrint), findsNothing);
     });
 
     testWidgets('slicing is not offered when the server has it switched off', (
@@ -564,7 +564,7 @@ void main() {
       final file = _file();
       await pump(tester, file: file, slicerEnabled: false);
       await openFileSheet(tester, file);
-      expect(find.text('Potnij'), findsNothing);
+      expect(find.text(pl.sliceAction), findsNothing);
     });
 
     testWidgets('a gcode file offers printing, not slicing', (tester) async {
@@ -573,15 +573,15 @@ void main() {
       await pump(tester, file: file);
       await openFileSheet(tester, file);
 
-      expect(find.text('Drukuj'), findsOneWidget);
-      expect(find.text('Potnij'), findsNothing);
+      expect(find.text(pl.fmPrint), findsOneWidget);
+      expect(find.text(pl.sliceAction), findsNothing);
     });
 
     testWidgets('a server with tags offers the tag action', (tester) async {
       final file = _file();
       await pump(tester, file: file);
       await openFileSheet(tester, file);
-      expect(find.textContaining('Tagi'), findsOneWidget);
+      expect(find.textContaining(pl.fmTags), findsOneWidget);
     });
 
     testWidgets('a server with no tag routes hides the tag action', (
@@ -591,7 +591,7 @@ void main() {
       await pump(tester, file: file, tags: null);
       await openFileSheet(tester, file);
       expect(find.textContaining('tag'), findsNothing);
-      expect(find.textContaining('Tagi'), findsNothing);
+      expect(find.textContaining(pl.fmTags), findsNothing);
     });
   });
 
@@ -645,7 +645,7 @@ void main() {
   group('the sort sheet fits', () {
     testWidgets('six options do not overflow', (tester) async {
       await pump(tester, file: _file());
-      await tester.tap(find.byTooltip('Sortuj według'));
+      await tester.tap(find.byTooltip(pl.fmSortBy));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });

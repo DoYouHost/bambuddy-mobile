@@ -69,11 +69,11 @@ void main() {
   ) async {
     await pumpSetup(tester);
 
-    expect(find.text('Ustaw z\u00A0telefonu'), findsOneWidget);
+    expect(find.text(pl.wearSetupPhoneTitle), findsOneWidget);
     // Below the fold on a watch face — the check button lives under the
     // explanation, so reaching it is a scroll, not a missing button.
-    await revealOnWatch(tester, find.text('Sprawdź ponownie'));
-    expect(find.text('Sprawdź ponownie'), findsOneWidget);
+    await revealOnWatch(tester, find.text(pl.wearSetupPhoneCheck));
+    expect(find.text(pl.wearSetupPhoneCheck), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
   });
 
@@ -82,10 +82,10 @@ void main() {
 
     // No Data Layer under a test binding, so the check comes back empty — the
     // same answer a watch gets when the phone app was never set up.
-    await tapOnWatch(tester, find.text('Sprawdź ponownie'));
+    await tapOnWatch(tester, find.text(pl.wearSetupPhoneCheck));
     await tester.pumpAndSettle();
 
-    expect(find.text('Telefon jeszcze nic nie przysłał.'), findsOneWidget);
+    expect(find.text(pl.wearSetupPhoneEmpty), findsOneWidget);
   });
 
   testWidgets('what the phone sent is shown before it is used', (tester) async {
@@ -98,20 +98,20 @@ void main() {
       ],
     );
 
-    await tapOnWatch(tester, find.text('Sprawdź ponownie'));
+    await tapOnWatch(tester, find.text(pl.wearSetupPhoneCheck));
     await tester.pumpAndSettle();
 
     // The name and the auth mode, so the user can tell this is the server they
     // meant — a phone that switched servers used to reconfigure the watch with
     // nothing on screen to say so.
-    expect(find.text('Z\u00A0telefonu'), findsOneWidget);
+    expect(find.text(pl.wearFromPhone), findsOneWidget);
     expect(find.text('Workshop'), findsOneWidget);
-    expect(find.text('Klucz'), findsOneWidget);
-    expect(find.text('Użyj tego serwera'), findsOneWidget);
+    expect(find.text(pl.wearAuthKey), findsOneWidget);
+    expect(find.text(pl.wearFromPhoneUse), findsOneWidget);
     // The way out of the offer sits under the button that takes it — a scroll
     // away on a face this size.
-    await revealOnWatch(tester, find.text('Nie teraz'));
-    expect(find.text('Nie teraz'), findsOneWidget);
+    await revealOnWatch(tester, find.text(pl.wearFromPhoneLater));
+    expect(find.text(pl.wearFromPhoneLater), findsOneWidget);
   });
 
   testWidgets('"not now" hands the screen back, it does not apply anything', (
@@ -125,16 +125,16 @@ void main() {
         ),
       ],
     );
-    await tapOnWatch(tester, find.text('Sprawdź ponownie'));
+    await tapOnWatch(tester, find.text(pl.wearSetupPhoneCheck));
     await tester.pumpAndSettle();
 
-    await tapOnWatch(tester, find.text('Nie teraz'));
+    await tapOnWatch(tester, find.text(pl.wearFromPhoneLater));
     await tester.pumpAndSettle();
 
-    expect(find.text('Użyj tego serwera'), findsNothing);
-    expect(find.text('Ustaw z\u00A0telefonu'), findsOneWidget);
-    await revealOnWatch(tester, find.text('Wpisz ręcznie'));
-    expect(find.text('Wpisz ręcznie'), findsOneWidget);
+    expect(find.text(pl.wearFromPhoneUse), findsNothing);
+    expect(find.text(pl.wearSetupPhoneTitle), findsOneWidget);
+    await revealOnWatch(tester, find.text(pl.wearSetupManual));
+    expect(find.text(pl.wearSetupManual), findsOneWidget);
   });
 
   testWidgets('a failed adopt gives the spinner back, not a dead screen', (
@@ -148,17 +148,17 @@ void main() {
         ),
       ],
     );
-    await tapOnWatch(tester, find.text('Sprawdź ponownie'));
+    await tapOnWatch(tester, find.text(pl.wearSetupPhoneCheck));
     await tester.pumpAndSettle();
 
-    await tapOnWatch(tester, find.text('Użyj tego serwera'));
+    await tapOnWatch(tester, find.text(pl.wearFromPhoneUse));
     await tester.pumpAndSettle();
 
     // Persisting is a secure-storage write, and that throws outright rather
     // than hanging — a timeout alone would leave the user watching a spinner.
     expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.textContaining('keystore'), findsOneWidget);
-    expect(find.text('Użyj tego serwera'), findsOneWidget);
+    expect(find.text(pl.wearFromPhoneUse), findsOneWidget);
   });
 
   testWidgets('demo needs one tap and no keyboard at all', (tester) async {
@@ -168,7 +168,7 @@ void main() {
     // setup controller rather than writing a profile of its own.
     final container = await pumpSetup(tester);
 
-    await tapOnWatch(tester, find.text('Demo'));
+    await tapOnWatch(tester, find.text(pl.wearSetupDemo));
     await tester.pumpAndSettle();
 
     final profile = container.read(serverProfileProvider);
@@ -192,11 +192,11 @@ void main() {
       ],
     );
 
-    await tapOnWatch(tester, find.text('Demo'));
+    await tapOnWatch(tester, find.text(pl.wearSetupDemo));
     await tester.pumpAndSettle();
 
     expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.text('Demo'), findsOneWidget);
+    expect(find.text(pl.wearSetupDemo), findsOneWidget);
     // Upwards, unlike [revealOnWatch]: reaching the button left the list at the
     // bottom, and the message belongs with the explanation at the top.
     await tester.scrollUntilVisible(
@@ -210,11 +210,11 @@ void main() {
   testWidgets('manual entry reveals the URL field', (tester) async {
     await pumpSetup(tester);
 
-    await tapOnWatch(tester, find.text('Wpisz ręcznie'));
+    await tapOnWatch(tester, find.text(pl.wearSetupManual));
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(TextField, 'Adres serwera'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Połącz'), findsOneWidget);
+    expect(find.widgetWithText(TextField, pl.wearServerUrl), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, pl.wearConnect), findsOneWidget);
   });
 
   testWidgets('the URL field takes no focus and types through the watch', (
@@ -222,16 +222,16 @@ void main() {
   ) async {
     entered = 'http://printer.local:8000';
     await pumpSetup(tester);
-    await tapOnWatch(tester, find.text('Wpisz ręcznie'));
+    await tapOnWatch(tester, find.text(pl.wearSetupManual));
     await tester.pumpAndSettle();
 
     final field = tester.widget<TextField>(
-      find.widgetWithText(TextField, 'Adres serwera'),
+      find.widgetWithText(TextField, pl.wearServerUrl),
     );
     expect(field.readOnly, isTrue);
     expect(field.canRequestFocus, isFalse);
 
-    await tapOnWatch(tester, find.widgetWithText(TextField, 'Adres serwera'));
+    await tapOnWatch(tester, find.widgetWithText(TextField, pl.wearServerUrl));
     await tester.pumpAndSettle();
 
     expect(
@@ -247,13 +247,13 @@ void main() {
   ) async {
     entered = null;
     await pumpSetup(tester);
-    await tapOnWatch(tester, find.text('Wpisz ręcznie'));
+    await tapOnWatch(tester, find.text(pl.wearSetupManual));
     await tester.pumpAndSettle();
-    await tapOnWatch(tester, find.widgetWithText(TextField, 'Adres serwera'));
+    await tapOnWatch(tester, find.widgetWithText(TextField, pl.wearServerUrl));
     await tester.pumpAndSettle();
 
     final field = tester.widget<TextField>(
-      find.widgetWithText(TextField, 'Adres serwera'),
+      find.widgetWithText(TextField, pl.wearServerUrl),
     );
     expect(field.controller!.text, isEmpty);
   });
@@ -263,11 +263,11 @@ void main() {
   ) async {
     isWatch = false;
     await pumpSetup(tester);
-    await tapOnWatch(tester, find.text('Wpisz ręcznie'));
+    await tapOnWatch(tester, find.text(pl.wearSetupManual));
     await tester.pumpAndSettle();
 
     final field = tester.widget<TextField>(
-      find.widgetWithText(TextField, 'Adres serwera'),
+      find.widgetWithText(TextField, pl.wearServerUrl),
     );
     expect(field.readOnly, isFalse);
     expect(calls.map((c) => c.method), isNot(contains('requestText')));

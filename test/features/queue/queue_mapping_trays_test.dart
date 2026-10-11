@@ -179,7 +179,7 @@ void main() {
     await open(tester, stored: [1]);
     await tester.tap(find.text('PLA').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Wybierz slot AMS').last);
+    await tester.tap(find.text(pl.mappingPickTray).last);
     await tester.pumpAndSettle();
     await confirm(tester);
     expect(answer, [0]);
@@ -238,7 +238,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Slot 1 has a spool on the shelf, slot 2 none.
-    expect(find.text('zostało 102\u00A0g'), findsOneWidget);
+    expect(find.text(pl.inventoryRemaining('102')), findsOneWidget);
     expect(find.textContaining('A2: PETG'), findsOneWidget);
     // The shelf arriving late re-reads nothing: the status was fetched once.
     expect(printers.fetches, 1);
@@ -268,9 +268,9 @@ void main() {
   group('the slicer\'s mapping', () {
     testWidgets('is offered for the printer it was made for', (tester) async {
       await open(tester, slicer: (printerId: 1, mapping: [1]));
-      expect(find.text('Mapowanie ze slicera'), findsOneWidget);
+      expect(find.text(pl.mappingUseSlicer), findsOneWidget);
 
-      await tester.tap(find.text('Mapowanie ze slicera'));
+      await tester.tap(find.text(pl.mappingUseSlicer));
       await tester.pumpAndSettle();
       await confirm(tester);
       expect(answer, [1]);
@@ -278,9 +278,9 @@ void main() {
 
     testWidgets('turned off, gives the match back', (tester) async {
       await open(tester, slicer: (printerId: 1, mapping: [1]));
-      await tester.tap(find.text('Mapowanie ze slicera'));
+      await tester.tap(find.text(pl.mappingUseSlicer));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Mapowanie ze slicera'));
+      await tester.tap(find.text(pl.mappingUseSlicer));
       await tester.pumpAndSettle();
       await confirm(tester);
       expect(answer, [0]);
@@ -288,7 +288,7 @@ void main() {
 
     testWidgets('is not offered to another printer', (tester) async {
       await open(tester, slicer: (printerId: 2, mapping: [1]));
-      expect(find.text('Mapowanie ze slicera'), findsNothing);
+      expect(find.text(pl.mappingUseSlicer), findsNothing);
     });
   });
 
@@ -298,7 +298,7 @@ void main() {
     await open(tester);
     expect(printers.fetches, 1);
 
-    await tester.tap(find.text('Odczytaj ponownie'));
+    await tester.tap(find.text(pl.mappingReRead));
     await tester.pumpAndSettle();
 
     expect(commands.refreshes, 1);

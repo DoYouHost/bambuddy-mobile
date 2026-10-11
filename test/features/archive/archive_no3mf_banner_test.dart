@@ -57,8 +57,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('bez miniatur'), findsOneWidget);
-    expect(find.text('Zobacz krok 4 instalacji'), findsOneWidget);
+    expect(find.textContaining(pl.archiveNo3mfTitle), findsOneWidget);
+    expect(find.text(pl.archiveNo3mfDocs), findsOneWidget);
   });
 
   // #2780: the same advice was actively wrong here — the setting is already on.
@@ -75,12 +75,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.textContaining('została w\u00A0pamięci wewnętrznej'),
-      findsOneWidget,
-    );
-    expect(find.text('Dlaczego tak się dzieje'), findsOneWidget);
-    expect(find.text('Zobacz krok 4 instalacji'), findsNothing);
+    expect(find.textContaining(pl.archiveNo3mfTitleInternal), findsOneWidget);
+    expect(find.text(pl.archiveNo3mfDocsWhy), findsOneWidget);
+    expect(find.text(pl.archiveNo3mfDocs), findsNothing);
   });
 
   testWidgets('an empty card slot has nothing to link — the fix is the fix', (
@@ -96,7 +93,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('brak nośnika w\u00A0drukarce'), findsOneWidget);
+    expect(find.textContaining(pl.archiveNo3mfTitleNoStorage), findsOneWidget);
     expect(find.byIcon(Icons.open_in_new), findsNothing);
   });
 

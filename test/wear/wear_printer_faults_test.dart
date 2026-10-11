@@ -87,11 +87,11 @@ void main() {
 
     expect(find.textContaining('Skończył się filament'), findsOneWidget);
     expect(find.text('0300-8004'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Wznów'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Zatrzymaj'), findsWidgets);
+    expect(find.widgetWithText(FilledButton, pl.ctrlResume), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, pl.ctrlStop), findsWidgets);
     // Last row of a fault card that already fills the face: a scroll away.
-    await revealOnWatch(tester, find.text('Odrzuć wszystkie'));
-    expect(find.text('Odrzuć wszystkie'), findsOneWidget);
+    await revealOnWatch(tester, find.text(pl.hmsDismissAll));
+    expect(find.text(pl.hmsDismissAll), findsOneWidget);
   });
 
   testWidgets('an hms[] fault reads in the server words the phone uses', (
@@ -113,8 +113,8 @@ void main() {
 
     expect(find.textContaining('Skończył się filament'), findsNothing);
     expect(find.text('0300-8004'), findsNothing);
-    expect(find.widgetWithText(FilledButton, 'Wznów'), findsNothing);
-    expect(find.text('Odrzuć wszystkie'), findsNothing);
+    expect(find.widgetWithText(FilledButton, pl.ctrlResume), findsNothing);
+    expect(find.text(pl.hmsDismissAll), findsNothing);
   });
 
   testWidgets('an unnameable fault is not shown on the watch either', (
@@ -123,7 +123,7 @@ void main() {
     await _pumpControl(tester, const [_diagnostics]);
 
     expect(find.textContaining('0500-0600'), findsNothing);
-    expect(find.text('Odrzuć wszystkie'), findsNothing);
+    expect(find.text(pl.hmsDismissAll), findsNothing);
   });
 
   testWidgets('an action carries the fault through to the transport', (
@@ -131,7 +131,7 @@ void main() {
   ) async {
     final transport = await _pumpControl(tester, const [_runout]);
 
-    await tapOnWatch(tester, find.widgetWithText(FilledButton, 'Wznów'));
+    await tapOnWatch(tester, find.widgetWithText(FilledButton, pl.ctrlResume));
     await tester.pumpAndSettle();
 
     expect(transport.commands, [
@@ -147,7 +147,7 @@ void main() {
     // The fault's own stop button, not the lifecycle bar's below it.
     await tapOnWatch(
       tester,
-      find.widgetWithText(FilledButton, 'Zatrzymaj').first,
+      find.widgetWithText(FilledButton, pl.ctrlStop).first,
     );
     await tester.pumpAndSettle();
     expect(
@@ -166,7 +166,7 @@ void main() {
   testWidgets('dismiss-all clears the printer', (tester) async {
     final transport = await _pumpControl(tester, const [_runout]);
 
-    await tapOnWatch(tester, find.text('Odrzuć wszystkie'));
+    await tapOnWatch(tester, find.text(pl.hmsDismissAll));
     await tester.pumpAndSettle();
 
     expect(transport.commands, ['clearHmsErrors:7']);

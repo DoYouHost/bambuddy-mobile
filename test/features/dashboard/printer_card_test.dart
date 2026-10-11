@@ -460,11 +460,11 @@ void main() {
     expect(find.text('benchy.3mf'), findsOneWidget);
     expect(find.textContaining('43%'), findsOneWidget);
     expect(find.textContaining('87/203'), findsOneWidget);
-    expect(find.textContaining('pozostało 2h 17min'), findsOneWidget);
+    expect(find.textContaining(pl.remaining('2h 17min')), findsOneWidget);
     // Gauge tile: label (uppercase) and value are separate texts.
     expect(find.text('DYSZA'), findsOneWidget);
     expect(find.text('220°'), findsOneWidget);
-    expect(find.text('STÓŁ'), findsOneWidget);
+    expect(find.text(pl.tempBed.toUpperCase()), findsOneWidget);
     expect(find.text('60°'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
   });
@@ -482,22 +482,22 @@ void main() {
     await tester.pumpWidget(_cardWithProviders(item));
 
     // Always visible: light (toggle row), pause/stop.
-    expect(find.text('Światło komory'), findsOneWidget);
+    expect(find.text(pl.ctrlLight), findsOneWidget);
     // Chamber fan (mode 0 = cooling) → snowflake icon before the value.
     expect(find.byIcon(Icons.ac_unit), findsOneWidget);
-    expect(find.text('Pauza'), findsOneWidget);
-    expect(find.text('Zatrzymaj'), findsOneWidget);
+    expect(find.text(pl.ctrlPause), findsOneWidget);
+    expect(find.text(pl.ctrlStop), findsOneWidget);
 
     // Fans and speed are now under "Details" — expand to see them.
-    await tester.ensureVisible(find.text('Szczegóły'));
-    await tester.tap(find.text('Szczegóły'));
+    await tester.ensureVisible(find.text(pl.detailsShow));
+    await tester.tap(find.text(pl.detailsShow));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
 
     expect(find.text('53%'), findsOneWidget); // part fan
     expect(find.text('73%'), findsOneWidget); // auxiliary
     expect(find.text('60%'), findsOneWidget); // chamber
-    expect(find.text('Standard'), findsOneWidget); // speed (level 2)
+    expect(find.text(pl.speedStandard), findsOneWidget); // speed (level 2)
   });
 
   testWidgets('controls bar does not render without control data', (
@@ -538,7 +538,7 @@ void main() {
     await tester.pumpWidget(_cardWithProviders(item));
 
     // Current value large; target inside the ring (dash when no target).
-    expect(find.text('STÓŁ'), findsOneWidget);
+    expect(find.text(pl.tempBed.toUpperCase()), findsOneWidget);
     // Bed: current 70 and target 70 → two "70°" texts (value + gauge center).
     expect(find.text('70°'), findsNWidgets(2));
     expect(find.text('DYSZA'), findsOneWidget);
@@ -582,10 +582,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Historia temperatur'), findsOneWidget);
+    expect(find.text(pl.heaterHistoryTitle), findsOneWidget);
     // Sheet switches between this printer's sensors (tile labels).
-    expect(find.text('Dysza'), findsOneWidget);
-    expect(find.text('Stół'), findsOneWidget);
+    expect(find.text(pl.tempNozzle), findsOneWidget);
+    expect(find.text(pl.tempBed), findsOneWidget);
   });
 
   /// The icon itself is a 22px target inside the tile's InkWell: a miss
@@ -616,8 +616,8 @@ void main() {
     await tester.tap(find.text('DYSZA'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Historia temperatur'), findsOneWidget);
-    expect(find.text('Ustaw'), findsNothing); // setting sheet did not open
+    expect(find.text(pl.heaterHistoryTitle), findsOneWidget);
+    expect(find.text(pl.ctrlSet), findsNothing); // setting sheet did not open
   });
 
   testWidgets('server without heater history: tiles without chart icon', (
@@ -655,8 +655,8 @@ void main() {
     await tester.pumpWidget(_cardWithProviders(item));
 
     expect(find.text('A1 mini'), findsOneWidget);
-    expect(find.text('OFFLINE'), findsOneWidget);
-    expect(find.text('status niedostępny'), findsNothing);
+    expect(find.text(pl.statusOffline), findsOneWidget);
+    expect(find.text(pl.statusUnavailable), findsNothing);
     expect(find.byType(LinearProgressIndicator), findsNothing);
   });
 
@@ -678,10 +678,10 @@ void main() {
       await tester.pumpWidget(_cardWithProviders(item));
 
       expect(find.text('X1C Hala'), findsOneWidget);
-      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text(pl.statusOffline), findsOneWidget);
       expect(find.text('RUNNING'), findsNothing);
       expect(find.text('210°'), findsNothing);
-      expect(find.textContaining('Szczegóły'), findsNothing);
+      expect(find.textContaining(pl.detailsShow), findsNothing);
     },
   );
 
@@ -728,27 +728,27 @@ void main() {
       );
 
       // Collapsed: there's a "Details" toggle, no AMS content.
-      expect(find.text('Szczegóły'), findsOneWidget);
+      expect(find.text(pl.detailsShow), findsOneWidget);
       expect(find.text('AMS-A'), findsNothing);
 
       // The card is tall — make sure the toggle is visible before tapping.
-      await tester.ensureVisible(find.text('Szczegóły'));
-      await tester.tap(find.text('Szczegóły'));
+      await tester.ensureVisible(find.text(pl.detailsShow));
+      await tester.tap(find.text(pl.detailsShow));
       // Not pumpAndSettle — the preparing phase has an indeterminate progress
       // bar that animates forever. We only pump the expansion time (200ms).
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
       // Expanded: AMS, external spool and metadata visible.
-      expect(find.text('Ukryj szczegóły'), findsOneWidget);
+      expect(find.text(pl.detailsHide), findsOneWidget);
       expect(find.text('AMS-A'), findsOneWidget);
-      expect(find.text('SZPULA ZEWNĘTRZNA'), findsOneWidget);
+      expect(find.text(pl.externalSpool.toUpperCase()), findsOneWidget);
       // Filament row: material and remaining amount as separate texts.
       expect(find.text('PLA Basic'), findsWidgets);
       expect(find.text('66%'), findsOneWidget);
       // Connectivity metadata.
       expect(find.textContaining('-59 dBm'), findsOneWidget);
-      expect(find.text('DRZWICZKI ZAMKNIĘTE'), findsOneWidget);
+      expect(find.text(pl.doorClosed.toUpperCase()), findsOneWidget);
     });
 
     testWidgets('a lone 254 holder on a two-nozzle printer is the left one', (
@@ -767,8 +767,8 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.ensureVisible(find.text('Szczegóły'));
-      await tester.tap(find.text('Szczegóły'));
+      await tester.ensureVisible(find.text(pl.detailsShow));
+      await tester.tap(find.text(pl.detailsShow));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
@@ -791,8 +791,8 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.ensureVisible(find.text('Szczegóły'));
-      await tester.tap(find.text('Szczegóły'));
+      await tester.ensureVisible(find.text(pl.detailsShow));
+      await tester.tap(find.text(pl.detailsShow));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
@@ -818,8 +818,8 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.ensureVisible(find.text('Szczegóły'));
-      await tester.tap(find.text('Szczegóły'));
+      await tester.ensureVisible(find.text(pl.detailsShow));
+      await tester.tap(find.text(pl.detailsShow));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
@@ -839,15 +839,15 @@ void main() {
 
         // An idle printer offers axis movement, so the "Details" toggle
         // appears even without AMS/fan data.
-        expect(find.text('Szczegóły'), findsOneWidget);
+        expect(find.text(pl.detailsShow), findsOneWidget);
 
-        await tester.ensureVisible(find.text('Szczegóły'));
-        await tester.tap(find.text('Szczegóły'));
+        await tester.ensureVisible(find.text(pl.detailsShow));
+        await tester.tap(find.text(pl.detailsShow));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 250));
 
         // Expanded: axis movement tile.
-        expect(find.text('Ruch'), findsOneWidget);
+        expect(find.text(pl.ctrlMove), findsOneWidget);
       },
     );
 
@@ -858,8 +858,8 @@ void main() {
         /// refuses history (403 for a narrow key), they stay on screen, losing
         /// only the tap, which could only end in an error.
         Future<Iterable<InkWell>> metaTaps(WidgetTester tester) async {
-          await tester.ensureVisible(find.text('Szczegóły'));
-          await tester.tap(find.text('Szczegóły'));
+          await tester.ensureVisible(find.text(pl.detailsShow));
+          await tester.tap(find.text(pl.detailsShow));
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 250));
           return tester.widgetList<InkWell>(
@@ -956,8 +956,8 @@ void main() {
         ),
       );
 
-      await tester.ensureVisible(find.text('Szczegóły'));
-      await tester.tap(find.text('Szczegóły'));
+      await tester.ensureVisible(find.text(pl.detailsShow));
+      await tester.tap(find.text(pl.detailsShow));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
@@ -975,15 +975,15 @@ void main() {
         ..errors['amsRfid'] = const AuthException(AppErrorCode.forbidden);
       await openSlotSheet(tester, state: 'IDLE', withCommands: commands);
 
-      await tester.tap(find.text('Odczytaj tag'));
+      await tester.tap(find.text(pl.amsRfidReread));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       expect(commands.calls, ['amsRfid:1:0:0']);
 
       await tapSlotRow(tester);
-      expect(find.text('Odczytaj tag'), findsNothing);
-      expect(find.text('Załaduj'), findsOneWidget);
-      expect(find.text('Wyładuj'), findsOneWidget);
+      expect(find.text(pl.amsRfidReread), findsNothing);
+      expect(find.text(pl.amsLoad), findsOneWidget);
+      expect(find.text(pl.amsUnload), findsOneWidget);
     });
 
     testWidgets('slot sheet loads the slot by its global tray number', (
@@ -991,10 +991,10 @@ void main() {
     ) async {
       final commands = await openSlotSheet(tester, state: 'IDLE');
 
-      expect(find.text('Załaduj'), findsOneWidget);
-      expect(find.text('Odczytaj tag'), findsOneWidget);
+      expect(find.text(pl.amsLoad), findsOneWidget);
+      expect(find.text(pl.amsRfidReread), findsOneWidget);
 
-      await tester.tap(find.text('Załaduj'));
+      await tester.tap(find.text(pl.amsLoad));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -1009,7 +1009,7 @@ void main() {
       // unaddressed unload empties whichever of them that field happens to name.
       final commands = await openSlotSheet(tester, state: 'IDLE');
 
-      await tester.tap(find.text('Wyładuj'));
+      await tester.tap(find.text(pl.amsUnload));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -1028,14 +1028,14 @@ void main() {
         filaSwitch: const FilaSwitch(installed: true, ready: true),
       );
 
-      await tester.tap(find.text('Załaduj'));
+      await tester.tap(find.text(pl.amsLoad));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(commands.calls, isEmpty, reason: 'nothing goes out unanswered');
-      expect(find.text('Lewy ekstruder'), findsOneWidget);
+      expect(find.text(pl.extruderLeft), findsOneWidget);
 
-      await tester.tap(find.text('Lewy ekstruder'));
+      await tester.tap(find.text(pl.extruderLeft));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -1051,10 +1051,10 @@ void main() {
         filaSwitch: const FilaSwitch(installed: true, ready: true),
       );
 
-      await tester.tap(find.text('Załaduj'));
+      await tester.tap(find.text(pl.amsLoad));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
-      await tester.tap(find.text('Prawy ekstruder'));
+      await tester.tap(find.text(pl.extruderRight));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -1074,17 +1074,19 @@ void main() {
         },
       );
 
-      await tester.tap(find.text('Załaduj'));
+      await tester.tap(find.text(pl.amsLoad));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
-      await tester.tap(find.text('Prawy ekstruder — już załadowany'));
+      await tester.tap(
+        find.text('${pl.extruderRight} — ${pl.amsFeedAlreadyLoaded}'),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(commands.calls, isEmpty);
       expect(
-        find.text('Lewy ekstruder'),
+        find.text(pl.extruderLeft),
         findsOneWidget,
         reason: 'the other hotend is still a valid answer',
       );
@@ -1102,13 +1104,16 @@ void main() {
         filaSwitch: const FilaSwitch(installed: true),
       );
 
-      await tester.tap(find.text('Załaduj'));
+      await tester.tap(find.text(pl.amsLoad));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(commands.calls, isEmpty);
-      expect(find.textContaining('Filament Track Switch'), findsOneWidget);
-      expect(find.text('Lewy ekstruder'), findsNothing);
+      expect(
+        find.textContaining(pl.sliceFilamentNumbered('Track Switch')),
+        findsOneWidget,
+      );
+      expect(find.text(pl.extruderLeft), findsNothing);
     });
 
     testWidgets('each external spool is offered its own nozzle size', (
@@ -1144,8 +1149,8 @@ void main() {
         ),
       );
 
-      await tester.ensureVisible(find.text('Szczegóły'));
-      await tester.tap(find.text('Szczegóły'));
+      await tester.ensureVisible(find.text(pl.detailsShow));
+      await tester.tap(find.text(pl.detailsShow));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
@@ -1162,7 +1167,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
-      await tester.tap(find.text('Skonfiguruj slot'));
+      await tester.tap(find.text(pl.amsSlotConfigure));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -1209,14 +1214,14 @@ void main() {
         ),
       );
 
-      await tester.ensureVisible(find.text('Szczegóły'));
-      await tester.tap(find.text('Szczegóły'));
+      await tester.ensureVisible(find.text(pl.detailsShow));
+      await tester.tap(find.text(pl.detailsShow));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
       // The AMS header names no side: the switch moves the unit between both.
-      expect(find.widgetWithText(Tooltip, 'L'), findsNothing);
-      expect(find.widgetWithText(Tooltip, 'P'), findsNothing);
+      expect(find.widgetWithText(Tooltip, pl.extruderLeftShort), findsNothing);
+      expect(find.widgetWithText(Tooltip, pl.extruderRightShort), findsNothing);
 
       final row = find
           .byWidgetPredicate(
@@ -1230,7 +1235,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
-      await tester.tap(find.text('Skonfiguruj slot'));
+      await tester.tap(find.text(pl.amsSlotConfigure));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -1246,8 +1251,8 @@ void main() {
     ) async {
       final commands = await openSlotSheet(tester, state: 'RUNNING');
 
-      expect(find.text('Niedostępne, gdy drukarka drukuje'), findsOneWidget);
-      await tester.tap(find.text('Załaduj'));
+      expect(find.text(pl.amsActionsWhilePrinting), findsOneWidget);
+      await tester.tap(find.text(pl.amsLoad));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -1260,8 +1265,8 @@ void main() {
       // Swapping a spool that ran out is what a pause is for.
       final commands = await openSlotSheet(tester, state: 'PAUSE');
 
-      expect(find.text('Niedostępne, gdy drukarka drukuje'), findsNothing);
-      await tester.tap(find.text('Załaduj'));
+      expect(find.text(pl.amsActionsWhilePrinting), findsNothing);
+      await tester.tap(find.text(pl.amsLoad));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -1317,14 +1322,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Brak wyników'), findsOneWidget);
-      expect(find.text('Brak szpul w\u00A0magazynie'), findsNothing);
+      expect(find.text(pl.inventoryEmpty), findsNothing);
     });
 
     testWidgets('an empty shelf still says so', (tester) async {
       await openSlotSheet(tester, state: 'IDLE');
-      await reveal(tester, find.text('Brak szpul w\u00A0magazynie'));
+      await reveal(tester, find.text(pl.inventoryEmpty));
 
-      expect(find.text('Brak szpul w\u00A0magazynie'), findsOneWidget);
+      expect(find.text(pl.inventoryEmpty), findsOneWidget);
       expect(find.textContaining('Brak wyników'), findsNothing);
     });
 
@@ -1394,8 +1399,8 @@ void main() {
       await tester.pumpWidget(routedCard());
       await tester.pump();
 
-      await tester.ensureVisible(find.text('Szczegóły'));
-      await tester.tap(find.text('Szczegóły'));
+      await tester.ensureVisible(find.text(pl.detailsShow));
+      await tester.tap(find.text(pl.detailsShow));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
       await tapSlotRow(tester);
@@ -1413,7 +1418,7 @@ void main() {
       // Landed on the tab, with the spool's own card over it.
       expect(find.text('FILAMENTY'), findsOneWidget);
       expect(find.text('#42'), findsOneWidget);
-      expect(find.text('Przypisz szpulę'), findsNothing);
+      expect(find.text(pl.inventoryAssignTitle), findsNothing);
     });
 
     /// The registration button, by the name it carries in the diagnostic log.
@@ -1426,7 +1431,7 @@ void main() {
       await reveal(tester, registerButton());
 
       expect(registerButton(), findsOneWidget);
-      expect(find.text('Dodaj do magazynu'), findsOneWidget);
+      expect(find.text(pl.inventoryFromSlot), findsOneWidget);
     });
 
     testWidgets('an untagged slot never offers it', (tester) async {
@@ -1626,10 +1631,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(_RecordingInventory.calls, ['1:0:0']);
-      expect(
-        find.text('Szpula dodana i\u00A0przypisana do slotu'),
-        findsOneWidget,
-      );
+      expect(find.text(pl.inventoryFromSlotDone), findsOneWidget);
     });
 
     /// Registers with [failure] staged, and comes back once the sheet has
@@ -1665,10 +1667,7 @@ void main() {
         ),
       );
 
-      expect(
-        find.text('Ta wersja serwera nie potrafi dodać szpuli prosto ze slotu'),
-        findsOneWidget,
-      );
+      expect(find.text(pl.inventoryFromSlotUnsupported), findsOneWidget);
     });
 
     testWidgets("the route's own 404 is read as the printer being away", (
@@ -1683,12 +1682,7 @@ void main() {
         ),
       );
 
-      expect(
-        find.text(
-          'Drukarka nie jest połączona, więc nie powie, co jest w\u00A0slocie',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text(pl.inventoryFromSlotOffline), findsOneWidget);
     });
 
     testWidgets('a 400 says the slot stopped reporting a tag', (tester) async {
@@ -1703,12 +1697,7 @@ void main() {
         ),
       );
 
-      expect(
-        find.text(
-          'Drukarka nie widzi już w\u00A0tym slocie szpuli z\u00A0czipem',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text(pl.inventoryFromSlotNoTag), findsOneWidget);
     });
 
     testWidgets('a refusal keeps the permission the server named', (
@@ -1725,7 +1714,9 @@ void main() {
       );
 
       expect(
-        find.text('Brak uprawnień: Missing permission: inventory:update'),
+        find.text(
+          pl.errForbiddenDetail('Missing permission: inventory:update'),
+        ),
         findsOneWidget,
       );
     });
@@ -1854,7 +1845,10 @@ void main() {
 
       await tester.pumpWidget(_cardWithPlugs(item, stub));
 
-      expect(find.byTooltip('42\u00A0W · Tylko podgląd'), findsOneWidget);
+      expect(
+        find.byTooltip('42\u00A0W · ${pl.smartPlugMonitorOnly}'),
+        findsOneWidget,
+      );
       final btn = tester.widget<IconButton>(
         find.widgetWithIcon(IconButton, Icons.power),
       );
@@ -1882,10 +1876,10 @@ void main() {
         await tester.pumpAndSettle();
 
         // Confirmation dialog — without it nothing is sent.
-        expect(find.text('Odciąć zasilanie?'), findsOneWidget);
+        expect(find.text(pl.smartPlugOffConfirmTitle), findsOneWidget);
         expect(stub.calls, isEmpty);
 
-        await tester.tap(find.text('Wyłącz'));
+        await tester.tap(find.text(pl.smartPlugTurnOff));
         await tester.pump();
 
         expect(stub.calls, hasLength(1));
@@ -1914,7 +1908,7 @@ void main() {
 
       await tester.pumpWidget(_cardWithPlugs(item, stub));
 
-      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text(pl.statusOffline), findsOneWidget);
       // Plug off → crossed-out plug icon, button active (controllable).
       final btn = tester.widget<IconButton>(
         find.widgetWithIcon(IconButton, Icons.power_off),
@@ -1925,10 +1919,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Turning on also requires confirmation — without it nothing is sent.
-      expect(find.text('Załączyć zasilanie?'), findsOneWidget);
+      expect(find.text(pl.smartPlugOnConfirmTitle), findsOneWidget);
       expect(stub.calls, isEmpty);
 
-      await tester.tap(find.text('Włącz'));
+      await tester.tap(find.text(pl.smartPlugTurnOn));
       await tester.pump();
       expect(stub.calls.single.action, SmartPlugAction.on);
     });
@@ -2004,14 +1998,14 @@ void main() {
       addTearDown(item.dispose);
 
       await tester.pumpWidget(_cardSwap(item, inTouchSince: steadyContact()));
-      expect(find.text('OFFLINE'), findsNothing);
+      expect(find.text(pl.statusOffline), findsNothing);
 
       item.value = off;
       await tester.pump(); // didUpdateWidget → timer starts, no collapse yet
-      expect(find.text('OFFLINE'), findsNothing);
+      expect(find.text(pl.statusOffline), findsNothing);
 
       await tester.pump(const Duration(seconds: 16)); // past the grace period
-      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text(pl.statusOffline), findsOneWidget);
     });
 
     testWidgets(
@@ -2031,7 +2025,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(seconds: 16));
 
-        expect(find.text('OFFLINE'), findsNothing); // never collapsed
+        expect(find.text(pl.statusOffline), findsNothing); // never collapsed
       },
     );
 
@@ -2051,11 +2045,11 @@ void main() {
       item.value = merged;
       await tester.pump();
       expect(
-        find.text('Szczegóły'),
+        find.text(pl.detailsShow),
         findsOneWidget,
       ); // debounced, not collapsed
       await tester.pump(const Duration(seconds: 16));
-      expect(find.text('Szczegóły'), findsNothing);
+      expect(find.text(pl.detailsShow), findsNothing);
     });
 
     testWidgets('a disconnect on a line that just came up collapses at once', (
@@ -2073,8 +2067,8 @@ void main() {
       item.value = merged;
       await tester.pump();
 
-      expect(find.text('OFFLINE'), findsOneWidget);
-      expect(find.text('Szczegóły'), findsNothing);
+      expect(find.text(pl.statusOffline), findsOneWidget);
+      expect(find.text(pl.detailsShow), findsNothing);
     });
 
     testWidgets('a printer the roster carries with no status at all is offline', (
@@ -2089,8 +2083,8 @@ void main() {
         ),
       );
 
-      expect(find.text('OFFLINE'), findsOneWidget);
-      expect(find.text('Szczegóły'), findsNothing);
+      expect(find.text(pl.statusOffline), findsOneWidget);
+      expect(find.text(pl.detailsShow), findsNothing);
     });
 
     testWidgets('a frame that never mentions the connection leaves the card be', (
@@ -2110,8 +2104,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 30));
 
-      expect(find.text('OFFLINE'), findsNothing);
-      expect(find.text('Szczegóły'), findsOneWidget);
+      expect(find.text(pl.statusOffline), findsNothing);
+      expect(find.text(pl.detailsShow), findsOneWidget);
     });
 
     testWidgets('inside the grace window the header already reads as offline', (
@@ -2127,15 +2121,17 @@ void main() {
       // The body is still up (the collapse waits out the grace period), so the
       // header is the only thing saying the printer is unreachable — it must
       // not say it in the colour that means "connected".
-      final chip = tester.widget<Text>(find.text('OFFLINE'));
-      final scheme = Theme.of(tester.element(find.text('OFFLINE'))).colorScheme;
+      final chip = tester.widget<Text>(find.text(pl.statusOffline));
+      final scheme = Theme.of(
+        tester.element(find.text(pl.statusOffline)),
+      ).colorScheme;
       expect(chip.style?.color, scheme.error);
 
       // Proof that this was the full layout and not the collapsed one: the
       // details toggle is on screen here and gone once the card collapses.
-      expect(find.text('Szczegóły'), findsOneWidget);
+      expect(find.text(pl.detailsShow), findsOneWidget);
       await tester.pump(const Duration(seconds: 16));
-      expect(find.text('Szczegóły'), findsNothing);
+      expect(find.text(pl.detailsShow), findsNothing);
     });
   });
 
@@ -2529,7 +2525,7 @@ void main() {
       await tester.pumpWidget(
         _cardWithProviders(itemWith([hmsX2dChamberHeater.fault])),
       );
-      await tester.tap(find.text('1 błąd'));
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
       await tester.pumpAndSettle();
 
       expect(find.text(hmsX2dChamberHeater.description!), findsOneWidget);
@@ -2543,15 +2539,15 @@ void main() {
 
       // Collapsed: the count, and nothing that would push the print progress
       // off a phone screen.
-      expect(find.text('1 błąd'), findsOneWidget);
+      expect(find.text(pl.hmsErrorsCount(1)), findsOneWidget);
       expect(find.textContaining('Skończył się filament'), findsNothing);
 
-      await tester.tap(find.text('1 błąd'));
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Skończył się filament'), findsOneWidget);
       expect(find.text('0300-8004'), findsOneWidget);
-      expect(find.text('Odrzuć wszystkie'), findsOneWidget);
+      expect(find.text(pl.hmsDismissAll), findsOneWidget);
     });
 
     testWidgets('a mixed list counts and shows only the codes it can name', (
@@ -2566,8 +2562,8 @@ void main() {
         ),
       );
 
-      expect(find.text('1 błąd'), findsOneWidget);
-      await tester.tap(find.text('1 błąd'));
+      expect(find.text(pl.hmsErrorsCount(1)), findsOneWidget);
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
       await tester.pumpAndSettle();
 
       expect(find.text('0300-8004'), findsOneWidget);
@@ -2593,11 +2589,11 @@ void main() {
           ]),
         ),
       );
-      await tester.tap(find.text('1 błąd'));
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(FilledButton, 'Wznów'), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'Zatrzymaj'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, pl.ctrlResume), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, pl.ctrlStop), findsOneWidget);
       expect(find.textContaining('Asystent'), findsNothing);
     });
 
@@ -2613,9 +2609,9 @@ void main() {
           ],
         ),
       );
-      await tester.tap(find.text('1 błąd'));
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Wznów'));
+      await tester.tap(find.widgetWithText(FilledButton, pl.ctrlResume));
       await tester.pumpAndSettle();
 
       expect(commands.calls, [
@@ -2635,16 +2631,16 @@ void main() {
           ],
         ),
       );
-      await tester.tap(find.text('1 błąd'));
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Zatrzymaj'));
+      await tester.tap(find.widgetWithText(FilledButton, pl.ctrlStop));
       await tester.pumpAndSettle();
 
       // The dialog names the printer, and nothing has been sent yet.
       expect(find.textContaining('X2D Warsztat'), findsWidgets);
       expect(commands.calls, isEmpty);
 
-      await tester.tap(find.text('Anuluj'));
+      await tester.tap(find.text(pl.cancel));
       await tester.pumpAndSettle();
       expect(commands.calls, isEmpty);
     });
@@ -2661,9 +2657,9 @@ void main() {
           ],
         ),
       );
-      await tester.tap(find.text('1 błąd'));
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Odrzuć wszystkie'));
+      await tester.tap(find.text(pl.hmsDismissAll));
       await tester.pumpAndSettle();
 
       expect(commands.calls, ['hmsClear:9']);
@@ -2680,10 +2676,12 @@ void main() {
         'full_code': '03008016',
       });
       await tester.pumpWidget(_cardWithProviders(itemWith([clog])));
-      await tester.tap(find.text('1 błąd'));
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
       await tester.pumpAndSettle();
 
-      final description = find.textContaining('Dysza jest zatkana');
+      final description = find.textContaining(
+        pl.tempNozzleNumbered('jest zatkana'),
+      );
       expect(tester.widget<Text>(description).maxLines, 2);
 
       await tester.tap(description);
@@ -2698,7 +2696,7 @@ void main() {
       // print job", with a Resume button right there. The app draws that button
       // from the fault's actions, so the sentence was the button said twice.
       await tester.pumpWidget(_cardWithProviders(itemWith(const [_runout])));
-      await tester.tap(find.text('1 błąd'));
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
       await tester.pumpAndSettle();
 
       expect(find.textContaining("wybierz 'Wznów'"), findsNothing);
@@ -2715,11 +2713,11 @@ void main() {
         'actions': ['RESUME_PRINTING'],
       });
       await tester.pumpWidget(_cardWithProviders(itemWith([blank])));
-      await tester.tap(find.text('1 błąd'));
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Skończył się filament'), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'Wznów'), findsNothing);
+      expect(find.widgetWithText(FilledButton, pl.ctrlResume), findsNothing);
     });
 
     testWidgets('feedback survives the fault clearing under the card', (
@@ -2747,14 +2745,14 @@ void main() {
           ],
         ),
       );
-      await tester.tap(find.text('1 błąd'));
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Wznów'));
+      await tester.tap(find.widgetWithText(FilledButton, pl.ctrlResume));
       item.value = itemWith(const []); // the fault clears mid-command
       await tester.pumpAndSettle();
 
       expect(commands.calls, hasLength(1));
-      expect(find.text('Wysłano do drukarki'), findsOneWidget);
+      expect(find.text(pl.hmsActionSent), findsOneWidget);
     });
 
     testWidgets('a server too old to send full_code offers no buttons', (
@@ -2776,11 +2774,11 @@ void main() {
           ]),
         ),
       );
-      await tester.tap(find.text('1 błąd'));
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Skończył się filament'), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'Wznów'), findsNothing);
+      expect(find.widgetWithText(FilledButton, pl.ctrlResume), findsNothing);
     });
   });
 
@@ -2827,14 +2825,14 @@ void main() {
       await tester.pumpWidget(cards(commands));
       await tester.pumpAndSettle();
 
-      expect(find.text('OFFLINE'), findsOneWidget);
-      expect(find.text('Płyta niewyczyszczona'), findsOneWidget);
+      expect(find.text(pl.statusOffline), findsOneWidget);
+      expect(find.text(pl.plateClearBadge), findsOneWidget);
 
-      await tester.tap(find.byTooltip('Oznacz płytę jako pustą'));
+      await tester.tap(find.byTooltip(pl.plateClearAction));
       await tester.pumpAndSettle();
 
       expect(commands.calls, ['clearPlate:4']);
-      expect(find.text('Oznaczono płytę jako pustą'), findsOneWidget);
+      expect(find.text(pl.plateClearedSnack), findsOneWidget);
     });
 
     testWidgets(
@@ -2855,16 +2853,16 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.byTooltip('Oznacz płytę jako pustą'), findsNWidgets(2));
+        expect(find.byTooltip(pl.plateClearAction), findsNWidgets(2));
 
-        await tester.tap(find.byTooltip('Oznacz płytę jako pustą').first);
+        await tester.tap(find.byTooltip(pl.plateClearAction).first);
         await tester.pumpAndSettle();
 
         expect(commands.calls, ['clearPlate:4']);
         expect(find.textContaining('Zaktualizuj bambuddy'), findsOneWidget);
         // The reachable printer keeps it: that half worked on every server.
-        expect(find.text('Płyta niewyczyszczona'), findsOneWidget);
-        expect(find.byTooltip('Oznacz płytę jako pustą'), findsOneWidget);
+        expect(find.text(pl.plateClearBadge), findsOneWidget);
+        expect(find.byTooltip(pl.plateClearAction), findsOneWidget);
       },
     );
 
@@ -2906,7 +2904,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Oznacz płytę jako pustą'));
+      await tester.tap(find.byTooltip(pl.plateClearAction));
       await tester.pump();
 
       onScreen.value = false;
@@ -2918,8 +2916,8 @@ void main() {
       // The latch still flipped: the card comes back without the button.
       onScreen.value = true;
       await tester.pumpAndSettle();
-      expect(find.text('OFFLINE'), findsOneWidget);
-      expect(find.byTooltip('Oznacz płytę jako pustą'), findsNothing);
+      expect(find.text(pl.statusOffline), findsOneWidget);
+      expect(find.byTooltip(pl.plateClearAction), findsNothing);
     });
 
     testWidgets(
@@ -2939,8 +2937,8 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('OFFLINE'), findsOneWidget);
-        expect(find.text('Płyta niewyczyszczona'), findsNothing);
+        expect(find.text(pl.statusOffline), findsOneWidget);
+        expect(find.text(pl.plateClearBadge), findsNothing);
       },
     );
   });
@@ -3025,10 +3023,7 @@ void main() {
       // 12/24-hour choice follows the device — so the assertion is on the
       // sentence that says a time was named at all, not on its spelling.
       expect(find.textContaining('Suszenie:'), findsOneWidget);
-      expect(
-        find.text('Suszenie zaplanowane, czeka na drukarkę'),
-        findsNothing,
-      );
+      expect(find.text(pl.ctrlDryScheduledAsap), findsNothing);
     });
 
     testWidgets('a run with no time says it is waiting for the printer', (
@@ -3038,10 +3033,7 @@ void main() {
 
       await pumpCard(tester, repo);
 
-      expect(
-        find.text('Suszenie zaplanowane, czeka na drukarkę'),
-        findsOneWidget,
-      );
+      expect(find.text(pl.ctrlDryScheduledAsap), findsOneWidget);
     });
 
     testWidgets('a due run explains what it is waiting for', (tester) async {
@@ -3051,7 +3043,7 @@ void main() {
 
       await pumpCard(tester, repo);
 
-      expect(find.text('Podłącz zasilacz AMS'), findsOneWidget);
+      expect(find.text(pl.ctrlDryWaitPower), findsOneWidget);
     });
 
     /// A reason added by a server newer than this build must not be printed at
@@ -3065,10 +3057,7 @@ void main() {
 
       await pumpCard(tester, repo);
 
-      expect(
-        find.text('Suszenie zaplanowane, czeka na drukarkę'),
-        findsOneWidget,
-      );
+      expect(find.text(pl.ctrlDryScheduledAsap), findsOneWidget);
       expect(find.textContaining('unknown'), findsNothing);
     });
 
@@ -3082,10 +3071,10 @@ void main() {
       await pumpCard(tester, repo);
 
       expect(
-        find.text('Zaplanowane suszenie nie ruszyło: Firmware too old'),
+        find.text(pl.ctrlDryScheduleFailed('Firmware too old')),
         findsOneWidget,
       );
-      await tester.tap(find.byTooltip('Odrzuć'));
+      await tester.tap(find.byTooltip(pl.ctrlDryScheduleDismiss));
       await tester.pumpAndSettle();
 
       expect(repo.cancelled, [7]);
@@ -3098,7 +3087,7 @@ void main() {
 
       await pumpCard(tester, repo);
 
-      expect(find.textContaining('Suszenie zaplanowane'), findsNothing);
+      expect(find.textContaining(pl.ctrlDryScheduled), findsNothing);
     });
 
     testWidgets('cancelling a pending run drops it and re-reads the listing', (
@@ -3109,12 +3098,12 @@ void main() {
       await pumpCard(tester, repo);
       expect(repo.listCalls, 1);
 
-      await tester.tap(find.byTooltip('Anuluj zaplanowane suszenie'));
+      await tester.tap(find.byTooltip(pl.ctrlDryScheduleCancel));
       await tester.pumpAndSettle();
 
       expect(repo.cancelled, [7]);
       expect(repo.listCalls, 2);
-      expect(find.textContaining('Suszenie zaplanowane'), findsNothing);
+      expect(find.textContaining(pl.ctrlDryScheduled), findsNothing);
     });
 
     /// The live AMS reports a dispatched run long before anything else would
@@ -3149,7 +3138,7 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(repo.listCalls, 2);
-      expect(find.textContaining('Suszenie zaplanowane'), findsNothing);
+      expect(find.textContaining(pl.ctrlDryScheduled), findsNothing);
     });
 
     testWidgets('a parked timer reads as not running, and can be stopped', (
@@ -3181,12 +3170,15 @@ void main() {
       final repo = _StubScheduledDrying(supported: false);
 
       await pumpCard(tester, repo);
-      await tester.tap(find.text('Suszenie'));
+      await tester.tap(find.text(pl.ctrlDry));
       await tester.pumpAndSettle();
 
-      expect(find.text('Start'), findsOneWidget); // the immediate button
-      expect(find.text('Teraz'), findsNothing);
-      expect(find.text('Zaplanuj'), findsNothing);
+      expect(
+        find.text(pl.ctrlDryStart),
+        findsOneWidget,
+      ); // the immediate button
+      expect(find.text(pl.ctrlDryStartNow), findsNothing);
+      expect(find.text(pl.ctrlDrySchedule), findsNothing);
     });
 
     testWidgets('a delay is measured from the moment the button is pressed', (
@@ -3197,14 +3189,14 @@ void main() {
 
       await withClock(Clock.fixed(at), () async {
         await pumpCard(tester, repo);
-        await tester.tap(find.text('Suszenie'));
+        await tester.tap(find.text(pl.ctrlDry));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Później'));
+        await tester.tap(find.text(pl.ctrlDryStartAfter));
         await tester.pumpAndSettle();
         await tester.tap(find.text('2h'));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Zaplanuj'));
+        await tester.tap(find.text(pl.ctrlDrySchedule));
         await tester.pumpAndSettle();
       });
 
@@ -3214,7 +3206,7 @@ void main() {
       // The sheet's own filament/temperature pickers travel with it.
       expect(repo.created.single.filament, 'PLA');
       expect(repo.created.single.temp, 45);
-      expect(find.text('Suszenie zaplanowane'), findsOneWidget);
+      expect(find.text(pl.ctrlDryScheduled), findsOneWidget);
     });
 
     testWidgets('a refused schedule takes the mode away with the picker', (
@@ -3225,16 +3217,16 @@ void main() {
       final repo = _StubScheduledDrying(refuseCreate: true);
 
       await pumpCard(tester, repo);
-      await tester.tap(find.text('Suszenie'));
+      await tester.tap(find.text(pl.ctrlDry));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Później'));
+      await tester.tap(find.text(pl.ctrlDryStartAfter));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zaplanuj'));
+      await tester.tap(find.text(pl.ctrlDrySchedule));
       await tester.pumpAndSettle();
 
-      expect(find.text('Później'), findsNothing);
-      expect(find.text('Zaplanuj'), findsNothing);
-      expect(find.text('Start'), findsOneWidget);
+      expect(find.text(pl.ctrlDryStartAfter), findsNothing);
+      expect(find.text(pl.ctrlDrySchedule), findsNothing);
+      expect(find.text(pl.ctrlDryStart), findsOneWidget);
     });
 
     testWidgets('"at time" with nothing picked schedules nothing', (
@@ -3243,16 +3235,16 @@ void main() {
       final repo = _StubScheduledDrying();
 
       await pumpCard(tester, repo);
-      await tester.tap(find.text('Suszenie'));
+      await tester.tap(find.text(pl.ctrlDry));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('O\u00A0godzinie'));
+      await tester.tap(find.text(pl.ctrlDryStartAt));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zaplanuj'));
+      await tester.tap(find.text(pl.ctrlDrySchedule));
       await tester.pumpAndSettle();
 
       expect(repo.created, isEmpty);
       // The prompt, not a dryer that started immediately.
-      expect(find.text('Wybierz termin'), findsWidgets);
+      expect(find.text(pl.ctrlDryPickTime), findsWidgets);
     });
 
     /// Opens the drying sheet on a card whose server answers [settings].
@@ -3273,7 +3265,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       await openDetails(tester);
-      await tester.tap(find.text('Suszenie'));
+      await tester.tap(find.text(pl.ctrlDry));
       await tester.pumpAndSettle();
     }
 
@@ -3292,7 +3284,7 @@ void main() {
 
         // The only filament the server knows is the one the sheet opens on.
         expect(find.text('60°'), findsWidgets);
-        expect(find.text('8 godz'), findsWidgets);
+        expect(find.text(pl.ctrlDryHours(8)), findsWidgets);
       });
 
       /// The web's own drying popover caps the same way (`maxTemp` there is
@@ -3344,7 +3336,7 @@ void main() {
 
         // PLA on an AMS 2 Pro: 45 °C for 12 h, the server's own default.
         expect(find.text('45°'), findsWidgets);
-        expect(find.text('12 godz'), findsWidgets);
+        expect(find.text(pl.ctrlDryHours(12)), findsWidgets);
       });
 
       testWidgets('settings that could not be read fall back too', (
@@ -3353,7 +3345,7 @@ void main() {
         await pumpWithSettings(tester, const {});
 
         expect(find.text('45°'), findsWidgets);
-        expect(find.text('12 godz'), findsWidgets);
+        expect(find.text(pl.ctrlDryHours(12)), findsWidgets);
       });
 
       /// The scheduler dries with the same numbers, so a schedule built from a
@@ -3378,12 +3370,12 @@ void main() {
         );
         await tester.pumpAndSettle();
         await openDetails(tester);
-        await tester.tap(find.text('Suszenie'));
+        await tester.tap(find.text(pl.ctrlDry));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Później'));
+        await tester.tap(find.text(pl.ctrlDryStartAfter));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Zaplanuj'));
+        await tester.tap(find.text(pl.ctrlDrySchedule));
         await tester.pumpAndSettle();
 
         expect(repo.created.single.temp, 60);
@@ -3399,16 +3391,13 @@ void main() {
       testWidgets('ambient drying is named', (tester) async {
         await pumpWithSettings(tester, const {'ambient_drying_enabled': true});
 
-        expect(
-          find.text('Auto-suszenie przy wysokiej wilgotności.'),
-          findsOneWidget,
-        );
+        expect(find.text(pl.ctrlDryAutoIdle), findsOneWidget);
       });
 
       testWidgets('queue drying is named when ambient is off', (tester) async {
         await pumpWithSettings(tester, const {'queue_drying_enabled': true});
 
-        expect(find.text('Auto-suszenie między wydrukami.'), findsOneWidget);
+        expect(find.text(pl.ctrlDryAutoQueue), findsOneWidget);
       });
 
       /// Ambient covers the queue case, so naming both would say it twice.
@@ -3418,11 +3407,8 @@ void main() {
           'queue_drying_enabled': true,
         });
 
-        expect(find.text('Auto-suszenie między wydrukami.'), findsNothing);
-        expect(
-          find.text('Auto-suszenie przy wysokiej wilgotności.'),
-          findsOneWidget,
-        );
+        expect(find.text(pl.ctrlDryAutoQueue), findsNothing);
+        expect(find.text(pl.ctrlDryAutoIdle), findsOneWidget);
       });
 
       testWidgets('drying during a print is added to the sentence', (
@@ -3434,10 +3420,7 @@ void main() {
         });
 
         expect(
-          find.text(
-            'Auto-suszenie przy wysokiej wilgotności. '
-            'Także w\u00A0druku.',
-          ),
+          find.text('${pl.ctrlDryAutoIdle} ${pl.ctrlDryAutoWhilePrinting}'),
           findsOneWidget,
         );
       });
@@ -3465,7 +3448,7 @@ void main() {
     group('semantics', () {
       Future<void> openSheet(WidgetTester tester) async {
         await pumpCard(tester, _StubScheduledDrying());
-        await tester.tap(find.text('Suszenie'));
+        await tester.tap(find.text(pl.ctrlDry));
         await tester.pumpAndSettle();
       }
 
@@ -3519,7 +3502,7 @@ void main() {
           Tristate.isFalse,
         );
 
-        await tester.tap(find.text('Później'));
+        await tester.tap(find.text(pl.ctrlDryStartAfter));
         await tester.pumpAndSettle();
 
         expect(
@@ -3570,9 +3553,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       await openDetails(tester);
-      await tester.tap(find.text('Suszenie'));
+      await tester.tap(find.text(pl.ctrlDry));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Start'));
+      await tester.tap(find.text(pl.ctrlDryStart));
       await tester.pumpAndSettle();
 
       expect(repo.created, isEmpty);
@@ -3620,8 +3603,8 @@ void main() {
         expect(find.byType(LinearProgressIndicator), findsOneWidget);
         expect(find.text('benchy.3mf'), findsNothing);
         expect(find.text('DYSZA'), findsNothing);
-        expect(find.text('Szczegóły'), findsNothing);
-        expect(find.byTooltip('Pliki na drukarce'), findsNothing);
+        expect(find.text(pl.detailsShow), findsNothing);
+        expect(find.byTooltip(pl.pfmTooltip), findsNothing);
       },
     );
 
@@ -3690,7 +3673,7 @@ void main() {
         button: 'Rozwiń kartę',
       );
 
-      await tester.tap(find.byTooltip('Rozwiń kartę'));
+      await tester.tap(find.byTooltip(pl.printerCardExpand));
       await tester.pump();
 
       expect(asked, [false]);
@@ -3705,7 +3688,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byTooltip('Zwiń kartę'));
+      await tester.tap(find.byTooltip(pl.printerCardCollapse));
       await tester.pump();
 
       expect(asked, [false, true]);
@@ -3727,7 +3710,7 @@ void main() {
         button: 'Rozwiń kartę',
       );
 
-      await tester.tap(find.byTooltip('Rozwiń kartę'));
+      await tester.tap(find.byTooltip(pl.printerCardExpand));
       await tester.pump();
 
       expectSameLine(
@@ -3794,7 +3777,7 @@ void main() {
         );
         await pumpNarrow(tester, item, collapsed: false);
 
-        expect(find.text('Światło komory'), findsOneWidget);
+        expect(find.text(pl.ctrlLight), findsOneWidget);
       });
 
       testWidgets('an offline card keeps plug, status and toggle on one line', (
@@ -3815,8 +3798,8 @@ void main() {
           ],
         );
 
-        expect(find.text('OFFLINE'), findsOneWidget);
-        expect(find.byTooltip('Zwiń kartę'), findsOneWidget);
+        expect(find.text(pl.statusOffline), findsOneWidget);
+        expect(find.byTooltip(pl.printerCardCollapse), findsOneWidget);
       });
 
       // The header reserves the leading square's width by name, and this is the
@@ -3855,8 +3838,8 @@ void main() {
     ) async {
       await tester.pumpWidget(_cardWithProviders(printing));
 
-      expect(find.byTooltip('Zwiń kartę'), findsNothing);
-      expect(find.byTooltip('Rozwiń kartę'), findsNothing);
+      expect(find.byTooltip(pl.printerCardCollapse), findsNothing);
+      expect(find.byTooltip(pl.printerCardExpand), findsNothing);
     });
 
     testWidgets('a print still preparing shows no percentage', (tester) async {
@@ -3909,7 +3892,7 @@ void main() {
       );
       await tester.pumpWidget(card(item));
 
-      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text(pl.statusOffline), findsOneWidget);
       expect(find.text('RUNNING'), findsNothing);
       expect(find.byType(LinearProgressIndicator), findsNothing);
     });
@@ -3929,7 +3912,7 @@ void main() {
       );
       await tester.pumpWidget(card(item));
 
-      expect(find.byTooltip('1 błąd'), findsOneWidget);
+      expect(find.byTooltip(pl.hmsErrorsCount(1)), findsOneWidget);
       expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
       expect(find.byIcon(Icons.print_outlined), findsNothing);
       expect(find.textContaining('Skończył się filament'), findsNothing);
@@ -3955,11 +3938,11 @@ void main() {
         await tester.pumpWidget(card(item, extra: gate()));
         await tester.pumpAndSettle();
 
-        expect(find.text('OFFLINE'), findsOneWidget);
-        expect(find.byTooltip('Płyta niewyczyszczona'), findsOneWidget);
+        expect(find.text(pl.statusOffline), findsOneWidget);
+        expect(find.byTooltip(pl.plateClearBadge), findsOneWidget);
         expect(find.byIcon(Icons.layers_clear_outlined), findsOneWidget);
         // The acknowledgement itself stays behind the expand button.
-        expect(find.byTooltip('Oznacz płytę jako pustą'), findsNothing);
+        expect(find.byTooltip(pl.plateClearAction), findsNothing);
       });
 
       testWidgets('gives way to a fault when both apply', (tester) async {

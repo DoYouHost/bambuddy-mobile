@@ -57,11 +57,11 @@ void main() {
 
     expect(find.text('admin'), findsOneWidget);
     expect(find.text('zosia'), findsOneWidget);
-    expect(find.text('Administrator'), findsOneWidget);
-    expect(find.text('Użytkownik'), findsOneWidget);
+    expect(find.text(pl.usersRoleAdmin), findsOneWidget);
+    expect(find.text(pl.usersRoleUser), findsOneWidget);
     // Deactivated and directory-backed accounts are called out — both change
     // what an edit or a deletion would mean.
-    expect(find.text('Nieaktywne'), findsOneWidget);
+    expect(find.text(pl.usersInactive), findsOneWidget);
     expect(find.text('LDAP'), findsOneWidget);
     expect(find.text('Domownicy'), findsOneWidget);
   });
@@ -70,11 +70,11 @@ void main() {
     await tester.pumpWidget(_app(const [_admin, _member], signedInAs: _member));
     await tester.pumpAndSettle();
 
-    expect(find.text('ty'), findsOneWidget);
+    expect(find.text(pl.usersYou), findsOneWidget);
     // The marker sits next to the signed-in name, not the other one.
     expect(
       find.ancestor(
-        of: find.text('ty'),
+        of: find.text(pl.usersYou),
         matching: find.ancestor(
           of: find.text('zosia'),
           matching: find.byType(Row),
@@ -91,12 +91,12 @@ void main() {
     await tester.tap(find.text('zosia'));
     await tester.pumpAndSettle();
 
-    expect(find.text('UTWORZONE PRZEZ TO KONTO'), findsOneWidget);
+    expect(find.text(pl.usersOwnedTitle), findsOneWidget);
     expect(find.text('12'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);
     expect(find.text('7'), findsOneWidget);
     // No e-mail on this account — the sheet says so instead of leaving a gap.
-    expect(find.text('brak'), findsWidgets);
+    expect(find.text(pl.usersEmailNone), findsWidgets);
   });
 
   testWidgets('an empty server says so instead of showing a blank list', (
@@ -105,7 +105,7 @@ void main() {
     await tester.pumpWidget(_app(const []));
     await tester.pumpAndSettle();
 
-    expect(find.text('Na tym serwerze nie ma kont.'), findsOneWidget);
+    expect(find.text(pl.usersEmpty), findsOneWidget);
   });
 
   testWidgets('offers no way to add or edit an account to a non-admin', (
@@ -126,13 +126,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Dodaj konto'), findsNothing);
+    expect(find.text(pl.usersCreate), findsNothing);
 
     await tester.tap(find.text('zosia'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Edytuj'), findsNothing);
-    expect(find.text('Usuń'), findsNothing);
+    expect(find.text(pl.usersEdit), findsNothing);
+    expect(find.text(pl.usersDelete), findsNothing);
   });
 
   testWidgets('gives an admin the add, edit and delete entries', (
@@ -141,13 +141,13 @@ void main() {
     await tester.pumpWidget(_app(const [_admin, _member], signedInAs: _admin));
     await tester.pumpAndSettle();
 
-    expect(find.text('Dodaj konto'), findsOneWidget);
+    expect(find.text(pl.usersCreate), findsOneWidget);
 
     await tester.tap(find.text('zosia'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Edytuj'), findsOneWidget);
-    expect(find.text('Usuń'), findsOneWidget);
+    expect(find.text(pl.usersEdit), findsOneWidget);
+    expect(find.text(pl.usersDelete), findsOneWidget);
   });
 
   testWidgets('leaves out delete on the account you are signed in with', (
@@ -161,8 +161,8 @@ void main() {
     await tester.tap(find.text('admin'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Edytuj'), findsOneWidget);
-    expect(find.text('Usuń'), findsNothing);
+    expect(find.text(pl.usersEdit), findsOneWidget);
+    expect(find.text(pl.usersDelete), findsNothing);
   });
 
   group('canReadUsersProvider', () {

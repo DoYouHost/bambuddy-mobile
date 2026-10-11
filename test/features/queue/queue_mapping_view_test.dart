@@ -113,7 +113,7 @@ void main() {
       ]),
     );
 
-    expect(find.text('Gotowe'), findsOneWidget);
+    expect(find.text(pl.mappingStatusReady), findsOneWidget);
     expect(find.text('A1: PLA (Czerwony)'), findsOneWidget);
     expect(find.byIcon(Icons.check_circle), findsOneWidget);
   });
@@ -123,11 +123,9 @@ void main() {
   ) async {
     await open(tester, status: amsOf([_tray(0, 'PLA', '00FF00FF')]));
 
-    expect(find.text('Inny kolor'), findsOneWidget);
+    expect(find.text(pl.mappingStatusColorMismatch), findsOneWidget);
     expect(
-      find.text(
-        'Ten sam typ, inny kolor: potrzebny Czerwony, w\u00A0slocie Zielony',
-      ),
+      find.text(pl.mappingSameTypeOtherColor('Czerwony', 'Zielony')),
       findsOneWidget,
     );
   });
@@ -138,8 +136,10 @@ void main() {
 
     expect(
       find.text(
-        'Ten sam typ, inny kolor: potrzebny Czerwony (#FF0000), '
-        'w\u00A0slocie Czerwony (#A00000)',
+        pl.mappingSameTypeOtherColor(
+          'Czerwony (#FF0000)',
+          'Czerwony (#A00000)',
+        ),
       ),
       findsOneWidget,
     );
@@ -148,8 +148,8 @@ void main() {
   testWidgets('no slot of the type reads type not found', (tester) async {
     await open(tester, status: amsOf([_tray(0, 'PETG', 'FF0000FF')]));
 
-    expect(find.text('Brak filamentu tego typu'), findsOneWidget);
-    expect(find.text('Ten typ filamentu nie jest załadowany'), findsOneWidget);
+    expect(find.text(pl.mappingStatusTypeNotFound), findsOneWidget);
+    expect(find.text(pl.mappingTypeNotLoaded), findsOneWidget);
   });
 
   testWidgets('a slot goes by its spool, else by the variant and catalogue', (
@@ -194,7 +194,7 @@ void main() {
     );
 
     expect(find.text('Bambu PLA Basic'), findsOneWidget);
-    expect(find.text('L'), findsOneWidget);
+    expect(find.text(pl.extruderLeftShort), findsOneWidget);
     expect(find.text(' (12\u00A0g)'), findsOneWidget);
   });
 
@@ -208,7 +208,7 @@ void main() {
     await tester.tap(find.text('PLA').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('[L] · Dokładnie ten kolor'), findsOneWidget);
+    expect(find.text('[L] · ${pl.mappingExactColor}'), findsOneWidget);
   });
 
   testWidgets('a stored pick says it was picked by hand', (tester) async {
@@ -218,7 +218,7 @@ void main() {
       stored: [1],
     );
 
-    expect(find.text('Wybrany ręcznie'), findsOneWidget);
+    expect(find.text(pl.mappingManual), findsOneWidget);
   });
 
   group('the Filament Track Switch inlet', () {

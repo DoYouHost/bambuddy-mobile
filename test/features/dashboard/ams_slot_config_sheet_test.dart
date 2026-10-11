@@ -240,17 +240,17 @@ void main() {
     await openSheet(tester);
     await scrollTo(tester, find.text('Generic PLA'));
 
-    expect(find.text('Szukaj presetu'), findsOneWidget);
-    expect(find.text('Kolor'), findsOneWidget);
-    expect(find.text('Zapisz w\u00A0drukarce'), findsOneWidget);
-    expect(find.text('Wyczyść slot'), findsOneWidget);
+    expect(find.text(pl.amsSlotConfigSearch), findsOneWidget);
+    expect(find.text(pl.amsSlotConfigColour), findsOneWidget);
+    expect(find.text(pl.amsSlotConfigApply), findsOneWidget);
+    expect(find.text(pl.amsSlotReset), findsOneWidget);
   });
 
   testWidgets('writes the picked preset and remembers it', (tester) async {
     final repo = await openSheet(tester);
 
     await tapVisible(tester, find.text('Generic PLA'));
-    await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
+    await tapVisible(tester, find.text(pl.amsSlotConfigApply));
 
     expect(repo.calls, ['configure:1:0:2', 'save:builtin_GFL99:Generic PLA']);
     final written = repo.written!;
@@ -276,7 +276,7 @@ void main() {
     final repo = await openSheet(tester);
 
     await tapVisible(tester, find.text('Bambu PLA Basic'));
-    await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
+    await tapVisible(tester, find.text(pl.amsSlotConfigApply));
 
     expect(repo.cloudDetailId, 'GFSL05_09');
     expect(repo.written!.trayInfoIdx, 'P285e239');
@@ -294,13 +294,10 @@ void main() {
     await openSheet(tester, repo: repo);
 
     await tapVisible(tester, find.text('Generic PLA'));
-    await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
+    await tapVisible(tester, find.text(pl.amsSlotConfigApply));
 
     expect(repo.calls, ['configure:1:0:2', 'save:builtin_GFL99:Generic PLA']);
-    expect(
-      find.textContaining('nazwy presetu nie udało się zapisać'),
-      findsOneWidget,
-    );
+    expect(find.textContaining(pl.amsSlotConfigNameNotSaved), findsOneWidget);
   });
 
   testWidgets('a stale mapping does not win over the loaded filament', (
@@ -357,16 +354,16 @@ void main() {
 
     // Nothing was tapped, so a preselection is the only thing that can arm the
     // button — and it must be the ABS the printer reports.
-    await scrollTo(tester, find.text('Zapisz w\u00A0drukarce'));
+    await scrollTo(tester, find.text(pl.amsSlotConfigApply));
     final button = tester.widget<FilledButton>(
       find.ancestor(
-        of: find.text('Zapisz w\u00A0drukarce'),
+        of: find.text(pl.amsSlotConfigApply),
         matching: find.byType(FilledButton),
       ),
     );
     expect(button.onPressed, isNotNull);
 
-    await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
+    await tapVisible(tester, find.text(pl.amsSlotConfigApply));
     expect(
       repo.calls,
       contains('save:GFSB00_04:Bambu ABS'),
@@ -385,14 +382,11 @@ void main() {
     final repo = await openSheet(tester, authMode: AuthMode.apiKey);
 
     await tapVisible(tester, find.text('Generic PLA'));
-    await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
+    await tapVisible(tester, find.text(pl.amsSlotConfigApply));
 
     expect(repo.calls, ['configure:1:0:2'], reason: 'no doomed PUT');
-    expect(
-      find.textContaining('nazwy presetu nie udało się zapisać'),
-      findsNothing,
-    );
-    expect(find.text('Konfigurowanie slotu…'), findsOneWidget);
+    expect(find.textContaining(pl.amsSlotConfigNameNotSaved), findsNothing);
+    expect(find.text(pl.amsSlotConfigStarted), findsOneWidget);
   });
 
   testWidgets('what the slot is set to sits at the top, labelled', (
@@ -414,7 +408,7 @@ void main() {
       findsOneWidget,
       reason: 'on screen without scrolling',
     );
-    expect(find.textContaining('Ustawiony teraz'), findsOneWidget);
+    expect(find.textContaining(pl.amsSlotConfigCurrent), findsOneWidget);
 
     final rows = tester
         .widgetList<Text>(find.byType(Text))
@@ -453,11 +447,11 @@ void main() {
 
   testWidgets('the write waits for a preset to be picked', (tester) async {
     await openSheet(tester);
-    await scrollTo(tester, find.text('Zapisz w\u00A0drukarce'));
+    await scrollTo(tester, find.text(pl.amsSlotConfigApply));
 
     final button = tester.widget<FilledButton>(
       find.ancestor(
-        of: find.text('Zapisz w\u00A0drukarce'),
+        of: find.text(pl.amsSlotConfigApply),
         matching: find.byType(FilledButton),
       ),
     );
@@ -467,10 +461,10 @@ void main() {
   testWidgets('reset asks before clearing the slot', (tester) async {
     final repo = await openSheet(tester);
 
-    await tapVisible(tester, find.text('Wyczyść slot'));
-    expect(find.text('Wyczyścić slot?'), findsOneWidget);
+    await tapVisible(tester, find.text(pl.amsSlotReset));
+    expect(find.text(pl.amsSlotResetConfirmTitle), findsOneWidget);
 
-    await tester.tap(find.text('Anuluj'));
+    await tester.tap(find.text(pl.cancel));
     await tester.pumpAndSettle();
     expect(
       repo.calls,
@@ -478,9 +472,9 @@ void main() {
       reason: 'a cancelled confirmation sends nothing',
     );
 
-    await tapVisible(tester, find.text('Wyczyść slot'));
+    await tapVisible(tester, find.text(pl.amsSlotReset));
     // The dialog's own confirm button carries the same label as the opener.
-    await tester.tap(find.text('Wyczyść slot').last);
+    await tester.tap(find.text(pl.amsSlotReset).last);
     await tester.pumpAndSettle();
 
     expect(repo.calls, ['reset:1:0:2']);
@@ -516,7 +510,10 @@ void main() {
       // The count is the assertion that the other two are gone: a lazily-built
       // list has no element for an off-screen row either, so `findsNothing`
       // would pass whether they were filtered or merely scrolled past.
-      expect(find.text('Tylko dla X1C (ukryto 2)'), findsOneWidget);
+      expect(
+        find.text(pl.amsSlotConfigOnlyPrinterHiding('X1C', 2)),
+        findsOneWidget,
+      );
       await scrollTo(tester, find.text('Bambu ABS @BBL X1C'));
       expect(find.text('Bambu ABS @BBL X1C'), findsOneWidget);
     });
@@ -527,12 +524,18 @@ void main() {
       // The count is the only honest label for a switch that turns a filter
       // off — "show all" alone says nothing about what is missing.
       await openWith(tester, printerModel: 'X1C');
-      expect(find.text('Tylko dla X1C (ukryto 2)'), findsOneWidget);
+      expect(
+        find.text(pl.amsSlotConfigOnlyPrinterHiding('X1C', 2)),
+        findsOneWidget,
+      );
 
-      await tapVisible(tester, find.text('Tylko dla X1C (ukryto 2)'));
+      await tapVisible(
+        tester,
+        find.text(pl.amsSlotConfigOnlyPrinterHiding('X1C', 2)),
+      );
 
       expect(
-        find.text('Tylko dla X1C'),
+        find.text(pl.amsSlotConfigOnlyPrinter('X1C')),
         findsOneWidget,
         reason: 'nothing is hidden any more, so the count goes away',
       );
@@ -547,7 +550,7 @@ void main() {
       // nothing, and there is no way to tell which one it is.
       await openWith(tester, printerModel: null);
 
-      expect(find.textContaining('Nieznany model drukarki'), findsOneWidget);
+      expect(find.textContaining(pl.amsSlotConfigModelUnknown), findsOneWidget);
       await scrollTo(tester, find.text('Bambu ASA @BBL A1'));
       expect(find.text('Bambu ASA @BBL A1'), findsOneWidget);
     });
@@ -560,7 +563,7 @@ void main() {
       ..cloudError = const AuthException(AppErrorCode.unauthorized);
     await openSheet(tester, repo: repo);
 
-    expect(find.textContaining('Zaloguj się do Bambu Cloud'), findsOneWidget);
+    expect(find.textContaining(pl.amsSlotConfigCloudHint), findsOneWidget);
     await scrollTo(tester, find.text('Generic PLA'));
     expect(
       find.text('Generic PLA'),
@@ -602,7 +605,10 @@ void main() {
       reason: 'the filter hides it, so there is nothing to mark yet',
     );
 
-    await tapVisible(tester, find.textContaining('Tylko dla X1C'));
+    await tapVisible(
+      tester,
+      find.textContaining(pl.amsSlotConfigOnlyPrinter('X1C')),
+    );
 
     expect(find.text('Bambu ABS @BBL A1'), findsOneWidget);
     expect(find.text('Ustawiony teraz · Bambu Cloud'), findsOneWidget);
@@ -630,11 +636,8 @@ void main() {
       // there is no way to tell that from a printer nobody has calibrated.
       await openSheet(tester);
 
-      expect(find.text('Profil K'), findsOneWidget);
-      expect(
-        find.textContaining('nie ma zapisanych profili K'),
-        findsOneWidget,
-      );
+      expect(find.text(pl.amsSlotConfigKProfile), findsOneWidget);
+      expect(find.textContaining(pl.amsSlotConfigKProfileNone), findsOneWidget);
     });
 
     testWidgets('a table that could not be read is not passed off as empty', (
@@ -646,7 +649,7 @@ void main() {
       await openSheet(tester, repo: repo);
 
       expect(
-        find.textContaining('Nie udało się odczytać profili K'),
+        find.textContaining(pl.amsSlotConfigKProfileUnavailable),
         findsOneWidget,
       );
     });
@@ -675,7 +678,7 @@ void main() {
       await openSheet(tester, repo: repo);
 
       await tapVisible(tester, find.text('Generic PLA'));
-      await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
+      await tapVisible(tester, find.text(pl.amsSlotConfigApply));
 
       final written = repo.written!;
       expect(written.caliIdx, 4);
@@ -706,7 +709,7 @@ void main() {
       );
 
       await tapVisible(tester, find.text('Generic PLA'));
-      await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
+      await tapVisible(tester, find.text(pl.amsSlotConfigApply));
 
       expect(repo.written!.caliIdx, 6);
     });
@@ -732,8 +735,11 @@ void main() {
 
       await tapVisible(tester, find.text('Generic PLA'));
       await tapVisible(tester, find.text('PLA basic · K\u00A00,035'));
-      await tapVisible(tester, find.text('Domyślny (K\u00A00,020)').last);
-      await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
+      await tapVisible(
+        tester,
+        find.text(pl.amsSlotConfigKProfileDefault('0,020')).last,
+      );
+      await tapVisible(tester, find.text(pl.amsSlotConfigApply));
 
       expect(repo.written!.caliIdx, -1);
     });
@@ -759,7 +765,7 @@ void main() {
       );
 
       await tapVisible(tester, find.text('Generic PLA'));
-      await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
+      await tapVisible(tester, find.text(pl.amsSlotConfigApply));
 
       expect(repo.written!.caliIdx, 9);
     });
@@ -772,8 +778,11 @@ void main() {
       await tapVisible(tester, find.text('Generic PLA'));
 
       await tapVisible(tester, find.text('PLA basic · K\u00A00,035'));
-      await tapVisible(tester, find.text('Domyślny (K\u00A00,020)').last);
-      await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
+      await tapVisible(
+        tester,
+        find.text(pl.amsSlotConfigKProfileDefault('0,020')).last,
+      );
+      await tapVisible(tester, find.text(pl.amsSlotConfigApply));
 
       expect(repo.written!.caliIdx, -1);
       expect(repo.written!.kValue, 0);
@@ -805,7 +814,7 @@ void main() {
 
       await tapVisible(tester, find.text('PLA basic · K\u00A00,035'));
 
-      expect(find.text('Pozostałe profile'), findsOneWidget);
+      expect(find.text(pl.amsSlotConfigKProfileOther), findsOneWidget);
       expect(find.text('eSUN PETG dry · K\u00A00,048'), findsOneWidget);
     });
   });
@@ -837,11 +846,14 @@ void main() {
       await tapVisible(
         tester,
         find
-            .ancestor(of: find.text('Kolor'), matching: find.byType(InkWell))
+            .ancestor(
+              of: find.text(pl.amsSlotConfigColour),
+              matching: find.byType(InkWell),
+            )
             .first,
       );
 
-      expect(find.text('Kolory z\u00A0katalogu'), findsOneWidget);
+      expect(find.text(pl.amsSlotConfigColourCatalogue), findsOneWidget);
       expect(find.byTooltip('Bambu Green'), findsOneWidget);
       expect(
         find.byTooltip('Grey'),
@@ -859,12 +871,15 @@ void main() {
       await tapVisible(
         tester,
         find
-            .ancestor(of: find.text('Kolor'), matching: find.byType(InkWell))
+            .ancestor(
+              of: find.text(pl.amsSlotConfigColour),
+              matching: find.byType(InkWell),
+            )
             .first,
       );
       await tapVisible(tester, find.byTooltip('Bambu Green'));
-      await tapVisible(tester, find.text('Wybierz'));
-      await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
+      await tapVisible(tester, find.text(pl.inventoryColorSelect));
+      await tapVisible(tester, find.text(pl.amsSlotConfigApply));
 
       expect(
         repo.written!.trayColour,
@@ -882,12 +897,15 @@ void main() {
       await tapVisible(
         tester,
         find
-            .ancestor(of: find.text('Kolor'), matching: find.byType(InkWell))
+            .ancestor(
+              of: find.text(pl.amsSlotConfigColour),
+              matching: find.byType(InkWell),
+            )
             .first,
       );
 
-      expect(find.text('Kolory z\u00A0katalogu'), findsNothing);
-      await tapVisible(tester, find.text('Anuluj'));
+      expect(find.text(pl.amsSlotConfigColourCatalogue), findsNothing);
+      await tapVisible(tester, find.text(pl.cancel));
       expect(repo.written, isNull);
     });
   });

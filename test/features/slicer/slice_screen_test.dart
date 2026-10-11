@@ -240,7 +240,7 @@ void main() {
   /// indeterminate animation never settles. A few frames are enough for the fake
   /// job to report itself terminal, which also cancels its poll timer.
   Future<Map<String, dynamic>> slice(WidgetTester tester) async {
-    await tester.tap(find.text('Potnij'));
+    await tester.tap(find.text(pl.sliceStart));
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
@@ -278,8 +278,8 @@ void main() {
       // and how objects land on it are basic choices, not expert ones, so they
       // sit in the list like everything else.
       await openSheet(tester);
-      expect(find.text('Płyta robocza'), findsOneWidget);
-      expect(find.text('Zaawansowane'), findsNothing);
+      expect(find.text(pl.sliceBedType), findsOneWidget);
+      expect(find.text(pl.processSettingsModeAdvanced), findsNothing);
     });
 
     testWidgets('the submit button is reachable without scrolling to it', (
@@ -297,7 +297,7 @@ void main() {
       );
       // The form really is longer than the viewport — the last filament is
       // below the fold, which is what used to bury the button with it.
-      expect(find.text('Filament 3'), findsNothing);
+      expect(find.text(pl.sliceFilamentNumbered('3')), findsNothing);
       // And the button is still tappable without a single scroll.
       final body = await slice(tester);
       expect(body['filament_presets'], hasLength(3));
@@ -316,8 +316,8 @@ void main() {
           FilamentRequirement(slotId: 2, type: 'PETG', usedInPlate: false),
         ],
       );
-      expect(find.text('Nieużywany na tej płycie'), findsOneWidget);
-      expect(find.text('Filament 2'), findsOneWidget);
+      expect(find.text(pl.sliceFilamentUnused), findsOneWidget);
+      expect(find.text(pl.sliceFilamentNumbered('2')), findsOneWidget);
 
       // Every slot still reaches the request, positionally.
       final body = await slice(tester);
@@ -337,7 +337,7 @@ void main() {
           FilamentRequirement(slotId: 2, type: 'PETG', usedInPlate: true),
         ],
       );
-      expect(find.text('Nieużywany na tej płycie'), findsNothing);
+      expect(find.text(pl.sliceFilamentUnused), findsNothing);
     });
   });
 
@@ -348,15 +348,15 @@ void main() {
       // Absent rather than disabled: an older server drops process_overrides
       // without a word, so a control that appears to work is worse than none.
       await openSheet(tester, available: false);
-      expect(find.text('Ustawienia procesu'), findsNothing);
+      expect(find.text(pl.processSettingsTitle), findsNothing);
     });
 
     testWidgets('shows the preset is untouched before anything is edited', (
       tester,
     ) async {
       await openSheet(tester);
-      expect(find.text('Ustawienia procesu'), findsOneWidget);
-      expect(find.text('Preset bez zmian'), findsOneWidget);
+      expect(find.text(pl.processSettingsTitle), findsOneWidget);
+      expect(find.text(pl.sliceProcessSettingsUnchanged), findsOneWidget);
     });
   });
 
@@ -378,7 +378,7 @@ void main() {
       tester,
     ) async {
       await openSheet(tester);
-      await tester.tap(find.text('Ustawienia procesu'));
+      await tester.tap(find.text(pl.processSettingsTitle));
       await tester.pumpAndSettle();
 
       await tester.enterText(
@@ -401,7 +401,7 @@ void main() {
       // confirm step to press.
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
-      expect(find.text('Zmienione: 2'), findsOneWidget);
+      expect(find.text(pl.sliceProcessSettingsChanged(2)), findsOneWidget);
 
       final body = await slice(tester);
       expect(body['process_overrides'], {
@@ -423,7 +423,7 @@ void main() {
           FilamentRequirement(slotId: 2, type: 'PETG', usedInPlate: false),
         ],
       );
-      await tester.tap(find.text('Ustawienia procesu'));
+      await tester.tap(find.text(pl.processSettingsTitle));
       await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(
@@ -436,7 +436,7 @@ void main() {
       // Named after the preset the form auto-picked, not "1" and "2"; and the
       // slot the plate ignores says so here too.
       expect(find.textContaining('1: Bambu PLA Basic'), findsWidgets);
-      expect(find.textContaining('Nieużywany na tej płycie'), findsWidgets);
+      expect(find.textContaining(pl.sliceFilamentUnused), findsWidgets);
 
       await tester.tap(find.textContaining('2: Bambu PLA Basic').last);
       await tester.pumpAndSettle();
@@ -458,7 +458,7 @@ void main() {
           values: {'layer_height': '0.28'},
         ),
       );
-      await tester.tap(find.text('Ustawienia procesu'));
+      await tester.tap(find.text(pl.processSettingsTitle));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.descendant(
@@ -471,7 +471,7 @@ void main() {
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
 
-      expect(find.text('Preset bez zmian'), findsOneWidget);
+      expect(find.text(pl.sliceProcessSettingsUnchanged), findsOneWidget);
       final body = await slice(tester);
       expect(
         body.containsKey('process_overrides'),
@@ -553,21 +553,21 @@ void main() {
     ) async {
       await open(tester);
 
-      expect(find.text('Plik jest pod X1 Carbon 0.4'), findsOneWidget);
-      expect(find.text('Użyj ustawień z\u00A0pliku'), findsNothing);
+      expect(find.text(pl.sliceDesignedFor('X1 Carbon 0.4')), findsOneWidget);
+      expect(find.text(pl.sliceAsDesigned), findsNothing);
     });
 
     testWidgets('switches to it, which is what reveals the switch', (
       tester,
     ) async {
       await open(tester);
-      await tester.tap(find.text('Przełącz'));
+      await tester.tap(find.text(pl.sliceUseDesignedPrinter));
       await tester.pumpAndSettle();
 
       expect(find.text('Bambu Lab X1 Carbon 0.4 nozzle'), findsWidgets);
-      expect(find.text('Użyj ustawień z\u00A0pliku'), findsOneWidget);
+      expect(find.text(pl.sliceAsDesigned), findsOneWidget);
       expect(
-        find.text('Plik jest pod X1 Carbon 0.4'),
+        find.text(pl.sliceDesignedFor('X1 Carbon 0.4')),
         findsNothing,
         reason: 'nothing left to point at once it is the picked printer',
       );
@@ -581,7 +581,7 @@ void main() {
       // as a rendering fault, with a tap target the size of the words.
       await open(tester);
       final size = tester.getSize(
-        find.widgetWithText(FilledButton, 'Przełącz'),
+        find.widgetWithText(FilledButton, pl.sliceUseDesignedPrinter),
       );
 
       expect(size.height, greaterThanOrEqualTo(36));
@@ -595,8 +595,8 @@ void main() {
       // nothing to switch to; an action that cannot work is not.
       await open(tester, presets: _presets);
 
-      expect(find.text('Plik jest pod X1 Carbon 0.4'), findsOneWidget);
-      expect(find.text('Przełącz'), findsNothing);
+      expect(find.text(pl.sliceDesignedFor('X1 Carbon 0.4')), findsOneWidget);
+      expect(find.text(pl.sliceUseDesignedPrinter), findsNothing);
     });
 
     testWidgets('says nothing when the file names no printer', (tester) async {
@@ -624,14 +624,14 @@ void main() {
           serverSupportsAsDesigned: false,
         ),
       );
-      expect(find.text('Użyj ustawień z\u00A0pliku'), findsNothing);
+      expect(find.text(pl.sliceAsDesigned), findsNothing);
     });
 
     testWidgets('is absent for a file with no embedded profile', (
       tester,
     ) async {
       await openSheet(tester);
-      expect(find.text('Użyj ustawień z\u00A0pliku'), findsNothing);
+      expect(find.text(pl.sliceAsDesigned), findsNothing);
     });
 
     testWidgets('is absent while the picked printer is a different model', (
@@ -648,7 +648,7 @@ void main() {
           serverSupportsAsDesigned: true,
         ),
       );
-      expect(find.text('Użyj ustawień z\u00A0pliku'), findsNothing);
+      expect(find.text(pl.sliceAsDesigned), findsNothing);
     });
 
     testWidgets('defaults the printer to the one the file was designed for', (
@@ -673,7 +673,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Użyj ustawień z\u00A0pliku'), findsOneWidget);
+      expect(find.text(pl.sliceAsDesigned), findsOneWidget);
       final body = await slice(tester);
       expect(
         body['printer_preset'],
@@ -686,10 +686,10 @@ void main() {
       tester,
     ) async {
       await openSheet(tester, embedded: designed);
-      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
+      await tester.tap(find.text(pl.sliceAsDesigned));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nieużywane — decyduje plik'), findsWidgets);
+      expect(find.text(pl.sliceAsDesignedInactive), findsWidgets);
 
       final body = await slice(tester);
       expect(body['use_embedded_settings'], isTrue);
@@ -707,7 +707,7 @@ void main() {
       );
 
       expect(tile('Drukarka').enabled, isTrue);
-      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
+      await tester.tap(find.text(pl.sliceAsDesigned));
       await tester.pumpAndSettle();
 
       // The printer among them: moving off the design's target would drop the
@@ -724,13 +724,13 @@ void main() {
       // make one. The row does not open, so a switch left on cannot be carried
       // to a printer the design does not target.
       await openSheet(tester, embedded: designed);
-      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
+      await tester.tap(find.text(pl.sliceAsDesigned));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Drukarka'));
+      await tester.tap(find.text(pl.slicePrinter));
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Szukaj profili'),
+        find.text(pl.sliceSearchHint),
         findsNothing,
         reason: 'the preset picker must not have opened',
       );
@@ -761,7 +761,7 @@ void main() {
       expect(dimOf('Drukarka'), 1.0);
       expect(chevronsIn('Drukarka'), 1);
 
-      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
+      await tester.tap(find.text(pl.sliceAsDesigned));
       await tester.pumpAndSettle();
 
       expect(dimOf('Drukarka'), lessThan(0.6));
@@ -776,11 +776,11 @@ void main() {
       // bed_type patches a process JSON the embedded path never builds, so
       // sending it would only misreport what this slice did.
       await openSheet(tester, embedded: designed);
-      await tester.tap(find.text('Płyta robocza'));
+      await tester.tap(find.text(pl.sliceBedType));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Textured PEI Plate'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
+      await tester.tap(find.text(pl.sliceAsDesigned));
       await tester.pumpAndSettle();
 
       expect((await slice(tester)).containsKey('bed_type'), isFalse);
@@ -790,7 +790,7 @@ void main() {
       // The other half of the case above, or the assertion proves nothing: an
       // absent key is also what an untouched picker produces.
       await openSheet(tester, embedded: designed);
-      await tester.tap(find.text('Płyta robocza'));
+      await tester.tap(find.text(pl.sliceBedType));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Textured PEI Plate'));
       await tester.pumpAndSettle();
@@ -802,7 +802,7 @@ void main() {
       tester,
     ) async {
       await openSheet(tester, embedded: designed);
-      await tester.tap(find.text('Ustawienia procesu'));
+      await tester.tap(find.text(pl.processSettingsTitle));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.descendant(
@@ -816,8 +816,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Recorded while off — the same edit reaches the body in the group above.
-      expect(find.text('Zmienione: 1'), findsOneWidget);
-      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
+      expect(find.text(pl.sliceProcessSettingsChanged(1)), findsOneWidget);
+      await tester.tap(find.text(pl.sliceAsDesigned));
       await tester.pumpAndSettle();
 
       expect((await slice(tester)).containsKey('process_overrides'), isFalse);
@@ -839,12 +839,12 @@ void main() {
           filaments: [],
         ),
       );
-      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
+      await tester.tap(find.text(pl.sliceAsDesigned));
       await tester.pumpAndSettle();
 
       final filament = tester.widget<ListTile>(
         find.ancestor(
-          of: find.text('Filament'),
+          of: find.text(pl.sliceFilament),
           matching: find.byType(ListTile),
         ),
       );
@@ -855,9 +855,9 @@ void main() {
       // They act on the geometry through the CLI, not through the process
       // config, so they work whatever the settings come from.
       await openSheet(tester, embedded: designed, layoutOptions: true);
-      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
+      await tester.tap(find.text(pl.sliceAsDesigned));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Automatyczna orientacja'));
+      await tester.tap(find.text(pl.sliceAutoOrient));
       await tester.pumpAndSettle();
 
       final body = await slice(tester);
@@ -869,9 +869,9 @@ void main() {
       tester,
     ) async {
       await openSheet(tester, embedded: designed);
-      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
+      await tester.tap(find.text(pl.sliceAsDesigned));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
+      await tester.tap(find.text(pl.sliceAsDesigned));
       await tester.pumpAndSettle();
 
       final body = await slice(tester);
@@ -908,7 +908,7 @@ void main() {
     );
 
     Future<void> apply(WidgetTester tester) async {
-      await tester.tap(find.text('Zastosuj pipeline…'));
+      await tester.tap(find.text(pl.pipelineApply));
       await tester.pumpAndSettle();
       await tester.tap(find.text('X2D Gridfinity PETG').last);
       await tester.pumpAndSettle();
@@ -933,7 +933,7 @@ void main() {
       // Older servers 404 the whole feature, and an API-key session is refused
       // it — a control that can only fail is worse than none.
       await openSheet(tester, pipelines: const [bundle]);
-      expect(find.text('Pipeline'), findsNothing);
+      expect(find.text(pl.pipelineSection), findsNothing);
     });
 
     testWidgets('fills every slot from one pick', (tester) async {
@@ -970,7 +970,7 @@ void main() {
       await apply(tester);
       await revealSlots(tester);
 
-      expect(find.text('Dotknij, aby wybrać'), findsNothing);
+      expect(find.text(pl.sliceSelect), findsNothing);
     });
 
     testWidgets('a shorter pipeline leaves the slots it does not reach', (
@@ -1020,7 +1020,7 @@ void main() {
       await apply(tester);
       await revealSlots(tester);
 
-      expect(find.text('Nie ma go już w\u00A0katalogu'), findsWidgets);
+      expect(find.text(pl.pipelinePresetGone), findsWidgets);
 
       final body = await slice(tester);
       expect(body['process_preset'], {'source': 'local', 'id': '99'});
@@ -1744,7 +1744,7 @@ void main() {
 
       final submit = tester.widget<ButtonStyleButton>(
         find.ancestor(
-          of: find.text('Potnij'),
+          of: find.text(pl.sliceStart),
           matching: find.bySubtype<ButtonStyleButton>(),
         ),
       );
@@ -1767,7 +1767,7 @@ void main() {
           FilamentRequirement(slotId: 2, type: 'PETG'),
         ],
       );
-      await tester.tap(find.text('Ustawienia procesu'));
+      await tester.tap(find.text(pl.processSettingsTitle));
       await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(

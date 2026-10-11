@@ -54,7 +54,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.text('Drukuje'),
+        find.text(pl.queueStatusPrinting),
         findsOneWidget,
         reason: 'status printing → pl',
       );
@@ -84,7 +84,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Partia: Keychains ×6'), findsOneWidget);
+    expect(
+      find.textContaining(pl.queueInBatch('Keychains ×6')),
+      findsOneWidget,
+    );
     expect(byLogId('queue.orders'), findsOneWidget);
   });
 
@@ -110,7 +113,7 @@ void main() {
     await tester.pumpWidget(_screen(const []));
     await tester.pumpAndSettle();
 
-    expect(find.text('Kolejka jest pusta'), findsOneWidget);
+    expect(find.text(pl.queueEmpty), findsOneWidget);
   });
 
   testWidgets('no FAB when the queue only has printing items', (tester) async {
@@ -120,7 +123,7 @@ void main() {
     await tester.pumpWidget(_screen([printing]));
     await tester.pumpAndSettle();
 
-    expect(find.text('Uruchom następny'), findsNothing);
+    expect(find.text(pl.queueStartNext), findsNothing);
   });
 
   testWidgets('the "Start next" FAB is visible when there are pending prints', (
@@ -132,7 +135,7 @@ void main() {
     await tester.pumpWidget(_screen([pending]));
     await tester.pumpAndSettle();
 
-    expect(find.text('Uruchom następny'), findsOneWidget);
+    expect(find.text(pl.queueStartNext), findsOneWidget);
   });
 
   group('a user held for review (#1620)', () {
@@ -239,7 +242,7 @@ void main() {
     await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
     await tester.pumpAndSettle();
 
-    expect(find.text('Usunąć z\u00A0kolejki?'), findsOneWidget);
+    expect(find.text(pl.queueDeleteTitle), findsOneWidget);
   });
 
   group('start flow outliving the row that began it', () {
@@ -285,13 +288,13 @@ void main() {
 
       await tester.tap(find.byIcon(Icons.more_vert));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ListTile, 'Uruchom teraz'));
+      await tester.tap(find.widgetWithText(ListTile, pl.queueStart));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Uruchom teraz'));
+      await tester.tap(find.widgetWithText(FilledButton, pl.queueStart));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Płyta jest pusta'));
+      await tester.tap(find.text(pl.plateClearConfirm));
       await tester.pumpAndSettle();
       expect(commands.acks, 1, reason: 'the acknowledgement is on the wire');
     }
@@ -311,15 +314,12 @@ void main() {
 
       await tester.tap(find.byIcon(Icons.more_vert));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ListTile, 'Uruchom teraz'));
+      await tester.tap(find.widgetWithText(ListTile, pl.queueStart));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Uruchom teraz'));
+      await tester.tap(find.widgetWithText(FilledButton, pl.queueStart));
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Nie udało się połączyć z\u00A0serwerem'),
-        findsOneWidget,
-      );
+      expect(find.text(pl.connectFailed), findsOneWidget);
       expect(queue.started, isEmpty, reason: 'nothing reached the server');
       expect(
         tester.takeException(),
@@ -365,7 +365,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('Zaktualizuj bambuddy'), findsOneWidget);
+      expect(find.textContaining(pl.plateClearNeedsOnline), findsOneWidget);
       expect(queue.started, isEmpty, reason: 'a held gate starts nothing');
     });
   });

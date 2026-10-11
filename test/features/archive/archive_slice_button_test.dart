@@ -70,7 +70,7 @@ void main() {
   }
 
   Finder sliceButton() =>
-      find.widgetWithText(OutlinedButton, 'Potnij').hitTestable();
+      find.widgetWithText(OutlinedButton, pl.sliceAction).hitTestable();
 
   /// The reason a disabled button gives, which now rides on the button as a
   /// tooltip rather than as a line under it — the line grew the sheet half a
@@ -83,7 +83,7 @@ void main() {
       tester.widget<OutlinedButton>(sliceButton()).onPressed != null;
 
   Finder pipelineButton() =>
-      find.widgetWithText(OutlinedButton, 'Uruchom').hitTestable();
+      find.widgetWithText(OutlinedButton, pl.pipelineRun).hitTestable();
 
   testWidgets('an unanswered pipeline gate holds the button greyed, in place', (
     tester,
@@ -133,7 +133,7 @@ void main() {
     // A tap on the greyed button says why.
     await tester.tap(sliceButton());
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.textContaining('nie da się go pociąć'), findsOneWidget);
+    expect(find.textContaining(pl.archiveNotSliceable), findsOneWidget);
     await tester.pump(const Duration(seconds: 6));
     await tester.pumpAndSettle();
   });

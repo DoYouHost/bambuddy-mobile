@@ -57,7 +57,7 @@ void main() {
   }
 
   Future<void> dismiss(WidgetTester tester) async {
-    await tester.tap(find.text('Anuluj'));
+    await tester.tap(find.text(pl.cancel));
     await tester.pumpAndSettle();
   }
 

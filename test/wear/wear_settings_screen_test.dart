@@ -86,20 +86,14 @@ void main() {
   testWidgets('names the server the watch is on', (tester) async {
     await pumpSettings(tester);
 
-    expect(find.text('Obecny serwer'), findsOneWidget);
+    expect(find.text(pl.wearCurrentServer), findsOneWidget);
     expect(find.text('Workshop'), findsOneWidget);
-    expect(find.text('Zmień serwer'), findsOneWidget);
+    expect(find.text(pl.changeServer), findsOneWidget);
     // The consequence is on the screen, not hidden in the dialog: the shared
     // wear dialog clips its subtitle to one line. Under the button, so on a
     // small face it is a scroll away.
-    await revealOnWatch(
-      tester,
-      find.text('Zapisany profil i\u00A0poświadczenia zostaną usunięte.'),
-    );
-    expect(
-      find.text('Zapisany profil i\u00A0poświadczenia zostaną usunięte.'),
-      findsOneWidget,
-    );
+    await revealOnWatch(tester, find.text(pl.changeServerWarning));
+    expect(find.text(pl.changeServerWarning), findsOneWidget);
   });
 
   testWidgets('change server asks first, and a refusal changes nothing', (
@@ -107,7 +101,7 @@ void main() {
   ) async {
     await pumpSettings(tester);
 
-    await tapOnWatch(tester, find.text('Zmień serwer'));
+    await tapOnWatch(tester, find.text(pl.changeServer));
     await tester.pumpAndSettle();
     expect(find.byType(WearConfirmDialog), findsOneWidget);
     // Named inside the question, so it is clear which server is being dropped —
@@ -129,7 +123,7 @@ void main() {
   testWidgets('confirming drops the profile and every secret', (tester) async {
     await pumpSettings(tester);
 
-    await tapOnWatch(tester, find.text('Zmień serwer'));
+    await tapOnWatch(tester, find.text(pl.changeServer));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.check_rounded));
     await tester.pumpAndSettle();
@@ -142,9 +136,9 @@ void main() {
   ) async {
     await pumpSettings(tester, offered: _configFor('garage', label: 'Garage'));
 
-    expect(find.text('Telefon proponuje inny serwer.'), findsOneWidget);
+    expect(find.text(pl.wearFromPhoneWaiting), findsOneWidget);
 
-    await tapOnWatch(tester, find.text('Użyj tego serwera'));
+    await tapOnWatch(tester, find.text(pl.wearFromPhoneUse));
     await tester.pumpAndSettle();
 
     expect(sync.applied.single.profile.label, 'Garage');
@@ -157,11 +151,11 @@ void main() {
     sync = FakeWatchConfigSync(applyGate: gate);
     await pumpSettings(tester, offered: _configFor('garage', label: 'Garage'));
 
-    await tapOnWatch(tester, find.text('Użyj tego serwera'));
+    await tapOnWatch(tester, find.text(pl.wearFromPhoneUse));
     await tester.pump();
     // The button is gone while the write runs, so the second tap has nothing to
     // hit — two concurrent writes of the same secrets is not a race worth having.
-    expect(find.text('Użyj tego serwera'), findsNothing);
+    expect(find.text(pl.wearFromPhoneUse), findsNothing);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
     gate.complete();
@@ -176,7 +170,7 @@ void main() {
     sync = FakeWatchConfigSync(applyGate: gate);
     await pumpSettings(tester, offered: _configFor('garage', label: 'Garage'));
 
-    await tapOnWatch(tester, find.text('Użyj tego serwera'));
+    await tapOnWatch(tester, find.text(pl.wearFromPhoneUse));
     await tester.pump();
 
     // Swipe-to-dismiss is a sideways swipe on Wear OS, so leaving mid-write is
@@ -200,8 +194,8 @@ void main() {
       offered: _configFor('workshop.local', label: 'Workshop'),
     );
 
-    expect(find.text('Telefon proponuje inny serwer.'), findsNothing);
-    expect(find.text('Użyj tego serwera'), findsNothing);
+    expect(find.text(pl.wearFromPhoneWaiting), findsNothing);
+    expect(find.text(pl.wearFromPhoneUse), findsNothing);
   });
 
   testWidgets('the footer carries both versions', (tester) async {
@@ -210,10 +204,13 @@ void main() {
     await pumpSettings(tester, serverVersion: '1.2.6b1');
     await tester.pumpAndSettle();
 
-    await revealOnWatch(tester, find.text('Aplikacja 0.14.0+2028000'));
-    expect(find.text('Aplikacja 0.14.0+2028000'), findsOneWidget);
-    await revealOnWatch(tester, find.text('Serwer 1.2.6b1'));
-    expect(find.text('Serwer 1.2.6b1'), findsOneWidget);
+    await revealOnWatch(
+      tester,
+      find.text(pl.appVersionLabel('0.14.0+2028000')),
+    );
+    expect(find.text(pl.appVersionLabel('0.14.0+2028000')), findsOneWidget);
+    await revealOnWatch(tester, find.text(pl.serverVersionLabel('1.2.6b1')));
+    expect(find.text(pl.serverVersionLabel('1.2.6b1')), findsOneWidget);
   });
 
   testWidgets('a phone or server that answers nothing says so', (tester) async {
@@ -222,8 +219,8 @@ void main() {
     await pumpSettings(tester);
     await tester.pumpAndSettle();
 
-    await revealOnWatch(tester, find.text('Nieznana wersja serwera'));
-    expect(find.text('Nieznana wersja serwera'), findsOneWidget);
+    await revealOnWatch(tester, find.text(pl.serverVersionUnknown));
+    expect(find.text(pl.serverVersionUnknown), findsOneWidget);
   });
 
   testWidgets('the longest version there is stays on the glass', (

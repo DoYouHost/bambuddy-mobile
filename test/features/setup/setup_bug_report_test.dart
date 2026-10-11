@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
+import '../../helpers.dart';
 
 void main() {
   late SharedPreferences prefs;
@@ -95,8 +96,8 @@ void main() {
     router.go(bugReportRoute);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('usługa w\u00A0tle'), findsOneWidget);
-    expect(find.text('Klucz API ani hasło'), findsOneWidget);
-    expect(find.text('Tekst, który wpisujesz'), findsOneWidget);
+    expect(find.textContaining(pl.bugReportLogService), findsOneWidget);
+    expect(find.text(pl.bugReportLogNoKey), findsOneWidget);
+    expect(find.text(pl.bugReportLogNoTyping), findsOneWidget);
   });
 }

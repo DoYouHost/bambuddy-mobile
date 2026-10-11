@@ -32,8 +32,8 @@ void main() {
     );
     await settle(tester);
 
-    expect(find.text('Aplikacja 0.14.0+2028000'), findsOneWidget);
-    expect(find.text('Serwer 1.2.6b1'), findsOneWidget);
+    expect(find.text(pl.appVersionLabel('0.14.0+2028000')), findsOneWidget);
+    expect(find.text(pl.serverVersionLabel('1.2.6b1')), findsOneWidget);
   });
 
   testWidgets('an older server leaves the line, not a gap', (tester) async {
@@ -47,7 +47,7 @@ void main() {
     );
     await settle(tester);
 
-    expect(find.text('Nieznana wersja serwera'), findsOneWidget);
+    expect(find.text(pl.serverVersionUnknown), findsOneWidget);
   });
 
   testWidgets('a fresh install names no server at all', (tester) async {
@@ -61,8 +61,8 @@ void main() {
     );
     await settle(tester);
 
-    expect(find.text('Aplikacja 0.14.0+2028000'), findsOneWidget);
-    expect(find.text('Nieznana wersja serwera'), findsNothing);
+    expect(find.text(pl.appVersionLabel('0.14.0+2028000')), findsOneWidget);
+    expect(find.text(pl.serverVersionUnknown), findsNothing);
     expect(find.textContaining('Serwer'), findsNothing);
   });
 }

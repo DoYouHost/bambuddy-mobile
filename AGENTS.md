@@ -311,6 +311,15 @@ do not stay silent because it was not part of the task.
   a widget test is otherwise happy with a layout that fits the square and lights
   none of the circle.
 
+- **A finder never spells out the app's own copy.** `find.text(pl.cancel)`, not
+  `find.text('Anuluj')` — `pl` is the Polish `AppLocalizations` exported by
+  [test/helpers.dart](test/helpers.dart), so a copy change (a no-break space, a
+  reworded label) touches the `.arb` and no test. Text that is a plural or takes
+  a parameter is `pl.key(3)`; a message with a name inside it is `'${pl.key}…'`.
+  Server data (printer names, HMS text, fixture bodies) stays literal.
+  `finder_strings_test.dart` refuses a literal that equals an `.arb` value,
+  fits one of its templates or carries a Polish diacritic; the few exceptions
+  sit in its `notAppCopy` set, each with its source.
 - **Every function that parses user input** (URLs, paths, formats) gets tests for
   the basic path, missing input and odd input, written with it. A mocked
   transport does not exercise network behaviour: the http/https/WS bug passed a

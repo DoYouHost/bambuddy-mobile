@@ -86,8 +86,8 @@ void main() {
     // Two lines: reading and (since the data has targets) target.
     final chart = tester.widget<LineChart>(find.byType(LineChart));
     expect(chart.data.lineBarsData, hasLength(2));
-    expect(find.text('Odczyt'), findsOneWidget);
-    expect(find.text('Zadana'), findsOneWidget);
+    expect(find.text(pl.heaterHistoryReading), findsOneWidget);
+    expect(find.text(pl.heaterHistoryTarget), findsOneWidget);
 
     // Current from the last point, the rest straight from the server.
     expect(find.text('219.8°C'), findsOneWidget);
@@ -101,15 +101,15 @@ void main() {
 
     await pumpSheet(tester, repo);
 
-    await tester.tap(find.text('6\u00A0h'));
+    await tester.tap(find.text(pl.sensorHistoryRange6h));
     await tester.pumpAndSettle();
     expect(repo.lastHours, 6);
 
     // Bed has no points — empty state instead of a chart.
-    await tester.tap(find.text('Stół'));
+    await tester.tap(find.text(pl.tempBed));
     await tester.pumpAndSettle();
     expect(repo.lastKinds, ['bed']); // new sensor = new query
-    expect(find.text('Brak danych w\u00A0tym zakresie'), findsOneWidget);
+    expect(find.text(pl.sensorHistoryEmpty), findsOneWidget);
     expect(find.byType(LineChart), findsNothing);
   });
 
@@ -157,7 +157,7 @@ void main() {
 
     final chart = tester.widget<LineChart>(find.byType(LineChart));
     expect(chart.data.lineBarsData, hasLength(1));
-    expect(find.text('Zadana'), findsNothing);
+    expect(find.text(pl.heaterHistoryTarget), findsNothing);
   });
 
   testWidgets('a fetch error shows a message instead of an empty chart', (
@@ -167,7 +167,7 @@ void main() {
 
     await pumpSheet(tester, repo);
 
-    expect(find.text('Nie udało się wczytać historii'), findsOneWidget);
+    expect(find.text(pl.sensorHistoryError), findsOneWidget);
     expect(find.byType(LineChart), findsNothing);
   });
 }

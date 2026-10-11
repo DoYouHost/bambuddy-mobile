@@ -176,7 +176,7 @@ final _searchBox = find.descendant(
 /// `IconButton` of its own for the chevron.
 Finder _revertOf(String key) => find.descendant(
   of: find.byKey(ValueKey(key)),
-  matching: find.byTooltip('Przywróć wartość z\u00A0presetu'),
+  matching: find.byTooltip(pl.processSettingsRevert),
 );
 
 Future<ProcessSchemaCatalog> _catalog() async {
@@ -243,7 +243,7 @@ void main() {
       tester,
     ) async {
       await pump(tester);
-      await tester.tap(find.text('Zaawansowane'));
+      await tester.tap(find.text(pl.processSettingsModeAdvanced));
       await tester.pumpAndSettle();
       expect(find.text('Layer height'), findsWidgets);
       expect(find.text('Initial layer height'), findsOneWidget);
@@ -294,10 +294,7 @@ void main() {
       await pump(tester);
       await tester.enterText(_searchBox, 'zzzz');
       await tester.pumpAndSettle();
-      expect(
-        find.text('Żadne ustawienie nie pasuje do zapytania.'),
-        findsOneWidget,
-      );
+      expect(find.text(pl.processSettingsNoMatches), findsOneWidget);
     });
   });
 
@@ -319,10 +316,7 @@ void main() {
         tester.widget<TextField>(_fieldOf('outer_wall_speed')).enabled,
         isFalse,
       );
-      expect(
-        find.text('Przy obecnych ustawieniach slicer to pomija.'),
-        findsOneWidget,
-      );
+      expect(find.text(pl.processSettingsDisabledHint), findsOneWidget);
     });
 
     testWidgets('it becomes editable once the dependency is back', (
@@ -349,7 +343,7 @@ void main() {
     testWidgets('a switch reports a bool, not a string', (tester) async {
       // detect_thin_wall is expert and lives on the Strength page.
       await pump(tester);
-      await tester.tap(find.text('Eksperckie'));
+      await tester.tap(find.text(pl.processSettingsModeExpert));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Strength'));
       await tester.pumpAndSettle();
@@ -428,13 +422,13 @@ void main() {
       tester,
     ) async {
       await pump(tester, values: {'layer_height': '0.28'});
-      expect(find.text('Przywróć 1'), findsOneWidget);
+      expect(find.text(pl.processSettingsRevertAll(1)), findsOneWidget);
 
-      await tester.tap(find.text('Przywróć 1'));
+      await tester.tap(find.text(pl.processSettingsRevertAll(1)));
       await tester.pumpAndSettle();
 
       expect(reported.last, isEmpty);
-      expect(find.text('Przywróć 1'), findsNothing);
+      expect(find.text(pl.processSettingsRevertAll(1)), findsNothing);
     });
 
     testWidgets('a value equal to the preset is not counted as a change', (
@@ -467,7 +461,7 @@ void main() {
         ),
       );
       expect(
-        find.textContaining('kontener slicera jest starszy'),
+        find.textContaining(pl.processSettingsDefaultsOutdatedSidecar),
         findsOneWidget,
       );
       expect(find.text('Layer height'), findsWidgets);
@@ -484,7 +478,7 @@ void main() {
         ),
       );
       expect(
-        find.textContaining('żaden kontener slicera nie jest'),
+        find.textContaining(pl.processSettingsDefaultsNotConfigured),
         findsOneWidget,
       );
     });
@@ -613,7 +607,7 @@ void main() {
       await openSupport(tester);
       await openMenu(tester, 'support_filament');
 
-      expect(find.textContaining('Nieużywany na tej płycie'), findsWidgets);
+      expect(find.textContaining(pl.sliceFilamentUnused), findsWidgets);
     });
 
     testWidgets('show a slot this file does not have rather than nothing', (
@@ -691,9 +685,6 @@ void main() {
   ) async {
     // Only reachable as a race: the entry point gates on the same read.
     await pump(tester, presetValues: null);
-    expect(
-      find.textContaining('nie potrafi podać ustawień procesu'),
-      findsOneWidget,
-    );
+    expect(find.textContaining(pl.processSettingsUnavailable), findsOneWidget);
   });
 }

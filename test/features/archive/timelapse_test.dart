@@ -67,7 +67,7 @@ void main() {
       await tester.tap(find.text('Wydruk testowy'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nagrania i\u00A0zdjęcia'), findsOneWidget);
+      expect(find.text(pl.archiveMediaAction), findsOneWidget);
     });
 
     testWidgets('a print with no media at all does not', (tester) async {
@@ -77,10 +77,10 @@ void main() {
       await tester.tap(find.text('Wydruk testowy'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nagrania i\u00A0zdjęcia'), findsNothing);
+      expect(find.text(pl.archiveMediaAction), findsNothing);
       // The rest of the sheet stands: a missing entry is missing media, not a
       // broken sheet.
-      expect(find.text('Drukuj ponownie'), findsOneWidget);
+      expect(find.text(pl.archiveReprint), findsOneWidget);
     });
   });
 
@@ -94,10 +94,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Nie udało się odtworzyć tego timelapse.'),
-        findsOneWidget,
-      );
+      expect(find.text(pl.timelapseError), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
     },
   );
