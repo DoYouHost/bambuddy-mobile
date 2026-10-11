@@ -238,7 +238,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Slot 1 has a spool on the shelf, slot 2 none.
-    expect(find.text('zostało 102 g'), findsOneWidget);
+    expect(find.text('zostało 102\u00A0g'), findsOneWidget);
     expect(find.textContaining('A2: PETG'), findsOneWidget);
     // The shelf arriving late re-reads nothing: the status was fetched once.
     expect(printers.fetches, 1);

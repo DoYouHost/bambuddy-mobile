@@ -28,6 +28,7 @@ import 'queue_history.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_providers.dart';
 import 'queue_removal.dart';
+import '../tour/tour_beacon.dart';
 
 /// Print queue screen (M5): drag-to-reorder, swipe-to-delete with confirmation,
 /// start/cancel actions. Shows only active items.
@@ -314,6 +315,7 @@ class _QueueList extends ConsumerWidget {
             buildDefaultDragHandles: false,
             itemCount: reorderable.length,
             onReorderItem: (oldIndex, newIndex) async {
+              ref.read(tourBeaconProvider)?.signal('queue.reorder');
               final messenger = ScaffoldMessenger.of(context);
               final result = await ref
                   .read(queueProvider.notifier)
@@ -394,7 +396,7 @@ class _QueueCard extends ConsumerWidget {
                     padding: const EdgeInsets.only(right: DashSpace.md),
                     child: Icon(Icons.drag_indicator, color: t.textTertiary),
                   ),
-                ),
+                ).tourTarget('queue.reorder.${item.id}'),
               ),
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
@@ -451,13 +453,16 @@ class _QueueCard extends ConsumerWidget {
       ),
       // Dialog here only; actual delete in onDismissed (notifier removes from state) —
       // else Dismissible conflicts with list rebuild.
-      confirmDismiss: (_) => confirmDialog(
-        context,
-        id: 'queue.swipe_delete_confirm',
-        title: l10n.queueDeleteTitle,
-        message: l10n.queueDeleteBody,
-        confirmLabel: l10n.queueDeleteConfirm,
-      ),
+      confirmDismiss: (_) {
+        ref.read(tourBeaconProvider)?.signal('queue.swipe_delete');
+        return confirmDialog(
+          context,
+          id: 'queue.swipe_delete_confirm',
+          title: l10n.queueDeleteTitle,
+          message: l10n.queueDeleteBody,
+          confirmLabel: l10n.queueDeleteConfirm,
+        );
+      },
       onDismissed: (_) async {
         final messenger = ScaffoldMessenger.of(context);
         final result = await ref.read(queueProvider.notifier).delete(item.id);
@@ -466,7 +471,7 @@ class _QueueCard extends ConsumerWidget {
         _snackFailure(messenger, l10n, result);
       },
       child: card,
-    ).tagged('queue.swipe_delete');
+    ).tagged('queue.swipe_delete').tourTarget('queue.swipe_delete.${item.id}');
   }
 }
 

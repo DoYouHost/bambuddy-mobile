@@ -126,7 +126,7 @@ void main() {
     expect(find.text('Inny kolor'), findsOneWidget);
     expect(
       find.text(
-        'Ten sam typ, inny kolor: potrzebny Czerwony, w slocie Zielony',
+        'Ten sam typ, inny kolor: potrzebny Czerwony, w\u00A0slocie Zielony',
       ),
       findsOneWidget,
     );
@@ -139,7 +139,7 @@ void main() {
     expect(
       find.text(
         'Ten sam typ, inny kolor: potrzebny Czerwony (#FF0000), '
-        'w slocie Czerwony (#A00000)',
+        'w\u00A0slocie Czerwony (#A00000)',
       ),
       findsOneWidget,
     );
@@ -195,7 +195,7 @@ void main() {
 
     expect(find.text('Bambu PLA Basic'), findsOneWidget);
     expect(find.text('L'), findsOneWidget);
-    expect(find.text(' (12 g)'), findsOneWidget);
+    expect(find.text(' (12\u00A0g)'), findsOneWidget);
   });
 
   testWidgets('the picker marks the exact colour and the switch inlet', (

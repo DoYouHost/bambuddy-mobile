@@ -95,7 +95,7 @@ void main() {
     router.go(bugReportRoute);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('usługa w tle'), findsOneWidget);
+    expect(find.textContaining('usługa w\u00A0tle'), findsOneWidget);
     expect(find.text('Klucz API ani hasło'), findsOneWidget);
     expect(find.text('Tekst, który wpisujesz'), findsOneWidget);
   });

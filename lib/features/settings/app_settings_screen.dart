@@ -9,6 +9,7 @@ import '../common/settings_entry_tile.dart';
 import '../common/settings_rows.dart';
 import '../../providers.dart';
 import '../dashboard/card_collapse_providers.dart';
+import '../tour/tour_beacon.dart';
 import '../wall/wall_providers.dart';
 import 'demo_printers_provider.dart';
 
@@ -95,6 +96,17 @@ class AppSettingsScreen extends ConsumerWidget {
               onTap: () => context.push('/settings/notifications'),
               id: 'app_settings.notifications',
             ),
+            // The tour's own copy of this screen would start a tour in a tour.
+            if (ref.watch(tourBeaconProvider) == null) ...[
+              const SizedBox(height: DashSpace.xl),
+              SettingsEntryTile(
+                icon: Icons.lightbulb_outline_rounded,
+                title: l10n.tipsTitle,
+                subtitle: l10n.tipsSubtitle,
+                onTap: () => context.push('/settings/tips'),
+                id: 'app_settings.tips',
+              ),
+            ],
           ],
         ),
       ),

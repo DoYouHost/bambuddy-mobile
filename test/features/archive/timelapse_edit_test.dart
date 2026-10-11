@@ -530,7 +530,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Oryginał: 0:54 w 1920×1080'), findsOneWidget);
+      expect(find.text('Oryginał: 0:54 w\u00A01920×1080'), findsOneWidget);
       expect(find.text('Wynik: 0:54'), findsOneWidget);
 
       await tester.tap(find.text('2x'));

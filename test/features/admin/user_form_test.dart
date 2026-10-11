@@ -390,7 +390,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(
-        find.widgetWithText(SwitchListTile, 'Usuń je razem z kontem'),
+        find.widgetWithText(SwitchListTile, 'Usuń je razem z\u00A0kontem'),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Usuń'));

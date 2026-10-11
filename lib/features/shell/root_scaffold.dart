@@ -12,6 +12,7 @@ import '../dashboard/smart_plugs_providers.dart';
 import '../maintenance/maintenance_providers.dart';
 import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../queue/queue_providers.dart';
+import '../tour/tour_beacon.dart';
 
 /// Starts, once for the whole shell, every server answer a screen asks for the
 /// moment it opens. Each fetch is lazy — so without this the first visit to
@@ -159,28 +160,31 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
         // Each branch has its own Scaffold with AppBar — shell body is the branch
         // widget directly, no extra wrapper.
         body: navigationShell,
-        bottomNavigationBar: DecoratedBox(
-          decoration: BoxDecoration(
-            color: t.navBar,
-            border: Border(top: BorderSide(color: t.hairline)),
-          ),
-          // Reserve the system nav bar inset via viewPadding (constant, unlike
-          // padding, which the keyboard collapses to 0) so the tab bar never
-          // overlaps the system nav buttons while a field is focused. SafeArea
-          // still guards the left/right edges (landscape notch).
-          child: SafeArea(
-            top: false,
-            bottom: false,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                DashSpace.sm,
-                DashSpace.md,
-                DashSpace.sm,
-                DashSpace.md + MediaQuery.of(context).viewPadding.bottom,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [for (final it in items) Expanded(child: it)],
+        bottomNavigationBar: TourTarget(
+          id: 'shell.nav',
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: t.navBar,
+              border: Border(top: BorderSide(color: t.hairline)),
+            ),
+            // Reserve the system nav bar inset via viewPadding (constant, unlike
+            // padding, which the keyboard collapses to 0) so the tab bar never
+            // overlaps the system nav buttons while a field is focused. SafeArea
+            // still guards the left/right edges (landscape notch).
+            child: SafeArea(
+              top: false,
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  DashSpace.sm,
+                  DashSpace.md,
+                  DashSpace.sm,
+                  DashSpace.md + MediaQuery.of(context).viewPadding.bottom,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [for (final it in items) Expanded(child: it)],
+                ),
               ),
             ),
           ),

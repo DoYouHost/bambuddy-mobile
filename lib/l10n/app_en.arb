@@ -10,18 +10,18 @@
   },
   "sessionExpired": "Session expired — sign in again",
   "signInRequiredTitle": "Sign in again",
-  "signInRequiredBody": "The server rejected your saved password, so the app stopped retrying it — repeated attempts get an account locked out. Sign in again, and use a new password if it was changed.",
+  "signInRequiredBody": "The server rejected your saved password, so the app stopped retrying it — repeated attempts get an account locked out. Sign in again, and use a new password if it was changed.",
   "signInRequiredAction": "Sign in",
-  "signInRequiredTwoFactorBody": "Your account now asks for a second factor, and the app cannot supply one in the background — so it stopped signing in on its own. Sign in again and enter the code.",
+  "signInRequiredTwoFactorBody": "Your account now asks for a second factor, and the app cannot supply one in the background — so it stopped signing in on its own. Sign in again and enter the code.",
   "@signInRequiredTwoFactorBody": {
     "description": "Sign-in warning when silent re-login hit requires_2fa rather than a bad password"
   },
-  "signInRequiredMissingBody": "A security update or a restored backup invalidated the key that encrypted your saved sign-in. Nothing else was lost.",
+  "signInRequiredMissingBody": "A security update or a restored backup invalidated the key that encrypted your saved sign-in. Nothing else was lost.",
   "@signInRequiredMissingBody": {
     "description": "Sign-in warning when the profile expects a credential and the secure store has none"
   },
   "serverUnreachableStale": "Server unreachable — data may be out of date",
-  "wsReconnecting": "No live connection — refreshing every 5 s",
+  "wsReconnecting": "No live connection — refreshing every 5 s",
   "@wsReconnecting": {
     "description": "Banner shown while the live WebSocket is down but REST polling keeps data fresh"
   },
@@ -34,7 +34,7 @@
   "@connPolling": {
     "description": "Connection-mode chip: no WebSocket, data refreshed via periodic REST polling"
   },
-  "connPollingTooltip": "No live link — refreshing every 5 s (REST)",
+  "connPollingTooltip": "No live link — refreshing every 5 s (REST)",
   "connectFailed": "Could not connect to the server",
   "filePickerFailed": "The file dialog could not be opened",
   "retry": "Try again",
@@ -76,11 +76,11 @@
   "addPrinterLocationOptional": "Optional",
   "printerLocationsManage": "Manage locations",
   "addPrinterSubmit": "Add printer",
-  "addPrinterConnectionNote": "The server verifies the connection before saving, so a wrong IP or access code is reported and nothing is created.",
+  "addPrinterConnectionNote": "The server verifies the connection before saving, so a wrong IP or access code is reported and nothing is created.",
   "addPrinterRequiredField": "Required",
   "addPrinterSuccess": "Printer added",
   "addPrinterErrConnection": "Could not connect to the printer. Check the IP address, serial number and access code, and make sure LAN-only mode is on.",
-  "addPrinterErrDuplicate": "A printer with this serial number already exists",
+  "addPrinterErrDuplicate": "A printer with this serial number already exists",
   "addPrinterErrForbidden": "You do not have permission to add printers",
   "addPrinterErrGeneric": "Could not add the printer. Try again.",
   "addPrinterAutoArchive": "Auto-archive completed prints",
@@ -101,7 +101,7 @@
     }
   },
   "editPrinterWearCostHelp": "Added to new prints only. Leave empty to turn it off.",
-  "editPrinterWearCostInvalid": "Enter a number from 0 to 100000",
+  "editPrinterWearCostInvalid": "Enter a number from 0 to 100000",
   "editPrinterPreflightWarning": "Some connection checks failed. This printer may show as offline. Review the checks below, fix what you can, or save anyway.",
   "editPrinterSaveAnyway": "Save anyway",
   "addPrinterScanTitle": "Find printers on the network",
@@ -125,7 +125,7 @@
   "addPrinterSubnetCustomOption": "Custom subnet…",
   "addPrinterSubnetCustomLabel": "Custom subnet (CIDR)",
   "addPrinterSubnetDockerNote": "Docker detected. Enter your printer's subnet in CIDR notation. Requires network_mode: host in docker-compose.yml.",
-  "addPrinterSubnetCustomNote": "Use a custom subnet if your printer is on a different network than the server. The FTP (990) and MQTT (8883) ports must be reachable across the routing boundary.",
+  "addPrinterSubnetCustomNote": "Use a custom subnet if your printer is on a different network than the server. The FTP (990) and MQTT (8883) ports must be reachable across the routing boundary.",
   "addPrinterDiagnostic": "Run diagnostic",
   "addPrinterDiagnosticRunning": "Running diagnostic…",
   "addPrinterDiagnosticError": "Diagnostic failed. Try again.",
@@ -190,12 +190,12 @@
   "@ctrlDryNotRunning": {
     "description": "Drying chip and sheet: the AMS holds a drying timer that is not counting down (server dry_countdown_stalled)"
   },
-  "ctrlDryNotRunningHint": "The printer holds a drying timer, but it is not counting down, and the AMS reports no drying. The cycle never started or was paused, for example by the power limit or the current print.",
+  "ctrlDryNotRunningHint": "The printer holds a drying timer, but it is not counting down, and the AMS reports no drying. The cycle never started or was paused, for example by the power limit or the current print.",
   "ctrlDryStart": "Start",
   "ctrlDryFilament": "Filament",
   "ctrlDryTemp": "Temperature",
   "ctrlDryDuration": "Duration",
-  "ctrlDryHours": "{h} h",
+  "ctrlDryHours": "{h} h",
   "@ctrlDryHours": {
     "placeholders": {
       "h": {
@@ -210,10 +210,10 @@
   "ctrlDryStartNow": "Now",
   "ctrlDryStartAfter": "Later",
   "ctrlDryStartAt": "At time",
-  "ctrlDryPickTime": "Pick a time",
+  "ctrlDryPickTime": "Pick a time",
   "ctrlDrySchedule": "Schedule",
   "ctrlDryScheduled": "Drying scheduled",
-  "ctrlDryScheduleTimePast": "Pick a time in the future",
+  "ctrlDryScheduleTimePast": "Pick a time in the future",
   "ctrlDryScheduledFor": "Drying at {time}",
   "@ctrlDryScheduledFor": {
     "placeholders": {
@@ -246,12 +246,12 @@
   "ctrlMoveHome": "Home all",
   "ctrlMoveHomeStarted": "Homing started",
   "ctrlMoveStep": "Step",
-  "ctrlMoveZ": "Z (bed gap)",
+  "ctrlMoveZ": "Z (bed gap)",
   "ctrlMoveZUp": "Up",
   "ctrlMoveZDown": "Down",
-  "ctrlMoveZToolhead": "Z (toolhead)",
-  "ctrlMoveZUnknownDirection": "This printer's Z direction depends on the server version, which could not be confirmed, so Z moves are turned off here. Update the server or reopen this panel once it is reachable.",
-  "ctrlMoveZNoModel": "This printer has no model set in Bambuddy, so the app cannot tell whether Z moves the plate or the toolhead, and Z moves are turned off here. Set the printer's model in Bambuddy to use them.",
+  "ctrlMoveZToolhead": "Z (toolhead)",
+  "ctrlMoveZUnknownDirection": "This printer's Z direction depends on the server version, which could not be confirmed, so Z moves are turned off here. Update the server or reopen this panel once it is reachable.",
+  "ctrlMoveZNoModel": "This printer has no model set in Bambuddy, so the app cannot tell whether Z moves the plate or the toolhead, and Z moves are turned off here. Set the printer's model in Bambuddy to use them.",
   "ctrlMoveExtrude": "Extrude",
   "ctrlMoveRetract": "Retract",
   "ctrlMoveLength": "Length",
@@ -370,7 +370,7 @@
   "@skipObjectsEmpty": {
     "description": "Empty state title on the skip screen"
   },
-  "skipObjectsEmptyHint": "Objects load when a print starts. Reload if a print is running.",
+  "skipObjectsEmptyHint": "Objects load when a print starts. Reload if a print is running.",
   "@skipObjectsEmptyHint": {
     "description": "Empty state hint on the skip screen"
   },
@@ -430,7 +430,7 @@
   "@smartPlugTurnOn": {
     "description": "Confirm button: turn the plug on"
   },
-  "powerWatts": "{watts} W",
+  "powerWatts": "{watts} W",
   "@powerWatts": {
     "description": "Power draw in watts",
     "placeholders": {
@@ -447,7 +447,7 @@
   "@powerBreakdownTitle": {
     "description": "Title of the sheet splitting the dashboard power total per printer"
   },
-  "powerUnassignedPlugs": "Not assigned to a printer",
+  "powerUnassignedPlugs": "Not assigned to a printer",
   "@powerUnassignedPlugs": {
     "description": "Power sheet group for smart plugs with no printer assigned"
   },
@@ -582,7 +582,7 @@
       }
     }
   },
-  "archivePlateDetail": "Plate {plate} of a multi-plate file",
+  "archivePlateDetail": "Plate {plate} of a multi-plate file",
   "@archivePlateDetail": {
     "description": "Line in the archive detail sheet: which plate of a multi-plate 3MF this run printed",
     "placeholders": {
@@ -595,7 +595,7 @@
   "archivePhotosEmpty": "No photos for this print",
   "archivePhotoFailed": "Couldn't load this photo.",
   "archiveFilamentUsed": "Filament used",
-  "archiveFilamentGrams": "{grams} g",
+  "archiveFilamentGrams": "{grams} g",
   "@archiveFilamentGrams": {
     "placeholders": {
       "grams": {
@@ -618,8 +618,8 @@
   "archiveFilamentSaving": "Saving",
   "archiveFilamentNone": "Not recorded",
   "archiveFilamentLabel": "Weight (g)",
-  "archiveFilamentNotANumber": "Enter a number, or leave it empty to clear the weight.",
-  "archiveFilamentOutOfRange": "A weight between 0 and {max} g.",
+  "archiveFilamentNotANumber": "Enter a number, or leave it empty to clear the weight.",
+  "archiveFilamentOutOfRange": "A weight between 0 and {max} g.",
   "@archiveFilamentOutOfRange": {
     "placeholders": {
       "max": {
@@ -628,9 +628,9 @@
     }
   },
   "archiveFilamentSaved": "Filament weight saved",
-  "archiveFilamentUnsupported": "This server doesn't store a typed-in filament weight yet. Update bambuddy.",
-  "archiveHasTimelapse": "Has a timelapse",
-  "archiveHasPhotos": "{count, plural, =1{Has a photo} other{Has {count} photos}}",
+  "archiveFilamentUnsupported": "This server doesn't store a typed-in filament weight yet. Update bambuddy.",
+  "archiveHasTimelapse": "Has a timelapse",
+  "archiveHasPhotos": "{count, plural, =1{Has a photo} other{Has {count} photos}}",
   "@archiveHasPhotos": {
     "placeholders": {
       "count": {
@@ -685,7 +685,7 @@
   },
   "timelapseEditSaveTitle": "Overwrite the recording?",
   "timelapseEditSaveMessage": "The server re-encodes the timelapse and replaces the original. There is no copy to go back to.",
-  "timelapseEditProcessing": "The server is re-encoding the video. On a small host this takes minutes — leaving this screen does not stop it.",
+  "timelapseEditProcessing": "The server is re-encoding the video. On a small host this takes minutes — leaving this screen does not stop it.",
   "timelapseEdited": "Timelapse updated",
   "gcodeViewerTitle": "G-code preview",
   "gcodeViewerOpen": "Preview G-code",
@@ -730,7 +730,7 @@
     "description": "Banner on the archive screen for the original cause: the slicer setting. The quoted string is a Bambu Studio / OrcaSlicer label and stays in English in every locale, because that is what the slicer shows."
   },
   "archiveNo3mfTitleInternal": "Some recent prints stayed on the printer's internal storage",
-  "archiveNo3mfBodyInternal": "Bambu Studio put the sliced file on the printer's internal storage instead of the card, so there was nothing to read over FTP. On H2-series and P2S the Print button always does that — switching the slicer setting on changes nothing. Those prints are still archived with their name and timing, just without a thumbnail or slicer metadata. For complete archives, start the print from Bambuddy or slice in OrcaSlicer — either way with a card or stick in the printer.",
+  "archiveNo3mfBodyInternal": "Bambu Studio put the sliced file on the printer's internal storage instead of the card, so there was nothing to read over FTP. On H2-series and P2S the Print button always does that — switching the slicer setting on changes nothing. Those prints are still archived with their name and timing, just without a thumbnail or slicer metadata. For complete archives, start the print from Bambuddy or slice in OrcaSlicer — either way with a card or stick in the printer.",
   "@archiveNo3mfBodyInternal": {
     "description": "Same banner for the H2-series / P2S case (#2780), where the slicer setting is already on and the advice above would be wrong."
   },
@@ -826,7 +826,7 @@
       }
     }
   },
-  "pickPrinterTitle": "Choose a printer",
+  "pickPrinterTitle": "Choose a printer",
   "detailsShow": "Details",
   "detailsHide": "Hide details",
   "cameraTooltip": "Camera",
@@ -890,8 +890,8 @@
     }
   },
   "amsSlotConfigCurrent": "Currently set",
-  "amsSlotConfigKProfile": "K profile",
-  "amsSlotConfigKProfileDefault": "Default (K {value})",
+  "amsSlotConfigKProfile": "K profile",
+  "amsSlotConfigKProfileDefault": "Default (K {value})",
   "@amsSlotConfigKProfileDefault": {
     "placeholders": {
       "value": {
@@ -900,8 +900,8 @@
     }
   },
   "amsSlotConfigKProfileOther": "Other profiles",
-  "amsSlotConfigKProfileNone": "This printer has no stored K profiles for this nozzle",
-  "amsSlotConfigKProfileUnavailable": "Could not read the printer's K profiles",
+  "amsSlotConfigKProfileNone": "This printer has no stored K profiles for this nozzle",
+  "amsSlotConfigKProfileUnavailable": "Could not read the printer's K profiles",
   "amsSlotConfigNozzleGuess": "The printer did not report its nozzle size — assuming {diameter} mm",
   "@amsSlotConfigNozzleGuess": {
     "placeholders": {
@@ -910,7 +910,7 @@
       }
     }
   },
-  "amsSlotConfigKProfileValue": "K {value}",
+  "amsSlotConfigKProfileValue": "K {value}",
   "@amsSlotConfigKProfileValue": {
     "placeholders": {
       "value": {
@@ -1070,7 +1070,7 @@
   "connectToServer": "Connect to server",
   "serverAddressLabel": "bambuddy server address",
   "serverAddressHint": "e.g. 192.168.1.10:8000",
-  "serverAddressHelper": "Remote access: use HTTPS via a reverse proxy",
+  "serverAddressHelper": "Remote access: use HTTPS via a reverse proxy",
   "testConnection": "Test connection",
   "serverRequiresAuth": "The server requires authentication",
   "authModeApiKey": "API key (recommended)",
@@ -1078,7 +1078,7 @@
   "apiKeyExplain": "An API key does not expire and has limited permissions — create one on the server: Settings → API Keys.",
   "apiKeyLabel": "API key",
   "saveAndConnect": "Save and connect",
-  "loginExplain": "A login session expires after 24 h. Tick “Remember me” to have the app sign in again automatically.",
+  "loginExplain": "A login session expires after 24 h. Tick “Remember me” to have the app sign in again automatically.",
   "usernameLabel": "Username or email",
   "passwordLabel": "Password",
   "rememberMe": "Remember me",
@@ -1092,15 +1092,15 @@
   "twoFactorMethodEmail": "E-mail",
   "twoFactorMethodBackup": "Backup code",
   "twoFactorExplainTotp": "Enter the 6-digit code from your authenticator app.",
-  "twoFactorExplainEmail": "Have the server e-mail you a 6-digit code, then enter it here.",
-  "twoFactorExplainEmailSent": "A 6-digit code has been sent to the address on your account. It expires in 10 minutes.",
+  "twoFactorExplainEmail": "Have the server e-mail you a 6-digit code, then enter it here.",
+  "twoFactorExplainEmailSent": "A 6-digit code has been sent to the address on your account. It expires in 10 minutes.",
   "twoFactorExplainBackup": "Enter one of the 8-character backup codes you saved when setting up 2FA. Each one works once.",
   "twoFactorCodeLabel": "Code",
-  "twoFactorSendEmail": "E-mail me a code",
+  "twoFactorSendEmail": "E-mail me a code",
   "twoFactorResendEmail": "Send another code",
   "twoFactorVerify": "Confirm and connect",
-  "twoFactorBack": "Use a different account",
-  "twoFactorSessionNote": "The app cannot renew a 2FA session on its own, so it will ask again when this one expires. An API key does not expire and skips this step.",
+  "twoFactorBack": "Use a different account",
+  "twoFactorSessionNote": "The app cannot renew a 2FA session on its own, so it will ask again when this one expires. An API key does not expire and skips this step.",
   "@twoFactorSessionNote": {
     "description": "Why remember-me does nothing for a 2FA account; shown under the code field"
   },
@@ -1112,7 +1112,7 @@
   "errMissingUrl": "Enter the server address",
   "errMissingApiKey": "Enter the API key",
   "errMissingCredentials": "Enter username and password",
-  "errRequiresServerSetup": "The server needs initial setup — finish it in a browser and come back here.",
+  "errRequiresServerSetup": "The server needs initial setup — finish it in a browser and come back here.",
   "errServerUnreachable": "Server unreachable",
   "errUnauthorized": "Not authorized",
   "errForbidden": "Not allowed — the server refused this action",
@@ -1139,12 +1139,12 @@
   "errInvalidCredentials": "Invalid username or password",
   "errTwoFactorUnsupported": "Account requires 2FA — not supported in this version. Use an API key (Settings → API Keys on the server).",
   "errTwoFactorCodeRejected": "Wrong code — check it and try again.",
-  "errTwoFactorChallengeExpired": "The sign-in attempt expired — enter your password again to get a new code.",
+  "errTwoFactorChallengeExpired": "The sign-in attempt expired — enter your password again to get a new code.",
   "errTwoFactorMethodUnavailable": "That method is not available on this account — pick another one.",
   "errTwoFactorEmailUnavailable": "The server could not send the code — it has no e-mail set up, or your account has no address. Use another method.",
   "errMissingTwoFactorCode": "Enter the code",
   "errApiKeyRejected": "API key rejected — check the key and its scope (can_read_status required)",
-  "errTooManyAttempts": "Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.",
+  "errTooManyAttempts": "Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.",
   "notifOngoingBody": "{percent}% · ETA {eta}",
   "notifEtaSoon": "soon",
   "@notifOngoingBody": {
@@ -1159,7 +1159,7 @@
   },
   "demoSettingsSection": "Demo",
   "demoPrintingCountTitle": "Printers printing",
-  "demoPrintingCountDesc": "How many of the demo's printers run a print at the same time — for seeing what several do to the dashboard and to the ongoing notification.",
+  "demoPrintingCountDesc": "How many of the demo's printers run a print at the same time — for seeing what several do to the dashboard and to the ongoing notification.",
   "notifOngoingMultiBody": "{printer} ({percent}% · ETA {eta})",
   "@notifOngoingMultiBody": {
     "placeholders": {
@@ -1308,20 +1308,20 @@
     }
   },
   "notifSettingsTitle": "Notifications",
-  "notifSettingsHint": "Choose which events trigger a notification. Changes apply the next time background monitoring starts.",
+  "notifSettingsHint": "Choose which events trigger a notification. Changes apply the next time background monitoring starts.",
   "notifMasterTitle": "Event notifications",
   "notifMasterDesc": "Turn off to silence all alerts. The ongoing print-progress notification stays.",
   "notifEventsHeader": "Events",
   "notifExtrasHeader": "Details",
   "notifFinishPhotoTitle": "Photo of the finished print",
-  "notifFinishPhotoDesc": "Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives",
+  "notifFinishPhotoDesc": "Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives",
   "notifThresholdsHeader": "Thresholds",
   "notifEvtStarted": "Print started",
-  "notifEvtStartedDesc": "When a print begins",
+  "notifEvtStartedDesc": "When a print begins",
   "notifEvtFinished": "Print finished",
-  "notifEvtFinishedDesc": "When a print completes successfully",
+  "notifEvtFinishedDesc": "When a print completes successfully",
   "notifEvtFailed": "Print failed",
-  "notifEvtFailedDesc": "When a print fails",
+  "notifEvtFailedDesc": "When a print fails",
   "notifEvtFirstLayer": "First layer done",
   "notifEvtFirstLayerDesc": "When the first layer finishes",
   "notifEvtMilestones": "Progress milestones",
@@ -1329,7 +1329,7 @@
   "notifEvtPlate": "Plate not empty",
   "notifEvtPlateDesc": "When the plate must be cleared before the next job",
   "notifEvtOffline": "Printer offline",
-  "notifEvtOfflineDesc": "When a printer loses connection",
+  "notifEvtOfflineDesc": "When a printer loses connection",
   "notifEvtError": "Printer error (HMS)",
   "notifEvtErrorDesc": "When the printer reports an HMS error",
   "notifEvtLowFilament": "Low filament",
@@ -1337,7 +1337,7 @@
   "notifEvtHumidity": "AMS humidity high",
   "notifEvtHumidityDesc": "When AMS humidity rises above the threshold",
   "notifEvtBedCooled": "Bed cooled",
-  "notifEvtBedCooledDesc": "When the bed cools down after a print",
+  "notifEvtBedCooledDesc": "When the bed cools down after a print",
   "notifBedCooledThreshold": "Bed cooled below {temp}°C",
   "@notifBedCooledThreshold": {
     "placeholders": {
@@ -1421,7 +1421,7 @@
   "bgServiceTitle": "Bambuddy",
   "bgServiceText": "Monitoring printers",
   "bgMonitoringToggle": "Background monitoring",
-  "bgMonitoringSubtitle": "Keep watching prints while the app is closed. Shows a persistent notification.",
+  "bgMonitoringSubtitle": "Keep watching prints while the app is closed. Shows a persistent notification.",
   "bgMonitoringOn": "Background monitoring on",
   "bgMonitoringOff": "Background monitoring off",
   "navDashboard": "Printers",
@@ -1472,7 +1472,7 @@
       }
     }
   },
-  "inventoryRemaining": "{grams} g left",
+  "inventoryRemaining": "{grams} g left",
   "inventoryTotalConsumed": "{weight} consumed",
   "@inventoryTotalConsumed": {
     "placeholders": {
@@ -1488,7 +1488,7 @@
       }
     }
   },
-  "inventoryOfTotal": "of {total} g",
+  "inventoryOfTotal": "of {total} g",
   "@inventoryOfTotal": {
     "placeholders": {
       "total": {
@@ -1502,7 +1502,7 @@
   "inventoryTag": "Tag",
   "inventoryUsageHistory": "Usage history",
   "inventoryUsageEmpty": "No usage recorded yet",
-  "inventoryUsageWeight": "{grams} g",
+  "inventoryUsageWeight": "{grams} g",
   "@inventoryUsageWeight": {
     "placeholders": {
       "grams": {
@@ -1511,7 +1511,7 @@
     }
   },
   "inventoryKProfiles": "Calibration (K)",
-  "inventoryKProfileLine": "{nozzle} mm · K {k}",
+  "inventoryKProfileLine": "{nozzle} mm · K {k}",
   "@inventoryKProfileLine": {
     "placeholders": {
       "nozzle": {
@@ -1547,7 +1547,7 @@
   "inventorySlicerPresetSearch": "Search presets…",
   "inventorySlicerPresetUnavailable": "No slicer presets available. Enable slicing on the server (and connect Bambu Cloud for cloud presets).",
   "inventorySectionPrinterPresets": "Presets per printer model",
-  "inventoryPrinterPresetsHint": "A pick here wins over the spool's own preset.",
+  "inventoryPrinterPresetsHint": "A pick here wins over the spool's own preset.",
   "inventoryPrinterPresetDefault": "As on the spool",
   "inventoryPrinterPresetNozzle": "{model} · {diameter} nozzle",
   "@inventoryPrinterPresetNozzle": {
@@ -1574,9 +1574,9 @@
   "inventoryFieldLocation": "Storage location",
   "inventoryFieldNote": "Note",
   "inventoryFieldRequired": "Required",
-  "inventoryFieldInvalidNumber": "Enter a number",
-  "inventoryFieldRange": "Enter a value from {min} to {max}",
-  "inventoryFieldNegative": "Enter a value of 0 or more",
+  "inventoryFieldInvalidNumber": "Enter a number",
+  "inventoryFieldRange": "Enter a value from {min} to {max}",
+  "inventoryFieldNegative": "Enter a value of 0 or more",
   "@inventoryFieldNegative": {
     "description": "Numeric inventory fields with no explicit range. The server stores a negative core weight without complaint and it corrupts every remaining-weight sum built on it, so the refusal has to happen here."
   },
@@ -1600,7 +1600,7 @@
   "inventoryFieldMeasuredWeight": "Measured weight (g)",
   "inventoryFieldCategory": "Category",
   "inventoryFieldMaterialNumber": "Material number",
-  "inventoryMaterialNumberHint": "Shared by every spool of a product. A new spool of a known product gets it filled in.",
+  "inventoryMaterialNumberHint": "Shared by every spool of a product. A new spool of a known product gets it filled in.",
   "inventorySpoolmanCannotClear": "Spoolman can't remove this value. Change it to something else instead.",
   "inventoryFieldExtraColors": "Extra colors",
   "inventoryExtraColorsHint": "2–8 hex stops, comma-separated",
@@ -1608,11 +1608,11 @@
   "inventoryEffectNone": "None",
   "inventoryColorCommon": "Common colors",
   "inventoryColorSearchHint": "Search colors…",
-  "inventoryColorPickTitle": "Pick a color",
+  "inventoryColorPickTitle": "Pick a color",
   "inventoryColorSelect": "Select",
   "inventoryColorNone": "No color",
   "inventoryLowStockHint": "Leave blank to use the global threshold",
-  "inventoryRemainingOfLabel": "of {total} g",
+  "inventoryRemainingOfLabel": "of {total} g",
   "@inventoryRemainingOfLabel": {
     "placeholders": {
       "total": {
@@ -1658,8 +1658,8 @@
   "inventoryAssignConfirm": "Assign",
   "inventoryAssignTitle": "Assign spool",
   "inventoryAssignCurrent": "Currently in this slot",
-  "inventoryAssignPick": "Pick a spool",
-  "inventoryTagBound": "The spool in this slot has a tag, so it is linked by the tag rather than assigned here.",
+  "inventoryAssignPick": "Pick a spool",
+  "inventoryTagBound": "The spool in this slot has a tag, so it is linked by the tag rather than assigned here.",
   "@inventoryTagBound": {
     "description": "Slot sheet, Spoolman mode: a slot whose spool has an RFID tag is bound by that tag on the server, so the sheet offers no assign or unassign."
   },
@@ -1678,9 +1678,9 @@
   "inventoryFromSlot": "Add to inventory",
   "inventoryFromSlotHint": "Register the tagged spool the printer reports in this slot",
   "inventoryFromSlotDone": "Spool added and assigned to the slot",
-  "inventoryFromSlotNoTag": "The printer no longer reports a tagged spool in this slot",
+  "inventoryFromSlotNoTag": "The printer no longer reports a tagged spool in this slot",
   "inventoryFromSlotOffline": "The printer is not connected, so it cannot say what is in the slot",
-  "inventoryFromSlotUnsupported": "This server version cannot add a spool straight from a slot",
+  "inventoryFromSlotUnsupported": "This server version cannot add a spool straight from a slot",
   "inventoryScanSpool": "Scan QR",
   "inventoryScanTitle": "Scan spool QR",
   "inventoryScanHint": "Point the camera at the spool's QR code",
@@ -1816,7 +1816,7 @@
       }
     }
   },
-  "inventoryBulkEditUnsupported": "This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.",
+  "inventoryBulkEditUnsupported": "This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.",
   "inventoryBulkEditConfirmSuppliers": "The suppliers are added to every selected spool.",
   "inventoryApply": "Apply",
   "inventoryLabelsTitle": "Print spool labels",
@@ -1824,7 +1824,7 @@
   "inventoryLabelsPrintAll": "Print labels for all",
   "inventoryClimateTitle": "Storage conditions",
   "inventoryClimateTitleAlerting": "Storage conditions: outside the alert range",
-  "inventoryClimateSource": "The server reads these from Home Assistant. Sensors are bound to a location in Bambuddy's web interface.",
+  "inventoryClimateSource": "The server reads these from Home Assistant. Sensors are bound to a location in Bambuddy's web interface.",
   "inventoryClimateNoReading": "no reading",
   "inventoryClimateReading": "{name}: {value}",
   "@inventoryClimateReading": {
@@ -1876,7 +1876,7 @@
   "inventoryLabelsMonochrome": "Monochrome (black & white printer)",
   "inventoryLabelsMonochromeHint": "Drops the colour swatch and widens the text",
   "inventoryLabelsShare": "Share PDF instead of printing",
-  "inventoryLabelsPickTemplate": "Pick a label size to print:",
+  "inventoryLabelsPickTemplate": "Pick a label size to print:",
   "inventoryLabelsTooMany": "Pick at most {max} spools per print",
   "@inventoryLabelsTooMany": {
     "placeholders": {
@@ -1899,7 +1899,7 @@
   "inventoryLabelsAvery5160": "Avery 5160 — US Letter sheet (25.4 × 66.7 mm × 30)",
   "inventoryLabelsAvery5160Hint": "US sheet stock; 30 labels per Letter page.",
   "inventoryLabelsStartTitle": "First free label",
-  "inventoryLabelsStartHint": "Tap the slot the first label should print in — the ones before it stay blank, so a part-used sheet gets finished instead of started over.",
+  "inventoryLabelsStartHint": "Tap the slot the first label should print in — the ones before it stay blank, so a part-used sheet gets finished instead of started over.",
   "inventoryLabelsStartSlot": "Position {position}",
   "@inventoryLabelsStartSlot": {
     "placeholders": {
@@ -1909,7 +1909,7 @@
     }
   },
   "maintenanceEmpty": "No maintenance data",
-  "maintenanceTotalHours": "{hours} h total",
+  "maintenanceTotalHours": "{hours} h total",
   "@maintenanceTotalHours": {
     "placeholders": {
       "hours": {
@@ -1925,7 +1925,7 @@
       }
     }
   },
-  "maintenanceDueIn": "Due in {hours} h",
+  "maintenanceDueIn": "Due in {hours} h",
   "@maintenanceDueIn": {
     "placeholders": {
       "hours": {
@@ -1933,7 +1933,7 @@
       }
     }
   },
-  "maintenanceOverdueBy": "Overdue by {hours} h",
+  "maintenanceOverdueBy": "Overdue by {hours} h",
   "@maintenanceOverdueBy": {
     "placeholders": {
       "hours": {
@@ -1964,7 +1964,7 @@
   "maintenanceAddType": "Add custom type",
   "maintenanceEditType": "Edit type",
   "maintenanceSystemType": "System",
-  "maintenanceEveryHours": "Every {count} h",
+  "maintenanceEveryHours": "Every {count} h",
   "@maintenanceEveryHours": {
     "placeholders": {
       "count": {
@@ -2003,13 +2003,13 @@
   "maintenanceFieldInterval": "Interval",
   "maintenanceIntervalHours": "Print hours",
   "maintenanceIntervalDays": "Days",
-  "maintenanceIntervalInvalid": "Enter a value ≥ 1",
+  "maintenanceIntervalInvalid": "Enter a value ≥ 1",
   "maintenanceFieldIcon": "Icon",
   "maintenanceFieldDocLink": "Documentation link (optional)",
   "maintenanceAssignPrinters": "Assign to printers",
   "maintenanceSelectPrinter": "Select at least one printer",
   "notifEvtMaintenance": "Maintenance due",
-  "notifEvtMaintenanceDesc": "When a maintenance task becomes overdue",
+  "notifEvtMaintenanceDesc": "When a maintenance task becomes overdue",
   "maintenanceNotifTitle": "Maintenance due",
   "maintenanceNotifBody": "{printer}: {task}",
   "@maintenanceNotifBody": {
@@ -2096,7 +2096,7 @@
       }
     }
   },
-  "statsHours": "{hours} h",
+  "statsHours": "{hours} h",
   "@statsHours": {
     "placeholders": {
       "hours": {
@@ -2186,7 +2186,7 @@
   "statsPrintTimeOfDay": "Print time of day",
   "aboutMenu": "About",
   "aboutTitle": "About",
-  "aboutTagline": "Native Android client for bambuddy — a self-hosted Bambu Lab printer manager.",
+  "aboutTagline": "Native Android client for bambuddy — a self-hosted Bambu Lab printer manager.",
   "appVersionLabel": "App {version}",
   "@appVersionLabel": {
     "description": "This app's own build, shown directly above the server's on all three screens that name a version (drawer footer, About, watch settings). Deliberately the same wording in all three and deliberately paired with serverVersionLabel: two lines that answer the same question should not be phrased as if they answered different ones.",
@@ -2210,7 +2210,7 @@
     "description": "Shown in place of the server version when the server does not answer the version route — an older build, or one that is unreachable right now."
   },
   "aboutLicenseHeader": "License",
-  "aboutLicenseBody": "Bambuddy is free software released under the GNU Affero General Public License v3.0 (AGPL-3.0). You may use, study, share and modify it; if you run a modified version as a network service, you must offer its source to its users.",
+  "aboutLicenseBody": "Bambuddy is free software released under the GNU Affero General Public License v3.0 (AGPL-3.0). You may use, study, share and modify it; if you run a modified version as a network service, you must offer its source to its users.",
   "aboutViewLicense": "Read the AGPL-3.0 license",
   "aboutSourceHeader": "Source code",
   "aboutSourceBody": "The full source is available on GitHub.",
@@ -2294,7 +2294,7 @@
     }
   },
   "fmQueueTargetAuto": "Model from the file",
-  "fmQueueTargetAutoHint": "Each file waits for a printer of the model it was sliced for",
+  "fmQueueTargetAutoHint": "Each file waits for a printer of the model it was sliced for",
   "fmAddedToQueuePartial": "Added {added} of {total} files to the queue. {reason}",
   "@fmAddedToQueuePartial": {
     "placeholders": {
@@ -2309,12 +2309,12 @@
       }
     }
   },
-  "fmQueueErrWrongModel": "Sliced for a different printer model.",
+  "fmQueueErrWrongModel": "Sliced for a different printer model.",
   "fmQueueErrNotSliced": "Not sliced — only G-code files can be queued.",
   "fmFileDetails": "Photos, link and notes",
   "fmPhotosEmpty": "No photos of the print yet",
   "fmPhotoAdd": "Add photo",
-  "fmPhotoFromCamera": "Take a photo",
+  "fmPhotoFromCamera": "Take a photo",
   "fmPhotoFromGallery": "Choose from gallery",
   "fmPhotoFromFiles": "Choose from files",
   "fmPhotoAdded": "Photo added",
@@ -2438,7 +2438,7 @@
   },
   "fmTagCreated": "Tag created",
   "fmTagDeleted": "Tag deleted",
-  "fmTagExists": "A tag with this name already exists",
+  "fmTagExists": "A tag with this name already exists",
   "fmTagsSaved": "Tags updated",
   "fmTagsPartial": "Updated {count} of {total} files — the rest are not yours to edit",
   "@fmTagsPartial": {
@@ -2784,7 +2784,7 @@
   "@mfErrScope": {
     "description": "Manyfold tab: error text for server code manyfold_scope"
   },
-  "mfErrRateLimited": "Manyfold is limiting sign-ins. Try again in a few minutes.",
+  "mfErrRateLimited": "Manyfold is limiting sign-ins. Try again in a few minutes.",
   "@mfErrRateLimited": {
     "description": "Manyfold tab: error text for server code manyfold_rate_limited"
   },
@@ -2820,10 +2820,10 @@
   "@mfErrFailed": {
     "description": "Manyfold tab: error text for server code manyfold_failed"
   },
-  "mwIntro": "Paste a MakerWorld model URL to import and print it directly from Bambuddy.",
+  "mwIntro": "Paste a MakerWorld model URL to import and print it directly from Bambuddy.",
   "mwUrlHint": "https://makerworld.com/en/models/… or any MakerWorld link",
   "mwResolve": "Resolve",
-  "mwEnterUrl": "Enter a MakerWorld URL",
+  "mwEnterUrl": "Enter a MakerWorld URL",
   "mwUntitledModel": "Untitled model",
   "mwPlatesCount": "{count, plural, =0{No plates} =1{1 plate} other{{count} plates}}",
   "@mwPlatesCount": {
@@ -2881,7 +2881,7 @@
   "swatchSectionCodes": "Codes",
   "swatchSectionUncoded": "Inventory filaments without codes",
   "swatchNoCodes": "No swatch codes yet",
-  "swatchNoCodesHint": "Create a code to label a filament sample.",
+  "swatchNoCodesHint": "Create a code to label a filament sample.",
   "swatchNoMatch": "No codes match \"{query}\"",
   "@swatchNoMatch": {
     "placeholders": {
@@ -2894,7 +2894,7 @@
   "swatchNewCode": "New code",
   "swatchGenerate": "Generate",
   "swatchGenerateCode": "Generate code",
-  "swatchExists": "That filament already has a code",
+  "swatchExists": "That filament already has a code",
   "swatchCreatedSnack": "Created code {code}",
   "@swatchCreatedSnack": {
     "placeholders": {
@@ -2972,7 +2972,7 @@
   "swatchSave": "Save",
   "swatchRegenerate": "Regenerate",
   "swatchFieldCode": "Code",
-  "swatchCodeInvalid": "Use 6 characters: digits and letters, no 0, 1, I, L or O",
+  "swatchCodeInvalid": "Use 6 characters: digits and letters, no 0, 1, I, L or O",
   "swatchCodeTaken": "That code is already in use",
   "swatchFieldBrand": "Manufacturer",
   "swatchFieldMaterial": "Material",
@@ -2980,7 +2980,7 @@
   "swatchFieldColor": "Color",
   "swatchFieldHex": "Color hex",
   "swatchMaterialRequired": "Material is required",
-  "swatchNoCatalogColors": "No catalog colors available. Enter a color name and hex manually.",
+  "swatchNoCatalogColors": "No catalog colors available. Enter a color name and hex manually.",
   "projectsMenu": "Projects",
   "projectsTitle": "Projects",
   "projectsEmpty": "No projects yet",
@@ -3066,7 +3066,7 @@
   "projectAddArchives": "Add archives",
   "archiveAddToProject": "Add to project",
   "projectArchivesAdded": "Added to project",
-  "projectPickTitle": "Pick a project",
+  "projectPickTitle": "Pick a project",
   "projectBomEmpty": "No BOM items",
   "bomAdd": "Add item",
   "bomEditTitle": "Edit item",
@@ -3169,7 +3169,7 @@
   "sliceAsDesignedInactive": "Not used — the file decides",
   "sliceFilamentUnused": "Not used by this plate",
   "processSettingsTitle": "Process settings",
-  "sliceProcessSettingsNeedsProcess": "Pick a process preset first",
+  "sliceProcessSettingsNeedsProcess": "Pick a process preset first",
   "sliceProcessSettingsUnchanged": "Using the preset as it is",
   "sliceProcessSettingsChanged": "{count} changed",
   "@sliceProcessSettingsChanged": {
@@ -3203,9 +3203,9 @@
   },
   "processSettingsDisabledHint": "The slicer ignores this with your current settings.",
   "processSettingsUnavailable": "This server cannot report process settings for the selected preset.",
-  "processSettingsDefaultsOutdatedSidecar": "Showing slicer defaults: your slicer sidecar is older than this feature and cannot report a preset's values. Update the sidecar image to see them. Anything you do not change still uses the preset.",
-  "processSettingsDefaultsNotConfigured": "Showing slicer defaults: no slicer sidecar is configured, so a preset's values cannot be read. Anything you do not change still uses the preset.",
-  "processSettingsDefaultsSidecarUnavailable": "Showing slicer defaults: the slicer sidecar did not answer, so a preset's values cannot be read. Anything you do not change still uses the preset.",
+  "processSettingsDefaultsOutdatedSidecar": "Showing slicer defaults: your slicer sidecar is older than this feature and cannot report a preset's values. Update the sidecar image to see them. Anything you do not change still uses the preset.",
+  "processSettingsDefaultsNotConfigured": "Showing slicer defaults: no slicer sidecar is configured, so a preset's values cannot be read. Anything you do not change still uses the preset.",
+  "processSettingsDefaultsSidecarUnavailable": "Showing slicer defaults: the slicer sidecar did not answer, so a preset's values cannot be read. Anything you do not change still uses the preset.",
   "processSettingsDefaultsUnavailable": "Showing slicer defaults: the selected preset's own values could not be read. Anything you do not change still uses the preset.",
   "processSettingsFilamentDefault": "Default (the region's own filament)",
   "processSettingsFilamentSlot": "{slot}: {name}",
@@ -3243,7 +3243,7 @@
   "@sliceOnlyLoaded": {
     "description": "Slice form switch: narrow the filament profiles to the spools loaded in online printers"
   },
-  "sliceOnlyLoadedHint": "Filament profiles of the spools in the online printers of the selected model. A profile you pick yourself stays.",
+  "sliceOnlyLoadedHint": "Filament profiles of the spools in the online printers of the selected model. A profile you pick yourself stays.",
   "@sliceOnlyLoadedHint": {
     "description": "Line under the loaded-spools switch"
   },
@@ -3251,7 +3251,7 @@
   "@sliceNoneOnline": {
     "description": "Note when a filter is on but no printer is online, so it has no effect"
   },
-  "sliceNoneLoaded": "No loaded spool has a profile for this printer, so every filament profile is shown.",
+  "sliceNoneLoaded": "No loaded spool has a profile for this printer, so every filament profile is shown.",
   "@sliceNoneLoaded": {
     "description": "Note when the loaded-spools filter is on but no loaded spool maps to a profile"
   },
@@ -3329,7 +3329,7 @@
   "@sliceSpoolsUnavailable": {
     "description": "Label before the slots that cannot be picked (empty, unidentified, no profile)"
   },
-  "sliceSpoolFrom": "From a spool · {source}",
+  "sliceSpoolFrom": "From a spool · {source}",
   "@sliceSpoolFrom": {
     "description": "Line under a filament row filled from a loaded spool; source is printer and slot",
     "placeholders": {
@@ -3362,10 +3362,10 @@
       }
     }
   },
-  "sliceRefusedStep": "STEP files cannot be sliced. Export the model as an STL or a 3MF from your CAD first.",
-  "sliceRefusedFormat": "The source has to be an STL or a 3MF.",
+  "sliceRefusedStep": "STEP files cannot be sliced. Export the model as an STL or a 3MF from your CAD first.",
+  "sliceRefusedFormat": "The source has to be an STL or a 3MF.",
   "sliceRefusedNoSource": "This archive kept only the G-code it printed, not the model — there is nothing to slice again.",
-  "sliceResultFilament": "Filament: {grams} g",
+  "sliceResultFilament": "Filament: {grams} g",
   "@sliceResultFilament": {
     "placeholders": {
       "grams": {
@@ -3392,11 +3392,11 @@
   "pipelineNameHint": "Pipeline name",
   "pipelineSaveConfirm": "Save",
   "pipelineSaved": "Pipeline saved",
-  "pipelineSaveHint": "The printer, process, filaments and plate above, under a name you can reapply to the next file.",
+  "pipelineSaveHint": "The printer, process, filaments and plate above, under a name you can reapply to the next file.",
   "pipelinesMenu": "Pipelines",
   "pipelinesTitle": "Pipelines",
   "pipelinesEmpty": "No pipelines yet",
-  "pipelinesEmptyHint": "Save one from the slice form — printer, process, filaments and plate as a bundle you can reapply in one tap.",
+  "pipelinesEmptyHint": "Save one from the slice form — printer, process, filaments and plate as a bundle you can reapply in one tap.",
   "pipelineFilamentsCount": "Filaments ({count})",
   "pipelineHistory": "Run history",
   "pipelineCardActions": "Pipeline actions",
@@ -3417,15 +3417,15 @@
   },
   "pipelineBed": "Plate",
   "pipelinePresetGone": "No longer in the catalog",
-  "pipelineNeedsTarget": "Set a target before running this pipeline.",
+  "pipelineNeedsTarget": "Set a target before running this pipeline.",
   "pipelineNoTargetChip": "No target",
   "pipelineEditTitle": "Edit pipeline",
   "pipelineDescriptionHint": "Description (optional)",
   "pipelineTargetType": "Target",
   "pipelineTargetSpecific": "One printer",
   "pipelineTargetClass": "Printer model",
-  "pipelineTargetPickPrinter": "Pick a printer",
-  "pipelineTargetPickClass": "Pick a model",
+  "pipelineTargetPickPrinter": "Pick a printer",
+  "pipelineTargetPickClass": "Pick a model",
   "pipelineTargetNone": "— no target —",
   "pipelineTargetPrinterGone": "Printer #{id} (gone)",
   "@pipelineTargetPrinterGone": {
@@ -3475,13 +3475,13 @@
     }
   },
   "pipelineEligibilityBlocked": "Nothing can take this run right now.",
-  "pipelineEligibilityAdvisory": "Worth a look before you start.",
+  "pipelineEligibilityAdvisory": "Worth a look before you start.",
   "pipelineIssuePrinterNotSet": "This pipeline has no target printer.",
   "pipelineIssuePrinterNotFound": "The target printer no longer exists.",
   "pipelineIssuePrinterDisabled": "The target printer is switched off in bambuddy.",
   "pipelineIssuePrinterOffline": "The target printer is offline.",
   "pipelineIssueFilamentType": "Wrong filament type loaded.",
-  "pipelineIssueFilamentColor": "The loaded filament is a different colour.",
+  "pipelineIssueFilamentColor": "The loaded filament is a different colour.",
   "pipelineIssueAmsSlotMissing": "The AMS has fewer slots than this pipeline needs.",
   "pipelineIssueFilamentUnverified": "This filament preset cannot be checked from here — worth confirming yourself.",
   "pipelineIssueNoClassMatches": "No printer of this model is installed.",
@@ -3531,10 +3531,10 @@
   },
   "pipelineRunsFilterAny": "Any",
   "pipelineRunsFilterStatus": "Status",
-  "pipelineRunsFilterStatusHint": "Matches the last status written down, so a run can still answer to the step before the one it is on.",
+  "pipelineRunsFilterStatusHint": "Matches the last status written down, so a run can still answer to the step before the one it is on.",
   "pipelineRunsFilterTarget": "Target",
   "pipelineRunsFilterTargetHint": "Where the pipeline points now — re-targeting one moves its whole history.",
-  "pipelineRunsFilterPipelineHint": "Runs of a deleted pipeline cannot be filtered to.",
+  "pipelineRunsFilterPipelineHint": "Runs of a deleted pipeline cannot be filtered to.",
   "pipelineRunsFilterClear": "Clear filters",
   "pipelineRunsLoadMore": "Load more",
   "pipelineRunsShowingAll": "All {count} shown",
@@ -3579,7 +3579,7 @@
       }
     }
   },
-  "pipelineRunOverridden": "Started past a failed check",
+  "pipelineRunOverridden": "Started past a failed check",
   "pipelineRunDeletedPipeline": "Deleted pipeline",
   "pipelineRunSource": "From {name}",
   "@pipelineRunSource": {
@@ -3631,7 +3631,7 @@
     }
   },
   "pipelineJobPending": "Pending",
-  "pipelineJobAwaitingPrinter": "Waiting for a printer",
+  "pipelineJobAwaitingPrinter": "Waiting for a printer",
   "pipelineJobQueued": "Queued",
   "pipelineJobPrinting": "Printing",
   "pipelineJobCompleted": "Done",
@@ -3663,7 +3663,7 @@
   "@mappingStatusTypeNotFound": {
     "description": "Filament mapping sheet header: a filament found no slot of its type."
   },
-  "mappingTapToChange": "Tap a filament to change its slot",
+  "mappingTapToChange": "Tap a filament to change its slot",
   "@mappingTapToChange": {
     "description": "Hint under the filament mapping sheet title."
   },
@@ -3732,7 +3732,7 @@
   "@mappingRackPositionHint": {
     "description": "Tooltip on the rack-position picker in a filament mapping row, and the explanation at the top of its sheet."
   },
-  "mappingRackNeeds": "This filament needs a {nozzle} nozzle.",
+  "mappingRackNeeds": "This filament needs a {nozzle} nozzle.",
   "@mappingRackNeeds": {
     "description": "Top of the rack-position sheet. {nozzle} is a nozzle like \"0.4 High flow\".",
     "placeholders": {
@@ -3745,7 +3745,7 @@
   "@mappingRackEmptyPosition": {
     "description": "Why a rack position cannot be picked: no nozzle is docked there."
   },
-  "mappingRackWrongNozzle": "Holds a {has} nozzle; this filament needs {needs}",
+  "mappingRackWrongNozzle": "Holds a {has} nozzle; this filament needs {needs}",
   "@mappingRackWrongNozzle": {
     "description": "Why a rack position cannot be picked. {has} and {needs} are nozzles like \"0.2 Standard\" and \"0.4 High flow\".",
     "placeholders": {
@@ -3842,7 +3842,7 @@
     "description": "Sentence beside that checkmark button. It is what lets the button be an icon alone — shorten this and the banner stops saying what it is about."
   },
   "plateClearedSnack": "Plate marked as cleared",
-  "plateClearNeedsOnline": "This server releases the plate only while the printer is connected. Update bambuddy to do it on a printer that is switched off.",
+  "plateClearNeedsOnline": "This server releases the plate only while the printer is connected. Update bambuddy to do it on a printer that is switched off.",
   "pfmTitle": "File Manager",
   "pfmTooltip": "Files on printer",
   "pfmStorageUsed": "Used: {size}",
@@ -3961,7 +3961,7 @@
   "wearFromPhoneUse": "Use this server",
   "wearFromPhoneLater": "Not now",
   "wearAuthNone": "No sign-in",
-  "wearFromPhoneWaiting": "The phone offers a different server.",
+  "wearFromPhoneWaiting": "The phone offers a different server.",
   "wearCurrentServer": "Current server",
   "wearOk": "OK",
   "@wearOk": {
@@ -3992,7 +3992,7 @@
   "queueEditTargetModel": "Model",
   "queueEditTargetLocation": "Location",
   "queueEditAnyLocation": "Any location",
-  "queueEditMappingNeedsPrinter": "Select a printer to map filaments",
+  "queueEditMappingNeedsPrinter": "Select a printer to map filaments",
   "queueEditMappingSummary": "{count} {count, plural, one{slot} other{slots}} mapped",
   "@queueEditMappingSummary": {
     "placeholders": {
@@ -4098,8 +4098,8 @@
       }
     }
   },
-  "queueEditNoModel": "Select a target model",
-  "queueEditNoPrinter": "Select a printer",
+  "queueEditNoModel": "Select a target model",
+  "queueEditNoPrinter": "Select a printer",
   "queueEditFilamentOverride": "Filament Override",
   "queueEditFilamentOverrideDesc": "Optionally override filaments for model-based assignment. The scheduler matches against your selected filaments instead of the original 3MF values.",
   "queueEditNoFilamentReqs": "No filament requirements for this job.",
@@ -4117,7 +4117,7 @@
   },
   "queueEditForceColorMatch": "Force color match",
   "queueEditRackPickStale": "The chosen position no longer fits this filament — pick another, or the print is refused at start.",
-  "queueEditRackNoFit": "No rack position holds a {nozzle} nozzle — fit one, or the printer decides for itself.",
+  "queueEditRackNoFit": "No rack position holds a {nozzle} nozzle — fit one, or the printer decides for itself.",
   "@queueEditRackNoFit": {
     "placeholders": {
       "nozzle": {
@@ -4127,8 +4127,8 @@
   },
   "nozzleFlowStandard": "Standard",
   "nozzleFlowHigh": "High flow",
-  "bugReportMenu": "Report a bug or an idea",
-  "bugReportTitle": "Report a bug or an idea",
+  "bugReportMenu": "Report a bug or an idea",
+  "bugReportTitle": "Report a bug or an idea",
   "bugReportLogScreens": "Screens you open and buttons you press",
   "bugReportLogRequests": "Requests to the server and its answers",
   "bugReportLogService": "The live view, and which notifications the background service posted or skipped",
@@ -4191,15 +4191,15 @@
   "usersActiveHint": "An inactive account cannot sign in.",
   "usersEmailAdvancedHint": "This server mails the password, so it needs an address.",
   "usersPasswordMailed": "The server picks the password itself and mails it to this address. Nobody, including you, gets to see it.",
-  "usersNoSmtpWarning": "No mail server is configured, so that message will not arrive — the account would be created with a password nobody knows.",
+  "usersNoSmtpWarning": "No mail server is configured, so that message will not arrive — the account would be created with a password nobody knows.",
   "usersLdapPasswordNote": "This account signs in through the directory (LDAP). Its password lives there and cannot be set from here.",
   "usersPasswordKeepHint": "Leave empty to keep the current password.",
-  "usersPasswordRulesHint": "At least 8 characters, with an upper and lower case letter, a digit and a symbol.",
+  "usersPasswordRulesHint": "At least 8 characters, with an upper and lower case letter, a digit and a symbol.",
   "usersPasswordTooShort": "At least 8 characters.",
   "usersPasswordNoUppercase": "Add an upper case letter.",
-  "usersPasswordNoLowercase": "Add a lower case letter.",
-  "usersPasswordNoDigit": "Add a digit.",
-  "usersPasswordNoSpecial": "Add a symbol.",
+  "usersPasswordNoLowercase": "Add a lower case letter.",
+  "usersPasswordNoDigit": "Add a digit.",
+  "usersPasswordNoSpecial": "Add a symbol.",
   "usersDeleteTitle": "Delete {username}?",
   "@usersDeleteTitle": {
     "placeholders": {
@@ -4228,15 +4228,15 @@
   "usersErrSelfDelete": "You cannot delete the account you are signed in with.",
   "usersErrUsernameTaken": "That username is taken.",
   "usersErrEmailTaken": "That e-mail is already on another account.",
-  "usersErrLdapPassword": "The password of a directory (LDAP) account cannot be set here.",
-  "usersErrEmailRequired": "This server needs an e-mail address for a new account.",
-  "usersErrPasswordRequired": "This server needs a password for a new account.",
+  "usersErrLdapPassword": "The password of a directory (LDAP) account cannot be set here.",
+  "usersErrEmailRequired": "This server needs an e-mail address for a new account.",
+  "usersErrPasswordRequired": "This server needs a password for a new account.",
   "usersErrGroupsInvalid": "One of the groups no longer exists — reopen the form.",
   "groupsTitle": "Groups",
   "groupsEmpty": "No groups on this server.",
   "groupsNoDescription": "No description",
   "groupsSystemPill": "Built-in",
-  "groupsSystemNote": "A built-in group cannot be renamed and what it grants is fixed — only who is in it can change.",
+  "groupsSystemNote": "A built-in group cannot be renamed and what it grants is fixed — only who is in it can change.",
   "groupsMemberCount": "{count, plural, =0{no accounts} =1{1 account} other{{count} accounts}}",
   "@groupsMemberCount": {
     "placeholders": {
@@ -4303,7 +4303,7 @@
   },
   "groupsFieldName": "Name",
   "groupsFieldDescription": "What it is for",
-  "groupsSystemFormNote": "A built-in group: its name and permissions are fixed by the server. Only the description can be changed here.",
+  "groupsSystemFormNote": "A built-in group: its name and permissions are fixed by the server. Only the description can be changed here.",
   "groupsPermissionsHeader": "PERMISSIONS",
   "groupsPermissionsSelected": "{count} selected",
   "@groupsPermissionsSelected": {
@@ -4317,7 +4317,7 @@
   "groupsAdvancedHint": "Users, API keys, settings, backups — everything the app itself has no screen for.",
   "serverSettingsMenu": "Server settings",
   "serverSettingsTitle": "Server settings",
-  "serverSettingsQueueSubtitle": "Scheduling, preheat, holding a bed warm between prints, and asking how prints came out",
+  "serverSettingsQueueSubtitle": "Scheduling, preheat, holding a bed warm between prints, and asking how prints came out",
   "serverSettingsMaintenanceSubtitle": "Task types and per-printer intervals",
   "serverSettingsAdminSubtitle": "Accounts, groups and API keys",
   "serverSettingsCloudSubtitle": "The Bambu account the server downloads with",
@@ -4327,7 +4327,7 @@
   "queueSettingsUnavailable": "This server reports none of these settings. It is either older than they are, or they could not be read — pull down to try again.",
   "queueSettingsQueueHeader": "Queue",
   "queueSettingsPlateClearTitle": "Confirm the plate is clear",
-  "queueSettingsPlateClearDesc": "After a print the printer waits for someone to confirm the plate is empty.",
+  "queueSettingsPlateClearDesc": "After a print the printer waits for someone to confirm the plate is empty.",
   "queueSettingsShortestFirstTitle": "Shortest job first",
   "queueSettingsShortestFirstDesc": "Take the shortest waiting job rather than the one that has waited longest.",
   "queueSettingsMaxUploads": "Files uploaded at the same time: {count}",
@@ -4339,8 +4339,8 @@
     }
   },
   "queueSettingsPreheatHeader": "Preheat",
-  "queueSettingsPreheatTitle": "Preheat before a job",
-  "queueSettingsPreheatDesc": "Warms the chamber before the file is sent. A single queued job can overrule it.",
+  "queueSettingsPreheatTitle": "Preheat before a job",
+  "queueSettingsPreheatDesc": "Warms the chamber before the file is sent. A single queued job can overrule it.",
   "queueSettingsPreheatMaxWait": "Chamber wait limit: {duration}",
   "@queueSettingsPreheatMaxWait": {
     "placeholders": {
@@ -4378,11 +4378,11 @@
       }
     }
   },
-  "queueSettingsMaxUploadsDesc": "Before a queued job starts, its file is sent to the printer over FTP, which can take minutes. This is how many of those transfers run at once — it only does anything with several printers.",
+  "queueSettingsMaxUploadsDesc": "Before a queued job starts, its file is sent to the printer over FTP, which can take minutes. This is how many of those transfers run at once — it only does anything with several printers.",
   "queueSettingsPreheatMaxWaitDesc": "An X1C or P2S has no chamber heater — the chamber warms from the bed, which can take 15–30 minutes. After this the queue stops waiting and moves on to the soak.",
   "queueSettingsPreheatSoakDesc": "Extra time at temperature after the chamber reaches it, or after the wait above runs out. Zero skips it.",
-  "queueSettingsKeepWarmTempDesc": "90 sustains chamber warmth on an enclosed printer and triggers add-on chamber heaters, which usually switch on at bed 80. A higher bed temperature from the file always wins.",
-  "queueSettingsKeepWarmMaxDesc": "Set it to how long you realistically take to reach the printer. Too short only costs the next print a soak from cold; without a limit an uncleared plate would keep the bed hot indefinitely.",
+  "queueSettingsKeepWarmTempDesc": "90 sustains chamber warmth on an enclosed printer and triggers add-on chamber heaters, which usually switch on at bed 80. A higher bed temperature from the file always wins.",
+  "queueSettingsKeepWarmMaxDesc": "Set it to how long you realistically take to reach the printer. Too short only costs the next print a soak from cold; without a limit an uncleared plate would keep the bed hot indefinitely.",
   "queueSettingsKeepWarmOffNote": "Keep-warm is off. The bed temperature above still applies to preheat.",
   "adminTitle": "Administration",
   "adminSignedInAs": "Signed in as {username}",
@@ -4412,7 +4412,7 @@
       }
     }
   },
-  "apiKeysRevokeBody": "Whatever uses this key stops working at once. This cannot be undone — a new key would have to be issued.",
+  "apiKeysRevokeBody": "Whatever uses this key stops working at once. This cannot be undone — a new key would have to be issued.",
   "apiKeysLastUsed": "last used {date}",
   "@apiKeysLastUsed": {
     "placeholders": {
@@ -4446,16 +4446,16 @@
   "apiKeysFieldEnabled": "Active",
   "apiKeysFieldEnabledHint": "Switching it off stops the key working without deleting it.",
   "apiKeysScopesHeader": "WHAT IT MAY DO",
-  "apiKeysScopesHint": "A key can never manage accounts, groups, keys or settings — the server refuses those to every key.",
+  "apiKeysScopesHint": "A key can never manage accounts, groups, keys or settings — the server refuses those to every key.",
   "apiKeysPrintersHeader": "PRINTERS",
   "apiKeysAllPrinters": "All printers",
   "apiKeysAllPrintersHint": "Off: pick which printers this key may touch.",
   "apiKeysExpiryHeader": "EXPIRY",
   "apiKeysNoExpiry": "Does not expire",
-  "apiKeysExpiryHint": "Tap to pick a date after which the key stops working.",
+  "apiKeysExpiryHint": "Tap to pick a date after which the key stops working.",
   "apiKeysExpiryClear": "No expiry",
   "apiKeysCreatedTitle": "Key created",
-  "apiKeysCreatedWarning": "Copy it now. The server keeps only a hash — this is the last time it can be shown.",
+  "apiKeysCreatedWarning": "Copy it now. The server keeps only a hash — this is the last time it can be shown.",
   "apiKeysCopy": "Copy",
   "apiKeysCopied": "Key copied",
   "apiKeysCreatedDone": "Done",
@@ -4472,9 +4472,9 @@
   "apiKeyScopeCloud": "Bambu Cloud",
   "apiKeyScopeCloudHint": "Reads the cloud on behalf of the account that creates the key. Needs authentication switched on server-side.",
   "apiKeyScopeEnergy": "Energy price",
-  "apiKeyScopeEnergyHint": "The one settings value a key may write — for a dynamic tariff.",
+  "apiKeyScopeEnergyHint": "The one settings value a key may write — for a dynamic tariff.",
   "apiKeyScopeNotifications": "Send notifications",
-  "apiKeyScopeNotificationsHint": "Lets another app post a message to the notification channels that accept messages from connected apps. The key's owner also needs permission to manage notifications.",
+  "apiKeyScopeNotificationsHint": "Lets another app post a message to the notification channels that accept messages from connected apps. The key's owner also needs permission to manage notifications.",
   "printLogTitle": "Print log",
   "printLogSearchHint": "Search runs",
   "printLogEmpty": "No runs recorded yet",
@@ -4539,8 +4539,8 @@
   "printLogFailureCause": "Failure cause",
   "printLogNoClassification": "Not classified",
   "printLogStatusLabel": "Status",
-  "printLogCountsAsFailure": "Counted as a failure — this run and its cause show up in failure analysis.",
-  "printLogNotCountedAsFailure": "Not counted as a failure, so the cause stays out of failure analysis.",
+  "printLogCountsAsFailure": "Counted as a failure — this run and its cause show up in failure analysis.",
+  "printLogNotCountedAsFailure": "Not counted as a failure, so the cause stays out of failure analysis.",
   "printLogStatusOneWay": "This server cannot write “{status}” back. Change it and it is gone for good.",
   "@printLogStatusOneWay": {
     "placeholders": {
@@ -4592,7 +4592,7 @@
   "failureReasonUnknown": "Unknown",
   "appSettingsMenu": "App settings",
   "appSettingsTitle": "App settings",
-  "appSettingsNotificationsSubtitle": "Which events send a notification, and at what thresholds",
+  "appSettingsNotificationsSubtitle": "Which events send a notification, and at what thresholds",
   "collapsePrinterCardsTitle": "Collapsed printer cards",
   "collapsePrinterCardsDesc": "Cards open showing only the name, status and print progress. Any card can still be expanded.",
   "printerCardExpand": "Expand card",
@@ -4726,7 +4726,7 @@
   },
   "ordersCancel": "Cancel order",
   "ordersCancelTitle": "Cancel this order?",
-  "ordersCancelBody": "Runs still waiting in the queue are cancelled, and the order stops asking for what it has not produced. A print that is already running keeps going.",
+  "ordersCancelBody": "Runs still waiting in the queue are cancelled, and the order stops asking for what it has not produced. A print that is already running keeps going.",
   "ordersCancelled": "Order cancelled",
   "ordersUngroup": "Ungroup",
   "ordersUngroupTitle": "Ungroup this batch?",
@@ -4761,16 +4761,16 @@
   "orderEditTitle": "Edit order",
   "orderEditSave": "Save",
   "orderEditName": "Name",
-  "orderEditErrName": "The order needs a name.",
+  "orderEditErrName": "The order needs a name.",
   "orderEditDue": "Due date",
   "orderEditDueNone": "No due date",
-  "orderEditDueHint": "The server can change a due date but not remove it.",
+  "orderEditDueHint": "The server can change a due date but not remove it.",
   "orderEditProject": "Project",
   "orderEditProjectNone": "No project",
   "orderEditProjectHint": "The server can move an order to another project but not take it out of one.",
   "orderEditNotes": "Notes",
   "orderEditTargets": "Runs per plate",
-  "orderEditTargetsHint": "Lowering a target does not cancel runs already queued; 0 marks a plate as not needed.",
+  "orderEditTargetsHint": "Lowering a target does not cancel runs already queued; 0 marks a plate as not needed.",
   "orderEditPlateDone": "Done so far: {count}",
   "@orderEditPlateDone": {
     "placeholders": {
@@ -4780,15 +4780,15 @@
     }
   },
   "orderEditSaved": "Order saved",
-  "orderEditErrNothingAsked": "At least one plate needs a target above 0.",
+  "orderEditErrNothingAsked": "At least one plate needs a target above 0.",
   "orderEditErrProject": "That project no longer exists.",
   "ordersEdit": "Edit",
   "ordersReopen": "Reopen order",
   "ordersReopened": "Order reopened",
   "ordersGroup": "Group queue items",
   "ordersGroupName": "Batch name",
-  "ordersGroupHint": "Pick at least two waiting jobs that are not in a batch yet.",
-  "ordersGroupEmpty": "Nothing to group: fewer than two waiting jobs are outside a batch.",
+  "ordersGroupHint": "Pick at least two waiting jobs that are not in a batch yet.",
+  "ordersGroupEmpty": "Nothing to group: fewer than two waiting jobs are outside a batch.",
   "ordersGroupConfirm": "Group",
   "ordersGrouped": "{count, plural, =1{1 job grouped as {name}} other{{count} jobs grouped as {name}}}",
   "@ordersGrouped": {
@@ -4815,11 +4815,11 @@
   "queueEditCopiesLabel": "How many times to print it",
   "queueEditCopies": "Copies",
   "queueEditCopiesHint": "The copies are queued as one batch.",
-  "queueEditCopiesOrder": "This becomes an order: a failed copy can be queued again from Batch orders.",
+  "queueEditCopiesOrder": "This becomes an order: a failed copy can be queued again from Batch orders.",
   "ordersGroupedNone": "No job could be grouped.",
   "orderEditTargetLess": "One fewer run",
   "orderEditTargetMore": "One more run",
-  "queueEditOrderRefused": "The order could not be made, so the copies were queued as a plain batch.",
+  "queueEditOrderRefused": "The order could not be made, so the copies were queued as a plain batch.",
   "inventoryQuantityLess": "One spool fewer to add",
   "inventoryQuantityMore": "One more spool to add",
   "outcomeGoodPart": "Good part",
@@ -4842,7 +4842,7 @@
   "@outcomeSourceDialog": {
     "description": "How an outcome verdict was recorded: in the app (this one or the web UI)"
   },
-  "outcomeSourceLink": "Recorded with a one-tap link.",
+  "outcomeSourceLink": "Recorded with a one-tap link.",
   "@outcomeSourceLink": {
     "description": "How an outcome verdict was recorded: a one-tap link from a push notification (Telegram, ntfy…)"
   },
@@ -4858,7 +4858,7 @@
   "@outcomeSourceApi": {
     "description": "How an outcome verdict was recorded: by a script or integration through the server API"
   },
-  "outcomeSourceReaction": "Recorded with a reaction in chat.",
+  "outcomeSourceReaction": "Recorded with a reaction in chat.",
   "@outcomeSourceReaction": {
     "description": "How an outcome verdict was recorded: with a reaction to the chat message"
   },
@@ -4930,7 +4930,7 @@
   "@queueSettingsOutcomeDefaultTitle": {
     "description": "Server setting default_confirm_outcome: whether new jobs ask for their outcome by default"
   },
-  "queueSettingsOutcomeDefaultDesc": "New jobs ask for their outcome by default — in the print form, where each job can still change it, and where there is no form, such as adding several files to the queue at once or a pipeline run.",
+  "queueSettingsOutcomeDefaultDesc": "New jobs ask for their outcome by default — in the print form, where each job can still change it, and where there is no form, such as adding several files to the queue at once or a pipeline run.",
   "@queueSettingsOutcomeDefaultDesc": {
     "description": "Explains default_confirm_outcome: where the print form's switch starts, and whether jobs queued without a form (bulk add, pipelines, webhook, virtual printer) ask"
   },
@@ -4938,7 +4938,7 @@
   "@queueSettingsOutcomeExternalTitle": {
     "description": "Server setting confirm_outcome_external_prints: also ask about prints bambuddy did not start"
   },
-  "queueSettingsOutcomeExternalDesc": "A print started on the printer, in Bambu Studio or in Bambu Handy that Bambuddy archives gets the outcome question too.",
+  "queueSettingsOutcomeExternalDesc": "A print started on the printer, in Bambu Studio or in Bambu Handy that Bambuddy archives gets the outcome question too.",
   "@queueSettingsOutcomeExternalDesc": {
     "description": "Explains confirm_outcome_external_prints"
   },
@@ -4946,7 +4946,7 @@
   "@queueSettingsOutcomePlateClearTitle": {
     "description": "Server setting confirm_default_good_on_plate_clear: an unanswered outcome counts as good once the plate is marked clear"
   },
-  "queueSettingsOutcomePlateClearDesc": "When someone confirms the plate is clear — or, with that confirmation off, when the next queued job is sent to this printer — a completed print still awaiting its verdict is recorded as a good part. A notification link opened after that only shows what was recorded.",
+  "queueSettingsOutcomePlateClearDesc": "When someone confirms the plate is clear — or, with that confirmation off, when the next queued job is sent to this printer — a completed print still awaiting its verdict is recorded as a good part. A notification link opened after that only shows what was recorded.",
   "@queueSettingsOutcomePlateClearDesc": {
     "description": "Explains confirm_default_good_on_plate_clear"
   },
@@ -4954,7 +4954,7 @@
   "@notifEvtOutcome": {
     "description": "Notification settings switch: the question asked when a print that opted in completes"
   },
-  "notifEvtOutcomeDesc": "When a print that asks for its outcome completes — answer Good or Reject from the notification",
+  "notifEvtOutcomeDesc": "When a print that asks for its outcome completes — answer Good or Reject from the notification",
   "@notifEvtOutcomeDesc": {
     "description": "Explains the outcome-question notification switch"
   },
@@ -5045,7 +5045,7 @@
     "description": "Shown in place of the wall's tiles when the server has printers but all are hidden on this device"
   },
   "inventorySuppliersTitle": "Suppliers",
-  "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
+  "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
   "inventorySuppliersEmpty": "No suppliers yet",
   "inventorySuppliersLoadFailed": "Couldn't load the suppliers",
   "inventorySupplierAdd": "Add",
@@ -5068,11 +5068,11 @@
       }
     }
   },
-  "inventorySupplierNameSeparator": "A name can't contain a semicolon",
+  "inventorySupplierNameSeparator": "A name can't contain a semicolon",
   "@inventorySupplierNameSeparator": {
     "description": "The server joins supplier names with ';' in its CSV export and refuses a name containing one."
   },
-  "inventorySupplierNameTaken": "A supplier with this name already exists",
+  "inventorySupplierNameTaken": "A supplier with this name already exists",
   "inventorySupplierSaved": "Supplier saved",
   "inventorySupplierDeleted": "Supplier deleted",
   "inventorySupplierDeleteTitle": "Delete {name}?",
@@ -5092,7 +5092,7 @@
       }
     }
   },
-  "inventorySupplierInUseUnknown": "Still assigned to a spool — remove it there first",
+  "inventorySupplierInUseUnknown": "Still assigned to a spool — remove it there first",
   "@inventorySupplierInUseUnknown": {
     "description": "The server refused a delete because a spool was given this supplier after the list was loaded."
   },
@@ -5119,7 +5119,7 @@
     }
   },
   "inventorySupplierLinksHint": "Where this product can be bought. Mark the one you bought this spool from.",
-  "inventoryBulkSupplierLinksHint": "Added to every selected spool; the suppliers a spool already has stay. “Bought here” replaces its current purchase source.",
+  "inventoryBulkSupplierLinksHint": "Added to every selected spool; the suppliers a spool already has stay. “Bought here” replaces its current purchase source.",
   "inventorySupplierAssign": "Add supplier",
   "@inventorySupplierAssign": {
     "description": "Opens a picker to assign a supplier to the spool being edited."
@@ -5196,7 +5196,7 @@
       }
     }
   },
-  "timeHoursAgo": "{count} h ago",
+  "timeHoursAgo": "{count} h ago",
   "@timeHoursAgo": {
     "description": "Short relative time in the past.",
     "placeholders": {
@@ -5205,7 +5205,7 @@
       }
     }
   },
-  "timeInHours": "in {count} h",
+  "timeInHours": "in {count} h",
   "@timeInHours": {
     "description": "Short relative time in the future.",
     "placeholders": {
@@ -5382,13 +5382,13 @@
   "@queueHistoryKeptForOrder": {
     "description": "After removing a queue history item the server kept, cancelled, because its batch order can only re-queue the plate from it."
   },
-  "queueBillingUseWeb": "Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.",
+  "queueBillingUseWeb": "Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.",
   "@queueBillingUseWeb": {
     "description": "Shown on the print-job form, and in place of the server refusal on create, edit or start, when the server enforces cost-center billing, which the app does not support yet."
   },
   "labelPrinterTitle": "Label printer",
-  "labelPrinterEntrySubtitle": "Print spool labels on a Brother QL print server on your network",
-  "labelPrinterIntro": "A separate print server for Brother QL label printers. Spool labels go straight to it instead of the system print dialog.",
+  "labelPrinterEntrySubtitle": "Print spool labels on a Brother QL print server on your network",
+  "labelPrinterIntro": "A separate print server for Brother QL label printers. Spool labels go straight to it instead of the system print dialog.",
   "labelPrinterNotSet": "No label printer chosen",
   "labelPrinterReady": "{model} · {label} labels",
   "@labelPrinterReady": {
@@ -5418,8 +5418,8 @@
   "labelPrinterAddress": "Server address",
   "labelPrinterSave": "Save",
   "labelPrinterRemove": "Remove",
-  "labelPrinterNotAServer": "Nothing at this address answers as a label print server",
-  "labelPrinterVlanNote": "Discovery does not cross VLANs or a guest Wi-Fi; enter the address by hand there.",
+  "labelPrinterNotAServer": "Nothing at this address answers as a label print server",
+  "labelPrinterVlanNote": "Discovery does not cross VLANs or a guest Wi-Fi; enter the address by hand there.",
   "labelPrinterPrintOn": "Print on the label printer",
   "labelPrinterSent": "Sent to the label printer",
   "labelPrinterFailed": "The label printer did not accept the job",
@@ -5432,8 +5432,8 @@
       }
     }
   },
-  "labelPrinterSetUp": "Set up a label printer",
-  "labelPrinterSetUpHint": "Print these labels on a Brother QL print server in your network",
+  "labelPrinterSetUp": "Set up a label printer",
+  "labelPrinterSetUpHint": "Print these labels on a Brother QL print server in your network",
   "labelOptionsTitle": "Print options",
   "labelFieldsTitle": "Print on the label",
   "labelFieldsReset": "Reset to default",
@@ -5450,7 +5450,7 @@
   "labelFieldQr": "QR code",
   "labelFieldSpoolId": "Spool ID",
   "labelFormatTitle": "Output",
-  "labelFormatPngHint": "Match your printer's resolution. Several labels come as a ZIP.",
+  "labelFormatPngHint": "Match your printer's resolution. Several labels come as a ZIP.",
   "labelDpiTitle": "Resolution",
   "labelSendToTitle": "Send to",
   "labelSendSystem": "Print dialog",
@@ -5465,7 +5465,7 @@
   "labelCutEveryMore": "One label more between cuts",
   "labelSaved": "Labels saved",
   "printerLocationsMenu": "Printer locations",
-  "printerLocationsSubtitle": "In a location: {grouped}, without one: {ungrouped}",
+  "printerLocationsSubtitle": "In a location: {grouped}, without one: {ungrouped}",
   "@printerLocationsSubtitle": {
     "placeholders": {
       "grouped": {
@@ -5509,7 +5509,7 @@
   "printerLocationsMove": "Move to another location",
   "printerLocationsMoveButton": "Move",
   "printerLocationsRemoveFromLocation": "Remove from location",
-  "printerLocationsUngrouped": "Printers without a location: {count}",
+  "printerLocationsUngrouped": "Printers without a location: {count}",
   "@printerLocationsUngrouped": {
     "placeholders": {
       "count": {
@@ -5537,7 +5537,7 @@
       }
     }
   },
-  "printerLocationsTargetHint": "Select a location",
+  "printerLocationsTargetHint": "Select a location",
   "printerLocationsNoLocation": "No location",
   "printerLocationsDeleteTitle": "Delete location",
   "printerLocationsDeleteTitleMany": "Delete locations ({count})",
@@ -5548,7 +5548,7 @@
       }
     }
   },
-  "printerLocationsDeleteMessage": "Delete {names}? Printers left without a location: {count}.",
+  "printerLocationsDeleteMessage": "Delete {names}? Printers left without a location: {count}.",
   "@printerLocationsDeleteMessage": {
     "placeholders": {
       "names": {
@@ -5577,8 +5577,8 @@
       }
     }
   },
-  "printerLocationsNameTaken": "A location with this name already exists",
-  "printerLocationsReadOnly": "Only a user account can change locations; an API key can only read them.",
+  "printerLocationsNameTaken": "A location with this name already exists",
+  "printerLocationsReadOnly": "Only a user account can change locations; an API key can only read them.",
   "dashboardSortTitle": "Sort by",
   "dashboardSortName": "Name",
   "dashboardSortModel": "Model",
@@ -5678,5 +5678,137 @@
         "type": "int"
       }
     }
+  },
+  "tourDemoNote": "Demo data: nothing you do here reaches your printers.",
+  "@tourDemoNote": {
+    "description": "Caption on every guided-tour card: the tour runs on the built-in demo, not on the user's server"
+  },
+  "tourSkip": "Skip tour",
+  "@tourSkip": {
+    "description": "Button on a guided-tour card that ends the tour for good"
+  },
+  "tourNext": "Next",
+  "@tourNext": {
+    "description": "Button on a guided-tour card that moves to the next step"
+  },
+  "tourFinish": "Finish",
+  "@tourFinish": {
+    "description": "Button on the last guided-tour card"
+  },
+  "tourStepCounter": "Step {current} of {total}",
+  "@tourStepCounter": {
+    "description": "Progress line on a guided-tour card",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "tourStepTabs": "The bar at the bottom holds the main sections: Queue, Archive, Maintenance and Filaments. Open each of them.",
+  "@tourStepTabs": {
+    "description": "Guided tour, step 1; the step ends once every tab named here was opened. Tab names must match navQueue, navArchive, navMaintenance, navFilaments"
+  },
+  "tourStepDrawer": "Open the menu. The other sections are there: File Manager, Statistics, Projects, Model Sources and the settings.",
+  "@tourStepDrawer": {
+    "description": "Guided tour, step 2; ends when the drawer opens"
+  },
+  "tourStepEditPrinter": "Press and hold a printer's name to edit the printer.",
+  "@tourStepEditPrinter": {
+    "description": "Guided tour, step 3; ends on the long press"
+  },
+  "tourStepReorder": "Grab the handle and drag the job to change the print order.",
+  "@tourStepReorder": {
+    "description": "Guided tour, step 4; ends when the job is dropped in a new place"
+  },
+  "tourStepSwipe": "Swipe a job to the left to remove it from the queue.",
+  "@tourStepSwipe": {
+    "description": "Guided tour, step 5; ends when the delete confirmation opens"
+  },
+  "tourStepSelect": "Press and hold a print to select several at once. File Manager and Filaments work the same way.",
+  "@tourStepSelect": {
+    "description": "Guided tour, step 6, on the Archive tab; ends on the long press"
+  },
+  "tourStepWall": "Wall mode shows the whole farm on one screen, for example on a tablet by the printers. You open it from this menu.",
+  "@tourStepWall": {
+    "description": "Guided tour, step 7: points at the dashboard's overflow menu and shows a small preview of wall mode"
+  },
+  "tourStepStats": "Statistics show filament use, costs and how many prints succeed. Tap Statistics to open them.",
+  "@tourStepStats": {
+    "description": "Guided tour, step 8: the tour opens the drawer itself; ends when the Statistics screen opens. The name must match menuStatistics"
+  },
+  "tourStepDone": "That's all. Every gesture is listed in App settings → Tips, and you can run this tour again from there.",
+  "@tourStepDone": {
+    "description": "Last guided-tour card. The path must match appSettingsMenu and tipsTitle"
+  },
+  "tipsTitle": "Tips",
+  "@tipsTitle": {
+    "description": "Title of the screen listing hidden gestures, and its entry in app settings"
+  },
+  "tipsSubtitle": "Hidden gestures and the guided tour",
+  "@tipsSubtitle": {
+    "description": "Subtitle of the Tips entry in app settings"
+  },
+  "tipsRunTour": "Run the guided tour",
+  "@tipsRunTour": {
+    "description": "Button on the Tips screen that starts the guided tour again"
+  },
+  "tipsEditPrinterTitle": "Editing a printer",
+  "@tipsEditPrinterTitle": {
+    "description": "Tips screen entry title"
+  },
+  "tipsEditPrinterBody": "Press and hold the printer's name on its card.",
+  "@tipsEditPrinterBody": {
+    "description": "Tips screen entry text"
+  },
+  "tipsReorderTitle": "Print order",
+  "@tipsReorderTitle": {
+    "description": "Tips screen entry title"
+  },
+  "tipsReorderBody": "In the Queue, drag a job by the handle on its left.",
+  "@tipsReorderBody": {
+    "description": "Tips screen entry text"
+  },
+  "tipsSwipeTitle": "Removing",
+  "@tipsSwipeTitle": {
+    "description": "Tips screen entry title"
+  },
+  "tipsSwipeBody": "Swipe a job in the Queue or a print in the Archive to the left.",
+  "@tipsSwipeBody": {
+    "description": "Tips screen entry text"
+  },
+  "tipsSelectTitle": "Selecting several",
+  "@tipsSelectTitle": {
+    "description": "Tips screen entry title"
+  },
+  "tipsSelectBody": "Press and hold an item in the Archive, File Manager or Filaments.",
+  "@tipsSelectBody": {
+    "description": "Tips screen entry text"
+  },
+  "tipsZoomTitle": "Skipping objects",
+  "@tipsZoomTitle": {
+    "description": "Tips screen entry title; same feature as skipObjectsTitle"
+  },
+  "tipsZoomBody": "Pinch to zoom in on the plate; double-tap to zoom back out.",
+  "@tipsZoomBody": {
+    "description": "Tips screen entry text"
+  },
+  "tipsTrimTitle": "Trimming a timelapse",
+  "@tipsTrimTitle": {
+    "description": "Tips screen entry title"
+  },
+  "tipsTrimBody": "Drag the handles on the filmstrip; tap or drag anywhere else to move the playback position.",
+  "@tipsTrimBody": {
+    "description": "Tips screen entry text"
+  },
+  "tipsWallTitle": "Wall mode",
+  "@tipsWallTitle": {
+    "description": "Tips screen entry title; same as wallModeTitle"
+  },
+  "tipsWallBody": "On the Printers screen, open the ⋮ menu and choose Wall mode.",
+  "@tipsWallBody": {
+    "description": "Tips screen entry text"
   }
 }

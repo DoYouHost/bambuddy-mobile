@@ -242,7 +242,7 @@ void main() {
 
     expect(find.text('Szukaj presetu'), findsOneWidget);
     expect(find.text('Kolor'), findsOneWidget);
-    expect(find.text('Zapisz w drukarce'), findsOneWidget);
+    expect(find.text('Zapisz w\u00A0drukarce'), findsOneWidget);
     expect(find.text('Wyczyść slot'), findsOneWidget);
   });
 
@@ -250,7 +250,7 @@ void main() {
     final repo = await openSheet(tester);
 
     await tapVisible(tester, find.text('Generic PLA'));
-    await tapVisible(tester, find.text('Zapisz w drukarce'));
+    await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
 
     expect(repo.calls, ['configure:1:0:2', 'save:builtin_GFL99:Generic PLA']);
     final written = repo.written!;
@@ -276,7 +276,7 @@ void main() {
     final repo = await openSheet(tester);
 
     await tapVisible(tester, find.text('Bambu PLA Basic'));
-    await tapVisible(tester, find.text('Zapisz w drukarce'));
+    await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
 
     expect(repo.cloudDetailId, 'GFSL05_09');
     expect(repo.written!.trayInfoIdx, 'P285e239');
@@ -294,7 +294,7 @@ void main() {
     await openSheet(tester, repo: repo);
 
     await tapVisible(tester, find.text('Generic PLA'));
-    await tapVisible(tester, find.text('Zapisz w drukarce'));
+    await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
 
     expect(repo.calls, ['configure:1:0:2', 'save:builtin_GFL99:Generic PLA']);
     expect(
@@ -357,16 +357,16 @@ void main() {
 
     // Nothing was tapped, so a preselection is the only thing that can arm the
     // button — and it must be the ABS the printer reports.
-    await scrollTo(tester, find.text('Zapisz w drukarce'));
+    await scrollTo(tester, find.text('Zapisz w\u00A0drukarce'));
     final button = tester.widget<FilledButton>(
       find.ancestor(
-        of: find.text('Zapisz w drukarce'),
+        of: find.text('Zapisz w\u00A0drukarce'),
         matching: find.byType(FilledButton),
       ),
     );
     expect(button.onPressed, isNotNull);
 
-    await tapVisible(tester, find.text('Zapisz w drukarce'));
+    await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
     expect(
       repo.calls,
       contains('save:GFSB00_04:Bambu ABS'),
@@ -385,7 +385,7 @@ void main() {
     final repo = await openSheet(tester, authMode: AuthMode.apiKey);
 
     await tapVisible(tester, find.text('Generic PLA'));
-    await tapVisible(tester, find.text('Zapisz w drukarce'));
+    await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
 
     expect(repo.calls, ['configure:1:0:2'], reason: 'no doomed PUT');
     expect(
@@ -453,11 +453,11 @@ void main() {
 
   testWidgets('the write waits for a preset to be picked', (tester) async {
     await openSheet(tester);
-    await scrollTo(tester, find.text('Zapisz w drukarce'));
+    await scrollTo(tester, find.text('Zapisz w\u00A0drukarce'));
 
     final button = tester.widget<FilledButton>(
       find.ancestor(
-        of: find.text('Zapisz w drukarce'),
+        of: find.text('Zapisz w\u00A0drukarce'),
         matching: find.byType(FilledButton),
       ),
     );
@@ -664,7 +664,7 @@ void main() {
       await tapVisible(tester, find.text('Generic PLA'));
 
       expect(
-        find.text('PLA basic · K 0,035'),
+        find.text('PLA basic · K\u00A00,035'),
         findsOneWidget,
         reason: 'the only calibration for this filament arms itself',
       );
@@ -675,7 +675,7 @@ void main() {
       await openSheet(tester, repo: repo);
 
       await tapVisible(tester, find.text('Generic PLA'));
-      await tapVisible(tester, find.text('Zapisz w drukarce'));
+      await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
 
       final written = repo.written!;
       expect(written.caliIdx, 4);
@@ -706,7 +706,7 @@ void main() {
       );
 
       await tapVisible(tester, find.text('Generic PLA'));
-      await tapVisible(tester, find.text('Zapisz w drukarce'));
+      await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
 
       expect(repo.written!.caliIdx, 6);
     });
@@ -731,9 +731,9 @@ void main() {
       );
 
       await tapVisible(tester, find.text('Generic PLA'));
-      await tapVisible(tester, find.text('PLA basic · K 0,035'));
-      await tapVisible(tester, find.text('Domyślny (K 0,020)').last);
-      await tapVisible(tester, find.text('Zapisz w drukarce'));
+      await tapVisible(tester, find.text('PLA basic · K\u00A00,035'));
+      await tapVisible(tester, find.text('Domyślny (K\u00A00,020)').last);
+      await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
 
       expect(repo.written!.caliIdx, -1);
     });
@@ -759,7 +759,7 @@ void main() {
       );
 
       await tapVisible(tester, find.text('Generic PLA'));
-      await tapVisible(tester, find.text('Zapisz w drukarce'));
+      await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
 
       expect(repo.written!.caliIdx, 9);
     });
@@ -771,9 +771,9 @@ void main() {
       await openSheet(tester, repo: repo);
       await tapVisible(tester, find.text('Generic PLA'));
 
-      await tapVisible(tester, find.text('PLA basic · K 0,035'));
-      await tapVisible(tester, find.text('Domyślny (K 0,020)').last);
-      await tapVisible(tester, find.text('Zapisz w drukarce'));
+      await tapVisible(tester, find.text('PLA basic · K\u00A00,035'));
+      await tapVisible(tester, find.text('Domyślny (K\u00A00,020)').last);
+      await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
 
       expect(repo.written!.caliIdx, -1);
       expect(repo.written!.kValue, 0);
@@ -786,12 +786,12 @@ void main() {
       await openSheet(tester, repo: repo);
 
       await tapVisible(tester, find.text('Generic PLA'));
-      expect(find.text('PLA basic · K 0,035'), findsOneWidget);
+      expect(find.text('PLA basic · K\u00A00,035'), findsOneWidget);
 
       await tapVisible(tester, find.text('eSUN PETG'));
 
-      expect(find.text('eSUN PETG dry · K 0,048'), findsOneWidget);
-      expect(find.text('PLA basic · K 0,035'), findsNothing);
+      expect(find.text('eSUN PETG dry · K\u00A00,048'), findsOneWidget);
+      expect(find.text('PLA basic · K\u00A00,035'), findsNothing);
     });
 
     testWidgets('every calibration the printer holds stays reachable', (
@@ -803,10 +803,10 @@ void main() {
       await openSheet(tester, repo: repo);
       await tapVisible(tester, find.text('Generic PLA'));
 
-      await tapVisible(tester, find.text('PLA basic · K 0,035'));
+      await tapVisible(tester, find.text('PLA basic · K\u00A00,035'));
 
       expect(find.text('Pozostałe profile'), findsOneWidget);
-      expect(find.text('eSUN PETG dry · K 0,048'), findsOneWidget);
+      expect(find.text('eSUN PETG dry · K\u00A00,048'), findsOneWidget);
     });
   });
 
@@ -841,7 +841,7 @@ void main() {
             .first,
       );
 
-      expect(find.text('Kolory z katalogu'), findsOneWidget);
+      expect(find.text('Kolory z\u00A0katalogu'), findsOneWidget);
       expect(find.byTooltip('Bambu Green'), findsOneWidget);
       expect(
         find.byTooltip('Grey'),
@@ -864,7 +864,7 @@ void main() {
       );
       await tapVisible(tester, find.byTooltip('Bambu Green'));
       await tapVisible(tester, find.text('Wybierz'));
-      await tapVisible(tester, find.text('Zapisz w drukarce'));
+      await tapVisible(tester, find.text('Zapisz w\u00A0drukarce'));
 
       expect(
         repo.written!.trayColour,
@@ -886,7 +886,7 @@ void main() {
             .first,
       );
 
-      expect(find.text('Kolory z katalogu'), findsNothing);
+      expect(find.text('Kolory z\u00A0katalogu'), findsNothing);
       await tapVisible(tester, find.text('Anuluj'));
       expect(repo.written, isNull);
     });

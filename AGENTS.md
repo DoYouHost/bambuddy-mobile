@@ -182,6 +182,10 @@ do not stay silent because it was not part of the task.
   genitive: "Limit czekania na komorę: 20min", not "Czekaj na komorę najwyżej:".
   **A slider also needs a sentence saying what its number changes** — a switch
   reads on/off, but "4" on its own tells nobody anything.
+  **No line ends on a one-letter word, in any language** — the Polish "i"/"w",
+  the English "a", the French "à": each is glued to the next word with a
+  no-break space in the .arb itself. Run `just l10n-glue` after editing a
+  translation; `short_words_test.dart` fails until you do.
 - **`lib/core/models/` is over the comment-ratio threshold on purpose.** The
   whole directory was gone through once (2026-09-11) and what came out as
   restatement was fourteen lines; it still measures ~29%. What is left is the

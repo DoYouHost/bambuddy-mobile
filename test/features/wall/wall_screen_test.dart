@@ -382,7 +382,7 @@ void main() {
         ],
       );
 
-      expect(find.bySemanticsLabel('1 błąd, 2 w kolejce'), findsOneWidget);
+      expect(find.bySemanticsLabel('1 błąd, 2 w\u00A0kolejce'), findsOneWidget);
     });
 
     testWidgets('asks for the queue on entry, every 30 s, and not after', (

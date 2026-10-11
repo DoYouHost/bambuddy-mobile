@@ -30,7 +30,12 @@ class DemoBackend {
     _printAnchor = _nowSec() - (_printCycleSec * 0.42).round();
   }
 
-  static final DemoBackend instance = DemoBackend._();
+  static DemoBackend instance = DemoBackend._();
+
+  /// A demo in its opening state, for the guided tour: everything a tour step
+  /// does to it is dropped with it instead of showing up in the demo mode the
+  /// user may be signed into.
+  DemoBackend.fresh() : this._();
 
   // --- Print simulation (printer 1) ---
 
@@ -1298,11 +1303,9 @@ class DemoBackend {
   /// It used to name two of them by hand, which is why a change on any other
   /// machine reached the dashboard only with the next REST poll — and the
   /// service isolate, which has no status poll of its own, not at all.
-  static List<int> get printerIds => [
-    for (final p in _printers) p['id'] as int,
-  ];
+  List<int> get printerIds => [for (final p in _printers) p['id'] as int];
 
-  static final List<Map<String, dynamic>> _printers = [
+  final List<Map<String, dynamic>> _printers = [
     {
       'id': 1,
       'name': 'X1 Carbon',
@@ -4610,7 +4613,7 @@ class DemoBackend {
 
   // --- Maintenance ---
 
-  static final List<Map<String, dynamic>> _maintenanceTypes = [
+  final List<Map<String, dynamic>> _maintenanceTypes = [
     {
       'id': 1,
       'name': 'Lubricate Carbon Rods',

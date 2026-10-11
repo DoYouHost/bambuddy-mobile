@@ -151,3 +151,52 @@ class SecureCredentialsStore implements CredentialsStore {
     }
   }
 }
+
+/// Secrets that live as long as the object: tests, and the guided tour's demo,
+/// which must never reach the phone's real secure storage.
+class InMemoryCredentialsStore implements CredentialsStore {
+  String? jwt;
+  String? apiKey;
+  String? username;
+  String? password;
+
+  @override
+  Future<String?> readJwt() async => jwt;
+
+  @override
+  Future<void> writeJwt(String token) async => jwt = token;
+
+  @override
+  Future<String?> readApiKey() async => apiKey;
+
+  @override
+  Future<void> writeApiKey(String key) async => apiKey = key;
+
+  @override
+  Future<({String username, String password})?> readRememberedLogin() async {
+    final u = username;
+    final p = password;
+    if (u == null || p == null) return null;
+    return (username: u, password: p);
+  }
+
+  @override
+  Future<void> writeRememberedLogin(String username, String password) async {
+    this.username = username;
+    this.password = password;
+  }
+
+  @override
+  Future<void> clearRememberedLogin() async {
+    username = null;
+    password = null;
+  }
+
+  @override
+  Future<void> clearAll() async {
+    jwt = null;
+    apiKey = null;
+    username = null;
+    password = null;
+  }
+}

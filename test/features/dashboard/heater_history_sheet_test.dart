@@ -101,7 +101,7 @@ void main() {
 
     await pumpSheet(tester, repo);
 
-    await tester.tap(find.text('6 h'));
+    await tester.tap(find.text('6\u00A0h'));
     await tester.pumpAndSettle();
     expect(repo.lastHours, 6);
 
@@ -109,7 +109,7 @@ void main() {
     await tester.tap(find.text('Stół'));
     await tester.pumpAndSettle();
     expect(repo.lastKinds, ['bed']); // new sensor = new query
-    expect(find.text('Brak danych w tym zakresie'), findsOneWidget);
+    expect(find.text('Brak danych w\u00A0tym zakresie'), findsOneWidget);
     expect(find.byType(LineChart), findsNothing);
   });
 

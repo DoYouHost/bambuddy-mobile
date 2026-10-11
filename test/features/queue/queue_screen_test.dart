@@ -239,7 +239,7 @@ void main() {
     await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
     await tester.pumpAndSettle();
 
-    expect(find.text('Usunąć z kolejki?'), findsOneWidget);
+    expect(find.text('Usunąć z\u00A0kolejki?'), findsOneWidget);
   });
 
   group('start flow outliving the row that began it', () {
@@ -316,7 +316,10 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Uruchom teraz'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nie udało się połączyć z serwerem'), findsOneWidget);
+      expect(
+        find.text('Nie udało się połączyć z\u00A0serwerem'),
+        findsOneWidget,
+      );
       expect(queue.started, isEmpty, reason: 'nothing reached the server');
       expect(
         tester.takeException(),

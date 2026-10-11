@@ -18,6 +18,7 @@ import 'features/archive/outcome_sheet.dart';
 import 'features/dashboard/controls_providers.dart';
 import 'features/dashboard/providers.dart';
 import 'features/inventory/inventory_screen.dart' show scanSpoolFlow;
+import 'features/tour/tour_screen.dart';
 import 'l10n/app_localizations.dart';
 import 'l10n/error_messages.dart';
 import 'providers.dart';
@@ -245,6 +246,7 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     });
     // Notifications handled ONLY by background isolate (foreground service);
     // foreground status shown by UI itself, so no monitor here.
+    final router = ref.watch(routerProvider);
     return MaterialApp.router(
       title: 'Bambuddy',
       theme: _theme(Brightness.light),
@@ -257,13 +259,18 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
         ReportLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      routerConfig: ref.watch(routerProvider),
+      routerConfig: router,
       // Recording controls have to outlive the report screen — the bug gets
       // reproduced on the dashboard, not there. Wrapping here puts the bar
       // above every route, pushed ones included.
       builder: (context, child) => SystemClockSync(
         onChanged: (use24Hour) => unawaited(_rememberClockFormat(use24Hour)),
-        child: RecordingBannerScaffold(child: child ?? const SizedBox.shrink()),
+        child: RecordingBannerScaffold(
+          child: TourHost(
+            backButtonDispatcher: router.backButtonDispatcher,
+            child: child ?? const SizedBox.shrink(),
+          ),
+        ),
       ),
     );
   }

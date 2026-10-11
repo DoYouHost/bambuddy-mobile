@@ -64,6 +64,7 @@ import '../../../core/diagnostics/log_tag_material.dart';
 import '../../common/dash_icon_tile.dart';
 import '../../common/dash_progress_bar.dart';
 import '../../common/sheet_surface.dart';
+import '../../tour/tour_beacon.dart';
 
 part 'printer_card_details.dart';
 part 'printer_card_scheduled_drying.dart';
@@ -619,13 +620,16 @@ class _EditableName extends ConsumerWidget {
       onLongPressHint: AppLocalizations.of(context).editPrinterTitle,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onLongPress: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => AddPrinterScreen(printer: printer),
-          ),
-        ),
+        onLongPress: () {
+          ref.read(tourBeaconProvider)?.signal('printer.edit');
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => AddPrinterScreen(printer: printer),
+            ),
+          );
+        },
         child: child,
-      ).tagged('printer.edit'),
+      ).tagged('printer.edit').tourTarget('printer.edit.${printer.id}'),
     );
   }
 }

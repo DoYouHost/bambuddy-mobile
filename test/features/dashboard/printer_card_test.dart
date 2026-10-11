@@ -796,11 +796,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
-      expect(find.text('10% · 102 g'), findsOneWidget);
+      expect(find.text('10% · 102\u00A0g'), findsOneWidget);
       expect(find.text('66%'), findsNothing);
       // The holder reports no fill of its own, so it had nothing to show
       // until a spool sat on it.
-      expect(find.text('50% · 250 g'), findsOneWidget);
+      expect(find.text('50% · 250\u00A0g'), findsOneWidget);
     });
 
     testWidgets('a spool at 0 g the AMS still sees shows only the AMS fill', (
@@ -824,7 +824,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 250));
 
       expect(find.text('66%'), findsOneWidget);
-      expect(find.textContaining('0 g'), findsNothing);
+      expect(find.textContaining('0\u00A0g'), findsNothing);
     });
 
     testWidgets(
@@ -1317,14 +1317,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Brak wyników'), findsOneWidget);
-      expect(find.text('Brak szpul w magazynie'), findsNothing);
+      expect(find.text('Brak szpul w\u00A0magazynie'), findsNothing);
     });
 
     testWidgets('an empty shelf still says so', (tester) async {
       await openSlotSheet(tester, state: 'IDLE');
-      await reveal(tester, find.text('Brak szpul w magazynie'));
+      await reveal(tester, find.text('Brak szpul w\u00A0magazynie'));
 
-      expect(find.text('Brak szpul w magazynie'), findsOneWidget);
+      expect(find.text('Brak szpul w\u00A0magazynie'), findsOneWidget);
       expect(find.textContaining('Brak wyników'), findsNothing);
     });
 
@@ -1626,7 +1626,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(_RecordingInventory.calls, ['1:0:0']);
-      expect(find.text('Szpula dodana i przypisana do slotu'), findsOneWidget);
+      expect(
+        find.text('Szpula dodana i\u00A0przypisana do slotu'),
+        findsOneWidget,
+      );
     });
 
     /// Registers with [failure] staged, and comes back once the sheet has
@@ -1682,7 +1685,7 @@ void main() {
 
       expect(
         find.text(
-          'Drukarka nie jest połączona, więc nie powie, co jest w slocie',
+          'Drukarka nie jest połączona, więc nie powie, co jest w\u00A0slocie',
         ),
         findsOneWidget,
       );
@@ -1701,7 +1704,9 @@ void main() {
       );
 
       expect(
-        find.text('Drukarka nie widzi już w tym slocie szpuli z czipem'),
+        find.text(
+          'Drukarka nie widzi już w\u00A0tym slocie szpuli z\u00A0czipem',
+        ),
         findsOneWidget,
       );
     });
@@ -1780,8 +1785,8 @@ void main() {
 
       // Just the plug symbol; power and name don't clutter the header.
       expect(find.byIcon(Icons.power), findsOneWidget);
-      expect(find.byTooltip('42 W'), findsOneWidget); // power in tooltip
-      expect(find.text('42 W'), findsNothing); // not as visible text
+      expect(find.byTooltip('42\u00A0W'), findsOneWidget); // power in tooltip
+      expect(find.text('42\u00A0W'), findsNothing); // not as visible text
       expect(find.text('Szafa'), findsNothing);
       expect(find.byType(Switch), findsNothing);
     });
@@ -1849,7 +1854,7 @@ void main() {
 
       await tester.pumpWidget(_cardWithPlugs(item, stub));
 
-      expect(find.byTooltip('42 W · Tylko podgląd'), findsOneWidget);
+      expect(find.byTooltip('42\u00A0W · Tylko podgląd'), findsOneWidget);
       final btn = tester.widget<IconButton>(
         find.widgetWithIcon(IconButton, Icons.power),
       );
@@ -3240,7 +3245,7 @@ void main() {
       await pumpCard(tester, repo);
       await tester.tap(find.text('Suszenie'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('O godzinie'));
+      await tester.tap(find.text('O\u00A0godzinie'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Zaplanuj'));
       await tester.pumpAndSettle();
@@ -3431,7 +3436,7 @@ void main() {
         expect(
           find.text(
             'Auto-suszenie przy wysokiej wilgotności. '
-            'Także w druku.',
+            'Także w\u00A0druku.',
           ),
           findsOneWidget,
         );

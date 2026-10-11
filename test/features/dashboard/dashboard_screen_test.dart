@@ -261,7 +261,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(DashLoading), findsNothing);
-    expect(find.text('Nie udało się połączyć z serwerem'), findsOneWidget);
+    expect(find.text('Nie udało się połączyć z\u00A0serwerem'), findsOneWidget);
     expect(find.text('Spróbuj ponownie'), findsOneWidget);
   });
 

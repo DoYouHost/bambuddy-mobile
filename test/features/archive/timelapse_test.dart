@@ -67,7 +67,7 @@ void main() {
       await tester.tap(find.text('Wydruk testowy'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nagrania i zdjęcia'), findsOneWidget);
+      expect(find.text('Nagrania i\u00A0zdjęcia'), findsOneWidget);
     });
 
     testWidgets('a print with no media at all does not', (tester) async {
@@ -77,7 +77,7 @@ void main() {
       await tester.tap(find.text('Wydruk testowy'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nagrania i zdjęcia'), findsNothing);
+      expect(find.text('Nagrania i\u00A0zdjęcia'), findsNothing);
       // The rest of the sheet stands: a missing entry is missing media, not a
       // broken sheet.
       expect(find.text('Drukuj ponownie'), findsOneWidget);

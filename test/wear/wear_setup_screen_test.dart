@@ -69,7 +69,7 @@ void main() {
   ) async {
     await pumpSetup(tester);
 
-    expect(find.text('Ustaw z telefonu'), findsOneWidget);
+    expect(find.text('Ustaw z\u00A0telefonu'), findsOneWidget);
     // Below the fold on a watch face — the check button lives under the
     // explanation, so reaching it is a scroll, not a missing button.
     await revealOnWatch(tester, find.text('Sprawdź ponownie'));
@@ -104,7 +104,7 @@ void main() {
     // The name and the auth mode, so the user can tell this is the server they
     // meant — a phone that switched servers used to reconfigure the watch with
     // nothing on screen to say so.
-    expect(find.text('Z telefonu'), findsOneWidget);
+    expect(find.text('Z\u00A0telefonu'), findsOneWidget);
     expect(find.text('Workshop'), findsOneWidget);
     expect(find.text('Klucz'), findsOneWidget);
     expect(find.text('Użyj tego serwera'), findsOneWidget);
@@ -132,7 +132,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Użyj tego serwera'), findsNothing);
-    expect(find.text('Ustaw z telefonu'), findsOneWidget);
+    expect(find.text('Ustaw z\u00A0telefonu'), findsOneWidget);
     await revealOnWatch(tester, find.text('Wpisz ręcznie'));
     expect(find.text('Wpisz ręcznie'), findsOneWidget);
   });
