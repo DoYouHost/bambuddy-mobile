@@ -1,7 +1,6 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart';
 import 'package:bambuddy_mobile/features/bug_report/report_wiring.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/router.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
+import '../../helpers.dart';
 
 void main() {
   late SharedPreferences prefs;
@@ -45,15 +45,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp.router(
-          locale: const Locale('pl'),
-          localizationsDelegates: [
-            ...AppLocalizations.localizationsDelegates,
-            ReportLocalizations.delegate,
-          ],
-          supportedLocales: AppLocalizations.supportedLocales,
-          routerConfig: router,
-        ),
+        child: plRouterApp(router),
       ),
     );
     await tester.pumpAndSettle();
@@ -95,8 +87,8 @@ void main() {
     router.go(bugReportRoute);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('usługa w\u00A0tle'), findsOneWidget);
-    expect(find.text('Klucz API ani hasło'), findsOneWidget);
-    expect(find.text('Tekst, który wpisujesz'), findsOneWidget);
+    expect(find.textContaining(pl.bugReportLogService), findsOneWidget);
+    expect(find.text(pl.bugReportLogNoKey), findsOneWidget);
+    expect(find.text(pl.bugReportLogNoTyping), findsOneWidget);
   });
 }

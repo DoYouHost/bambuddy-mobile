@@ -100,17 +100,17 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nazwa użytkownika'),
+        find.widgetWithText(TextFormField, pl.usersFieldUsername),
         'zosia',
       );
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Hasło'),
+        find.widgetWithText(TextFormField, pl.usersFieldPassword),
         'krotkie',
       );
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
-      expect(find.text('Co najmniej 8 znaków.'), findsOneWidget);
+      expect(find.text(pl.usersPasswordTooShort), findsOneWidget);
       expect(repo.created, isNull);
     });
 
@@ -119,21 +119,21 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nazwa użytkownika'),
+        find.widgetWithText(TextFormField, pl.usersFieldUsername),
         'zosia',
       );
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Hasło'),
+        find.widgetWithText(TextFormField, pl.usersFieldPassword),
         'Sekret!23',
       );
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Powtórz hasło'),
+        find.widgetWithText(TextFormField, pl.usersFieldConfirmPassword),
         'Sekret!23',
       );
       await tester.tap(find.text('Domownicy'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
       final body = repo.created;
@@ -153,22 +153,22 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nazwa użytkownika'),
+        find.widgetWithText(TextFormField, pl.usersFieldUsername),
         'zosia',
       );
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Hasło'),
+        find.widgetWithText(TextFormField, pl.usersFieldPassword),
         'Sekret!23',
       );
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Powtórz hasło'),
+        find.widgetWithText(TextFormField, pl.usersFieldConfirmPassword),
         'Sekret!24',
       );
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
-      expect(find.text('Hasła się różnią.'), findsOneWidget);
+      expect(find.text(pl.usersPasswordsDoNotMatch), findsOneWidget);
       expect(repo.created, isNull);
     });
 
@@ -176,12 +176,9 @@ void main() {
       await tester.pumpWidget(_app(const UserFormScreen(), repo: repo));
       await tester.pumpAndSettle();
 
-      expect(find.text('(wbudowana)'), findsOneWidget);
+      expect(find.text(pl.usersGroupSystem), findsOneWidget);
       expect(find.text('Administrators'), findsOneWidget);
-      expect(
-        find.textContaining('Administratorem czyni konto'),
-        findsOneWidget,
-      );
+      expect(find.textContaining(pl.usersGroupsAdminHint), findsOneWidget);
     });
 
     testWidgets('asks for no password when the server mails one', (
@@ -199,19 +196,25 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(TextFormField, 'Hasło'), findsNothing);
-      expect(find.textContaining('Serwer sam ustala hasło'), findsOneWidget);
+      expect(
+        find.widgetWithText(TextFormField, pl.usersFieldPassword),
+        findsNothing,
+      );
+      expect(
+        find.textContaining(pl.serverVersionLabel('sam ustala hasło')),
+        findsOneWidget,
+      );
 
       // The e-mail is what the password is mailed to, so it stops being
       // optional — saving without one gets nowhere.
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nazwa użytkownika'),
+        find.widgetWithText(TextFormField, pl.usersFieldUsername),
         'zosia',
       );
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
-      expect(find.text('Uzupełnij to pole'), findsOneWidget);
+      expect(find.text(pl.usersFieldRequired), findsOneWidget);
       expect(repo.created, isNull);
     });
 
@@ -231,7 +234,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.textContaining('Serwer poczty nie jest skonfigurowany'),
+        find.textContaining(
+          pl.serverVersionLabel('poczty nie jest skonfigurowany'),
+        ),
         findsOneWidget,
       );
     });
@@ -244,9 +249,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(SwitchListTile, 'Aktywne'));
+      await tester.tap(
+        find.widgetWithText(SwitchListTile, pl.usersFieldActive),
+      );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
       // PATCH acts on "field present", so an untouched username must not be
@@ -270,13 +277,16 @@ void main() {
 
       // Nothing to confirm until a new password is typed, so the second field
       // stays out of the way.
-      expect(find.widgetWithText(TextFormField, 'Powtórz hasło'), findsNothing);
+      expect(
+        find.widgetWithText(TextFormField, pl.usersFieldConfirmPassword),
+        findsNothing,
+      );
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nazwa użytkownika'),
+        find.widgetWithText(TextFormField, pl.usersFieldUsername),
         'zosia2',
       );
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
       expect(repo.updated!.$2.username, 'zosia2');
@@ -292,20 +302,20 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nowe hasło'),
+        find.widgetWithText(TextFormField, pl.usersFieldNewPassword),
         'Sekret!23',
       );
       await tester.pumpAndSettle();
 
       expect(
-        find.widgetWithText(TextFormField, 'Powtórz hasło'),
+        find.widgetWithText(TextFormField, pl.usersFieldConfirmPassword),
         findsOneWidget,
       );
 
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
-      expect(find.text('Hasła się różnią.'), findsOneWidget);
+      expect(find.text(pl.usersPasswordsDoNotMatch), findsOneWidget);
       expect(repo.updated, isNull);
     });
 
@@ -321,7 +331,7 @@ void main() {
 
       await tester.tap(find.text('Administrators'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
       expect(repo.updated!.$2.role, isNull);
@@ -336,8 +346,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(TextFormField, 'Nowe hasło'), findsNothing);
-      expect(find.textContaining('loguje się przez katalog'), findsOneWidget);
+      expect(
+        find.widgetWithText(TextFormField, pl.usersFieldNewPassword),
+        findsNothing,
+      );
+      expect(find.textContaining(pl.usersLdapPasswordNote), findsOneWidget);
     });
   });
 
@@ -367,8 +380,8 @@ void main() {
     ) async {
       await openDialog(tester);
 
-      expect(find.textContaining('To konto utworzyło 3'), findsOneWidget);
-      expect(find.textContaining('zostaną, bez właściciela'), findsOneWidget);
+      expect(find.textContaining(pl.usersDeleteOwnsCount(3)), findsOneWidget);
+      expect(find.textContaining(pl.usersDeleteItemsKeepHint), findsOneWidget);
     });
 
     testWidgets('carries the choice back to the caller', (tester) async {
@@ -390,10 +403,12 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(
-        find.widgetWithText(SwitchListTile, 'Usuń je razem z\u00A0kontem'),
+        find.widgetWithText(SwitchListTile, pl.usersDeleteItemsToo),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Usuń'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, pl.usersDeleteConfirm),
+      );
       await tester.pumpAndSettle();
 
       expect(choice?.deleteItems, isTrue);
@@ -419,7 +434,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Anuluj'));
+      await tester.tap(find.widgetWithText(TextButton, pl.cancel));
       await tester.pumpAndSettle();
 
       expect(returned, isTrue);

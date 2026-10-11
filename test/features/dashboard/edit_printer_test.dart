@@ -7,15 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bambuddy_mobile/core/models/printer_create.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/add_printer_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations_pl.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../../helpers.dart';
-
-final _l10n = AppLocalizationsPl();
 
 const _passing = {
   'overall': 'ok',
@@ -169,7 +166,7 @@ void main() {
     }
 
     Finder wearField() =>
-        find.widgetWithText(TextFormField, _l10n.editPrinterWearCost('zł'));
+        find.widgetWithText(TextFormField, pl.editPrinterWearCost('zł'));
 
     Map<String, dynamic>? patched() => log.requests
         .where((r) => r.method == 'PATCH')
@@ -180,7 +177,7 @@ void main() {
       tester,
     ) async {
       await pump(tester, _printer());
-      expect(find.text(_l10n.editPrinterTitle), findsOneWidget);
+      expect(find.text(pl.editPrinterTitle), findsOneWidget);
       expect(find.text('0.25'), findsOneWidget);
 
       server
@@ -203,7 +200,7 @@ void main() {
           },
         );
       await tester.enterText(wearField(), '1,5');
-      await tester.tap(find.text(_l10n.editPrinterSubmit));
+      await tester.tap(find.text(pl.editPrinterSubmit));
       await tester.pumpAndSettle();
 
       expect(patched()?['wear_cost_per_hour'], 1.5);
@@ -234,7 +231,7 @@ void main() {
             'location': 'Workshop',
           },
         );
-      await tester.tap(find.text(_l10n.editPrinterSubmit));
+      await tester.tap(find.text(pl.editPrinterSubmit));
       await tester.pumpAndSettle();
 
       // Both answered 200: the exact-body mock matched what went out.
@@ -263,13 +260,13 @@ void main() {
             'wear_cost_per_hour': 0.25,
           },
         );
-      await tester.tap(find.text(_l10n.editPrinterSubmit));
+      await tester.tap(find.text(pl.editPrinterSubmit));
       await tester.pumpAndSettle();
 
-      expect(find.text(_l10n.editPrinterPreflightWarning), findsOneWidget);
+      expect(find.text(pl.editPrinterPreflightWarning), findsOneWidget);
       expect(patched(), isNull);
 
-      await tester.tap(find.text(_l10n.editPrinterSaveAnyway));
+      await tester.tap(find.text(pl.editPrinterSaveAnyway));
       await tester.pumpAndSettle();
       expect(log.statuses, [200, 200]);
     });
@@ -297,13 +294,13 @@ void main() {
             'wear_cost_per_hour': 0.25,
           },
         );
-      await tester.tap(find.text(_l10n.editPrinterSubmit));
+      await tester.tap(find.text(pl.editPrinterSubmit));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(_l10n.editPrinterSaveAnyway));
+      await tester.tap(find.text(pl.editPrinterSaveAnyway));
       await tester.pumpAndSettle();
 
       expect(log.statuses, [200, 403]);
-      expect(find.text(_l10n.editPrinterSaveAnyway), findsOneWidget);
+      expect(find.text(pl.editPrinterSaveAnyway), findsOneWidget);
     });
 
     testWidgets('save anyway still checks the fields edited meanwhile', (
@@ -315,13 +312,13 @@ void main() {
         (s) => s.reply(200, _failing),
         data: _diagnoseBody,
       );
-      await tester.tap(find.text(_l10n.editPrinterSubmit));
+      await tester.tap(find.text(pl.editPrinterSubmit));
       await tester.pumpAndSettle();
       await tester.enterText(wearField(), 'abc');
-      await tester.tap(find.text(_l10n.editPrinterSaveAnyway));
+      await tester.tap(find.text(pl.editPrinterSaveAnyway));
       await tester.pumpAndSettle();
 
-      expect(find.text(_l10n.editPrinterWearCostInvalid), findsOneWidget);
+      expect(find.text(pl.editPrinterWearCostInvalid), findsOneWidget);
       expect(patched(), isNull);
     });
 
@@ -380,7 +377,7 @@ void main() {
           ),
           'Attic',
         );
-        await tester.tap(find.text(_l10n.editPrinterSubmit));
+        await tester.tap(find.text(pl.editPrinterSubmit));
         await tester.pumpAndSettle();
 
         expect(log.statuses, [200, 200]);
@@ -399,10 +396,10 @@ void main() {
     ) async {
       await pump(tester, _printer());
       await tester.enterText(wearField(), '-3');
-      await tester.tap(find.text(_l10n.editPrinterSubmit));
+      await tester.tap(find.text(pl.editPrinterSubmit));
       await tester.pumpAndSettle();
 
-      expect(find.text(_l10n.editPrinterWearCostInvalid), findsOneWidget);
+      expect(find.text(pl.editPrinterWearCostInvalid), findsOneWidget);
       expect(log.requests, isEmpty);
     });
   });

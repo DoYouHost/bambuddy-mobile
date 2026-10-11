@@ -49,6 +49,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PageView), findsNothing);
-    expect(find.text('Ten wydruk nie ma zdjęć'), findsOneWidget);
+    expect(find.text(pl.archivePhotosEmpty), findsOneWidget);
   });
 }

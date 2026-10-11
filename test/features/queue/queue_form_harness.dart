@@ -12,7 +12,6 @@ import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -34,7 +33,6 @@ import '../../helpers.dart';
 
 /// The labels the form is rendered with — `plApp` forces Polish, so a finder
 /// asking for one reads it from here rather than repeating the translation.
-final formL10n = lookupAppLocalizations(const Locale('pl'));
 
 /// Body of the last write the form sent, captured before the mock answers.
 ///
@@ -233,7 +231,7 @@ Future<void> submitQueueForm(WidgetTester tester, {bool edit = false}) async {
   await tester.tap(
     find.widgetWithText(
       FilledButton,
-      edit ? formL10n.queueEditSave : formL10n.queueCreateSubmit,
+      edit ? pl.queueEditSave : pl.queueCreateSubmit,
     ),
   );
   await tester.pumpAndSettle();

@@ -3,7 +3,6 @@ import 'package:bambuddy_mobile/core/models/supplier.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/stats/stats_providers.dart';
 import 'package:bambuddy_mobile/features/stats/stats_sections.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -82,12 +81,6 @@ void main() {
   });
 
   group('SupplierStatsCard', () {
-    late AppLocalizations l10n;
-
-    setUpAll(() async {
-      l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-    });
-
     Future<void> pumpCard(WidgetTester tester, List<Override> overrides) =>
         pumpPhone(
           tester,
@@ -102,16 +95,12 @@ void main() {
     ) async {
       await pumpCard(tester, overridesFor(FakeSuppliers(stats: _rows)));
 
-      expect(find.text(l10n.statsBySupplier), findsOneWidget);
+      expect(find.text(pl.statsBySupplier), findsOneWidget);
       expect(find.text('Extrudr'), findsOneWidget);
       expect(find.text('820 g'), findsOneWidget);
       expect(
         find.text(
-          l10n.statsSupplierDetail(
-            l10n.inventorySpoolCount(2),
-            '1.50 kg',
-            '19.40',
-          ),
+          pl.statsSupplierDetail(pl.inventorySpoolCount(2), '1.50 kg', '19.40'),
         ),
         findsOneWidget,
       );
@@ -122,7 +111,7 @@ void main() {
       tester,
     ) async {
       await pumpCard(tester, overridesFor(FakeSuppliers()));
-      expect(find.text(l10n.statsBySupplier), findsNothing);
+      expect(find.text(pl.statsBySupplier), findsNothing);
     });
 
     testWidgets('a failed read says so instead of passing for empty', (
@@ -136,7 +125,7 @@ void main() {
           ),
         ),
       ]);
-      expect(find.text(l10n.statsBySupplierFailed), findsOneWidget);
+      expect(find.text(pl.statsBySupplierFailed), findsOneWidget);
     });
   });
 }

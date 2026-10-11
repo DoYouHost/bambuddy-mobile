@@ -5,7 +5,6 @@ import 'package:bambuddy_mobile/features/dashboard/card_collapse_providers.dart'
 import 'package:bambuddy_mobile/features/settings/demo_printers_provider.dart';
 import 'package:bambuddy_mobile/features/settings/app_settings_screen.dart';
 import 'package:bambuddy_mobile/features/wall/wall_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,12 +15,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../helpers.dart';
 
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   Future<ProviderContainer> pumpScreen(
     WidgetTester tester, {
     List<Override> extra = const [],
@@ -47,12 +40,7 @@ void main() {
         child: Consumer(
           builder: (context, ref, _) {
             container = ProviderScope.containerOf(context, listen: false);
-            return MaterialApp.router(
-              locale: const Locale('pl'),
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              routerConfig: router,
-            );
+            return plRouterApp(router);
           },
         ),
       ),
@@ -74,7 +62,7 @@ void main() {
 
     expect(collapseSwitch().value, isFalse);
 
-    await tester.tap(find.text(l10n.collapsePrinterCardsTitle));
+    await tester.tap(find.text(pl.collapsePrinterCardsTitle));
     await tester.pumpAndSettle();
 
     expect(collapseSwitch().value, isTrue);
@@ -98,7 +86,7 @@ void main() {
 
       expect(wallSwitch().value, isTrue);
 
-      await tester.tap(find.text(l10n.wallKeepAwakeTitle));
+      await tester.tap(find.text(pl.wallKeepAwakeTitle));
       await tester.pumpAndSettle();
 
       expect(wallSwitch().value, isFalse);
@@ -113,7 +101,7 @@ void main() {
   testWidgets('notification settings are one entry away', (tester) async {
     await pumpScreen(tester);
 
-    await tester.tap(find.text(l10n.notifEventsMenu));
+    await tester.tap(find.text(pl.notifEventsMenu));
     await tester.pumpAndSettle();
 
     expect(find.text('NOTIFICATIONS'), findsOneWidget);

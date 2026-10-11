@@ -2,7 +2,6 @@ import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/features/orders/orders_group_sheet.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,9 +26,6 @@ Map<String, dynamic> _item(
 void main() {
   // The mock matches any body containing the mocked keys.
   late RequestLog sent;
-
-  AppLocalizations l10n(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(Scaffold).first));
 
   Future<DioAdapter> pumpSheet(
     WidgetTester tester,
@@ -115,10 +111,7 @@ void main() {
       'item_ids': [1, 3],
     });
 
-    expect(
-      find.text(l10n(tester).ordersGrouped(2, 'Hardware')),
-      findsOneWidget,
-    );
+    expect(find.text(pl.ordersGrouped(2, 'Hardware')), findsOneWidget);
   });
 
   testWidgets('every pick skipped: says nothing was grouped, not "1 job"', (
@@ -152,7 +145,7 @@ void main() {
     await tester.tap(byLogId('orders_group.confirm'));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n(tester).ordersGroupedNone), findsOneWidget);
+    expect(find.text(pl.ordersGroupedNone), findsOneWidget);
     // The empty batch it made anyway is removed again.
     expect(sent.calls.last, 'POST /api/v1/queue/batches/10/ungroup');
   });
@@ -185,6 +178,6 @@ void main() {
   testWidgets('fewer than two ungrouped jobs: says so', (tester) async {
     await pumpSheet(tester, [_item(1, 'Clip'), _item(2, 'Hook', batchId: 9)]);
 
-    expect(find.text(l10n(tester).ordersGroupEmpty), findsOneWidget);
+    expect(find.text(pl.ordersGroupEmpty), findsOneWidget);
   });
 }

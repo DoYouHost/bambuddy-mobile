@@ -1,6 +1,5 @@
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_preset_sheet.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -10,7 +9,6 @@ import '../../helpers.dart';
 /// material and the selected printer to start on, the whole catalogue behind
 /// "All".
 void main() {
-  final l10n = lookupAppLocalizations(const Locale('pl'));
   const registry = {'Bambu Lab H2D': 'H2D', 'Bambu Lab X1 Carbon': 'X1C'};
 
   SlicerPreset std(String name, [String? type]) =>
@@ -81,8 +79,8 @@ void main() {
   ) async {
     await open(tester);
     expect(shown(tester), ['Generic PETG @BBL H2D', 'Bambu PETG HF @BBL H2D']);
-    expect(find.text(l10n.sliceProfilesShown(2, 5)), findsOneWidget);
-    expect(find.text(l10n.sliceNeedsMaterial('PETG')), findsOneWidget);
+    expect(find.text(pl.sliceProfilesShown(2, 5)), findsOneWidget);
+    expect(find.text(pl.sliceNeedsMaterial('PETG')), findsOneWidget);
   });
 
   testWidgets('offers only what the user owns until "All"', (tester) async {
@@ -113,7 +111,7 @@ void main() {
     // The plate asks for ABS, which is not a chip while "All" is off.
     await open(tester, needs: 'ABS');
     expect(
-      find.text(l10n.sliceProfilesShown(4, 5)),
+      find.text(pl.sliceProfilesShown(4, 5)),
       findsOneWidget,
       reason: 'every H2D preset listed',
     );

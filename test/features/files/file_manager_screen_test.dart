@@ -8,7 +8,6 @@ import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_screen.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -236,8 +235,6 @@ void main() {
   });
 
   group('add to queue (#3112)', () {
-    AppLocalizations l10n(WidgetTester tester) =>
-        AppLocalizations.of(tester.element(find.byType(FileManagerScreen)));
     const queuePath = '/api/v1/library/files/add-to-queue';
 
     /// Selection mode over one file, both repositories real on [dio].
@@ -294,7 +291,7 @@ void main() {
       await tester.tap(byLogId('files.add_to_queue'));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n(tester).queueBillingUseWeb), findsOneWidget);
+      expect(find.text(pl.queueBillingUseWeb), findsOneWidget);
     });
 
     testWidgets('asks where, offering only active printers and their models', (
@@ -325,14 +322,14 @@ void main() {
       await tester.tap(byLogId('files.add_to_queue'));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n(tester).queueEditAnyModel('X1C')), findsOneWidget);
-      expect(find.text(l10n(tester).queueEditAnyModel('P1S')), findsNothing);
+      expect(find.text(pl.queueEditAnyModel('X1C')), findsOneWidget);
+      expect(find.text(pl.queueEditAnyModel('P1S')), findsNothing);
       expect(find.text('Shed'), findsNothing);
 
       await tester.tap(find.text('Lab'));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n(tester).fmAddedToQueue), findsOneWidget);
+      expect(find.text(pl.fmAddedToQueue), findsOneWidget);
     });
 
     testWidgets('only inactive printers: nothing to choose, nothing asked', (
@@ -362,7 +359,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(byLogId('sheet.queue_target'), findsNothing);
-      expect(find.text(l10n(tester).fmAddedToQueue), findsOneWidget);
+      expect(find.text(pl.fmAddedToQueue), findsOneWidget);
     });
 
     testWidgets(
@@ -398,7 +395,7 @@ void main() {
         await tester.tap(byLogId('files.add_to_queue'));
         await tester.pumpAndSettle();
 
-        final l = l10n(tester);
+        final l = pl;
         expect(
           find.text(l.fmAddedToQueuePartial(1, 3, l.fmQueueErrWrongModel)),
           findsOneWidget,
@@ -426,7 +423,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(byLogId('sheet.queue_target'), findsNothing);
-      expect(find.text(l10n(tester).fmAddedToQueue), findsOneWidget);
+      expect(find.text(pl.fmAddedToQueue), findsOneWidget);
     });
 
     testWidgets('a batch that queued nothing says why, in the user\'s words', (
@@ -457,8 +454,8 @@ void main() {
       await tester.tap(byLogId('files.add_to_queue'));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n(tester).fmAddedToQueue), findsNothing);
-      expect(find.text(l10n(tester).fmQueueErrNotSliced), findsOneWidget);
+      expect(find.text(pl.fmAddedToQueue), findsNothing);
+      expect(find.text(pl.fmQueueErrNotSliced), findsOneWidget);
     });
   });
 
@@ -527,11 +524,11 @@ void main() {
 
       final sheet = find.byType(BottomSheet);
       await tester.dragUntilVisible(
-        find.text('Usuń'),
+        find.text(pl.fmDelete),
         sheet,
         const Offset(0, -60),
       );
-      expect(find.text('Usuń'), findsOneWidget);
+      expect(find.text(pl.fmDelete), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -554,8 +551,8 @@ void main() {
       await pump(tester, file: file);
       await openFileSheet(tester, file);
 
-      expect(find.text('Potnij'), findsOneWidget);
-      expect(find.text('Drukuj'), findsNothing);
+      expect(find.text(pl.sliceAction), findsOneWidget);
+      expect(find.text(pl.fmPrint), findsNothing);
     });
 
     testWidgets('slicing is not offered when the server has it switched off', (
@@ -564,7 +561,7 @@ void main() {
       final file = _file();
       await pump(tester, file: file, slicerEnabled: false);
       await openFileSheet(tester, file);
-      expect(find.text('Potnij'), findsNothing);
+      expect(find.text(pl.sliceAction), findsNothing);
     });
 
     testWidgets('a gcode file offers printing, not slicing', (tester) async {
@@ -573,15 +570,15 @@ void main() {
       await pump(tester, file: file);
       await openFileSheet(tester, file);
 
-      expect(find.text('Drukuj'), findsOneWidget);
-      expect(find.text('Potnij'), findsNothing);
+      expect(find.text(pl.fmPrint), findsOneWidget);
+      expect(find.text(pl.sliceAction), findsNothing);
     });
 
     testWidgets('a server with tags offers the tag action', (tester) async {
       final file = _file();
       await pump(tester, file: file);
       await openFileSheet(tester, file);
-      expect(find.textContaining('Tagi'), findsOneWidget);
+      expect(find.textContaining(pl.fmTags), findsOneWidget);
     });
 
     testWidgets('a server with no tag routes hides the tag action', (
@@ -591,7 +588,7 @@ void main() {
       await pump(tester, file: file, tags: null);
       await openFileSheet(tester, file);
       expect(find.textContaining('tag'), findsNothing);
-      expect(find.textContaining('Tagi'), findsNothing);
+      expect(find.textContaining(pl.fmTags), findsNothing);
     });
   });
 
@@ -645,7 +642,7 @@ void main() {
   group('the sort sheet fits', () {
     testWidgets('six options do not overflow', (tester) async {
       await pump(tester, file: _file());
-      await tester.tap(find.byTooltip('Sortuj według'));
+      await tester.tap(find.byTooltip(pl.fmSortBy));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
@@ -667,7 +664,6 @@ void main() {
       externalReadonly: true,
     );
     final file = _file();
-    final l10n = lookupAppLocalizations(const Locale('pl'));
 
     Future<void> pumpAt(WidgetTester tester, {int? folderId}) async {
       await pumpPhone(
@@ -734,7 +730,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text(l10n.fmRoot), findsWidgets);
+      expect(find.text(pl.fmRoot), findsWidgets);
     });
 
     testWidgets('nothing can be added inside a folder that is not writable', (

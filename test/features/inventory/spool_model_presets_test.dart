@@ -6,7 +6,6 @@ import 'package:bambuddy_mobile/features/dashboard/ams_slot_config_providers.dar
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -49,10 +48,7 @@ class _FakeInventory extends InventoryNotifier {
 class _MockRepo extends Mock implements InventoryRepository {}
 
 void main() {
-  late AppLocalizations l10n;
-
   setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
     registerFallbackValue(const <SpoolPresetOverride>[]);
   });
 
@@ -137,11 +133,11 @@ void main() {
     return repo;
   }
 
-  Finder saveButton() => find.widgetWithText(FilledButton, l10n.inventorySave);
+  Finder saveButton() => find.widgetWithText(FilledButton, pl.inventorySave);
 
   /// The section heading as `_FormSection` renders it — upper case.
   Finder heading() =>
-      find.text(l10n.inventorySectionPrinterPresets.toUpperCase());
+      find.text(pl.inventorySectionPrinterPresets.toUpperCase());
 
   testWidgets('offers one row per printer model in the fleet', (tester) async {
     await openForm(tester);
@@ -150,7 +146,7 @@ void main() {
     expect(find.text('P1S'), findsOneWidget);
     expect(find.text('X1C'), findsOneWidget);
     // Nothing overridden yet, so both rows say the spool's own preset applies.
-    expect(find.text(l10n.inventoryPrinterPresetDefault), findsNWidgets(2));
+    expect(find.text(pl.inventoryPrinterPresetDefault), findsNWidgets(2));
   });
 
   testWidgets('a stored override shows the preset it names', (tester) async {
@@ -166,7 +162,7 @@ void main() {
     );
 
     expect(find.text('Bambu PLA Basic @BBL X1C'), findsOneWidget);
-    expect(find.text(l10n.inventoryPrinterPresetDefault), findsOneWidget);
+    expect(find.text(pl.inventoryPrinterPresetDefault), findsOneWidget);
   });
 
   testWidgets('a per-nozzle row the web wrote keeps its own line, whatever '
@@ -185,7 +181,7 @@ void main() {
     );
 
     expect(
-      find.text(l10n.inventoryPrinterPresetNozzle('H2D', '0.2')),
+      find.text(pl.inventoryPrinterPresetNozzle('H2D', '0.2')),
       findsOneWidget,
     );
   });
@@ -210,7 +206,7 @@ void main() {
   ) async {
     await openForm(tester, readFails: Exception('boom'));
 
-    expect(find.text(l10n.inventoryPrinterPresetsLoadFailed), findsOneWidget);
+    expect(find.text(pl.inventoryPrinterPresetsLoadFailed), findsOneWidget);
     expect(find.text('P1S'), findsNothing);
   });
 
@@ -276,7 +272,7 @@ void main() {
       ],
     );
 
-    await tester.tap(find.text(l10n.inventoryPrinterPresetDefault));
+    await tester.tap(find.text(pl.inventoryPrinterPresetDefault));
     await settle(tester);
 
     // Only the preset that is both this model's and this spool's material.
@@ -302,7 +298,7 @@ void main() {
 
     // The section announces itself, but has no row to tap yet.
     expect(heading(), findsOneWidget);
-    expect(find.text(l10n.inventoryPrinterPresetDefault), findsNothing);
+    expect(find.text(pl.inventoryPrinterPresetDefault), findsNothing);
     expect(find.text('P1S'), findsNothing);
 
     pending.complete(const [
@@ -336,7 +332,7 @@ void main() {
       ],
     );
 
-    await tester.tap(find.text(l10n.inventoryPrinterPresetDefault));
+    await tester.tap(find.text(pl.inventoryPrinterPresetDefault));
     await settle(tester);
     await tester.tap(find.text('Bambu PLA Basic @BBL P1S'));
     await settle(tester);
@@ -348,7 +344,7 @@ void main() {
     expect(fake.writes, ['create']);
     expect(find.text('Bambu PLA Basic @BBL P1S'), findsOneWidget);
     // Named for what failed, not the generic "could not save".
-    expect(find.text(l10n.inventoryPrinterPresetsSaveFailed), findsOneWidget);
+    expect(find.text(pl.inventoryPrinterPresetsSaveFailed), findsOneWidget);
 
     await tester.tap(saveButton());
     await settle(tester);

@@ -8,7 +8,6 @@ import 'package:bambuddy_mobile/features/dashboard/ams_slot_config_providers.dar
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,10 +40,7 @@ class _FakeInventory extends InventoryNotifier {
 class _MockRepo extends Mock implements InventoryRepository {}
 
 void main() {
-  late AppLocalizations l10n;
-
   setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
     registerFallbackValue(const <SpoolPresetOverride>[]);
   });
 
@@ -108,7 +104,7 @@ void main() {
     return (inventory, repo);
   }
 
-  Finder saveButton() => find.widgetWithText(FilledButton, l10n.inventorySave);
+  Finder saveButton() => find.widgetWithText(FilledButton, pl.inventorySave);
 
   /// The save button whatever it shows — a spinner while it waits.
   VoidCallback? saveAction(WidgetTester tester) =>
@@ -124,7 +120,7 @@ void main() {
     tester,
   ) async {
     final (inventory, _) = await openCopy(tester);
-    expect(find.text(l10n.inventoryNewSpool), findsOneWidget);
+    expect(find.text(pl.inventoryNewSpool), findsOneWidget);
     await save(tester);
 
     expect(inventory.writes, ['create']);
@@ -149,7 +145,7 @@ void main() {
     // follow, or the new spool is saved with 250 g already used.
     final (inventory, _) = await openCopy(tester);
     await tester.enterText(
-      find.widgetWithText(TextFormField, l10n.inventoryFieldLabelWeight),
+      find.widgetWithText(TextFormField, pl.inventoryFieldLabelWeight),
       '1000',
     );
     await save(tester);
@@ -218,11 +214,11 @@ void main() {
     final (inventory, _) = await openCopy(tester);
     final measured = find.widgetWithText(
       TextFormField,
-      l10n.inventoryFieldMeasuredWeight,
+      pl.inventoryFieldMeasuredWeight,
     );
     final label = find.widgetWithText(
       TextFormField,
-      l10n.inventoryFieldLabelWeight,
+      pl.inventoryFieldLabelWeight,
     );
     final list = find.byType(Scrollable).first;
     await tester.scrollUntilVisible(measured, 200, scrollable: list);

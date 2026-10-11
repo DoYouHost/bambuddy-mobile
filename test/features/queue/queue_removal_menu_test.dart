@@ -50,23 +50,20 @@ void main() {
     await tester.pumpAndSettle();
 
     await openRemoval(tester);
+    expect(find.widgetWithText(ListTile, pl.queueRemove), findsOneWidget);
     expect(
-      find.widgetWithText(ListTile, 'Usuń z\u00A0kolejki'),
-      findsOneWidget,
-    );
-    expect(
-      find.widgetWithText(ListTile, 'Zatrzymaj wydruk'),
+      find.widgetWithText(ListTile, pl.queueStop),
       findsNothing,
       reason: 'nothing is printing, so there is nothing to stop',
     );
 
-    await tester.tap(find.widgetWithText(ListTile, 'Usuń z\u00A0kolejki'));
+    await tester.tap(find.widgetWithText(ListTile, pl.queueRemove));
     await tester.pumpAndSettle();
 
     // Confirmed first — it is not undoable — and worded for a print that has
     // already ended rather than one being aborted.
-    expect(find.text('Usunąć z\u00A0kolejki?'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, 'Usuń'));
+    expect(find.text(pl.queueRemoveStoppedTitle), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, pl.queueDeleteConfirm));
     await tester.pumpAndSettle();
 
     expect(queue.stopped, [
@@ -83,14 +80,14 @@ void main() {
     await tester.pumpAndSettle();
 
     await openRemoval(tester);
-    expect(find.widgetWithText(ListTile, 'Zatrzymaj wydruk'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, pl.queueStop), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(ListTile, 'Zatrzymaj wydruk'));
+    await tester.tap(find.widgetWithText(ListTile, pl.queueStop));
     await tester.pumpAndSettle();
 
-    expect(find.text('Zatrzymać ten wydruk?'), findsOneWidget);
+    expect(find.text(pl.queueStopTitle), findsOneWidget);
     expect(
-      find.textContaining('nie da się wznowić'),
+      find.textContaining(pl.queueStopBody),
       findsOneWidget,
       reason: 'aborting a running print is the destructive case',
     );
@@ -102,9 +99,9 @@ void main() {
     await tester.pumpAndSettle();
 
     await openRemoval(tester);
-    await tester.tap(find.widgetWithText(ListTile, 'Zatrzymaj wydruk'));
+    await tester.tap(find.widgetWithText(ListTile, pl.queueStop));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Anuluj'));
+    await tester.tap(find.widgetWithText(FilledButton, pl.cancel));
     await tester.pumpAndSettle();
 
     expect(queue.stopped, isEmpty);
@@ -124,7 +121,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await openRemoval(tester);
-    await tester.tap(find.widgetWithText(ListTile, 'Anuluj'));
+    await tester.tap(find.widgetWithText(ListTile, pl.cancel));
     await tester.pumpAndSettle();
 
     expect(queue.cancelled, [78]);
@@ -147,12 +144,12 @@ void main() {
     await tester.pumpAndSettle();
 
     await openRemoval(tester);
-    await tester.tap(find.widgetWithText(ListTile, 'Usuń z\u00A0kolejki'));
+    await tester.tap(find.widgetWithText(ListTile, pl.queueRemove));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Usuń'));
+    await tester.tap(find.widgetWithText(FilledButton, pl.queueDeleteConfirm));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Odśwież kolejkę'), findsOneWidget);
+    expect(find.textContaining(pl.queueRemovalStatusChanged), findsOneWidget);
     expect(find.textContaining('400'), findsNothing);
   });
 }

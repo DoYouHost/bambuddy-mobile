@@ -85,15 +85,15 @@ void main() {
 
     await pumpSetup(tester);
     await tester.enterText(find.byType(TextField).first, _baseUrl);
-    await tester.tap(find.text('Testuj połączenie'));
+    await tester.tap(find.text(pl.testConnection));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Login i\u00A0hasło'));
+    await tester.tap(find.text(pl.authModeLogin));
     await tester.pumpAndSettle();
     final fields = find.byType(TextField);
     await tester.enterText(fields.at(1), 'tester');
     await tester.enterText(fields.at(2), 'sekret');
-    await tester.tap(find.text('Zaloguj i\u00A0połącz'));
+    await tester.tap(find.text(pl.signInAndConnect));
     await tester.pumpAndSettle();
   }
 
@@ -102,9 +102,9 @@ void main() {
     // second challenge which voids the one on screen.
     await signInTo(tester);
 
-    expect(find.text('Uwierzytelnianie dwuskładnikowe'), findsOneWidget);
-    expect(find.text('Zaloguj i\u00A0połącz'), findsNothing);
-    expect(find.text('Potwierdź i\u00A0połącz'), findsOneWidget);
+    expect(find.text(pl.twoFactorTitle), findsOneWidget);
+    expect(find.text(pl.signInAndConnect), findsNothing);
+    expect(find.text(pl.twoFactorVerify), findsOneWidget);
     closeSetup();
   });
 
@@ -112,10 +112,7 @@ void main() {
     await signInTo(tester);
 
     expect(find.byType(SegmentedButton<Object?>), findsNothing);
-    expect(
-      find.text('Wpisz 6-cyfrowy kod z\u00A0aplikacji uwierzytelniającej.'),
-      findsOneWidget,
-    );
+    expect(find.text(pl.twoFactorExplainTotp), findsOneWidget);
     closeSetup();
   });
 
@@ -126,7 +123,7 @@ void main() {
     // difference between "2FA works" and "my codes are all rejected".
     await signInTo(tester, methods: ['totp', 'backup']);
 
-    await tester.tap(find.text('Kod zapasowy'));
+    await tester.tap(find.text(pl.twoFactorMethodBackup));
     await tester.pumpAndSettle();
 
     final code = tester.widget<TextField>(find.byType(TextField).last);
@@ -145,7 +142,7 @@ void main() {
     await signInTo(tester, methods: ['totp', 'backup']);
     await tester.enterText(find.byType(TextField).last, '123456');
 
-    await tester.tap(find.text('Kod zapasowy'));
+    await tester.tap(find.text(pl.twoFactorMethodBackup));
     await tester.pumpAndSettle();
 
     expect(find.text('123456'), findsNothing);
@@ -165,7 +162,7 @@ void main() {
     );
 
     await tester.enterText(find.byType(TextField).last, '123456');
-    await tester.tap(find.text('Potwierdź i\u00A0połącz'));
+    await tester.tap(find.text(pl.twoFactorVerify));
     // Not pumpAndSettle: the screen stays busy behind the spinner until the
     // router (absent here) moves off setup, and an indeterminate progress
     // indicator never settles.
@@ -179,11 +176,11 @@ void main() {
   testWidgets('backing out brings the password form back', (tester) async {
     await signInTo(tester);
 
-    await tester.tap(find.text('Zaloguj się na inne konto'));
+    await tester.tap(find.text(pl.twoFactorBack));
     await tester.pumpAndSettle();
 
-    expect(find.text('Zaloguj i\u00A0połącz'), findsOneWidget);
-    expect(find.text('Potwierdź i\u00A0połącz'), findsNothing);
+    expect(find.text(pl.signInAndConnect), findsOneWidget);
+    expect(find.text(pl.twoFactorVerify), findsNothing);
     closeSetup();
   });
 }

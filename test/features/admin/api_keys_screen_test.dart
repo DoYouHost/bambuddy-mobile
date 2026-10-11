@@ -7,7 +7,6 @@ import 'package:bambuddy_mobile/data/api_keys_repository.dart';
 import 'package:bambuddy_mobile/features/admin/api_key_form_screen.dart';
 import 'package:bambuddy_mobile/features/admin/api_keys_providers.dart';
 import 'package:bambuddy_mobile/features/admin/api_keys_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -106,13 +105,13 @@ void main() {
 
       expect(find.text('Home Assistant'), findsOneWidget);
       expect(find.textContaining('bb_1a2b3c••••'), findsOneWidget);
-      expect(find.text('Odczyt stanu'), findsNWidgets(2));
-      expect(find.text('Sterowanie drukarkami'), findsOneWidget);
-      expect(find.text('1 drukarka'), findsOneWidget);
+      expect(find.text(pl.apiKeyScopeRead), findsNWidgets(2));
+      expect(find.text(pl.apiKeyScopeControl), findsOneWidget);
+      expect(find.text(pl.apiKeysPrinterLimited(1)), findsOneWidget);
       // The switched-off legacy key says both things about itself.
-      expect(find.text('Wyłączony'), findsOneWidget);
-      expect(find.text('Bez właściciela'), findsOneWidget);
-      expect(find.textContaining('nieużywany'), findsOneWidget);
+      expect(find.text(pl.apiKeysDisabled), findsOneWidget);
+      expect(find.text(pl.apiKeysLegacy), findsOneWidget);
+      expect(find.textContaining(pl.apiKeysNeverUsed), findsOneWidget);
     });
 
     testWidgets('offers no issuing or revoking to a read-only identity', (
@@ -123,8 +122,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Nowy klucz'), findsNothing);
-      expect(find.byTooltip('Odwołaj'), findsNothing);
+      expect(find.text(pl.apiKeysCreate), findsNothing);
+      expect(find.byTooltip(pl.apiKeysRevoke), findsNothing);
     });
 
     testWidgets('asks before revoking, and says what that means', (
@@ -135,16 +134,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Odwołaj').first);
+      await tester.tap(find.byTooltip(pl.apiKeysRevoke).first);
       await tester.pumpAndSettle();
 
-      expect(find.text('Odwołać klucz Home Assistant?'), findsOneWidget);
       expect(
-        find.textContaining('przestanie działać natychmiast'),
+        find.text(pl.apiKeysRevokeQuestion('Home Assistant')),
         findsOneWidget,
       );
+      expect(find.textContaining(pl.apiKeysRevokeBody), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Odwołaj'));
+      await tester.tap(find.widgetWithText(FilledButton, pl.apiKeysRevoke));
       await tester.pumpAndSettle();
 
       expect(repo.deleted, 1);
@@ -159,12 +158,14 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nazwa'),
+        find.widgetWithText(TextFormField, pl.apiKeysFieldName),
         'SpoolBuddy',
       );
-      await tester.tap(find.widgetWithText(SwitchListTile, 'Kolejka'));
+      await tester.tap(
+        find.widgetWithText(SwitchListTile, pl.apiKeyScopeQueue),
+      );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
       expect(repo.created?.name, 'SpoolBuddy');
@@ -177,17 +178,16 @@ void main() {
       // Tall enough for every scope row to be built, or the absence below
       // would hold for a row that was merely off screen.
       usePhoneWindow(tester, dp: 2400);
-      final l10n = lookupAppLocalizations(const Locale('pl'));
       final notifications = find.widgetWithText(
         SwitchListTile,
-        l10n.apiKeyScopeNotifications,
+        pl.apiKeyScopeNotifications,
       );
       await tester.pumpWidget(
         _app(const ApiKeyFormScreen(), repo: repo, signedInAs: _admin),
       );
       await tester.pumpAndSettle();
       expect(
-        find.widgetWithText(SwitchListTile, l10n.apiKeyScopeEnergy),
+        find.widgetWithText(SwitchListTile, pl.apiKeyScopeEnergy),
         findsOneWidget,
       );
       expect(notifications, findsNothing);
@@ -202,12 +202,12 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nazwa'),
+        find.widgetWithText(TextFormField, pl.apiKeysFieldName),
         'Skrypt',
       );
       await tester.tap(notifications);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
       expect(current.created?.scopes, contains(ApiKeyScope.sendNotifications));
@@ -227,16 +227,16 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nazwa'),
+        find.widgetWithText(TextFormField, pl.apiKeysFieldName),
         'SpoolBuddy',
       );
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
       expect(find.text('bb_pelny_klucz_123'), findsOneWidget);
-      expect(find.textContaining('ostatni moment'), findsOneWidget);
+      expect(find.textContaining(pl.apiKeysCreatedWarning), findsOneWidget);
 
-      await tester.tap(find.text('Kopiuj'));
+      await tester.tap(find.text(pl.apiKeysCopy));
       await tester.pumpAndSettle();
     });
 
@@ -247,23 +247,23 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nazwa'),
+        find.widgetWithText(TextFormField, pl.apiKeysFieldName),
         'Warsztat',
       );
       // The form is a long list on a phone-sized screen; the printer section
       // is below the fold and not built until it scrolls into view.
       await tester.dragUntilVisible(
-        find.widgetWithText(SwitchListTile, 'Wszystkie drukarki'),
+        find.widgetWithText(SwitchListTile, pl.apiKeysAllPrinters),
         find.byType(ListView),
         const Offset(0, -200),
       );
       await tester.tap(
-        find.widgetWithText(SwitchListTile, 'Wszystkie drukarki'),
+        find.widgetWithText(SwitchListTile, pl.apiKeysAllPrinters),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text('A1 mini'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
       expect(repo.created?.printerIds, [3]);
@@ -275,7 +275,6 @@ void main() {
       tester,
     ) async {
       usePhoneWindow(tester, dp: 2400);
-      final l10n = lookupAppLocalizations(const Locale('pl'));
       await tester.pumpWidget(
         _app(
           ApiKeyFormScreen(
@@ -294,7 +293,7 @@ void main() {
 
       final notifications = find.widgetWithText(
         SwitchListTile,
-        l10n.apiKeyScopeNotifications,
+        pl.apiKeyScopeNotifications,
       );
       expect(notifications, findsOneWidget);
 
@@ -302,7 +301,7 @@ void main() {
       await tester.tap(notifications);
       await tester.pumpAndSettle();
       expect(notifications, findsOneWidget);
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
       expect(
         repo.updated?.$2.scopes,
@@ -320,9 +319,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(SwitchListTile, 'Aktywny'));
+      await tester.tap(
+        find.widgetWithText(SwitchListTile, pl.apiKeysFieldEnabled),
+      );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
       expect(repo.updated?.$1, 1);
@@ -346,15 +347,15 @@ void main() {
       // The form is a long list on a phone-sized screen; the printer section
       // is below the fold and not built until it scrolls into view.
       await tester.dragUntilVisible(
-        find.widgetWithText(SwitchListTile, 'Wszystkie drukarki'),
+        find.widgetWithText(SwitchListTile, pl.apiKeysAllPrinters),
         find.byType(ListView),
         const Offset(0, -200),
       );
       await tester.tap(
-        find.widgetWithText(SwitchListTile, 'Wszystkie drukarki'),
+        find.widgetWithText(SwitchListTile, pl.apiKeysAllPrinters),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
       // Omitting the field would mean "unchanged", which is the opposite.

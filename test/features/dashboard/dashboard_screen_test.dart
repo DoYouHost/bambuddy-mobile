@@ -7,7 +7,6 @@ import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
@@ -173,15 +172,12 @@ Widget _app(
   TextScaler textScaler = TextScaler.noScaling,
 }) => ProviderScope(
   overrides: [..._overrides(state), ...extra],
-  child: MaterialApp(
-    locale: const Locale('pl'),
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
+  child: plApp(
+    const DashboardScreen(),
     builder: (context, child) => MediaQuery(
       data: MediaQuery.of(context).copyWith(textScaler: textScaler),
       child: child!,
     ),
-    home: const DashboardScreen(),
   ),
 );
 
@@ -199,12 +195,7 @@ Widget _routedApp(DashboardState state) {
   );
   return ProviderScope(
     overrides: _overrides(state),
-    child: MaterialApp.router(
-      locale: const Locale('pl'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      routerConfig: router,
-    ),
+    child: plRouterApp(router),
   );
 }
 
@@ -261,8 +252,8 @@ void main() {
     await tester.pump();
 
     expect(find.byType(DashLoading), findsNothing);
-    expect(find.text('Nie udało się połączyć z\u00A0serwerem'), findsOneWidget);
-    expect(find.text('Spróbuj ponownie'), findsOneWidget);
+    expect(find.text(pl.connectFailed), findsOneWidget);
+    expect(find.text(pl.retry), findsOneWidget);
   });
 
   testWidgets('while the server may still answer, the spinner stays', (
@@ -285,8 +276,8 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('Serwer nieosiągalny'), findsOneWidget);
-    expect(find.text('Spróbuj ponownie'), findsOneWidget);
+    expect(find.textContaining(pl.errServerUnreachable), findsOneWidget);
+    expect(find.text(pl.retry), findsOneWidget);
     expect(find.byType(ConnectionBanner), findsNothing);
   });
 
@@ -399,8 +390,8 @@ void main() {
       // One phrasing for the pair. The app line used to read `Bambuddy
       // v0.14.0+2028000` over an unprefixed `Serwer 1.2.6`, which read as two
       // answers to two different questions.
-      expect(find.text('Aplikacja 0.14.0+2028000'), findsOneWidget);
-      expect(find.text('Serwer 1.2.6b1'), findsOneWidget);
+      expect(find.text(pl.appVersionLabel('0.14.0+2028000')), findsOneWidget);
+      expect(find.text(pl.serverVersionLabel('1.2.6b1')), findsOneWidget);
     });
 
     testWidgets('a daily build at double text size still fits', (tester) async {
@@ -416,7 +407,10 @@ void main() {
         textScaler: const TextScaler.linear(2),
       );
 
-      expect(find.text('Serwer 1.2.6b1-daily.20260729'), findsOneWidget);
+      expect(
+        find.text(pl.serverVersionLabel('1.2.6b1-daily.20260729')),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -426,7 +420,7 @@ void main() {
       // drawer.
       await openDrawer(tester);
 
-      expect(find.text('Nieznana wersja serwera'), findsOneWidget);
+      expect(find.text(pl.serverVersionUnknown), findsOneWidget);
       expect(find.textContaining('Serwer '), findsNothing);
     });
   });
@@ -473,11 +467,11 @@ void main() {
   ) async {
     await openDrawer(tester);
 
-    expect(find.text('Ustawienia aplikacji'), findsOneWidget);
+    expect(find.text(pl.appSettingsMenu), findsOneWidget);
     expect(
       find.descendant(
         of: find.byType(Drawer),
-        matching: find.text('Zdarzenia powiadomień'),
+        matching: find.text(pl.notifEventsMenu),
       ),
       findsNothing,
       reason: 'the entry moved into app settings',
@@ -520,11 +514,11 @@ void main() {
       ),
     );
 
-    expect(find.byTooltip('Rozwiń kartę'), findsNWidgets(2));
+    expect(find.byTooltip(pl.printerCardExpand), findsNWidgets(2));
 
-    await tester.tap(find.byTooltip('Rozwiń kartę').first);
+    await tester.tap(find.byTooltip(pl.printerCardExpand).first);
     await tester.pump();
-    expect(find.byTooltip('Zwiń kartę'), findsOneWidget);
+    expect(find.byTooltip(pl.printerCardCollapse), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'mini');
     await tester.pumpAndSettle();
@@ -532,8 +526,8 @@ void main() {
 
     await tester.enterText(find.byType(TextField), '');
     await tester.pumpAndSettle();
-    expect(find.byTooltip('Zwiń kartę'), findsOneWidget);
-    expect(find.byTooltip('Rozwiń kartę'), findsOneWidget);
+    expect(find.byTooltip(pl.printerCardCollapse), findsOneWidget);
+    expect(find.byTooltip(pl.printerCardExpand), findsOneWidget);
   });
 
   group('sort, sections and the location filter', () {
@@ -583,7 +577,7 @@ void main() {
       expect(byLogId('dashboard.group'), findsNWidgets(3));
       expect(find.text('Workshop'), findsOneWidget);
       expect(find.text('(2)'), findsOneWidget);
-      expect(find.text('Bez lokalizacji'), findsOneWidget);
+      expect(find.text(pl.dashboardGroupUngrouped), findsOneWidget);
       expect(find.text('Lathe'), findsOneWidget);
 
       await tester.tap(find.text('Workshop'));
@@ -632,14 +626,7 @@ void main() {
 
       // Already drawn without it, not an empty list for one frame.
       expect(find.text('Bench'), findsOneWidget);
-      expect(
-        find.text(
-          AppLocalizations.of(
-            tester.element(find.byType(Scaffold).first),
-          ).noPrintersMatchFilters,
-        ),
-        findsNothing,
-      );
+      expect(find.text(pl.noPrintersMatchFilters), findsNothing);
       await tester.pumpAndSettle();
 
       expect(find.text('Bench'), findsOneWidget);
@@ -731,8 +718,8 @@ void main() {
       ),
     );
 
-    expect(find.text('1 drukuje'), findsOneWidget);
-    expect(find.textContaining('Następna wolna'), findsOneWidget);
+    expect(find.text(pl.printingCount(1)), findsOneWidget);
+    expect(find.textContaining(pl.nextAvailableLabel), findsOneWidget);
   });
 
   testWidgets('a printer still heating is not the next one free', (
@@ -774,7 +761,7 @@ void main() {
 
     expect(find.textContaining('A1 mini'), findsWidgets);
     expect(
-      find.textContaining('Następna wolna: X1C Warsztat'),
+      find.textContaining('${pl.nextAvailableLabel}X1C Warsztat'),
       findsNothing,
       reason: 'heating, so nothing is known about when it frees up',
     );
@@ -978,8 +965,8 @@ void main() {
       await tester.pumpWidget(_app(state));
       await tester.pumpAndSettle();
 
-      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
-      expect(find.textContaining('odrzucił zapisane hasło'), findsOneWidget);
+      expect(find.text(pl.signInRequiredTitle), findsOneWidget);
+      expect(find.textContaining(pl.signInRequiredBody), findsOneWidget);
     });
 
     testWidgets('a flag written by another isolate opens the dialog too', (
@@ -1001,14 +988,14 @@ void main() {
       await tester.pumpWidget(_app(state));
       await tester.pumpAndSettle();
 
-      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+      expect(find.text(pl.signInRequiredTitle), findsOneWidget);
     });
 
     testWidgets('no flag, no dialog', (tester) async {
       await tester.pumpWidget(_app(state));
       await tester.pumpAndSettle();
 
-      expect(find.text('Zaloguj się ponownie'), findsNothing);
+      expect(find.text(pl.signInRequiredTitle), findsNothing);
     });
 
     testWidgets('an empty store raises the warning with nobody to raise it', (
@@ -1032,9 +1019,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+      expect(find.text(pl.signInRequiredTitle), findsOneWidget);
       expect(
-        find.textContaining('aktualizacja zabezpieczeń'),
+        find.textContaining(pl.signInRequiredMissingBody),
         findsOneWidget,
         reason:
             'the wording names the cause; blaming a password nobody '
@@ -1066,7 +1053,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Zaloguj się ponownie'), findsNothing);
+      expect(find.text(pl.signInRequiredTitle), findsNothing);
       expect(_prefs.getBool('sign_in_required'), isNot(isTrue));
     });
 
@@ -1091,7 +1078,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+      expect(find.text(pl.signInRequiredTitle), findsOneWidget);
       expect(_prefs.getBool('sign_in_required'), isTrue);
     });
 
@@ -1109,7 +1096,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Zaloguj się ponownie'), findsNothing);
+      expect(find.text(pl.signInRequiredTitle), findsNothing);
       expect(_prefs.getBool('sign_in_required'), isNot(isTrue));
     });
 
@@ -1136,7 +1123,9 @@ void main() {
 
       await tester.pumpWidget(_routedApp(state));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Zaloguj'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, pl.signInRequiredAction),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('SETUP SCREEN'), findsOneWidget);
@@ -1181,7 +1170,7 @@ void main() {
         store.gate.complete();
         await tester.pumpAndSettle();
 
-        expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+        expect(find.text(pl.signInRequiredTitle), findsOneWidget);
         expect(
           store.checks,
           1,
@@ -1210,13 +1199,19 @@ void main() {
       await tester.pumpWidget(_routedApp(state));
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(FilledButton, 'Później'), findsNothing);
-      expect(find.widgetWithText(FilledButton, 'Zaloguj'), findsOneWidget);
+      expect(
+        find.widgetWithText(FilledButton, pl.batteryOptLater),
+        findsNothing,
+      );
+      expect(
+        find.widgetWithText(FilledButton, pl.signInRequiredAction),
+        findsOneWidget,
+      );
 
       // The barrier is not a way out.
       await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
-      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+      expect(find.text(pl.signInRequiredTitle), findsOneWidget);
     });
   });
 }

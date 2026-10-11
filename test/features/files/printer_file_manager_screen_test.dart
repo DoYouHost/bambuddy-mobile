@@ -112,7 +112,7 @@ PrinterDownloadJob _job(
 );
 
 void main() {
-  Future<AppLocalizations> pumpWith(
+  Future<void> pumpWith(
     WidgetTester tester,
     PrinterFileListing listing, {
     PrinterFilesRepository? repo,
@@ -127,29 +127,23 @@ void main() {
       ],
     );
     await tester.pumpAndSettle();
-    return AppLocalizations.of(
-      tester.element(find.byType(PrinterFileManagerScreen)),
-    );
   }
 
   testWidgets('an empty folder still reads as an empty folder', (tester) async {
-    final l10n = await pumpWith(tester, const PrinterFileListing());
+    await pumpWith(tester, const PrinterFileListing());
 
-    expect(find.text(l10n.pfmEmpty), findsOneWidget);
-    expect(find.text(l10n.pfmPrinterUnavailable), findsNothing);
+    expect(find.text(pl.pfmEmpty), findsOneWidget);
+    expect(find.text(pl.pfmPrinterUnavailable), findsNothing);
   });
 
   testWidgets('the unavailable warning says so, and offers a retry', (
     tester,
   ) async {
-    final l10n = await pumpWith(
-      tester,
-      const PrinterFileListing(printerUnavailable: true),
-    );
+    await pumpWith(tester, const PrinterFileListing(printerUnavailable: true));
 
-    expect(find.text(l10n.pfmPrinterUnavailable), findsOneWidget);
-    expect(find.text(l10n.pfmEmpty), findsNothing);
-    expect(find.widgetWithText(FilledButton, l10n.retry), findsOneWidget);
+    expect(find.text(pl.pfmPrinterUnavailable), findsOneWidget);
+    expect(find.text(pl.pfmEmpty), findsNothing);
+    expect(find.widgetWithText(FilledButton, pl.retry), findsOneWidget);
   });
 
   group('what a screen reader is handed', () {
@@ -197,7 +191,7 @@ void main() {
       // An icon on its own reads as "unlabelled button", and this one climbs a
       // directory rather than going back through the app. The name rides as a
       // tooltip, which is what an IconButton hands the platform.
-      final l10n = await pumpWith(tester, listing);
+      await pumpWith(tester, listing);
       final handle = tester.ensureSemantics();
 
       final button = tester.getSemantics(
@@ -207,7 +201,7 @@ void main() {
         ),
       );
 
-      expect(button.getSemanticsData().tooltip, l10n.pfmUp);
+      expect(button.getSemanticsData().tooltip, pl.pfmUp);
       // 48x48 dp: `VisualDensity.compact` had taken it under the floor.
       expect(button.rect.width, greaterThanOrEqualTo(48));
       expect(button.rect.height, greaterThanOrEqualTo(48));
@@ -267,8 +261,8 @@ void main() {
     });
 
     /// Selects the one file on screen and downloads it.
-    Future<AppLocalizations> downloadTheFile(WidgetTester tester) async {
-      final l10n = await pumpWith(
+    Future<void> downloadTheFile(WidgetTester tester) async {
+      await pumpWith(
         tester,
         const PrinterFileListing(
           files: [
@@ -287,7 +281,7 @@ void main() {
       // framework's clock drives — and the progress ring keeps scheduling
       // frames meanwhile, so `pumpAndSettle` alone would only ever time out.
       await tester.runAsync(() async {
-        await tester.tap(find.text(l10n.pfmDownload));
+        await tester.tap(find.text(pl.pfmDownload));
         // One frame first, or the ring the loop waits on is not in the tree yet
         // and the wait ends before the download has begun.
         await tester.pump();
@@ -297,15 +291,14 @@ void main() {
         }
       });
       await tester.pumpAndSettle();
-      return l10n;
     }
 
     testWidgets('a saved file leaves nothing behind', (tester) async {
       savedTo = '/storage/emulated/0/Download/benchy.3mf';
 
-      final l10n = await downloadTheFile(tester);
+      await downloadTheFile(tester);
 
-      expect(find.text(l10n.pfmDownloadSaved), findsOneWidget);
+      expect(find.text(pl.pfmDownloadSaved), findsOneWidget);
       expect(
         cache.listSync(),
         isEmpty,
@@ -334,9 +327,9 @@ void main() {
             (call) async => throw PlatformException(code: 'no_room'),
           );
 
-      final l10n = await downloadTheFile(tester);
+      await downloadTheFile(tester);
 
-      expect(find.text(l10n.pfmDownloadNotSaved), findsOneWidget);
+      expect(find.text(pl.pfmDownloadNotSaved), findsOneWidget);
       expect(cache.listSync(), isEmpty);
     });
   });
@@ -377,7 +370,7 @@ void main() {
     /// delays are all real time, which the test clock does not drive.
     Future<void> startDownload(
       WidgetTester tester,
-      AppLocalizations l10n, {
+      AppLocalizations pl, {
       Duration budget = const Duration(milliseconds: 400),
       bool Function()? until,
       String file = 'benchy.3mf',
@@ -385,7 +378,7 @@ void main() {
       await tester.tap(find.text(file));
       await tester.pumpAndSettle();
       await tester.runAsync(() async {
-        await tester.tap(find.text(l10n.pfmDownload));
+        await tester.tap(find.text(pl.pfmDownload));
         await tester.pump();
         final deadline = DateTime.now().add(budget);
         while (DateTime.now().isBefore(deadline)) {
@@ -429,13 +422,13 @@ void main() {
         started: _job(PrinterDownloadJobState.ready, token: 'tok'),
         poll: () => _job(PrinterDownloadJobState.ready, token: 'tok'),
       );
-      final l10n = await pumpWith(tester, oneFile, repo: repo);
+      await pumpWith(tester, oneFile, repo: repo);
 
-      await startDownload(tester, l10n);
+      await startDownload(tester, pl);
       await tester.pumpAndSettle();
 
       expect(repo.fetched, isTrue);
-      expect(find.text(l10n.pfmDownloadSaved), findsOneWidget);
+      expect(find.text(pl.pfmDownloadSaved), findsOneWidget);
       expect(cache.listSync(), isEmpty);
     });
 
@@ -449,12 +442,12 @@ void main() {
           started: _job(PrinterDownloadJobState.preparing, requested: 3),
           poll: () => _job(PrinterDownloadJobState.preparing, requested: 3),
         );
-        final l10n = await pumpWith(tester, oneFile, repo: repo);
+        await pumpWith(tester, oneFile, repo: repo);
 
-        await startDownload(tester, l10n);
+        await startDownload(tester, pl);
 
-        expect(find.text(l10n.pfmPreparingOnServer), findsOneWidget);
-        expect(find.text(l10n.pfmSelected(1)), findsNothing);
+        expect(find.text(pl.pfmPreparingOnServer), findsOneWidget);
+        expect(find.text(pl.pfmSelected(1)), findsNothing);
 
         final cancel = find.byIcon(Icons.close);
         expect(cancel, findsOneWidget);
@@ -465,7 +458,7 @@ void main() {
           // notice the cancellation.
           final deadline = DateTime.now().add(const Duration(seconds: 3));
           while (DateTime.now().isBefore(deadline)) {
-            if (find.text(l10n.pfmDownloadCancelled).evaluate().isNotEmpty) {
+            if (find.text(pl.pfmDownloadCancelled).evaluate().isNotEmpty) {
               break;
             }
             await tester.pump(const Duration(milliseconds: 50));
@@ -476,7 +469,7 @@ void main() {
 
         expect(repo.cancelled, isTrue);
         expect(repo.fetched, isFalse);
-        expect(find.text(l10n.pfmDownloadCancelled), findsOneWidget);
+        expect(find.text(pl.pfmDownloadCancelled), findsOneWidget);
         expect(cache.listSync(), isEmpty);
       },
     );
@@ -491,11 +484,11 @@ void main() {
         started: _job(PrinterDownloadJobState.preparing, requested: 3),
         poll: () => _job(PrinterDownloadJobState.preparing, requested: 3),
       );
-      final l10n = await pumpWith(tester, oneFile, repo: repo);
+      await pumpWith(tester, oneFile, repo: repo);
 
       await startDownload(
         tester,
-        l10n,
+        pl,
         until: () => find.byIcon(Icons.close).evaluate().isNotEmpty,
       );
 
@@ -520,13 +513,13 @@ void main() {
         ),
         poll: () => _job(PrinterDownloadJobState.ready, token: 'tok'),
       );
-      final l10n = await pumpWith(tester, oneFile, repo: repo);
+      await pumpWith(tester, oneFile, repo: repo);
 
-      await startDownload(tester, l10n);
+      await startDownload(tester, pl);
       await tester.pumpAndSettle();
 
       expect(
-        find.textContaining(l10n.pfmDownloadPartial(2)),
+        find.textContaining(pl.pfmDownloadPartial(2)),
         findsOneWidget,
         reason: 'a ZIP two files short must not read as a clean save',
       );
@@ -546,11 +539,11 @@ void main() {
           'message': 'The server has no room to prepare this download',
         }),
       );
-      final l10n = await pumpWith(tester, oneFile, repo: repo);
+      await pumpWith(tester, oneFile, repo: repo);
 
       await startDownload(
         tester,
-        l10n,
+        pl,
         budget: const Duration(seconds: 3),
         until: () => find.textContaining('no room').evaluate().isNotEmpty,
       );
@@ -571,11 +564,11 @@ void main() {
         started: _job(PrinterDownloadJobState.preparing, requested: 3),
         poll: () => _job(PrinterDownloadJobState.preparing, requested: 3),
       );
-      final l10n = await pumpWith(tester, oneFile, repo: repo);
+      await pumpWith(tester, oneFile, repo: repo);
 
       await startDownload(
         tester,
-        l10n,
+        pl,
         until: () => find.byIcon(Icons.close).evaluate().isNotEmpty,
       );
       expect(repo.cancelled, isFalse);
@@ -597,11 +590,11 @@ void main() {
         started: _job(PrinterDownloadJobState.preparing, requested: 3),
         poll: () => _job(PrinterDownloadJobState.preparing, requested: 3),
       );
-      final l10n = await pumpWith(tester, oneFile, repo: repo);
+      await pumpWith(tester, oneFile, repo: repo);
 
       await startDownload(
         tester,
-        l10n,
+        pl,
         until: () => find.byIcon(Icons.close).evaluate().isNotEmpty,
       );
       await tester.tap(find.byIcon(Icons.close));
@@ -645,11 +638,11 @@ void main() {
         started: _job(PrinterDownloadJobState.preparing, requested: 4),
         poll: () => _job(PrinterDownloadJobState.preparing, requested: 4),
       );
-      final l10n = await pumpWith(tester, named, repo: repo);
+      await pumpWith(tester, named, repo: repo);
 
       await startDownload(
         tester,
-        l10n,
+        pl,
         file: 'Mum birthday present.3mf',
         until: () => find.byIcon(Icons.close).evaluate().isNotEmpty,
       );
@@ -658,7 +651,7 @@ void main() {
         await tester.pump();
         final deadline = DateTime.now().add(const Duration(seconds: 3));
         while (DateTime.now().isBefore(deadline)) {
-          if (find.text(l10n.pfmDownloadCancelled).evaluate().isNotEmpty) break;
+          if (find.text(pl.pfmDownloadCancelled).evaluate().isNotEmpty) break;
           await tester.pump(const Duration(milliseconds: 50));
           await Future<void>.delayed(const Duration(milliseconds: 50));
         }
@@ -685,12 +678,12 @@ void main() {
     ) async {
       // The legacy path, which every server generation serves: no phase to
       // report and no Cancel, but the same bytes on disk at the end.
-      final l10n = await pumpWith(tester, oneFile);
+      await pumpWith(tester, oneFile);
 
-      await startDownload(tester, l10n);
+      await startDownload(tester, pl);
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n.pfmDownloadSaved), findsOneWidget);
+      expect(find.text(pl.pfmDownloadSaved), findsOneWidget);
       expect(find.byIcon(Icons.close), findsNothing);
     });
   });

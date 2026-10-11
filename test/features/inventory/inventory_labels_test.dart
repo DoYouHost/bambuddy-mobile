@@ -14,7 +14,6 @@ import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_providers.dart';
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'dart:async';
 import 'dart:io';
@@ -161,12 +160,6 @@ class _NullProfile extends ServerProfileNotifier {
 }
 
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   /// Opens the label sheet from the app bar and presses Print, which is what
   /// raises the stock picker.
   Future<_CapturingRepository> openTemplatePicker(
@@ -192,9 +185,9 @@ void main() {
     );
     await settle(tester);
 
-    await tester.tap(find.byTooltip(l10n.inventoryLabelsPrintAll));
+    await tester.tap(find.byTooltip(pl.inventoryLabelsPrintAll));
     await settle(tester);
-    await tester.tap(find.text('${l10n.inventoryLabelsPrint} (1)'));
+    await tester.tap(find.text('${pl.inventoryLabelsPrint} (1)'));
     await settle(tester);
     return repo;
   }
@@ -215,7 +208,7 @@ void main() {
 
   /// The step after the stock: the options sheet, closed with its Print button.
   Future<void> pressPrint(WidgetTester tester) async {
-    await tester.tap(find.text(l10n.inventoryLabelsPrint));
+    await tester.tap(find.text(pl.inventoryLabelsPrint));
     await settle(tester);
   }
 
@@ -224,9 +217,9 @@ void main() {
       tester,
       startingPositionSupported: true,
     );
-    await pickTemplate(tester, l10n.inventoryLabelsAveryL7160);
+    await pickTemplate(tester, pl.inventoryLabelsAveryL7160);
 
-    expect(find.text(l10n.inventoryLabelsStartTitle), findsOneWidget);
+    expect(find.text(pl.inventoryLabelsStartTitle), findsOneWidget);
     // One tappable slot per label on the sheet, and not one more: a position
     // past the sheet's capacity is a 422.
     expect(find.text('21'), findsOneWidget);
@@ -250,8 +243,8 @@ void main() {
         tester,
         startingPositionSupported: true,
       );
-      await pickTemplate(tester, l10n.inventoryLabelsBox40);
-      expect(find.text(l10n.inventoryLabelsStartTitle), findsNothing);
+      await pickTemplate(tester, pl.inventoryLabelsBox40);
+      expect(find.text(pl.inventoryLabelsStartTitle), findsNothing);
       await pressPrint(tester);
       expect(repo.request!.template, SpoolLabelTemplate.box40x30);
       expect(repo.request!.startingPosition, 1);
@@ -267,8 +260,8 @@ void main() {
       tester,
       startingPositionSupported: false,
     );
-    await pickTemplate(tester, l10n.inventoryLabelsAveryL7160);
-    expect(find.text(l10n.inventoryLabelsStartTitle), findsNothing);
+    await pickTemplate(tester, pl.inventoryLabelsAveryL7160);
+    expect(find.text(pl.inventoryLabelsStartTitle), findsNothing);
     await pressPrint(tester);
 
     expect(repo.request!.startingPosition, 1);
@@ -284,8 +277,8 @@ void main() {
         startingPositionSupported: true,
         gate: AsyncError(StateError('no profile'), StackTrace.empty),
       );
-      await pickTemplate(tester, l10n.inventoryLabelsAveryL7160);
-      expect(find.text(l10n.inventoryLabelsStartTitle), findsNothing);
+      await pickTemplate(tester, pl.inventoryLabelsAveryL7160);
+      expect(find.text(pl.inventoryLabelsStartTitle), findsNothing);
       await pressPrint(tester);
 
       expect(repo.request!.startingPosition, 1);
@@ -371,13 +364,13 @@ void main() {
         ],
       );
       await settle(tester);
-      await tester.tap(find.byTooltip(l10n.inventoryLabelsPrintAll));
+      await tester.tap(find.byTooltip(pl.inventoryLabelsPrintAll));
       await settle(tester);
-      await tester.tap(find.text('${l10n.inventoryLabelsPrint} (1)'));
+      await tester.tap(find.text('${pl.inventoryLabelsPrint} (1)'));
       await settle(tester);
       await pickTemplate(
         tester,
-        templateLabel.isEmpty ? l10n.inventoryLabelsBox62 : templateLabel,
+        templateLabel.isEmpty ? pl.inventoryLabelsBox62 : templateLabel,
       );
       return ProviderScope.containerOf(
         tester.element(find.byType(InventoryScreen)),
@@ -386,8 +379,8 @@ void main() {
 
     testWidgets('without a server the row leads to its setup', (tester) async {
       await openOptions(tester);
-      expect(find.text(l10n.labelPrinterSetUp), findsOneWidget);
-      expect(find.text(l10n.labelSendPrinter), findsNothing);
+      expect(find.text(pl.labelPrinterSetUp), findsOneWidget);
+      expect(find.text(pl.labelSendPrinter), findsNothing);
     });
 
     testWidgets('the setup row opens the label printer settings', (
@@ -417,22 +410,17 @@ void main() {
             labelPrintPrefsProvider.overrideWith(_MemoryPrefs.new),
             labelPrinterUrlProvider.overrideWith(_NoUrl.new),
           ],
-          child: MaterialApp.router(
-            locale: const Locale('pl'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            routerConfig: router,
-          ),
+          child: plRouterApp(router),
         ),
       );
       await settle(tester);
-      await tester.tap(find.byTooltip(l10n.inventoryLabelsPrintAll));
+      await tester.tap(find.byTooltip(pl.inventoryLabelsPrintAll));
       await settle(tester);
-      await tester.tap(find.text('${l10n.inventoryLabelsPrint} (1)'));
+      await tester.tap(find.text('${pl.inventoryLabelsPrint} (1)'));
       await settle(tester);
-      await pickTemplate(tester, l10n.inventoryLabelsBox62);
+      await pickTemplate(tester, pl.inventoryLabelsBox62);
 
-      await tapOption(tester, find.text(l10n.labelPrinterSetUp));
+      await tapOption(tester, find.text(pl.labelPrinterSetUp));
       await settle(tester);
 
       expect(find.text('LABEL PRINTER'), findsOneWidget);
@@ -443,16 +431,16 @@ void main() {
     ) async {
       final printer = _RecordingLabelPrinter();
       await openOptions(tester, chosen: true, printer: printer);
-      expect(find.text(l10n.labelPrinterSetUp), findsNothing);
+      expect(find.text(pl.labelPrinterSetUp), findsNothing);
 
-      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await tester.tap(find.text(pl.inventoryLabelsPrint));
       await settle(tester);
 
       expect(printer.sent, [1, 2, 3]);
       expect(printer.copies, 1);
       expect(printer.cutAtEnd, isTrue);
       expect(printer.cutEvery, 0);
-      expect(find.text(l10n.labelPrinterSent), findsOneWidget);
+      expect(find.text(pl.labelPrinterSent), findsOneWidget);
     });
 
     testWidgets('a stock the printer does not hold is not the default', (
@@ -463,16 +451,16 @@ void main() {
         tester,
         chosen: true,
         printer: printer,
-        templateLabel: l10n.inventoryLabelsBox40,
+        templateLabel: pl.inventoryLabelsBox40,
       );
 
-      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await tester.tap(find.text(pl.inventoryLabelsPrint));
       await settle(tester);
 
       // The print dialog, which a widget test cannot serve — what matters is
       // that the print server was not sent a label it would refuse.
       expect(printer.sent, isNull);
-      expect(find.text(l10n.labelPrinterSent), findsNothing);
+      expect(find.text(pl.labelPrinterSent), findsNothing);
     });
 
     testWidgets('the printer is still there to be picked for it', (
@@ -483,11 +471,11 @@ void main() {
         tester,
         chosen: true,
         printer: printer,
-        templateLabel: l10n.inventoryLabelsBox40,
+        templateLabel: pl.inventoryLabelsBox40,
       );
 
-      await pickOption(tester, l10n.labelSendToTitle, l10n.labelSendPrinter);
-      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await pickOption(tester, pl.labelSendToTitle, pl.labelSendPrinter);
+      await tester.tap(find.text(pl.inventoryLabelsPrint));
       await settle(tester);
 
       expect(printer.sent, [1, 2, 3]);
@@ -504,7 +492,7 @@ void main() {
         infoNeverArrives: true,
       );
 
-      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await tester.tap(find.text(pl.inventoryLabelsPrint));
       await settle(tester);
 
       expect(printer.sent, isNull);
@@ -516,7 +504,7 @@ void main() {
       final printer = _RecordingLabelPrinter();
       await openOptions(tester, chosen: true, printer: printer, stock: '54x29');
 
-      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await tester.tap(find.text(pl.inventoryLabelsPrint));
       await settle(tester);
 
       expect(printer.sent, isNull);
@@ -528,13 +516,13 @@ void main() {
       final printer = _RecordingLabelPrinter();
       await openOptions(tester, chosen: true, printer: printer);
 
-      await tapOption(tester, find.byTooltip(l10n.copiesMore));
-      await tapOption(tester, find.byTooltip(l10n.copiesMore));
-      await tapOption(tester, find.text(l10n.labelPrinterCutAtEnd));
-      await tapOption(tester, find.byTooltip(l10n.labelCutEveryMore));
-      await tapOption(tester, find.byTooltip(l10n.labelCutEveryMore));
+      await tapOption(tester, find.byTooltip(pl.copiesMore));
+      await tapOption(tester, find.byTooltip(pl.copiesMore));
+      await tapOption(tester, find.text(pl.labelPrinterCutAtEnd));
+      await tapOption(tester, find.byTooltip(pl.labelCutEveryMore));
+      await tapOption(tester, find.byTooltip(pl.labelCutEveryMore));
       await settle(tester);
-      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await tester.tap(find.text(pl.inventoryLabelsPrint));
       await settle(tester);
 
       expect(printer.copies, 3);
@@ -550,22 +538,22 @@ void main() {
         chosen: true,
         printer: _RecordingLabelPrinter(),
       );
-      expect(find.text(l10n.labelPrinterCopies), findsOneWidget);
+      expect(find.text(pl.labelPrinterCopies), findsOneWidget);
 
-      await pickOption(tester, l10n.labelSendToTitle, l10n.labelSendShare);
+      await pickOption(tester, pl.labelSendToTitle, pl.labelSendShare);
       await settle(tester);
-      expect(find.text(l10n.labelPrinterCopies), findsNothing);
+      expect(find.text(pl.labelPrinterCopies), findsNothing);
     });
 
     testWidgets('an older server is not offered lines or PNG', (tester) async {
       await openOptions(tester);
-      expect(find.text(l10n.labelFieldsTitle), findsNothing);
-      expect(find.text(l10n.labelFormatTitle), findsNothing);
+      expect(find.text(pl.labelFieldsTitle), findsNothing);
+      expect(find.text(pl.labelFormatTitle), findsNothing);
     });
 
     testWidgets('unchanged lines are not sent at all', (tester) async {
       await openOptions(tester, fieldsGate: true);
-      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await tester.tap(find.text(pl.inventoryLabelsPrint));
       await settle(tester);
 
       expect(rendering.request!.fields, isNull);
@@ -575,8 +563,8 @@ void main() {
       tester,
     ) async {
       final container = await openOptions(tester, fieldsGate: true);
-      await tapOption(tester, find.text(l10n.labelFieldBrand));
-      await tapOption(tester, find.text(l10n.labelFieldMaterialNumber));
+      await tapOption(tester, find.text(pl.labelFieldBrand));
+      await tapOption(tester, find.text(pl.labelFieldMaterialNumber));
       await settle(tester);
 
       expect(
@@ -601,7 +589,7 @@ void main() {
         SpoolLabelField.defaults,
       );
 
-      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await tester.tap(find.text(pl.inventoryLabelsPrint));
       await settle(tester);
       expect(rendering.request!.fields, isNot(contains(SpoolLabelField.brand)));
       expect(
@@ -612,12 +600,12 @@ void main() {
 
     testWidgets('reset puts the default lines back', (tester) async {
       final container = await openOptions(tester, fieldsGate: true);
-      await tapOption(tester, find.text(l10n.labelFieldBrand));
+      await tapOption(tester, find.text(pl.labelFieldBrand));
       await settle(tester);
       // Back to the top, where the reset link is.
       await tester.drag(find.byType(Scrollable).last, const Offset(0, 800));
       await tester.pump();
-      await tester.tap(find.text(l10n.labelFieldsReset));
+      await tester.tap(find.text(pl.labelFieldsReset));
       await settle(tester);
 
       expect(
@@ -637,18 +625,18 @@ void main() {
         fieldsGate: true,
         printer: _RecordingLabelPrinter(),
       );
-      await pickOption(tester, l10n.labelFormatTitle, 'PNG');
-      await pickOption(tester, l10n.labelDpiTitle, '203 dpi');
+      await pickOption(tester, pl.labelFormatTitle, 'PNG');
+      await pickOption(tester, pl.labelDpiTitle, '203 dpi');
       await settle(tester);
 
       // A PNG cannot be printed or sent to the print server.
-      await tester.tap(find.text(l10n.labelSendToTitle), warnIfMissed: false);
+      await tester.tap(find.text(pl.labelSendToTitle), warnIfMissed: false);
       await settle(tester);
-      expect(find.text(l10n.labelSendSystem), findsNothing);
-      expect(find.text(l10n.labelSendPrinter), findsNothing);
-      expect(find.text(l10n.labelSendSave), findsOneWidget);
+      expect(find.text(pl.labelSendSystem), findsNothing);
+      expect(find.text(pl.labelSendPrinter), findsNothing);
+      expect(find.text(pl.labelSendSave), findsOneWidget);
 
-      await tester.tap(find.text(l10n.inventoryLabelsPrint));
+      await tester.tap(find.text(pl.inventoryLabelsPrint));
       await settle(tester);
       expect(rendering.request!.format, SpoolLabelFormat.png);
       expect(rendering.request!.dpi, 203);
@@ -656,7 +644,7 @@ void main() {
 
     testWidgets('what was chosen is still there the next time', (tester) async {
       final container = await openOptions(tester);
-      await tapOption(tester, find.text(l10n.inventoryLabelsMonochrome));
+      await tapOption(tester, find.text(pl.inventoryLabelsMonochrome));
       await settle(tester);
 
       expect(container.read(labelPrintPrefsProvider).monochrome, isTrue);
@@ -685,13 +673,13 @@ void main() {
         ],
       );
       await settle(tester);
-      await tester.tap(find.byTooltip(l10n.inventoryLabelsPrintAll));
+      await tester.tap(find.byTooltip(pl.inventoryLabelsPrintAll));
       await settle(tester);
-      await tester.tap(find.text('${l10n.inventoryLabelsPrint} (1)'));
+      await tester.tap(find.text('${pl.inventoryLabelsPrint} (1)'));
       await settle(tester);
-      await pickTemplate(tester, l10n.inventoryLabelsBox62);
+      await pickTemplate(tester, pl.inventoryLabelsBox62);
 
-      expect(find.text(l10n.labelOptionsTitle), findsNothing);
+      expect(find.text(pl.labelOptionsTitle), findsNothing);
 
       ProviderScope.containerOf(
         tester.element(find.byType(InventoryScreen)),
@@ -700,8 +688,8 @@ void main() {
       );
       await settle(tester);
 
-      expect(find.text(l10n.labelOptionsTitle), findsOneWidget);
-      expect(find.text(l10n.labelFormatTitle), findsOneWidget);
+      expect(find.text(pl.labelOptionsTitle), findsOneWidget);
+      expect(find.text(pl.labelFormatTitle), findsOneWidget);
     });
 
     testWidgets('a hand-off that fails after the sheet closed still says so', (
@@ -715,8 +703,8 @@ void main() {
       rendering.bytes = Uint8List.fromList([
         0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, //
       ]);
-      await pickOption(tester, l10n.labelFormatTitle, 'PNG');
-      await tapOption(tester, find.text(l10n.inventoryLabelsPrint));
+      await pickOption(tester, pl.labelFormatTitle, 'PNG');
+      await tapOption(tester, find.text(pl.inventoryLabelsPrint));
       expect(
         container.read(labelPrintPrefsProvider).format,
         SpoolLabelFormat.png,
@@ -730,7 +718,7 @@ void main() {
       }
       await settle(tester);
 
-      expect(find.text(l10n.inventoryLabelsFailed), findsOneWidget);
+      expect(find.text(pl.inventoryLabelsFailed), findsOneWidget);
     });
   });
 }

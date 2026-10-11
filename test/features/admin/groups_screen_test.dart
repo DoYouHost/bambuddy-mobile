@@ -142,10 +142,10 @@ void main() {
 
       expect(find.text('Administrators'), findsOneWidget);
       expect(find.text('Domownicy'), findsOneWidget);
-      expect(find.text('(wbudowana)'), findsOneWidget);
-      expect(find.text('Bez opisu'), findsOneWidget);
-      expect(find.textContaining('2 konta'), findsOneWidget);
-      expect(find.textContaining('2 uprawnienia'), findsOneWidget);
+      expect(find.text(pl.usersGroupSystem), findsOneWidget);
+      expect(find.text(pl.groupsNoDescription), findsOneWidget);
+      expect(find.textContaining(pl.groupsMemberCount(2)), findsOneWidget);
+      expect(find.textContaining(pl.groupsPermissionCount(2)), findsOneWidget);
     });
   });
 
@@ -164,8 +164,8 @@ void main() {
 
       expect(find.text('zosia'), findsOneWidget);
       expect(find.text('stary'), findsOneWidget);
-      expect(find.text('Nieaktywne'), findsOneWidget);
-      expect(find.text('CZŁONKOWIE'), findsOneWidget);
+      expect(find.text(pl.usersInactive), findsOneWidget);
+      expect(find.text(pl.groupsMembersHeader), findsOneWidget);
     });
 
     testWidgets('offers no membership change to a non-admin', (tester) async {
@@ -180,8 +180,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Dodaj konto'), findsNothing);
-      expect(find.byTooltip('Usuń z\u00A0grupy'), findsNothing);
+      expect(find.text(pl.groupsAddMember), findsNothing);
+      expect(find.byTooltip(pl.groupsRemoveMember), findsNothing);
     });
 
     testWidgets('adds an account that is not in the group yet', (tester) async {
@@ -194,7 +194,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Dodaj konto'));
+      await tester.tap(find.text(pl.groupsAddMember));
       await tester.pumpAndSettle();
 
       // zosia is already a member, so the picker leaves her out.
@@ -217,18 +217,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Usuń z\u00A0grupy').first);
+      await tester.tap(find.byTooltip(pl.groupsRemoveMember).first);
       await tester.pumpAndSettle();
 
-      expect(find.text('Usunąć zosia z\u00A0grupy Domownicy?'), findsOneWidget);
+      expect(
+        find.text(pl.groupsRemoveMemberQuestion('zosia', 'Domownicy')),
+        findsOneWidget,
+      );
 
-      await tester.tap(find.text('Anuluj'));
+      await tester.tap(find.text(pl.cancel));
       await tester.pumpAndSettle();
       expect(repo.removed, isNull);
 
-      await tester.tap(find.byTooltip('Usuń z\u00A0grupy').first);
+      await tester.tap(find.byTooltip(pl.groupsRemoveMember).first);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Usuń z\u00A0grupy').last);
+      await tester.tap(find.text(pl.groupsRemoveMember).last);
       await tester.pumpAndSettle();
 
       expect(repo.removed, (7, 2));
@@ -246,8 +249,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Wbudowana'), findsOneWidget);
-      expect(find.textContaining('nie zmienisz z\u00A0nazwy'), findsOneWidget);
+      expect(find.text(pl.groupsSystemPill), findsOneWidget);
+      expect(find.textContaining(pl.groupsSystemNote), findsOneWidget);
     });
   });
 
@@ -261,10 +264,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Queue'), findsOneWidget);
-      expect(find.text('Administracja serwerem'), findsOneWidget);
+      expect(find.text(pl.groupsAdvancedPermissions), findsOneWidget);
       expect(find.text('User Management'), findsNothing);
 
-      await tester.tap(find.text('Administracja serwerem'));
+      await tester.tap(find.text(pl.groupsAdvancedPermissions));
       await tester.pumpAndSettle();
 
       expect(find.text('User Management'), findsOneWidget);
@@ -279,14 +282,14 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nazwa'),
+        find.widgetWithText(TextFormField, pl.groupsFieldName),
         'Domownicy',
       );
       await tester.tap(find.text('Queue'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Add to queue'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
       expect(repo.created?.name, 'Domownicy');
@@ -314,7 +317,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Add to queue'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
       expect(repo.updated?.$2.permissions, [
@@ -341,7 +344,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('zaznaczono 1'), findsOneWidget);
+      expect(find.text(pl.groupsPermissionsSelected(1)), findsOneWidget);
       // The fold itself carries the count of what is selected inside it.
       expect(find.widgetWithText(DashPill, '1'), findsOneWidget);
     });
@@ -364,9 +367,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Grupa wbudowana'), findsOneWidget);
+      expect(find.textContaining(pl.groupsSystemFormNote), findsOneWidget);
       final name = tester.widget<TextFormField>(
-        find.widgetWithText(TextFormField, 'Nazwa'),
+        find.widgetWithText(TextFormField, pl.groupsFieldName),
       );
       expect(name.enabled, isFalse);
 
@@ -392,10 +395,10 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Do czego służy'),
+        find.widgetWithText(TextFormField, pl.groupsFieldDescription),
         'Pełen dostęp',
       );
-      await tester.tap(find.text('Zapisz'));
+      await tester.tap(find.text(pl.usersSave));
       await tester.pumpAndSettle();
 
       // Name and permissions are refused for a system group, so neither is
@@ -420,8 +423,8 @@ void main() {
       await tester.tap(find.byIcon(Icons.more_vert));
       await tester.pumpAndSettle();
 
-      expect(find.text('Edytuj'), findsOneWidget);
-      expect(find.text('Usuń grupę'), findsNothing);
+      expect(find.text(pl.usersEdit), findsOneWidget);
+      expect(find.text(pl.groupsDelete), findsNothing);
     });
 
     testWidgets('says what happens to the accounts in it', (tester) async {
@@ -436,13 +439,16 @@ void main() {
 
       await tester.tap(find.byIcon(Icons.more_vert));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Usuń grupę'));
+      await tester.tap(find.text(pl.groupsDelete));
       await tester.pumpAndSettle();
 
-      expect(find.text('Usunąć grupę Domownicy?'), findsOneWidget);
-      expect(find.textContaining('2 konta i\u00A0zostają'), findsOneWidget);
+      expect(find.text(pl.groupsDeleteQuestion('Domownicy')), findsOneWidget);
+      expect(
+        find.textContaining(pl.groupsDeleteBodyWithMembers(2)),
+        findsOneWidget,
+      );
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Usuń grupę'));
+      await tester.tap(find.widgetWithText(FilledButton, pl.groupsDelete));
       await tester.pumpAndSettle();
 
       expect(repo.deleted, 7);

@@ -1,7 +1,6 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/screens/wear_printer_control_screen.dart';
 import 'package:bambuddy_mobile/wear/wear_providers.dart';
@@ -90,17 +89,8 @@ Future<void> _pumpHost(
 }) async {
   useWatchFace(tester, shape, face);
   await tester.pumpWidget(
-    MaterialApp(
-      locale: const Locale('pl'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(textScale)),
-        child: wearShapeBuilder(context, child),
-      ),
-      home: WearScreen(
+    plApp(
+      WearScreen(
         child: Builder(
           builder: (context) {
             hostContext = context;
@@ -121,6 +111,12 @@ Future<void> _pumpHost(
             );
           },
         ),
+      ),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: wearShapeBuilder(context, child),
       ),
     ),
   );
@@ -146,8 +142,8 @@ void main() {
         // at the bottom of the square the display reports, where a round face
         // has almost no width left — most of it, and most of the sentence, was
         // off the glass.
-        expectOnGlass(tester, find.text('Telefon nie odpowiedział'));
-        expectOnGlass(tester, find.text('OK'));
+        expectOnGlass(tester, find.text(pl.wearPhoneNoResponse));
+        expectOnGlass(tester, find.text(pl.wearOk));
       });
     }
 
@@ -184,7 +180,7 @@ void main() {
       // for the message must not reach the one underneath it.
       await tester.tapAt(tester.getCenter(find.text('ok')));
       await tester.pumpAndSettle();
-      expect(find.text('Płyta zwolniona'), findsNothing);
+      expect(find.text(pl.wearPlateCleared), findsNothing);
     });
 
     testWidgets('a second message replaces the first and restarts the clock', (
@@ -197,12 +193,12 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
       wearToast(hostContext, 'Płyta zwolniona', tone: WearToastTone.success);
       await tester.pumpAndSettle();
-      expect(find.text('Telefon nie odpowiedział'), findsNothing);
-      expect(find.text('Płyta zwolniona'), findsOneWidget);
+      expect(find.text(pl.wearPhoneNoResponse), findsNothing);
+      expect(find.text(pl.wearPlateCleared), findsOneWidget);
 
       // Past where the first message's own clock would have fired.
       await tester.pump(const Duration(seconds: 2));
-      expect(find.text('Płyta zwolniona'), findsOneWidget);
+      expect(find.text(pl.wearPlateCleared), findsOneWidget);
 
       await tester.pump(wearToastDuration);
       await tester.pump();
@@ -238,7 +234,7 @@ void main() {
     expectOnGlass(tester, find.text('Zwolnij płytę. ' * 20));
     expectOnGlass(
       tester,
-      find.text('OK'),
+      find.text(pl.wearOk),
       reason: 'the way out must not be pushed off the glass by the message',
     );
   });
@@ -261,7 +257,7 @@ void main() {
       ],
     );
 
-    await tapOnWatch(tester, find.text('Zatrzymaj'));
+    await tapOnWatch(tester, find.text(pl.ctrlStop));
 
     // Counted frames from here on, never `pumpAndSettle`. Pressing the button
     // raises the busy veil and holds it up for as long as the confirmation is
@@ -279,7 +275,7 @@ void main() {
     await frames();
 
     expect(transport.stops, 1, reason: 'the confirmation ran the command');
-    expect(find.text('Telefon nie odpowiedział'), findsOneWidget);
+    expect(find.text(pl.wearPhoneNoResponse), findsOneWidget);
   });
 
   testWidgets('a failed printer command reaches the wrist readable', (
@@ -298,10 +294,10 @@ void main() {
       ],
     );
 
-    await tapOnWatch(tester, find.text('Zwolnij płytę'));
+    await tapOnWatch(tester, find.text(pl.wearClearPlate));
     await tester.pumpAndSettle();
 
-    expect(find.text('Telefon nie odpowiedział'), findsOneWidget);
-    expectOnGlass(tester, find.text('Telefon nie odpowiedział'));
+    expect(find.text(pl.wearPhoneNoResponse), findsOneWidget);
+    expectOnGlass(tester, find.text(pl.wearPhoneNoResponse));
   });
 }

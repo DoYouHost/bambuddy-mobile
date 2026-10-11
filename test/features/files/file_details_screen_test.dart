@@ -3,7 +3,6 @@ import 'package:bambuddy_mobile/core/models/library_file_detail.dart';
 import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/features/files/file_details_screen.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,9 +20,6 @@ class _QuietListing extends FileManagerNotifier {
 }
 
 void main() {
-  AppLocalizations l10n(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(Scaffold).first));
-
   Future<DioAdapter> pumpDetails(
     WidgetTester tester,
     LibraryFileDetail detail,
@@ -69,7 +65,7 @@ void main() {
   ) async {
     await pumpDetails(tester, const LibraryFileDetail());
 
-    final l = l10n(tester);
+    final l = pl;
     expect(find.text(l.fmLinkNone), findsOneWidget);
     expect(find.text(l.fmNotesNone), findsOneWidget);
     expect(find.text(l.fmPhotosEmpty), findsOneWidget);
@@ -93,13 +89,13 @@ void main() {
     await tester.tap(byLogId('file_details.link_prompt.save'));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n(tester).fmLinkSaved), findsOneWidget);
+    expect(find.text(pl.fmLinkSaved), findsOneWidget);
   });
 
   group('fileWriteMessage', () {
     testWidgets('names the two refusals a user can fix', (tester) async {
       await pumpDetails(tester, const LibraryFileDetail());
-      final l = l10n(tester);
+      final l = pl;
 
       expect(
         fileWriteMessage(

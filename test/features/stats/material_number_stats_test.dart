@@ -3,7 +3,6 @@ import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/stats/stats_providers.dart';
 import 'package:bambuddy_mobile/features/stats/stats_sections.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -56,12 +55,6 @@ void main() {
   });
 
   group('MaterialNumberStatsCard', () {
-    late AppLocalizations l10n;
-
-    setUpAll(() async {
-      l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-    });
-
     Future<void> pumpCard(WidgetTester tester, Override stats) => pumpPhone(
       tester,
       const Scaffold(
@@ -76,16 +69,12 @@ void main() {
         materialNumberStatsProvider.overrideWith((_) async => _rows),
       );
 
-      expect(find.text(l10n.statsByMaterialNumber), findsOneWidget);
+      expect(find.text(pl.statsByMaterialNumber), findsOneWidget);
       expect(find.text('15'), findsOneWidget);
       expect(find.text('820 g'), findsOneWidget);
       expect(
         find.text(
-          l10n.statsSupplierDetail(
-            l10n.inventorySpoolCount(2),
-            '1.50 kg',
-            '19.40',
-          ),
+          pl.statsSupplierDetail(pl.inventorySpoolCount(2), '1.50 kg', '19.40'),
         ),
         findsOneWidget,
       );
@@ -99,7 +88,7 @@ void main() {
         tester,
         materialNumberStatsProvider.overrideWith((_) async => const []),
       );
-      expect(find.text(l10n.statsByMaterialNumber), findsNothing);
+      expect(find.text(pl.statsByMaterialNumber), findsNothing);
     });
 
     testWidgets('a failed read says so instead of passing for empty', (
@@ -114,7 +103,7 @@ void main() {
           ),
         ),
       );
-      expect(find.text(l10n.statsByMaterialNumberFailed), findsOneWidget);
+      expect(find.text(pl.statsByMaterialNumberFailed), findsOneWidget);
     });
   });
 }

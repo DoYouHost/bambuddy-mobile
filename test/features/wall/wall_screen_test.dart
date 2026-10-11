@@ -11,7 +11,6 @@ import 'package:bambuddy_mobile/features/wall/wall_tile.dart';
 import 'package:bambuddy_mobile/features/wall/wall_camera.dart';
 import 'package:bambuddy_mobile/features/wall/wall_providers.dart';
 import 'package:bambuddy_mobile/features/wall/wall_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -152,12 +151,7 @@ void main() {
         child: Consumer(
           builder: (context, ref, _) {
             container = ProviderScope.containerOf(context, listen: false);
-            return MaterialApp.router(
-              locale: const Locale('pl'),
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              routerConfig: router,
-            );
+            return plRouterApp(router);
           },
         ),
       ),
@@ -262,7 +256,7 @@ void main() {
     testWidgets('says so when the server has no printers', (tester) async {
       await pumpDashboardWithWall(tester, printers: const []);
 
-      expect(find.textContaining('Brak drukarek'), findsOneWidget);
+      expect(find.textContaining(pl.wearNoPrinters), findsOneWidget);
     });
 
     testWidgets('scrolls a farm too big to fit rather than squeezing it', (
@@ -366,7 +360,7 @@ void main() {
       expect(find.text('Camera_mount_v3.3mf'), findsOneWidget);
       expect(find.text('Waiting on Enclosure Door'), findsOneWidget);
       expect(find.text('Cable_clip.3mf'), findsOneWidget);
-      expect(find.text('Dowolna X1C'), findsOneWidget);
+      expect(find.text(pl.queueEditAnyModel('X1C')), findsOneWidget);
     });
 
     testWidgets('says quietly that there are no faults and no queue', (
@@ -374,8 +368,8 @@ void main() {
     ) async {
       await pumpDashboardWithWall(tester, size: _tablet);
 
-      expect(find.text('Brak aktywnych błędów'), findsOneWidget);
-      expect(find.text('Kolejka jest pusta'), findsOneWidget);
+      expect(find.text(pl.wallNoFaults), findsOneWidget);
+      expect(find.text(pl.queueEmpty), findsOneWidget);
     });
 
     testWidgets('the rail counts faults and queued jobs', (tester) async {
@@ -388,7 +382,12 @@ void main() {
         ],
       );
 
-      expect(find.bySemanticsLabel('1 błąd, 2 w\u00A0kolejce'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(
+          '${pl.hmsErrorsCount(1)}, ${pl.wallQueueCount(2)}',
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('asks for the queue on entry, every 30 s, and not after', (
@@ -484,7 +483,7 @@ void main() {
       );
 
       expect(find.text('Heatbed heating failed'), findsNothing);
-      expect(find.text('Brak aktywnych błędów'), findsOneWidget);
+      expect(find.text(pl.wallNoFaults), findsOneWidget);
     });
 
     testWidgets('all hidden says so rather than "no printers"', (tester) async {
@@ -496,7 +495,7 @@ void main() {
       );
 
       expect(find.textContaining('ukryte'), findsOneWidget);
-      expect(find.textContaining('Brak drukarek'), findsNothing);
+      expect(find.textContaining(pl.wearNoPrinters), findsNothing);
     });
   });
 

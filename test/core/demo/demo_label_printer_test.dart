@@ -8,12 +8,11 @@ import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/label_printer_repository.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_providers.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../helpers.dart';
 
 class _DemoProfile extends ServerProfileNotifier {
   @override
@@ -24,12 +23,6 @@ class _DemoProfile extends ServerProfileNotifier {
 /// The demo's label print server: found by a search, answering `/info`, taking
 /// a job and refusing what the real one refuses.
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   LabelPrinterRepository demoPrinter() =>
       LabelPrinterRepository(createLabelPrinterDio(demoLabelPrinterUrl));
 
@@ -128,17 +121,12 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           serverProfileProvider.overrideWith(_DemoProfile.new),
         ],
-        child: MaterialApp(
-          locale: const Locale('pl'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: const LabelPrinterScreen(),
-        ),
+        child: plApp(const LabelPrinterScreen()),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(l10n.labelPrinterSearch));
+    await tester.tap(find.text(pl.labelPrinterSearch));
     // The search and the answers are timed, on the test's clock here.
     await tester.pump(const Duration(milliseconds: 1200));
     expect(find.text('Demo label printer'), findsOneWidget);

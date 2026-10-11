@@ -2,7 +2,6 @@ import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/supplier.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,12 +23,6 @@ class _Shelf extends InventoryNotifier {
 }
 
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   Future<void> pumpShelf(
     WidgetTester tester,
     FakeSuppliers suppliers, {
@@ -91,28 +84,28 @@ void main() {
     expect(find.text('Extrudr'), findsOneWidget);
     expect(
       find.text(
-        'https://extrudr.com · ${l10n.inventorySupplierCustomerNumberValue('K-1')}',
+        'https://extrudr.com · ${pl.inventorySupplierCustomerNumberValue('K-1')}',
       ),
       findsOneWidget,
     );
     // Nothing on the loaded shelf carries it, whatever the server counted.
-    expect(find.text(l10n.inventorySpoolCount(0)), findsOneWidget);
+    expect(find.text(pl.inventorySpoolCount(0)), findsOneWidget);
   });
 
   testWidgets('a new supplier is sent trimmed, blanks as null', (tester) async {
     final suppliers = FakeSuppliers();
     await pumpShelf(tester, suppliers);
     await openSheet(tester);
-    expect(find.text(l10n.inventorySuppliersEmpty), findsOneWidget);
+    expect(find.text(pl.inventorySuppliersEmpty), findsOneWidget);
 
     await tester.tap(byLogId('suppliers.add'));
     await settle(tester);
     await tester.enterText(
-      field('${l10n.inventorySupplierFieldName} *'),
+      field('${pl.inventorySupplierFieldName} *'),
       '  Filament24 ',
     );
     await tester.enterText(
-      field(l10n.inventorySupplierFieldCustomerNumber),
+      field(pl.inventorySupplierFieldCustomerNumber),
       'C-9',
     );
     await save(tester);
@@ -137,13 +130,10 @@ void main() {
     await tester.tap(byLogId('suppliers.add'));
     await settle(tester);
 
-    await tester.enterText(
-      field('${l10n.inventorySupplierFieldName} *'),
-      'A; B',
-    );
+    await tester.enterText(field('${pl.inventorySupplierFieldName} *'), 'A; B');
     await save(tester);
 
-    expect(find.text(l10n.inventorySupplierNameSeparator), findsOneWidget);
+    expect(find.text(pl.inventorySupplierNameSeparator), findsOneWidget);
     expect(suppliers.created, isEmpty);
   });
 
@@ -157,20 +147,20 @@ void main() {
     await settle(tester);
 
     await tester.enterText(
-      field('${l10n.inventorySupplierFieldName} *'),
+      field('${pl.inventorySupplierFieldName} *'),
       'Extrudr',
     );
     await save(tester);
 
-    expect(find.text(l10n.inventorySupplierNameTaken), findsOneWidget);
+    expect(find.text(pl.inventorySupplierNameTaken), findsOneWidget);
     expect(byLogId('supplier_form.save'), findsOneWidget);
 
     await tester.enterText(
-      field('${l10n.inventorySupplierFieldName} *'),
+      field('${pl.inventorySupplierFieldName} *'),
       'Extrudr DE',
     );
     await tester.pump();
-    expect(find.text(l10n.inventorySupplierNameTaken), findsNothing);
+    expect(find.text(pl.inventorySupplierNameTaken), findsNothing);
   });
 
   testWidgets('editing sends the row it came from', (tester) async {
@@ -184,8 +174,8 @@ void main() {
 
     await tester.tap(find.text('Extrudr'));
     await settle(tester);
-    expect(find.text(l10n.inventorySupplierEdit), findsOneWidget);
-    await tester.enterText(field(l10n.inventorySupplierFieldWebsite), '');
+    expect(find.text(pl.inventorySupplierEdit), findsOneWidget);
+    await tester.enterText(field(pl.inventorySupplierFieldWebsite), '');
     await save(tester);
 
     final (id, draft) = suppliers.updated.single;
@@ -221,7 +211,7 @@ void main() {
     await tester.tap(byLogId('suppliers.delete_confirm.confirm'));
     await settle(tester);
 
-    expect(find.text(l10n.inventorySupplierInUse(1)), findsOneWidget);
+    expect(find.text(pl.inventorySupplierInUse(1)), findsOneWidget);
   });
 
   testWidgets('a count only the server has still reaches the DELETE', (
@@ -257,8 +247,8 @@ void main() {
     await settle(tester);
 
     expect(suppliers.deleted, [3]);
-    expect(find.text(l10n.inventorySupplierDeleted), findsOneWidget);
-    expect(find.text(l10n.inventorySuppliersEmpty), findsOneWidget);
+    expect(find.text(pl.inventorySupplierDeleted), findsOneWidget);
+    expect(find.text(pl.inventorySuppliersEmpty), findsOneWidget);
   });
 
   testWidgets('a 409 on delete means a spool took it since the list loaded', (
@@ -275,7 +265,7 @@ void main() {
     await tester.tap(byLogId('suppliers.delete_confirm.confirm'));
     await settle(tester);
 
-    expect(find.text(l10n.inventorySupplierInUseUnknown), findsOneWidget);
+    expect(find.text(pl.inventorySupplierInUseUnknown), findsOneWidget);
   });
 
   group('the spool count', () {
@@ -332,8 +322,8 @@ void main() {
         ],
       );
       await openSheet(tester);
-      expect(find.text(l10n.inventorySpoolCount(1)), findsOneWidget);
-      expect(find.text(l10n.inventorySupplierArchivedCount(1)), findsOneWidget);
+      expect(find.text(pl.inventorySpoolCount(1)), findsOneWidget);
+      expect(find.text(pl.inventorySupplierArchivedCount(1)), findsOneWidget);
 
       await tester.tap(byLogId('suppliers.show_archived_spools'));
       await settle(tester);
@@ -394,7 +384,7 @@ void main() {
       await openSheet(tester);
 
       expect(byLogId('suppliers.show_spools'), findsNothing);
-      expect(find.text(l10n.inventorySpoolCount(0)), findsOneWidget);
+      expect(find.text(pl.inventorySpoolCount(0)), findsOneWidget);
     });
   });
 }

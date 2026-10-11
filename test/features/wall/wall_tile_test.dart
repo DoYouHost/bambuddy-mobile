@@ -170,7 +170,7 @@ void main() {
     expect(find.text('RUNNING'), findsOneWidget);
     expect(find.text('64%'), findsOneWidget);
     expect(find.text('L 142/220'), findsOneWidget);
-    expect(find.text('1h 12min'), findsOneWidget);
+    expect(find.text(pl.durationHoursMinutes(1, 12)), findsOneWidget);
   });
 
   testWidgets('a paused print keeps its progress', (tester) async {
@@ -233,7 +233,7 @@ void main() {
       ),
     );
 
-    expect(find.text('OFFLINE'), findsOneWidget);
+    expect(find.text(pl.statusOffline), findsOneWidget);
     expect(find.text('64%'), findsNothing, reason: 'the last frame is stale');
     expect(find.text('0300_8004'), findsNothing);
     expect(find.byIcon(Icons.cloud_off_rounded), findsOneWidget);
@@ -251,7 +251,7 @@ void main() {
   testWidgets('a printer with no status yet reads offline too', (tester) async {
     await pumpTile(tester, null);
 
-    expect(find.text('OFFLINE'), findsOneWidget);
+    expect(find.text(pl.statusOffline), findsOneWidget);
   });
 
   testWidgets('a disconnect is believed only after the card\'s 15 s', (
@@ -262,10 +262,10 @@ void main() {
       tester,
       const PrinterStatus(id: 1, connected: false, state: 'RUNNING'),
     );
-    expect(find.text('OFFLINE'), findsNothing);
+    expect(find.text(pl.statusOffline), findsNothing);
 
     await tester.pump(const Duration(seconds: 15));
-    expect(find.text('OFFLINE'), findsOneWidget);
+    expect(find.text(pl.statusOffline), findsOneWidget);
   });
 
   testWidgets('a long name and a fault fit the smallest tile', (tester) async {
@@ -317,7 +317,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Podgląd wstrzymany'), findsOneWidget);
+      expect(find.text(pl.wallLivePaused), findsOneWidget);
       final shot = tester.widget<RawImage>(find.byType(RawImage).first);
       expect(shot.image, isNotNull, reason: 'the snapshot was decoded');
     });
@@ -566,7 +566,7 @@ void main() {
       );
 
       expect(byLogId('wall.tile'), findsNothing);
-      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text(pl.statusOffline), findsOneWidget);
     });
   });
 }

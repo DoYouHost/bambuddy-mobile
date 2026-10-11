@@ -530,14 +530,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Oryginał: 0:54 w\u00A01920×1080'), findsOneWidget);
-      expect(find.text('Wynik: 0:54'), findsOneWidget);
+      expect(
+        find.text(pl.timelapseEditSource('0:54', 1920, 1080)),
+        findsOneWidget,
+      );
+      expect(find.text(pl.timelapseEditOutput('0:54')), findsOneWidget);
 
       await tester.tap(find.text('2x'));
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Wynik: 0:27'),
+        find.text(pl.timelapseEditOutput('0:27')),
         findsOneWidget,
         reason: '2x skraca 54 s do 27 s',
       );
@@ -561,7 +564,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(TimelapseTrimStrip), findsOneWidget);
-      expect(find.text('Zapisz'), findsOneWidget);
+      expect(find.text(pl.timelapseEditSave), findsOneWidget);
     });
 
     testWidgets('failed info leaves the screen with a retry, not a spinner', (
@@ -581,7 +584,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Spróbuj ponownie'), findsOneWidget);
+      expect(find.text(pl.retry), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
   });

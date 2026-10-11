@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/features/common/api_failure_snack.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -43,41 +42,37 @@ void main() {
     ];
   }
 
-  /// Pumps a screen and hands back its messenger and `l10n`, the two things
-  /// every call site captures before the request it is about to make.
-  Future<({ScaffoldMessengerState messenger, AppLocalizations l10n})> harness(
-    WidgetTester tester,
-  ) async {
+  /// Pumps a screen and hands back its messenger, which every call site
+  /// captures before the request it is about to make.
+  Future<ScaffoldMessengerState> harness(WidgetTester tester) async {
     late ScaffoldMessengerState messenger;
-    late AppLocalizations l10n;
     await tester.pumpWidget(
       plApp(
         Builder(
           builder: (context) {
             messenger = ScaffoldMessenger.of(context);
-            l10n = AppLocalizations.of(context);
             return const Scaffold(body: SizedBox.shrink());
           },
         ),
       ),
     );
-    return (messenger: messenger, l10n: l10n);
+    return messenger;
   }
 
   testWidgets('the user reads the server\'s own reason, and it is recorded', (
     tester,
   ) async {
-    final h = await harness(tester);
+    final messenger = await harness(tester);
 
     showApiFailure(
-      h.messenger,
+      messenger,
       const AuthException(
         AppErrorCode.forbidden,
         detail: "API key does not have 'can_control_printer' permission",
         method: 'POST',
         path: '/api/v1/printers/1/print/pause',
       ),
-      h.l10n,
+      pl,
       action: 'printer.pause',
     );
     await tester.pump();
@@ -94,12 +89,12 @@ void main() {
   testWidgets('a feature may word one status better and still be recorded', (
     tester,
   ) async {
-    final h = await harness(tester);
+    final messenger = await harness(tester);
 
     showApiFailure(
-      h.messenger,
+      messenger,
       const ApiException(AppErrorCode.badResponse, statusCode: 409),
-      h.l10n,
+      pl,
       action: 'tag_manage.rename',
       message: 'A tag with that name exists',
     );
@@ -115,7 +110,7 @@ void main() {
   testWidgets(
     'a screen left mid-request records the failure and shows nothing',
     (tester) async {
-      final h = await harness(tester);
+      await harness(tester);
 
       // Null messenger is the call site saying "there is nobody to tell". The
       // failure still happened, and without the record it is indistinguishable
@@ -123,7 +118,7 @@ void main() {
       showApiFailure(
         null,
         const ApiException(AppErrorCode.badResponse, statusCode: 500),
-        h.l10n,
+        pl,
         action: 'spool_form.save',
       );
       await tester.pump();

@@ -104,6 +104,14 @@ final inertHistorySupportOverrides = [
   amsHistorySupportedProvider.overrideWithValue(const AsyncData(true)),
 ];
 
+/// The Polish strings the tests assert on. Finders read their text from here,
+/// never from a literal, so a copy change does not touch the tests.
+final pl = lookupAppLocalizations(const Locale('pl'));
+
+/// The English strings, for the code that renders in the server's language or
+/// the system's rather than the app's forced `pl`.
+final en = lookupAppLocalizations(const Locale('en'));
+
 /// Wraps a widget in a MaterialApp with Polish localization — the tests assert
 /// Polish strings, so the locale is forced to `pl`.
 ///
@@ -112,14 +120,28 @@ final inertHistorySupportOverrides = [
 /// as `home`.
 Widget plApp(Widget child, {TransitionBuilder? builder}) => MaterialApp(
   locale: const Locale('pl'),
-  localizationsDelegates: [
-    ...AppLocalizations.localizationsDelegates,
-    ReportLocalizations.delegate,
-  ],
+  localizationsDelegates: _plDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
   builder: builder,
   home: child,
 );
+
+/// [plApp] for a screen reached through a router (`context.go`, deep links).
+Widget plRouterApp(
+  RouterConfig<Object> routerConfig, {
+  TransitionBuilder? builder,
+}) => MaterialApp.router(
+  locale: const Locale('pl'),
+  localizationsDelegates: _plDelegates,
+  supportedLocales: AppLocalizations.supportedLocales,
+  builder: builder,
+  routerConfig: routerConfig,
+);
+
+final _plDelegates = [
+  ...AppLocalizations.localizationsDelegates,
+  ReportLocalizations.delegate,
+];
 
 /// A clock the test moves by hand, handed to the body of [testWithClock].
 class TestClock {

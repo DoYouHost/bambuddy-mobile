@@ -19,7 +19,7 @@ import 'queue_form_harness.dart';
 /// opposite. Iterating either list alone loses a slot from the other end.
 void main() {
   /// The label `_overrideRow` builds, with an em dash where no type is known.
-  String slot(int id, String type) => formL10n.queueEditSlotLabel('$id', type);
+  String slot(int id, String type) => pl.queueEditSlotLabel('$id', type);
 
   Future<void> pumpItem(
     WidgetTester tester, {
@@ -149,7 +149,7 @@ void main() {
       expect(checkboxes.elementAt(2).onChanged, isNull);
 
       // Scroll slot 3 into view and tap dropdown field
-      final slot3Dropdown = find.text('${formL10n.queueEditOriginal}: —');
+      final slot3Dropdown = find.text('${pl.queueEditOriginal}: —');
       await tester.ensureVisible(slot3Dropdown);
       await tester.pumpAndSettle();
       await tester.tap(slot3Dropdown);
@@ -188,6 +188,6 @@ void main() {
   testWidgets('neither field leaves nothing to override', (tester) async {
     await pumpItem(tester, type: null, color: null);
 
-    expect(find.text(formL10n.queueEditNoFilamentReqs), findsOneWidget);
+    expect(find.text(pl.queueEditNoFilamentReqs), findsOneWidget);
   });
 }

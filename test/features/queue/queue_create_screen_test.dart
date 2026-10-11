@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'queue_form_harness.dart';
+import '../../helpers.dart';
 
 /// Three plates, as a 3MF sliced for a plate farm answers.
 PlateList _threePlates() => PlateList.fromJson({
@@ -26,7 +27,7 @@ PlateList _threePlates() => PlateList.fromJson({
 });
 
 /// How the plate row spells plate [index] of [_threePlates].
-String _plate(int index) => formL10n.queueEditPlateNamed(index, 'Plate $index');
+String _plate(int index) => pl.queueEditPlateNamed(index, 'Plate $index');
 
 /// The state the form is in after the user has been through the mapping sheet:
 /// slots picked for the plate that was selected *then*.
@@ -98,7 +99,7 @@ void main() {
     await tester.pumpWidget(queueFormScreen(archiveDraft()));
     await tester.pumpAndSettle();
 
-    expect(find.text(formL10n.queueEditPlate), findsNothing);
+    expect(find.text(pl.queueEditPlate), findsNothing);
 
     await submitQueueForm(tester);
 
@@ -296,7 +297,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(
-      find.widgetWithText(FilledButton, formL10n.queueCreateSubmit),
+      find.widgetWithText(FilledButton, pl.queueCreateSubmit),
       findsOneWidget,
     );
   });
@@ -310,18 +311,18 @@ void main() {
     await submitQueueForm(tester);
 
     expect(capturedBody, isNull);
-    expect(find.text(formL10n.queueEditNoPrinter), findsOneWidget);
+    expect(find.text(pl.queueEditNoPrinter), findsOneWidget);
   });
 
   group('auto-print G-code injection', () {
-    final label = formL10n.queueEditGcodeInjection;
+    final label = pl.queueEditGcodeInjection;
 
     /// The flags sit at the bottom of a long form, so they must be scrolled to
     /// before a finder can see them at all — "Power off" is the last row that is
     /// always there, which makes it the anchor.
     Future<void> revealFlags(WidgetTester tester) async {
       await tester.dragUntilVisible(
-        find.text(formL10n.queueEditPowerOff),
+        find.text(pl.queueEditPowerOff),
         find.byType(ListView),
         const Offset(0, -200),
       );
@@ -423,7 +424,7 @@ void main() {
         await revealFlags(tester);
 
         expect(
-          find.text(formL10n.queueEditGcodeInjectionNoSnippet('X2D')),
+          find.text(pl.queueEditGcodeInjectionNoSnippet('X2D')),
           findsNothing,
           reason: 'an unticked option has nothing to warn about',
         );
@@ -431,7 +432,7 @@ void main() {
         await tapInjection(tester);
 
         expect(
-          find.text(formL10n.queueEditGcodeInjectionNoSnippet('X2D')),
+          find.text(pl.queueEditGcodeInjectionNoSnippet('X2D')),
           findsAtLeastNWidgets(1),
         );
       },
@@ -451,7 +452,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text(formL10n.queueEditGcodeInjectionNoSnippet('X2D')),
+        find.text(pl.queueEditGcodeInjectionNoSnippet('X2D')),
         findsOneWidget,
         reason: 'the Target section is on the first screen of the form',
       );
@@ -472,9 +473,7 @@ void main() {
       await tester.pumpAndSettle();
       await revealFlags(tester);
 
-      final sentence = find.text(
-        formL10n.queueEditGcodeInjectionNoSnippet('X2D'),
-      );
+      final sentence = find.text(pl.queueEditGcodeInjectionNoSnippet('X2D'));
       expect(sentence, findsWidgets);
       expect(
         find.ancestor(
@@ -539,7 +538,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text(formL10n.commonAuto),
+        find.text(pl.commonAuto),
         findsNothing,
         reason: 'the server has nowhere to store auto — do not promise it',
       );
@@ -551,14 +550,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // Three calibration fields on screen (levelling, flow, nozzle offset).
-      expect(find.text(formL10n.commonAuto), findsNWidgets(3));
+      expect(find.text(pl.commonAuto), findsNWidgets(3));
     });
 
     testWidgets('a chosen Auto reaches the server as auto', (tester) async {
       await tester.pumpWidget(queueFormScreen(archiveDraft(), triState: true));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(formL10n.commonAuto).first);
+      await tester.tap(find.text(pl.commonAuto).first);
       await tester.pumpAndSettle();
       await submitQueueForm(tester);
 
@@ -575,7 +574,7 @@ void main() {
       await tester.pumpWidget(queueFormScreen(archiveDraft(), triState: true));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(formL10n.commonAuto).first);
+      await tester.tap(find.text(pl.commonAuto).first);
       await tester.pumpAndSettle();
       await submitQueueForm(tester);
 
@@ -640,7 +639,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text(formL10n.commonAuto),
+        find.text(pl.commonAuto),
         findsNothing,
         reason: 'old server — there is no third state',
       );

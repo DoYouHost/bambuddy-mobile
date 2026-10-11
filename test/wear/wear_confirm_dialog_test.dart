@@ -1,4 +1,3 @@
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/wear/wear_shape.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_confirm_dialog.dart';
 import 'package:flutter/material.dart';
@@ -22,13 +21,8 @@ void main() {
     result = null;
     useWatchFace(tester, shape, face);
     await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        // The dialog is a route, so the shape has to come from above the navigator
-        // — see [wearShapeBuilder].
-        builder: wearShapeBuilder,
-        home: Builder(
+      plApp(
+        Builder(
           builder: (context) => TextButton(
             onPressed: () async {
               result = await showDialog<bool>(
@@ -44,6 +38,9 @@ void main() {
             child: const Text('open'),
           ),
         ),
+        // The dialog is a route, so the shape has to come from above the
+        // navigator — see [wearShapeBuilder].
+        builder: wearShapeBuilder,
       ),
     );
     await tester.tap(find.text('open'));

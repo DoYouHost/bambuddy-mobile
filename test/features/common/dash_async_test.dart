@@ -1,7 +1,6 @@
 import 'package:dash_kit/dash_kit.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/features/common/dash_async.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/l10n/error_messages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,17 +48,12 @@ void main() {
 
   late int retries;
 
-  Future<AppLocalizations> pumpState(
-    WidgetTester tester,
-    AsyncValue<String> value,
-  ) async {
+  Future<void> pumpState(WidgetTester tester, AsyncValue<String> value) async {
     retries = 0;
-    late AppLocalizations l10n;
     await tester.pumpWidget(
       plApp(
         Builder(
           builder: (context) {
-            l10n = AppLocalizations.of(context);
             return Scaffold(
               body: dashAsync(
                 context,
@@ -73,7 +67,6 @@ void main() {
       ),
     );
     await tester.pump();
-    return l10n;
   }
 
   testWidgets('waiting shows the spinner and nothing else', (tester) async {
@@ -90,11 +83,11 @@ void main() {
     ServerReachability.instance.reachable.value = false;
     addTearDown(ServerReachability.instance.forget);
 
-    final l10n = await pumpState(tester, const AsyncValue<String>.loading());
+    await pumpState(tester, const AsyncValue<String>.loading());
 
     expect(find.byType(DashLoading), findsNothing);
-    expect(find.text(l10n.connectFailed), findsOneWidget);
-    await tester.tap(find.text(l10n.retry));
+    expect(find.text(pl.connectFailed), findsOneWidget);
+    await tester.tap(find.text(pl.retry));
     expect(retries, 1);
   });
 
@@ -106,9 +99,9 @@ void main() {
     // the button would look like it did nothing.
     ServerReachability.instance.reachable.value = false;
     addTearDown(ServerReachability.instance.forget);
-    final l10n = await pumpState(tester, const AsyncValue<String>.loading());
+    await pumpState(tester, const AsyncValue<String>.loading());
 
-    await tester.tap(find.text(l10n.retry));
+    await tester.tap(find.text(pl.retry));
     await tester.pump();
 
     expect(retries, 1);
@@ -249,42 +242,40 @@ void main() {
     tester,
   ) async {
     const failure = NetworkException(AppErrorCode.serverUnreachable);
-    final l10n = await pumpState(
+    await pumpState(
       tester,
       AsyncValue<String>.error(failure, StackTrace.empty),
     );
 
-    expect(find.text(failure.localized(l10n)), findsOneWidget);
+    expect(find.text(failure.localized(pl)), findsOneWidget);
 
-    await tester.tap(find.text(l10n.retry));
+    await tester.tap(find.text(pl.retry));
     expect(retries, 1);
   });
 
   testWidgets('anything that is not a server answer still offers a retry', (
     tester,
   ) async {
-    final l10n = await pumpState(
+    await pumpState(
       tester,
       AsyncValue<String>.error(StateError('boom'), StackTrace.empty),
     );
 
-    expect(find.text(l10n.connectFailed), findsOneWidget);
-    expect(find.text(l10n.retry), findsOneWidget);
+    expect(find.text(pl.connectFailed), findsOneWidget);
+    expect(find.text(pl.retry), findsOneWidget);
   });
 
   group('a section rather than a screen', () {
-    Future<AppLocalizations> pumpStrip(
+    Future<void> pumpStrip(
       WidgetTester tester,
       AsyncValue<String> value, {
       double? height,
       String? failureMessage,
     }) async {
-      late AppLocalizations l10n;
       await tester.pumpWidget(
         plApp(
           Builder(
             builder: (context) {
-              l10n = AppLocalizations.of(context);
               return Scaffold(
                 body: dashAsyncStrip(
                   context,
@@ -299,7 +290,6 @@ void main() {
         ),
       );
       await tester.pump();
-      return l10n;
     }
 
     testWidgets('waiting and failing keep the height the content will have', (
@@ -334,13 +324,13 @@ void main() {
       tester,
     ) async {
       const failure = NetworkException(AppErrorCode.serverUnreachable);
-      final l10n = await pumpStrip(
+      await pumpStrip(
         tester,
         AsyncValue<String>.error(failure, StackTrace.empty),
         failureMessage: 'no readings yet',
       );
 
-      expect(find.text(failure.localized(l10n)), findsOneWidget);
+      expect(find.text(failure.localized(pl)), findsOneWidget);
     });
   });
 }

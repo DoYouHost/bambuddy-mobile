@@ -22,8 +22,8 @@ void main() {
     await tester.pumpWidget(_chip(WsConnectionState.connected));
     await tester.pump();
 
-    expect(find.text('Na żywo'), findsOneWidget);
-    expect(find.text('Odświeżanie'), findsNothing);
+    expect(find.text(pl.connLive), findsOneWidget);
+    expect(find.text(pl.connPolling), findsNothing);
     // Live pill uses a green status dot (no sync icon).
     expect(find.byIcon(Icons.sync), findsNothing);
   });
@@ -32,7 +32,7 @@ void main() {
     await tester.pumpWidget(_chip(WsConnectionState.waitingRetry));
     await tester.pump();
 
-    expect(find.text('Odświeżanie'), findsOneWidget);
+    expect(find.text(pl.connPolling), findsOneWidget);
     expect(find.byIcon(Icons.sync), findsOneWidget);
   });
 
@@ -40,7 +40,7 @@ void main() {
     await tester.pumpWidget(_chip(null));
     await tester.pump();
 
-    expect(find.text('Odświeżanie'), findsOneWidget);
+    expect(find.text(pl.connPolling), findsOneWidget);
   });
 
   for (final scale in [1.0, 1.3]) {

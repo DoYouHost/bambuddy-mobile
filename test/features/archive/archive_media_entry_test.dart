@@ -3,7 +3,6 @@ import 'package:bambuddy_mobile/core/models/no_3mf_warning.dart';
 import 'package:bambuddy_mobile/features/archive/archive_media_sheet.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,9 +35,6 @@ void main() {
     _prefs = await SharedPreferences.getInstance();
   });
 
-  AppLocalizations l10n(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(ArchiveScreen)));
-
   Future<void> openSheet(WidgetTester tester, Widget screen) async {
     await tester.pumpWidget(screen);
     await tester.pumpAndSettle();
@@ -61,7 +57,7 @@ void main() {
       ),
     );
 
-    final t = l10n(tester);
+    final t = pl;
     expect(find.text(t.archiveMediaAction), findsOneWidget);
     // The buttons this one replaced are gone from the archive sheet — both now
     // live inside it, under "on the server".
@@ -77,7 +73,7 @@ void main() {
       _screen(testArchive(printerId: 2), supported: true),
     );
 
-    expect(find.text(l10n(tester).archiveMediaAction), findsOneWidget);
+    expect(find.text(pl.archiveMediaAction), findsOneWidget);
   });
 
   testWidgets('absent when the printer is all there was and cannot be asked', (
@@ -90,7 +86,7 @@ void main() {
       _screen(testArchive(printerId: 2), supported: false),
     );
 
-    expect(find.text(l10n(tester).archiveMediaAction), findsNothing);
+    expect(find.text(pl.archiveMediaAction), findsNothing);
   });
 
   testWidgets('still offered on an older server when the archive has media', (
@@ -103,12 +99,12 @@ void main() {
       _screen(testArchive(timelapsePath: 'archive/1/v.mp4'), supported: false),
     );
 
-    expect(find.text(l10n(tester).archiveMediaAction), findsOneWidget);
+    expect(find.text(pl.archiveMediaAction), findsOneWidget);
   });
 
   testWidgets('absent for a print with nothing anywhere', (tester) async {
     await openSheet(tester, _screen(testArchive(), supported: true));
 
-    expect(find.text(l10n(tester).archiveMediaAction), findsNothing);
+    expect(find.text(pl.archiveMediaAction), findsNothing);
   });
 }

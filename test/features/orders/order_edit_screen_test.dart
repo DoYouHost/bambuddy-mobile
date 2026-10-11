@@ -4,7 +4,6 @@ import 'package:bambuddy_mobile/core/models/project.dart';
 import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/features/orders/order_edit_screen.dart';
 import 'package:bambuddy_mobile/features/orders/orders_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,9 +41,6 @@ PrintBatch _order({String? due, int? projectId}) => PrintBatch.fromJson({
 void main() {
   // The mock matches any body containing the mocked keys.
   late RequestLog sent;
-
-  AppLocalizations l10n(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(Scaffold).first));
 
   /// Opens the form from a host page, so saving has somewhere to pop back to.
   Future<DioAdapter> pumpEdit(WidgetTester tester, PrintBatch batch) async {
@@ -94,7 +90,7 @@ void main() {
     await tester.tap(byLogId('order_edit.save'));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n(tester).orderEditSaved), findsOneWidget);
+    expect(find.text(pl.orderEditSaved), findsOneWidget);
     expect(find.byType(OrderEditScreen), findsNothing);
     expect(sent.last.data, {'notes': 'For the fair'});
   });
@@ -124,7 +120,7 @@ void main() {
     await tester.tap(byLogId('order_edit.save'));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n(tester).orderEditSaved), findsOneWidget);
+    expect(find.text(pl.orderEditSaved), findsOneWidget);
     expect((sent.last.data as Map).keys, ['plates']);
   });
 
@@ -138,7 +134,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(sent.requests, isEmpty);
-    expect(find.text(l10n(tester).orderEditErrName), findsOneWidget);
+    expect(find.text(pl.orderEditErrName), findsOneWidget);
     expect(find.byType(OrderEditScreen), findsOneWidget);
   });
 
@@ -146,7 +142,7 @@ void main() {
     tester,
   ) async {
     await pumpEdit(tester, _order(due: '2026-10-01T21:59:59', projectId: 1));
-    final l = l10n(tester);
+    final l = pl;
 
     expect(find.text(l.orderEditDueHint), findsOneWidget);
     expect(find.text(l.orderEditProjectHint), findsOneWidget);
@@ -202,7 +198,7 @@ void main() {
     tester,
   ) async {
     await pumpEdit(tester, _order());
-    final l = l10n(tester);
+    final l = pl;
 
     expect(find.text(l.orderEditDueHint), findsNothing);
     expect(find.text(l.orderEditDueNone), findsOneWidget);
@@ -242,7 +238,7 @@ void main() {
         {'plate_id': null, 'quantity_target': 0, 'sort_order': 1},
       ],
     });
-    expect(find.text(l10n(tester).orderEditErrNothingAsked), findsOneWidget);
+    expect(find.text(pl.orderEditErrNothingAsked), findsOneWidget);
     expect(find.byType(OrderEditScreen), findsOneWidget);
   });
 }

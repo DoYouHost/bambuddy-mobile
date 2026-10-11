@@ -62,7 +62,7 @@ void main() {
 
     expect(
       tester
-          .getSemantics(find.text('Pipeline'))
+          .getSemantics(find.text(pl.pipelineSection))
           .getSemanticsData()
           .flagsCollection
           .isHeader,

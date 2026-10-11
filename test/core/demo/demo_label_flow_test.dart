@@ -2,7 +2,6 @@ import 'package:bambuddy_mobile/core/demo/demo_config.dart';
 import 'package:bambuddy_mobile/core/demo/demo_label_printer.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,12 +19,6 @@ class _DemoProfile extends ServerProfileNotifier {
 /// options come from the demo's version, the file from the demo's route, and
 /// the print goes to the demo's label printer.
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   Future<void> pumpFor(WidgetTester tester, Duration total) async {
     // Everything in the demo is timed (a network, a printer); a step at a time
     // lets each answer arrive before the next thing is asked.
@@ -54,16 +47,16 @@ void main() {
     );
     await pumpFor(tester, const Duration(seconds: 2));
 
-    await tester.tap(find.byTooltip(l10n.inventoryLabelsPrintAll));
+    await tester.tap(find.byTooltip(pl.inventoryLabelsPrintAll));
     await settle(tester);
-    await tester.tap(find.textContaining('${l10n.inventoryLabelsPrint} ('));
+    await tester.tap(find.textContaining('${pl.inventoryLabelsPrint} ('));
     await settle(tester);
     await tester.scrollUntilVisible(
-      find.text(l10n.inventoryLabelsBox62).hitTestable(),
+      find.text(pl.inventoryLabelsBox62).hitTestable(),
       120,
       scrollable: find.byType(Scrollable).last,
     );
-    await tester.tap(find.text(l10n.inventoryLabelsBox62));
+    await tester.tap(find.text(pl.inventoryLabelsBox62));
     await pumpFor(tester, const Duration(seconds: 2));
   }
 
@@ -71,8 +64,8 @@ void main() {
     await openOptions(tester);
 
     // Offered only to a server that has them: the demo's version says it does.
-    expect(find.text(l10n.labelFieldsTitle), findsOneWidget);
-    expect(find.text(l10n.labelFormatTitle), findsOneWidget);
+    expect(find.text(pl.labelFieldsTitle), findsOneWidget);
+    expect(find.text(pl.labelFormatTitle), findsOneWidget);
   });
 
   testWidgets('a printer that is set up gets the labels, and says so', (
@@ -84,9 +77,9 @@ void main() {
     );
 
     // `/info` of the demo printer says 62 x 29, so it is the default here.
-    await tester.tap(find.text(l10n.inventoryLabelsPrint));
+    await tester.tap(find.text(pl.inventoryLabelsPrint));
     await pumpFor(tester, const Duration(seconds: 3));
 
-    expect(find.text(l10n.labelPrinterSent), findsOneWidget);
+    expect(find.text(pl.labelPrinterSent), findsOneWidget);
   });
 }

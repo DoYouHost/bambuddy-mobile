@@ -63,8 +63,8 @@ void main() {
   ) async {
     final transport = await _pumpControl(tester);
 
-    expect(find.text('Offline'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, 'Zwolnij płytę'));
+    expect(find.text(pl.widgetStatusOffline), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, pl.wearClearPlate));
     await tester.pumpAndSettle();
 
     expect(transport.commands, ['clearPlate:7']);
@@ -73,7 +73,7 @@ void main() {
   testWidgets('no gate up, no button', (tester) async {
     await _pumpControl(tester, awaiting: false);
 
-    expect(find.widgetWithText(FilledButton, 'Zwolnij płytę'), findsNothing);
+    expect(find.widgetWithText(FilledButton, pl.wearClearPlate), findsNothing);
   });
 
   testWidgets('the scheduler not requiring it takes the button away', (
@@ -81,6 +81,6 @@ void main() {
   ) async {
     await _pumpControl(tester, require: false);
 
-    expect(find.widgetWithText(FilledButton, 'Zwolnij płytę'), findsNothing);
+    expect(find.widgetWithText(FilledButton, pl.wearClearPlate), findsNothing);
   });
 }

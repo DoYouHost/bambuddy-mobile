@@ -67,7 +67,7 @@ QueueItem _stored(Map<String, int> choice) => QueueItem.fromJson({
 
 /// How a row's picker reads with position [n] chosen.
 String _button(int n, [String diameter = '0.4']) =>
-    '${formL10n.mappingRackSlot(n)} · $diameter';
+    '${pl.mappingRackSlot(n)} · $diameter';
 
 Future<void> _openMapping(WidgetTester tester) async {
   final section = byLogId('queue_edit.mapping');
@@ -89,7 +89,7 @@ Future<void> _pick(WidgetTester tester, int position) async {
 }
 
 Future<void> _saveMapping(WidgetTester tester) async {
-  await tester.tap(find.widgetWithText(FilledButton, formL10n.fmSave).last);
+  await tester.tap(find.widgetWithText(FilledButton, pl.fmSave).last);
   await tester.pumpAndSettle();
 }
 
@@ -155,7 +155,7 @@ void main() {
     await _openMapping(tester);
 
     expect(byLogId('queue_mapping.rack'), findsOneWidget);
-    expect(find.text(formL10n.extruderLeftShort), findsOneWidget);
+    expect(find.text(pl.extruderLeftShort), findsOneWidget);
   });
 
   testWidgets('untouched, the row shows what the server will assign and '
@@ -210,14 +210,12 @@ void main() {
       ],
       [1, 3],
     );
-    final standard = formL10n.nozzleFlowStandard;
+    final standard = pl.nozzleFlowStandard;
     expect(
-      find.text(
-        formL10n.mappingRackWrongNozzle('0.6 $standard', '0.4 $standard'),
-      ),
+      find.text(pl.mappingRackWrongNozzle('0.6 $standard', '0.4 $standard')),
       findsOneWidget,
     );
-    expect(find.text(formL10n.mappingRackEmptyPosition), findsNWidgets(3));
+    expect(find.text(pl.mappingRackEmptyPosition), findsNWidgets(3));
   });
 
   testWidgets('a position another group holds is not refused, as on the web', (
@@ -266,7 +264,7 @@ void main() {
     await tester.pumpAndSettle();
     await _openMapping(tester);
 
-    final warning = find.text(formL10n.queueEditRackPickStale);
+    final warning = find.text(pl.queueEditRackPickStale);
     expect(warning, findsOneWidget);
     final tokens = DashTokens.of(tester.element(warning));
     expect(tester.widget<Text>(warning).style?.color, tokens.dangerInk);
@@ -284,9 +282,7 @@ void main() {
     await _openMapping(tester);
 
     expect(
-      find.text(
-        formL10n.queueEditRackNoFit('0.4 ${formL10n.nozzleFlowStandard}'),
-      ),
+      find.text(pl.queueEditRackNoFit('0.4 ${pl.nozzleFlowStandard}')),
       findsOneWidget,
     );
   });

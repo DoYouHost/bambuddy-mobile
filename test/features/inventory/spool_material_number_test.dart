@@ -3,7 +3,6 @@ import 'package:bambuddy_mobile/core/models/supplier.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -77,12 +76,6 @@ const _gamma = Spool(
 );
 
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   group('on the shelf', () {
     Future<void> pumpShelf(WidgetTester tester) async {
       await pumpPhone(
@@ -120,7 +113,7 @@ void main() {
       await settle(tester);
 
       await scrollSheetDown(tester);
-      expect(find.text(l10n.inventoryFieldMaterialNumber), findsOneWidget);
+      expect(find.text(pl.inventoryFieldMaterialNumber), findsOneWidget);
       await tester.tap(find.widgetWithText(FilterChip, '15'));
       await settle(tester);
 
