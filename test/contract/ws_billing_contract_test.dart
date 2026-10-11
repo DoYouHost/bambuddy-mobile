@@ -25,6 +25,24 @@ void main() {
         dio,
       ).listFiles()).firstWhere((f) => f.filename == 'contract-probe.3mf');
 
+      // Billing came in 1.2.5.3; an older server's settings do not list it.
+      // The app then reads billing as off, so a file queues as it always did
+      // and nothing is refused.
+      if (!(await settings.fetch()).containsKey('billing_enabled')) {
+        expect((await settings.fetchUiFlags())['billing_enabled'], isNull);
+        final known = {for (final i in await queue.fetch()) i.id};
+        await queue.addFromLibraryFile(
+          file.id,
+          options: const QueueCreateOptions(manualStart: true),
+        );
+        final added = (await queue.fetch()).firstWhere(
+          (i) => !known.contains(i.id),
+        );
+        addTearDown(() => queue.delete(added.id));
+        expect(added.costCenterId, isNull);
+        return;
+      }
+
       // Queued before billing was switched on: no cost center.
       final before = {for (final i in await queue.fetch()) i.id};
       await queue.addFromLibraryFile(

@@ -3,6 +3,7 @@ import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
+import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -77,8 +78,18 @@ void main() {
       addTearDown(() => shelf.unassignSpool(printerId, 0, 0));
 
       final inventory = await printers.fetchInventoryRemain(printerId);
-      expect(inventory.spools[0]?.name, 'Contract PLA Basic');
       expect(inventory.grams[0], 750);
+
+      // `slot_materials` came in 1.2.5.3; before it the route sends grams only
+      // and the app has no name to show.
+      final raw = (await dio.get<Map<String, dynamic>>(
+        Endpoints.printerInventoryRemain(printerId),
+      )).data!;
+      if (raw.containsKey('slot_materials')) {
+        expect(inventory.spools[0]?.name, 'Contract PLA Basic');
+      } else {
+        expect(inventory.spools, isEmpty);
+      }
     });
 
     test('a re-read is accepted for the seeded printer', () async {
