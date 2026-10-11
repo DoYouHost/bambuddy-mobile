@@ -94,10 +94,10 @@ void main() {
       ],
     );
 
-    expect(find.text('97 W'), findsOneWidget); // total
-    expect(find.text('95 W'), findsOneWidget); // X1 group
+    expect(find.text('97\u00A0W'), findsOneWidget); // total
+    expect(find.text('95\u00A0W'), findsOneWidget); // X1 group
     expect(find.text('X1 fan'), findsOneWidget);
-    expect(find.text('90 W'), findsOneWidget); // X1 plug inside the group
+    expect(find.text('90\u00A0W'), findsOneWidget); // X1 plug inside the group
     // A single plug is named but carries no watts of its own, and its silent
     // reading is a dash on the printer row.
     expect(find.text('A1 plug'), findsOneWidget);

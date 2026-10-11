@@ -105,6 +105,15 @@ l10n-check base='dev':
 check-wear-apk wear='build/app/outputs/flutter-apk/app-wear-debug.apk' mobile='':
     python3 tool/check_wear_apk.py {{wear}} {{ if mobile != '' { '--mobile ' + mobile } else { '' } }}
 
+# A one-letter word ("i", "w", "a", "à") must not end a line in any language:
+# turns the space after each into a no-break space, then regenerates.
+# test/l10n/short_words_test.dart fails until this has run.
+[doc('glue one-letter words to the next word in every .arb, then gen-l10n')]
+[group('1-develop')]
+l10n-glue:
+    python3 tool/glue_short_words.py
+    flutter gen-l10n
+
 [doc('spell-check every .arb string, not only this branch')]
 [group('1-develop')]
 l10n-check-all:

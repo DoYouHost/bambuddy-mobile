@@ -76,7 +76,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.textContaining('została w pamięci wewnętrznej'),
+      find.textContaining('została w\u00A0pamięci wewnętrznej'),
       findsOneWidget,
     );
     expect(find.text('Dlaczego tak się dzieje'), findsOneWidget);
@@ -96,7 +96,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('brak nośnika w drukarce'), findsOneWidget);
+    expect(find.textContaining('brak nośnika w\u00A0drukarce'), findsOneWidget);
     expect(find.byIcon(Icons.open_in_new), findsNothing);
   });
 

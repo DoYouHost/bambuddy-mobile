@@ -50,19 +50,22 @@ void main() {
     await tester.pumpAndSettle();
 
     await openRemoval(tester);
-    expect(find.widgetWithText(ListTile, 'Usuń z kolejki'), findsOneWidget);
+    expect(
+      find.widgetWithText(ListTile, 'Usuń z\u00A0kolejki'),
+      findsOneWidget,
+    );
     expect(
       find.widgetWithText(ListTile, 'Zatrzymaj wydruk'),
       findsNothing,
       reason: 'nothing is printing, so there is nothing to stop',
     );
 
-    await tester.tap(find.widgetWithText(ListTile, 'Usuń z kolejki'));
+    await tester.tap(find.widgetWithText(ListTile, 'Usuń z\u00A0kolejki'));
     await tester.pumpAndSettle();
 
     // Confirmed first — it is not undoable — and worded for a print that has
     // already ended rather than one being aborted.
-    expect(find.text('Usunąć z kolejki?'), findsOneWidget);
+    expect(find.text('Usunąć z\u00A0kolejki?'), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, 'Usuń'));
     await tester.pumpAndSettle();
 
@@ -144,7 +147,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await openRemoval(tester);
-    await tester.tap(find.widgetWithText(ListTile, 'Usuń z kolejki'));
+    await tester.tap(find.widgetWithText(ListTile, 'Usuń z\u00A0kolejki'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Usuń'));
     await tester.pumpAndSettle();

@@ -9,11 +9,11 @@
   "signInRequiredTwoFactorBody": "Dein Konto erfordert jetzt einen zweiten Faktor, den die App im Hintergrund nicht bereitstellen kann — daher wurde die automatische Anmeldung beendet. Melde dich erneut an und gib den Code ein.",
   "signInRequiredMissingBody": "Ein Sicherheitsupdate oder eine wiederhergestellte Sicherung hat den Schlüssel der gespeicherten Anmeldung ungültig gemacht. Sonst ist nichts verloren gegangen.",
   "serverUnreachableStale": "Server nicht erreichbar — Daten sind möglicherweise veraltet",
-  "wsReconnecting": "Keine Live-Verbindung — Aktualisierung alle 5 s",
+  "wsReconnecting": "Keine Live-Verbindung — Aktualisierung alle 5 s",
   "connLive": "Live",
   "connLiveTooltip": "Echtzeit-Aktualisierungen über WebSocket",
   "connPolling": "Polling",
-  "connPollingTooltip": "Keine Live-Verbindung — Aktualisierung alle 5 s (REST)",
+  "connPollingTooltip": "Keine Live-Verbindung — Aktualisierung alle 5 s (REST)",
   "connectFailed": "Verbindung zum Server fehlgeschlagen",
   "filePickerFailed": "Der Dateidialog konnte nicht geöffnet werden",
   "retry": "Erneut versuchen",
@@ -160,7 +160,7 @@
   "ctrlDryFilament": "Filament",
   "ctrlDryTemp": "Temperatur",
   "ctrlDryDuration": "Dauer",
-  "ctrlDryHours": "{h} h",
+  "ctrlDryHours": "{h} h",
   "@ctrlDryHours": {
     "placeholders": {
       "h": {
@@ -211,12 +211,12 @@
   "ctrlMoveHome": "Alle Achsen referenzieren",
   "ctrlMoveHomeStarted": "Referenzfahrt gestartet",
   "ctrlMoveStep": "Schritt",
-  "ctrlMoveZ": "Z (Bettabstand)",
+  "ctrlMoveZ": "Z (Bettabstand)",
   "ctrlMoveZUp": "Hoch",
   "ctrlMoveZDown": "Runter",
-  "ctrlMoveZToolhead": "Z (Druckkopf)",
+  "ctrlMoveZToolhead": "Z (Druckkopf)",
   "ctrlMoveZUnknownDirection": "Die Z-Richtung dieses Druckers hängt von der Serverversion ab, die nicht bestätigt werden konnte, daher sind Z-Bewegungen hier deaktiviert. Aktualisiere den Server oder öffne dieses Fenster erneut, sobald er erreichbar ist.",
-  "ctrlMoveZNoModel": "Für diesen Drucker ist in Bambuddy kein Modell hinterlegt, daher weiß die App nicht, ob sich in Z das Druckbett oder der Druckkopf bewegt, und Z-Bewegungen sind hier deaktiviert. Hinterlege das Druckermodell in Bambuddy, um sie zu nutzen.",
+  "ctrlMoveZNoModel": "Für diesen Drucker ist in Bambuddy kein Modell hinterlegt, daher weiß die App nicht, ob sich in Z das Druckbett oder der Druckkopf bewegt, und Z-Bewegungen sind hier deaktiviert. Hinterlege das Druckermodell in Bambuddy, um sie zu nutzen.",
   "ctrlMoveExtrude": "Extrudieren",
   "ctrlMoveRetract": "Einziehen",
   "ctrlMoveLength": "Länge",
@@ -325,7 +325,7 @@
   "smartPlugOnConfirmTitle": "Einschalten?",
   "smartPlugOnConfirmBody": "Der Drucker wird eingeschaltet.",
   "smartPlugTurnOn": "Einschalten",
-  "powerWatts": "{watts} W",
+  "powerWatts": "{watts} W",
   "@powerWatts": {
     "placeholders": {
       "watts": {
@@ -464,7 +464,7 @@
   "archivePhotosEmpty": "Keine Fotos für diesen Druckauftrag",
   "archivePhotoFailed": "Dieses Foto konnte nicht geladen werden.",
   "archiveFilamentUsed": "Verbrauchtes Filament",
-  "archiveFilamentGrams": "{grams} g",
+  "archiveFilamentGrams": "{grams} g",
   "@archiveFilamentGrams": {
     "placeholders": {
       "grams": {
@@ -488,7 +488,7 @@
   "archiveFilamentNone": "Nicht erfasst",
   "archiveFilamentLabel": "Gewicht (g)",
   "archiveFilamentNotANumber": "Gib eine Zahl ein oder lass das Feld leer, um das Gewicht zu löschen.",
-  "archiveFilamentOutOfRange": "Ein Gewicht zwischen 0 und {max} g.",
+  "archiveFilamentOutOfRange": "Ein Gewicht zwischen 0 und {max} g.",
   "@archiveFilamentOutOfRange": {
     "placeholders": {
       "max": {
@@ -751,7 +751,7 @@
   "amsSlotConfigModelUnknown": "Druckermodell unbekannt – alle Profile werden angezeigt",
   "amsSlotConfigCurrent": "Aktuell eingestellt",
   "amsSlotConfigKProfile": "K-Profil",
-  "amsSlotConfigKProfileDefault": "Standard (K {value})",
+  "amsSlotConfigKProfileDefault": "Standard (K {value})",
   "@amsSlotConfigKProfileDefault": {
     "placeholders": {
       "value": {
@@ -770,7 +770,7 @@
       }
     }
   },
-  "amsSlotConfigKProfileValue": "K {value}",
+  "amsSlotConfigKProfileValue": "K {value}",
   "@amsSlotConfigKProfileValue": {
     "placeholders": {
       "value": {
@@ -802,10 +802,10 @@
   "sensorHistoryAverage": "Durchschnitt",
   "sensorHistoryMin": "Min.",
   "sensorHistoryMax": "Max.",
-  "sensorHistoryRange6h": "6 h",
-  "sensorHistoryRange24h": "24 h",
-  "sensorHistoryRange48h": "48 h",
-  "sensorHistoryRange7d": "7 d",
+  "sensorHistoryRange6h": "6 h",
+  "sensorHistoryRange24h": "24 h",
+  "sensorHistoryRange48h": "48 h",
+  "sensorHistoryRange7d": "7 d",
   "amsHistoryGood": "Gut",
   "amsHistoryFair": "Mittel",
   "sensorHistoryEmpty": "Keine Daten für diesen Zeitraum",
@@ -938,7 +938,7 @@
   "apiKeyExplain": "Ein API-Schlüssel läuft nicht ab und hat begrenzte Berechtigungen – erstelle einen auf dem Server: Einstellungen → API-Schlüssel.",
   "apiKeyLabel": "API-Schlüssel",
   "saveAndConnect": "Speichern und verbinden",
-  "loginExplain": "Eine Sitzung läuft nach 24 h ab. Aktiviere „Angemeldet bleiben“, damit sich die App automatisch wieder anmeldet.",
+  "loginExplain": "Eine Sitzung läuft nach 24 h ab. Aktiviere „Angemeldet bleiben“, damit sich die App automatisch wieder anmeldet.",
   "usernameLabel": "Benutzername oder E-Mail",
   "passwordLabel": "Passwort",
   "rememberMe": "Angemeldet bleiben",
@@ -1156,7 +1156,7 @@
     }
   },
   "notifBedCooledTitle": "Druckbett abgekühlt",
-  "notifBedCooledBody": "Druckbett von {printer} auf {temp}°C abgekühlt",
+  "notifBedCooledBody": "Druckbett von {printer} auf {temp}°C abgekühlt",
   "@notifBedCooledBody": {
     "placeholders": {
       "printer": {
@@ -1198,7 +1198,7 @@
   "notifEvtHumidityDesc": "Wenn die AMS-Feuchtigkeit über den Schwellenwert steigt",
   "notifEvtBedCooled": "Druckbett abgekühlt",
   "notifEvtBedCooledDesc": "Wenn das Druckbett nach einem Druck abkühlt",
-  "notifBedCooledThreshold": "Druckbett unter {temp}°C abgekühlt",
+  "notifBedCooledThreshold": "Druckbett unter {temp}°C abgekühlt",
   "@notifBedCooledThreshold": {
     "placeholders": {
       "temp": {
@@ -1317,7 +1317,7 @@
       }
     }
   },
-  "inventoryRemaining": "{grams} g übrig",
+  "inventoryRemaining": "{grams} g übrig",
   "@inventoryRemaining": {
     "placeholders": {
       "grams": {
@@ -1333,7 +1333,7 @@
       }
     }
   },
-  "inventoryOfTotal": "von {total} g",
+  "inventoryOfTotal": "von {total} g",
   "@inventoryOfTotal": {
     "placeholders": {
       "total": {
@@ -1347,7 +1347,7 @@
   "inventoryTag": "Tag",
   "inventoryUsageHistory": "Verbrauchsverlauf",
   "inventoryUsageEmpty": "Noch kein Verbrauch erfasst",
-  "inventoryUsageWeight": "{grams} g",
+  "inventoryUsageWeight": "{grams} g",
   "@inventoryUsageWeight": {
     "placeholders": {
       "grams": {
@@ -1356,7 +1356,7 @@
     }
   },
   "inventoryKProfiles": "Kalibrierung (K)",
-  "inventoryKProfileLine": "{nozzle} mm · K {k}",
+  "inventoryKProfileLine": "{nozzle} mm · K {k}",
   "@inventoryKProfileLine": {
     "placeholders": {
       "nozzle": {
@@ -1453,7 +1453,7 @@
   "inventoryColorSelect": "Auswählen",
   "inventoryColorNone": "Keine Farbe",
   "inventoryLowStockHint": "Leer lassen, um den globalen Schwellenwert zu verwenden",
-  "inventoryRemainingOfLabel": "von {total} g",
+  "inventoryRemainingOfLabel": "von {total} g",
   "@inventoryRemainingOfLabel": {
     "placeholders": {
       "total": {
@@ -1744,7 +1744,7 @@
     }
   },
   "maintenanceEmpty": "Keine Wartungsdaten",
-  "maintenanceTotalHours": "{hours} h gesamt",
+  "maintenanceTotalHours": "{hours} h gesamt",
   "@maintenanceTotalHours": {
     "placeholders": {
       "hours": {
@@ -1760,7 +1760,7 @@
       }
     }
   },
-  "maintenanceDueIn": "Fällig in {hours} h",
+  "maintenanceDueIn": "Fällig in {hours} h",
   "@maintenanceDueIn": {
     "placeholders": {
       "hours": {
@@ -1768,7 +1768,7 @@
       }
     }
   },
-  "maintenanceOverdueBy": "Seit {hours} h überfällig",
+  "maintenanceOverdueBy": "Seit {hours} h überfällig",
   "@maintenanceOverdueBy": {
     "placeholders": {
       "hours": {
@@ -1799,7 +1799,7 @@
   "maintenanceAddType": "Eigenen Typ hinzufügen",
   "maintenanceEditType": "Typ bearbeiten",
   "maintenanceSystemType": "System",
-  "maintenanceEveryHours": "Alle {count} h",
+  "maintenanceEveryHours": "Alle {count} h",
   "@maintenanceEveryHours": {
     "placeholders": {
       "count": {
@@ -1928,7 +1928,7 @@
       }
     }
   },
-  "statsHours": "{hours} h",
+  "statsHours": "{hours} h",
   "@statsHours": {
     "placeholders": {
       "hours": {
@@ -2489,7 +2489,7 @@
   "swatchSave": "Speichern",
   "swatchRegenerate": "Neu generieren",
   "swatchFieldCode": "Code",
-  "swatchCodeInvalid": "Verwende 6 Zeichen: Ziffern und Buchstaben, ohne 0, 1, I, L oder O",
+  "swatchCodeInvalid": "Verwende 6 Zeichen: Ziffern und Buchstaben, ohne 0, 1, I, L oder O",
   "swatchCodeTaken": "Dieser Code wird bereits verwendet",
   "swatchFieldBrand": "Hersteller",
   "swatchFieldMaterial": "Material",
@@ -2793,7 +2793,7 @@
   "sliceRefusedStep": "STEP-Dateien können nicht geslict werden. Exportiere das Modell zuerst aus deinem CAD als STL oder 3MF.",
   "sliceRefusedFormat": "Die Quelldatei muss ein STL oder ein 3MF sein.",
   "sliceRefusedNoSource": "Dieses Archiv enthält nur den gedruckten G-Code, nicht das Modell — es gibt nichts, was erneut geslict werden könnte.",
-  "sliceResultFilament": "Filament: {grams} g",
+  "sliceResultFilament": "Filament: {grams} g",
   "@sliceResultFilament": {
     "placeholders": {
       "grams": {
@@ -3628,7 +3628,7 @@
   "queueSettingsMaxUploadsDesc": "Bevor ein Auftrag in der Warteschlange startet, wird seine Datei per FTP an den Drucker gesendet, was einige Minuten dauern kann. Dies legt fest, wie viele Übertragungen gleichzeitig laufen – wirkt sich nur bei mehreren Druckern aus.",
   "queueSettingsPreheatMaxWaitDesc": "Ein X1C oder P2S hat keine aktive Kammerheizung – die Kammer wird über das Druckbett erwärmt, was 15–30 Minuten dauern kann. Danach wartet die Warteschlange nicht länger und geht zur Haltezeit über.",
   "queueSettingsPreheatSoakDesc": "Zusätzliche Zeit auf Temperatur, nachdem die Kammer diese erreicht hat oder die Wartezeit oben abgelaufen ist. Bei 0 wird dieser Schritt übersprungen.",
-  "queueSettingsKeepWarmTempDesc": "90 hält die Kammerwärme in einem geschlossenen Drucker aufrecht und aktiviert nachgerüstete Kammerheizungen, die meist bei 80 °C Betttemperatur einschalten. Eine höhere Betttemperatur aus der Datei hat immer Vorrang.",
+  "queueSettingsKeepWarmTempDesc": "90 hält die Kammerwärme in einem geschlossenen Drucker aufrecht und aktiviert nachgerüstete Kammerheizungen, die meist bei 80 °C Betttemperatur einschalten. Eine höhere Betttemperatur aus der Datei hat immer Vorrang.",
   "queueSettingsKeepWarmMaxDesc": "Stelle hier die Zeit ein, die du realistisch benötigst, um den Drucker zu erreichen. Ein zu kurzer Wert führt nur dazu, dass der nächste Druck von Grund auf neu aufheizen muss; ohne Begrenzung würde eine nicht abgeräumte Druckplatte das Druckbett dauerhaft heiß halten.",
   "queueSettingsKeepWarmOffNote": "Warmhalten ist deaktiviert. Die obige Druckbetttemperatur gilt weiterhin für das Vorheizen.",
   "adminTitle": "Administration",

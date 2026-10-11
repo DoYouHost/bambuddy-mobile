@@ -4,16 +4,16 @@
   "changeServer": "Cambiar de servidor",
   "sessionExpired": "Sesión caducada — inicia sesión de nuevo",
   "signInRequiredTitle": "Iniciar sesión de nuevo",
-  "signInRequiredBody": "El servidor rechazó tu contraseña guardada, por lo que la aplicación dejó de intentarlo — los intentos repetidos pueden bloquear la cuenta. Inicia sesión de nuevo y usa una nueva contraseña si se ha cambiado.",
+  "signInRequiredBody": "El servidor rechazó tu contraseña guardada, por lo que la aplicación dejó de intentarlo — los intentos repetidos pueden bloquear la cuenta. Inicia sesión de nuevo y usa una nueva contraseña si se ha cambiado.",
   "signInRequiredAction": "Iniciar sesión",
-  "signInRequiredTwoFactorBody": "Tu cuenta ahora solicita un segundo factor y la aplicación no puede proporcionarlo en segundo plano — por lo que dejó de iniciar sesión automáticamente. Inicia sesión de nuevo e introduce el código.",
-  "signInRequiredMissingBody": "Una actualización de seguridad o una copia de seguridad restaurada invalidó la clave que cifraba tu inicio de sesión guardado. No se ha perdido nada más.",
+  "signInRequiredTwoFactorBody": "Tu cuenta ahora solicita un segundo factor y la aplicación no puede proporcionarlo en segundo plano — por lo que dejó de iniciar sesión automáticamente. Inicia sesión de nuevo e introduce el código.",
+  "signInRequiredMissingBody": "Una actualización de seguridad o una copia de seguridad restaurada invalidó la clave que cifraba tu inicio de sesión guardado. No se ha perdido nada más.",
   "serverUnreachableStale": "Servidor inaccesible — los datos pueden estar desactualizados",
-  "wsReconnecting": "Sin conexión en tiempo real — actualizando cada 5 s",
+  "wsReconnecting": "Sin conexión en tiempo real — actualizando cada 5 s",
   "connLive": "En directo",
-  "connLiveTooltip": "Actualizaciones en tiempo real a través de WebSocket",
+  "connLiveTooltip": "Actualizaciones en tiempo real a través de WebSocket",
   "connPolling": "Sondeo",
-  "connPollingTooltip": "Sin enlace en tiempo real — actualizando cada 5 s (REST)",
+  "connPollingTooltip": "Sin enlace en tiempo real — actualizando cada 5 s (REST)",
   "connectFailed": "No se pudo conectar al servidor",
   "filePickerFailed": "No se pudo abrir el selector de archivos",
   "retry": "Reintentar",
@@ -29,7 +29,7 @@
     }
   },
   "noPrintersMatchFilters": "Ninguna impresora coincide con los filtros actuales",
-  "dashboardFilters": "Filtros y orden",
+  "dashboardFilters": "Filtros y orden",
   "filterStatus": "Estado",
   "filtersClear": "Borrar",
   "hideOffline": "Ocultar desconectadas",
@@ -52,10 +52,10 @@
   "addPrinterLocationOptional": "Opcional",
   "printerLocationsManage": "Gestionar ubicaciones",
   "addPrinterSubmit": "Añadir impresora",
-  "addPrinterConnectionNote": "El servidor verifica la conexión antes de guardar; si la IP o el código de acceso son incorrectos, se notificará y no se creará nada.",
+  "addPrinterConnectionNote": "El servidor verifica la conexión antes de guardar; si la IP o el código de acceso son incorrectos, se notificará y no se creará nada.",
   "addPrinterRequiredField": "Obligatorio",
   "addPrinterSuccess": "Impresora añadida",
-  "addPrinterErrConnection": "No se pudo conectar con la impresora. Comprueba la dirección IP, el número de serie y el código de acceso, y asegúrate de que el modo solo LAN esté activado.",
+  "addPrinterErrConnection": "No se pudo conectar con la impresora. Comprueba la dirección IP, el número de serie y el código de acceso, y asegúrate de que el modo solo LAN esté activado.",
   "addPrinterErrDuplicate": "Ya existe una impresora con este número de serie",
   "addPrinterErrForbidden": "No tienes permiso para añadir impresoras",
   "addPrinterErrGeneric": "No se pudo añadir la impresora. Inténtalo de nuevo.",
@@ -66,14 +66,14 @@
   "editPrinterSerialLocked": "El número de serie no se puede cambiar",
   "editPrinterAccessCodeKeep": "Dejar vacío para conservar el actual",
   "editPrinterMaintenance": "Modo mantenimiento",
-  "editPrinterMaintenanceHelp": "Pausa la conexión, la cola y las notificaciones de esta impresora.",
+  "editPrinterMaintenanceHelp": "Pausa la conexión, la cola y las notificaciones de esta impresora.",
   "editPrinterWearCost": "Coste de desgaste por hora de impresión ({currency})",
-  "editPrinterWearCostHelp": "Solo se suma a las impresiones nuevas. Déjalo vacío para desactivarlo.",
-  "editPrinterWearCostInvalid": "Introduce un número entre 0 y 100000",
-  "editPrinterPreflightWarning": "Algunas comprobaciones de conexión fallaron. Esta impresora podría aparecer como desconectada. Revisa las comprobaciones de abajo, soluciona lo que puedas o guárdala de todos modos.",
+  "editPrinterWearCostHelp": "Solo se suma a las impresiones nuevas. Déjalo vacío para desactivarlo.",
+  "editPrinterWearCostInvalid": "Introduce un número entre 0 y 100000",
+  "editPrinterPreflightWarning": "Algunas comprobaciones de conexión fallaron. Esta impresora podría aparecer como desconectada. Revisa las comprobaciones de abajo, soluciona lo que puedas o guárdala de todos modos.",
   "editPrinterSaveAnyway": "Guardar de todos modos",
   "addPrinterScanTitle": "Buscar impresoras en la red",
-  "addPrinterSubnet": "Subred a escanear",
+  "addPrinterSubnet": "Subred a escanear",
   "addPrinterScanButton": "Escanear subred en busca de impresoras",
   "addPrinterDiscoverNetwork": "Detectar impresoras en la red",
   "addPrinterScanning": "Escaneando… {scanned}/{total}",
@@ -93,7 +93,7 @@
   "addPrinterSubnetCustomOption": "Subred personalizada…",
   "addPrinterSubnetCustomLabel": "Subred personalizada (CIDR)",
   "addPrinterSubnetDockerNote": "Docker detectado. Introduce la subred de tu impresora en notación CIDR. Requiere network_mode: host en docker-compose.yml.",
-  "addPrinterSubnetCustomNote": "Usa una subred personalizada si tu impresora está en una red diferente a la del servidor. Los puertos FTP (990) y MQTT (8883) deben ser accesibles a través de los límites de enrutamiento.",
+  "addPrinterSubnetCustomNote": "Usa una subred personalizada si tu impresora está en una red diferente a la del servidor. Los puertos FTP (990) y MQTT (8883) deben ser accesibles a través de los límites de enrutamiento.",
   "addPrinterDiagnostic": "Ejecutar diagnóstico",
   "addPrinterDiagnosticRunning": "Ejecutando diagnóstico…",
   "addPrinterDiagnosticError": "Error en el diagnóstico. Inténtalo de nuevo.",
@@ -108,7 +108,7 @@
   "diagCheckMqttAuth": "Credenciales MQTT",
   "diagCheckDeveloperMode": "Modo desarrollador / LAN",
   "changeServerQuestion": "¿Cambiar de servidor?",
-  "changeServerWarning": "Se eliminarán el perfil y las credenciales guardadas.",
+  "changeServerWarning": "Se eliminarán el perfil y las credenciales guardadas.",
   "cancel": "Cancelar",
   "clear": "Borrar",
   "change": "Cambiar",
@@ -155,12 +155,12 @@
   "ctrlDry": "Secar",
   "ctrlDrying": "Secando",
   "ctrlDryNotRunning": "Detenido",
-  "ctrlDryNotRunningHint": "La impresora tiene un temporizador de secado, pero no avanza y el AMS no informa de ningún secado. El ciclo nunca empezó o se pausó, por ejemplo por el límite de potencia o la impresión en curso.",
+  "ctrlDryNotRunningHint": "La impresora tiene un temporizador de secado, pero no avanza y el AMS no informa de ningún secado. El ciclo nunca empezó o se pausó, por ejemplo por el límite de potencia o la impresión en curso.",
   "ctrlDryStart": "Iniciar",
   "ctrlDryFilament": "Filamento",
   "ctrlDryTemp": "Temperatura",
   "ctrlDryDuration": "Duración",
-  "ctrlDryHours": "{h} h",
+  "ctrlDryHours": "{h} h",
   "@ctrlDryHours": {
     "placeholders": {
       "h": {
@@ -174,12 +174,12 @@
   "ctrlDryStartWhen": "Hora de inicio",
   "ctrlDryStartNow": "Ahora",
   "ctrlDryStartAfter": "Más tarde",
-  "ctrlDryStartAt": "A una hora",
+  "ctrlDryStartAt": "A una hora",
   "ctrlDryPickTime": "Elegir una hora",
   "ctrlDrySchedule": "Programar",
   "ctrlDryScheduled": "Secado programado",
   "ctrlDryScheduleTimePast": "Elige una hora en el futuro",
-  "ctrlDryScheduledFor": "Secado a las {time}",
+  "ctrlDryScheduledFor": "Secado a las {time}",
   "@ctrlDryScheduledFor": {
     "placeholders": {
       "time": {
@@ -187,7 +187,7 @@
       }
     }
   },
-  "ctrlDryScheduledAsap": "Secado programado, esperando a la impresora",
+  "ctrlDryScheduledAsap": "Secado programado, esperando a la impresora",
   "ctrlDryScheduleCancel": "Cancelar secado programado",
   "ctrlDryScheduleDismiss": "Descartar",
   "ctrlDryScheduleFailed": "El secado programado falló: {reason}",
@@ -201,22 +201,22 @@
   "ctrlDryScheduleFailedUnknown": "error desconocido",
   "ctrlDryWaitPower": "Conecta el adaptador de corriente del AMS",
   "ctrlDryWaitRetract": "Retrae el filamento en la salida del AMS",
-  "ctrlDryWaitBlocked": "El AMS no puede empezar a secar en este momento",
-  "ctrlDryWaitAmsNotFound": "Esperando a que se detecte el AMS",
-  "ctrlDryWaitOffline": "Esperando a que la impresora se conecte",
-  "ctrlDryWaitBusy": "Esperando a que la impresora esté libre",
-  "ctrlDryWaitAlreadyDrying": "Esperando a que termine el ciclo actual",
+  "ctrlDryWaitBlocked": "El AMS no puede empezar a secar en este momento",
+  "ctrlDryWaitAmsNotFound": "Esperando a que se detecte el AMS",
+  "ctrlDryWaitOffline": "Esperando a que la impresora se conecte",
+  "ctrlDryWaitBusy": "Esperando a que la impresora esté libre",
+  "ctrlDryWaitAlreadyDrying": "Esperando a que termine el ciclo actual",
   "ctrlDryWaitInterrupted": "Interrumpido; se reiniciará cuando la impresora esté libre",
   "ctrlMove": "Mover",
   "ctrlMoveHome": "Ir al origen",
   "ctrlMoveHomeStarted": "Regreso al origen iniciado",
   "ctrlMoveStep": "Paso",
-  "ctrlMoveZ": "Z (distancia a la cama)",
+  "ctrlMoveZ": "Z (distancia a la cama)",
   "ctrlMoveZUp": "Subir",
   "ctrlMoveZDown": "Bajar",
-  "ctrlMoveZToolhead": "Z (cabezal)",
-  "ctrlMoveZUnknownDirection": "La dirección Z de esta impresora depende de la versión del servidor, que no se pudo confirmar, así que los movimientos en Z están desactivados aquí. Actualiza el servidor o vuelve a abrir este panel cuando esté accesible.",
-  "ctrlMoveZNoModel": "Esta impresora no tiene un modelo configurado en Bambuddy, así que la aplicación no sabe si el eje Z mueve la cama o el cabezal, y los movimientos en Z están desactivados aquí. Configura el modelo de la impresora en Bambuddy para usarlos.",
+  "ctrlMoveZToolhead": "Z (cabezal)",
+  "ctrlMoveZUnknownDirection": "La dirección Z de esta impresora depende de la versión del servidor, que no se pudo confirmar, así que los movimientos en Z están desactivados aquí. Actualiza el servidor o vuelve a abrir este panel cuando esté accesible.",
+  "ctrlMoveZNoModel": "Esta impresora no tiene un modelo configurado en Bambuddy, así que la aplicación no sabe si el eje Z mueve la cama o el cabezal, y los movimientos en Z están desactivados aquí. Configura el modelo de la impresora en Bambuddy para usarlos.",
   "ctrlMoveExtrude": "Extruir",
   "ctrlMoveRetract": "Retraer",
   "ctrlMoveLength": "Longitud",
@@ -276,7 +276,7 @@
       }
     }
   },
-  "skipObjectsSelectHint": "Toca un objeto arriba o abajo para seleccionarlo y omitirlo",
+  "skipObjectsSelectHint": "Toca un objeto arriba o abajo para seleccionarlo y omitirlo",
   "skipObjectsMatchInfo": "Haz coincidir los ID con la pantalla de la impresora",
   "skipObjectsMatchHint": "La pantalla de la impresora muestra los ID de los objetos en la placa de impresión",
   "skipObjectsCounter": "{skipped}/{total} omitidos",
@@ -298,7 +298,7 @@
       }
     }
   },
-  "skipObjectsWaitForLayer": "Se puede omitir a partir de la capa 2 (actualmente capa {layer})",
+  "skipObjectsWaitForLayer": "Se puede omitir a partir de la capa 2 (actualmente capa {layer})",
   "@skipObjectsWaitForLayer": {
     "placeholders": {
       "layer": {
@@ -325,7 +325,7 @@
   "smartPlugOnConfirmTitle": "¿Encender?",
   "smartPlugOnConfirmBody": "La impresora se encenderá.",
   "smartPlugTurnOn": "Encender",
-  "powerWatts": "{watts} W",
+  "powerWatts": "{watts} W",
   "@powerWatts": {
     "placeholders": {
       "watts": {
@@ -356,14 +356,14 @@
   "queueCancel": "Cancelar",
   "queueStop": "Detener impresión",
   "queueStopTitle": "¿Detener esta impresión?",
-  "queueStopBody": "La impresora dejará de imprimir y el elemento saldrá de la cola. Lo que se ha impreso hasta ahora no se puede reanudar.",
+  "queueStopBody": "La impresora dejará de imprimir y el elemento saldrá de la cola. Lo que se ha impreso hasta ahora no se puede reanudar.",
   "queueStopConfirm": "Detener impresión",
   "queueRemove": "Eliminar de la cola",
   "queueRemoveStoppedTitle": "¿Eliminar de la cola?",
   "queueRemoveStoppedBody": "La impresora no muestra esta impresión en ejecución. Al eliminarla, se quitará el elemento de la cola.",
   "queueStopped": "Impresión detenida",
   "queueRemoved": "Eliminado de la cola",
-  "queueRemovalStatusChanged": "Este elemento ya no se encuentra en el estado mostrado. Actualiza la cola e inténtalo de nuevo.",
+  "queueRemovalStatusChanged": "Este elemento ya no se encuentra en el estado mostrado. Actualiza la cola e inténtalo de nuevo.",
   "queueNoFreePrinters": "No hay impresoras libres en este momento",
   "queuePrintStarted": "Impresión iniciada",
   "queueStatusPending": "En espera",
@@ -395,11 +395,11 @@
   "archiveFilterColors": "Colores",
   "archiveColorModeAny": "Cualquiera",
   "archiveColorModeAll": "Todos",
-  "archiveFavorite": "Añadir a favoritos",
+  "archiveFavorite": "Añadir a favoritos",
   "archiveUnfavorite": "Eliminar de favoritos",
   "archiveFavoriteFailed": "No se pudo actualizar el favorito",
   "archiveReprint": "Reimprimir",
-  "archiveAddToQueue": "Añadir a la cola",
+  "archiveAddToQueue": "Añadir a la cola",
   "archiveTimelapse": "Ver timelapse",
   "archivePhotos": "{count, plural, =1{Ver foto} other{Ver fotos ({count})}}",
   "@archivePhotos": {
@@ -409,7 +409,7 @@
       }
     }
   },
-  "archiveMediaAction": "Grabaciones y fotos",
+  "archiveMediaAction": "Grabaciones y fotos",
   "archiveMediaOnServer": "En el servidor",
   "archiveMediaOnPrinter": "{count, plural, =0{En la impresora} other{En la impresora ({count})}}",
   "@archiveMediaOnPrinter": {
@@ -464,7 +464,7 @@
   "archivePhotosEmpty": "No hay fotos de esta impresión",
   "archivePhotoFailed": "No se pudo cargar esta foto.",
   "archiveFilamentUsed": "Filamento utilizado",
-  "archiveFilamentGrams": "{grams} g",
+  "archiveFilamentGrams": "{grams} g",
   "@archiveFilamentGrams": {
     "placeholders": {
       "grams": {
@@ -487,8 +487,8 @@
   "archiveFilamentSaving": "Guardando",
   "archiveFilamentNone": "No registrado",
   "archiveFilamentLabel": "Peso (g)",
-  "archiveFilamentNotANumber": "Introduce un número o déjalo vacío para borrar el peso.",
-  "archiveFilamentOutOfRange": "Un peso entre 0 y {max} g.",
+  "archiveFilamentNotANumber": "Introduce un número o déjalo vacío para borrar el peso.",
+  "archiveFilamentOutOfRange": "Un peso entre 0 y {max} g.",
   "@archiveFilamentOutOfRange": {
     "placeholders": {
       "max": {
@@ -538,7 +538,7 @@
       }
     }
   },
-  "timelapseEditSource": "Original: {length} a {width}×{height}",
+  "timelapseEditSource": "Original: {length} a {width}×{height}",
   "@timelapseEditSource": {
     "placeholders": {
       "length": {
@@ -553,7 +553,7 @@
     }
   },
   "timelapseEditSaveTitle": "¿Sobrescribir la grabación?",
-  "timelapseEditSaveMessage": "El servidor recodifica el timelapse y reemplaza el original. No hay ninguna copia a la que volver.",
+  "timelapseEditSaveMessage": "El servidor recodifica el timelapse y reemplaza el original. No hay ninguna copia a la que volver.",
   "timelapseEditProcessing": "El servidor está recodificando el vídeo. En un servidor modesto esto tarda varios minutos — salir de esta pantalla no lo detiene.",
   "timelapseEdited": "Timelapse actualizado",
   "gcodeViewerTitle": "Vista previa de G-code",
@@ -596,13 +596,13 @@
   "archiveNo3mfTitle": "Algunas impresiones recientes se archivaron sin sus miniaturas",
   "archiveNo3mfBody": "El laminador no dejó el archivo .gcode.3mf en la tarjeta de la impresora, por lo que Bambuddy no pudo obtener la miniatura ni los metadatos del laminador. Por lo general, “Store sent files on external storage” está desactivado en la pestaña Device del laminador.",
   "archiveNo3mfTitleInternal": "Algunas impresiones recientes se quedaron en el almacenamiento interno de la impresora",
-  "archiveNo3mfBodyInternal": "Bambu Studio guardó el archivo laminado en el almacenamiento interno de la impresora en lugar de en la tarjeta, por lo que no había nada que leer por FTP. En las series H2 y en la P2S, el botón Imprimir siempre hace esto — activar el ajuste del laminador no cambia nada. Esas impresiones se siguen archivando con su nombre y duración, pero sin miniatura ni metadatos del laminador. Para tener archivos completos, inicia la impresión desde Bambuddy o usa OrcaSlicer para laminar — en ambos casos con una tarjeta o memoria USB en la impresora.",
+  "archiveNo3mfBodyInternal": "Bambu Studio guardó el archivo laminado en el almacenamiento interno de la impresora en lugar de en la tarjeta, por lo que no había nada que leer por FTP. En las series H2 y en la P2S, el botón Imprimir siempre hace esto — activar el ajuste del laminador no cambia nada. Esas impresiones se siguen archivando con su nombre y duración, pero sin miniatura ni metadatos del laminador. Para tener archivos completos, inicia la impresión desde Bambuddy o usa OrcaSlicer para laminar — en ambos casos con una tarjeta o memoria USB en la impresora.",
   "archiveNo3mfTitleNoStorage": "Algunas impresiones recientes no se pudieron archivar: no hay almacenamiento en la impresora",
-  "archiveNo3mfBodyNoStorage": "La impresora indica que no hay ninguna tarjeta o memoria USB en su ranura, por lo que el archivo laminado no tenía dónde guardarse y Bambuddy no pudo leer nada. Inserta una y la próxima impresión se archivará completa.",
+  "archiveNo3mfBodyNoStorage": "La impresora indica que no hay ninguna tarjeta o memoria USB en su ranura, por lo que el archivo laminado no tenía dónde guardarse y Bambuddy no pudo leer nada. Inserta una y la próxima impresión se archivará completa.",
   "archiveNo3mfDocs": "Ver el paso 4 de instalación",
   "archiveNo3mfDocsWhy": "Por qué sucede esto",
   "archiveNo3mfDismiss": "Descartar este aviso",
-  "archiveNotSliceable": "Esta impresión no tiene archivo de origen ni modelo, por lo que no se puede volver a laminar.",
+  "archiveNotSliceable": "Esta impresión no tiene archivo de origen ni modelo, por lo que no se puede volver a laminar.",
   "archiveDelete": "Eliminar",
   "archiveDeleteTitle": "¿Eliminar impresión?",
   "archiveDeleteBody": "Eliminar “{name}” del archivo.",
@@ -710,9 +710,9 @@
       }
     }
   },
-  "amsFeedPrompt": "El Filament Track Switch puede dirigir esta ranura a cualquiera de las dos boquillas, por lo que la impresora no puede determinar adónde debe ir el filamento.",
+  "amsFeedPrompt": "El Filament Track Switch puede dirigir esta ranura a cualquiera de las dos boquillas, por lo que la impresora no puede determinar adónde debe ir el filamento.",
   "amsFeedAlreadyLoaded": "ya cargado",
-  "amsSwitchNotReady": "El Filament Track Switch aún no está configurado. Asigna cada AMS a una entrada de la impresora e inténtalo de nuevo.",
+  "amsSwitchNotReady": "El Filament Track Switch aún no está configurado. Asigna cada AMS a una entrada de la impresora e inténtalo de nuevo.",
   "amsUnloadSlotNotLoaded": "Ninguna boquilla se alimenta desde esta ranura",
   "amsActionsWhilePrinting": "No disponible mientras la impresora está imprimiendo",
   "amsSlotConfigure": "Configurar ranura",
@@ -751,7 +751,7 @@
   "amsSlotConfigModelUnknown": "Modelo de impresora desconocido — mostrando todos los preajustes",
   "amsSlotConfigCurrent": "Configurado actualmente",
   "amsSlotConfigKProfile": "Perfil K",
-  "amsSlotConfigKProfileDefault": "Predeterminado (K {value})",
+  "amsSlotConfigKProfileDefault": "Predeterminado (K {value})",
   "@amsSlotConfigKProfileDefault": {
     "placeholders": {
       "value": {
@@ -760,8 +760,8 @@
     }
   },
   "amsSlotConfigKProfileOther": "Otros perfiles",
-  "amsSlotConfigKProfileNone": "Esta impresora no tiene perfiles K guardados para esta boquilla",
-  "amsSlotConfigKProfileUnavailable": "No se pudieron leer los perfiles K de la impresora",
+  "amsSlotConfigKProfileNone": "Esta impresora no tiene perfiles K guardados para esta boquilla",
+  "amsSlotConfigKProfileUnavailable": "No se pudieron leer los perfiles K de la impresora",
   "amsSlotConfigNozzleGuess": "La impresora no indicó el tamaño de su boquilla — se asume {diameter} mm",
   "@amsSlotConfigNozzleGuess": {
     "placeholders": {
@@ -770,7 +770,7 @@
       }
     }
   },
-  "amsSlotConfigKProfileValue": "K {value}",
+  "amsSlotConfigKProfileValue": "K {value}",
   "@amsSlotConfigKProfileValue": {
     "placeholders": {
       "value": {
@@ -782,7 +782,7 @@
   "amsSlotConfigColourCustom": "Color personalizado",
   "amsSlotReset": "Restablecer ranura",
   "amsSlotResetConfirmTitle": "¿Restablecer esta ranura?",
-  "amsSlotResetConfirmMessage": "La impresora olvidará el filamento configurado aquí y bambuddy olvidará qué preajuste era.",
+  "amsSlotResetConfirmMessage": "La impresora olvidará el filamento configurado aquí y bambuddy olvidará qué preajuste era.",
   "amsSlotResetStarted": "Restableciendo la ranura…",
   "extruderLeft": "Extrusor izquierdo",
   "extruderRight": "Extrusor derecho",
@@ -802,10 +802,10 @@
   "sensorHistoryAverage": "Promedio",
   "sensorHistoryMin": "Mín.",
   "sensorHistoryMax": "Máx.",
-  "sensorHistoryRange6h": "6 h",
-  "sensorHistoryRange24h": "24 h",
-  "sensorHistoryRange48h": "48 h",
-  "sensorHistoryRange7d": "7 d",
+  "sensorHistoryRange6h": "6 h",
+  "sensorHistoryRange24h": "24 h",
+  "sensorHistoryRange48h": "48 h",
+  "sensorHistoryRange7d": "7 d",
   "amsHistoryGood": "Buena",
   "amsHistoryFair": "Aceptable",
   "sensorHistoryEmpty": "No hay datos para este intervalo",
@@ -930,43 +930,43 @@
   "connectToServer": "Conectar al servidor",
   "serverAddressLabel": "Dirección del servidor bambuddy",
   "serverAddressHint": "p. ej. 192.168.1.10:8000",
-  "serverAddressHelper": "Acceso remoto: usa HTTPS a través de un proxy inverso",
+  "serverAddressHelper": "Acceso remoto: usa HTTPS a través de un proxy inverso",
   "testConnection": "Probar conexión",
   "serverRequiresAuth": "El servidor requiere autenticación",
   "authModeApiKey": "Clave API (recomendado)",
-  "authModeLogin": "Usuario y contraseña",
-  "apiKeyExplain": "Una clave API no caduca y tiene permisos limitados — crea una en el servidor: Ajustes → Claves API.",
+  "authModeLogin": "Usuario y contraseña",
+  "apiKeyExplain": "Una clave API no caduca y tiene permisos limitados — crea una en el servidor: Ajustes → Claves API.",
   "apiKeyLabel": "Clave API",
-  "saveAndConnect": "Guardar y conectar",
-  "loginExplain": "Una sesión caduca tras 24 h. Marca “Recordarme” para que la aplicación vuelva a iniciar sesión automáticamente.",
-  "usernameLabel": "Usuario o correo electrónico",
+  "saveAndConnect": "Guardar y conectar",
+  "loginExplain": "Una sesión caduca tras 24 h. Marca “Recordarme” para que la aplicación vuelva a iniciar sesión automáticamente.",
+  "usernameLabel": "Usuario o correo electrónico",
   "passwordLabel": "Contraseña",
   "rememberMe": "Recordarme",
   "rememberMeSubtitle": "La contraseña se guarda en un almacenamiento cifrado (Android Keystore)",
-  "signInAndConnect": "Iniciar sesión y conectar",
+  "signInAndConnect": "Iniciar sesión y conectar",
   "twoFactorTitle": "Autenticación de dos factores",
   "twoFactorMethodTotp": "Authenticator",
   "twoFactorMethodEmail": "Correo electrónico",
   "twoFactorMethodBackup": "Código de respaldo",
   "twoFactorExplainTotp": "Introduce el código de 6 dígitos de tu aplicación de autenticación.",
-  "twoFactorExplainEmail": "Solicita al servidor que te envíe un código de 6 dígitos por correo electrónico y luego introdúcelo aquí.",
-  "twoFactorExplainEmailSent": "Se ha enviado un código de 6 dígitos a la dirección de tu cuenta. Caduca en 10 minutos.",
+  "twoFactorExplainEmail": "Solicita al servidor que te envíe un código de 6 dígitos por correo electrónico y luego introdúcelo aquí.",
+  "twoFactorExplainEmailSent": "Se ha enviado un código de 6 dígitos a la dirección de tu cuenta. Caduca en 10 minutos.",
   "twoFactorExplainBackup": "Introduce uno de los códigos de respaldo de 8 caracteres que guardaste al configurar la 2FA. Cada uno funciona una sola vez.",
   "twoFactorCodeLabel": "Código",
   "twoFactorSendEmail": "Enviarme un código por correo",
   "twoFactorResendEmail": "Enviar otro código",
-  "twoFactorVerify": "Confirmar y conectar",
+  "twoFactorVerify": "Confirmar y conectar",
   "twoFactorBack": "Usar otra cuenta",
-  "twoFactorSessionNote": "La aplicación no puede renovar una sesión con 2FA por sí misma, por lo que volverá a solicitarlo cuando esta expire. Una clave API no caduca y omite este paso.",
+  "twoFactorSessionNote": "La aplicación no puede renovar una sesión con 2FA por sí misma, por lo que volverá a solicitarlo cuando esta expire. Una clave API no caduca y omite este paso.",
   "tryDemo": "Probar la demo",
   "scanApiKeyTitle": "Escanear clave API",
   "scanApiKeyHint": "Apunta la cámara al código QR de la clave API",
-  "cameraPermissionTitle": "Se necesita acceso a la cámara",
-  "cameraPermissionBody": "Permite el acceso a la cámara para escanear códigos QR.",
+  "cameraPermissionTitle": "Se necesita acceso a la cámara",
+  "cameraPermissionBody": "Permite el acceso a la cámara para escanear códigos QR.",
   "errMissingUrl": "Introduce la dirección del servidor",
   "errMissingApiKey": "Introduce la clave API",
-  "errMissingCredentials": "Introduce el usuario y la contraseña",
-  "errRequiresServerSetup": "El servidor requiere una configuración inicial — complétala en un navegador y vuelve aquí.",
+  "errMissingCredentials": "Introduce el usuario y la contraseña",
+  "errRequiresServerSetup": "El servidor requiere una configuración inicial — complétala en un navegador y vuelve aquí.",
   "errServerUnreachable": "Servidor inaccesible",
   "errUnauthorized": "No autorizado",
   "errForbidden": "No permitido — el servidor rechazó esta acción",
@@ -978,7 +978,7 @@
       }
     }
   },
-  "errApiKeyOwnerDisabled": "La cuenta propietaria de esta clave API ha sido desactivada o eliminada — la clave seguirá siendo rechazada hasta que se restaure la cuenta.",
+  "errApiKeyOwnerDisabled": "La cuenta propietaria de esta clave API ha sido desactivada o eliminada — la clave seguirá siendo rechazada hasta que se restaure la cuenta.",
   "errBadResponse": "El servidor devolvió el error {code}",
   "@errBadResponse": {
     "placeholders": {
@@ -990,15 +990,15 @@
   "errBadCertificate": "Certificado TLS no válido (los autofirmados no son compatibles en la v1)",
   "errConnection": "Error de conexión",
   "errMalformedResponse": "Respuesta del servidor mal formada",
-  "errInvalidCredentials": "Usuario o contraseña no válidos",
+  "errInvalidCredentials": "Usuario o contraseña no válidos",
   "errTwoFactorUnsupported": "La cuenta requiere 2FA — no es compatible en esta versión. Usa una clave API (Ajustes → Claves API en el servidor).",
-  "errTwoFactorCodeRejected": "Código incorrecto — compruébalo e inténtalo de nuevo.",
+  "errTwoFactorCodeRejected": "Código incorrecto — compruébalo e inténtalo de nuevo.",
   "errTwoFactorChallengeExpired": "El intento de inicio de sesión ha caducado — introduce tu contraseña de nuevo para obtener un código nuevo.",
   "errTwoFactorMethodUnavailable": "Ese método no está disponible en esta cuenta — elige otro.",
-  "errTwoFactorEmailUnavailable": "El servidor no pudo enviar el código — no tiene el correo electrónico configurado o tu cuenta no tiene ninguna dirección. Usa otro método.",
+  "errTwoFactorEmailUnavailable": "El servidor no pudo enviar el código — no tiene el correo electrónico configurado o tu cuenta no tiene ninguna dirección. Usa otro método.",
   "errMissingTwoFactorCode": "Introduce el código",
-  "errApiKeyRejected": "Clave API rechazada — comprueba la clave y su alcance (se requiere can_read_status)",
-  "errTooManyAttempts": "Demasiados intentos — el servidor está bloqueando el inicio de sesión durante unos minutos. Espera e inténtalo de nuevo, o usa una clave API.",
+  "errApiKeyRejected": "Clave API rechazada — comprueba la clave y su alcance (se requiere can_read_status)",
+  "errTooManyAttempts": "Demasiados intentos — el servidor está bloqueando el inicio de sesión durante unos minutos. Espera e inténtalo de nuevo, o usa una clave API.",
   "notifOngoingBody": "{percent}% · ETA {eta}",
   "notifEtaSoon": "enseguida",
   "@notifOngoingBody": {
@@ -1013,7 +1013,7 @@
   },
   "demoSettingsSection": "Demo",
   "demoPrintingCountTitle": "Impresoras imprimiendo",
-  "demoPrintingCountDesc": "Cuántas impresoras de la demo imprimen a la vez, para ver qué hacen varias con el panel y con la notificación permanente.",
+  "demoPrintingCountDesc": "Cuántas impresoras de la demo imprimen a la vez, para ver qué hacen varias con el panel y con la notificación permanente.",
   "notifOngoingMultiBody": "{printer} ({percent}% · ETA {eta})",
   "@notifOngoingMultiBody": {
     "placeholders": {
@@ -1064,7 +1064,7 @@
     }
   },
   "notifStartedTitle": "Impresión iniciada",
-  "notifStartedBody": "{name} ha comenzado a imprimirse",
+  "notifStartedBody": "{name} ha comenzado a imprimirse",
   "@notifStartedBody": {
     "placeholders": {
       "name": {
@@ -1131,7 +1131,7 @@
     }
   },
   "notifLowFilamentTitle": "Poco filamento",
-  "notifLowFilamentBody": "A {printer} le queda un {percent}% de filamento",
+  "notifLowFilamentBody": "A {printer} le queda un {percent}% de filamento",
   "@notifLowFilamentBody": {
     "placeholders": {
       "printer": {
@@ -1156,7 +1156,7 @@
     }
   },
   "notifBedCooledTitle": "Cama enfriada",
-  "notifBedCooledBody": "La cama de {printer} se ha enfriado a {temp}°C",
+  "notifBedCooledBody": "La cama de {printer} se ha enfriado a {temp}°C",
   "@notifBedCooledBody": {
     "placeholders": {
       "printer": {
@@ -1174,7 +1174,7 @@
   "notifEventsHeader": "Eventos",
   "notifExtrasHeader": "Detalles",
   "notifFinishPhotoTitle": "Foto de la impresión finalizada",
-  "notifFinishPhotoDesc": "Añade la foto que toma el servidor al terminar la impresión a la notificación de finalización o fallo, en cuanto esté disponible",
+  "notifFinishPhotoDesc": "Añade la foto que toma el servidor al terminar la impresión a la notificación de finalización o fallo, en cuanto esté disponible",
   "notifThresholdsHeader": "Umbrales",
   "notifEvtStarted": "Impresión iniciada",
   "notifEvtStartedDesc": "Cuando comienza una impresión",
@@ -1185,7 +1185,7 @@
   "notifEvtFirstLayer": "Primera capa lista",
   "notifEvtFirstLayerDesc": "Cuando finaliza la primera capa",
   "notifEvtMilestones": "Hitos de progreso",
-  "notifEvtMilestonesDesc": "Al 25%, 50% y 75%",
+  "notifEvtMilestonesDesc": "Al 25%, 50% y 75%",
   "notifEvtPlate": "Placa no vacía",
   "notifEvtPlateDesc": "Cuando se debe despejar la placa antes del siguiente trabajo",
   "notifEvtOffline": "Impresora desconectada",
@@ -1234,7 +1234,7 @@
   },
   "hmsDismissAll": "Descartar todo",
   "hmsDismissed": "Errores borrados en la impresora",
-  "hmsActionSent": "Enviado a la impresora",
+  "hmsActionSent": "Enviado a la impresora",
   "hmsActionNotAcknowledged": "La impresora no confirmó la acción — comprueba su pantalla",
   "hmsStopConfirmTitle": "¿Detener la impresión?",
   "hmsStopConfirmBody": "{printer} cancelará el trabajo de impresión. Esto no se puede deshacer.",
@@ -1253,7 +1253,7 @@
   "hmsActionFilamentLoadedResume": "Cargado, reanudar",
   "hmsActionProceed": "Continuar",
   "hmsActionStopPrinting": "Detener",
-  "hmsActionIgnoreResume": "Ignorar y reanudar",
+  "hmsActionIgnoreResume": "Ignorar y reanudar",
   "hmsActionIgnoreNoReminder": "Ignorar siempre",
   "hmsActionDontRemind": "No recordar",
   "hmsActionNoReminder": "Descartar",
@@ -1267,7 +1267,7 @@
   "hmsActionConfirm": "Confirmar",
   "hmsActionAbort": "Abortar",
   "hmsActionOk": "Aceptar",
-  "hmsActionRecheck": "Volver a comprobar",
+  "hmsActionRecheck": "Volver a comprobar",
   "hmsActionTurnOffFireAlarm": "Apagar alarma",
   "hmsActionStopDrying": "Detener secado",
   "hmsActionDisablePurification": "Desactivar purificación",
@@ -1317,7 +1317,7 @@
       }
     }
   },
-  "inventoryRemaining": "{grams} g restantes",
+  "inventoryRemaining": "{grams} g restantes",
   "@inventoryRemaining": {
     "placeholders": {
       "grams": {
@@ -1333,7 +1333,7 @@
       }
     }
   },
-  "inventoryOfTotal": "de {total} g",
+  "inventoryOfTotal": "de {total} g",
   "@inventoryOfTotal": {
     "placeholders": {
       "total": {
@@ -1347,7 +1347,7 @@
   "inventoryTag": "Etiqueta",
   "inventoryUsageHistory": "Historial de uso",
   "inventoryUsageEmpty": "Aún no hay uso registrado",
-  "inventoryUsageWeight": "{grams} g",
+  "inventoryUsageWeight": "{grams} g",
   "@inventoryUsageWeight": {
     "placeholders": {
       "grams": {
@@ -1356,7 +1356,7 @@
     }
   },
   "inventoryKProfiles": "Calibración (K)",
-  "inventoryKProfileLine": "{nozzle} mm · K {k}",
+  "inventoryKProfileLine": "{nozzle} mm · K {k}",
   "@inventoryKProfileLine": {
     "placeholders": {
       "nozzle": {
@@ -1379,7 +1379,7 @@
   "inventoryNewSpool": "Nueva bobina",
   "inventoryEditSpool": "Editar bobina",
   "inventorySave": "Guardar",
-  "inventoryQuantityHint": "Crear varias bobinas idénticas a la vez",
+  "inventoryQuantityHint": "Crear varias bobinas idénticas a la vez",
   "inventoryEdit": "Editar",
   "inventoryDuplicate": "Duplicar",
   "inventoryDelete": "Eliminar",
@@ -1390,7 +1390,7 @@
   "inventorySlicerPresetHint": "Preajuste de impresión con el que se añade esta bobina",
   "inventorySlicerPresetNone": "Sin preajuste",
   "inventorySlicerPresetSearch": "Buscar preajustes…",
-  "inventorySlicerPresetUnavailable": "No hay ningún preajuste del laminador disponible. Habilita el laminado en el servidor (y conecta Bambu Cloud para obtener preajustes de la nube).",
+  "inventorySlicerPresetUnavailable": "No hay ningún preajuste del laminador disponible. Habilita el laminado en el servidor (y conecta Bambu Cloud para obtener preajustes de la nube).",
   "inventorySectionPrinterPresets": "Preajustes por modelo de impresora",
   "inventoryPrinterPresetsHint": "La opción elegida aquí tiene prioridad sobre el preajuste de la bobina.",
   "inventoryPrinterPresetDefault": "Igual que en la bobina",
@@ -1419,7 +1419,7 @@
   "inventoryFieldNote": "Nota",
   "inventoryFieldRequired": "Obligatorio",
   "inventoryFieldInvalidNumber": "Introduce un número",
-  "inventoryFieldRange": "Introduce un valor de {min} a {max}",
+  "inventoryFieldRange": "Introduce un valor de {min} a {max}",
   "@inventoryFieldRange": {
     "placeholders": {
       "min": {
@@ -1430,7 +1430,7 @@
       }
     }
   },
-  "inventoryFieldNegative": "Introduce un valor de 0 o más",
+  "inventoryFieldNegative": "Introduce un valor de 0 o más",
   "inventorySectionFilament": "Filamento",
   "inventorySectionColor": "Color",
   "inventorySectionAdditional": "Adicional",
@@ -1441,7 +1441,7 @@
   "inventoryFieldMeasuredWeight": "Peso medido (g)",
   "inventoryFieldCategory": "Categoría",
   "inventoryFieldMaterialNumber": "Número de material",
-  "inventoryMaterialNumberHint": "Común a todas las bobinas de un producto. Una bobina nueva de un producto conocido lo recibe automáticamente.",
+  "inventoryMaterialNumberHint": "Común a todas las bobinas de un producto. Una bobina nueva de un producto conocido lo recibe automáticamente.",
   "inventorySpoolmanCannotClear": "Spoolman no permite quitar este valor. Cámbialo por otro.",
   "inventoryFieldExtraColors": "Colores adicionales",
   "inventoryExtraColorsHint": "2–8 valores hex, separados por comas",
@@ -1453,7 +1453,7 @@
   "inventoryColorSelect": "Seleccionar",
   "inventoryColorNone": "Sin color",
   "inventoryLowStockHint": "Dejar en blanco para usar el umbral global",
-  "inventoryRemainingOfLabel": "de {total} g",
+  "inventoryRemainingOfLabel": "de {total} g",
   "@inventoryRemainingOfLabel": {
     "placeholders": {
       "total": {
@@ -1470,7 +1470,7 @@
       }
     }
   },
-  "inventoryResetUsageConfirm": "¿Restablecer el contador de filamento consumido a cero? Las futuras impresiones contarán de nuevo desde cero — el peso restante no se modificará.",
+  "inventoryResetUsageConfirm": "¿Restablecer el contador de filamento consumido a cero? Las futuras impresiones contarán de nuevo desde cero — el peso restante no se modificará.",
   "inventorySpoolCreated": "Bobina añadida",
   "inventorySpoolsCreated": "{count} {count, plural, one{bobina añadida} other{bobinas añadidas}}",
   "@inventorySpoolsCreated": {
@@ -1488,7 +1488,7 @@
   "inventorySaveFailed": "No se pudo guardar la bobina",
   "inventoryActionFailed": "Acción fallida",
   "inventoryUnassign": "Desasignar",
-  "inventoryAssign": "Asignar a ranura",
+  "inventoryAssign": "Asignar a ranura",
   "inventoryAssignPrinter": "Impresora",
   "inventoryAssignNoPrinters": "No hay impresoras disponibles",
   "inventorySlotAms": "Ranura AMS",
@@ -1500,9 +1500,9 @@
   "inventoryAssignTitle": "Asignar bobina",
   "inventoryAssignCurrent": "Actualmente en esta ranura",
   "inventoryAssignPick": "Selecciona una bobina",
-  "inventoryTagBound": "La bobina de esta ranura tiene etiqueta RFID, así que se vincula por la etiqueta y no se asigna aquí.",
+  "inventoryTagBound": "La bobina de esta ranura tiene etiqueta RFID, así que se vincula por la etiqueta y no se asigna aquí.",
   "inventoryReassignTitle": "¿Mover bobina?",
-  "inventoryReassignMessage": "Esta bobina está actualmente en {slot}. Se retirará de allí y se asignará a esta ranura.",
+  "inventoryReassignMessage": "Esta bobina está actualmente en {slot}. Se retirará de allí y se asignará a esta ranura.",
   "@inventoryReassignMessage": {
     "placeholders": {
       "slot": {
@@ -1515,7 +1515,7 @@
   "inventorySpoolUnassigned": "Bobina desasignada",
   "inventoryFromSlot": "Añadir al inventario",
   "inventoryFromSlotHint": "Registra la bobina con etiqueta RFID que la impresora notifica en esta ranura",
-  "inventoryFromSlotDone": "Bobina añadida y asignada a la ranura",
+  "inventoryFromSlotDone": "Bobina añadida y asignada a la ranura",
   "inventoryFromSlotNoTag": "La impresora ya no notifica una bobina con etiqueta RFID en esta ranura",
   "inventoryFromSlotOffline": "La impresora no está conectada, por lo que no puede indicar qué hay en la ranura",
   "inventoryFromSlotUnsupported": "Esta versión del servidor no puede añadir una bobina directamente desde una ranura",
@@ -1556,7 +1556,7 @@
       }
     }
   },
-  "inventoryBulkRestoreBody": "Volverán a la lista activa.",
+  "inventoryBulkRestoreBody": "Volverán a la lista activa.",
   "inventoryBulkDeleteTitle": "¿Eliminar {count} {count, plural, one{bobina} other{bobinas}}?",
   "@inventoryBulkDeleteTitle": {
     "placeholders": {
@@ -1565,7 +1565,7 @@
       }
     }
   },
-  "inventoryBulkDeleteBody": "Esto las eliminará permanentemente y no se puede deshacer.",
+  "inventoryBulkDeleteBody": "Esto las eliminará permanentemente y no se puede deshacer.",
   "inventoryBulkResetTitle": "¿Restablecer el uso de {count} {count, plural, one{bobina} other{bobinas}}?",
   "@inventoryBulkResetTitle": {
     "placeholders": {
@@ -1574,7 +1574,7 @@
       }
     }
   },
-  "inventoryBulkResetBody": "Sus contadores de filamento consumido volverán a cero. Los pesos restantes no cambiarán.",
+  "inventoryBulkResetBody": "Sus contadores de filamento consumido volverán a cero. Los pesos restantes no cambiarán.",
   "inventoryBulkDone": "{count} {count, plural, one{bobina actualizada} other{bobinas actualizadas}}",
   "@inventoryBulkDone": {
     "placeholders": {
@@ -1630,7 +1630,7 @@
   },
   "inventoryBulkEditHint": "Solo cambiarán los campos que rellenes. Deja el resto en blanco.",
   "inventoryBulkEditUnchanged": "Sin cambios",
-  "inventoryBulkEditApply": "Aplicar a {count} {count, plural, one{bobina} other{bobinas}}",
+  "inventoryBulkEditApply": "Aplicar a {count} {count, plural, one{bobina} other{bobinas}}",
   "@inventoryBulkEditApply": {
     "placeholders": {
       "count": {
@@ -1654,15 +1654,15 @@
       }
     }
   },
-  "inventoryBulkEditUnsupported": "Este servidor es demasiado antiguo para la edición masiva. Actualiza Bambuddy o edita las bobinas una a una.",
-  "inventoryBulkEditConfirmSuppliers": "Los proveedores se añadirán a cada bobina seleccionada.",
+  "inventoryBulkEditUnsupported": "Este servidor es demasiado antiguo para la edición masiva. Actualiza Bambuddy o edita las bobinas una a una.",
+  "inventoryBulkEditConfirmSuppliers": "Los proveedores se añadirán a cada bobina seleccionada.",
   "inventoryApply": "Aplicar",
   "inventoryLabelsTitle": "Imprimir etiquetas de bobina",
   "inventoryLabelsPrint": "Imprimir etiquetas",
   "inventoryLabelsPrintAll": "Imprimir etiquetas para todas",
   "inventoryClimateTitle": "Condiciones de almacenamiento",
   "inventoryClimateTitleAlerting": "Condiciones de almacenamiento: fuera del rango de alerta",
-  "inventoryClimateSource": "El servidor lee estos datos de Home Assistant. Los sensores se vinculan a una ubicación en la interfaz web de Bambuddy.",
+  "inventoryClimateSource": "El servidor lee estos datos de Home Assistant. Los sensores se vinculan a una ubicación en la interfaz web de Bambuddy.",
   "inventoryClimateNoReading": "sin lectura",
   "inventoryClimateReading": "{name}: {value}",
   "@inventoryClimateReading": {
@@ -1697,7 +1697,7 @@
       }
     }
   },
-  "inventoryLabelsSearchHint": "Buscar por nombre, marca o #ID",
+  "inventoryLabelsSearchHint": "Buscar por nombre, marca o #ID",
   "inventoryLabelsPickSpools": "Elige para qué bobinas imprimir etiquetas:",
   "inventoryLabelsMaterial": "Material:",
   "inventoryLabelsAllMaterials": "Todos",
@@ -1707,9 +1707,9 @@
   "inventoryLabelsSelectVisible": "Seleccionar visibles",
   "inventoryLabelsDeselectVisible": "Deseleccionar visibles",
   "inventoryLabelsClearAll": "Deseleccionar todo",
-  "inventoryLabelsNoMatches": "Ninguna bobina coincide con la búsqueda o el filtro actual.",
-  "inventoryLabelsMonochrome": "Monocromo (impresora en blanco y negro)",
-  "inventoryLabelsMonochromeHint": "Omite la muestra de color y ensancha el texto",
+  "inventoryLabelsNoMatches": "Ninguna bobina coincide con la búsqueda o el filtro actual.",
+  "inventoryLabelsMonochrome": "Monocromo (impresora en blanco y negro)",
+  "inventoryLabelsMonochromeHint": "Omite la muestra de color y ensancha el texto",
   "inventoryLabelsShare": "Compartir PDF en lugar de imprimir",
   "inventoryLabelsPickTemplate": "Elige un tamaño de etiqueta para imprimir:",
   "inventoryLabelsTooMany": "Elige como máximo {max} bobinas por impresión",
@@ -1724,11 +1724,11 @@
   "inventoryLabelsAmsSmall": "Soporte AMS — pequeño (74 × 33 mm)",
   "inventoryLabelsAmsSmallHint": "Una por página; coincide con la etiqueta imprimible del modelo 752566 de MakerWorld.",
   "inventoryLabelsAmsLarge": "Soporte AMS — grande (75 × 55 mm)",
-  "inventoryLabelsAmsLargeHint": "Una por página; se adapta a la variante con inserto de cartulina del mismo soporte.",
+  "inventoryLabelsAmsLargeHint": "Una por página; se adapta a la variante con inserto de cartulina del mismo soporte.",
   "inventoryLabelsBox40": "Etiqueta para caja (40 × 30 mm)",
-  "inventoryLabelsBox40Hint": "Una por página; tamaño común de rollo DK/Brother, apto para bolsas y cajas.",
+  "inventoryLabelsBox40Hint": "Una por página; tamaño común de rollo DK/Brother, apto para bolsas y cajas.",
   "inventoryLabelsBox62": "Etiqueta para caja (62 × 29 mm)",
-  "inventoryLabelsBox62Hint": "Una por página; adaptada a etiquetas pequeñas Brother PT/QL y Dymo.",
+  "inventoryLabelsBox62Hint": "Una por página; adaptada a etiquetas pequeñas Brother PT/QL y Dymo.",
   "inventoryLabelsAveryL7160": "Avery L7160 — hoja A4 (38,1 × 63,5 mm × 21)",
   "inventoryLabelsAveryL7160Hint": "Formato de hoja de la UE; 21 etiquetas por página A4.",
   "inventoryLabelsAvery5160": "Avery 5160 — hoja US Letter (25,4 × 66,7 mm × 30)",
@@ -1744,7 +1744,7 @@
     }
   },
   "maintenanceEmpty": "Sin datos de mantenimiento",
-  "maintenanceTotalHours": "{hours} h en total",
+  "maintenanceTotalHours": "{hours} h en total",
   "@maintenanceTotalHours": {
     "placeholders": {
       "hours": {
@@ -1760,7 +1760,7 @@
       }
     }
   },
-  "maintenanceDueIn": "Vence en {hours} h",
+  "maintenanceDueIn": "Vence en {hours} h",
   "@maintenanceDueIn": {
     "placeholders": {
       "hours": {
@@ -1768,7 +1768,7 @@
       }
     }
   },
-  "maintenanceOverdueBy": "Vencida hace {hours} h",
+  "maintenanceOverdueBy": "Vencida hace {hours} h",
   "@maintenanceOverdueBy": {
     "placeholders": {
       "hours": {
@@ -1785,7 +1785,7 @@
   "maintenanceSaved": "Guardado",
   "maintenanceSettingsTitle": "Ajustes de mantenimiento",
   "maintenanceOverridesTitle": "Intervalos personalizados",
-  "maintenanceOverridesSubtitle": "Silencia tareas o personaliza intervalos por impresora",
+  "maintenanceOverridesSubtitle": "Silencia tareas o personaliza intervalos por impresora",
   "maintenanceMute": "Silenciar",
   "maintenanceUnmute": "Reactivar",
   "maintenanceMuted": "Tarea silenciada",
@@ -1793,13 +1793,13 @@
   "maintenanceEditInterval": "Editar intervalo",
   "maintenanceResetInterval": "Restablecer valor predeterminado",
   "maintenanceTypesTitle": "Tipos de mantenimiento",
-  "maintenanceTypesSubtitle": "Tipos del sistema y tus tareas personalizadas",
+  "maintenanceTypesSubtitle": "Tipos del sistema y tus tareas personalizadas",
   "maintenanceRestoreDefaults": "Restaurar valores predeterminados",
   "maintenanceRestoreConfirm": "¿Restaurar todos los tipos de mantenimiento predeterminados ocultos?",
   "maintenanceAddType": "Añadir tipo personalizado",
   "maintenanceEditType": "Editar tipo",
   "maintenanceSystemType": "Sistema",
-  "maintenanceEveryHours": "Cada {count} h",
+  "maintenanceEveryHours": "Cada {count} h",
   "@maintenanceEveryHours": {
     "placeholders": {
       "count": {
@@ -1840,8 +1840,8 @@
   "maintenanceIntervalDays": "Días",
   "maintenanceIntervalInvalid": "Introduce un valor ≥ 1",
   "maintenanceFieldIcon": "Icono",
-  "maintenanceFieldDocLink": "Enlace a la documentación (opcional)",
-  "maintenanceAssignPrinters": "Asignar a impresoras",
+  "maintenanceFieldDocLink": "Enlace a la documentación (opcional)",
+  "maintenanceAssignPrinters": "Asignar a impresoras",
   "maintenanceSelectPrinter": "Selecciona al menos una impresora",
   "notifEvtMaintenance": "Mantenimiento pendiente",
   "notifEvtMaintenanceDesc": "Cuando vence una tarea de mantenimiento",
@@ -1928,7 +1928,7 @@
       }
     }
   },
-  "statsHours": "{hours} h",
+  "statsHours": "{hours} h",
   "@statsHours": {
     "placeholders": {
       "hours": {
@@ -1982,8 +1982,8 @@
   "statsPeriodFilament": "Filamento del periodo",
   "statsPeriodCost": "Coste del periodo",
   "statsAvgPerPrint": "Media por impresión",
-  "statsUsageOverTime": "Uso a lo largo del tiempo",
-  "statsEnergyOverTime": "Energía a lo largo del tiempo",
+  "statsUsageOverTime": "Uso a lo largo del tiempo",
+  "statsEnergyOverTime": "Energía a lo largo del tiempo",
   "statsMostEnergy": "Mayor consumo de energía",
   "statsKwh": "{value} kWh",
   "@statsKwh": {
@@ -2037,7 +2037,7 @@
   },
   "serverVersionUnknown": "Versión del servidor desconocida",
   "aboutLicenseHeader": "Licencia",
-  "aboutLicenseBody": "Bambuddy es software libre publicado bajo la GNU Affero General Public License v3.0 (AGPL-3.0). Puedes usarlo, estudiarlo, compartirlo y modificarlo; si ejecutas una versión modificada como servicio de red, debes ofrecer su código fuente a sus usuarios.",
+  "aboutLicenseBody": "Bambuddy es software libre publicado bajo la GNU Affero General Public License v3.0 (AGPL-3.0). Puedes usarlo, estudiarlo, compartirlo y modificarlo; si ejecutas una versión modificada como servicio de red, debes ofrecer su código fuente a sus usuarios.",
   "aboutViewLicense": "Leer la licencia AGPL-3.0",
   "aboutSourceHeader": "Código fuente",
   "aboutSourceBody": "El código fuente completo está disponible en GitHub.",
@@ -2069,9 +2069,9 @@
   "fmRenamed": "Renombrado",
   "fmFolderCreated": "Carpeta creada",
   "fmDelete": "Eliminar",
-  "fmDeleted": "Movido a la papelera",
+  "fmDeleted": "Movido a la papelera",
   "fmDeleteFile": "Eliminar archivo",
-  "fmDeleteFileConfirm": "¿Mover “{name}” a la papelera?",
+  "fmDeleteFileConfirm": "¿Mover “{name}” a la papelera?",
   "@fmDeleteFileConfirm": {
     "placeholders": {
       "name": {
@@ -2080,7 +2080,7 @@
     }
   },
   "fmDeleteFolder": "Eliminar carpeta",
-  "fmDeleteFolderConfirm": "¿Eliminar la carpeta “{name}” y todo su contenido?",
+  "fmDeleteFolderConfirm": "¿Eliminar la carpeta “{name}” y todo su contenido?",
   "@fmDeleteFolderConfirm": {
     "placeholders": {
       "name": {
@@ -2088,7 +2088,7 @@
       }
     }
   },
-  "fmDeleteSelectedConfirm": "¿Mover {count} {count, plural, one{archivo} other{archivos}} a la papelera?",
+  "fmDeleteSelectedConfirm": "¿Mover {count} {count, plural, one{archivo} other{archivos}} a la papelera?",
   "@fmDeleteSelectedConfirm": {
     "placeholders": {
       "count": {
@@ -2107,15 +2107,15 @@
     }
   },
   "fmPrint": "Imprimir",
-  "fmAddToQueue": "Añadir a la cola",
-  "fmAddedToQueue": "Añadido a la cola",
+  "fmAddToQueue": "Añadir a la cola",
+  "fmAddedToQueue": "Añadido a la cola",
   "fmQueueTargetTitle": "{count, plural, =1{¿Dónde imprimir este archivo?} other{¿Dónde imprimir {count} archivos?}}",
   "fmQueueTargetAuto": "Modelo del archivo",
   "fmQueueTargetAutoHint": "Cada archivo espera una impresora del modelo para el que se laminó",
-  "fmAddedToQueuePartial": "{added, plural, =1{Se añadió 1 de {total} archivos a la cola.} other{Se añadieron {added} de {total} archivos a la cola.}} {reason}",
+  "fmAddedToQueuePartial": "{added, plural, =1{Se añadió 1 de {total} archivos a la cola.} other{Se añadieron {added} de {total} archivos a la cola.}} {reason}",
   "fmQueueErrWrongModel": "Se laminó para otro modelo de impresora.",
-  "fmQueueErrNotSliced": "Sin laminar: solo los archivos G-code pueden ir a la cola.",
-  "fmFileDetails": "Fotos, enlace y notas",
+  "fmQueueErrNotSliced": "Sin laminar: solo los archivos G-code pueden ir a la cola.",
+  "fmFileDetails": "Fotos, enlace y notas",
   "fmPhotosEmpty": "Todavía no hay fotos de la impresión",
   "fmPhotoAdd": "Añadir foto",
   "fmPhotoFromCamera": "Hacer una foto",
@@ -2125,7 +2125,7 @@
   "fmPhotoDelete": "Eliminar foto",
   "fmPhotoDeleteConfirm": "¿Eliminar esta foto del archivo?",
   "fmPhotoDeleted": "Foto eliminada",
-  "fmPhotoErrType": "Solo se pueden añadir fotos JPG, PNG o WebP.",
+  "fmPhotoErrType": "Solo se pueden añadir fotos JPG, PNG o WebP.",
   "fmPhotoErrTooLarge": "La foto supera los 10 MB.",
   "fmPhotoPickFailed": "No se pudo abrir la cámara ni el selector.",
   "fmLink": "Enlace",
@@ -2133,7 +2133,7 @@
   "fmLinkEdit": "Editar enlace",
   "fmLinkField": "Dirección",
   "fmLinkSaved": "Enlace guardado",
-  "fmLinkErrScheme": "El enlace tiene que empezar por http:// o https://.",
+  "fmLinkErrScheme": "El enlace tiene que empezar por http:// o https://.",
   "linkOpenFailed": "No se pudo abrir el enlace.",
   "fmSource": "Importado de",
   "fmNotes": "Notas",
@@ -2141,7 +2141,7 @@
   "fmNotesEdit": "Editar notas",
   "fmNotesSaved": "Notas guardadas",
   "fmGroupAsVariants": "Agrupar como alternativas",
-  "fmQueueAsVariants": "Añadir a la cola como un solo trabajo",
+  "fmQueueAsVariants": "Añadir a la cola como un solo trabajo",
   "fmUngroupVariants": "Desagrupar alternativas",
   "fmVariantsGrouped": "{count} archivos agrupados como alternativas",
   "@fmVariantsGrouped": {
@@ -2278,11 +2278,11 @@
   "makerworldTitle": "MakerWorld",
   "modelSourcesTitle": "Fuentes de modelos",
   "manyfoldTitle": "Manyfold",
-  "mfDescription": "Explora y busca en tu biblioteca de Manyfold e importa sus archivos para laminarlos e imprimirlos.",
+  "mfDescription": "Explora y busca en tu biblioteca de Manyfold e importa sus archivos para laminarlos e imprimirlos.",
   "mfNotConnectedTitle": "Manyfold no está conectado",
-  "mfNotConnectedBody": "Pide a un administrador que conecte tu biblioteca de Manyfold.",
+  "mfNotConnectedBody": "Pide a un administrador que conecte tu biblioteca de Manyfold.",
   "mfConnectionTitle": "Conexión con Manyfold",
-  "mfConnectionHelp": "En Manyfold, abre Ajustes → API y crea una aplicación con los permisos «public» y «read». Introduce aquí su ID de cliente y su secreto. Bambuddy ve los modelos que puede ver el propietario de la aplicación.",
+  "mfConnectionHelp": "En Manyfold, abre Ajustes → API y crea una aplicación con los permisos «public» y «read». Introduce aquí su ID de cliente y su secreto. Bambuddy ve los modelos que puede ver el propietario de la aplicación.",
   "mfUrl": "URL de Manyfold",
   "mfUrlPlaceholder": "http://192.168.1.10:3214",
   "mfClientId": "ID de cliente",
@@ -2294,7 +2294,7 @@
   "mfTestOk": "Conectado. Modelos que Bambuddy puede ver: {count}",
   "mfDisconnect": "Desconectar",
   "mfDisconnectTitle": "¿Desconectar Manyfold?",
-  "mfDisconnectBody": "Bambuddy olvida la URL, el ID de cliente y el secreto de Manyfold. Los archivos importados se quedan en tu biblioteca.",
+  "mfDisconnectBody": "Bambuddy olvida la URL, el ID de cliente y el secreto de Manyfold. Los archivos importados se quedan en tu biblioteca.",
   "mfDisconnected": "Manyfold desconectado",
   "mfEditConnection": "Conexión",
   "mfSearchPlaceholder": "Buscar modelos",
@@ -2332,19 +2332,19 @@
   "mfCollectProgress": "Leyendo modelos {current}/{total}",
   "mfModelsUnreadable": "No se pudieron leer: {names}",
   "mfErrNotConfigured": "Manyfold no está conectado.",
-  "mfErrCredentials": "Manyfold no aceptó el ID de cliente o el secreto.",
+  "mfErrCredentials": "Manyfold no aceptó el ID de cliente o el secreto.",
   "mfErrScope": "La aplicación de Manyfold necesita el permiso «read». Edítala en Manyfold en Ajustes → API.",
   "mfErrRateLimited": "Manyfold está limitando los inicios de sesión. Inténtalo de nuevo en unos minutos.",
-  "mfErrUnreachable": "Bambuddy no puede conectar con Manyfold. Comprueba la URL y que Manyfold esté en marcha.",
+  "mfErrUnreachable": "Bambuddy no puede conectar con Manyfold. Comprueba la URL y que Manyfold esté en marcha.",
   "mfErrForbidden": "Manyfold denegó el acceso. Comprueba que el propietario de la aplicación pueda ver este modelo.",
-  "mfErrNotFound": "Manyfold no encuentra este modelo o archivo.",
+  "mfErrNotFound": "Manyfold no encuentra este modelo o archivo.",
   "mfErrTooLarge": "El archivo ocupa más de 200 MB.",
-  "mfErrNotImportable": "Solo se pueden importar archivos 3MF, STL y STEP.",
-  "mfErrBadUrl": "Introduce la URL de Manyfold empezando por http:// o https://.",
+  "mfErrNotImportable": "Solo se pueden importar archivos 3MF, STL y STEP.",
+  "mfErrBadUrl": "Introduce la URL de Manyfold empezando por http:// o https://.",
   "mfErrSecretRequired": "Introduce el secreto de cliente.",
   "mfErrFailed": "Manyfold respondió con un error.",
-  "mwIntro": "Pega la URL de un modelo de MakerWorld para importarlo e imprimirlo directamente desde Bambuddy.",
-  "mwUrlHint": "https://makerworld.com/en/models/… o cualquier enlace de MakerWorld",
+  "mwIntro": "Pega la URL de un modelo de MakerWorld para importarlo e imprimirlo directamente desde Bambuddy.",
+  "mwUrlHint": "https://makerworld.com/en/models/… o cualquier enlace de MakerWorld",
   "mwResolve": "Resolver",
   "mwEnterUrl": "Introduce una URL de MakerWorld",
   "mwUntitledModel": "Modelo sin título",
@@ -2368,7 +2368,7 @@
   },
   "mwShowLess": "Mostrar menos",
   "mwInLibrary": "En la biblioteca",
-  "mwImported": "Importado a tu biblioteca",
+  "mwImported": "Importado a tu biblioteca",
   "mwAlreadyInLibrary": "Ya está en tu biblioteca",
   "mwViewInFiles": "Ver en el gestor de archivos",
   "mwRecentImports": "Importaciones recientes",
@@ -2387,14 +2387,14 @@
   "cloudSignedIn": "Sesión iniciada",
   "cloudSignedInOk": "Sesión iniciada en Bambu Cloud",
   "cloudSignInFailed": "Error al iniciar sesión",
-  "cloudFillCredentials": "Introduce tu correo electrónico y contraseña",
+  "cloudFillCredentials": "Introduce tu correo electrónico y contraseña",
   "cloudVerify": "Verificar",
   "cloudVerificationCode": "Código de verificación",
   "cloudVerificationPrompt": "Introduce el código de verificación para completar el inicio de sesión.",
   "cloudEnterCode": "Introduce el código de verificación",
   "swatchCodesMenu": "Códigos de muestras",
   "swatchCodesTitle": "Códigos de muestras",
-  "swatchSearchHint": "Buscar por código o nombre",
+  "swatchSearchHint": "Buscar por código o nombre",
   "swatchSectionCodes": "Códigos",
   "swatchSectionUncoded": "Filamentos del inventario sin código",
   "swatchNoCodes": "Aún no hay códigos de muestras",
@@ -2489,7 +2489,7 @@
   "swatchSave": "Guardar",
   "swatchRegenerate": "Regenerar",
   "swatchFieldCode": "Código",
-  "swatchCodeInvalid": "Usa 6 caracteres: dígitos y letras, sin 0, 1, I, L ni O",
+  "swatchCodeInvalid": "Usa 6 caracteres: dígitos y letras, sin 0, 1, I, L ni O",
   "swatchCodeTaken": "Ese código ya está en uso",
   "swatchFieldBrand": "Fabricante",
   "swatchFieldMaterial": "Material",
@@ -2497,7 +2497,7 @@
   "swatchFieldColor": "Color",
   "swatchFieldHex": "Color hexadecimal",
   "swatchMaterialRequired": "El material es obligatorio",
-  "swatchNoCatalogColors": "No hay colores de catálogo disponibles. Introduce el nombre del color y el código hexadecimal manualmente.",
+  "swatchNoCatalogColors": "No hay colores de catálogo disponibles. Introduce el nombre del color y el código hexadecimal manualmente.",
   "projectsMenu": "Proyectos",
   "projectsTitle": "Proyectos",
   "projectsEmpty": "Aún no hay proyectos",
@@ -2619,7 +2619,7 @@
   "projectMenuCreateTemplate": "Guardar como plantilla",
   "projectMenuImport": "Importar proyecto",
   "projectFromTemplate": "Crear desde plantilla",
-  "projectExported": "Exportado a {path}",
+  "projectExported": "Exportado a {path}",
   "@projectExported": {
     "placeholders": {
       "path": {
@@ -2671,7 +2671,7 @@
   "sliceAutoOrient": "Orientación automática",
   "sliceAutoOrientHint": "Gira cada objeto hacia su mejor cara de impresión.",
   "sliceAutoArrange": "Distribución automática",
-  "sliceAutoArrangeHint": "Vuelve a distribuir los objetos sobre la placa.",
+  "sliceAutoArrangeHint": "Vuelve a distribuir los objetos sobre la placa.",
   "sliceDesignedFor": "Este archivo es para {printer}",
   "@sliceDesignedFor": {
     "placeholders": {
@@ -2720,7 +2720,7 @@
   },
   "processSettingsDisabledHint": "El laminador ignora esto con tus ajustes actuales.",
   "processSettingsUnavailable": "Este servidor no puede informar los ajustes de proceso para el preajuste seleccionado.",
-  "processSettingsDefaultsOutdatedSidecar": "Mostrando valores predeterminados del laminador: el sidecar del laminador es anterior a esta función y no puede consultar los valores del preajuste. Actualiza la imagen del sidecar para verlos. Todo lo que no modifiques seguirá usando el preajuste.",
+  "processSettingsDefaultsOutdatedSidecar": "Mostrando valores predeterminados del laminador: el sidecar del laminador es anterior a esta función y no puede consultar los valores del preajuste. Actualiza la imagen del sidecar para verlos. Todo lo que no modifiques seguirá usando el preajuste.",
   "processSettingsDefaultsNotConfigured": "Mostrando valores predeterminados del laminador: no hay ningún sidecar del laminador configurado, por lo que no se pueden leer los valores del preajuste. Todo lo que no modifiques seguirá usando el preajuste.",
   "processSettingsDefaultsSidecarUnavailable": "Mostrando valores predeterminados del laminador: el sidecar del laminador no respondió, por lo que no se pueden leer los valores del preajuste. Todo lo que no modifiques seguirá usando el preajuste.",
   "processSettingsDefaultsUnavailable": "Mostrando valores predeterminados del laminador: no se pudieron leer los valores propios del preajuste seleccionado. Todo lo que no modifiques seguirá usando el preajuste.",
@@ -2770,7 +2770,7 @@
   "sliceSpoolsUnavailable": "No disponibles:",
   "sliceSpoolFrom": "De una bobina · {source}",
   "sliceSpoolNoProfileShort": "sin perfil",
-  "sliceOwnedEmpty": "No hay preajustes coincidentes para tu impresora y filamentos. Activa “Todos” para explorar el catálogo completo.",
+  "sliceOwnedEmpty": "No hay preajustes coincidentes para tu impresora y filamentos. Activa “Todos” para explorar el catálogo completo.",
   "sliceNoPresets": "No hay preajustes disponibles",
   "sliceInProgress": "Laminando…",
   "sliceDone": "Laminación completada",
@@ -2790,10 +2790,10 @@
       }
     }
   },
-  "sliceRefusedStep": "Los archivos STEP no se pueden laminar. Exporta primero el modelo como STL o 3MF desde tu CAD.",
-  "sliceRefusedFormat": "El archivo de origen debe ser STL o 3MF.",
-  "sliceRefusedNoSource": "Este archivo solo conservó el G-code que imprimió, no el modelo — no hay nada que volver a laminar.",
-  "sliceResultFilament": "Filamento: {grams} g",
+  "sliceRefusedStep": "Los archivos STEP no se pueden laminar. Exporta primero el modelo como STL o 3MF desde tu CAD.",
+  "sliceRefusedFormat": "El archivo de origen debe ser STL o 3MF.",
+  "sliceRefusedNoSource": "Este archivo solo conservó el G-code que imprimió, no el modelo — no hay nada que volver a laminar.",
+  "sliceResultFilament": "Filamento: {grams} g",
   "@sliceResultFilament": {
     "placeholders": {
       "grams": {
@@ -2820,11 +2820,11 @@
   "pipelineNameHint": "Nombre del pipeline",
   "pipelineSaveConfirm": "Guardar",
   "pipelineSaved": "Pipeline guardado",
-  "pipelineSaveHint": "La impresora, el proceso, los filamentos y la placa anteriores, bajo un nombre que puedes reutilizar en el siguiente archivo.",
+  "pipelineSaveHint": "La impresora, el proceso, los filamentos y la placa anteriores, bajo un nombre que puedes reutilizar en el siguiente archivo.",
   "pipelinesMenu": "Pipelines",
   "pipelinesTitle": "Pipelines",
   "pipelinesEmpty": "Aún no hay pipelines",
-  "pipelinesEmptyHint": "Guarda uno desde el formulario de laminado: impresora, proceso, filamentos y placa en un paquete que puedes aplicar con un solo toque.",
+  "pipelinesEmptyHint": "Guarda uno desde el formulario de laminado: impresora, proceso, filamentos y placa en un paquete que puedes aplicar con un solo toque.",
   "pipelineFilamentsCount": "Filamentos ({count})",
   "@pipelineFilamentsCount": {
     "placeholders": {
@@ -3007,7 +3007,7 @@
       }
     }
   },
-  "pipelineRunOverridden": "Iniciado a pesar de una comprobación fallida",
+  "pipelineRunOverridden": "Iniciado a pesar de una comprobación fallida",
   "pipelineRunDeletedPipeline": "Pipeline eliminado",
   "pipelineRunSource": "Desde {name}",
   "@pipelineRunSource": {
@@ -3086,12 +3086,12 @@
   "mappingExactColor": "Color exacto",
   "mappingSameTypeOtherColor": "Mismo tipo, otro color: necesita {required}, la ranura tiene {loaded}",
   "mappingTypeNotLoaded": "Tipo de filamento no cargado",
-  "mappingManual": "Elegido a mano",
+  "mappingManual": "Elegido a mano",
   "mappingRequired": "Necesario: {name}, {color}",
   "mappingUseSlicer": "Asignación del slicer",
-  "mappingUseSlicerHint": "Elige cada ranura según la asignación de AMS que el slicer guardó con esta impresión, en lugar de emparejar por tipo y color.",
-  "mappingReRead": "Volver a leer",
-  "mappingFtsSameInlet": "Todos los filamentos de esta impresión están en la entrada IN-{inlet} del Filament Track Switch. Cambiar entre filamentos de la misma entrada es más lento: mueve uno a un AMS de la otra entrada para acelerarlo.",
+  "mappingUseSlicerHint": "Elige cada ranura según la asignación de AMS que el slicer guardó con esta impresión, en lugar de emparejar por tipo y color.",
+  "mappingReRead": "Volver a leer",
+  "mappingFtsSameInlet": "Todos los filamentos de esta impresión están en la entrada IN-{inlet} del Filament Track Switch. Cambiar entre filamentos de la misma entrada es más lento: mueve uno a un AMS de la otra entrada para acelerarlo.",
   "mappingRackPosition": "Posición en el soporte",
   "mappingRackPositionHint": "Qué boquilla del soporte imprime este filamento. Las posiciones están numeradas como en la impresora.",
   "mappingRackNeeds": "Este filamento necesita una boquilla {nozzle}.",
@@ -3160,7 +3160,7 @@
   "pfmPrinterUnavailable": "La impresora no respondió, por lo que no se pudieron listar sus archivos",
   "pfmDownloadTooLarge": "La selección es demasiado grande para que el servidor la empaquete",
   "pfmDownloadNoServerSpace": "El servidor no tiene espacio para preparar esta descarga",
-  "pfmDownloadTookTooLong": "Preparar la descarga tardó demasiado y el servidor la canceló",
+  "pfmDownloadTookTooLong": "Preparar la descarga tardó demasiado y el servidor la canceló",
   "pfmPreparingOnServer": "Preparando en el servidor…",
   "pfmDownloading": "Descargando…",
   "pfmDownloadCancelled": "Descarga cancelada",
@@ -3213,7 +3213,7 @@
   "wearAuthLogin": "Iniciar sesión",
   "wearUsername": "Usuario",
   "wearSetupPhoneTitle": "Configurar desde el teléfono",
-  "wearSetupPhoneBody": "Abre Bambuddy en tu teléfono emparejado — el reloj obtendrá el servidor y la sesión desde él.",
+  "wearSetupPhoneBody": "Abre Bambuddy en tu teléfono emparejado — el reloj obtendrá el servidor y la sesión desde él.",
   "wearSetupPhoneCheck": "Comprobar de nuevo",
   "wearSetupPhoneEmpty": "Aún no se ha recibido nada del teléfono.",
   "wearSetupManual": "Introducir manualmente",
@@ -3236,7 +3236,7 @@
   "queueEditSaved": "Elemento de la cola actualizado",
   "queueCreateTitle": "Imprimir",
   "queueCreateSubmit": "Imprimir",
-  "queueCreateAdded": "Añadido a la cola",
+  "queueCreateAdded": "Añadido a la cola",
   "queueEditPrintJob": "Trabajo de impresión",
   "queueEditTarget": "Destino",
   "queueEditSpecificPrinter": "Impresora específica",
@@ -3312,8 +3312,8 @@
   "queueOptTimelapseDesc": "Grabar vídeo timelapse",
   "queueOptNozzleOffset": "Calibración del desfase de boquillas",
   "queueOptNozzleOffsetDesc": "Calibrar los desfases de boquilla entre extrusores",
-  "queueEditPreheat": "Precalentamiento y estabilización térmica",
-  "queueEditPreheatDesc": "Calienta la cama y la cámara antes de iniciar esta impresión. Por defecto usa el interruptor global Ajustes → Flujo de trabajo.",
+  "queueEditPreheat": "Precalentamiento y estabilización térmica",
+  "queueEditPreheatDesc": "Calienta la cama y la cámara antes de iniciar esta impresión. Por defecto usa el interruptor global Ajustes → Flujo de trabajo.",
   "queuePreheatInherit": "Heredar",
   "queueEditChamberTarget": "Sobrescribir temperatura de cámara (°C, vacío = por defecto del filamento)",
   "queueEditChamberTargetRange": "0–{max} °C",
@@ -3328,7 +3328,7 @@
   "queueScheduleAsap": "Inmediato",
   "queueScheduleQueue": "Cola",
   "queueScheduleSchedule": "Programar",
-  "queueEditPickTime": "Elegir fecha y hora",
+  "queueEditPickTime": "Elegir fecha y hora",
   "queueEditRequireManualStart": "Requerir inicio manual",
   "queueBadgeStaged": "Preparado",
   "queueBadgeAwaitingReview": "Esperando revisión",
@@ -3363,8 +3363,8 @@
     }
   },
   "queueEditForceColorMatch": "Forzar coincidencia de color",
-  "queueEditRackPickStale": "La posición elegida ya no es compatible con este filamento — selecciona otra o la impresión se rechazará al iniciar.",
-  "queueEditRackNoFit": "Ninguna posición del soporte tiene una boquilla {nozzle} — instala una o la impresora decidirá por sí misma.",
+  "queueEditRackPickStale": "La posición elegida ya no es compatible con este filamento — selecciona otra o la impresión se rechazará al iniciar.",
+  "queueEditRackNoFit": "Ninguna posición del soporte tiene una boquilla {nozzle} — instala una o la impresora decidirá por sí misma.",
   "@queueEditRackNoFit": {
     "placeholders": {
       "nozzle": {
@@ -3374,17 +3374,17 @@
   },
   "nozzleFlowStandard": "Estándar",
   "nozzleFlowHigh": "Alto flujo",
-  "bugReportMenu": "Informar de un error o una idea",
-  "bugReportTitle": "Informar de un error o una idea",
-  "bugReportLogScreens": "Pantallas que abres y botones que pulsas",
-  "bugReportLogRequests": "Peticiones al servidor y sus respuestas",
-  "bugReportLogService": "La vista en directo y qué notificaciones envió u omitió el servicio en segundo plano",
-  "bugReportLogErrors": "Errores y fallos inesperados, incluidos los que nunca ves",
-  "bugReportLogSetup": "Versión de la app y del servidor, tu teléfono, tu idioma",
-  "bugReportLogNoKey": "Tu clave API o contraseña",
+  "bugReportMenu": "Informar de un error o una idea",
+  "bugReportTitle": "Informar de un error o una idea",
+  "bugReportLogScreens": "Pantallas que abres y botones que pulsas",
+  "bugReportLogRequests": "Peticiones al servidor y sus respuestas",
+  "bugReportLogService": "La vista en directo y qué notificaciones envió u omitió el servicio en segundo plano",
+  "bugReportLogErrors": "Errores y fallos inesperados, incluidos los que nunca ves",
+  "bugReportLogSetup": "Versión de la app y del servidor, tu teléfono, tu idioma",
+  "bugReportLogNoKey": "Tu clave API o contraseña",
   "bugReportLogNoTyping": "El texto que escribes",
-  "bugReportLogNoAddress": "La dirección de tu servidor — solo http o https, nombre o IP, y el puerto",
-  "bugReportLogNoData": "Números de serie de las impresoras o nombres de tus archivos, modelos y bobinas",
+  "bugReportLogNoAddress": "La dirección de tu servidor — solo http o https, nombre o IP, y el puerto",
+  "bugReportLogNoData": "Números de serie de las impresoras o nombres de tus archivos, modelos y bobinas",
   "bugReportRequestNoData": "Nada sobre tus impresoras ni tu teléfono",
   "usersTitle": "Usuarios",
   "usersEmpty": "No hay cuentas en este servidor.",
@@ -3434,14 +3434,14 @@
   "usersGroupSystem": "(integrado)",
   "usersFieldRequired": "Completa este campo",
   "usersPasswordsDoNotMatch": "Las dos contraseñas son diferentes.",
-  "usersGroupsAdminHint": "Pertenecer a Administrators es lo que convierte a una cuenta en administradora.",
+  "usersGroupsAdminHint": "Pertenecer a Administrators es lo que convierte a una cuenta en administradora.",
   "usersActiveHint": "Una cuenta inactiva no puede iniciar sesión.",
   "usersEmailAdvancedHint": "Este servidor envía la contraseña por correo, por lo que necesita una dirección.",
-  "usersPasswordMailed": "El servidor genera la contraseña automáticamente y la envía a esta dirección. Nadie, incluyéndote a ti, podrá verla.",
+  "usersPasswordMailed": "El servidor genera la contraseña automáticamente y la envía a esta dirección. Nadie, incluyéndote a ti, podrá verla.",
   "usersNoSmtpWarning": "No hay ningún servidor de correo configurado, por lo que el mensaje no llegará — la cuenta se crearía con una contraseña que nadie conoce.",
-  "usersLdapPasswordNote": "Esta cuenta inicia sesión mediante el directorio (LDAP). Su contraseña reside allí y no se puede configurar desde aquí.",
+  "usersLdapPasswordNote": "Esta cuenta inicia sesión mediante el directorio (LDAP). Su contraseña reside allí y no se puede configurar desde aquí.",
   "usersPasswordKeepHint": "Deja este campo vacío para mantener la contraseña actual.",
-  "usersPasswordRulesHint": "Al menos 8 caracteres, con mayúscula, minúscula, un dígito y un símbolo.",
+  "usersPasswordRulesHint": "Al menos 8 caracteres, con mayúscula, minúscula, un dígito y un símbolo.",
   "usersPasswordTooShort": "Al menos 8 caracteres.",
   "usersPasswordNoUppercase": "Añade una letra mayúscula.",
   "usersPasswordNoLowercase": "Añade una letra minúscula.",
@@ -3455,7 +3455,7 @@
       }
     }
   },
-  "usersDeleteBody": "Se eliminarán la cuenta, sus claves API y su estado de inicio de sesión. Esta acción no se puede deshacer.",
+  "usersDeleteBody": "Se eliminarán la cuenta, sus claves API y su estado de inicio de sesión. Esta acción no se puede deshacer.",
   "usersDeleteOwnsCount": "{count, plural, =1{Esta cuenta creó 1 elemento} other{Esta cuenta creó {count} elementos}}",
   "@usersDeleteOwnsCount": {
     "placeholders": {
@@ -3465,8 +3465,8 @@
     }
   },
   "usersDeleteItemsToo": "Eliminarlos también",
-  "usersDeleteItemsTooHint": "Sus impresiones, elementos en cola y archivos se eliminarán con la cuenta.",
-  "usersDeleteItemsKeepHint": "Sus impresiones, elementos en cola y archivos se conservarán sin propietario.",
+  "usersDeleteItemsTooHint": "Sus impresiones, elementos en cola y archivos se eliminarán con la cuenta.",
+  "usersDeleteItemsKeepHint": "Sus impresiones, elementos en cola y archivos se conservarán sin propietario.",
   "usersDeleteConfirm": "Eliminar",
   "usersErrLastAdmin": "Este es el último administrador — el servidor debe conservar uno.",
   "usersErrLastAdminDelete": "No se puede eliminar al último administrador — el servidor se quedaría sin nadie que pueda gestionarlo.",
@@ -3474,16 +3474,16 @@
   "usersErrLastAdminRole": "No se puede degradar al último administrador — el servidor se quedaría sin nadie que pueda gestionarlo.",
   "usersErrSelfDelete": "No puedes eliminar la cuenta con la que has iniciado sesión.",
   "usersErrUsernameTaken": "Ese nombre de usuario ya está en uso.",
-  "usersErrEmailTaken": "Ese correo electrónico ya pertenece a otra cuenta.",
+  "usersErrEmailTaken": "Ese correo electrónico ya pertenece a otra cuenta.",
   "usersErrLdapPassword": "La contraseña de una cuenta de directorio (LDAP) no se puede configurar aquí.",
   "usersErrEmailRequired": "Este servidor requiere una dirección de correo electrónico para las cuentas nuevas.",
   "usersErrPasswordRequired": "Este servidor requiere una contraseña para las cuentas nuevas.",
-  "usersErrGroupsInvalid": "Uno de los grupos ya no existe — vuelve a abrir el formulario.",
+  "usersErrGroupsInvalid": "Uno de los grupos ya no existe — vuelve a abrir el formulario.",
   "groupsTitle": "Grupos",
   "groupsEmpty": "No hay grupos en este servidor.",
   "groupsNoDescription": "Sin descripción",
   "groupsSystemPill": "Integrado",
-  "groupsSystemNote": "Un grupo integrado no se puede renombrar y sus permisos son fijos — solo pueden cambiar sus miembros.",
+  "groupsSystemNote": "Un grupo integrado no se puede renombrar y sus permisos son fijos — solo pueden cambiar sus miembros.",
   "groupsMemberCount": "{count, plural, =0{ninguna cuenta} =1{1 cuenta} other{{count} cuentas}}",
   "@groupsMemberCount": {
     "placeholders": {
@@ -3503,7 +3503,7 @@
   "groupsMembersHeader": "MIEMBROS",
   "groupsNoMembers": "No hay nadie en este grupo.",
   "groupsAddMember": "Añadir miembro",
-  "groupsAddMemberTitle": "Añadir a {group}",
+  "groupsAddMemberTitle": "Añadir a {group}",
   "@groupsAddMemberTitle": {
     "placeholders": {
       "group": {
@@ -3511,9 +3511,9 @@
       }
     }
   },
-  "groupsEveryoneIsIn": "Todas las cuentas ya pertenecen a este grupo.",
+  "groupsEveryoneIsIn": "Todas las cuentas ya pertenecen a este grupo.",
   "groupsRemoveMember": "Quitar",
-  "groupsRemoveMemberQuestion": "¿Quitar a {username} de {group}?",
+  "groupsRemoveMemberQuestion": "¿Quitar a {username} de {group}?",
   "@groupsRemoveMemberQuestion": {
     "placeholders": {
       "username": {
@@ -3524,7 +3524,7 @@
       }
     }
   },
-  "groupsRemoveMemberBody": "La cuenta se conserva y pierde lo que este grupo le otorgaba.",
+  "groupsRemoveMemberBody": "La cuenta se conserva y pierde lo que este grupo le otorgaba.",
   "groupsCreate": "Nuevo grupo",
   "groupsCreateTitle": "Nuevo grupo",
   "groupsEditTitle": "Editar grupo",
@@ -3540,7 +3540,7 @@
     }
   },
   "groupsDeleteBody": "Los permisos que otorga desaparecerán con él.",
-  "groupsDeleteBodyWithMembers": "{count, plural, =1{1 cuenta pertenece a él y se conservará — solo perderá lo que este grupo le otorgaba.} other{{count} cuentas pertenecen a él y se conservarán — solo perderán lo que este grupo les otorgaba.}}",
+  "groupsDeleteBodyWithMembers": "{count, plural, =1{1 cuenta pertenece a él y se conservará — solo perderá lo que este grupo le otorgaba.} other{{count} cuentas pertenecen a él y se conservarán — solo perderán lo que este grupo les otorgaba.}}",
   "@groupsDeleteBodyWithMembers": {
     "placeholders": {
       "count": {
@@ -3550,7 +3550,7 @@
   },
   "groupsFieldName": "Nombre",
   "groupsFieldDescription": "Para qué sirve",
-  "groupsSystemFormNote": "Grupo integrado: su nombre y permisos están fijados por el servidor. Aquí solo se puede modificar la descripción.",
+  "groupsSystemFormNote": "Grupo integrado: su nombre y permisos están fijados por el servidor. Aquí solo se puede modificar la descripción.",
   "groupsPermissionsHeader": "PERMISOS",
   "groupsPermissionsSelected": "{count} seleccionados",
   "@groupsPermissionsSelected": {
@@ -3564,17 +3564,17 @@
   "groupsAdvancedHint": "Usuarios, claves API, ajustes, copias de seguridad — todo para lo que la propia aplicación no tiene pantalla.",
   "serverSettingsMenu": "Ajustes del servidor",
   "serverSettingsTitle": "Ajustes del servidor",
-  "serverSettingsQueueSubtitle": "Programación, precalentamiento, mantenimiento de la cama caliente entre impresiones y la pregunta por el resultado",
-  "serverSettingsMaintenanceSubtitle": "Tipos de tareas e intervalos por impresora",
-  "serverSettingsAdminSubtitle": "Cuentas, grupos y claves API",
+  "serverSettingsQueueSubtitle": "Programación, precalentamiento, mantenimiento de la cama caliente entre impresiones y la pregunta por el resultado",
+  "serverSettingsMaintenanceSubtitle": "Tipos de tareas e intervalos por impresora",
+  "serverSettingsAdminSubtitle": "Cuentas, grupos y claves API",
   "serverSettingsCloudSubtitle": "La cuenta de Bambu que utiliza el servidor para descargar",
-  "queueSettingsTitle": "Cola y precalentamiento",
+  "queueSettingsTitle": "Cola y precalentamiento",
   "queueSettingsReadOnlyApiKey": "Una clave API nunca puede modificar los ajustes del servidor. Inicia sesión con una cuenta para cambiarlos.",
   "queueSettingsReadOnlyPermission": "Tu cuenta puede leer estos ajustes, pero no modificarlos.",
-  "queueSettingsUnavailable": "Este servidor no proporciona ninguno de estos ajustes. O bien es más antiguo que ellos, o no se pudieron leer — desliza hacia abajo para reintentarlo.",
+  "queueSettingsUnavailable": "Este servidor no proporciona ninguno de estos ajustes. O bien es más antiguo que ellos, o no se pudieron leer — desliza hacia abajo para reintentarlo.",
   "queueSettingsQueueHeader": "Cola",
   "queueSettingsPlateClearTitle": "Confirmar que la placa está vacía",
-  "queueSettingsPlateClearDesc": "Tras una impresión, la impresora espera a que alguien confirme que la placa está vacía.",
+  "queueSettingsPlateClearDesc": "Tras una impresión, la impresora espera a que alguien confirme que la placa está vacía.",
   "queueSettingsShortestFirstTitle": "Trabajo más corto primero",
   "queueSettingsShortestFirstDesc": "Tomar el trabajo en espera más corto en lugar del que lleva más tiempo esperando.",
   "queueSettingsMaxUploads": "Archivos subidos al mismo tiempo: {count}",
@@ -3608,7 +3608,7 @@
   "queueSettingsPreheatOffNote": "El precalentamiento está desactivado, por lo que los ajustes siguientes no tendrán efecto.",
   "queueSettingsKeepWarmHeader": "Mantenimiento del calor",
   "queueSettingsKeepWarmTitle": "Mantener la cama caliente entre impresiones",
-  "queueSettingsKeepWarmDesc": "Hasta que alguien retire la impresión terminada, la cama permanece caliente para que el siguiente trabajo con cámara calefactada no empiece en frío. Se omite para PLA y PETG.",
+  "queueSettingsKeepWarmDesc": "Hasta que alguien retire la impresión terminada, la cama permanece caliente para que el siguiente trabajo con cámara calefactada no empiece en frío. Se omite para PLA y PETG.",
   "queueSettingsKeepWarmTemp": "Temperatura de la cama para calentar la cámara: {temp} °C",
   "@queueSettingsKeepWarmTemp": {
     "placeholders": {
@@ -3625,11 +3625,11 @@
       }
     }
   },
-  "queueSettingsMaxUploadsDesc": "Antes de que comience un trabajo en cola, su archivo se envía a la impresora por FTP, lo que puede tardar minutos. Esto indica cuántas transferencias de este tipo se realizan a la vez; solo tiene efecto con varias impresoras.",
-  "queueSettingsPreheatMaxWaitDesc": "Una X1C o P2S no tiene calentador de cámara — la cámara se calienta con la cama, lo que puede tardar 15–30 minutos. Tras este tiempo, la cola deja de esperar y pasa a la estabilización.",
-  "queueSettingsPreheatSoakDesc": "Tiempo adicional a temperatura después de que la cámara la alcance, o tras agotarse la espera anterior. Cero lo omite.",
-  "queueSettingsKeepWarmTempDesc": "90 mantiene el calor de la cámara en una impresora cerrada y activa los calentadores de cámara adicionales, que suelen encenderse con la cama a 80. Una temperatura de cama más alta definida en el archivo siempre tiene prioridad.",
-  "queueSettingsKeepWarmMaxDesc": "Establécelo según el tiempo que tardas de forma realista en llegar a la impresora. Un tiempo demasiado corto solo provocará que la siguiente impresión deba estabilizarse desde frío; sin un límite, una placa sin retirar mantendría la cama caliente indefinidamente.",
+  "queueSettingsMaxUploadsDesc": "Antes de que comience un trabajo en cola, su archivo se envía a la impresora por FTP, lo que puede tardar minutos. Esto indica cuántas transferencias de este tipo se realizan a la vez; solo tiene efecto con varias impresoras.",
+  "queueSettingsPreheatMaxWaitDesc": "Una X1C o P2S no tiene calentador de cámara — la cámara se calienta con la cama, lo que puede tardar 15–30 minutos. Tras este tiempo, la cola deja de esperar y pasa a la estabilización.",
+  "queueSettingsPreheatSoakDesc": "Tiempo adicional a temperatura después de que la cámara la alcance, o tras agotarse la espera anterior. Cero lo omite.",
+  "queueSettingsKeepWarmTempDesc": "90 mantiene el calor de la cámara en una impresora cerrada y activa los calentadores de cámara adicionales, que suelen encenderse con la cama a 80. Una temperatura de cama más alta definida en el archivo siempre tiene prioridad.",
+  "queueSettingsKeepWarmMaxDesc": "Establécelo según el tiempo que tardas de forma realista en llegar a la impresora. Un tiempo demasiado corto solo provocará que la siguiente impresión deba estabilizarse desde frío; sin un límite, una placa sin retirar mantendría la cama caliente indefinidamente.",
   "queueSettingsKeepWarmOffNote": "El mantenimiento del calor está desactivado. La temperatura de la cama indicada arriba se sigue aplicando al precalentamiento.",
   "adminTitle": "Administración",
   "adminSignedInAs": "Sesión iniciada como {username}",
@@ -3640,8 +3640,8 @@
       }
     }
   },
-  "adminUsersSubtitle": "Quién tiene una cuenta y qué puede hacer cada uno",
-  "adminGroupsSubtitle": "Conjuntos de permisos y quiénes los tienen",
+  "adminUsersSubtitle": "Quién tiene una cuenta y qué puede hacer cada uno",
+  "adminGroupsSubtitle": "Conjuntos de permisos y quiénes los tienen",
   "adminApiKeysSubtitle": "Credenciales para todo lo que no sea esta aplicación",
   "apiKeysTitle": "Claves API",
   "apiKeysEmpty": "No se han emitido claves.",
@@ -3693,13 +3693,13 @@
   "apiKeysFieldEnabled": "Activa",
   "apiKeysFieldEnabledHint": "Desactivarla impide que la clave funcione sin eliminarla.",
   "apiKeysScopesHeader": "QUÉ PUEDE HACER",
-  "apiKeysScopesHint": "Una clave nunca puede administrar cuentas, grupos, claves ni ajustes — el servidor deniega esto a todas las claves.",
+  "apiKeysScopesHint": "Una clave nunca puede administrar cuentas, grupos, claves ni ajustes — el servidor deniega esto a todas las claves.",
   "apiKeysPrintersHeader": "IMPRESORAS",
   "apiKeysAllPrinters": "Todas las impresoras",
   "apiKeysAllPrintersHint": "Desactivado: elige con qué impresoras puede interactuar esta clave.",
   "apiKeysExpiryHeader": "CADUCIDAD",
   "apiKeysNoExpiry": "No caduca",
-  "apiKeysExpiryHint": "Toca para elegir una fecha a partir de la cual la clave dejará de funcionar.",
+  "apiKeysExpiryHint": "Toca para elegir una fecha a partir de la cual la clave dejará de funcionar.",
   "apiKeysExpiryClear": "Sin caducidad",
   "apiKeysCreatedTitle": "Clave creada",
   "apiKeysCreatedWarning": "Cópiala ahora. El servidor solo guarda un hash — esta es la última vez que podrá mostrarse.",
@@ -3721,7 +3721,7 @@
   "apiKeyScopeEnergy": "Precio de la energía",
   "apiKeyScopeEnergyHint": "El único valor de configuración que puede escribir una clave — para tarifas dinámicas.",
   "apiKeyScopeNotifications": "Enviar notificaciones",
-  "apiKeyScopeNotificationsHint": "Permite que otra aplicación envíe un mensaje a los canales de notificación que aceptan mensajes de aplicaciones conectadas. El propietario de la clave también necesita permiso para gestionar las notificaciones.",
+  "apiKeyScopeNotificationsHint": "Permite que otra aplicación envíe un mensaje a los canales de notificación que aceptan mensajes de aplicaciones conectadas. El propietario de la clave también necesita permiso para gestionar las notificaciones.",
   "printLogTitle": "Registro de impresiones",
   "printLogSearchHint": "Buscar impresiones",
   "printLogEmpty": "Aún no hay impresiones registradas",
@@ -3786,7 +3786,7 @@
   "printLogFailureCause": "Causa del fallo",
   "printLogNoClassification": "Sin clasificar",
   "printLogStatusLabel": "Estado",
-  "printLogCountsAsFailure": "Contabilizado como fallo — esta impresión y su causa aparecerán en el análisis de fallos.",
+  "printLogCountsAsFailure": "Contabilizado como fallo — esta impresión y su causa aparecerán en el análisis de fallos.",
   "printLogNotCountedAsFailure": "No contabilizado como fallo, por lo que la causa queda fuera del análisis de fallos.",
   "printLogStatusOneWay": "Este servidor no puede restablecer el estado “{status}”. Si lo cambias, se perderá definitivamente.",
   "@printLogStatusOneWay": {
@@ -3800,11 +3800,11 @@
   "printLogSaveFailed": "No se ha podido guardar la clasificación",
   "printLogDelete": "Eliminar impresión",
   "printLogDeleteTitle": "¿Eliminar esta impresión?",
-  "printLogDeleteBody": "Se eliminará del registro, y su filamento, coste y tiempo desaparecerán de las estadísticas. El archivo al que apunta se conservará.",
+  "printLogDeleteBody": "Se eliminará del registro, y su filamento, coste y tiempo desaparecerán de las estadísticas. El archivo al que apunta se conservará.",
   "printLogDeleteFailed": "No se ha podido eliminar la impresión",
   "printLogClear": "Vaciar registro de impresiones",
   "printLogClearTitle": "¿Vaciar todo el registro de impresiones?",
-  "printLogClearBody": "{count, plural, one{Se eliminará la única impresión del registro} other{Se eliminarán las {count} impresiones}} — las de todos, no solo las tuyas — y su filamento, coste y tiempo desaparecerán de las estadísticas. Los archivos y la cola quedarán intactos. Esta acción no se puede deshacer.",
+  "printLogClearBody": "{count, plural, one{Se eliminará la única impresión del registro} other{Se eliminarán las {count} impresiones}} — las de todos, no solo las tuyas — y su filamento, coste y tiempo desaparecerán de las estadísticas. Los archivos y la cola quedarán intactos. Esta acción no se puede deshacer.",
   "@printLogClearBody": {
     "placeholders": {
       "count": {
@@ -3812,7 +3812,7 @@
       }
     }
   },
-  "printLogClearBodyFiltered": "Se eliminarán todas las impresiones del registro — las de todos, no solo las tuyas, y el filtro aplicado no las limita — y su filamento, coste y tiempo desaparecerán de las estadísticas. Los archivos y la cola quedarán intactos. Esta acción no se puede deshacer.",
+  "printLogClearBodyFiltered": "Se eliminarán todas las impresiones del registro — las de todos, no solo las tuyas, y el filtro aplicado no las limita — y su filamento, coste y tiempo desaparecerán de las estadísticas. Los archivos y la cola quedarán intactos. Esta acción no se puede deshacer.",
   "printLogCleared": "{count, plural, one{{count} impresión eliminada} other{{count} impresiones eliminadas}}",
   "@printLogCleared": {
     "placeholders": {
@@ -3836,9 +3836,9 @@
   "failureReasonUnknown": "Desconocido",
   "appSettingsMenu": "Ajustes de la app",
   "appSettingsTitle": "Ajustes de la app",
-  "appSettingsNotificationsSubtitle": "Qué eventos envían una notificación y con qué umbrales",
+  "appSettingsNotificationsSubtitle": "Qué eventos envían una notificación y con qué umbrales",
   "collapsePrinterCardsTitle": "Tarjetas de impresora contraídas",
-  "collapsePrinterCardsDesc": "Las tarjetas se abren mostrando solo el nombre, el estado y el progreso de impresión. Cualquier tarjeta se puede seguir expandiendo.",
+  "collapsePrinterCardsDesc": "Las tarjetas se abren mostrando solo el nombre, el estado y el progreso de impresión. Cualquier tarjeta se puede seguir expandiendo.",
   "printerCardExpand": "Expandir tarjeta",
   "printerCardCollapse": "Contraer tarjeta",
   "ordersTitle": "Pedidos por lotes",
@@ -3861,7 +3861,7 @@
   "ordersOwed": "{count} pendientes",
   "ordersCostSoFar": "{amount} hasta ahora",
   "ordersCostToGo": "Faltan {amount}",
-  "ordersStrandedNotice": "No se pueden encolar {runs} de las {owed} impresiones pendientes: su placa ya no tiene ninguna impresión en cola ni terminada de la que copiar los ajustes. Encola esa placa una vez desde el archivo o cancela el pedido.",
+  "ordersStrandedNotice": "No se pueden encolar {runs} de las {owed} impresiones pendientes: su placa ya no tiene ninguna impresión en cola ni terminada de la que copiar los ajustes. Encola esa placa una vez desde el archivo o cancela el pedido.",
   "ordersStrandedPlate": "No queda nada de lo que copiar los ajustes",
   "ordersPlateProgress": "{completed} de {target} hechos",
   "ordersWholeFile": "Archivo completo",
@@ -3870,14 +3870,14 @@
   "ordersDispatched": "Se encolaron las impresiones pendientes de {name}",
   "ordersCancel": "Cancelar pedido",
   "ordersCancelTitle": "¿Cancelar este pedido?",
-  "ordersCancelBody": "Las impresiones que esperan en la cola se cancelan y el pedido deja de pedir lo que no se ha producido. Una impresión en curso continúa.",
+  "ordersCancelBody": "Las impresiones que esperan en la cola se cancelan y el pedido deja de pedir lo que no se ha producido. Una impresión en curso continúa.",
   "ordersCancelled": "Pedido cancelado",
   "ordersUngroup": "Desagrupar",
   "ordersUngroupTitle": "¿Desagrupar este lote?",
   "ordersUngroupBody": "Sus elementos siguen en la cola como trabajos sueltos.",
-  "ordersUngroupOrderBody": "Sus elementos siguen en la cola como trabajos sueltos. Cuando no quede ninguno en él, el pedido se elimina con sus objetivos y su progreso; los elementos de otros usuarios que no puedes cambiar lo mantienen.",
+  "ordersUngroupOrderBody": "Sus elementos siguen en la cola como trabajos sueltos. Cuando no quede ninguno en él, el pedido se elimina con sus objetivos y su progreso; los elementos de otros usuarios que no puedes cambiar lo mantienen.",
   "ordersUngrouped": "{count, plural, =0{Nada que desagrupar} =1{1 elemento desagrupado} other{{count} elementos desagrupados}}",
-  "ordersErrStranded": "De {plates} no queda ninguna impresión en cola ni terminada de la que copiar los ajustes. Encola la placa una vez desde el archivo y el resto desde aquí.",
+  "ordersErrStranded": "De {plates} no queda ninguna impresión en cola ni terminada de la que copiar los ajustes. Encola la placa una vez desde el archivo y el resto desde aquí.",
   "ordersErrCancelled": "Este pedido está cancelado.",
   "ordersErrGone": "Este pedido ya no existe.",
   "queueInBatch": "Lote: {name}",
@@ -3890,7 +3890,7 @@
   "orderEditDueHint": "El servidor puede cambiar la fecha límite, pero no quitarla.",
   "orderEditProject": "Proyecto",
   "orderEditProjectNone": "Sin proyecto",
-  "orderEditProjectHint": "El servidor puede mover un pedido a otro proyecto, pero no sacarlo de uno.",
+  "orderEditProjectHint": "El servidor puede mover un pedido a otro proyecto, pero no sacarlo de uno.",
   "orderEditNotes": "Notas",
   "orderEditTargets": "Impresiones por placa",
   "orderEditTargetsHint": "Bajar un objetivo no cancela las impresiones ya en cola; un objetivo de 0 deja la placa como no necesaria.",
@@ -3911,7 +3911,7 @@
   "queueEditCopiesLabel": "Cuántas veces imprimir",
   "queueEditCopies": "Copias",
   "queueEditCopiesHint": "Las copias se encolan como un solo lote.",
-  "queueEditCopiesOrder": "Se crea un pedido: una copia fallida puede volver a encolarse desde Pedidos por lotes.",
+  "queueEditCopiesOrder": "Se crea un pedido: una copia fallida puede volver a encolarse desde Pedidos por lotes.",
   "ordersGroupedNone": "No se pudo agrupar ningún trabajo.",
   "orderEditTargetLess": "Una impresión menos",
   "orderEditTargetMore": "Una impresión más",
@@ -3926,7 +3926,7 @@
   "outcomeSourceLink": "Registrado con un enlace de un toque.",
   "outcomeSourcePlateClear": "Registrado al despejar la cama.",
   "outcomeSourcePrinterCard": "Registrado desde la tarjeta de la impresora.",
-  "outcomeSourceApi": "Registrado a través de la API.",
+  "outcomeSourceApi": "Registrado a través de la API.",
   "outcomeSourceReaction": "Registrado con una reacción en el chat.",
   "outcomeTitle": "¿Cómo ha salido su impresión?",
   "outcomeGood": "Buena",
@@ -3945,16 +3945,16 @@
   "queueOptConfirmOutcomeDesc": "Preguntar si la impresión ha salido bien después de completarse",
   "queueSettingsOutcomeHeader": "Resultado de la impresión",
   "queueSettingsOutcomeDefaultTitle": "Preguntar el resultado de las impresiones nuevas",
-  "queueSettingsOutcomeDefaultDesc": "Los trabajos nuevos preguntan por su resultado de forma predeterminada: en el formulario de impresión, donde cada trabajo aún puede cambiarlo, y donde no hay formulario, como al añadir varios archivos a la cola o en una ejecución de pipeline.",
+  "queueSettingsOutcomeDefaultDesc": "Los trabajos nuevos preguntan por su resultado de forma predeterminada: en el formulario de impresión, donde cada trabajo aún puede cambiarlo, y donde no hay formulario, como al añadir varios archivos a la cola o en una ejecución de pipeline.",
   "queueSettingsOutcomeExternalTitle": "Preguntar también por impresiones iniciadas fuera de Bambuddy",
-  "queueSettingsOutcomeExternalDesc": "Una impresión iniciada en la impresora, en Bambu Studio o en Bambu Handy que Bambuddy archiva también recibe la pregunta por el resultado.",
+  "queueSettingsOutcomeExternalDesc": "Una impresión iniciada en la impresora, en Bambu Studio o en Bambu Handy que Bambuddy archiva también recibe la pregunta por el resultado.",
   "queueSettingsOutcomePlateClearTitle": "Contar impresiones sin responder como buenas al confirmar la placa vacía",
-  "queueSettingsOutcomePlateClearDesc": "Cuando alguien confirma que la placa está vacía —o, si esa confirmación está desactivada, cuando el siguiente trabajo de la cola se envía a esta impresora—, una impresión terminada que sigue esperando su veredicto se registra como pieza buena. Un enlace de notificación abierto después solo muestra el resultado registrado.",
+  "queueSettingsOutcomePlateClearDesc": "Cuando alguien confirma que la placa está vacía —o, si esa confirmación está desactivada, cuando el siguiente trabajo de la cola se envía a esta impresora—, una impresión terminada que sigue esperando su veredicto se registra como pieza buena. Un enlace de notificación abierto después solo muestra el resultado registrado.",
   "notifEvtOutcome": "Pregunta por el resultado",
-  "notifEvtOutcomeDesc": "Cuando termina una impresión que pregunta por su resultado: responda «Buena» o «Rechazar» desde la notificación",
+  "notifEvtOutcomeDesc": "Cuando termina una impresión que pregunta por su resultado: responda «Buena» o «Rechazar» desde la notificación",
   "outcomeNotifTitle": "¿Cómo ha salido {name}?",
-  "outcomeNotifBody": "Responda aquí o toque para ver primero la foto del acabado.",
-  "queueOptConfirmOutcomeSticky": "Esta impresión ya pregunta por su resultado, y también cada reimpresión",
+  "outcomeNotifBody": "Responda aquí o toque para ver primero la foto del acabado.",
+  "queueOptConfirmOutcomeSticky": "Esta impresión ya pregunta por su resultado, y también cada reimpresión",
   "wallModeTitle": "Modo pared",
   "wallModeExit": "Salir del modo pared",
   "wallKeepAwakeTitle": "Mantener la pantalla encendida",
@@ -3968,11 +3968,11 @@
   "wallQueueCount": "{count, plural, =1{1 en la cola} other{{count} en la cola}}",
   "wallLivePaused": "Directo en pausa",
   "wallLiveCameraTitle": "Cámara en directo",
-  "wallLiveCameraDesc": "Si se desactiva, cada mosaico muestra solo el estado de la impresora y no abre la cámara.",
+  "wallLiveCameraDesc": "Si se desactiva, cada mosaico muestra solo el estado de la impresora y no abre la cámara.",
   "wallPrintersTitle": "Impresoras en la pared",
   "wallAllHidden": "Todas las impresoras están ocultas en esta pared — muéstralas en los ajustes.",
   "inventorySuppliersTitle": "Proveedores",
-  "inventorySuppliersHint": "Los proveedores son las tiendas donde compras el filamento, no la marca que lo fabricó. Asígnalos a una bobina en su formulario; un proveedor que siga asignado a una bobina no se puede eliminar.",
+  "inventorySuppliersHint": "Los proveedores son las tiendas donde compras el filamento, no la marca que lo fabricó. Asígnalos a una bobina en su formulario; un proveedor que siga asignado a una bobina no se puede eliminar.",
   "inventorySuppliersEmpty": "Aún no hay proveedores",
   "inventorySuppliersLoadFailed": "No se pudieron cargar los proveedores",
   "inventorySupplierAdd": "Añadir",
@@ -3981,30 +3981,30 @@
   "inventorySupplierFieldName": "Nombre",
   "inventorySupplierFieldWebsite": "Sitio web",
   "inventorySupplierFieldCustomerNumber": "Tu número de cliente",
-  "inventorySupplierCustomerNumberValue": "N.º de cliente {number}",
-  "inventorySupplierNameSeparator": "El nombre no puede contener punto y coma",
+  "inventorySupplierCustomerNumberValue": "N.º de cliente {number}",
+  "inventorySupplierNameSeparator": "El nombre no puede contener punto y coma",
   "inventorySupplierNameTaken": "Ya existe un proveedor con este nombre",
   "inventorySupplierSaved": "Proveedor guardado",
   "inventorySupplierDeleted": "Proveedor eliminado",
   "inventorySupplierDeleteTitle": "¿Eliminar {name}?",
   "inventorySupplierDeleteBody": "Se quita de la lista de proveedores.",
-  "inventorySupplierInUse": "{count, plural, one{Asignado a 1 bobina: quítalo primero de ella} other{Asignado a {count} bobinas: quítalo primero de ellas}}",
-  "inventorySupplierInUseUnknown": "Sigue asignado a una bobina: quítalo primero de ella",
+  "inventorySupplierInUse": "{count, plural, one{Asignado a 1 bobina: quítalo primero de ella} other{Asignado a {count} bobinas: quítalo primero de ellas}}",
+  "inventorySupplierInUseUnknown": "Sigue asignado a una bobina: quítalo primero de ella",
   "inventorySupplierBoughtHere": "Comprada aquí",
   "inventorySupplierArticleValue": "Ref. {number}",
-  "inventorySupplierQuotedPrice": "ofertado a {price}/kg",
+  "inventorySupplierQuotedPrice": "ofertado a {price}/kg",
   "inventorySupplierLinksHint": "Dónde se puede comprar este producto. Marca la tienda donde compraste esta bobina.",
-  "inventoryBulkSupplierLinksHint": "Se añaden a cada bobina seleccionada y se mantienen los proveedores que ya tiene. “Comprada aquí” sustituye a la tienda donde se compró.",
+  "inventoryBulkSupplierLinksHint": "Se añaden a cada bobina seleccionada y se mantienen los proveedores que ya tiene. “Comprada aquí” sustituye a la tienda donde se compró.",
   "inventorySupplierAssign": "Añadir proveedor",
   "inventorySupplierUnassign": "Quitar de esta bobina",
-  "inventorySupplierFieldArticle": "N.º de artículo",
+  "inventorySupplierFieldArticle": "N.º de artículo",
   "inventorySupplierFieldQuotedPrice": "Precio ofertado/kg",
   "inventorySupplierNoneLeft": "Todos los proveedores ya están en esta bobina",
   "statsBySupplier": "Por proveedor",
-  "statsBySupplierHint": "Filamento consumido de las bobinas compradas a cada proveedor y su coste. Las existencias cuentan las bobinas activas y no dependen del rango de fechas.",
+  "statsBySupplierHint": "Filamento consumido de las bobinas compradas a cada proveedor y su coste. Las existencias cuentan las bobinas activas y no dependen del rango de fechas.",
   "statsBySupplierFailed": "No se pudieron cargar los datos de proveedores",
   "statsByMaterialNumber": "Por número de material",
-  "statsByMaterialNumberHint": "Filamento consumido de las bobinas con el mismo número de material y su coste. Las existencias cuentan las bobinas activas y no dependen del rango de fechas.",
+  "statsByMaterialNumberHint": "Filamento consumido de las bobinas con el mismo número de material y su coste. Las existencias cuentan las bobinas activas y no dependen del rango de fechas.",
   "statsByMaterialNumberFailed": "No se pudieron cargar los datos por número de material",
   "statsSupplierDetail": "{spools} · {remaining} en existencias · coste {cost}",
   "inventoryDetailSlot": "Ranura",
@@ -4015,13 +4015,13 @@
   "timeNow": "Ahora",
   "timeMinutesAgo": "hace {count} min",
   "timeInMinutes": "en {count} min",
-  "timeHoursAgo": "hace {count} h",
-  "timeInHours": "en {count} h",
+  "timeHoursAgo": "hace {count} h",
+  "timeInHours": "en {count} h",
   "timeDaysAgo": "{count, plural, =1{hace 1 día} other{hace {count} días}}",
   "timeInDays": "{count, plural, =1{en 1 día} other{en {count} días}}",
   "queueHistory": "Historial",
   "queueItemCount": "{count, plural, =1{1 elemento} other{{count} elementos}}",
-  "queueHistoryEmpty": "Aún no hay historial. Aquí aparecerán las impresiones completadas, canceladas y fallidas.",
+  "queueHistoryEmpty": "Aún no hay historial. Aquí aparecerán las impresiones completadas, canceladas y fallidas.",
   "queueHistoryShowMore": "Mostrar más",
   "queueHistoryShowing": "Mostrando {shown} de {total}",
   "queueHistorySort": "Orden",
@@ -4037,8 +4037,8 @@
   "queueHistoryKeptForOrders": "Se conservan {kept} que los pedidos todavía necesitan.",
   "queueHistoryClearFailed": "No se pudo borrar el historial.",
   "queueHistoryNoClear": "No tienes permiso para borrar todo el historial",
-  "queueHistoryRequeue": "Volver a encolar",
-  "queueHistoryNoRequeue": "No tienes permiso para volver a encolar elementos",
+  "queueHistoryRequeue": "Volver a encolar",
+  "queueHistoryNoRequeue": "No tienes permiso para volver a encolar elementos",
   "queueHistoryRemove": "Quitar",
   "queueHistoryNoRemove": "No tienes permiso para quitar este elemento",
   "queueHistoryRemoveTitle": "¿Quitar del historial?",
@@ -4046,27 +4046,27 @@
   "queueHistoryAddedBy": "Añadido por {name}",
   "queueHistoryBatch": "Lote",
   "queueHistoryRemoved": "Elemento de la cola eliminado",
-  "queueHistoryKeptForOrder": "Cancelado en lugar de eliminado: es la única impresión desde la que el pedido puede volver a encolar esta placa",
-  "queueBillingUseWeb": "Este servidor tiene la facturación activada, así que cada trabajo necesita un centro de costes que la app aún no puede asignar. Encola, edita e inicia este trabajo en Bambuddy desde el navegador.",
+  "queueHistoryKeptForOrder": "Cancelado en lugar de eliminado: es la única impresión desde la que el pedido puede volver a encolar esta placa",
+  "queueBillingUseWeb": "Este servidor tiene la facturación activada, así que cada trabajo necesita un centro de costes que la app aún no puede asignar. Encola, edita e inicia este trabajo en Bambuddy desde el navegador.",
   "labelPrinterTitle": "Impresora de etiquetas",
   "labelPrinterEntrySubtitle": "Imprime etiquetas de bobinas en un servidor de impresión Brother QL de tu red",
-  "labelPrinterIntro": "Un servidor de impresión aparte para impresoras de etiquetas Brother QL. Las etiquetas de bobinas van directas a él, sin pasar por el diálogo de impresión del sistema.",
+  "labelPrinterIntro": "Un servidor de impresión aparte para impresoras de etiquetas Brother QL. Las etiquetas de bobinas van directas a él, sin pasar por el diálogo de impresión del sistema.",
   "labelPrinterNotSet": "No hay impresora de etiquetas elegida",
   "labelPrinterReady": "{model} · etiquetas {label}",
   "labelPrinterPrinterOff": "El servidor responde, pero la impresora no está conectada",
   "labelPrinterOffline": "Sin respuesta",
-  "labelPrinterWrongStock": "Tiene cargadas etiquetas {label}, y las de bobinas necesitan 62 × 29 mm",
+  "labelPrinterWrongStock": "Tiene cargadas etiquetas {label}, y las de bobinas necesitan 62 × 29 mm",
   "labelPrinterSearch": "Buscar en la red",
   "labelPrinterSearching": "Buscando…",
-  "labelPrinterNoneFound": "No se encontró nada. Comprueba que el teléfono esté en la misma red Wi-Fi o escribe la dirección abajo.",
+  "labelPrinterNoneFound": "No se encontró nada. Comprueba que el teléfono esté en la misma red Wi-Fi o escribe la dirección abajo.",
   "labelPrinterDiscoveryFailed": "La búsqueda en la red no está disponible en este dispositivo",
   "labelPrinterAddress": "Dirección del servidor",
   "labelPrinterSave": "Guardar",
   "labelPrinterRemove": "Quitar",
   "labelPrinterNotAServer": "En esa dirección no responde ningún servidor de impresión de etiquetas",
-  "labelPrinterVlanNote": "La búsqueda no atraviesa VLAN ni redes de invitados; en ese caso escribe la dirección a mano.",
+  "labelPrinterVlanNote": "La búsqueda no atraviesa VLAN ni redes de invitados; en ese caso escribe la dirección a mano.",
   "labelPrinterPrintOn": "Imprimir en la impresora de etiquetas",
-  "labelPrinterSent": "Enviado a la impresora de etiquetas",
+  "labelPrinterSent": "Enviado a la impresora de etiquetas",
   "labelPrinterFailed": "La impresora de etiquetas no aceptó el trabajo",
   "labelPrinterUnreachable": "La impresora de etiquetas no responde",
   "labelPrinterRefused": "La impresora de etiquetas rechazó el trabajo: {detail}",
@@ -4076,9 +4076,9 @@
   "labelFieldsTitle": "Imprimir en la etiqueta",
   "labelFieldsReset": "Restablecer valores",
   "labelFieldBrand": "Marca",
-  "labelFieldMaterial": "Material y subtipo",
+  "labelFieldMaterial": "Material y subtipo",
   "labelFieldHex": "Código de color",
-  "labelFieldName": "Color o nombre del filamento",
+  "labelFieldName": "Color o nombre del filamento",
   "labelFieldLocation": "Ubicación de almacenamiento",
   "labelFieldMaterialNumber": "Número de material",
   "labelFieldTemps": "Temperatura de la boquilla",
@@ -4088,7 +4088,7 @@
   "labelFieldQr": "Código QR",
   "labelFieldSpoolId": "ID de bobina",
   "labelFormatTitle": "Salida",
-  "labelFormatPngHint": "Ajusta la resolución a la de tu impresora. Varias etiquetas llegan en un ZIP.",
+  "labelFormatPngHint": "Ajusta la resolución a la de tu impresora. Varias etiquetas llegan en un ZIP.",
   "labelDpiTitle": "Resolución",
   "labelSendToTitle": "Enviar a",
   "labelSendSystem": "Diálogo de impresión",
@@ -4127,7 +4127,7 @@
   "printerLocationsPrinterCount": "Impresoras: {count}",
   "printerLocationsNoPrinters": "No hay impresoras en esta ubicación",
   "printerLocationsSelectPrinter": "Seleccionar impresora",
-  "printerLocationsMove": "Mover a otra ubicación",
+  "printerLocationsMove": "Mover a otra ubicación",
   "printerLocationsMoveButton": "Mover",
   "printerLocationsRemoveFromLocation": "Quitar de la ubicación",
   "printerLocationsUngrouped": "Impresoras sin ubicación: {count}",

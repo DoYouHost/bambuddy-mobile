@@ -179,7 +179,7 @@ void main() {
 
     expect(sliceButton(), findsOneWidget);
     expect(enabled(tester), isFalse);
-    expect(reason('Nie udało się połączyć z serwerem'), findsWidgets);
+    expect(reason('Nie udało się połączyć z\u00A0serwerem'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 

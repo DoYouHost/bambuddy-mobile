@@ -554,7 +554,7 @@ void main() {
       await open(tester);
 
       expect(find.text('Plik jest pod X1 Carbon 0.4'), findsOneWidget);
-      expect(find.text('Użyj ustawień z pliku'), findsNothing);
+      expect(find.text('Użyj ustawień z\u00A0pliku'), findsNothing);
     });
 
     testWidgets('switches to it, which is what reveals the switch', (
@@ -565,7 +565,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Bambu Lab X1 Carbon 0.4 nozzle'), findsWidgets);
-      expect(find.text('Użyj ustawień z pliku'), findsOneWidget);
+      expect(find.text('Użyj ustawień z\u00A0pliku'), findsOneWidget);
       expect(
         find.text('Plik jest pod X1 Carbon 0.4'),
         findsNothing,
@@ -624,14 +624,14 @@ void main() {
           serverSupportsAsDesigned: false,
         ),
       );
-      expect(find.text('Użyj ustawień z pliku'), findsNothing);
+      expect(find.text('Użyj ustawień z\u00A0pliku'), findsNothing);
     });
 
     testWidgets('is absent for a file with no embedded profile', (
       tester,
     ) async {
       await openSheet(tester);
-      expect(find.text('Użyj ustawień z pliku'), findsNothing);
+      expect(find.text('Użyj ustawień z\u00A0pliku'), findsNothing);
     });
 
     testWidgets('is absent while the picked printer is a different model', (
@@ -648,7 +648,7 @@ void main() {
           serverSupportsAsDesigned: true,
         ),
       );
-      expect(find.text('Użyj ustawień z pliku'), findsNothing);
+      expect(find.text('Użyj ustawień z\u00A0pliku'), findsNothing);
     });
 
     testWidgets('defaults the printer to the one the file was designed for', (
@@ -673,7 +673,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Użyj ustawień z pliku'), findsOneWidget);
+      expect(find.text('Użyj ustawień z\u00A0pliku'), findsOneWidget);
       final body = await slice(tester);
       expect(
         body['printer_preset'],
@@ -686,7 +686,7 @@ void main() {
       tester,
     ) async {
       await openSheet(tester, embedded: designed);
-      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
       await tester.pumpAndSettle();
 
       expect(find.text('Nieużywane — decyduje plik'), findsWidgets);
@@ -707,7 +707,7 @@ void main() {
       );
 
       expect(tile('Drukarka').enabled, isTrue);
-      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
       await tester.pumpAndSettle();
 
       // The printer among them: moving off the design's target would drop the
@@ -724,7 +724,7 @@ void main() {
       // make one. The row does not open, so a switch left on cannot be carried
       // to a printer the design does not target.
       await openSheet(tester, embedded: designed);
-      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Drukarka'));
       await tester.pumpAndSettle();
@@ -761,7 +761,7 @@ void main() {
       expect(dimOf('Drukarka'), 1.0);
       expect(chevronsIn('Drukarka'), 1);
 
-      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
       await tester.pumpAndSettle();
 
       expect(dimOf('Drukarka'), lessThan(0.6));
@@ -780,7 +780,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Textured PEI Plate'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
       await tester.pumpAndSettle();
 
       expect((await slice(tester)).containsKey('bed_type'), isFalse);
@@ -817,7 +817,7 @@ void main() {
 
       // Recorded while off — the same edit reaches the body in the group above.
       expect(find.text('Zmienione: 1'), findsOneWidget);
-      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
       await tester.pumpAndSettle();
 
       expect((await slice(tester)).containsKey('process_overrides'), isFalse);
@@ -839,7 +839,7 @@ void main() {
           filaments: [],
         ),
       );
-      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
       await tester.pumpAndSettle();
 
       final filament = tester.widget<ListTile>(
@@ -855,7 +855,7 @@ void main() {
       // They act on the geometry through the CLI, not through the process
       // config, so they work whatever the settings come from.
       await openSheet(tester, embedded: designed, layoutOptions: true);
-      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Automatyczna orientacja'));
       await tester.pumpAndSettle();
@@ -869,9 +869,9 @@ void main() {
       tester,
     ) async {
       await openSheet(tester, embedded: designed);
-      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.tap(find.text('Użyj ustawień z\u00A0pliku'));
       await tester.pumpAndSettle();
 
       final body = await slice(tester);
@@ -1020,7 +1020,7 @@ void main() {
       await apply(tester);
       await revealSlots(tester);
 
-      expect(find.text('Nie ma go już w katalogu'), findsWidgets);
+      expect(find.text('Nie ma go już w\u00A0katalogu'), findsWidgets);
 
       final body = await slice(tester);
       expect(body['process_preset'], {'source': 'local', 'id': '99'});

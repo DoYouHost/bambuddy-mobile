@@ -88,12 +88,12 @@ void main() {
     await tester.tap(find.text('Testuj połączenie'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Login i hasło'));
+    await tester.tap(find.text('Login i\u00A0hasło'));
     await tester.pumpAndSettle();
     final fields = find.byType(TextField);
     await tester.enterText(fields.at(1), 'tester');
     await tester.enterText(fields.at(2), 'sekret');
-    await tester.tap(find.text('Zaloguj i połącz'));
+    await tester.tap(find.text('Zaloguj i\u00A0połącz'));
     await tester.pumpAndSettle();
   }
 
@@ -103,8 +103,8 @@ void main() {
     await signInTo(tester);
 
     expect(find.text('Uwierzytelnianie dwuskładnikowe'), findsOneWidget);
-    expect(find.text('Zaloguj i połącz'), findsNothing);
-    expect(find.text('Potwierdź i połącz'), findsOneWidget);
+    expect(find.text('Zaloguj i\u00A0połącz'), findsNothing);
+    expect(find.text('Potwierdź i\u00A0połącz'), findsOneWidget);
     closeSetup();
   });
 
@@ -113,7 +113,7 @@ void main() {
 
     expect(find.byType(SegmentedButton<Object?>), findsNothing);
     expect(
-      find.text('Wpisz 6-cyfrowy kod z aplikacji uwierzytelniającej.'),
+      find.text('Wpisz 6-cyfrowy kod z\u00A0aplikacji uwierzytelniającej.'),
       findsOneWidget,
     );
     closeSetup();
@@ -165,7 +165,7 @@ void main() {
     );
 
     await tester.enterText(find.byType(TextField).last, '123456');
-    await tester.tap(find.text('Potwierdź i połącz'));
+    await tester.tap(find.text('Potwierdź i\u00A0połącz'));
     // Not pumpAndSettle: the screen stays busy behind the spinner until the
     // router (absent here) moves off setup, and an indeterminate progress
     // indicator never settles.
@@ -182,8 +182,8 @@ void main() {
     await tester.tap(find.text('Zaloguj się na inne konto'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Zaloguj i połącz'), findsOneWidget);
-    expect(find.text('Potwierdź i połącz'), findsNothing);
+    expect(find.text('Zaloguj i\u00A0połącz'), findsOneWidget);
+    expect(find.text('Potwierdź i\u00A0połącz'), findsNothing);
     closeSetup();
   });
 }

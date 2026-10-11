@@ -181,7 +181,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Dodaj konto'), findsNothing);
-      expect(find.byTooltip('Usuń z grupy'), findsNothing);
+      expect(find.byTooltip('Usuń z\u00A0grupy'), findsNothing);
     });
 
     testWidgets('adds an account that is not in the group yet', (tester) async {
@@ -217,18 +217,18 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Usuń z grupy').first);
+      await tester.tap(find.byTooltip('Usuń z\u00A0grupy').first);
       await tester.pumpAndSettle();
 
-      expect(find.text('Usunąć zosia z grupy Domownicy?'), findsOneWidget);
+      expect(find.text('Usunąć zosia z\u00A0grupy Domownicy?'), findsOneWidget);
 
       await tester.tap(find.text('Anuluj'));
       await tester.pumpAndSettle();
       expect(repo.removed, isNull);
 
-      await tester.tap(find.byTooltip('Usuń z grupy').first);
+      await tester.tap(find.byTooltip('Usuń z\u00A0grupy').first);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Usuń z grupy').last);
+      await tester.tap(find.text('Usuń z\u00A0grupy').last);
       await tester.pumpAndSettle();
 
       expect(repo.removed, (7, 2));
@@ -247,7 +247,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Wbudowana'), findsOneWidget);
-      expect(find.textContaining('nie zmienisz z nazwy'), findsOneWidget);
+      expect(find.textContaining('nie zmienisz z\u00A0nazwy'), findsOneWidget);
     });
   });
 
@@ -440,7 +440,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Usunąć grupę Domownicy?'), findsOneWidget);
-      expect(find.textContaining('2 konta i zostają'), findsOneWidget);
+      expect(find.textContaining('2 konta i\u00A0zostają'), findsOneWidget);
 
       await tester.tap(find.widgetWithText(FilledButton, 'Usuń grupę'));
       await tester.pumpAndSettle();

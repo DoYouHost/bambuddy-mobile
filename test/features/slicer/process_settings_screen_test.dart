@@ -176,7 +176,7 @@ final _searchBox = find.descendant(
 /// `IconButton` of its own for the chevron.
 Finder _revertOf(String key) => find.descendant(
   of: find.byKey(ValueKey(key)),
-  matching: find.byTooltip('Przywróć wartość z presetu'),
+  matching: find.byTooltip('Przywróć wartość z\u00A0presetu'),
 );
 
 Future<ProcessSchemaCatalog> _catalog() async {

@@ -41,7 +41,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get wsReconnecting =>
-      'Keine Live-Verbindung — Aktualisierung alle 5 s';
+      'Keine Live-Verbindung — Aktualisierung alle 5 s';
 
   @override
   String get connLive => 'Live';
@@ -54,7 +54,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get connPollingTooltip =>
-      'Keine Live-Verbindung — Aktualisierung alle 5 s (REST)';
+      'Keine Live-Verbindung — Aktualisierung alle 5 s (REST)';
 
   @override
   String get connectFailed => 'Verbindung zum Server fehlgeschlagen';
@@ -438,7 +438,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String ctrlDryHours(int h) {
-    return '$h h';
+    return '$h h';
   }
 
   @override
@@ -538,7 +538,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlMoveStep => 'Schritt';
 
   @override
-  String get ctrlMoveZ => 'Z (Bettabstand)';
+  String get ctrlMoveZ => 'Z (Bettabstand)';
 
   @override
   String get ctrlMoveZUp => 'Hoch';
@@ -547,7 +547,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlMoveZDown => 'Runter';
 
   @override
-  String get ctrlMoveZToolhead => 'Z (Druckkopf)';
+  String get ctrlMoveZToolhead => 'Z (Druckkopf)';
 
   @override
   String get ctrlMoveZUnknownDirection =>
@@ -555,7 +555,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get ctrlMoveZNoModel =>
-      'Für diesen Drucker ist in Bambuddy kein Modell hinterlegt, daher weiß die App nicht, ob sich in Z das Druckbett oder der Druckkopf bewegt, und Z-Bewegungen sind hier deaktiviert. Hinterlege das Druckermodell in Bambuddy, um sie zu nutzen.';
+      'Für diesen Drucker ist in Bambuddy kein Modell hinterlegt, daher weiß die App nicht, ob sich in Z das Druckbett oder der Druckkopf bewegt, und Z-Bewegungen sind hier deaktiviert. Hinterlege das Druckermodell in Bambuddy, um sie zu nutzen.';
 
   @override
   String get ctrlMoveExtrude => 'Extrudieren';
@@ -731,7 +731,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String powerWatts(int watts) {
-    return '$watts W';
+    return '$watts W';
   }
 
   @override
@@ -1029,7 +1029,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String archiveFilamentGrams(String grams) {
-    return '$grams g';
+    return '$grams g';
   }
 
   @override
@@ -1061,7 +1061,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String archiveFilamentOutOfRange(String max) {
-    return 'Ein Gewicht zwischen 0 und $max g.';
+    return 'Ein Gewicht zwischen 0 und $max g.';
   }
 
   @override
@@ -1533,7 +1533,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String amsSlotConfigKProfileDefault(String value) {
-    return 'Standard (K $value)';
+    return 'Standard (K $value)';
   }
 
   @override
@@ -1554,7 +1554,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String amsSlotConfigKProfileValue(String value) {
-    return 'K $value';
+    return 'K $value';
   }
 
   @override
@@ -1612,16 +1612,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sensorHistoryMax => 'Max.';
 
   @override
-  String get sensorHistoryRange6h => '6 h';
+  String get sensorHistoryRange6h => '6 h';
 
   @override
-  String get sensorHistoryRange24h => '24 h';
+  String get sensorHistoryRange24h => '24 h';
 
   @override
-  String get sensorHistoryRange48h => '48 h';
+  String get sensorHistoryRange48h => '48 h';
 
   @override
-  String get sensorHistoryRange7d => '7 d';
+  String get sensorHistoryRange7d => '7 d';
 
   @override
   String get amsHistoryGood => 'Gut';
@@ -1799,7 +1799,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get loginExplain =>
-      'Eine Sitzung läuft nach 24 h ab. Aktiviere „Angemeldet bleiben“, damit sich die App automatisch wieder anmeldet.';
+      'Eine Sitzung läuft nach 24 h ab. Aktiviere „Angemeldet bleiben“, damit sich die App automatisch wieder anmeldet.';
 
   @override
   String get usernameLabel => 'Benutzername oder E-Mail';
@@ -2081,7 +2081,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String notifBedCooledBody(String printer, int temp) {
-    return 'Druckbett von $printer auf $temp°C abgekühlt';
+    return 'Druckbett von $printer auf $temp°C abgekühlt';
   }
 
   @override
@@ -2188,7 +2188,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String notifBedCooledThreshold(int temp) {
-    return 'Druckbett unter $temp°C abgekühlt';
+    return 'Druckbett unter $temp°C abgekühlt';
   }
 
   @override
@@ -2447,7 +2447,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String inventoryRemaining(String grams) {
-    return '$grams g übrig';
+    return '$grams g übrig';
   }
 
   @override
@@ -2457,7 +2457,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String inventoryOfTotal(int total) {
-    return 'von $total g';
+    return 'von $total g';
   }
 
   @override
@@ -2480,7 +2480,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String inventoryUsageWeight(String grams) {
-    return '$grams g';
+    return '$grams g';
   }
 
   @override
@@ -2488,7 +2488,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String inventoryKProfileLine(String nozzle, String k) {
-    return '$nozzle mm · K $k';
+    return '$nozzle mm · K $k';
   }
 
   @override
@@ -2692,7 +2692,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String inventoryRemainingOfLabel(int total) {
-    return 'von $total g';
+    return 'von $total g';
   }
 
   @override
@@ -3156,7 +3156,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String maintenanceTotalHours(int hours) {
-    return '$hours h gesamt';
+    return '$hours h gesamt';
   }
 
   @override
@@ -3166,12 +3166,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String maintenanceDueIn(int hours) {
-    return 'Fällig in $hours h';
+    return 'Fällig in $hours h';
   }
 
   @override
   String maintenanceOverdueBy(int hours) {
-    return 'Seit $hours h überfällig';
+    return 'Seit $hours h überfällig';
   }
 
   @override
@@ -3248,7 +3248,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String maintenanceEveryHours(int count) {
-    return 'Alle $count h';
+    return 'Alle $count h';
   }
 
   @override
@@ -3440,7 +3440,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String statsHours(String hours) {
-    return '$hours h';
+    return '$hours h';
   }
 
   @override
@@ -4552,7 +4552,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get swatchCodeInvalid =>
-      'Verwende 6 Zeichen: Ziffern und Buchstaben, ohne 0, 1, I, L oder O';
+      'Verwende 6 Zeichen: Ziffern und Buchstaben, ohne 0, 1, I, L oder O';
 
   @override
   String get swatchCodeTaken => 'Dieser Code wird bereits verwendet';
@@ -5212,7 +5212,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String sliceResultFilament(String grams) {
-    return 'Filament: $grams g';
+    return 'Filament: $grams g';
   }
 
   @override
@@ -6854,7 +6854,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueSettingsKeepWarmTempDesc =>
-      '90 hält die Kammerwärme in einem geschlossenen Drucker aufrecht und aktiviert nachgerüstete Kammerheizungen, die meist bei 80 °C Betttemperatur einschalten. Eine höhere Betttemperatur aus der Datei hat immer Vorrang.';
+      '90 hält die Kammerwärme in einem geschlossenen Drucker aufrecht und aktiviert nachgerüstete Kammerheizungen, die meist bei 80 °C Betttemperatur einschalten. Eine höhere Betttemperatur aus der Datei hat immer Vorrang.';
 
   @override
   String get queueSettingsKeepWarmMaxDesc =>

@@ -94,10 +94,10 @@ void main() {
     // small face it is a scroll away.
     await revealOnWatch(
       tester,
-      find.text('Zapisany profil i poświadczenia zostaną usunięte.'),
+      find.text('Zapisany profil i\u00A0poświadczenia zostaną usunięte.'),
     );
     expect(
-      find.text('Zapisany profil i poświadczenia zostaną usunięte.'),
+      find.text('Zapisany profil i\u00A0poświadczenia zostaną usunięte.'),
       findsOneWidget,
     );
   });
