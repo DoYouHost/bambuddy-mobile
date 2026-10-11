@@ -692,7 +692,7 @@
   "cameraTooltip": "Cámara",
   "cameraConnecting": "Conectando con la cámara…",
   "cameraError": "No se pudo cargar la transmisión de la cámara",
-  "cameraDemoUnavailable": "La vista previa de la cámara no está disponible en modo demo",
+  "cameraDemoUnavailable": "Esta impresora de demostración está desconectada, así que no hay imagen de cámara.",
   "externalSpool": "Bobina externa",
   "traySlotEmpty": "Vacía",
   "amsSlotFilament": "Filamento",

@@ -123,6 +123,11 @@ flutter:
     - assets/slicer/process-toggle-rules.json
     - assets/icons/
     - assets/icon/app_logo.png
+    # The demo's prints and camera frames, from the maintainer's own farm
+    # (chosen 2026-10-11): the demo server has no image routes of its own.
+    - assets/demo/thumbs/
+    - assets/demo/photos/
+    - assets/demo/camera/
     # The in-app G-code preview: the page shell, the bundle, and the app's
     # own faces subset into a stylesheet — all built by tool/gcode_viewer (see
     # its PROVENANCE). The three are inlined into one document at runtime, so

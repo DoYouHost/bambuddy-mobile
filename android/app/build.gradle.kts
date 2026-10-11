@@ -125,8 +125,8 @@ flutter {
 
 // Assets are declared once in pubspec.yaml and Flutter has no per-flavor list,
 // so the watch APK carries the phone's G-code viewer, the slicer schemas, the
-// dashboard's cover placeholder and four JetBrains Mono faces — ~2.2 MB behind
-// screens the wear entry point does not have.
+// dashboard's cover placeholder, the demo's pictures and four JetBrains Mono
+// faces — ~3.5 MB behind screens the wear entry point does not have.
 //
 // Unreachable was verified, not assumed: none of these paths, and not the
 // family name "JetBrainsMono", survives Dart tree shaking into the wear
@@ -138,6 +138,7 @@ val wearPrunedAssetPaths = listOf(
     "assets/gcode",
     "assets/slicer",
     "assets/icons/cover_placeholder.png",
+    "assets/demo",
 )
 
 /// Dropped from the APK *and* from FontManifest.json. Leaving the manifest

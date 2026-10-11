@@ -1409,7 +1409,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get cameraDemoUnavailable =>
-      'La vista previa de la cámara no está disponible en modo demo';
+      'Esta impresora de demostración está desconectada, así que no hay imagen de cámara.';
 
   @override
   String get externalSpool => 'Bobina externa';

@@ -7,6 +7,7 @@ import '../../core/api/endpoints.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import 'mjpeg_view.dart';
+import 'demo_camera_feed.dart';
 
 /// Full-screen camera view (MJPEG). Stream lives only while screen is
 /// mounted: [MjpegView] closes the connection on `dispose` (pop route) and
@@ -56,9 +57,13 @@ class _CameraViewState extends ConsumerState<CameraView> {
         ),
       ),
       body: Center(
-        // No MJPEG source exists in demo mode — explain instead of erroring.
+        // The demo has no MJPEG source; it shows a frame it ships with, and
+        // explains when a printer has none (the offline one).
         child: profile?.isDemo == true
-            ? _DemoUnavailable(text: l10n.cameraDemoUnavailable)
+            ? DemoCameraFeed(
+                printerId: widget.printerId,
+                empty: _DemoUnavailable(text: l10n.cameraDemoUnavailable),
+              )
             : baseUrl == null
             ? _Message(text: l10n.cameraError, onRetry: _retry)
             : tokenAsync.when(

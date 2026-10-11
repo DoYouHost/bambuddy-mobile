@@ -2414,10 +2414,10 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the camera stream'**
   String get cameraError;
 
-  /// No description provided for @cameraDemoUnavailable.
+  /// Camera screen in demo mode, for the one demo printer that is offline; the others show a picture
   ///
   /// In en, this message translates to:
-  /// **'Camera preview is not available in demo mode'**
+  /// **'This demo printer is offline, so there is no camera picture.'**
   String get cameraDemoUnavailable;
 
   /// No description provided for @externalSpool.

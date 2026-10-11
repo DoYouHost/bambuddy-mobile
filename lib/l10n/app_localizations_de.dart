@@ -1414,7 +1414,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get cameraDemoUnavailable =>
-      'Kameravorschau ist im Demo-Modus nicht verfügbar';
+      'Dieser Demo-Drucker ist offline, daher gibt es kein Kamerabild.';
 
   @override
   String get externalSpool => 'Externe Spule';

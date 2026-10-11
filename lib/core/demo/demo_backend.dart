@@ -184,16 +184,16 @@ class DemoBackend {
   /// fresh cycle shows every object again.
   final Set<int> _skippedObjects = {};
 
-  /// Printable objects on the X1's current plate ("Drawer organizer x4"), laid
+  /// Printable objects on the X1's current plate ("Bag dispenser"), laid
   /// out 2×2 with plate coordinates (mm) inside [_x1BboxAll] so their markers
   /// land on the right spots in the skip-objects overlay. `width`/`height` are
   /// demo-only illustrative footprints (the real server sends none, see
-  /// [PrintableObject]) — dividers tall and narrow, front/back wide and low —
+  /// [PrintableObject]) — the cups tall and narrow, the lids wide and low —
   /// so the preview reads as actual parts instead of identical badges.
   static const _x1Objects = [
     {
       'id': 421,
-      'name': 'Divider_left.stl',
+      'name': 'Cup_left.stl',
       'x': 104.0,
       'y': 104.0,
       'width': 26.0,
@@ -201,7 +201,7 @@ class DemoBackend {
     },
     {
       'id': 512,
-      'name': 'Divider_right.stl',
+      'name': 'Cup_right.stl',
       'x': 152.0,
       'y': 104.0,
       'width': 26.0,
@@ -209,7 +209,7 @@ class DemoBackend {
     },
     {
       'id': 683,
-      'name': 'Drawer_front.stl',
+      'name': 'Lid_front.stl',
       'x': 104.0,
       'y': 152.0,
       'width': 34.0,
@@ -217,7 +217,7 @@ class DemoBackend {
     },
     {
       'id': 705,
-      'name': 'Drawer_back.stl',
+      'name': 'Lid_back.stl',
       'x': 152.0,
       'y': 152.0,
       'width': 34.0,
@@ -230,6 +230,83 @@ class DemoBackend {
 
   /// Handles one request. [body] is the raw Dio request payload
   /// (already JSON-decoded map/list, or null).
+  /// The picture of a print each machine is running, for its cover.
+  static const _jobPictures = {
+    1: 'bag-dispenser',
+    2: 'mop-station',
+    4: 'rack-plate-17',
+    5: 'rack-plate-22',
+  };
+
+  /// What each idle machine's camera shows: the plate as the last print left
+  /// it. Printer 3 is the offline one.
+  static const _cameraPictures = {
+    1: 'photos/bag-dispenser',
+    2: 'photos/mop-station',
+    4: 'photos/rack-plate-17',
+    5: 'photos/rack-plate-21',
+  };
+
+  /// Six seconds of the maintainer's chamber camera recording this very job,
+  /// shown in a loop while printer 1 prints it.
+  static final _printingFrames = [
+    for (var i = 0; i < 12; i++)
+      'camera/bag-dispenser-${i.toString().padLeft(2, '0')}',
+  ];
+
+  /// The camera's frames for [printerId], in order: a loop while printer 1
+  /// prints, one still otherwise, none for a printer that has no camera
+  /// picture. Keys as [pictureFor] gives them.
+  List<String> cameraFrames(int printerId) {
+    if (printerId == 1 && statusData(1)['cover_url'] != null) {
+      return _printingFrames;
+    }
+    final still = _cameraPictures[printerId];
+    return still == null ? const [] : [still];
+  }
+
+  /// The picture a media route of the demo serves, as `thumbs/<key>` or
+  /// `photos/<key>` under `assets/demo/`; null wherever the real server would
+  /// have nothing to send. The demo's HTTP adapter cannot answer these: the
+  /// app loads images outside Dio, so the screens ask here instead.
+  String? pictureFor(String route) {
+    final seg = Uri.parse(route).pathSegments;
+    if (seg.length < 3 || seg[0] != 'api' || seg[1] != 'v1') return null;
+    final s = seg.sublist(2);
+    final id = s.length > 1 ? int.tryParse(s[1]) : null;
+    String? thumb(Object? path) => path is String
+        ? 'thumbs/${path.split('/').last.split('.').first}'
+        : null;
+    Map<String, dynamic>? byId(List<Map<String, dynamic>> rows, int? rowId) =>
+        rows.where((r) => r['id'] == rowId).firstOrNull;
+    return switch (s) {
+      ['archives', _, 'thumbnail'] => thumb(
+        byId(_archives, id)?['thumbnail_path'],
+      ),
+      ['archives', _, 'photos', final file]
+          when (byId(_archives, id)?['photos'] as List?)?.contains(file) ??
+              false =>
+        'photos/${file.split('.').first}',
+      ['print-log', _, 'thumbnail'] => thumb(
+        byId(_printLog, id)?['thumbnail_path'],
+      ),
+      ['library', 'files', final fileId, 'thumbnail'] => thumb(
+        byId(_libraryFiles, int.tryParse(fileId))?['thumbnail_path'],
+      ),
+      ['projects', _, 'cover-image'] => thumb(
+        byId(_projects, id) == null
+            ? null
+            : _projectListJson(byId(_projects, id)!)['cover_image_filename'],
+      ),
+      ['printers', _, 'cover'] when statusData(id ?? 0)['cover_url'] != null =>
+        _jobPictures[id] == null ? null : 'thumbs/${_jobPictures[id]}',
+      ['printers', _, 'camera', 'snapshot' || 'stream'] => cameraFrames(
+        id ?? 0,
+      ).firstOrNull,
+      _ => null,
+    };
+  }
+
   DemoResult handle(String method, Uri uri, Object? requestBody) {
     var path = uri.path;
     // Asked because the demo reports 1.2.6b1 and has an A1 mini; answering like
@@ -741,7 +818,8 @@ class DemoBackend {
   /// can offer a re-slice. Found by print name rather than id: the ids are
   /// handed out in fixture order and would move if a print were inserted above.
   int get _sliceableArchiveId =>
-      _archives.firstWhere((a) => a['print_name'] == 'Benchy')['id'] as int;
+      _archives.firstWhere((a) => a['print_name'] == 'Mikrus slot')['id']
+          as int;
 
   /// `/slicer/loaded-spools` (#3172), built from the same statuses the
   /// dashboard shows, so the slice form's filters and its spool picker work on
@@ -1382,22 +1460,24 @@ class DemoBackend {
   };
 
   /// Status payload without `id` — the WS `data` shape.
-  Map<String, dynamic> statusData(int printerId) =>
-      _withSlotConfig(printerId, switch (printerId) {
-        1 => _statusPrinting(),
-        2 => _maybePrinting(2, _statusIdle(), 'Bracket v2'),
-        4 => _maybePrinting(4, _statusAccessoryFans(), 'Fan shroud'),
-        5 => _maybePrinting(5, _statusSecondX1c(), 'Hinge plate'),
-        // Printer 3, and anything the fleet does not list. Written as the
-        // fallback rather than as `3 =>` because an id that reached here at all
-        // is one nothing should have asked about.
-        _ => const {
-          'name': 'A1 mini',
-          'model': 'A1 mini',
-          'connected': false,
-          'state': null,
-        },
-      });
+  Map<String, dynamic> statusData(int printerId) => _withSlotConfig(
+    printerId,
+    switch (printerId) {
+      1 => _statusPrinting(),
+      2 => _maybePrinting(2, _statusIdle(), 'Mop station'),
+      4 => _maybePrinting(4, _statusAccessoryFans(), 'Server rack – plate 17'),
+      5 => _maybePrinting(5, _statusSecondX1c(), 'Server rack – plate 22'),
+      // Printer 3, and anything the fleet does not list. Written as the
+      // fallback rather than as `3 =>` because an id that reached here at all
+      // is one nothing should have asked about.
+      _ => const {
+        'name': 'A1 mini',
+        'model': 'A1 mini',
+        'connected': false,
+        'state': null,
+      },
+    },
+  );
 
   /// Lays whatever the slot sheet wrote over the generated trays.
   ///
@@ -1460,6 +1540,7 @@ class DemoBackend {
       'state': 'RUNNING',
       'current_print': '$job.3mf',
       'subtask_name': job,
+      'cover_url': '/api/v1/printers/$id/cover',
       'gcode_file': '/data/Metadata/plate_1.gcode',
       'progress': _r1(frac * 100),
       'remaining_time': (_printCycleSec * (1 - frac) / 60).ceil(),
@@ -1491,8 +1572,8 @@ class DemoBackend {
       'model': 'X1C',
       'connected': true,
       'state': stopped ? 'IDLE' : (_paused ? 'PAUSE' : 'RUNNING'),
-      'current_print': printing ? 'Drawer organizer x4.3mf' : null,
-      'subtask_name': printing ? 'Drawer organizer x4' : null,
+      'current_print': printing ? 'Bag dispenser.3mf' : null,
+      'subtask_name': printing ? 'Bag dispenser' : null,
       'gcode_file': printing ? '/data/Metadata/plate_1.gcode' : null,
       'progress': printing ? _r1(frac * 100) : 0,
       'remaining_time': printing ? ((_printCycleSec - elapsed) / 60).ceil() : 0,
@@ -1526,7 +1607,7 @@ class DemoBackend {
       'ams_status_sub': 0,
       'hms_errors': const <Object>[],
       'firmware_version': '01.08.02.00',
-      'cover_url': null,
+      'cover_url': printing ? '/api/v1/printers/1/cover' : null,
       'supports_drying': true,
       'current_plate_id': 1,
       'awaiting_plate_clear': false,
@@ -2097,8 +2178,8 @@ class DemoBackend {
         },
         {'name': 'ipcam', 'path': '/ipcam', 'is_directory': true, 'size': 0},
         {
-          'name': 'Drawer organizer x4.gcode.3mf',
-          'path': '/Drawer organizer x4.gcode.3mf',
+          'name': 'Bag dispenser.gcode.3mf',
+          'path': '/Bag dispenser.gcode.3mf',
           'is_directory': false,
           'size': 4318208,
           'mtime': _iso(_daysAgo(0, hours: 2)),
@@ -2106,15 +2187,15 @@ class DemoBackend {
       ],
       '/cache' => [
         {
-          'name': 'Benchy.gcode.3mf',
-          'path': '/cache/Benchy.gcode.3mf',
+          'name': 'Mikrus slot.gcode.3mf',
+          'path': '/cache/Mikrus slot.gcode.3mf',
           'is_directory': false,
           'size': 2108509,
           'mtime': _iso(_daysAgo(3)),
         },
         {
-          'name': 'Cable clips x8.gcode.3mf',
-          'path': '/cache/Cable clips x8.gcode.3mf',
+          'name': 'Gridfinity bin 2×1×9.gcode.3mf',
+          'path': '/cache/Gridfinity bin 2×1×9.gcode.3mf',
           'is_directory': false,
           'size': 1524736,
           'mtime': _iso(_daysAgo(6)),
@@ -2305,7 +2386,7 @@ class DemoBackend {
       id: 101,
       printerId: 1,
       position: 1,
-      name: 'Cable clips x8',
+      name: 'Gridfinity bin 2×1×9',
       status: 'pending',
       timeSec: 5520,
       grams: 42.3,
@@ -2313,13 +2394,14 @@ class DemoBackend {
       color: '#FFFFFF',
       createdDaysAgo: 1,
       batchId: 1,
-      batchName: 'Cable clips ×8',
+      batchName: 'Gridfinity bins ×8',
+      libraryFileId: 5,
     ),
     _queueItem(
       id: 102,
       printerId: null,
       position: 2,
-      name: 'Phone stand',
+      name: 'Server rack – plate 13',
       status: 'pending',
       timeSec: 8340,
       grams: 68.9,
@@ -2328,6 +2410,7 @@ class DemoBackend {
       createdDaysAgo: 0,
       // Shows the Staged chip; the demo's admin is never held for review.
       manualStart: true,
+      libraryFileId: 2,
     ),
     // Plate-swap job on the one model demo has snippets for: opening it shows
     // the injection checkbox already ticked, with no "nothing will be injected"
@@ -2336,7 +2419,7 @@ class DemoBackend {
       id: 103,
       printerId: 3,
       position: 3,
-      name: 'Keychain batch (plate swap)',
+      name: 'Server rack – plate 12 (plate swap)',
       status: 'pending',
       timeSec: 2760,
       grams: 12.4,
@@ -2345,6 +2428,7 @@ class DemoBackend {
       createdDaysAgo: 0,
       gcodeInjection: true,
       slicedForModel: 'A1 mini',
+      libraryFileId: 1,
     ),
   ];
 
@@ -2400,13 +2484,16 @@ class DemoBackend {
     List<Map<String, dynamic>> variants = const [],
     int? batchId,
     String? batchName,
+    // A job queued from the library, as the server shapes one: the file's
+    // name and thumbnail in place of the archive's.
+    int? libraryFileId,
   }) => {
     'id': id,
     'batch_id': batchId,
     'batch_name': batchName,
     'printer_id': printerId,
     'archive_id': null,
-    'library_file_id': null,
+    'library_file_id': libraryFileId,
     'position': position,
     'status': status,
     'required_filament_types': [type],
@@ -2429,8 +2516,14 @@ class DemoBackend {
     'layer_inspect': true,
     'timelapse': false,
     'created_at': _iso(_daysAgo(createdDaysAgo)),
-    'archive_name': name,
+    'archive_name': libraryFileId == null ? name : null,
     'archive_thumbnail': null,
+    'library_file_name': libraryFileId == null ? null : name,
+    'library_file_thumbnail': libraryFileId == null
+        ? null
+        : _libraryFiles.firstWhere(
+            (f) => f['id'] == libraryFileId,
+          )['thumbnail_path'],
     'archive_deleted': false,
     'printer_name': printerId == null
         ? null
@@ -2637,7 +2730,7 @@ class DemoBackend {
   late final List<Map<String, dynamic>> _batches = [
     {
       'id': 1,
-      'name': 'Cable clips ×8',
+      'name': 'Gridfinity bins ×8',
       'library_file_id': null,
       'status': 'active',
       'created_at': _iso(_daysAgo(2)),
@@ -2678,7 +2771,7 @@ class DemoBackend {
     // What `POST /queue/` with `quantity: 3` makes on its own: a grouping.
     {
       'id': 3,
-      'name': 'Phone stand ×3',
+      'name': 'IKEA SAMLA box clips ×3',
       'library_file_id': null,
       'status': 'completed',
       'created_at': _iso(_daysAgo(9)),
@@ -3013,6 +3106,10 @@ class DemoBackend {
       String? externalUrl,
       int runCount = 1,
       List<Map<String, dynamic>>? filamentSlots,
+      // The picture keys in `assets/demo/`: [media] for the render, [photos]
+      // for what the camera saw when the print ended.
+      String? media,
+      List<String> photos = const [],
     }) {
       final started = _daysAgo(daysAgo, hours: 3);
       final actualSec = status == 'completed'
@@ -3028,7 +3125,7 @@ class DemoBackend {
         'filename': '$name.gcode.3mf',
         'file_path': 'archive/demo/$name.gcode.3mf',
         'file_size': 1500000 + name.length * 37000,
-        'thumbnail_path': null,
+        'thumbnail_path': media == null ? null : 'archive/demo/$media.png',
         'timelapse_path': null,
         'duplicate_count': 0,
         'duplicate_sequence': 0,
@@ -3058,7 +3155,7 @@ class DemoBackend {
         'tags': tags,
         'notes': notes,
         'cost': cost ?? _r1(grams * 0.025),
-        'photos': const <Object>[],
+        'photos': [for (final key in photos) '$key.jpg'],
         'failure_reason': failureReason,
         'quantity': quantity,
         'energy_kwh': energyKwh ?? _r1(estSec / 3600 * 0.11),
@@ -3091,7 +3188,7 @@ class DemoBackend {
       // detail sheet and the plate picker in the print form have nothing to
       // stand on, and both are part of what the demo is showing off.
       a(
-        'Drawer organizer x4',
+        'Bag dispenser',
         1,
         1,
         estSec: 5400,
@@ -3100,8 +3197,10 @@ class DemoBackend {
         plateId: 2,
         projectId: 1,
         tags: 'workshop,storage',
-        notes: 'Plate 1 printed separately; the dividers go on plate 2.',
+        notes: 'Plate 1 printed separately; the lids go on plate 2.',
         runCount: 3,
+        media: 'bag-dispenser',
+        photos: const ['bag-dispenser'],
         // Listed per plate, as the server's parser stores a multi-plate
         // export: slot 1 twice, which the app sums.
         filamentSlots: const [
@@ -3111,73 +3210,101 @@ class DemoBackend {
         ],
       ),
       a(
-        'Benchy',
+        'Mikrus slot',
         1,
         2,
         estSec: 3540,
         grams: 15.8,
-        color: '#FF6A13',
+        color: '#1F5FD8',
         confirmRequested: true,
-        externalUrl: 'https://www.3dbenchy.com/',
+        externalUrl: 'https://www.printables.com/',
+        media: 'mikrus-slot',
+        photos: const ['mikrus-slot'],
       ),
       a(
-        'Raspberry Pi 5 case',
+        'Xbox controller lid',
         2,
         3,
         estSec: 7920,
         grams: 48.4,
         type: 'PETG',
-        color: '#FFFFFF',
+        color: '#CFC5A8',
+        media: 'controller-lid',
+        photos: const ['controller-lid'],
       ),
       a(
-        'Headphone hook',
+        'Dreame L10s bumper support',
         1,
         4,
         estSec: 4260,
         grams: 31.7,
-        color: '#3B3B3B',
+        color: '#FFFFFF',
         confirmRequested: true,
         verdict: 'reject',
         verdictSource: 'link',
+        media: 'bumper-support',
+        photos: const ['bumper-support'],
       ),
       a(
-        'Spiral vase',
+        'Box – plate 2',
         2,
         6,
         estSec: 10680,
         grams: 88.1,
-        color: '#D4AF37',
+        color: '#3B3B3B',
+        media: 'box-plate-2',
         status: 'failed',
         failureReason: 'Spaghetti detected',
         actualGrams: 35.2,
       ),
       a(
-        'Cable clips x8',
+        'Monitor alignment clip x8',
         1,
         7,
         estSec: 5520,
         grams: 42.3,
         type: 'PETG',
-        color: '#FFFFFF',
+        color: '#3B3B3B',
         quantity: 8,
+        media: 'monitor-clip',
       ),
-      a('Plant pot 120mm', 2, 9, estSec: 12480, grams: 132.5, color: '#0ACCB8'),
-      a('SD card holder', 1, 12, estSec: 3120, grams: 22.9, color: '#FF6A13'),
       a(
-        'Phone stand',
+        'Pet feeder – plate 2',
+        2,
+        9,
+        estSec: 12480,
+        grams: 132.5,
+        color: '#FFFFFF',
+        media: 'pet-feeder-plate-2',
+        photos: const ['pet-feeder-plate-2', 'pet-feeder'],
+      ),
+      a(
+        'RJ45 needle',
+        1,
+        12,
+        estSec: 3120,
+        grams: 22.9,
+        color: '#7B2FF2',
+        media: 'rj45-needle',
+        photos: const ['rj45-needle'],
+      ),
+      a(
+        'IKEA SAMLA box clips',
         3,
         15,
         estSec: 8340,
         grams: 68.9,
-        color: '#FF6A13',
+        color: '#FFFFFF',
         confirmRequested: true,
         verdict: 'good',
         verdictSource: 'plate_clear',
+        media: 'samla-clips',
+        photos: const ['samla-clips'],
       ),
       // Stopped on the first layer, so there is no measured figure at all —
       // the case the archive sheet has a line for.
       a(
-        'Wall hook x4',
+        'Handle',
         1,
         18,
         estSec: 4980,
@@ -3187,23 +3314,27 @@ class DemoBackend {
         status: 'failed',
         failureReason: 'Bed adhesion',
         noUsageRecorded: true,
+        media: 'handle',
       ),
       a(
-        'Desk drawer divider',
+        'Box',
         2,
         22,
         estSec: 9840,
         grams: 104.6,
         color: '#000000',
+        media: 'box',
+        photos: const ['box'],
       ),
       a(
-        'Flexi dragon',
+        'Vacuum diffuser',
         1,
         26,
         estSec: 14400,
         grams: 156.3,
         type: 'TPU',
         color: '#0ACC38',
+        media: 'vacuum-diffuser',
       ),
     ];
   }
@@ -3245,7 +3376,7 @@ class DemoBackend {
       'energy_cost': archive['energy_cost'],
       'wear_cost': archive['wear_cost'],
       'failure_reason': failureReason ?? archive['failure_reason'],
-      'thumbnail_path': null,
+      'thumbnail_path': archive['thumbnail_path'],
       'created_by_id': 1,
       'created_by_username': DemoConfig.username,
       'created_at': archive['created_at'],
@@ -6035,7 +6166,7 @@ class DemoBackend {
     return [
       {
         'id': spoolId * 10 + 1,
-        'print_name': 'Drawer organizer x4',
+        'print_name': 'Bag dispenser',
         'weight_used': 96.2,
         'percent_used': 10,
         'status': 'completed',
@@ -6044,7 +6175,7 @@ class DemoBackend {
       },
       {
         'id': spoolId * 10 + 2,
-        'print_name': 'Benchy',
+        'print_name': 'Mikrus slot',
         'weight_used': 15.8,
         'percent_used': 2,
         'status': 'completed',
@@ -6220,7 +6351,7 @@ class DemoBackend {
   late final List<Map<String, dynamic>> _libraryFolders = [
     {
       'id': 1,
-      'name': 'Calibration',
+      'name': 'Server rack',
       'parent_id': null,
       'file_count': 3,
       'children': <Object>[],
@@ -6241,51 +6372,56 @@ class DemoBackend {
   late final List<Map<String, dynamic>> _libraryFiles = [
     _libFile(
       1,
-      'Benchy.gcode.3mf',
+      'Server rack – plate 12.gcode.3mf',
       1,
       2108509,
       printCount: 3,
       timeSec: 3540,
       grams: 15.8,
+      media: 'rack-plate-12',
     ),
     _libFile(
       2,
-      'Calibration cube.gcode.3mf',
+      'Server rack – plate 13.gcode.3mf',
       1,
       812340,
       printCount: 1,
       timeSec: 1620,
       grams: 6.1,
+      media: 'rack-plate-13',
     ),
     _libFile(
       3,
-      'Temp tower PLA.gcode.3mf',
+      'Server rack – plate 14.gcode.3mf',
       1,
       1430200,
       printCount: 1,
       timeSec: 5340,
       grams: 21.4,
       model: 'P1S',
+      media: 'rack-plate-14',
     ),
     _libFile(
       4,
-      'Drawer organizer x4.gcode.3mf',
+      'Bag dispenser.gcode.3mf',
       2,
       4318208,
       printCount: 2,
       timeSec: 5400,
       grams: 96.2,
       model: 'P1S',
+      media: 'bag-dispenser',
     ),
     _libFile(
       5,
-      'Cable clips x8.gcode.3mf',
+      'Gridfinity bin 2×1×9.gcode.3mf',
       2,
       1524736,
       printCount: 1,
       timeSec: 5520,
       grams: 42.3,
       model: 'P2S',
+      media: 'gridfinity-bin',
     ),
     // The un-sliced sources — the only files the Slice button is offered on,
     // since anything already `gcode.3mf` is printable and cannot be re-sliced.
@@ -6294,27 +6430,38 @@ class DemoBackend {
     // plates never touch), and an STL has no plates and so no "as designed".
     _libFile(
       6,
-      'SD card adapter.3mf',
+      'Crimper 24 mm.3mf',
       null,
       634212,
       fileType: '3mf',
       model: null,
+      media: 'crimper',
     ),
     _libFile(
       7,
-      'Hue dial two-tone.3mf',
+      'Mop station.3mf',
       null,
       2204160,
       fileType: '3mf',
       model: null,
+      media: 'mop-station',
     ),
-    _libFile(8, 'Lamp shade.stl', null, 1841664, fileType: 'stl', model: null),
+    _libFile(
+      8,
+      'Rack rails.stl',
+      null,
+      1841664,
+      fileType: 'stl',
+      model: null,
+      // The server renders a thumbnail for an STL on upload; not for STEP.
+      media: 'rack-rails',
+    ),
     // Uploaded straight from CAD, and refused before a byte is read: neither
     // slicer CLI loads STEP. The button is still offered — the file is not
     // printable — which is exactly the state the server's own message is for.
     _libFile(
       9,
-      'Motor bracket.step',
+      'Server rack – plate 22.step',
       null,
       412160,
       fileType: 'step',
@@ -6342,13 +6489,14 @@ class DemoBackend {
     // records which printer the *output* was built for, so an un-sliced
     // upload has no answer to give.
     String? model = 'X1C',
+    String? media,
   }) => {
     'id': id,
     'folder_id': folderId,
     'filename': filename,
     'file_type': fileType,
     'file_size': size,
-    'thumbnail_path': null,
+    'thumbnail_path': media == null ? null : 'library/demo/$media.png',
     'print_count': printCount,
     'duplicate_count': 0,
     'created_by_username': DemoConfig.username,
@@ -6747,7 +6895,7 @@ class DemoBackend {
                 (a) => {
                   'id': a['id'],
                   'print_name': a['print_name'],
-                  'thumbnail_path': null,
+                  'thumbnail_path': a['thumbnail_path'],
                   'status': a['status'],
                   'filament_type': a['filament_type'],
                   'filament_color': a['filament_color'],
@@ -6765,7 +6913,10 @@ class DemoBackend {
       'progress_percent': isFirst ? 58.3 : 100.0,
       'archives': previews,
       'url': null,
-      'cover_image_filename': null,
+      // The key of the render in `assets/demo/` the cover is drawn from.
+      'cover_image_filename': isFirst
+          ? 'gridfinity-bin.png'
+          : 'controller-lid.png',
     };
   }
 

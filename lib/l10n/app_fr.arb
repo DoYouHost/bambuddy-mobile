@@ -692,7 +692,7 @@
   "cameraTooltip": "Caméra",
   "cameraConnecting": "Connexion à la caméra…",
   "cameraError": "Impossible de charger le flux de la caméra",
-  "cameraDemoUnavailable": "L'aperçu de la caméra n'est pas disponible en mode démo",
+  "cameraDemoUnavailable": "Cette imprimante de démo est hors ligne, il n'y a donc pas d'image de caméra.",
   "externalSpool": "Bobine externe",
   "traySlotEmpty": "Vide",
   "amsSlotFilament": "Filament",

@@ -1423,7 +1423,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get cameraDemoUnavailable =>
-      'L\'aperçu de la caméra n\'est pas disponible en mode démo';
+      'Cette imprimante de démo est hors ligne, il n\'y a donc pas d\'image de caméra.';
 
   @override
   String get externalSpool => 'Bobine externe';

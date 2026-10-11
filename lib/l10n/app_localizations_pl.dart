@@ -1426,7 +1426,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get cameraDemoUnavailable =>
-      'Podgląd kamery nie jest dostępny w trybie demo';
+      'Ta drukarka demo jest offline, więc nie ma obrazu z kamery.';
 
   @override
   String get externalSpool => 'Szpula zewnętrzna';
