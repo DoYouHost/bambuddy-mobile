@@ -1,8 +1,14 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:app_util/app_util.dart';
+import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 
 import '../../core/ams/slot_addressing.dart';
@@ -15,17 +21,22 @@ import '../../core/models/location_sensor.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/models/spool_label.dart';
 import '../../core/models/spool_preset_override.dart';
+import '../../core/models/supplier.dart';
+import '../../core/settings/label_print_prefs.dart';
 import '../../core/slicer/preset_filters.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../data/inventory_repository.dart';
 import '../../data/inventory_source.dart' show InventoryBackend;
+import '../../data/label_printer_repository.dart';
 import '../../providers.dart';
 import '../../router.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
+import '../common/device_files.dart' show DeviceFileOutcome;
+import '../common/file_export.dart';
 import '../common/dash_stepper.dart';
 import '../common/refresh_when_shown.dart';
+import '../label_printer/label_printer_providers.dart';
 import '../common/dash_progress_bar.dart';
 import '../common/dash_search_field.dart';
 import '../common/dashed_line.dart';
@@ -42,21 +53,18 @@ import '../stats/stats_common.dart' show fmtGrams;
 import 'inventory_providers.dart';
 import 'spool_scanner_screen.dart';
 import '../../core/diagnostics/log_tag_material.dart';
+import '../../core/format/text_compare.dart';
 
 part 'inventory_filters.dart';
 part 'inventory_tiles.dart';
 part 'inventory_sheets.dart';
 part 'inventory_form.dart';
 part 'inventory_labels.dart';
+part 'inventory_label_options.dart';
 part 'inventory_bulk_edit.dart';
 part 'location_climate.dart';
-
-/// Ink for text/icons painted directly on a solid [DashTokens.accentGreen]
-/// fill (e.g. the primary FAB, the save button). Unlike the token pairs above,
-/// this isn't theme-adaptive by design — the accent fill itself is a fixed
-/// vivid swatch in both brightnesses, so a near-black ink keeps it readable
-/// either way.
-const Color _onAccentGreen = Color(0xFF08150D);
+part 'suppliers_sheet.dart';
+part 'spool_form_suppliers.dart';
 
 /// Scans a spool QR code and opens its detail card (NOT edit mode). The
 /// scanner returns the id parsed from the URL's `?spool=`; [showSpoolDetail]
@@ -140,6 +148,10 @@ Future<void> showSpoolDetail(
 /// Long-pressing a spool enters multi-select mode for a mass edit of fields
 /// plus bulk reset-usage / archive / restore / delete / label printing,
 /// mirroring the Archive tab.
+/// The small scan FAB and its gap, stacked above the standard add FAB that
+/// [DashSpace.fabClearance] already clears.
+const _scanFabStep = 40 + DashSpace.md;
+
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
 
@@ -153,12 +165,22 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   bool get _selectionMode => _selected.isNotEmpty;
 
+  /// Held here so the field follows [inventoryQueryProvider] when something
+  /// other than typing clears it — a supplier's spool count does.
+  final _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
   /// The shelf and the climate readings, which age on their own — the server
   /// polls Home Assistant on its own interval, so whoever asks for the shelf
   /// has to ask for those too.
-  Future<void> _refreshShelfAndClimate() {
+  Future<void> _refreshShelfAndClimate({bool askBackend = false}) {
     ref.invalidate(locationClimateProvider);
-    return ref.read(inventoryProvider.notifier).refresh();
+    return ref.read(inventoryProvider.notifier).refresh(askBackend: askBackend);
   }
 
   void _toggleSelect(int id) {
@@ -180,14 +202,18 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(inventoryProvider);
     final query = ref.watch(inventoryQueryProvider);
+    ref.listen(inventoryQueryProvider, (_, next) {
+      if (_search.text != next) _search.text = next;
+    });
     final filters = ref.watch(inventoryFiltersProvider);
     final consumedTotal = ref.watch(inventoryConsumedTotalProvider);
     final climates = ref.watch(locationClimateProvider).valueOrNull ?? const {};
     final climateAlerting = climates.values.any((c) => c.alerting);
-    final visible = _filter(
-      async.valueOrNull?.spools ?? const [],
-      query,
-      filters,
+    final suppliersSupported = ref.watch(suppliersSupportedProvider).orFalse;
+    final visible = sortSpools(
+      _filter(async.valueOrNull?.spools ?? const [], query, filters),
+      filters.sort,
+      descending: filters.descending,
     );
 
     // Drop ids that a filter/search change has scrolled out of reach — acting
@@ -226,6 +252,15 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         onPressed: () => _openLocationClimate(context),
                       ),
                     ),
+                  if (suppliersSupported)
+                    logTag(
+                      'inventory.suppliers',
+                      IconButton(
+                        icon: const Icon(Icons.storefront_outlined),
+                        tooltip: l10n.inventorySuppliersTitle,
+                        onPressed: () => _openSuppliers(context),
+                      ),
+                    ),
                   logTag(
                     'inventory.print_labels_all',
                     IconButton(
@@ -260,13 +295,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       child: const Icon(Icons.qr_code_scanner),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   logTag(
                     'inventory.add_spool',
                     FloatingActionButton.extended(
                       heroTag: 'addSpool',
                       backgroundColor: t.accentGreen,
-                      foregroundColor: _onAccentGreen,
+                      foregroundColor: t.onAccent,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
@@ -290,16 +325,18 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           child: dashAsync(
             context,
             async,
-            onRetry: () => ref.read(inventoryProvider.notifier).refresh(),
+            onRetry: () =>
+                ref.read(inventoryProvider.notifier).refresh(askBackend: true),
             data: (inv) {
               final spools = visible;
               return RefreshIndicator(
-                onRefresh: _refreshShelfAndClimate,
+                onRefresh: () => _refreshShelfAndClimate(askBackend: true),
                 child: CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
                     DashSliverSearchBar(
                       child: _SearchBar(
+                        controller: _search,
                         filterCount: filters.activeCount,
                         onQuery: (v) =>
                             ref.read(inventoryQueryProvider.notifier).state = v,
@@ -318,9 +355,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       )
                     else
                       SliverPadding(
-                        // Clears the whole FAB stack (scan + add) plus its margin,
-                        // so the last spool stays reachable at the end of the list.
-                        padding: const EdgeInsets.only(bottom: 120),
+                        // Clears the whole FAB stack (scan + add), so the last
+                        // spool stays reachable at the end of the list.
+                        padding: const EdgeInsets.only(
+                          bottom: DashSpace.fabClearance + _scanFabStep,
+                        ),
                         sliver: SliverList.builder(
                           itemCount: spools.length + 1,
                           itemBuilder: (context, i) {
@@ -578,8 +617,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     return l10n.inventoryBulkDone(outcome.ok);
   }
 
-  /// Client-side filter: status (active/archived), stock, material, brand, location,
-  /// and search by material/brand/color/location (case-insensitive). Empty sets in
+  /// Client-side filter: status (active/archived), stock, material, brand,
+  /// location, supplier, and search by material/brand/color/location (case-insensitive). Empty sets in
   /// [filters] = no restriction.
   List<Spool> _filter(
     List<Spool> spools,
@@ -597,7 +636,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 if (filters.locations.isEmpty ||
                     (s.storageLocation != null &&
                         filters.locations.contains(s.storageLocation)))
-                  if (s.matchesSearch(query)) s,
+                  if (filters.materialNumbers.isEmpty ||
+                      (s.materialNumber != null &&
+                          filters.materialNumbers.contains(s.materialNumber)))
+                    if (filters.suppliers.isEmpty ||
+                        (s.suppliers ?? const []).any(
+                          (l) => filters.suppliers.contains(l.supplierId),
+                        ))
+                      if (s.matchesSearch(query)) s,
     ];
   }
 
@@ -615,6 +661,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         materials: _distinct(all.map((s) => s.material)),
         brands: _distinct(all.map((s) => s.brand)),
         locations: _distinct(all.map((s) => s.storageLocation)),
+        materialNumbers: _distinct(all.map((s) => s.materialNumber)),
+        suppliers: {
+          for (final s in all)
+            for (final link in s.suppliers ?? const <SpoolSupplierLink>[])
+              link.supplierId: link.supplierName,
+        },
       ),
     );
   }
@@ -625,8 +677,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       for (final v in values)
         if (v != null && v.trim().isNotEmpty) v,
     };
-    final list = set.toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final list = set.toList()..sort(compareIgnoringCase);
     return list;
   }
 }

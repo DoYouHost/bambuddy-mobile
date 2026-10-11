@@ -35,6 +35,9 @@ void main() {
     'spool_form.save_model_presets':
         'the second write the Save button makes, after the spool itself — '
         'a step in that flow, not a control of its own',
+    'spool_form.save_suppliers':
+        'the third write the Save button makes, after the per-model presets — '
+        'likewise',
     'queue_create.order':
         'the order the Save button makes before the copies go in — likewise',
   };
@@ -48,6 +51,8 @@ void main() {
     RegExp(r"\.taggedMaterial\('([^']+)'"),
     // `confirmDialog(id:)` names its two buttons `<id>.confirm` / `<id>.cancel`.
     RegExp(r"id:\s*'([^']+)'"),
+    // `failureReasonEntries(ids: (none: …, option: …, legacy: …))`.
+    RegExp(r"(?:none|option|legacy):\s*'([^']+\.[^']+)'"),
   ];
 
   /// The literal tags handed to the funnel. Interpolated ones (`plug.${…}`)

@@ -273,6 +273,150 @@ void main() {
       }
     });
   });
+
+  group('fields, format and dpi', () {
+    late Dio dio;
+    late _FakeAdapter adapter;
+
+    void serve(List<int> bytes) {
+      dio = testDio();
+      adapter = _FakeAdapter(status: 200, bytes: bytes);
+      dio.httpClientAdapter = adapter;
+    }
+
+    Map<String, dynamic> body() =>
+        adapter.captured!.data as Map<String, dynamic>;
+
+    const pngBytes = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    const zipBytes = [0x50, 0x4B, 0x03, 0x04, 0x00];
+
+    test('none of the three is on the wire unless asked for', () async {
+      serve(_pdfBytes);
+      await NativeInventorySource(dio).renderLabels(
+        const SpoolLabelRequest(
+          spoolIds: [1],
+          template: SpoolLabelTemplate.box62x29,
+        ),
+      );
+      expect(body().containsKey('fields'), isFalse);
+      expect(body().containsKey('format'), isFalse);
+      expect(body().containsKey('dpi'), isFalse);
+    });
+
+    test('fields go as their wire names', () async {
+      serve(_pdfBytes);
+      await NativeInventorySource(dio).renderLabels(
+        const SpoolLabelRequest(
+          spoolIds: [1],
+          template: SpoolLabelTemplate.box62x29,
+          fields: {SpoolLabelField.materialNumber, SpoolLabelField.qr},
+        ),
+      );
+      expect(body()['fields'], ['material_number', 'qr']);
+    });
+
+    test('an empty selection is sent as empty, not dropped', () async {
+      // Absent means "the default lines"; empty means "none of them".
+      serve(_pdfBytes);
+      await NativeInventorySource(dio).renderLabels(
+        const SpoolLabelRequest(
+          spoolIds: [1],
+          template: SpoolLabelTemplate.box62x29,
+          fields: {},
+        ),
+      );
+      expect(body()['fields'], isEmpty);
+    });
+
+    test('a PNG request carries the format and the resolution', () async {
+      serve(pngBytes);
+      final bytes = await SpoolmanInventorySource(dio).renderLabels(
+        const SpoolLabelRequest(
+          spoolIds: [1],
+          template: SpoolLabelTemplate.box62x29,
+          format: SpoolLabelFormat.png,
+          dpi: 203,
+        ),
+      );
+      expect(bytes, pngBytes);
+      expect(body()['format'], 'png');
+      expect(body()['dpi'], 203);
+    });
+
+    test('several labels come back as a ZIP, which is accepted', () async {
+      serve(zipBytes);
+      await NativeInventorySource(dio).renderLabels(
+        const SpoolLabelRequest(
+          spoolIds: [1, 2],
+          template: SpoolLabelTemplate.box62x29,
+          format: SpoolLabelFormat.png,
+        ),
+      );
+    });
+
+    test('a PDF in answer to a PNG request is refused, not saved', () async {
+      // What a server older than #2981 does: it ignores `format`.
+      serve(_pdfBytes);
+      await expectLater(
+        NativeInventorySource(dio).renderLabels(
+          const SpoolLabelRequest(
+            spoolIds: [1],
+            template: SpoolLabelTemplate.box62x29,
+            format: SpoolLabelFormat.png,
+          ),
+        ),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.malformedResponse,
+          ),
+        ),
+      );
+    });
+
+    test('a PNG in answer to a PDF request is refused too', () async {
+      serve(pngBytes);
+      await expectLater(
+        NativeInventorySource(dio).renderLabels(
+          const SpoolLabelRequest(
+            spoolIds: [1],
+            template: SpoolLabelTemplate.box62x29,
+          ),
+        ),
+        throwsA(isA<ApiException>()),
+      );
+    });
+
+    test('the file kind is read from the first bytes', () {
+      expect(
+        SpoolLabelFile.of(Uint8List.fromList(_pdfBytes)),
+        SpoolLabelFile.pdf,
+      );
+      expect(
+        SpoolLabelFile.of(Uint8List.fromList(pngBytes)),
+        SpoolLabelFile.png,
+      );
+      expect(
+        SpoolLabelFile.of(Uint8List.fromList(zipBytes)),
+        SpoolLabelFile.zip,
+      );
+      expect(SpoolLabelFile.of(Uint8List(0)), isNull);
+      expect(SpoolLabelFile.of(Uint8List.fromList(utf8.encode('{}'))), isNull);
+    });
+
+    test('the defaults are what a label carried before the choice', () {
+      expect(SpoolLabelField.defaults, {
+        SpoolLabelField.brand,
+        SpoolLabelField.material,
+        SpoolLabelField.hex,
+        SpoolLabelField.name,
+        SpoolLabelField.location,
+        SpoolLabelField.qr,
+        SpoolLabelField.spoolId,
+      });
+    });
+  });
 }
 
 /// Adapter returning raw bytes, so tests exercise the real `ResponseType.bytes`

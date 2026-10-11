@@ -34,6 +34,10 @@
          foreground service type have to keep naming the same one. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"/>
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
+    <!-- Finding the label print server on the LAN (mDNS, nsd): the plugin's own
+         README lists it with INTERNET as everything Android needs. A normal
+         permission — no runtime prompt. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
     <!-- No WAKE_LOCK of ours any more (see `allowWakeLock` in lib/main.dart).
          flutter_foreground_task declares the permission in its own manifest, so
          it still merges into the APK — nothing in this app acquires a lock. -->
@@ -79,6 +83,15 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- The status-bar glyph for every notification. Never the launcher icon:
+             the system draws an adaptive icon's whole canvas, insets included,
+             so the logo shrank to half a status-bar icon (One UI 9). Read by
+             flutter_foreground_task through this meta-data; the reference also
+             keeps the drawable through resource shrinking, which the
+             notification plugin's by-name lookup alone would not. -->
+        <meta-data
+            android:name="page.codeberg.morganmlgman.bambuddy_mobile.NOTIFICATION_ICON"
+            android:resource="@drawable/ic_stat_notify" />
         <!-- flutter_foreground_task's foreground service — hosts a separate Dart
              isolate that keeps the WebSocket open and posts print notifications
              in the background. Do NOT rename the service (plugin requirement).

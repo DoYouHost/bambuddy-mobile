@@ -19,7 +19,7 @@ class _MovementTile extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(top: DashSpace.md),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(14),
@@ -33,7 +33,10 @@ class _MovementTile extends ConsumerWidget {
                   _MovementSheet(printerId: printerId, model: model),
             ),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.lg,
+                vertical: DashSpace.md,
+              ),
               decoration: BoxDecoration(
                 color: t.subCard,
                 borderRadius: BorderRadius.circular(14),
@@ -42,7 +45,7 @@ class _MovementTile extends ConsumerWidget {
               child: Row(
                 children: [
                   Icon(Icons.open_with, size: 18, color: t.textSecondary),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: DashSpace.md),
                   Text(l10n.ctrlMove, style: t.titleSm),
                   const Spacer(),
                   Icon(Icons.chevron_right, size: 18, color: t.textTertiary),
@@ -144,7 +147,12 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
         child: Flexible(
           child: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                DashSpace.lg,
+                DashSpace.gutter,
+                DashSpace.xl,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
@@ -162,7 +170,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: DashSpace.lg),
                   _StepSelector(
                     id: 'movement.step',
                     label: l10n.ctrlMoveStep,
@@ -170,13 +178,13 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
                     value: _step,
                     onChanged: (v) => setState(() => _step = v),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: DashSpace.lg),
                   _buildXyPad(t, locked),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: DashSpace.xl),
                   _buildZRow(t, l10n, locked),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: DashSpace.xl),
                   Divider(color: t.subCardBorder, height: 1),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: DashSpace.xl),
                   _StepSelector(
                     id: 'movement.length',
                     label: l10n.ctrlMoveLength,
@@ -184,7 +192,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
                     value: _length,
                     onChanged: (v) => setState(() => _length = v),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: DashSpace.lg),
                   _buildExtruderRow(t, l10n, locked),
                 ],
               ),
@@ -229,7 +237,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             spacer(),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -242,9 +250,9 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
                 () => _notifier.xyJog(widget.printerId, x: -_step.toDouble()),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: DashSpace.sm),
             center(),
-            const SizedBox(width: 8),
+            const SizedBox(width: DashSpace.sm),
             _JogButton(
               icon: Icons.keyboard_arrow_right,
               busy: _spin == 'x+',
@@ -256,7 +264,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -305,7 +313,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
     final label = Row(
       children: [
         Icon(Icons.height, size: 16, color: t.textSecondary),
-        const SizedBox(width: 8),
+        const SizedBox(width: DashSpace.sm),
         Text(
           isBedSlinger(model) ? l10n.ctrlMoveZToolhead : l10n.ctrlMoveZ,
           style: t.body.copyWith(color: t.textSecondary),
@@ -318,7 +326,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           label,
-          const SizedBox(height: 6),
+          const SizedBox(height: DashSpace.sm),
           Text(
             model == null || model.trim().isEmpty
                 ? l10n.ctrlMoveZNoModel
@@ -345,7 +353,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
         label,
         const Spacer(),
         jog('z+', Icons.keyboard_arrow_up, l10n.ctrlMoveZUp, true),
-        const SizedBox(width: 8),
+        const SizedBox(width: DashSpace.sm),
         jog('z-', Icons.keyboard_arrow_down, l10n.ctrlMoveZDown, false),
       ],
     );
@@ -367,7 +375,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: DashSpace.md),
         Expanded(
           child: _JogWideButton(
             icon: Icons.arrow_downward,
@@ -414,8 +422,8 @@ class _StepSelector extends StatelessWidget {
         Text(label, style: t.body.copyWith(color: t.textSecondary)),
         const Spacer(),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: DashSpace.sm,
+          runSpacing: DashSpace.sm,
           children: [
             for (final p in presets)
               _PresetChip(
@@ -497,7 +505,10 @@ class _JogAction extends StatelessWidget {
       child: InkWell(
         onTap: enabled ? onTap : null,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DashSpace.md,
+            vertical: DashSpace.sm,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: t.subCardBorder),
@@ -508,7 +519,7 @@ class _JogAction extends StatelessWidget {
               busy
                   ? const DashSpinner(size: 16)
                   : Icon(icon, size: 16, color: fg),
-              const SizedBox(width: 6),
+              const SizedBox(width: DashSpace.sm),
               Text(label, style: t.bodyBold.copyWith(color: fg)),
             ],
           ),
@@ -545,7 +556,7 @@ class _JogWideButton extends StatelessWidget {
       child: InkWell(
         onTap: enabled ? onTap : null,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: t.subCardBorder),
@@ -556,7 +567,7 @@ class _JogWideButton extends StatelessWidget {
               busy
                   ? const DashSpinner(size: 16)
                   : Icon(icon, size: 18, color: fg),
-              const SizedBox(width: 8),
+              const SizedBox(width: DashSpace.sm),
               Text(label, style: t.bodyBold.copyWith(color: fg)),
             ],
           ),

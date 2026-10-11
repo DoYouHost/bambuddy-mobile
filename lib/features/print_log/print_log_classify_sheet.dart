@@ -133,10 +133,10 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
       'sheet.print_log_classify',
       SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
-          20,
-          4,
-          20,
-          20 + MediaQuery.viewInsetsOf(context).bottom,
+          DashSpace.gutter,
+          DashSpace.xs,
+          DashSpace.gutter,
+          DashSpace.xl + MediaQuery.viewInsetsOf(context).bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -148,7 +148,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: DashSpace.xs),
             Text(
               [
                 if (entry.printerName != null) entry.printerName!,
@@ -157,7 +157,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
               ].join(' · '),
               style: t.label.copyWith(color: t.textSecondary),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: DashSpace.lg),
 
             // What the row could only show abbreviated, in full: the card has
             // one line for all of it and cuts whatever does not fit.
@@ -204,10 +204,16 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
                           formatMoney(currency, fmtNum(entry.energyCost!)),
                       ].join(' · '),
               ),
+              _RunDetailRow(
+                label: l10n.statsWearCost,
+                value: entry.wearCost == null
+                    ? null
+                    : formatMoney(currency, fmtNum(entry.wearCost!)),
+              ),
             ],
-            const SizedBox(height: 14),
+            const SizedBox(height: DashSpace.lg),
             Divider(color: t.hairline, height: 1),
-            const SizedBox(height: 18),
+            const SizedBox(height: DashSpace.lg),
 
             dashCombo<String>(
               context,
@@ -216,40 +222,18 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
               initialSelection: _reason,
               textStyle: t.body,
               onSelected: (v) => setState(() => _reason = v ?? ''),
-              entries: [
-                DropdownMenuEntry(
-                  value: '',
-                  label: l10n.printLogNoClassification,
-                  labelWidget: logTag(
-                    'print_log.classify.reason.none',
-                    Text(l10n.printLogNoClassification),
-                  ),
+              entries: failureReasonEntries(
+                l10n,
+                none: l10n.printLogNoClassification,
+                carries: entry.failureReason,
+                ids: (
+                  none: 'print_log.classify.reason.none',
+                  option: 'print_log.classify.reason.option',
+                  legacy: 'print_log.classify.reason.legacy',
                 ),
-                for (final key in printLogFailureReasons)
-                  DropdownMenuEntry(
-                    value: key,
-                    label: failureReasonLabel(l10n, key),
-                    labelWidget: logTag(
-                      'print_log.classify.reason.option',
-                      Text(failureReasonLabel(l10n, key)),
-                    ),
-                  ),
-                // A cause stored outside the vocabulary — an older web build
-                // saved translated labels. Offered so the field shows what the
-                // row actually holds instead of reading as unclassified.
-                if (entry.failureReason != null &&
-                    !printLogFailureReasons.contains(entry.failureReason))
-                  DropdownMenuEntry(
-                    value: entry.failureReason!,
-                    label: failureReasonLabel(l10n, entry.failureReason),
-                    labelWidget: logTag(
-                      'print_log.classify.reason.legacy',
-                      Text(failureReasonLabel(l10n, entry.failureReason)),
-                    ),
-                  ),
-              ],
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
 
             dashCombo<String>(
               context,
@@ -279,7 +263,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
                   ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: DashSpace.md),
 
             Text(
               printRunIsFailure(_status)
@@ -288,7 +272,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
               style: t.label,
             ),
             if (_statusIsUnwritable && _status == entry.status) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: DashSpace.sm),
               Text(
                 l10n.printLogStatusOneWay(
                   printRunStatusLabel(l10n, entry.status),
@@ -296,7 +280,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
                 style: t.label.copyWith(color: t.accentOrangeInk),
               ),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: DashSpace.xl),
 
             Row(
               children: [
@@ -349,13 +333,13 @@ class _RunDetailRow extends StatelessWidget {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: [
           Expanded(child: Text(label, style: t.label)),
-          const SizedBox(width: 12),
+          const SizedBox(width: DashSpace.md),
           Text(text, style: t.monoValue),
         ],
       ),

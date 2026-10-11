@@ -28,9 +28,15 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
   String _query = '';
   String? _material;
   var _sort = _LabelSort.id;
-  bool _monochrome = false;
-  bool _share = false;
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Follows a print server that got a new address; the row below reads the
+    // result through the provider whenever it lands.
+    unawaited(ref.read(labelPrinterUrlProvider.notifier).refresh());
+  }
 
   /// Spools in print order. The backend prints labels in the order it receives
   /// ids, so sorting here is what makes "by colour" reach the sheet.
@@ -86,7 +92,12 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
       builder: (context, controller) => Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              0,
+              DashSpace.gutter,
+              DashSpace.sm,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -97,25 +108,26 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                       size: 20,
                       color: t.accentGreenInk,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: DashSpace.sm),
                     Expanded(
                       child: Text(l10n.inventoryLabelsTitle, style: t.display),
                     ),
                     Text(
                       l10n.inventorySelectedCount(_selected.length),
-                      style: t.monoLabel,
+                      style: t.monoLabel.legible,
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 DashSearchField(
                   id: 'spool_labels.search',
                   hintText: l10n.inventoryLabelsSearchHint,
                   onChanged: (v) => setState(() => _query = v),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: DashSpace.md),
                 if (_materials.length > 1) ...[
                   _ChipRow(
+                    id: 'spool_labels.material',
                     label: l10n.inventoryLabelsMaterial,
                     options: {
                       null: l10n.inventoryLabelsAllMaterials,
@@ -124,9 +136,10 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                     value: _material,
                     onChanged: (v) => setState(() => _material = v),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: DashSpace.sm),
                 ],
                 _ChipRow(
+                  id: 'spool_labels.sort',
                   label: l10n.inventoryLabelsSort,
                   options: {
                     _LabelSort.id: l10n.inventoryLabelsSortById,
@@ -135,13 +148,15 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                   value: _sort,
                   onChanged: (v) => setState(() => _sort = v),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: DashSpace.md),
                 Row(
                   children: [
                     Expanded(
                       child: Text(
                         l10n.inventoryLabelsPickSpools,
-                        style: t.labelSoft.copyWith(color: t.textSecondary),
+                        style: t.labelSoft.legible.copyWith(
+                          color: t.textSecondary,
+                        ),
                       ),
                     ),
                     _TextAction(
@@ -159,7 +174,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                               }
                             }),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: DashSpace.md),
                     _TextAction(
                       label: l10n.inventoryLabelsClearAll,
                       muted: true,
@@ -177,7 +192,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
             child: visible.isEmpty
                 ? Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(DashSpace.xl),
                       child: Text(
                         l10n.inventoryLabelsNoMatches,
                         textAlign: TextAlign.center,
@@ -187,7 +202,9 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                   )
                 : ListView.builder(
                     controller: controller,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DashSpace.sm,
+                    ),
                     itemCount: visible.length,
                     itemBuilder: (context, i) {
                       final spool = visible[i];
@@ -205,12 +222,8 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
           ),
 
           _LabelFooter(
-            monochrome: _monochrome,
-            share: _share,
             busy: _busy,
             count: _selected.length,
-            onMonochrome: (v) => setState(() => _monochrome = v),
-            onShare: (v) => setState(() => _share = v),
             onPrint: _selected.isEmpty || _busy ? null : _pickTemplate,
           ),
         ],
@@ -240,6 +253,33 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     final startingPosition = await _pickStartingPosition(template);
     if (startingPosition == null || !mounted) return;
 
+    // Settled before the options sheet opens, not after it closes: the sheet
+    // offers PNG and the lines only to a server that has them, and a gate that
+    // answered in between would resolve the destination differently from what
+    // the user was shown. The three request extras mean nothing to an older
+    // server, which drops them and answers a PDF with the default lines.
+    final providers = ProviderScope.containerOf(context, listen: false);
+    final canChoose = await settledGate(
+      providers,
+      labelFieldsProvider,
+    ).catchError((Object _) => false);
+    if (!mounted) return;
+
+    // Step 4: what goes on the label and where the file goes. Closed without
+    // "Print" cancels, like the steps before it.
+    final destination = await dashSurfaceSheet<LabelDestination>(
+      context,
+      builder: (_) => _LabelOptionsSheet(template: template),
+    );
+    if (destination == null || !mounted) return;
+
+    final prefs = ref.read(labelPrintPrefsProvider);
+    final png = canChoose && prefs.format == SpoolLabelFormat.png;
+    final chosenFields = prefs.fieldsFor(template);
+    // Read while the sheet is certainly still there: the hand-off below runs
+    // after it has been popped, and a `ref` is not usable once it is gone.
+    final labelPrinter = ref.read(labelPrinterRepositoryProvider);
+
     // Keep the sorted order — that's what makes "by colour" flow into an
     // Avery sheet instead of being re-sorted by id server-side.
     final ids = [
@@ -249,29 +289,50 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
 
     setState(() => _busy = true);
     try {
-      final pdf = await ref
+      final file = await ref
           .read(inventoryRepositoryProvider)
           .renderLabels(
             SpoolLabelRequest(
               spoolIds: ids,
               template: template,
-              monochrome: _monochrome,
+              monochrome: prefs.monochrome,
               startingPosition: startingPosition,
+              // Only what differs from the server's own default goes out.
+              fields:
+                  canChoose &&
+                      !setEquals(chosenFields, SpoolLabelField.defaults)
+                  ? chosenFields
+                  : null,
+              format: png ? SpoolLabelFormat.png : SpoolLabelFormat.pdf,
+              dpi: prefs.dpi,
             ),
           );
       if (!mounted) return;
       Navigator.of(context).pop();
-      final filename = 'bambuddy-labels-${template.wire}.pdf';
-      if (_share) {
-        await Printing.sharePdf(bytes: pdf, filename: filename);
-      } else {
-        await Printing.layoutPdf(
-          onLayout: (_) => pdf,
-          name: filename,
-          // Label stock is a fixed physical size — reflowing it to the
-          // printer's page would defeat the whole point of the template.
-          dynamicLayout: false,
-        );
+      final kind = SpoolLabelFile.of(file) ?? SpoolLabelFile.pdf;
+      final filename = 'bambuddy-labels-${template.wire}.${kind.extension}';
+      switch (destination) {
+        case LabelDestination.labelPrinter:
+          await _printOnLabelPrinter(
+            labelPrinter!,
+            file,
+            filename,
+            prefs,
+            messenger,
+            l10n,
+          );
+        case LabelDestination.share when kind == SpoolLabelFile.pdf:
+          await Printing.sharePdf(bytes: file, filename: filename);
+        case LabelDestination.share || LabelDestination.save:
+          await _handOff(file, filename, kind, destination, messenger, l10n);
+        case LabelDestination.system:
+          await Printing.layoutPdf(
+            onLayout: (_) => file,
+            name: filename,
+            // Label stock is a fixed physical size — reflowing it to the
+            // printer's page would defeat the whole point of the template.
+            dynamicLayout: false,
+          );
       }
     } on AppApiException catch (e) {
       if (mounted) setState(() => _busy = false);
@@ -282,9 +343,75 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
         action: 'labels.print',
       );
     } on Object {
-      if (!mounted) return;
-      setState(() => _busy = false);
+      // The sheet may already be closed: the hand-off runs after it. The
+      // message goes to the screen behind, so it does not depend on it.
+      if (mounted) setState(() => _busy = false);
       messenger.snack(l10n.inventoryLabelsFailed);
+    }
+  }
+
+  /// Gives a PNG, a ZIP or a PDF to the share sheet or a "Save as…" dialog.
+  /// Both take a file, so the bytes go to the cache first.
+  Future<void> _handOff(
+    Uint8List bytes,
+    String filename,
+    SpoolLabelFile kind,
+    LabelDestination destination,
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+  ) async {
+    final dir = await getTemporaryDirectory();
+    final file = await File('${dir.path}/$filename').writeAsBytes(bytes);
+    if (destination == LabelDestination.share) {
+      // Not deleted here: the sheet closes before the receiving app reads it.
+      await shareDownloadedFile(file, mimeType: kind.mimeType);
+      return;
+    }
+    final saved = await saveDownloadedFile(
+      file,
+      fileName: filename,
+      mimeType: kind.mimeType,
+    );
+    await discardCacheCopy(file);
+    switch (saved.outcome) {
+      case DeviceFileOutcome.done:
+        messenger.snack(l10n.labelSaved);
+      case DeviceFileOutcome.failed:
+        messenger.snack(l10n.inventoryLabelsFailed);
+      case DeviceFileOutcome.cancelled:
+        break;
+    }
+  }
+
+  /// Sends the PDF to the label print server. Runs after the sheet is closed,
+  /// so every outcome is a snack on the screen behind it.
+  Future<void> _printOnLabelPrinter(
+    LabelPrinterRepository printer,
+    Uint8List pdf,
+    String filename,
+    LabelPrintPrefs prefs,
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+  ) async {
+    try {
+      await printer.printPdf(
+        pdf,
+        filename: filename,
+        copies: prefs.copies,
+        cutAtEnd: prefs.cutAtEnd,
+        cutEvery: prefs.cutEvery,
+      );
+      messenger.snack(l10n.labelPrinterSent);
+    } on ApiException catch (e) {
+      // The server's own sentence says which file was refused and why.
+      final detail = e.detail;
+      messenger.snack(
+        e.statusCode == 400 && detail != null
+            ? l10n.labelPrinterRefused(detail)
+            : l10n.labelPrinterFailed,
+      );
+    } on Object {
+      messenger.snack(l10n.labelPrinterUnreachable);
     }
   }
 
@@ -347,7 +474,7 @@ class _LabelSpoolRow extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: const EdgeInsets.all(DashSpace.sm),
         child: Row(
           children: [
             Icon(
@@ -355,9 +482,9 @@ class _LabelSpoolRow extends StatelessWidget {
               size: 20,
               color: checked ? t.accentGreenInk : t.textTertiary,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: DashSpace.md),
             SpoolSwatch(rgba: spool.rgba, size: 20, radius: 6),
-            const SizedBox(width: 10),
+            const SizedBox(width: DashSpace.md),
             Expanded(
               child: Text(
                 name,
@@ -366,8 +493,8 @@ class _LabelSpoolRow extends StatelessWidget {
                 style: t.body,
               ),
             ),
-            const SizedBox(width: 8),
-            Text('#${spool.id}', style: t.monoMicro),
+            const SizedBox(width: DashSpace.sm),
+            Text('#${spool.id}', style: t.monoMicro.legible),
           ],
         ),
       ),
@@ -375,24 +502,16 @@ class _LabelSpoolRow extends StatelessWidget {
   }
 }
 
-/// Pinned bottom of the label sheet: print options plus the primary action.
+/// Pinned bottom of the label sheet: the primary action.
 class _LabelFooter extends StatelessWidget {
   const _LabelFooter({
-    required this.monochrome,
-    required this.share,
     required this.busy,
     required this.count,
-    required this.onMonochrome,
-    required this.onShare,
     required this.onPrint,
   });
 
-  final bool monochrome;
-  final bool share;
   final bool busy;
   final int count;
-  final ValueChanged<bool> onMonochrome;
-  final ValueChanged<bool> onShare;
   final VoidCallback? onPrint;
 
   @override
@@ -400,53 +519,24 @@ class _LabelFooter extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        DashSpace.sm,
+        DashSpace.gutter,
+        DashSpace.lg,
+      ),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: t.subCardBorder)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _CheckRow(
-            value: monochrome,
-            onChanged: onMonochrome,
-            label: l10n.inventoryLabelsMonochrome,
-            hint: l10n.inventoryLabelsMonochromeHint,
-          ),
-          _CheckRow(
-            value: share,
-            onChanged: onShare,
-            label: l10n.inventoryLabelsShare,
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: t.accentGreen,
-                foregroundColor: _onAccentGreen,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-              ),
-              onPressed: onPrint,
-              icon: busy
-                  ? DashSpinner(color: _onAccentGreen)
-                  : Icon(
-                      share ? Icons.ios_share : Icons.print_outlined,
-                      size: 18,
-                    ),
-              label: Text(
-                '${l10n.inventoryLabelsPrint} ($count)',
-                style: const TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ).tagged('labels.print'),
-          ),
-        ],
+      child: SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: onPrint,
+          icon: busy
+              ? DashSpinner(color: t.onAccent)
+              : const Icon(Icons.print_outlined, size: 18),
+          label: Text('${l10n.inventoryLabelsPrint} ($count)'),
+        ).tagged('labels.print'),
       ),
     );
   }
@@ -496,13 +586,18 @@ class _TemplateSheet extends StatelessWidget {
     return DraggableSheetSurface(
       builder: (context, controller) => ListView(
         controller: controller,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          0,
+          DashSpace.gutter,
+          DashSpace.xl,
+        ),
         children: [
           Text(l10n.inventoryLabelsPickTemplate, style: t.titleLg),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           for (final (template, label, hint) in options)
             Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(bottom: DashSpace.md),
               child: Material(
                 color: t.subCard,
                 borderRadius: BorderRadius.circular(16),
@@ -510,7 +605,7 @@ class _TemplateSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   onTap: () => Navigator.of(context).pop(template),
                   child: Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(DashSpace.lg),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: t.subCardBorder),
@@ -519,8 +614,8 @@ class _TemplateSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(label, style: t.titleSm),
-                        const SizedBox(height: 4),
-                        Text(hint, style: t.labelSoft),
+                        const SizedBox(height: DashSpace.xs),
+                        Text(hint, style: t.labelSoft.legible),
                       ],
                     ),
                   ),
@@ -556,20 +651,25 @@ class _StartingPositionSheet extends StatelessWidget {
     return DraggableSheetSurface(
       builder: (context, controller) => ListView(
         controller: controller,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          0,
+          DashSpace.gutter,
+          DashSpace.xl,
+        ),
         children: [
           Text(l10n.inventoryLabelsStartTitle, style: t.titleLg),
-          const SizedBox(height: 6),
-          Text(l10n.inventoryLabelsStartHint, style: t.labelSoft),
-          const SizedBox(height: 14),
+          const SizedBox(height: DashSpace.sm),
+          Text(l10n.inventoryLabelsStartHint, style: t.labelSoft.legible),
+          const SizedBox(height: DashSpace.lg),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: layout.columns * layout.rows,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: layout.columns,
-              mainAxisSpacing: 6,
-              crossAxisSpacing: 6,
+              mainAxisSpacing: DashSpace.sm,
+              crossAxisSpacing: DashSpace.sm,
               childAspectRatio: layout.widthMm / layout.heightMm,
             ),
             itemBuilder: (context, i) => _StartingPositionSlot(
@@ -609,7 +709,7 @@ class _StartingPositionSlot extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: t.subCardBorder),
             ),
-            child: Text('$position', style: t.monoLabel),
+            child: Text('$position', style: t.monoLabel.legible),
           ),
         ).tagged('labels.start_position'),
       ),
@@ -617,15 +717,17 @@ class _StartingPositionSlot extends StatelessWidget {
   }
 }
 
-/// Labelled row of single-choice chips (material filter, sort mode).
+/// Single-choice select (material filter, sort mode, output format, ...).
 class _ChipRow<T> extends StatelessWidget {
   const _ChipRow({
+    required this.id,
     required this.label,
     required this.options,
     required this.value,
     required this.onChanged,
   });
 
+  final String id;
   final String label;
   final Map<T, String> options;
   final T value;
@@ -634,71 +736,23 @@ class _ChipRow<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    return Row(
-      children: [
-        Text(label, style: t.microSoft),
-        const SizedBox(width: 8),
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final e in options.entries)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: _MiniChip(
-                      label: e.value,
-                      selected: e.key == value,
-                      onTap: () => onChanged(e.key),
-                    ),
-                  ),
-              ],
-            ),
+    return dashCombo<T>(
+      context,
+      id: id,
+      label: Text(label),
+      textStyle: t.body,
+      initialSelection: value,
+      onSelected: (v) => onChanged(v as T),
+      entries: [
+        for (final e in options.entries)
+          DropdownMenuEntry(
+            value: e.key,
+            label: e.value,
+            // The menu opens in a route of its own, so the field's tag does
+            // not reach its rows.
+            labelWidget: logTag('$id.option', Text(e.value)),
           ),
-        ),
       ],
-    );
-  }
-}
-
-class _MiniChip extends StatelessWidget {
-  const _MiniChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Material(
-      color: selected ? t.accentGreen.withValues(alpha: 0.18) : t.subCard,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: selected
-                  ? t.accentGreen.withValues(alpha: 0.6)
-                  : t.subCardBorder,
-            ),
-          ),
-          child: Text(
-            label,
-            style: t.micro.copyWith(
-              color: selected ? t.accentGreenInk : t.textSecondary,
-            ),
-          ),
-        ),
-      ).tagged('labels.chip'),
     );
   }
 }
@@ -723,10 +777,10 @@ class _TextAction extends StatelessWidget {
       onTap: onPressed,
       borderRadius: BorderRadius.circular(6),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+        padding: const EdgeInsets.all(DashSpace.xs),
         child: Text(
           label,
-          style: t.micro.copyWith(
+          style: t.micro.legible.copyWith(
             color: onPressed == null ? color.withValues(alpha: 0.4) : color,
           ),
         ),
@@ -738,12 +792,16 @@ class _TextAction extends StatelessWidget {
 /// Checkbox row with an optional secondary hint line.
 class _CheckRow extends StatelessWidget {
   const _CheckRow({
+    required this.id,
     required this.value,
     required this.onChanged,
     required this.label,
     this.hint,
   });
 
+  /// The diagnostic id: a shared row must not name itself, or every use of it
+  /// reports under one name.
+  final String id;
   final bool value;
   final ValueChanged<bool> onChanged;
   final String label;
@@ -756,7 +814,7 @@ class _CheckRow extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       onTap: () => onChanged(!value),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -765,19 +823,25 @@ class _CheckRow extends StatelessWidget {
               size: 20,
               color: value ? t.accentGreenInk : t.textTertiary,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: DashSpace.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label, style: t.body),
-                  if (hint != null) Text(hint!, style: t.microSoft),
+                  if (hint != null) Text(hint!, style: t.microSoft.legible),
                 ],
               ),
             ),
           ],
         ),
       ),
-    ).tagged('labels.check');
+    ).tagged(id);
   }
+}
+
+extension on TextStyle {
+  /// The shared micro/label tokens are 11–12 px, too small to read on a phone
+  /// in the print sheets; floor them at 13.
+  TextStyle get legible => (fontSize ?? 0) < 13 ? copyWith(fontSize: 13) : this;
 }

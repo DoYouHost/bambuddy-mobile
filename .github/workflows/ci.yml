@@ -1,7 +1,7 @@
 name: CI
 
 # The "is it done?" signal for pull requests — especially for @claude, which is
-# told in CLAUDE.md to read this run before asking a question. Everything here
+# told in AGENTS.md to read this run before asking a question. Everything here
 # is what `just test` plus a compile of both flavors would tell you locally, so
 # a green run means the branch builds and behaves; a red one is homework, not a
 # question for the reviewer.

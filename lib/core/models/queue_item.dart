@@ -16,6 +16,10 @@ enum QueueItemStatusKind {
   completed,
   cancelled,
   failed,
+
+  /// Passed over by the scheduler, e.g. behind a failed print that the next
+  /// one required to succeed (`require_previous_success`).
+  skipped,
   unknown,
 }
 
@@ -70,12 +74,15 @@ class QueueItem {
     this.preheatOverride = 'inherit',
     this.preheatChamberTargetOverride,
     this.gcodeInjection = false,
+    this.confirmOutcome = false,
     this.nozzleMapping,
     this.nozzleRackChoice,
     this.slicedForModel,
     this.batchId,
     this.batchName,
     this.createdById,
+    this.createdByUsername,
+    this.costCenterId,
   });
 
   factory QueueItem.fromJson(Map<String, dynamic> json) =>
@@ -105,6 +112,7 @@ class QueueItem {
     String? slicedForModel,
     int? plateId,
     bool manualStart = false,
+    bool confirmOutcome = false,
   }) {
     final isArchive = archiveId != null;
     return QueueItem(
@@ -124,6 +132,7 @@ class QueueItem {
       slicedForModel: slicedForModel,
       plateId: plateId,
       manualStart: manualStart,
+      confirmOutcome: confirmOutcome,
     );
   }
 
@@ -264,6 +273,15 @@ class QueueItem {
   @JsonKey(defaultValue: false)
   final bool gcodeInjection;
 
+  /// Ask how the print came out once it completes (#1898). A `true` is copied
+  /// onto the archive as `confirm_requested` at dispatch; a `false` is not,
+  /// and the archive's flag is never cleared (`print_scheduler.py`) — so a
+  /// reprint of an archive that asked once asks again whatever this says.
+  /// Absent (false) on an older server; its presence is what
+  /// `QueueRepository.outcomeCapability` observes.
+  @JsonKey(defaultValue: false)
+  final bool confirmOutcome;
+
   /// Dual-nozzle-rack physical pick (H2C/O1C2); opaque, forwarded verbatim.
   final List<int>? nozzleMapping;
 
@@ -289,6 +307,15 @@ class QueueItem {
   /// Who queued it. Grouping someone else's item needs `queue:update_all`;
   /// without it the server skips the item without a word.
   final int? createdById;
+
+  /// Their username, for the history row's "added by". Null when nobody is
+  /// logged in on the server or the account is gone.
+  final String? createdByUsername;
+
+  /// The billing cost center the item is charged to. On a server with billing
+  /// on, every create, edit and start of an item without one is refused
+  /// (`finance_budget.py::validate_print_budget`).
+  final int? costCenterId;
 
   /// Cross-model alternatives in priority order (server #671) — several sliced
   /// files, one job, whichever printer frees up first. Empty for every ordinary
@@ -328,6 +355,8 @@ class QueueItem {
       case 'failed':
       case 'error':
         return QueueItemStatusKind.failed;
+      case 'skipped':
+        return QueueItemStatusKind.skipped;
       default:
         return QueueItemStatusKind.unknown;
     }

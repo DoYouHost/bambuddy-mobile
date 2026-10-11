@@ -33,20 +33,17 @@ class AboutScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.aboutTitle),
         body: ListView(
-          padding: withSystemNavInset(
-            context,
-            const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          ),
+          padding: screenListPadding(context),
           children: [
             Column(
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
                   child: Image.asset(
-                    'assets/icon/icon.png',
+                    'assets/icon/app_logo.png',
                     width: _iconSize,
                     height: _iconSize,
-                    // Same 1024x1024 launcher source as the drawer header —
+                    // Same 512x512 source as the drawer header —
                     // and a second cache entry, since the resized provider is
                     // keyed apart from the plain one.
                     cacheWidth:
@@ -59,11 +56,11 @@ class AboutScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 Text('Bambuddy', style: t.display),
-                const SizedBox(height: 4),
+                const SizedBox(height: DashSpace.xs),
                 const _VersionLabel(),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 Text(
                   l10n.aboutTagline,
                   textAlign: TextAlign.center,
@@ -71,7 +68,7 @@ class AboutScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: DashSpace.xl),
             _AboutSection(
               title: l10n.aboutLicenseHeader,
               body: l10n.aboutLicenseBody,
@@ -84,7 +81,7 @@ class AboutScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             _AboutSection(
               title: l10n.aboutSourceHeader,
               body: l10n.aboutSourceBody,
@@ -98,7 +95,7 @@ class AboutScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             _AboutSection(
               rows: [
                 _AboutRow(
@@ -173,7 +170,7 @@ class _AboutSection extends StatelessWidget {
     final t = DashTokens.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(DashSpace.lg),
       decoration: t.cardBox,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,12 +184,13 @@ class _AboutSection extends StatelessWidget {
               ),
             ),
           if (body != null) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: DashSpace.sm),
             Text(body!, style: t.bodySoft),
           ],
-          if (title != null || body != null) const SizedBox(height: 12),
+          if (title != null || body != null)
+            const SizedBox(height: DashSpace.md),
           for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0) const SizedBox(height: 8),
+            if (i > 0) const SizedBox(height: DashSpace.sm),
             rows[i],
           ],
         ],
@@ -232,7 +230,7 @@ class _AboutRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(DashSpace.md),
             decoration: BoxDecoration(
               color: t.subCard,
               borderRadius: BorderRadius.circular(16),
@@ -241,7 +239,7 @@ class _AboutRow extends StatelessWidget {
             child: Row(
               children: [
                 DashIconTile(icon: icon, size: 36, radius: 11, iconSize: 17),
-                const SizedBox(width: 12),
+                const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,7 +247,7 @@ class _AboutRow extends StatelessWidget {
                     children: [
                       Text(title, style: t.titleSm),
                       if (subtitle != null) ...[
-                        const SizedBox(height: 3),
+                        const SizedBox(height: DashSpace.xs),
                         Text(subtitle!, style: t.label),
                       ],
                     ],

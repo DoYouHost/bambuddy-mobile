@@ -71,7 +71,11 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(20),
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
+              padding: const EdgeInsets.only(
+                bottom: DashSpace.sm,
+                left: DashSpace.gutter,
+                right: DashSpace.gutter,
+              ),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -102,16 +106,21 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
                     .read(skipObjectsProvider(widget.printerId).notifier)
                     .refresh(),
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(
+                    DashSpace.gutter,
+                    DashSpace.md,
+                    DashSpace.gutter,
+                    DashSpace.xl,
+                  ),
                   physics: _plateInteracting
                       ? const NeverScrollableScrollPhysics()
                       : null,
                   children: [
                     _InfoBanner(data: data),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: DashSpace.md),
                     if (!canSkipLayer) ...[
                       _LayerWarning(layer: layerNum),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: DashSpace.md),
                     ],
                     _PlatePreview(
                       printerId: widget.printerId,
@@ -126,10 +135,10 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
                         }
                       },
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: DashSpace.sm),
                     if (pending.isEmpty)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.only(bottom: DashSpace.sm),
                         child: Text(
                           l10n.skipObjectsSelectHint,
                           style: TextStyle(fontSize: 12, color: t.textTertiary),
@@ -137,7 +146,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
                       ),
                     for (final obj in data.objects)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.only(bottom: DashSpace.sm),
                         child: _ObjectTile(
                           object: obj,
                           selected: _selected.contains(obj.id),
@@ -191,7 +200,10 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
     ),
     child: SafeArea(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.gutter,
+          vertical: DashSpace.sm,
+        ),
         child: Row(
           children: [
             Expanded(
@@ -202,7 +214,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
             ),
             if (_skipping)
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: DashSpace.lg),
                 child: DashSpinner(size: 20),
               )
             else
@@ -269,7 +281,10 @@ class _InfoBanner extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.lg,
+        vertical: DashSpace.md,
+      ),
       decoration: BoxDecoration(
         color: t.accentBlue.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
@@ -278,7 +293,7 @@ class _InfoBanner extends StatelessWidget {
       child: Row(
         children: [
           Icon(Icons.desktop_windows_outlined, size: 20, color: t.accentBlue),
-          const SizedBox(width: 12),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,7 +313,7 @@ class _InfoBanner extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Text(
             l10n.skipObjectsCounter(data.skippedCount, data.total),
             style: TextStyle(fontSize: 12, color: t.textSecondary),
@@ -320,7 +335,10 @@ class _LayerWarning extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     const amber = Color(0xFFF59E0B);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.lg,
+        vertical: DashSpace.md,
+      ),
       decoration: BoxDecoration(
         color: amber.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
@@ -329,7 +347,7 @@ class _LayerWarning extends StatelessWidget {
       child: Row(
         children: [
           const Icon(Icons.warning_amber_rounded, size: 18, color: amber),
-          const SizedBox(width: 10),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(
               l10n.skipObjectsWaitForLayer(layer),
@@ -832,7 +850,7 @@ class _ObjectMarker extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
+                padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
                 child: Text(
                   '${object.id}',
                   maxLines: 1,
@@ -862,7 +880,10 @@ class _CountBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.sm,
+        vertical: DashSpace.xs,
+      ),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(8),
@@ -918,7 +939,7 @@ class _ObjectTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         onTap: (canSelect && !skipped) ? onToggle : null,
         child: Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(DashSpace.md),
           decoration: BoxDecoration(
             color: skipped
                 ? t.danger.withValues(alpha: 0.06)
@@ -961,7 +982,7 @@ class _ObjectTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: DashSpace.md),
               Expanded(
                 child: Text(
                   object.name,
@@ -974,7 +995,7 @@ class _ObjectTile extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: DashSpace.md),
               if (skipped)
                 Text(
                   l10n.skipObjectsSkippedTag,
@@ -1008,24 +1029,24 @@ class _EmptyState extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(DashSpace.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.view_in_ar_outlined, size: 48, color: t.textTertiary),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             Text(
               l10n.skipObjectsEmpty,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 15, color: t.textPrimary),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: DashSpace.sm),
             Text(
               l10n.skipObjectsEmptyHint,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12, color: t.textSecondary),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: DashSpace.xl),
             OutlinedButton.icon(
               onPressed: onReload,
               icon: const Icon(Icons.refresh, size: 18),

@@ -32,6 +32,7 @@ class ArchiveSlim with PrintRun {
     this.cost,
     this.energyKwh,
     this.energyCost,
+    this.wearCost,
     this.quantity = 1,
   });
 
@@ -52,6 +53,7 @@ class ArchiveSlim with PrintRun {
     cost: toDoubleOrNull(json['cost']),
     energyKwh: toDoubleOrNull(json['energy_kwh']),
     energyCost: toDoubleOrNull(json['energy_cost']),
+    wearCost: toDoubleOrNull(json['wear_cost']),
     quantity: toIntOrNull(json['quantity']) ?? 1,
   );
 
@@ -87,6 +89,11 @@ class ArchiveSlim with PrintRun {
   /// per printer and over time.
   final double? energyKwh;
   final double? energyCost;
+
+  /// Printer wear charged to this run: its duration at the printer's
+  /// `wear_cost_per_hour` (server ≥ 1.2.6, #694). Null when the printer has no
+  /// rate, for runs made before one was set, and on older servers.
+  final double? wearCost;
 
   final int quantity;
 

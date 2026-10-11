@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -17,8 +19,12 @@ void main() {
   });
 
   test('unknown event names are skipped (forward compatibility)', () {
+    // What a newer build writes: every event this one has, plus one it lacks.
     final decoded = NotificationPrefs.decode(
-      '{"enabled":["printFinished","futureEvent"]}',
+      jsonEncode({
+        'enabled': ['printFinished', 'futureEvent'],
+        'known': [for (final e in NotifEvent.values) e.name, 'futureEvent'],
+      }),
     );
     expect(decoded.enabled, {NotifEvent.printFinished});
     // thresholds fall back to defaults
@@ -101,7 +107,11 @@ void main() {
     test('migration: a single pre-manifest choice survives the update', () {
       final decoded = NotificationPrefs.decode('{"enabled":["milestones"]}');
 
-      expect(decoded.enabled, {NotifEvent.milestones});
+      // The events added since keep the default they ship with.
+      expect(decoded.enabled, {
+        NotifEvent.milestones,
+        NotifEvent.outcomeRequest,
+      });
     });
 
     test('the manifest round-trips and lists every event', () {

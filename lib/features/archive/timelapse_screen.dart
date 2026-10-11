@@ -468,7 +468,12 @@ class _Controls extends StatelessWidget {
     return ValueListenableBuilder<VideoPlayerValue>(
       valueListenable: controller,
       builder: (context, value, _) => Padding(
-        padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.sm,
+          DashSpace.sm,
+          DashSpace.gutter,
+          DashSpace.sm,
+        ),
         child: Row(
           children: [
             logTag(
@@ -495,7 +500,7 @@ class _Controls extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: DashSpace.md),
             Text(
               '${formatClock(value.position.inMilliseconds / 1000)}'
               ' / ${formatClock(value.duration.inMilliseconds / 1000)}',

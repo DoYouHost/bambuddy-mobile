@@ -12,6 +12,7 @@ import 'package:bambuddy_mobile/core/models/scheduled_drying.dart';
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/core/printers/bed_jog.dart';
+import 'package:bambuddy_mobile/features/dashboard/add_printer_screen.dart';
 import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
@@ -42,6 +43,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import '../../hms_samples.dart';
 
 /// Filament runout as the server reports it on the `print_error` channel — the
 /// fault the panel exists for.
@@ -66,15 +68,11 @@ const _runoutWithActions = HmsError(
 
 /// The slot sheet reads the inventory to offer spools; these tests care about
 /// the printer-side actions above that list, so it stays empty and offline.
-class _EmptyInventory extends InventoryNotifier {
-  @override
-  Future<InventoryState> build() async => const InventoryState();
-}
+FixedInventory _emptyInventory() => FixedInventory(InventoryState());
 
 /// A stocked shelf, for the half of the sheet that offers spools.
-class _StockedInventory extends InventoryNotifier {
-  @override
-  Future<InventoryState> build() async => const InventoryState(
+FixedInventory _stockedInventory() => FixedInventory(
+  InventoryState(
     spools: [
       Spool(id: 14, material: 'PLA', subtype: 'Basic', brand: 'Anycubic'),
       Spool(id: 13, material: 'PLA', subtype: 'Matte', brand: 'Bambu'),
@@ -85,40 +83,88 @@ class _StockedInventory extends InventoryNotifier {
         brand: 'Smart Print',
       ),
     ],
-  );
-}
+  ),
+);
+
+const _assignedSpool = Spool(
+  id: 42,
+  material: 'PLA',
+  subtype: 'Basic',
+  brand: 'Bambu Lab',
+  labelWeight: 1000,
+);
 
 /// A shelf with a spool pinned to the slot the sheet opens on (X1C, AMS 1,
 /// first slot), so the "currently in this slot" row has something to show.
-class _AssignedInventory extends InventoryNotifier {
-  static const spool = Spool(
-    id: 42,
-    material: 'PLA',
-    subtype: 'Basic',
-    brand: 'Bambu Lab',
-    labelWeight: 1000,
-  );
-
-  @override
-  Future<InventoryState> build() async => const InventoryState(
-    spools: [spool],
-    assignmentBySpool: {
-      42: SpoolAssignment(
+FixedInventory _assignedInventory() => FixedInventory(
+  InventoryState(
+    spools: [_assignedSpool],
+    assignments: [
+      SpoolAssignment(
         spoolId: 42,
         printerId: 1,
         amsId: 0,
         trayId: 0,
         printerName: 'X2D-3DP',
       ),
-    },
-  );
-}
+    ],
+  ),
+);
+
+/// A part-used spool in the fixture's PLA slot (AMS 0, tray 3) and another on
+/// the left side of the external holder.
+FixedInventory _weighedInventory() => FixedInventory(
+  InventoryState(
+    spools: [
+      Spool(id: 1, material: 'PLA', labelWeight: 1000, weightUsed: 898),
+      Spool(id: 2, material: 'TPU', labelWeight: 500, weightUsed: 250),
+    ],
+    assignments: [
+      SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
+      SpoolAssignment(spoolId: 2, printerId: 1, amsId: 255, trayId: 0),
+    ],
+  ),
+);
+
+/// A spool whose counter says it is empty, in the slot the AMS reads at 66%.
+FixedInventory _spentInventory() => FixedInventory(
+  InventoryState(
+    // 0.4 g left: 0% and "0 g" both, without being exactly zero.
+    spools: [
+      Spool(id: 1, material: 'PLA', labelWeight: 1000, weightUsed: 999.6),
+    ],
+    assignments: [
+      SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
+    ],
+  ),
+);
+
+/// The tagged spool on the shelf and a different one pinned to the same slot,
+/// for which of the two the slot shows.
+FixedInventory _pinnedOverTagInventory() => FixedInventory(
+  InventoryState(
+    spools: [
+      _assignedSpool,
+      Spool(
+        id: 21,
+        material: 'PLA',
+        subtype: 'Basic',
+        brand: 'Bambu',
+        tagUid: 'a1b2c3d4e5f60708',
+      ),
+    ],
+    assignments: [
+      SpoolAssignment(spoolId: 42, printerId: 1, amsId: 0, trayId: 0),
+    ],
+    // What `/spoolman/spools/linked` says of a tagged spool.
+    linkedTags: const {'A1B2C3D4E5F60708': LinkedSpool(id: 21)},
+  ),
+);
 
 /// A shelf that already holds the spool whose tag sits in the slot, so the
 /// sheet must offer to pick it rather than to create a second row for it.
-class _TaggedInventory extends InventoryNotifier {
-  @override
-  Future<InventoryState> build() async => const InventoryState(
+FixedInventory _taggedInventory() => FixedInventory(
+  InventoryState(
     spools: [
       Spool(
         id: 21,
@@ -128,8 +174,10 @@ class _TaggedInventory extends InventoryNotifier {
         tagUid: 'a1b2c3d4e5f60708',
       ),
     ],
-  );
-}
+    // What `/spoolman/spools/linked` says of it, read in Spoolman mode.
+    linkedTags: const {'A1B2C3D4E5F60708': LinkedSpool(id: 21)},
+  ),
+);
 
 /// Records the registration the sheet asks for, so a test can tell the button
 /// fired the right slot triple rather than merely being tappable.
@@ -137,7 +185,7 @@ class _RecordingInventory extends InventoryNotifier {
   static final calls = <String>[];
 
   @override
-  Future<InventoryState> build() async => const InventoryState();
+  Future<InventoryState> build() async => InventoryState();
 
   @override
   Future<int?> createSpoolFromSlot(int printerId, int amsId, int trayId) async {
@@ -156,7 +204,7 @@ class _RefusingInventory extends InventoryNotifier {
   );
 
   @override
-  Future<InventoryState> build() async => const InventoryState();
+  Future<InventoryState> build() async => InventoryState();
 
   @override
   Future<int?> createSpoolFromSlot(int printerId, int amsId, int trayId) async {
@@ -232,17 +280,6 @@ class _StubScheduledDrying extends ScheduledDryingRepository {
     cancelled.add(id);
     rows.removeWhere((row) => row.id == id);
   }
-}
-
-/// The card tests run without a settings repository, and the real backend
-/// notifier reads one — so the choice is staged here instead.
-class _FixedBackendNotifier extends InventoryBackendNotifier {
-  _FixedBackendNotifier(this._backend);
-
-  final InventoryBackend _backend;
-
-  @override
-  InventoryBackend build() => _backend;
 }
 
 /// A plug with fixed state; records [control] calls (no network/timer),
@@ -326,7 +363,7 @@ class _EmptyHeaterHistory extends HeaterHistoryRepository {
 Widget _scope(
   Widget child, {
   List<Override> extra = const [],
-  InventoryBackend backend = InventoryBackend.native,
+  InventoryBackend? backend = InventoryBackend.native,
   bool apiKeySession = false,
   MediaAuth media = const MediaAuth(queryToken: 'tok'),
 }) => ProviderScope(
@@ -334,7 +371,13 @@ Widget _scope(
     fakeServerProfileOverride(
       authMode: apiKeySession ? AuthMode.apiKey : AuthMode.none,
     ),
-    inventoryBackendProvider.overrideWith(() => _FixedBackendNotifier(backend)),
+    if (backend == null)
+      // The server has not said yet.
+      inventoryBackendProvider.overrideWith(
+        (ref) => Completer<InventoryBackend>().future,
+      )
+    else
+      inventoryBackendOverride(backend),
     mediaAuthProvider.overrideWith((ref) async => media),
     inertFirmwareOverride,
     inertTotalPrintHoursOverride,
@@ -646,11 +689,14 @@ void main() {
     /// [tagged] writes an RFID tag onto the first slot of AMS 1. The capture
     /// this fixture comes from has none — the printer runs third-party spools
     /// — and a tag is what the "add to inventory" affordance hangs off.
-    PrinterWithStatus realItem({bool tagged = false}) {
+    PrinterWithStatus realItem({bool tagged = false, bool oneHolder = false}) {
       final frame =
           readFixture('ws_printer_status.json') as Map<String, dynamic>;
       final data = Map<String, dynamic>.from(frame['data'] as Map);
       data['id'] = frame['printer_id'];
+      if (oneHolder) {
+        data['vt_tray'] = [(data['vt_tray'] as List).first];
+      }
       // The cover thumbnail (network) is tested separately — we remove it here
       // to isolate the AMS section and not wait for an HTTP request in the test.
       data.remove('cover_url');
@@ -683,7 +729,7 @@ void main() {
 
       // Collapsed: there's a "Details" toggle, no AMS content.
       expect(find.text('Szczegóły'), findsOneWidget);
-      expect(find.text('AMS 1'), findsNothing);
+      expect(find.text('AMS-A'), findsNothing);
 
       // The card is tall — make sure the toggle is visible before tapping.
       await tester.ensureVisible(find.text('Szczegóły'));
@@ -695,7 +741,7 @@ void main() {
 
       // Expanded: AMS, external spool and metadata visible.
       expect(find.text('Ukryj szczegóły'), findsOneWidget);
-      expect(find.text('AMS 1'), findsOneWidget);
+      expect(find.text('AMS-A'), findsOneWidget);
       expect(find.text('SZPULA ZEWNĘTRZNA'), findsOneWidget);
       // Filament row: material and remaining amount as separate texts.
       expect(find.text('PLA Basic'), findsWidgets);
@@ -703,6 +749,82 @@ void main() {
       // Connectivity metadata.
       expect(find.textContaining('-59 dBm'), findsOneWidget);
       expect(find.text('DRZWICZKI ZAMKNIĘTE'), findsOneWidget);
+    });
+
+    testWidgets('a lone 254 holder on a two-nozzle printer is the left one', (
+      tester,
+    ) async {
+      // The server can hold a single `vt_tray` until `vir_slot` arrives; the
+      // web labels by the id alone (`PrintersPage.tsx`), where the app used to
+      // call the only holder the right one.
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(
+              child: PrinterCard(item: realItem(oneHolder: true)),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.textContaining('L · '), findsOneWidget);
+      expect(find.textContaining('P · '), findsNothing);
+    });
+
+    testWidgets('a slot with a spool reads its fill from the spool', (
+      tester,
+    ) async {
+      // The AMS reports 66% for the PLA in slot 4, but only a tagged Bambu
+      // spool gives it anything to measure — without one it says 100% for
+      // ever (issue #5). The spool's own weight is what the web shows.
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+          ),
+          extra: [inventoryProvider.overrideWith(_weighedInventory)],
+        ),
+      );
+      await tester.pump();
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.text('10% · 102 g'), findsOneWidget);
+      expect(find.text('66%'), findsNothing);
+      // The holder reports no fill of its own, so it had nothing to show
+      // until a spool sat on it.
+      expect(find.text('50% · 250 g'), findsOneWidget);
+    });
+
+    testWidgets('a spool at 0 g the AMS still sees shows only the AMS fill', (
+      tester,
+    ) async {
+      // Server #676: the counter ran past the spool while filament is still
+      // in the slot. The fill falls back to the AMS's 66%, and "66% · 0 g"
+      // would say two opposite things.
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+          ),
+          extra: [inventoryProvider.overrideWith(_spentInventory)],
+        ),
+      );
+      await tester.pump();
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.text('66%'), findsOneWidget);
+      expect(find.textContaining('0 g'), findsNothing);
     });
 
     testWidgets(
@@ -799,7 +921,7 @@ void main() {
       bool stocked = false,
       bool tagged = false,
       InventoryNotifier Function()? inventory,
-      InventoryBackend backend = InventoryBackend.native,
+      InventoryBackend? backend = InventoryBackend.native,
       bool apiKeySession = false,
       FilaSwitch? filaSwitch,
       Map<int, ExtruderSlot>? extruderSlots,
@@ -826,8 +948,7 @@ void main() {
           extra: [
             printerCommandsRepositoryProvider.overrideWithValue(commands),
             inventoryProvider.overrideWith(
-              inventory ??
-                  (stocked ? _StockedInventory.new : _EmptyInventory.new),
+              inventory ?? (stocked ? _stockedInventory : _emptyInventory),
             ),
           ],
           backend: backend,
@@ -1019,7 +1140,7 @@ void main() {
               ),
             ),
           ),
-          extra: [inventoryProvider.overrideWith(_EmptyInventory.new)],
+          extra: [inventoryProvider.overrideWith(_emptyInventory)],
         ),
       );
 
@@ -1084,7 +1205,7 @@ void main() {
               ),
             ),
           ),
-          extra: [inventoryProvider.overrideWith(_EmptyInventory.new)],
+          extra: [inventoryProvider.overrideWith(_emptyInventory)],
         ),
       );
 
@@ -1246,15 +1367,13 @@ void main() {
           inertChamberMaxOverride,
           ...inertHistorySupportOverrides,
           inertSmartPlugsOverride,
-          inventoryBackendProvider.overrideWith(
-            () => _FixedBackendNotifier(InventoryBackend.native),
-          ),
-          inventoryProvider.overrideWith(_AssignedInventory.new),
+          inventoryBackendOverride(),
+          inventoryProvider.overrideWith(_assignedInventory),
           // The spool card fetches its usage on open; the repository behind it
           // has no server here and this test is about arriving, not about what
           // the card then loads.
           spoolUsageProvider(
-            _AssignedInventory.spool.id,
+            _assignedSpool.id,
           ).overrideWith((ref) async => const <SpoolUsageEntry>[]),
         ],
         child: MaterialApp.router(
@@ -1318,6 +1437,111 @@ void main() {
       expect(registerButton(), findsNothing);
     });
 
+    group('a tagged slot in Spoolman mode', () {
+      // The server binds such a spool by its tag at every AMS sync and charges
+      // usage to it first; the web offers no assign or unassign there.
+      final l10n = lookupAppLocalizations(const Locale('pl'));
+
+      // These ids carry the material after an `@`.
+      Finder control(String id) => find.byWidgetPredicate(
+        (w) => w is Semantics && (w.properties.identifier ?? '').startsWith(id),
+      );
+
+      testWidgets('shows the spool its tag is bound to, and no picker', (
+        tester,
+      ) async {
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          tagged: true,
+          inventory: _taggedInventory,
+          backend: InventoryBackend.spoolman,
+        );
+
+        expect(control('assign_spool.current'), findsOneWidget);
+        expect(control('assign_spool.unassign'), findsNothing);
+        expect(control('assign_spool.option'), findsNothing);
+        expect(find.text(l10n.inventoryAssignPick), findsNothing);
+        await reveal(tester, find.text(l10n.inventoryTagBound));
+        expect(find.text(l10n.inventoryTagBound), findsOneWidget);
+      });
+
+      testWidgets('a slot assignment outranks the tag, as the web', (
+        tester,
+      ) async {
+        // PrintersPage #1457: the assignment is the user's explicit act, and
+        // the AMS sync writes the tag's spool into it anyway.
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          tagged: true,
+          inventory: _pinnedOverTagInventory,
+          backend: InventoryBackend.spoolman,
+        );
+
+        final current = control('assign_spool.current');
+        expect(
+          find.descendant(
+            of: current,
+            matching: find.textContaining('Bambu Lab'),
+          ),
+          findsOneWidget,
+        );
+        expect(control('assign_spool.unassign'), findsNothing);
+        // The reason would sit at the very end of a lazy list: scrolled to,
+        // so its absence is not merely its not being built yet.
+        await scrollSheetDown(tester);
+        expect(find.text(l10n.inventoryTagBound), findsNothing);
+      });
+
+      testWidgets('an unknown tag still lets a spool be picked', (
+        tester,
+      ) async {
+        // No spool carries the tag (auto-add off): the server then charges
+        // usage to the slot assignment, and the app has no Link to offer.
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          tagged: true,
+          inventory: _stockedInventory,
+          backend: InventoryBackend.spoolman,
+        );
+
+        await reveal(tester, find.text(l10n.inventoryAssignPick));
+        expect(find.text(l10n.inventoryAssignPick), findsOneWidget);
+        expect(find.text(l10n.inventoryTagBound), findsNothing);
+      });
+
+      testWidgets('the built-in inventory still lets it be picked', (
+        tester,
+      ) async {
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          tagged: true,
+          inventory: _taggedInventory,
+        );
+
+        expect(control('assign_spool.current'), findsNothing);
+        await reveal(tester, find.text(l10n.inventoryAssignPick));
+        expect(find.text(l10n.inventoryAssignPick), findsOneWidget);
+        expect(find.text(l10n.inventoryTagBound), findsNothing);
+      });
+
+      testWidgets('an untagged slot is still assigned by hand', (tester) async {
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          inventory: _taggedInventory,
+          backend: InventoryBackend.spoolman,
+        );
+
+        await reveal(tester, find.text(l10n.inventoryAssignPick));
+        expect(find.text(l10n.inventoryAssignPick), findsOneWidget);
+        expect(find.text(l10n.inventoryTagBound), findsNothing);
+      });
+    });
+
     testWidgets('a tag already on a spool is picked, not registered again', (
       tester,
     ) async {
@@ -1327,7 +1551,7 @@ void main() {
         tester,
         state: 'IDLE',
         tagged: true,
-        inventory: _TaggedInventory.new,
+        inventory: _taggedInventory,
       );
 
       expect(registerButton(), findsNothing);
@@ -1361,6 +1585,24 @@ void main() {
         state: 'IDLE',
         tagged: true,
         apiKeySession: true,
+      );
+      await reveal(tester, registerButton());
+
+      expect(registerButton(), findsOneWidget);
+    });
+
+    testWidgets('the key keeps the button while the backend is unknown', (
+      tester,
+    ) async {
+      // The server's own rule (`inventory_mode.py`) reads an unknown mode as
+      // the built-in inventory; hiding it would lock a native key out for as
+      // long as the answer is missing.
+      await openSlotSheet(
+        tester,
+        state: 'IDLE',
+        tagged: true,
+        apiKeySession: true,
+        backend: null,
       );
       await reveal(tester, registerButton());
 
@@ -1684,6 +1926,36 @@ void main() {
       await tester.tap(find.text('Włącz'));
       await tester.pump();
       expect(stub.calls.single.action, SmartPlugAction.on);
+    });
+  });
+
+  group('edit entry', () {
+    const offline = PrinterWithStatus(
+      printer: Printer(id: 1, name: 'X1 Carbon'),
+    );
+    Widget card() => const Scaffold(
+      body: SingleChildScrollView(child: PrinterCard(item: offline)),
+    );
+
+    testWidgets('a long press on the name opens the edit form', (tester) async {
+      await tester.pumpWidget(_scope(card()));
+      await tester.pumpAndSettle();
+
+      await tester.longPress(find.text('X1 Carbon'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AddPrinterScreen), findsOneWidget);
+    });
+
+    testWidgets('an API-key session is offered no edit at all', (tester) async {
+      // The server refuses every key `printers:update`, whatever its scopes.
+      await tester.pumpWidget(_scope(card(), apiKeySession: true));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('printer.edit'), findsNothing);
+      await tester.longPress(find.text('X1 Carbon'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byType(AddPrinterScreen), findsNothing);
     });
   });
 
@@ -2244,6 +2516,21 @@ void main() {
       expect(find.text('RUNNING'), findsOneWidget);
     });
 
+    testWidgets('an hms[] fault reads in the server words the alert uses', (
+      tester,
+    ) async {
+      // The Polish table has no word for an hms[] code, so the card, the alert,
+      // the watch and the home widget must all fall back to the same sentence.
+      await tester.pumpWidget(
+        _cardWithProviders(itemWith([hmsX2dChamberHeater.fault])),
+      );
+      await tester.tap(find.text('1 błąd'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(hmsX2dChamberHeater.description!), findsOneWidget);
+      expect(find.text('0300-9100-0001-000A'), findsOneWidget);
+    });
+
     testWidgets('a print error is announced by count and opens on a tap', (
       tester,
     ) async {
@@ -2656,25 +2943,27 @@ void main() {
   group('scheduled drying', () {
     /// A printer whose AMS 1 is an AMS 2 Pro — the module type is what decides
     /// whether the dry chip, and with it the schedule, is offered at all.
-    PrinterWithStatus dryable({int dryTime = 0}) => PrinterWithStatus(
-      printer: const Printer(id: 3, name: 'X2D'),
-      status: PrinterStatus(
-        id: 3,
-        connected: true,
-        state: 'IDLE',
-        supportsDrying: true,
-        ams: [
-          AmsUnit(
-            id: 1,
-            humidity: 28,
-            temp: 24,
-            moduleType: 'n3f',
-            dryTime: dryTime,
-            trays: const [AmsTray(id: 0, trayType: 'PLA')],
+    PrinterWithStatus dryable({int dryTime = 0, bool stalled = false}) =>
+        PrinterWithStatus(
+          printer: const Printer(id: 3, name: 'X2D'),
+          status: PrinterStatus(
+            id: 3,
+            connected: true,
+            state: 'IDLE',
+            supportsDrying: true,
+            ams: [
+              AmsUnit(
+                id: 1,
+                humidity: 28,
+                temp: 24,
+                moduleType: 'n3f',
+                dryTime: dryTime,
+                dryCountdownStalled: stalled,
+                trays: const [AmsTray(id: 0, trayType: 'PLA')],
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        );
 
     ScheduledDrying pending({
       int id = 7,
@@ -2706,10 +2995,11 @@ void main() {
       WidgetTester tester,
       _StubScheduledDrying repo, {
       int dryTime = 0,
+      bool stalled = false,
     }) async {
       await tester.pumpWidget(
         _cardWithProviders(
-          dryable(dryTime: dryTime),
+          dryable(dryTime: dryTime, stalled: stalled),
           extra: [scheduledDryingRepositoryProvider.overrideWithValue(repo)],
         ),
       );
@@ -2855,6 +3145,29 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(repo.listCalls, 2);
       expect(find.textContaining('Suszenie zaplanowane'), findsNothing);
+    });
+
+    testWidgets('a parked timer reads as not running, and can be stopped', (
+      tester,
+    ) async {
+      // Server #2896: a start the firmware accepted and never ran keeps its
+      // full dry_time forever; the countdown on the chip would be a lie.
+      final l10n = lookupAppLocalizations(const Locale('pl'));
+      await pumpCard(
+        tester,
+        _StubScheduledDrying(),
+        dryTime: 480,
+        stalled: true,
+      );
+
+      expect(find.text(l10n.ctrlDryNotRunning), findsOneWidget);
+      expect(find.byIcon(Icons.local_fire_department), findsNothing);
+
+      await tester.tap(find.text(l10n.ctrlDryNotRunning));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.ctrlDryNotRunningHint), findsOneWidget);
+      expect(find.text(l10n.ctrlStop), findsOneWidget);
     });
 
     testWidgets('an older server offers the sheet without the later modes', (

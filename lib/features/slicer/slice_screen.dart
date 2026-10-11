@@ -10,6 +10,8 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/embedded_settings.dart';
 import '../../core/models/filament_requirement.dart';
+import '../../core/models/loaded_spools.dart';
+import '../../core/models/plate_list.dart';
 import '../../core/models/slice_job.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../l10n/app_localizations.dart';
@@ -17,16 +19,22 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../../core/models/process_option.dart';
 import '../../core/slicer/filament_slot_options.dart';
+import '../../core/slicer/loaded_spool_match.dart';
+import '../../core/slicer/preset_compatibility.dart';
 import '../../core/slicer/process_settings_codec.dart';
 import '../../core/theme/dash_theme.dart';
 import '../common/dash_async.dart';
-import '../common/dash_search_field.dart';
+import '../common/inline_note.dart';
+import '../dashboard/ams_slot_config_providers.dart'
+    show printerModelRegistryProvider;
 import '../../core/models/slicer_pipeline.dart';
 import '../pipelines/pipeline_presets.dart';
 import '../pipelines/pipeline_slice_bar.dart';
 import 'process_settings_screen.dart';
 import 'slice_filament_colours.dart';
 import 'slice_refusal.dart';
+import 'slice_preset_sheet.dart';
+import '../queue/queue_plate_sheet.dart' show plateLabel, showQueuePlateSheet;
 import 'slice_providers.dart';
 
 /// What gets sliced — an archive or a library file. Both use the same
@@ -100,12 +108,40 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   bool _printerPicked = false;
   bool _designedPrinterAdopted = false;
 
+  /// The plate of a multi-plate 3MF to slice; 1 for anything else, which is
+  /// what the sidecar does with no plate named.
+  int _plate = 1;
+
+  /// Every plate into one multi-plate output (`plate: 0`, the sidecar's
+  /// sentinel). The rows then cover every project slot, all of them in use.
+  bool _allPlates = false;
+
+  /// The two filters (#3172), remembered on this device.
+  late bool _onlyOnline = ref
+      .read(settingsRepositoryProvider)
+      .loadSliceOnlyOnline();
+  late bool _onlyLoaded = ref
+      .read(settingsRepositoryProvider)
+      .loadSliceOnlyLoaded();
+
+  /// The spool each row was filled from (#3172), per row. Its colour is what
+  /// the row prints in; null leaves that to [sliceFilamentColours]' own rule.
+  List<SpoolOrigin?> _spoolOrigins = [];
+
+  /// Filament rows the user filled themselves. A filter only ever re-picks the
+  /// others, as on the web: a profile somebody chose stays.
+  final _explicitFilaments = <int>{};
+
   /// Process-option edits from the settings screen, as the user typed them.
   ///
   /// What actually goes on the wire is derived from these rather than stored, so
   /// switching the process preset re-decides which of them are deviations at
   /// all: an edit matching the new preset's own value stops being an override.
   Map<String, Object> _processValues = {};
+
+  /// `GET /slicer/printer-models`, as of the last build — what a printer change
+  /// checks the kept picks against.
+  Map<String, String> _registry = const {};
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -119,9 +155,13 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final owned =
         ref.watch(ownedFilamentsProvider).valueOrNull ??
         const <OwnedFilament>[];
-    final reqs =
-        ref.watch(filamentRequirementsProvider(_filamentKey)).valueOrNull ??
-        const <FilamentRequirement>[];
+    final reqsAsync = ref.watch(filamentRequirementsProvider(_filamentKey));
+    final reqs = reqsAsync.valueOrNull ?? const <FilamentRequirement>[];
+    // A plate just picked has no slots yet. Rows filled against nothing would
+    // keep a material the plate never asked for once its slots arrive, so they
+    // wait, and so does the button — the web's `filamentReqsQuery.isSuccess`.
+    // A read that failed still lets the form go on with one plain row.
+    final reqsPending = reqsAsync.isLoading && !reqsAsync.hasValue;
     final embeddedAsync = ref.watch(embeddedSettingsProvider(_sourceKey));
     final embedded = embeddedAsync.valueOrNull ?? EmbeddedSettings.none;
     // Watched here, not where the cards are built: those only exist once the
@@ -129,48 +169,117 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     // time to decode — asked now, both answer during the presets spinner.
     final processSettings = ref.watch(processSettingsAvailableProvider).orFalse;
     final layoutOptions = ref.watch(sliceLayoutOptionsProvider).orFalse;
+    final loadedPrinters = ref.watch(loadedSpoolsProvider).valueOrNull;
+    final facets =
+        ref.watch(ownedSpoolFacetsProvider).valueOrNull ??
+        (materials: const <String>{}, brands: const <String>{});
+    final registry = _registry =
+        ref.watch(printerModelRegistryProvider).valueOrNull ??
+        const <String, String>{};
 
     return Scaffold(
       appBar: dashAppBar(context, title: l10n.sliceTitle),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
         child: dashAsyncStrip(
           context,
           presetsAsync,
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(DashSpace.xl),
           failureMessage: l10n.sliceNoPresets,
           data: (presets) {
             // One picker per *project* slot, because `filament_presets` is
             // positional — see [SlicerRepository.filamentRequirements].
             final slotCount = reqs.isEmpty ? 1 : reqs.length;
             _resizeFilaments(slotCount);
-            final discriminated = anyUnused(reqs);
+            // Across every plate each project slot prints somewhere, so none is
+            // marked unused then — the web sets `used_in_plate` on all of them.
+            final discriminated = !_allPlates && anyUnused(reqs);
+            final plates =
+                ref.watch(plateListProvider(_sourceKey)).valueOrNull ??
+                PlateList.none;
 
-            final printers = _filterPrinters(presets.printers, ownedCodes);
+            final online = loadedPrinters ?? const <LoadedSpoolPrinter>[];
+            final connectedModels = [for (final p in online) p.model];
+            // Each filter applies only while it has something to go on.
+            final printerFilter = _onlyOnline && online.isNotEmpty
+                ? (SlicerPreset p) =>
+                      isConnectedModelPreset(p, connectedModels, registry)
+                : null;
+            final printers = _narrow(
+              _filterPrinters(presets.printers, ownedCodes, registry),
+              printerFilter,
+            );
             _printer ??= _firstLocalOr(printers);
             if (!embeddedAsync.isLoading && !ownedCodesAsync.isLoading) {
               _adoptDesignedPrinter(printers, embedded);
             }
-            final code = _printer == null
-                ? null
-                : _codeOfPrinter(_printer!, ownedCodes);
-            final processes = _filterProcesses(presets.processes, code);
+            if (printerFilter != null) {
+              _moveToOnlinePrinter(
+                printers,
+                printerFilter,
+                connectedModels,
+                registry,
+                embedded,
+              );
+            }
+            final printerName = _printer?.name;
+            final processes = _fitting(
+              presets.processes,
+              printerName,
+              registry,
+            );
             _process ??= _firstLocalOr(processes);
 
             // One filament list for every slot — any owned, printer-compatible
             // filament is selectable (swap PLA↔PETG↔TPU freely). The model's
             // per-slot type/colour only seeds the auto-picked default; plate
             // compatibility is enforced server-side at slice time.
-            final filaments = _filterFilaments(presets.filaments, code, owned);
-            for (var i = 0; i < slotCount; i++) {
-              _filaments[i] ??= _pickDefaultFilament(
-                filaments,
-                owned,
-                i < reqs.length ? reqs[i] : null,
+            // Spools count only on printers of the selected profile's model:
+            // an A1's AMS says nothing about what an X1C job can start on.
+            final spoolPrinters = printersOfModel(
+              online,
+              printerPresetModel(_printer?.name, registry),
+            );
+            final nameIndex = buildFilamentNameIndex(presets.filaments);
+            final loadedKeys = matchedFilamentKeys(
+              spoolPrinters,
+              filaments: presets.filaments,
+              index: nameIndex,
+              selectedPrinterName: _printer?.name,
+              registry: registry,
+            );
+            final filamentFilter = _onlyLoaded && loadedKeys.isNotEmpty
+                ? (SlicerPreset p) => loadedKeys.contains(presetKey(p))
+                : null;
+            final ownedFilaments = _filterFilaments(
+              presets.filaments,
+              printerName,
+              registry,
+              owned,
+            );
+            // From the whole catalog, not the owned list: a spool in the AMS
+            // is better evidence than an inventory mapping, and may have none.
+            final filaments = filamentFilter == null
+                ? ownedFilaments
+                : presets.filaments.where(filamentFilter).toList();
+            for (var i = 0; i < slotCount && !reqsPending; i++) {
+              final current = _filaments[i];
+              final notLoaded =
+                  current != null &&
+                  filamentFilter != null &&
+                  !_explicitFilaments.contains(i) &&
+                  !filamentFilter(current);
+              if (current != null && !notLoaded) continue;
+              _filaments[i] = _autoPickFilament(
+                loaded: filamentFilter == null ? null : filaments,
+                filaments: ownedFilaments,
+                owned: owned,
+                req: i < reqs.length ? reqs[i] : null,
               );
             }
 
             final ready =
+                !reqsPending &&
                 _printer != null &&
                 _process != null &&
                 _filaments.every((f) => f != null) &&
@@ -193,7 +302,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
               children: [
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.only(bottom: DashSpace.sm),
                     children: [
                       Text(
                         widget.target.name,
@@ -201,7 +310,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: DashSpace.sm),
                       // Above the slots it fills, and hidden entirely on a server
                       // without the routes — see [PipelineSliceBar].
                       PipelineSliceBar(
@@ -214,6 +323,19 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                           () => _applyPipeline(p, presets, slotCount),
                         ),
                       ),
+                      // Shown only once the server said what is loaded: on
+                      // an older one, or without printers:read, it has nothing
+                      // to narrow by.
+                      if (plates.isMultiPlate) _platesCard(plates),
+                      if (loadedPrinters != null)
+                        _filtersCard(
+                          noneOnline:
+                              (_onlyOnline || _onlyLoaded) && online.isEmpty,
+                          noneLoaded:
+                              _onlyLoaded &&
+                              online.isNotEmpty &&
+                              loadedKeys.isEmpty,
+                        ),
                       _slotTile(
                         label: l10n.slicePrinter,
                         icon: Icons.print_outlined,
@@ -241,7 +363,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                       ),
                       if (canUseEmbedded)
                         Card(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          margin: const EdgeInsets.symmetric(
+                            vertical: DashSpace.xs,
+                          ),
                           child: SwitchListTile(
                             value: _useEmbedded,
                             onChanged: (v) => setState(() => _useEmbedded = v),
@@ -275,7 +399,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                       _dimWhenLocked(
                         !asDesigned,
                         Card(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          margin: const EdgeInsets.symmetric(
+                            vertical: DashSpace.xs,
+                          ),
                           child: ListTile(
                             leading: const Icon(Icons.grid_on_outlined),
                             // Patches a process JSON the embedded path never builds.
@@ -305,7 +431,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                         _dimWhenLocked(
                           !asDesigned,
                           Card(
-                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            margin: const EdgeInsets.symmetric(
+                              vertical: DashSpace.xs,
+                            ),
                             child: ListTile(
                               leading: const Icon(Icons.tune_outlined),
                               enabled: processRef != null && !asDesigned,
@@ -350,7 +478,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                       // than no switch. See [sliceLayoutOptionsProvider].
                       if (layoutOptions)
                         Card(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          margin: const EdgeInsets.symmetric(
+                            vertical: DashSpace.xs,
+                          ),
                           child: Column(
                             children: [
                               SwitchListTile(
@@ -392,9 +522,19 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                               ? l10n.sliceFilament
                               : l10n.sliceFilamentNumbered('${i + 1}'),
                           icon: Icons.cable,
-                          swatch: i < reqs.length
+                          swatch: _spoolOrigins[i]?.colour != null
+                              ? colorFromHex(_spoolOrigins[i]!.colour)
+                              : i < reqs.length
                               ? colorFromHex(reqs[i].color)
                               : null,
+                          footnote: _spoolOrigins[i] == null
+                              ? null
+                              : Text(
+                                  l10n.sliceSpoolFrom(_spoolOrigins[i]!.label),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
                           typeHint: i < reqs.length ? reqs[i].type : null,
                           // Only when the server actually told used from unused —
                           // its own fallback flags everything used, and marking every
@@ -408,22 +548,67 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                           // slot on this path too, so locking it dead-ends the form.
                           enabled: !asDesigned || _filaments[i] == null,
                           onTap: () async {
-                            final p = await _openPicker(
+                            final pick = await showPresetSheet(
+                              context,
                               title: slotCount == 1
                                   ? l10n.sliceFilament
                                   : l10n.sliceFilamentNumbered('${i + 1}'),
-                              filtered: filaments,
+                              // Not narrowed to the printer: the sheet's own
+                              // printer filter does that, and starts on it.
+                              filtered: filamentFilter == null
+                                  ? _filterFilaments(
+                                      presets.filaments,
+                                      null,
+                                      registry,
+                                      owned,
+                                    )
+                                  : filaments,
                               all: presets.filaments,
+                              filament: FilamentChoices(
+                                // The Spools tab while any printer is online,
+                                // even one of another model: it then says so.
+                                spoolPrinters: online.isEmpty
+                                    ? null
+                                    : spoolPrinters,
+                                matchFor: (tray) => matchSlotPreset(
+                                  tray,
+                                  filaments: presets.filaments,
+                                  index: nameIndex,
+                                  selectedPrinterName: _printer?.name,
+                                  registry: registry,
+                                ),
+                                ownedModels: ownedCodes,
+                                ownedMaterials: facets.materials,
+                                ownedBrands: facets.brands,
+                                registry: registry,
+                                printerModel: printerPresetModel(
+                                  _printer?.name,
+                                  registry,
+                                ),
+                                needsMaterial: i < reqs.length
+                                    ? reqs[i].type
+                                    : null,
+                              ),
                             );
-                            if (p != null && mounted) {
-                              setState(() => _filaments[i] = p);
+                            if (pick != null && mounted) {
+                              setState(() {
+                                _filaments[i] = pick.preset;
+                                _explicitFilaments.add(i);
+                                _spoolOrigins[i] = pick.spool;
+                              });
                             }
                           },
                         ),
                     ],
                   ),
                 ),
-                _submitBar(l10n, ready),
+                _submitBar(
+                  l10n,
+                  ready,
+                  allPlates: plates.isMultiPlate && _allPlates
+                      ? plates.plates.length
+                      : null,
+                ),
               ],
             );
           },
@@ -434,18 +619,22 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
 
   /// The submit button, pinned outside the scroll area so it is never something
   /// the user has to scroll a nine-row form to find.
-  Widget _submitBar(AppLocalizations l10n, bool ready) {
+  Widget _submitBar(AppLocalizations l10n, bool ready, {int? allPlates}) {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 8),
+        padding: const EdgeInsets.only(top: DashSpace.sm, bottom: DashSpace.sm),
         child: SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
             icon: _submitting
                 ? const DashSpinner()
                 : const Icon(Icons.layers_outlined),
-            label: Text(l10n.sliceStart),
+            label: Text(
+              allPlates == null
+                  ? l10n.sliceStart
+                  : l10n.sliceAllPlates(allPlates),
+            ),
             onPressed: ready ? _submit : null,
           ).tagged('slice.submit'),
         ),
@@ -485,11 +674,14 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         // Naming the printer is worth something even with nothing to switch to.
         if (designed != null)
           Padding(
-            padding: const EdgeInsets.only(top: 6, bottom: 2),
+            padding: const EdgeInsets.only(
+              top: DashSpace.sm,
+              bottom: DashSpace.xs,
+            ),
             child: FilledButton.tonal(
               onPressed: () => setState(() => _pickPrinter(designed)),
               style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: DashSpace.lg),
                 // Material's dense floor. `shrinkWrap` only drops the invisible
                 // 48px tap padding a button reserves in a form, which inside a
                 // list subtitle would push the rows apart.
@@ -541,6 +733,8 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     _resizeFilaments(slotCount);
     for (var i = 0; i < _filaments.length; i++) {
       if (i >= pipeline.filamentPresets.length) continue;
+      _explicitFilaments.add(i);
+      _spoolOrigins[i] = null;
       _filaments[i] = resolvePresetRef(
         catalog,
         pipeline.filamentPresets[i],
@@ -560,9 +754,236 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   void _pickPrinter(SlicerPreset printer) {
     _printerPicked = true;
     _printer = printer;
-    _process = null;
-    _filaments = List.filled(_filaments.length, null);
+    // The web's re-pick (#1325): a pick that still fits the new printer stays,
+    // the user's own included; one ruled out for it is chosen again.
+    bool ruledOut(SlicerPreset? p) =>
+        p != null &&
+        presetCompatibility(p, printer.name, _registry) == PresetFit.mismatch;
+    if (ruledOut(_process)) _process = null;
+    for (var i = 0; i < _filaments.length; i++) {
+      if (!ruledOut(_filaments[i])) continue;
+      _filaments[i] = null;
+      _spoolOrigins[i] = null;
+      _explicitFilaments.remove(i);
+    }
     _processValues = {};
+  }
+
+  /// With "only online printers" on, an auto-picked printer of a model that is
+  /// not online moves to one that is — the file's own printer first, when that
+  /// model is online (the web's effect of the same name). A printer the user
+  /// chose stays, and so does the file's own while its settings are in use.
+  /// [all] is the owned list, as for [_adoptDesignedPrinter].
+  void _moveToOnlinePrinter(
+    List<SlicerPreset> all,
+    bool Function(SlicerPreset) online,
+    List<String?> connectedModels,
+    Map<String, String> registry,
+    EmbeddedSettings embedded,
+  ) {
+    final current = _printer;
+    if (_printerPicked || _useEmbedded || current == null) return;
+    if (online(current)) return;
+    final designed = all
+        .where((p) => embedded.matchesPrinter(p.name))
+        .firstOrNull;
+    final next = designed != null && online(designed)
+        ? designed
+        : pickConnectedPrinterPreset(all, connectedModels, registry);
+    if (next == null) return;
+    // Rows the user filled while the answer was in flight survive the move
+    // where they still fit the new printer — the web keeps a pick that is not
+    // a mismatch and picks the rest again. The auto-picked rows are re-picked.
+    // A spool picked for one stays behind: it sits in the printer that was
+    // left, so the row keeps its profile, not that spool's colour or name.
+    final kept = {
+      for (final i in _explicitFilaments)
+        if (i < _filaments.length)
+          if (_filaments[i] case final preset?
+              when presetCompatibility(preset, next.name, registry) !=
+                  PresetFit.mismatch)
+            i: preset,
+    };
+    _pickPrinter(next);
+    _printerPicked = false;
+    for (final MapEntry(key: i, value: preset) in kept.entries) {
+      _filaments[i] = preset;
+      _explicitFilaments.add(i);
+    }
+  }
+
+  /// [list] narrowed by [keep], or [list] itself when that would leave nothing
+  /// to pick — the rest stays one "All" away in the picker.
+  List<SlicerPreset> _narrow(
+    List<SlicerPreset> list,
+    bool Function(SlicerPreset)? keep,
+  ) {
+    if (keep == null) return list;
+    final narrowed = list.where(keep).toList();
+    return narrowed.isEmpty ? list : narrowed;
+  }
+
+  /// A row's default: from the loaded spools first, but only one that does not
+  /// state another material than the plate's slot — a loaded PLA is no answer
+  /// for a PETG slot (web #2982). Otherwise the usual pick.
+  SlicerPreset? _autoPickFilament({
+    required List<SlicerPreset>? loaded,
+    required List<SlicerPreset> filaments,
+    required List<OwnedFilament> owned,
+    required FilamentRequirement? req,
+  }) {
+    if (loaded != null && loaded.isNotEmpty) {
+      final type = req?.type;
+      // The slot's material first among the loaded, as the web's scorer
+      // ranks it: otherwise the first loaded PLA hides a loaded PETG.
+      final ofMaterial = type == null
+          ? loaded
+          : [
+              for (final p in loaded)
+                if (!statesDifferentMaterial(p, type)) p,
+            ];
+      final fromLoaded = _pickDefaultFilament(
+        ofMaterial.isEmpty ? loaded : ofMaterial,
+        owned,
+        req,
+      );
+      if (fromLoaded != null &&
+          (type == null || !statesDifferentMaterial(fromLoaded, type))) {
+        return fromLoaded;
+      }
+    }
+    return _pickDefaultFilament(filaments, owned, req);
+  }
+
+  /// Which plate to slice, and the switch that slices them all — shown only
+  /// for a 3MF with more than one plate.
+  Widget _platesCard(PlateList plates) {
+    final l10n = _l10n;
+    final theme = Theme.of(context);
+    final current = plates.byIndex(_plate);
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: DashSpace.xs),
+      child: Column(
+        children: [
+          _dimWhenLocked(
+            !_allPlates,
+            ListTile(
+              leading: const Icon(Icons.layers_outlined),
+              enabled: !_allPlates && !_submitting,
+              title: Text(
+                l10n.queueEditPlate,
+                style: theme.textTheme.labelMedium,
+              ),
+              subtitle: Text(
+                current == null
+                    ? l10n.queueEditPlateSelected(_plate)
+                    : plateLabel(l10n, current),
+                style: theme.textTheme.bodyMedium,
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _pickPlate(plates),
+            ).tagged('slice.plate'),
+          ),
+          SwitchListTile(
+            value: _allPlates,
+            onChanged: _submitting
+                ? null
+                : (v) => setState(() => _allPlates = v),
+            secondary: const Icon(Icons.layers_clear_outlined),
+            title: Text(
+              l10n.sliceAllPlates(plates.plates.length),
+              style: theme.textTheme.labelMedium,
+            ),
+            subtitle: Text(
+              l10n.sliceAllPlatesHint,
+              style: theme.textTheme.bodySmall,
+            ),
+          ).tagged('slice.all_plates'),
+        ],
+      ),
+    );
+  }
+
+  /// Another plate has other slots, so the rows start over: what was picked,
+  /// the spool colours and any process edit naming a slot all named a slot of
+  /// the plate that was left.
+  Future<void> _pickPlate(PlateList plates) async {
+    final picked = await showQueuePlateSheet(
+      context,
+      plates: plates,
+      selected: _plate,
+    );
+    if (picked == null || picked == _plate || !mounted) return;
+    final schema = ref.read(processSchemaProvider).valueOrNull?.schema;
+    setState(() {
+      _plate = picked;
+      _filaments = List.filled(_filaments.length, null);
+      _spoolOrigins = List.filled(_filaments.length, null);
+      _explicitFilaments.clear();
+      // An edit naming a filament slot named one of the plate that was left.
+      _processValues = {
+        for (final MapEntry(:key, :value) in _processValues.entries)
+          if (schema?[key] == null || !namesFilamentSlot(schema![key]!))
+            key: value,
+      };
+    });
+  }
+
+  Widget _filtersCard({required bool noneOnline, required bool noneLoaded}) {
+    final l10n = _l10n;
+    final theme = Theme.of(context);
+    final settings = ref.read(settingsRepositoryProvider);
+    Widget toggle({
+      required String id,
+      required bool value,
+      required String title,
+      required String hint,
+      required ValueChanged<bool> onChanged,
+    }) => SwitchListTile(
+      value: value,
+      onChanged: _submitting ? null : onChanged,
+      title: Text(title, style: theme.textTheme.labelMedium),
+      subtitle: Text(hint, style: theme.textTheme.bodySmall),
+    ).tagged(id);
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: DashSpace.xs),
+      child: Column(
+        children: [
+          toggle(
+            id: 'slice.only_online',
+            value: _onlyOnline,
+            title: l10n.sliceOnlyOnline,
+            hint: l10n.sliceOnlyOnlineHint,
+            onChanged: (v) {
+              setState(() => _onlyOnline = v);
+              unawaited(settings.saveSliceOnlyOnline(v));
+            },
+          ),
+          toggle(
+            id: 'slice.only_loaded',
+            value: _onlyLoaded,
+            title: l10n.sliceOnlyLoaded,
+            hint: l10n.sliceOnlyLoadedHint,
+            onChanged: (v) {
+              setState(() => _onlyLoaded = v);
+              unawaited(settings.saveSliceOnlyLoaded(v));
+            },
+          ),
+          if (noneOnline || noneLoaded)
+            InlineNote(
+              noneOnline ? l10n.sliceNoneOnline : l10n.sliceNoneLoaded,
+              icon: Icons.info_outline,
+              announce: true,
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.lg,
+                0,
+                DashSpace.lg,
+                DashSpace.md,
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   /// `ListTile.enabled` alone barely reads on the dark theme — the row looked
@@ -573,12 +994,13 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
 
   (bool, int) get _sourceKey => (widget.target.isArchive, widget.target.id);
 
-  /// Plate 1, because this screen has no plate picker and the slice it posts
-  /// leaves `SliceRequest.plate` null — which the sidecar reads as plate 1. The
-  /// two have to name the same plate or the slots offered are not the slots the
-  /// slice will use.
+  /// The plate the slots are read for. It has to be the plate the slice names,
+  /// or the slots offered are not the slots the slice will use. With every
+  /// plate sliced it is still the picked one, as on the web: the rows are every
+  /// project slot (`full_slots`) whichever plate asks, though their colours and
+  /// usage describe that plate.
   PlateSource get _filamentKey =>
-      (isArchive: widget.target.isArchive, id: widget.target.id, plate: 1);
+      (isArchive: widget.target.isArchive, id: widget.target.id, plate: _plate);
 
   /// Re-checked against the gate, so a switch left on by a stale read cannot
   /// reach the request.
@@ -661,10 +1083,13 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   void _resizeFilaments(int count) {
     if (_filaments.length == count) return;
     final next = List<SlicerPreset?>.filled(count, null);
+    final origins = List<SpoolOrigin?>.filled(count, null);
     for (var i = 0; i < count && i < _filaments.length; i++) {
       next[i] = _filaments[i];
+      if (i < _spoolOrigins.length) origins[i] = _spoolOrigins[i];
     }
     _filaments = next;
+    _spoolOrigins = origins;
   }
 
   Widget _slotTile({
@@ -692,7 +1117,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       _ => selected.name,
     };
     final card = Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: ListTile(
         enabled: enabled,
         leading: swatch != null
@@ -773,12 +1198,12 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     required String title,
     required List<SlicerPreset> filtered,
     required List<SlicerPreset> all,
-  }) {
-    return dashSheet<SlicerPreset>(
-      context,
-      builder: (_) => _PresetPicker(title: title, filtered: filtered, all: all),
-    );
-  }
+  }) async => (await showPresetSheet(
+    context,
+    title: title,
+    filtered: filtered,
+    all: all,
+  ))?.preset;
 
   Future<void> _submit() async {
     final l10n = _l10n;
@@ -793,6 +1218,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         ? const <String>[]
         : sliceFilamentColours(
             picked: _filaments,
+            overrides: [for (final o in _spoolOrigins) o?.colour],
             owned:
                 ref.read(ownedFilamentsProvider).valueOrNull ??
                 const <OwnedFilament>[],
@@ -821,6 +1247,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         'filament_presets': refs,
       // The preset refs above stay: the validator wants them here too, unused.
       if (asDesigned) 'use_embedded_settings': true,
+      // 0 for every plate, another plate by number; plate 1 is what the sidecar
+      // slices with none named, so it is left out as on a single-plate file.
+      if (_allPlates) 'plate': 0 else if (_plate != 1) 'plate': _plate,
       // Override the plate only when the user picked one; null inherits.
       if (_bedType != null && !asDesigned) 'bed_type': _bedType,
       // Only when on: both default to false server-side, and an older server
@@ -877,44 +1306,47 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
 
   List<SlicerPreset> _filterPrinters(
     List<SlicerPreset> all,
-    Set<String> codes,
+    Set<String> owned,
+    Map<String, String> registry,
   ) {
-    if (codes.isEmpty) return all;
+    if (owned.isEmpty) return all;
+    final models = owned.toList();
     return all
-        .where((p) => p.isLocal || codes.any((c) => _containsCode(p.name, c)))
+        .where((p) => p.isLocal || isConnectedModelPreset(p, models, registry))
         .toList();
   }
 
-  /// The owned code the selected printer maps to (drives process/filament compat).
-  String? _codeOfPrinter(SlicerPreset printer, Set<String> codes) {
-    for (final c in codes) {
-      if (_containsCode(printer.name, c)) return c;
-    }
-    return null;
-  }
-
-  List<SlicerPreset> _filterProcesses(List<SlicerPreset> all, String? code) {
-    if (code == null) return all;
-    return all.where((p) => p.isLocal || _containsCode(p.name, code)).toList();
+  /// The presets the web's rule (`presetCompatibility`) does not rule out for
+  /// [printerName] — an untagged one stays. When that leaves nothing, all of
+  /// them, as the web does (#2982): a preset for the wrong printer can be
+  /// changed, an empty list cannot.
+  List<SlicerPreset> _fitting(
+    List<SlicerPreset> all,
+    String? printerName,
+    Map<String, String> registry,
+  ) {
+    final fit = [
+      for (final p in all)
+        if (presetCompatibility(p, printerName, registry) != PresetFit.mismatch)
+          p,
+    ];
+    return fit.isEmpty ? all : fit;
   }
 
   /// Owned (any material) + printer-compatible. Not narrowed by the model's
   /// filament type — the user can pick a different material per slot.
   List<SlicerPreset> _filterFilaments(
     List<SlicerPreset> all,
-    String? code,
+    String? printerName,
+    Map<String, String> registry,
     List<OwnedFilament> owned,
   ) {
-    bool compat(SlicerPreset p) => code == null || _containsCode(p.name, code);
+    final fit = _fitting(all, printerName, registry);
     final ownedNames = {for (final o in owned) o.name};
-    if (ownedNames.isEmpty) {
-      // No owned-filament signal — narrow by printer only.
-      return all.where((p) => p.isLocal || compat(p)).toList();
-    }
-    return all
-        .where(
-          (p) => p.isLocal || (_ownedMatch(p.name, ownedNames) && compat(p)),
-        )
+    // No owned-filament signal — narrow by printer only.
+    if (ownedNames.isEmpty) return fit;
+    return fit
+        .where((p) => p.isLocal || _ownedMatch(p.name, ownedNames))
         .toList();
   }
 
@@ -959,26 +1391,6 @@ bool _typeMatches(String material, String type) {
   return m == t || m.startsWith(t) || t.startsWith(m);
 }
 
-/// A preset's name contains the printer [code] as a whole token, so "X1"
-/// doesn't match "X1C". Case-insensitive; the code may contain a space
-/// ("A1 Mini").
-bool _containsCode(String name, String code) {
-  final n = name.toUpperCase();
-  final c = code.toUpperCase();
-  if (c.isEmpty) return false;
-  var i = n.indexOf(c);
-  while (i >= 0) {
-    final before = i == 0 ? ' ' : n[i - 1];
-    final afterIdx = i + c.length;
-    final after = afterIdx >= n.length ? ' ' : n[afterIdx];
-    if (!_isAlnum(before) && !_isAlnum(after)) return true;
-    i = n.indexOf(c, i + 1);
-  }
-  return false;
-}
-
-bool _isAlnum(String ch) => RegExp(r'[A-Za-z0-9]').hasMatch(ch);
-
 /// A preset belongs to an owned filament if its name equals an owned base name
 /// or extends it ("Bambu PETG HF" → "Bambu PETG HF @BBL X2D 0.4 nozzle").
 bool _ownedMatch(String name, Set<String> owned) {
@@ -986,142 +1398,6 @@ bool _ownedMatch(String name, Set<String> owned) {
     if (name == base || name.startsWith('$base ')) return true;
   }
   return false;
-}
-
-/// Searchable preset list with a "show all" escape hatch (the owned/compatible
-/// filter is heuristic, so the full catalog is one toggle away).
-class _PresetPicker extends StatefulWidget {
-  const _PresetPicker({
-    required this.title,
-    required this.filtered,
-    required this.all,
-  });
-
-  final String title;
-  final List<SlicerPreset> filtered;
-  final List<SlicerPreset> all;
-
-  @override
-  State<_PresetPicker> createState() => _PresetPickerState();
-}
-
-class _PresetPickerState extends State<_PresetPicker> {
-  late bool _showAll = widget.filtered.isEmpty && widget.all.isNotEmpty;
-  String _query = '';
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final base = _showAll ? widget.all : widget.filtered;
-    final q = _query.trim().toLowerCase();
-    final items = q.isEmpty
-        ? base
-        : base.where((p) => p.name.toLowerCase().contains(q)).toList();
-
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.7,
-      maxChildSize: 0.95,
-      // Said out loud, or Flutter's 0.25 leaves a quarter-screen stub. 0.5
-      // rather than the 0.4 the sheets without a keyboard use: the search field
-      // above the list keeps the keyboard up, and the two together need the
-      // room the maintenance form — the app's only other keyboard sheet —
-      // settled on.
-      minChildSize: 0.5,
-      builder: (ctx, scrollController) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.title,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                  ),
-                  // Merged, or the reader announces a bare "switch": the label
-                  // beside it is a separate node and nothing ties the two.
-                  MergeSemantics(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          l10n.sliceShowAll,
-                          style: theme.textTheme.bodySmall,
-                        ),
-                        Switch(
-                          value: _showAll,
-                          onChanged: (v) => setState(() => _showAll = v),
-                        ).tagged('slice.show_all_presets'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: DashSearchField(
-                id: 'slice.search',
-                hintText: l10n.sliceSearchHint,
-                onChanged: (v) => setState(() => _query = v),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: items.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          widget.filtered.isEmpty && !_showAll
-                              ? l10n.sliceOwnedEmpty
-                              : l10n.sliceNoPresets,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: scrollController,
-                      itemCount: items.length,
-                      itemBuilder: (ctx, i) {
-                        final p = items[i];
-                        return ListTile(
-                          dense: true,
-                          title: Text(
-                            p.name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Text(_sourceLabel(l10n, p.source)),
-                          trailing: p.isLocal
-                              ? Icon(
-                                  Icons.star,
-                                  size: 16,
-                                  color: theme.colorScheme.primary,
-                                )
-                              : null,
-                          onTap: () => Navigator.pop(ctx, p),
-                        ).tagged('slice.preset_option');
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _sourceLabel(AppLocalizations l10n, String source) => switch (source) {
-    'local' => l10n.sliceTierLocal,
-    'cloud' => l10n.sliceTierCloud,
-    'orca_cloud' => l10n.sliceTierOrcaCloud,
-    _ => l10n.sliceTierStandard,
-  };
 }
 
 /// Polls a slice job to completion, showing live stage/progress, then the
@@ -1218,7 +1494,7 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
               l10n.sliceResultFilament(r!.filamentUsedG!.toStringAsFixed(1)),
             ),
           if (r?.externalWriteFallback != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             Text(
               [
                 l10n.sliceExternalFallback,
@@ -1239,7 +1515,7 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           LinearProgressIndicator(value: fraction),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Text(
             stage ?? l10n.sliceInProgress,
             style: theme.textTheme.bodySmall,

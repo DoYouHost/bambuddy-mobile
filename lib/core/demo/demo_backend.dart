@@ -7,7 +7,11 @@ import 'package:app_util/app_util.dart';
 import '../models/json_utils.dart';
 import '../models/pipeline_run.dart';
 import '../models/print_run.dart';
+import '../models/spool_label.dart';
 import 'demo_config.dart';
+import 'demo_labels.dart';
+import 'demo_manyfold.dart';
+import '../format/text_compare.dart';
 
 /// In-process fake bambuddy server for demo mode (see [DemoConfig]).
 ///
@@ -33,6 +37,7 @@ class DemoBackend {
   /// Simulated job duration; the job loops forever.
   static const _printCycleSec = 5400; // 90 min
   static const _totalLayers = 264;
+  static const _demoWearCostPerHour = 0.25;
 
   /// How many machines the demo runs a print on at once, from app settings.
   ///
@@ -306,7 +311,10 @@ class DemoBackend {
         if (pid == null) return _notFound();
         if (s.length == 2) {
           final p = _printers.where((e) => e['id'] == pid).firstOrNull;
-          return p == null ? _notFound() : _ok(p);
+          if (p == null) return _notFound();
+          // The access code is write-only on the real server too.
+          if (m == 'PATCH') p.addAll(body..remove('access_code'));
+          return _ok(p);
         }
         if (at(2, 'status')) return _ok(statusJson(pid));
         if (at(2, 'print')) {
@@ -458,6 +466,9 @@ class DemoBackend {
       case 'pipeline-runs':
         return _pipelineRunsRoute(m, s, q);
 
+      case 'printer-locations':
+        return _printerLocationsRoute(m, s, body);
+
       case 'location-ha-sensors':
         if (s.length == 1) return _ok(_locationSensors);
         if (at(1, 'by-location') && at(3, 'readings')) {
@@ -487,8 +498,11 @@ class DemoBackend {
         return _inventoryRoute(m, s, q, body, rawBody);
 
       case 'spoolman':
-        // Demo runs the native backend; Spoolman variant serves empty data.
-        return m == 'GET' ? _ok(const <Object>[]) : _fallback(m);
+        // Demo runs the native backend, and says so where the app asks.
+        if (at(1, 'status')) {
+          return _ok(const {'enabled': false, 'connected': false, 'url': null});
+        }
+        return _fallback(m);
 
       case 'filament-catalog':
         return _ok(_filamentPresets);
@@ -510,6 +524,22 @@ class DemoBackend {
 
       case 'projects':
         return _projectsRoute(m, s, q, body);
+
+      case 'announcements':
+        if (s.length == 1 && m == 'GET') {
+          return _ok({'visible': true, 'announcements': _announcements});
+        }
+        if (s.length == 3 && at(2, 'read') && m == 'POST') {
+          final hit = _announcements.where((a) => a['id'] == s[1]).firstOrNull;
+          if (hit == null) return _notFound();
+          hit['read'] = true;
+          return (status: 204, body: null);
+        }
+        return _notFound();
+
+      case 'manyfold':
+        if (at(1, 'import') && m == 'POST') return _manyfoldImport(body);
+        return _manyfold.route(m, s, q, body);
 
       case 'makerworld':
         if (at(1, 'status')) {
@@ -549,6 +579,7 @@ class DemoBackend {
         // it every row read "No longer in the catalog").
         if (at(1, 'presets')) return _ok(_slicerPresets);
         if (at(1, 'preset-values')) return _presetValues(q);
+        if (at(1, 'loaded-spools')) return _ok(_loadedSpools());
         return _ok(const <String, dynamic>{});
 
       case 'users':
@@ -586,6 +617,11 @@ class DemoBackend {
     // button in the app, and with it off the pipelines feature showed
     // only its read-only half.
     'use_slicer_api': true,
+    // The outcome prompt (#1898): on by default here, off on a real server,
+    // so the print form's switch visibly starts from what the server says.
+    'default_confirm_outcome': true,
+    'confirm_outcome_external_prints': false,
+    'confirm_default_good_on_plate_clear': false,
     'currency': 'USD',
     // Auto-print snippets, as the real server stores them: a JSON string
     // keyed by printer model. Only the A1 mini has one, so demo shows both
@@ -701,6 +737,83 @@ class DemoBackend {
   /// handed out in fixture order and would move if a print were inserted above.
   int get _sliceableArchiveId =>
       _archives.firstWhere((a) => a['print_name'] == 'Benchy')['id'] as int;
+
+  /// `/slicer/loaded-spools` (#3172), built from the same statuses the
+  /// dashboard shows, so the slice form's filters and its spool picker work on
+  /// what the demo printers really carry. Offline printers are left out, as on
+  /// the server.
+  Map<String, dynamic> _loadedSpools() {
+    Map<String, dynamic> tray(
+      int printerId,
+      int amsId,
+      int trayId,
+      Map<String, dynamic> raw,
+    ) {
+      final saved = _slotPreset[_slotKey(printerId, amsId, trayId)];
+      String? text(Object? v) => v is String && v.isNotEmpty ? v : null;
+      return {
+        'ams_id': amsId,
+        'tray_id': trayId,
+        'tray_type': text(raw['tray_type']),
+        'tray_sub_brands': text(raw['tray_sub_brands']),
+        'tray_color': text(raw['tray_color']),
+        'tray_info_idx': text(raw['tray_info_idx']),
+        'exists': raw['tray_type'] != null,
+        'state': raw['state'],
+        'saved_preset': saved == null
+            ? null
+            : {
+                'preset_id': saved['preset_id'],
+                'preset_name': saved['preset_name'],
+                'preset_source': saved['preset_source'] ?? 'local',
+              },
+      };
+    }
+
+    return {
+      'printers': [
+        for (final printer in _printers)
+          if (statusData(printer['id'] as int) case final status
+              when status['connected'] == true)
+            {
+              'id': printer['id'],
+              'name': printer['name'],
+              'model': printer['model'],
+              'ams': [
+                for (final unit in (status['ams'] as List? ?? const []))
+                  if (unit case final Map<String, dynamic> u)
+                    {
+                      'id': u['id'],
+                      'is_ams_ht': (u['tray'] as List? ?? const []).length == 1,
+                      'trays': [
+                        for (final t in (u['tray'] as List? ?? const []))
+                          if (t case final Map<String, dynamic> raw)
+                            tray(
+                              printer['id'] as int,
+                              u['id'] as int,
+                              raw['id'] as int,
+                              raw,
+                            ),
+                      ],
+                    },
+              ],
+              'external': [
+                for (final vt in (status['vt_tray'] as List? ?? const []))
+                  if (vt case final Map<String, dynamic> raw
+                      when raw['tray_type'] != null)
+                    tray(
+                      printer['id'] as int,
+                      255,
+                      (raw['id'] as int? ?? 254) - 254,
+                      raw,
+                    ),
+              ],
+              'external_holders':
+                  (status['vt_tray'] as List? ?? const []).length,
+            },
+      ],
+    };
+  }
 
   /// `/slicer/preset-values` — the picked process preset's effective values,
   /// flattened, as the sidecar answers them.
@@ -1139,6 +1252,7 @@ class DemoBackend {
       'cost': _r1(grams * 0.025),
       'energy_kwh': 0.0,
       'energy_cost': 0.0,
+      'wear_cost': null,
       'created_at': _iso(DateTime.now()),
     };
     _archives.insert(0, archive);
@@ -1199,6 +1313,7 @@ class DemoBackend {
       'location': 'Workshop',
       'is_active': true,
       'nozzle_count': 1,
+      'wear_cost_per_hour': _demoWearCostPerHour,
     },
     {
       'id': 2,
@@ -2208,6 +2323,8 @@ class DemoBackend {
       type: 'PLA',
       color: '#FF6A13',
       createdDaysAgo: 0,
+      // Shows the Staged chip; the demo's admin is never held for review.
+      manualStart: true,
     ),
     // Plate-swap job on the one model demo has snippets for: opening it shows
     // the injection checkbox already ticked, with no "nothing will be injected"
@@ -2274,6 +2391,8 @@ class DemoBackend {
     required String color,
     required int createdDaysAgo,
     bool gcodeInjection = false,
+    bool confirmOutcome = false,
+    bool manualStart = false,
     String slicedForModel = 'X1C',
     List<Map<String, dynamic>> variants = const [],
     int? batchId,
@@ -2290,10 +2409,11 @@ class DemoBackend {
     'required_filament_types': [type],
     'ams_mapping': const <Object>[],
     'use_ams': true,
-    'manual_start': false,
+    'manual_start': manualStart,
     'auto_off_after': false,
     'require_previous_success': false,
     'gcode_injection': gcodeInjection,
+    'confirm_outcome': confirmOutcome,
     'filament_short': false,
     // Tri-state strings, as bambuddy 1.2.5+ sends them — the shape whose
     // arrival emptied the real queue screen. Demo mode is where that
@@ -2352,6 +2472,7 @@ class DemoBackend {
         color: (archive?['filament_color'] as String?) ?? '#808080',
         createdDaysAgo: 0,
         gcodeInjection: body['gcode_injection'] == true,
+        confirmOutcome: body['confirm_outcome'] == true,
         slicedForModel: '${lead?['sliced_for_model'] ?? 'X1C'}',
         variants: [
           for (final (position, f) in variantFiles.indexed)
@@ -2485,6 +2606,9 @@ class DemoBackend {
       }
       if (body.containsKey('gcode_injection')) {
         item['gcode_injection'] = body['gcode_injection'];
+      }
+      if (body.containsKey('confirm_outcome')) {
+        item['confirm_outcome'] = body['confirm_outcome'];
       }
       return _ok(item);
     }
@@ -2872,6 +2996,20 @@ class DemoBackend {
       // than a zero.
       double? actualGrams,
       bool noUsageRecorded = false,
+      // The outcome prompt (#1898): whether the run asked for one, and the
+      // verdict it got with where it came from.
+      bool confirmRequested = false,
+      String? verdict,
+      String? verdictSource,
+      // What the archive detail shows beyond the numbers: the project chip,
+      // the user's tags and note, the link button, the run-count chip and the
+      // per-slot filament lines a sliced multi-material file carries.
+      int? projectId,
+      String? tags,
+      String? notes,
+      String? externalUrl,
+      int runCount = 1,
+      List<Map<String, dynamic>>? filamentSlots,
     }) {
       final started = _daysAgo(daysAgo, hours: 3);
       final actualSec = status == 'completed'
@@ -2880,8 +3018,10 @@ class DemoBackend {
       return {
         'id': id++,
         'printer_id': printerId,
-        'project_id': null,
-        'project_name': null,
+        'project_id': projectId,
+        'project_name': projectId == null
+            ? null
+            : _projects.firstWhere((p) => p['id'] == projectId)['name'],
         'filename': '$name.gcode.3mf',
         'file_path': 'archive/demo/$name.gcode.3mf',
         'file_size': 1500000 + name.length * 37000,
@@ -2909,24 +3049,37 @@ class DemoBackend {
         'status': status,
         'started_at': _iso(started),
         'completed_at': _iso(started.add(Duration(seconds: actualSec))),
-        'extra_data': const <String, dynamic>{},
+        'extra_data': <String, dynamic>{'filament_slots': ?filamentSlots},
+        'external_url': externalUrl,
         'is_favorite': false,
-        'tags': null,
-        'notes': null,
+        'tags': tags,
+        'notes': notes,
         'cost': cost ?? _r1(grams * 0.025),
         'photos': const <Object>[],
         'failure_reason': failureReason,
         'quantity': quantity,
         'energy_kwh': energyKwh ?? _r1(estSec / 3600 * 0.11),
         'energy_cost': _r1((energyKwh ?? estSec / 3600 * 0.11) * 0.3),
+        // Only printer 1 has a wear rate, so the other printers' runs show
+        // the "no rate set" half of the field.
+        'wear_cost': printerId == 1
+            ? _r1(actualSec / 3600 * _demoWearCostPerHour)
+            : null,
         'created_at': _iso(started),
-        'run_count': 1,
+        'created_by_username': DemoConfig.username,
+        'run_count': runCount,
         'last_run_at': _iso(started),
         'total_filament_actual_grams': noUsageRecorded
             ? null
             : (actualGrams ?? grams),
         'successful_run_count': status == 'completed' ? 1 : 0,
         'failed_run_count': status == 'failed' ? 1 : 0,
+        'confirm_requested': confirmRequested,
+        'user_verdict': verdict,
+        'user_verdict_source': verdictSource,
+        'user_verdict_at': verdict == null
+            ? null
+            : _iso(started.add(Duration(seconds: actualSec + 600))),
       };
     }
 
@@ -2940,10 +3093,30 @@ class DemoBackend {
         1,
         estSec: 5400,
         grams: 96.2,
-        color: '#000000',
+        color: '#000000,#FFFFFF',
         plateId: 2,
+        projectId: 1,
+        tags: 'workshop,storage',
+        notes: 'Plate 1 printed separately; the dividers go on plate 2.',
+        runCount: 3,
+        // Listed per plate, as the server's parser stores a multi-plate
+        // export: slot 1 twice, which the app sums.
+        filamentSlots: const [
+          {'slot_id': 1, 'used_g': 48.1, 'type': 'PLA', 'color': '#000000'},
+          {'slot_id': 1, 'used_g': 33.6, 'type': 'PLA', 'color': '#000000'},
+          {'slot_id': 2, 'used_g': 14.5, 'type': 'PLA', 'color': '#FFFFFF'},
+        ],
       ),
-      a('Benchy', 1, 2, estSec: 3540, grams: 15.8, color: '#FF6A13'),
+      a(
+        'Benchy',
+        1,
+        2,
+        estSec: 3540,
+        grams: 15.8,
+        color: '#FF6A13',
+        confirmRequested: true,
+        externalUrl: 'https://www.3dbenchy.com/',
+      ),
       a(
         'Raspberry Pi 5 case',
         2,
@@ -2953,7 +3126,17 @@ class DemoBackend {
         type: 'PETG',
         color: '#FFFFFF',
       ),
-      a('Headphone hook', 1, 4, estSec: 4260, grams: 31.7, color: '#3B3B3B'),
+      a(
+        'Headphone hook',
+        1,
+        4,
+        estSec: 4260,
+        grams: 31.7,
+        color: '#3B3B3B',
+        confirmRequested: true,
+        verdict: 'reject',
+        verdictSource: 'link',
+      ),
       a(
         'Spiral vase',
         2,
@@ -2977,7 +3160,17 @@ class DemoBackend {
       ),
       a('Plant pot 120mm', 2, 9, estSec: 12480, grams: 132.5, color: '#0ACCB8'),
       a('SD card holder', 1, 12, estSec: 3120, grams: 22.9, color: '#FF6A13'),
-      a('Phone stand', 3, 15, estSec: 8340, grams: 68.9, color: '#FF6A13'),
+      a(
+        'Phone stand',
+        3,
+        15,
+        estSec: 8340,
+        grams: 68.9,
+        color: '#FF6A13',
+        confirmRequested: true,
+        verdict: 'good',
+        verdictSource: 'plate_clear',
+      ),
       // Stopped on the first layer, so there is no measured figure at all —
       // the case the archive sheet has a line for.
       a(
@@ -3047,6 +3240,7 @@ class DemoBackend {
       'cost': archive['cost'],
       'energy_kwh': archive['energy_kwh'],
       'energy_cost': archive['energy_cost'],
+      'wear_cost': archive['wear_cost'],
       'failure_reason': failureReason ?? archive['failure_reason'],
       'thumbnail_path': null,
       'created_by_id': 1,
@@ -3204,6 +3398,7 @@ class DemoBackend {
       'cost' => (e['cost'] as num?)?.toDouble(),
       'energy' => (e['energy_kwh'] as num?)?.toDouble(),
       'energy_cost' => (e['energy_cost'] as num?)?.toDouble(),
+      'wear_cost' => (e['wear_cost'] as num?)?.toDouble(),
       _ => null,
     };
     final descending = q['sort_dir'] != 'asc';
@@ -3364,6 +3559,19 @@ class DemoBackend {
           if (body.containsKey('filament_used_grams')) {
             archive['filament_used_grams'] = body['filament_used_grams'];
           }
+          if (body.containsKey('user_verdict')) {
+            final verdict = body['user_verdict'];
+            archive['user_verdict'] = verdict;
+            archive['user_verdict_source'] = verdict == null
+                ? null
+                : body['user_verdict_source'] ?? 'api';
+            archive['user_verdict_at'] = verdict == null
+                ? null
+                : _iso(DateTime.now());
+          }
+          if (body.containsKey('failure_reason')) {
+            archive['failure_reason'] = body['failure_reason'];
+          }
           return _ok(archive);
         }
       }
@@ -3463,7 +3671,7 @@ class DemoBackend {
     final failed = _archives.where((a) => a['status'] == 'failed').length;
     final byType = <String, int>{};
     final byPrinter = <String, int>{};
-    var hours = 0.0, grams = 0.0, cost = 0.0, kwh = 0.0;
+    var hours = 0.0, grams = 0.0, cost = 0.0, kwh = 0.0, wear = 0.0;
     for (final a in _archives) {
       byType.update('${a['filament_type']}', (v) => v + 1, ifAbsent: () => 1);
       final printerName =
@@ -3479,6 +3687,7 @@ class DemoBackend {
       grams += toDouble(a['filament_used_grams']);
       cost += toDouble(a['cost']);
       kwh += toDouble(a['energy_kwh']);
+      wear += toDouble(a['wear_cost']);
     }
     return {
       'total_prints': _archives.length,
@@ -3493,6 +3702,7 @@ class DemoBackend {
       'average_time_accuracy': 94.4,
       'total_energy_kwh': _r1(kwh),
       'total_energy_cost': _r1(kwh * 0.3),
+      'total_wear_cost': _r1(wear),
       'energy_data_warming_up': false,
     };
   }
@@ -4664,9 +4874,11 @@ class DemoBackend {
       'last_used': _iso(_daysAgo(id % 6)),
       'created_at': _iso(_daysAgo(30 + id)),
       'k_profiles': const <Object>[],
+      'suppliers': <Map<String, dynamic>>[],
+      'material_number': null,
     };
 
-    return [
+    final spools = [
       spool(
         'PLA',
         'Basic',
@@ -4741,6 +4953,420 @@ class DemoBackend {
         archivedAt: _iso(_daysAgo(10)),
       ),
     ];
+    // Bought from the Bambu store with Filament24 as the alternative, bought
+    // at Filament24, and nothing at all — the three states the spool card and
+    // the supplier filter have to show. Printed Solid stays unassigned, so the
+    // supplier list has one row that can be deleted and two that cannot.
+    // Two spools of one product share a number, a third product has its own,
+    // and the rest stay blank: the filter, the tile and the card all have
+    // something to show without the demo hiding what an unnumbered shelf is.
+    // A note and a material number are lines a label can carry; a spool that
+    // has neither would draw nothing for them, and the choice would look dead.
+    spools[0]['note'] = 'Dry box 2';
+    spools[2]['note'] = 'Opened, use first';
+    spools[0]['material_number'] = '15';
+    spools[1]['material_number'] = '15';
+    spools[2]['material_number'] = '22';
+    spools[3]['material_number'] = 'A-104';
+    _linkSeed(spools[0], [
+      (1, 'GFA00-K0', 24.99, true),
+      (2, 'BL-PLA-BK-1', 22.90, false),
+    ]);
+    _linkSeed(spools[1], [(1, null, 24.99, true)]);
+    _linkSeed(spools[3], [(2, 'BL-PETG-HF-W', 27.50, true)]);
+    _linkSeed(spools[7], [(2, null, null, true)]);
+    return spools;
+  }
+
+  void _linkSeed(
+    Map<String, dynamic> spool,
+    List<(int, String?, double?, bool)> links,
+  ) {
+    spool['suppliers'] = [
+      for (final (supplierId, article, price, bought) in links)
+        _supplierLink(supplierId, {
+          'supplier_article_number': article,
+          'quoted_price_per_kg': price,
+          'is_purchase_source': bought,
+        }),
+    ];
+  }
+
+  // --- Suppliers (#2988) ---
+
+  late final List<Map<String, dynamic>> _suppliers = [
+    _supplierRow(1, 'Bambu Lab Store', website: 'https://store.bambulab.com'),
+    _supplierRow(
+      2,
+      'Filament24',
+      website: 'https://filament24.example',
+      customerNumber: 'K-10442',
+    ),
+    _supplierRow(3, 'Printed Solid', note: 'Ships from the US'),
+  ];
+  int _nextSupplierId = 10;
+  int _nextSupplierLinkId = 1;
+
+  Map<String, dynamic> _supplierRow(
+    int id,
+    String name, {
+    String? website,
+    String? customerNumber,
+    String? note,
+  }) => {
+    'id': id,
+    'name': name,
+    'website': website,
+    'customer_number': customerNumber,
+    'note': note,
+    'created_at': _iso(_daysAgo(60)),
+    'updated_at': _iso(_daysAgo(60)),
+  };
+
+  Map<String, dynamic> _supplierLink(
+    int supplierId,
+    Map<dynamic, dynamic> input,
+  ) => {
+    'id': _nextSupplierLinkId++,
+    'supplier_id': supplierId,
+    'supplier_name':
+        _suppliers.where((x) => x['id'] == supplierId).firstOrNull?['name'] ??
+        '',
+    'supplier_article_number': input['supplier_article_number'],
+    'quoted_price_per_kg': input['quoted_price_per_kg'],
+    'is_purchase_source': input['is_purchase_source'] == true,
+  };
+
+  Iterable<Map<String, dynamic>> _linksOf(Map<String, dynamic> spool) =>
+      (spool['suppliers'] as List? ?? const []).cast<Map<String, dynamic>>();
+
+  int _supplierSpoolCount(int supplierId) => _spools
+      .where((sp) => _linksOf(sp).any((l) => l['supplier_id'] == supplierId))
+      .length;
+
+  Map<String, dynamic> _supplierResponse(Map<String, dynamic> row) => {
+    ...row,
+    'spool_count': _supplierSpoolCount(row['id'] as int),
+  };
+
+  bool _supplierNameTaken(Object? name, {int? except}) {
+    final key = '$name'.trim().toLowerCase();
+    return _suppliers.any(
+      (x) => x['id'] != except && '${x['name']}'.toLowerCase() == key,
+    );
+  }
+
+  static const _duplicateSupplier = (
+    status: 409,
+    body: {'detail': 'A supplier with this name already exists'},
+  );
+
+  /// Styled locations, keyed by name. A location the printers carry without a
+  /// row here is listed too, unstyled — as the real route does — and `Storage`
+  /// is the empty one, which the printers cannot show.
+  final Map<String, Map<String, dynamic>> _locationRows = {
+    'Workshop': {'id': 1, 'icon': 'wrench', 'color': '#f97316'},
+    'Office': {'id': 2, 'icon': 'home', 'color': null},
+    'Storage': {'id': 3, 'icon': 'folder', 'color': '#3b82f6'},
+  };
+  int _nextLocationId = 4;
+
+  static const _duplicateLocation = (
+    status: 409,
+    body: {'detail': 'A location with this name already exists'},
+  );
+
+  int _printersAt(String name) =>
+      _printers.where((p) => p['location'] == name).length;
+
+  Map<String, dynamic> _locationResponse(String name) => {
+    'id': _locationRows[name]?['id'],
+    'name': name,
+    'icon': _locationRows[name]?['icon'],
+    'color': _locationRows[name]?['color'],
+    'printer_count': _printersAt(name),
+  };
+
+  /// Every name, case-insensitively, that a new or renamed location could
+  /// collide with: the styled rows and the ones only printers carry.
+  bool _locationNameTaken(String name, {String? except}) {
+    final key = name.toLowerCase();
+    final names = {
+      ..._locationRows.keys,
+      for (final p in _printers)
+        if (p['location'] case final String l when l.isNotEmpty) l,
+    };
+    return names.any((n) => n != except && n.toLowerCase() == key);
+  }
+
+  /// `/printer-locations/` with the 409 on a name taken, the 404 on a missing
+  /// location, and the rename that moves the printers along with it.
+  DemoResult _printerLocationsRoute(
+    String m,
+    List<String> s,
+    Map<String, dynamic> body,
+  ) {
+    final sub = s.length > 1 ? s[1] : '';
+    if (s.length == 1 && m == 'GET') {
+      final names = {
+        ..._locationRows.keys,
+        for (final p in _printers)
+          if (p['location'] case final String l when l.isNotEmpty) l,
+      }.toList()..sort(compareIgnoringCase);
+      return _ok([for (final n in names) _locationResponse(n)]);
+    }
+    if (s.length == 1 && m == 'POST') {
+      final name = '${body['name']}'.trim();
+      if (_locationNameTaken(name)) return _duplicateLocation;
+      _locationRows[name] = {
+        'id': _nextLocationId++,
+        'icon': body['icon'],
+        'color': body['color'],
+      };
+      return (status: 201, body: _locationResponse(name));
+    }
+    if (s.length == 1 && m == 'PATCH') {
+      var name = '${body['name']}'.trim();
+      final exists = _locationRows.containsKey(name) || _printersAt(name) > 0;
+      if (!exists) {
+        return (status: 404, body: {'detail': 'Location not found'});
+      }
+      final newName = (body['new_name'] as String?)?.trim();
+      if (newName != null && newName.isNotEmpty && newName != name) {
+        if (_locationNameTaken(newName, except: name)) {
+          return _duplicateLocation;
+        }
+        for (final p in _printers) {
+          if (p['location'] == name) p['location'] = newName;
+        }
+        final row = _locationRows.remove(name);
+        if (row != null) _locationRows[newName] = row;
+        name = newName;
+      }
+      final row = _locationRows.putIfAbsent(
+        name,
+        () => {'id': _nextLocationId++, 'icon': null, 'color': null},
+      );
+      if (body.containsKey('icon')) row['icon'] = body['icon'];
+      if (body.containsKey('color')) row['color'] = body['color'];
+      return _ok(_locationResponse(name));
+    }
+    if (sub == 'delete' && m == 'POST') {
+      final names = [for (final n in body['names'] as List) '$n'];
+      var ungrouped = 0;
+      var deleted = 0;
+      for (final n in names) {
+        final existed = _locationRows.remove(n) != null || _printersAt(n) > 0;
+        if (existed) deleted++;
+        for (final p in _printers) {
+          if (p['location'] == n) {
+            p['location'] = null;
+            ungrouped++;
+          }
+        }
+      }
+      return _ok({'deleted': deleted, 'printers_ungrouped': ungrouped});
+    }
+    if (sub == 'assign' && m == 'POST') {
+      final ids = [for (final i in body['printer_ids'] as List) i as int];
+      final location = (body['location'] as String?)?.trim();
+      final target = location == null || location.isEmpty ? null : location;
+      final known = {for (final p in _printers) p['id'] as int};
+      final missing = [
+        for (final i in ids)
+          if (!known.contains(i)) i,
+      ];
+      if (missing.isNotEmpty) {
+        return (
+          status: 404,
+          body: {'detail': 'Printer not found: ${missing.join(', ')}'},
+        );
+      }
+      var moved = 0;
+      for (final p in _printers) {
+        // The route's `rowcount` counts every matched row, a printer already
+        // there included.
+        if (ids.contains(p['id'])) {
+          p['location'] = target;
+          moved++;
+        }
+      }
+      return _ok({'moved': moved});
+    }
+    return _notFound();
+  }
+
+  /// `/inventory/suppliers` and `/inventory/suppliers/{id}`, with the two 409s
+  /// the real routes answer: a name taken case-insensitively, and a delete of a
+  /// supplier some spool still references.
+  DemoResult _suppliersRoute(
+    String m,
+    List<String> s,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 2) {
+      if (m == 'GET') {
+        final rows = [..._suppliers]
+          ..sort((a, b) => compareIgnoringCase('${a['name']}', '${b['name']}'));
+        return _ok([for (final r in rows) _supplierResponse(r)]);
+      }
+      if (m == 'POST') {
+        if (_supplierNameTaken(body['name'])) return _duplicateSupplier;
+        final row = _supplierRow(
+          _nextSupplierId++,
+          '${body['name']}'.trim(),
+          website: body['website'] as String?,
+          customerNumber: body['customer_number'] as String?,
+          note: body['note'] as String?,
+        );
+        _suppliers.add(row);
+        return (status: 201, body: _supplierResponse(row));
+      }
+    }
+    final id = int.tryParse(s.length > 2 ? s[2] : '');
+    final row = _suppliers.where((x) => x['id'] == id).firstOrNull;
+    if (row == null || s.length != 3) return _notFound();
+    if (m == 'PATCH') {
+      if (body.containsKey('name') &&
+          _supplierNameTaken(body['name'], except: id)) {
+        return _duplicateSupplier;
+      }
+      for (final key in ['website', 'customer_number', 'note']) {
+        if (body.containsKey(key)) row[key] = body[key];
+      }
+      if (body.containsKey('name')) row['name'] = '${body['name']}'.trim();
+      row['updated_at'] = _iso(DateTime.now());
+      // The links carry the name flattened, as `supplier_name` does server-side.
+      for (final spool in _spools) {
+        for (final link in _linksOf(spool)) {
+          if (link['supplier_id'] == id) link['supplier_name'] = row['name'];
+        }
+      }
+      return _ok(_supplierResponse(row));
+    }
+    if (m == 'DELETE') {
+      if (_supplierSpoolCount(id!) > 0) {
+        return (
+          status: 409,
+          body: {
+            'detail': 'Supplier has spools assigned and cannot be deleted',
+          },
+        );
+      }
+      _suppliers.remove(row);
+      return _ok(const {'status': 'deleted'});
+    }
+    return _fallback(m);
+  }
+
+  /// `PUT /inventory/spools/{id}/suppliers` — replace-all, with the route's two
+  /// 400s so the form's one-purchase-source rule is not the only guard.
+  DemoResult _replaceSpoolSuppliers(
+    Map<String, dynamic> spool,
+    Object? rawBody,
+  ) {
+    final sent = (rawBody is List ? rawBody : const []).whereType<Map>();
+    final ids = [for (final l in sent) l['supplier_id']];
+    if (ids.toSet().length != ids.length) {
+      return (
+        status: 400,
+        body: {'detail': 'Duplicate supplier in assignment list'},
+      );
+    }
+    if (sent.where((l) => l['is_purchase_source'] == true).length > 1) {
+      return (
+        status: 400,
+        body: {'detail': 'Only one assignment can be the purchase source'},
+      );
+    }
+    if (ids.any((id) => !_suppliers.any((x) => x['id'] == id))) {
+      return _notFound();
+    }
+    spool['suppliers'] = [
+      for (final l in sent) _supplierLink(l['supplier_id'] as int, l),
+    ];
+    return _ok(spool['suppliers']);
+  }
+
+  /// `GET /inventory/stats/suppliers`: grouped by the purchase source only.
+  DemoResult _supplierStats(Map<String, String> q) => _stockAggregate(
+    q,
+    group: (spool) {
+      final bought = _linksOf(
+        spool,
+      ).where((l) => l['is_purchase_source'] == true).firstOrNull;
+      return bought == null
+          ? null
+          : {
+              'supplier_id': bought['supplier_id'],
+              'supplier_name': bought['supplier_name'],
+            };
+    },
+    sortKey: (row) => '${row['supplier_name']}'.toLowerCase(),
+  );
+
+  /// `GET /inventory/stats/material-numbers`: grouped by the number, spools
+  /// without one left out.
+  DemoResult _materialNumberStats(Map<String, String> q) => _stockAggregate(
+    q,
+    group: (spool) => spool['material_number'] == null
+        ? null
+        : {'material_number': spool['material_number']},
+    sortKey: (row) => '${row['material_number']}',
+  );
+
+  /// The aggregate both stats routes share: stock from active spools,
+  /// consumption and cost from the usage rows inside the date range - archived
+  /// spools included, as their use happened - heaviest consumer first and
+  /// [sortKey] to break a tie. [group] names the row a spool belongs to, or
+  /// null for a spool the route leaves out; its first entry is the row's
+  /// identity.
+  DemoResult _stockAggregate(
+    Map<String, String> q, {
+    required Map<String, Object?>? Function(Map<String, dynamic> spool) group,
+    required String Function(Map<String, dynamic> row) sortKey,
+  }) {
+    final from = DateTime.tryParse(q['date_from'] ?? '');
+    final to = DateTime.tryParse(q['date_to'] ?? '');
+    final rows = <Object?, Map<String, dynamic>>{};
+    for (final spool in _spools) {
+      final identity = group(spool);
+      if (identity == null) continue;
+      final row = rows.putIfAbsent(
+        identity.values.first,
+        () => {
+          ...identity,
+          'spool_count': 0,
+          'remaining_g': 0.0,
+          'consumed_g': 0.0,
+          'cost': 0.0,
+        },
+      );
+      if (spool['archived_at'] == null) {
+        final left =
+            (spool['label_weight'] as num) - (spool['weight_used'] as num);
+        row['spool_count'] = (row['spool_count'] as int) + 1;
+        row['remaining_g'] =
+            (row['remaining_g'] as double) + (left > 0 ? left : 0);
+      }
+      for (final use in _spoolUsage(spool['id'] as int)) {
+        final at = DateTime.parse(use['created_at'] as String).toLocal();
+        final day = DateTime(at.year, at.month, at.day);
+        if (from != null && day.isBefore(from)) continue;
+        if (to != null && day.isAfter(to)) continue;
+        row['consumed_g'] =
+            (row['consumed_g'] as double) + (use['weight_used'] as num);
+        row['cost'] = (row['cost'] as double) + (use['cost'] as num);
+      }
+    }
+    final out = rows.values.toList()
+      ..sort((a, b) {
+        final byUse = (b['consumed_g'] as double).compareTo(
+          a['consumed_g'] as double,
+        );
+        return byUse != 0 ? byUse : sortKey(a).compareTo(sortKey(b));
+      });
+    return _ok(out);
   }
 
   late final List<Map<String, dynamic>> _assignments = [
@@ -4899,6 +5525,73 @@ class DemoBackend {
     },
   ];
 
+  /// `POST /inventory/labels`, answered with what the server checks and sends
+  /// (`LabelRequest` and `_render_response` in its `labels.py`): the same
+  /// refusals, and the file the options ask for.
+  DemoResult _renderLabels(Map<String, dynamic> body) {
+    DemoResult refuse(String detail) => (status: 422, body: {'detail': detail});
+
+    final ids = [
+      for (final id in body['spool_ids'] as List? ?? const [])
+        if (id is num) id.toInt(),
+    ];
+    if (ids.isEmpty || ids.length > maxSpoolLabelsPerRequest) {
+      return refuse('spool_ids must hold 1 to $maxSpoolLabelsPerRequest ids');
+    }
+    final template = SpoolLabelTemplate.values
+        .where((t) => t.wire == body['template'])
+        .firstOrNull;
+    if (template == null) return refuse('unknown template ${body['template']}');
+
+    final capacity = template.sheetCapacity;
+    final start = (body['starting_position'] as num?)?.toInt() ?? 1;
+    if (start < 1 || start > (capacity ?? 1)) {
+      return refuse(
+        capacity == null
+            ? 'starting_position is only supported for sheet label templates'
+            : 'starting_position must be between 1 and $capacity '
+                  'for template ${template.wire}',
+      );
+    }
+
+    final format = body['format'] ?? 'pdf';
+    final dpi = (body['dpi'] as num?)?.toInt() ?? 300;
+    if (format != 'pdf' && format != 'png') return refuse('unknown format');
+    if (!spoolLabelDpiChoices.contains(dpi)) return refuse('unknown dpi');
+
+    final wanted = body['fields'];
+    final known = {for (final f in SpoolLabelField.values) f.wire};
+    if (wanted != null &&
+        (wanted is! List || wanted.any((f) => !known.contains(f)))) {
+      return refuse('unknown label field');
+    }
+    final fields = wanted == null
+        ? {for (final f in SpoolLabelField.defaults) f.wire}
+        : {for (final f in wanted as List) f as String};
+
+    final missing = [
+      for (final id in ids)
+        if (!_spools.any((x) => x['id'] == id)) id,
+    ];
+    if (missing.isNotEmpty) {
+      return (status: 404, body: {'detail': 'Spool(s) not found: $missing'});
+    }
+
+    final file = renderDemoLabels(
+      spools: [
+        for (final id in ids)
+          DemoLabelSpool.fromJson(_spools.firstWhere((x) => x['id'] == id)),
+      ],
+      template: template,
+      fields: fields,
+      monochrome: body['monochrome'] == true,
+      startingPosition: start,
+      png: format == 'png',
+      dpi: dpi,
+    );
+    return _file(file.bytes, file.contentType);
+  }
+
   DemoResult? _inventoryRoute(
     String m,
     List<String> s,
@@ -4908,6 +5601,8 @@ class DemoBackend {
   ) {
     if (s.length < 2) return _notFound();
     switch (s[1]) {
+      case 'labels':
+        return m == 'POST' && s.length == 2 ? _renderLabels(body) : _notFound();
       case 'spools':
         if (s.length == 2) {
           if (m == 'GET') {
@@ -4943,6 +5638,7 @@ class DemoBackend {
         if (s.length == 3) {
           if (m == 'GET') return _ok(spool);
           if (m == 'PATCH') {
+            _normalizeMaterialNumber(body);
             body.forEach((k, v) => spool[k] = v);
             return _ok(spool);
           }
@@ -4974,6 +5670,8 @@ class DemoBackend {
               return _ok(_spoolUsage(spoolId!));
             case 'k-profiles':
               return _ok(const <Object>[]);
+            case 'suppliers':
+              if (m == 'PUT') return _replaceSpoolSuppliers(spool, rawBody);
             case 'filament-presets':
               if (m == 'GET') {
                 return _ok(_presetOverrides[spoolId] ?? const <Object>[]);
@@ -5003,7 +5701,19 @@ class DemoBackend {
 
       case 'assignments':
         if (s.length == 2) {
-          if (m == 'GET') return _ok(_assignments);
+          if (m == 'GET') {
+            // The server sends each row with its spool inside
+            // (`SpoolAssignmentResponse.spool`), which the slot picker reads.
+            return _ok([
+              for (final a in _assignments)
+                {
+                  ...a,
+                  'spool': _spools
+                      .where((sp) => sp['id'] == a['spool_id'])
+                      .firstOrNull,
+                },
+            ]);
+          }
           if (m == 'POST') {
             _assignments.removeWhere(
               (a) =>
@@ -5034,6 +5744,16 @@ class DemoBackend {
         }
         return _fallback(m);
 
+      case 'suppliers':
+        return _suppliersRoute(m, s, body);
+      case 'stats':
+        if (s.length == 3 && s[2] == 'suppliers' && m == 'GET') {
+          return _supplierStats(q);
+        }
+        if (s.length == 3 && s[2] == 'material-numbers' && m == 'GET') {
+          return _materialNumberStats(q);
+        }
+        return _fallback(m);
       case 'catalog':
         return _ok(_coreWeights);
       case 'colors':
@@ -5103,8 +5823,10 @@ class DemoBackend {
             body: {'detail': 'update must include at least one field'},
           );
         }
+        final fields = update.cast<String, dynamic>();
+        _normalizeMaterialNumber(fields);
         for (final spool in found) {
-          update.forEach((k, v) => spool['$k'] = v);
+          fields.forEach((k, v) => spool[k] = v);
         }
         return _ok({'updated': found.length, 'not_found': notFound});
 
@@ -5241,6 +5963,15 @@ class DemoBackend {
     return _ok(spool);
   }
 
+  /// The server trims `material_number` and stores a blank as NULL, on every
+  /// write path (`schemas/spool.py::normalize_material_number`).
+  void _normalizeMaterialNumber(Map<String, dynamic> fields) {
+    final raw = fields['material_number'];
+    if (raw is String) {
+      fields['material_number'] = raw.trim().isEmpty ? null : raw.trim();
+    }
+  }
+
   Map<String, dynamic> _createSpool(Map<String, dynamic> draft) {
     final spool = <String, dynamic>{
       'id': _nextSpoolId++,
@@ -5252,6 +5983,45 @@ class DemoBackend {
       'k_profiles': const <Object>[],
       ...draft,
     };
+    _normalizeMaterialNumber(spool);
+    spool.putIfAbsent('material_number', () => null);
+    // The number is inherited from the most recently added spool of the same
+    // product when the draft names none (`services/material_number.py`).
+    if (spool['material_number'] == null) {
+      final numbered = _spools.lastWhere(
+        (x) =>
+            x['material_number'] != null &&
+            [
+              'material',
+              'subtype',
+              'brand',
+              'color_name',
+            ].every((k) => x[k] == spool[k]),
+        orElse: () => const {},
+      );
+      spool['material_number'] = numbered['material_number'];
+    }
+    // The server's inheritance (`services/supplier_links.py`): the newest spool
+    // of the same product that has any sources lends them, never where it was
+    // bought.
+    final donor = _spools.lastWhere(
+      (x) =>
+          _linksOf(x).isNotEmpty &&
+          [
+            'material',
+            'subtype',
+            'brand',
+            'color_name',
+          ].every((k) => x[k] == spool[k]),
+      orElse: () => const {},
+    );
+    spool['suppliers'] = [
+      for (final link in _linksOf(donor))
+        _supplierLink(link['supplier_id'] as int, {
+          ...link,
+          'is_purchase_source': false,
+        }),
+    ];
     _spools.add(spool);
     return spool;
   }
@@ -5309,6 +6079,138 @@ class DemoBackend {
       'update_available': false,
     },
   ];
+
+  // --- Manyfold ---
+
+  /// Two unread messages at different levels, for the dot, the count and the
+  /// level labels, and an expired one under "Earlier".
+  late final _announcements = <Map<String, dynamic>>[
+    _demoAnnouncement(
+      'demo-important',
+      'important',
+      en: (
+        'An important message from the Bambuddy team',
+        'Messages from the people who make Bambuddy land here. Opening one '
+            'marks it read, here and on the web.',
+      ),
+      pl: (
+        'Ważna wiadomość od zespołu Bambuddy',
+        'Tutaj trafiają wiadomości od twórców Bambuddy. Otwarcie oznacza '
+            'wiadomość jako przeczytaną, tu i w przeglądarce.',
+      ),
+      daysAgo: 1,
+    ),
+    _demoAnnouncement(
+      'demo-info',
+      'info',
+      en: (
+        'A regular update from the Bambuddy team',
+        'While anything is unread, the menu button carries a dot.',
+      ),
+      pl: (
+        'Zwykła informacja od zespołu Bambuddy',
+        'Dopóki coś jest nieprzeczytane, przycisk menu ma kropkę.',
+      ),
+      daysAgo: 9,
+    ),
+    _demoAnnouncement(
+      'demo-expired',
+      'info',
+      en: (
+        'An expired message',
+        'Messages past their expiry stay here as history.',
+      ),
+      pl: (
+        'Wygasła wiadomość',
+        'Wiadomości po terminie zostają tutaj jako historia.',
+      ),
+      daysAgo: 45,
+      expired: true,
+    ),
+  ];
+
+  static Map<String, dynamic> _demoAnnouncement(
+    String id,
+    String level, {
+    required (String, String) en,
+    required (String, String) pl,
+    required int daysAgo,
+    bool expired = false,
+  }) => {
+    'id': id,
+    'level': level,
+    'texts': {
+      'en': {'title': en.$1, 'body': en.$2},
+      'pl': {'title': pl.$1, 'body': pl.$2},
+    },
+    'link_url': 'https://github.com/maziggy/bambuddy',
+    'published_at': _iso(_daysAgo(daysAgo)),
+    'expires_at': expired ? _iso(_daysAgo(daysAgo - 30)) : null,
+    'archived': expired,
+    'read': expired,
+  };
+
+  late final _manyfold = DemoManyfold(
+    libraryFileFor: (key) =>
+        _libraryFiles.where((f) => f[_manyfoldKey] == key).firstOrNull,
+  );
+
+  /// Which Manyfold file a library row came from — the server keeps it in
+  /// `source_url`; a private key here, since nothing in the app reads it.
+  static const _manyfoldKey = '_manyfold_source';
+
+  /// `routes/manyfold.py::import_file`: a file still in the library is answered
+  /// as it is, and no folder means a top-level "Manyfold" one.
+  DemoResult _manyfoldImport(Map<String, dynamic> body) {
+    final key = '${body['model_id']}/${body['file_id']}';
+    final existing = _libraryFiles.where((f) => f[_manyfoldKey] == key);
+    if (existing.firstOrNull case final file?) {
+      return _ok(_manyfoldImported(file, existing: true));
+    }
+    final source = _manyfold.fileFor(
+      '${body['model_id']}',
+      '${body['file_id']}',
+    );
+    if (source.error case final refused?) return refused;
+    final name = source.name!;
+    final ext = name.split('.').last.toLowerCase();
+    final file = _libFile(
+      _nextLibraryFileId++,
+      name,
+      toIntOrNull(body['folder_id']) ?? _manyfoldFolderId(),
+      400000 + name.length * 9973,
+      fileType: ext == 'stp' ? 'step' : ext,
+      model: null,
+    )..[_manyfoldKey] = key;
+    _libraryFiles.add(file);
+    return _ok(_manyfoldImported(file, existing: false));
+  }
+
+  Map<String, dynamic> _manyfoldImported(
+    Map<String, dynamic> file, {
+    required bool existing,
+  }) => {
+    'library_file_id': file['id'],
+    'filename': file['filename'],
+    'folder_id': file['folder_id'],
+    'was_existing': existing,
+  };
+
+  int _manyfoldFolderId() {
+    final found = _libraryFolders.where(
+      (f) => f['name'] == 'Manyfold' && f['parent_id'] == null,
+    );
+    if (found.firstOrNull case final folder?) return folder['id'] as int;
+    final folder = {
+      'id': _nextFolderId++,
+      'name': 'Manyfold',
+      'parent_id': null,
+      'file_count': 0,
+      'children': const <Object>[],
+    };
+    _libraryFolders.add(folder);
+    return folder['id']! as int;
+  }
 
   // --- Library ---
 
@@ -5889,6 +6791,7 @@ class DemoBackend {
         'estimated_cost': isFirst ? 12.8 : 8.5,
         'total_energy_kwh': isFirst ? 1.6 : 1.0,
         'total_energy_cost': isFirst ? 0.5 : 0.3,
+        'total_wear_cost': isFirst ? 3.7 : 2.3,
         'remaining_prints': isFirst ? 5 : 0,
         'remaining_parts': null,
         'bom_total_items': bom.length,

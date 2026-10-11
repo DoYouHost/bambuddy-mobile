@@ -1,5 +1,5 @@
 import 'package:bambuddy_mobile/core/models/makerworld.dart';
-import 'package:bambuddy_mobile/features/makerworld/makerworld_screen.dart';
+import 'package:bambuddy_mobile/features/model_sources/model_sources_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,7 +15,7 @@ void main() {
     // system font size changed the field's height.
     await pumpPhone(
       tester,
-      const MakerWorldScreen(),
+      const ModelSourcesScreen(),
       overrides: [
         makerworldStatusProvider.overrideWith(
           (ref) async =>

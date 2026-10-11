@@ -22,6 +22,7 @@ class ArchiveStats {
     this.timeAccuracyByPrinter = const {},
     this.totalEnergyKwh = 0,
     this.totalEnergyCost = 0,
+    this.totalWearCost = 0,
     this.energyDataWarmingUp = false,
   });
 
@@ -40,6 +41,7 @@ class ArchiveStats {
     timeAccuracyByPrinter: toDoubleMap(json['time_accuracy_by_printer']),
     totalEnergyKwh: toDouble(json['total_energy_kwh']),
     totalEnergyCost: toDouble(json['total_energy_cost']),
+    totalWearCost: toDouble(json['total_wear_cost']),
     energyDataWarmingUp: json['energy_data_warming_up'] == true,
   );
 
@@ -86,6 +88,10 @@ class ArchiveStats {
   final double totalEnergyKwh;
 
   final double totalEnergyCost;
+
+  /// Printer wear over the period (#694). 0 both when no printer has a rate
+  /// and on a server older than 1.2.6 — either way there is nothing to show.
+  final double totalWearCost;
 
   /// Energy data still "warming up" (server still collecting measurements) —
   /// UI can mark energy as incomplete.

@@ -35,6 +35,9 @@ enum ServerFeature {
   /// `starting_position` on the two label routes, taken and ignored below it.
   labelStartingPosition,
 
+  /// `fields`, `format` and `dpi` on the two label routes, taken and ignored below it.
+  labelFields,
+
   /// `POST /printers/{id}/files/download-job` and the two routes with it.
   printerFilesDownloadJob,
 
@@ -46,6 +49,9 @@ enum ServerFeature {
 
   /// `GET /location-ha-sensors/` and the per-location readings behind it.
   locationHaSensors,
+
+  /// `/printer-locations/*` — the managed list of printer locations.
+  printerLocations,
 
   /// `GET/PUT /inventory/spools/{id}/filament-presets` and the Spoolman twin.
   spoolModelPresets,
@@ -68,6 +74,21 @@ enum ServerFeature {
   /// Per-plate targets on `/queue/batches` plus `PATCH` and `/dispatch` on a
   /// batch; `plates` on create is taken and ignored below it.
   batchOrders,
+
+  /// Post-print outcome verdicts on an archive and `confirm_outcome` on a
+  /// queue item (#1898); both are taken and ignored below it.
+  printOutcome,
+
+  /// `can_send_notifications` on an API key, taken and ignored below it.
+  apiKeyNotificationScope,
+
+  /// `/inventory/suppliers*` and a spool's supplier assignments.
+  spoolSuppliers,
+
+  /// `material_number` on a spool, in the bulk edit and in
+  /// `GET /inventory/stats/material-numbers` (#2870). Taken and ignored below
+  /// it by both spool schemas.
+  spoolMaterialNumber,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -155,10 +176,14 @@ class ServerVersion implements Comparable<ServerVersion> {
     // on the 0.2.4.x servers that serve it.
     ServerFeature.printerSensorHistory: (0, 2, 4, 8),
     ServerFeature.labelStartingPosition: (1, 2, 6, 0),
+    // Measured against the images, not read off the changelog: 1.2.5.6 answers
+    // a PDF to `format: png`, 1.2.5.7 answers the PNG.
+    ServerFeature.labelFields: (1, 2, 5, 7),
     ServerFeature.printerFilesDownloadJob: (1, 2, 6, 0),
     ServerFeature.scheduledDryings: (1, 2, 6, 0),
     ServerFeature.archivePrinterMedia: (1, 2, 6, 0),
     ServerFeature.locationHaSensors: (1, 2, 6, 0),
+    ServerFeature.printerLocations: (1, 2, 6, 0),
     ServerFeature.spoolModelPresets: (1, 2, 6, 0),
     ServerFeature.libraryQueueTarget: (1, 2, 5, 6),
     ServerFeature.libraryFileExtras: (1, 2, 6, 0),
@@ -166,6 +191,10 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.batchListing: (0, 2, 3, 0),
     ServerFeature.batchGrouping: (0, 2, 4, 8),
     ServerFeature.batchOrders: (1, 2, 5, 3),
+    ServerFeature.printOutcome: (1, 2, 6, 0),
+    ServerFeature.apiKeyNotificationScope: (1, 2, 6, 0),
+    ServerFeature.spoolSuppliers: (1, 2, 6, 0),
+    ServerFeature.spoolMaterialNumber: (1, 2, 5, 7),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

@@ -4,6 +4,8 @@ import '../../core/models/archive_capabilities.dart';
 import '../../core/settings/server_settings.dart';
 import '../../core/models/embedded_settings.dart';
 import '../../core/models/filament_requirement.dart';
+import '../../core/models/inventory.dart';
+import '../../core/models/loaded_spools.dart';
 import '../../core/models/plate_list.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/slicer/process_schema_catalog.dart';
@@ -25,6 +27,14 @@ final slicerEnabledProvider = serverGate<bool>(
 final slicerPresetsProvider = FutureProvider.autoDispose<UnifiedPresets>(
   (ref) => ref.watch(slicerRepositoryProvider).presets(),
 );
+
+/// What the online printers have loaded, for the form's two filters and its
+/// spool picker (#3172). Null when the server has no such route or the caller
+/// may not read printer status — the form then offers none of it.
+final loadedSpoolsProvider =
+    FutureProvider.autoDispose<List<LoadedSpoolPrinter>?>(
+      (ref) => ref.watch(slicerRepositoryProvider).loadedSpools(),
+    );
 
 /// Slice capabilities for a single archive — gates the archive slice button
 /// (hidden for plain gcode.3mf prints that can't be re-sliced).
@@ -59,7 +69,7 @@ final ownedPrinterCodesProvider = FutureProvider.autoDispose<Set<String>>((
 final ownedFilamentsProvider = FutureProvider.autoDispose<List<OwnedFilament>>((
   ref,
 ) async {
-  final spools = await ref.watch(inventoryRepositoryProvider).fetchSpools();
+  final spools = await ref.watch(_sliceSpoolsProvider.future);
   final out = <OwnedFilament>[];
   final seen = <(String, String?)>{};
   for (final s in spools) {
@@ -70,6 +80,32 @@ final ownedFilamentsProvider = FutureProvider.autoDispose<List<OwnedFilament>>((
   return out;
 });
 
+/// The inventory once per slice form, for both readers below.
+final _sliceSpoolsProvider = FutureProvider.autoDispose<List<Spool>>(
+  (ref) => ref.watch(inventoryRepositoryProvider).fetchSpools(),
+);
+
+/// The materials and brands of the spools the user owns: the filament
+/// picker's filter options, before "All" widens them to the catalogue.
+/// Upper-cased materials, brands as the inventory spells them — "Bambu Lab",
+/// which the picker matches to presets named "Bambu" by `makerKey`.
+final ownedSpoolFacetsProvider =
+    FutureProvider.autoDispose<({Set<String> materials, Set<String> brands})>((
+      ref,
+    ) async {
+      final spools = await ref.watch(_sliceSpoolsProvider.future);
+      return (
+        materials: {
+          for (final s in spools)
+            if (s.material.trim().isNotEmpty) s.material.trim().toUpperCase(),
+        },
+        brands: {
+          for (final s in spools)
+            if (s.brand?.trim() case final b? when b.isNotEmpty) b,
+        },
+      );
+    });
+
 /// A 3MF the app asks about, and which plate of it the answer should describe:
 /// `isArchive` picks the route (`/archives/…` vs `/library/files/…`), `id` the
 /// file, `plate` the plate inside it.
@@ -79,7 +115,7 @@ final ownedFilamentsProvider = FutureProvider.autoDispose<List<OwnedFilament>>((
 typedef PlateSource = ({bool isArchive, int id, int plate});
 
 /// Filament slots a model needs, keyed by [PlateSource] — the per-colour pickers
-/// in the slice modal and the queue mapping sheet. Each plate of a multi-plate
+/// in the slice modal, every project slot included. Each plate of a multi-plate
 /// file consumes its own slots, so the wrong key offers the wrong pickers (see
 /// `SlicerRepository.filamentRequirements`).
 final filamentRequirementsProvider = FutureProvider.autoDispose
@@ -90,6 +126,21 @@ final filamentRequirementsProvider = FutureProvider.autoDispose
             id: key.id,
             isArchive: key.isArchive,
             plateId: key.plate,
+          ),
+    );
+
+/// The filaments a plate prints with, unused project slots left out — what
+/// matching it to the AMS reads, as the web's print dialog does (it never
+/// asks for `full_slots`): an unused slot would take a tray from one in use.
+final printRequirementsProvider = FutureProvider.autoDispose
+    .family<List<FilamentRequirement>, PlateSource>(
+      (ref, key) => ref
+          .watch(slicerRepositoryProvider)
+          .filamentRequirements(
+            id: key.id,
+            isArchive: key.isArchive,
+            plateId: key.plate,
+            fullSlots: false,
           ),
     );
 

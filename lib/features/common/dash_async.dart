@@ -1,4 +1,3 @@
-import 'package:dash_kit/dash_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -147,7 +146,7 @@ Widget dashAsyncStrip<T>(
   BuildContext context,
   AsyncValue<T> value, {
   required Widget Function(T value) data,
-  EdgeInsets padding = const EdgeInsets.all(16),
+  EdgeInsets padding = const EdgeInsets.all(DashSpace.lg),
   double? height,
 
   /// The waiting widget, for a strip too small for the full spinner.
@@ -343,4 +342,20 @@ class _WhenServerReturnsState extends State<_WhenServerReturns> {
 
   @override
   Widget build(BuildContext context) => widget.builder(context, _last);
+}
+
+/// Work in progress said in one line: a small spinner and what is happening.
+class BusyLine extends StatelessWidget {
+  const BusyLine(this.label, {super.key});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      const DashSpinner(size: 16),
+      const SizedBox(width: DashSpace.sm),
+      Expanded(child: Text(label, style: DashTokens.of(context).bodySoft)),
+    ],
+  );
 }

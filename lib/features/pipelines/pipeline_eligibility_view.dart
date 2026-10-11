@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/models/pipeline_run.dart';
 import '../../core/models/slicer_pipeline.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 
 /// The pre-flight verdict, rendered the same whether it came from
@@ -54,7 +55,7 @@ class EligibilityView extends StatelessWidget {
         Row(
           children: [
             Icon(icon, size: 20, color: colour),
-            const SizedBox(width: 8),
+            const SizedBox(width: DashSpace.sm),
             Expanded(
               child: Text(
                 headline,
@@ -64,11 +65,11 @@ class EligibilityView extends StatelessWidget {
           ],
         ),
         if (topLevel.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           for (final i in topLevel) _issueLine(theme, l10n, i, false),
         ],
         if (topAdvisory.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           Text(
             l10n.pipelineEligibilityAdvisory,
             style: theme.textTheme.labelSmall,
@@ -80,7 +81,7 @@ class EligibilityView extends StatelessWidget {
         // unusable, and that decides whether "run anyway" means one printer or
         // five.
         if (report.printerReports.isNotEmpty) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           for (final p in report.printerReports) _printerReport(theme, l10n, p),
         ],
       ],
@@ -97,7 +98,7 @@ class EligibilityView extends StatelessWidget {
     AppLocalizations l10n,
     PerPrinterReport printer,
   ) => Padding(
-    padding: const EdgeInsets.only(bottom: 4),
+    padding: const EdgeInsets.only(bottom: DashSpace.xs),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -114,7 +115,7 @@ class EligibilityView extends StatelessWidget {
                     ? l10n.pipelineEligible
                     : l10n.pipelineIneligible,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: DashSpace.sm),
               Expanded(
                 child: Text(
                   printer.printerName,
@@ -128,7 +129,7 @@ class EligibilityView extends StatelessWidget {
         // above it rather than to the pipeline.
         for (final issue in printer.issues)
           Padding(
-            padding: const EdgeInsets.only(left: 24),
+            padding: const EdgeInsets.only(left: DashSpace.xl),
             child: _issueLine(theme, l10n, issue, issue.isAdvisory),
           ),
       ],
@@ -152,7 +153,7 @@ class EligibilityView extends StatelessWidget {
   ) {
     final detail = _detail(l10n, issue);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.only(bottom: DashSpace.xs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -163,7 +164,7 @@ class EligibilityView extends StatelessWidget {
                 ? theme.colorScheme.tertiary
                 : theme.colorScheme.error,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(
               detail == null

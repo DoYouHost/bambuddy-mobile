@@ -1,5 +1,7 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart';
+import 'package:bambuddy_mobile/core/models/announcement.dart';
+import 'package:bambuddy_mobile/features/announcements/announcements_providers.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -19,12 +21,16 @@ import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/features/admin/users_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
+import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
 import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
+import 'package:bambuddy_mobile/data/inventory_repository.dart';
+import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/wear_shape.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
@@ -59,6 +65,18 @@ class TempDirProvider extends PathProviderPlatform {
 final inertFirmwareOverride = printerFirmwareProvider.overrideWith(
   (ref, id) => null,
 );
+
+/// No announcements for widget tests: the dashboard reads the inbox for its
+/// drawer dot and banner — the same hanging-timer trap as
+/// [inertFirmwareOverride].
+final inertAnnouncementsOverride = announcementsProvider.overrideWith(
+  _InertAnnouncements.new,
+);
+
+class _InertAnnouncements extends AnnouncementsNotifier {
+  @override
+  Future<AnnouncementFeed> build() async => AnnouncementFeed.hidden;
+}
 
 /// Inert total print time for widget tests: the printer card reads it from the
 /// maintenance overview while it renders. Null keeps that off the network, the
@@ -552,6 +570,33 @@ DioAdapter mockServer(Dio dio) => DioAdapter(
   matcher: const FullHttpRequestMatcher(needsExactBody: true),
 );
 
+/// `inventoryBackendProvider` fixed to [backend]; the real one asks the
+/// server's `/spoolman/status`, which a test would otherwise have to mock.
+Override inventoryBackendOverride([
+  InventoryBackend backend = InventoryBackend.native,
+]) => inventoryBackendProvider.overrideWith((ref) => backend);
+
+/// `inventoryRepositoryProvider` over an inert source of [backend] — for code
+/// that only asks the repository which backend it runs, in a test with no
+/// server profile to build the real one from.
+Override inventoryRepositoryOf(InventoryBackend backend) =>
+    inventoryRepositoryProvider.overrideWithValue(
+      InventoryRepository(switch (backend) {
+        InventoryBackend.native => NativeInventorySource(Dio()),
+        InventoryBackend.spoolman => SpoolmanInventorySource(Dio()),
+      }),
+    );
+
+/// Drags the topmost list up [times] times. Sheets and forms are lazy lists
+/// taller than the screen: what sits below the fold is not built — and a finder
+/// cannot tap it — until it has scrolled into range.
+Future<void> scrollSheetDown(WidgetTester tester, {int times = 8}) async {
+  for (var i = 0; i < times; i++) {
+    await tester.drag(find.byType(ListView).last, const Offset(0, -300));
+    await tester.pump();
+  }
+}
+
 /// `serverProfileProvider` answering with [profile], or with "nothing
 /// configured yet" when it is null.
 ///
@@ -785,6 +830,7 @@ class RecordingNotifications implements NotificationService {
     String? payload,
     List<NotificationAction>? actions,
     AlertPicture? picture,
+    bool quiet = false,
   }) async {
     alerts.add({
       'event': event,
@@ -797,6 +843,7 @@ class RecordingNotifications implements NotificationService {
       'actionIds': [for (final a in actions ?? const []) a.id],
       'photo': picture?.photoPath,
       'thumb': picture?.thumbnailPath,
+      'quiet': quiet,
     });
     final failure = failWith;
     if (failure != null) throw failure;
@@ -950,6 +997,9 @@ Archive testArchive({
   List<String> photos = const [],
   DateTime? completedAt,
   DateTime? createdAt,
+  bool confirmRequested = false,
+  PrintVerdict? userVerdict,
+  String? userVerdictSource,
 }) => Archive(
   id: id,
   filename: filename,
@@ -960,6 +1010,9 @@ Archive testArchive({
   photos: photos,
   completedAt: completedAt,
   createdAt: createdAt,
+  confirmRequested: confirmRequested,
+  userVerdict: userVerdict,
+  userVerdictSource: userVerdictSource,
 );
 
 /// A recorder wired the way the app wires one, for a test that only needs
@@ -1122,4 +1175,37 @@ class RecordingCommands implements PrinterCommandsRepository {
     required String action,
     String? jobId,
   }) => _do('hmsAction:$id:$printError:$action:${jobId ?? ''}');
+}
+
+/// The inventory screens read the shelf through this: exactly [state], with no
+/// server behind it. Anything a test needs to record or refuse is a subclass of
+/// `InventoryNotifier` of its own; a shelf that only stands there is this.
+class FixedInventory extends InventoryNotifier {
+  FixedInventory(this._state);
+
+  final InventoryState _state;
+
+  @override
+  Future<InventoryState> build() async => _state;
+}
+
+/// `dashboardProvider` fixed at [state], with polling switched off — what a
+/// screen that lists printers wants, since the real one polls the server.
+Override fixedDashboardOverride([
+  DashboardState state = const DashboardState(),
+]) => dashboardProvider.overrideWith(() => FixedDashboard(state));
+
+class FixedDashboard extends DashboardNotifier {
+  FixedDashboard(this._fixed);
+
+  final DashboardState _fixed;
+
+  @override
+  DashboardState build() => _fixed;
+
+  @override
+  Future<void> refresh() async {}
+
+  /// What a poll does when the session is rejected and cannot be renewed.
+  void expire() => state = const DashboardState(authExpired: true);
 }

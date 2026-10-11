@@ -13,6 +13,7 @@ import 'user_delete_dialog.dart';
 import 'user_form_screen.dart';
 import 'user_messages.dart';
 import 'users_providers.dart';
+import '../common/tappable_card.dart';
 
 /// The accounts on the server (full screen, pushed from the dashboard drawer).
 ///
@@ -39,7 +40,7 @@ class UsersScreen extends ConsumerWidget {
                 'users.create',
                 FloatingActionButton.extended(
                   backgroundColor: t.accentGreen,
-                  foregroundColor: const Color(0xFF0A0C08),
+                  foregroundColor: t.onAccent,
                   onPressed: () => openUserCreate(context),
                   icon: const Icon(Icons.person_add_alt_1),
                   label: Text(l10n.usersCreate),
@@ -59,10 +60,10 @@ class UsersScreen extends ConsumerWidget {
                   )
                 : ListView.builder(
                     padding: EdgeInsets.fromLTRB(
-                      12,
-                      8,
-                      12,
-                      canManage ? 88 : 24,
+                      DashSpace.gutter,
+                      DashSpace.sm,
+                      DashSpace.gutter,
+                      canManage ? DashSpace.fabClearance : DashSpace.xl,
                     ),
                     itemCount: users.length,
                     itemBuilder: (_, i) => _UserCard(user: users[i]),
@@ -89,109 +90,92 @@ class _UserCard extends ConsumerWidget {
       currentUserProvider.select((u) => u.valueOrNull?.id == user.id),
     );
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Material(
-        color: Colors.transparent,
-        child: logTag(
-          'users.account',
-          InkWell(
-            borderRadius: BorderRadius.circular(22),
-            onTap: () => showUserDetailSheet(context, user),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: t.cardBox,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _Avatar(user: user),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                user.username,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: t.titleMd,
-                              ),
-                            ),
-                            if (isSelf) ...[
-                              const SizedBox(width: 8),
-                              Text(
-                                l10n.usersYou,
-                                style: t.micro.copyWith(
-                                  color: t.accentGreenInk,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        if (user.email != null && user.email!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              user.email!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: t.labelSoft.copyWith(
-                                color: t.textSecondary,
-                              ),
-                            ),
-                          ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            if (user.isAdmin)
-                              DashPill(
-                                label: l10n.usersRoleAdmin,
-                                accent: t.accentGreen,
-                                accentInk: t.accentGreenInk,
-                                icon: Icons.shield_outlined,
-                              )
-                            else
-                              DashPill(
-                                label: l10n.usersRoleUser,
-                                accent: t.accentBlue,
-                                icon: Icons.person_outline,
-                              ),
-                            if (!user.isActive)
-                              DashPill(
-                                label: l10n.usersInactive,
-                                accent: t.danger,
-                                accentInk: t.dangerInk,
-                                icon: Icons.block,
-                              ),
-                            if (user.authSource != 'local')
-                              DashPill(
-                                label: user.authSource.toUpperCase(),
-                                accent: t.accentOrange,
-                                accentInk: t.accentOrangeInk,
-                                icon: Icons.dns_outlined,
-                              ),
-                            for (final g in user.groups)
-                              DashPill(
-                                label: g.name,
-                                accent: t.textSecondary,
-                                accentInk: t.textSecondary,
-                                icon: Icons.group_outlined,
-                              ),
-                          ],
-                        ),
-                      ],
+    return TappableCard(
+      id: 'users.account',
+      onTap: () => showUserDetailSheet(context, user),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _Avatar(user: user),
+          const SizedBox(width: DashSpace.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        user.username,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.titleMd,
+                      ),
+                    ),
+                    if (isSelf) ...[
+                      const SizedBox(width: DashSpace.sm),
+                      Text(
+                        l10n.usersYou,
+                        style: t.micro.copyWith(color: t.accentGreenInk),
+                      ),
+                    ],
+                  ],
+                ),
+                if (user.email != null && user.email!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: DashSpace.xs),
+                    child: Text(
+                      user.email!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.labelSoft.copyWith(color: t.textSecondary),
                     ),
                   ),
-                ],
-              ),
+                const SizedBox(height: DashSpace.sm),
+                Wrap(
+                  spacing: DashSpace.sm,
+                  runSpacing: DashSpace.sm,
+                  children: [
+                    if (user.isAdmin)
+                      DashPill(
+                        label: l10n.usersRoleAdmin,
+                        accent: t.accentGreen,
+                        accentInk: t.accentGreenInk,
+                        icon: Icons.shield_outlined,
+                      )
+                    else
+                      DashPill(
+                        label: l10n.usersRoleUser,
+                        accent: t.accentBlue,
+                        icon: Icons.person_outline,
+                      ),
+                    if (!user.isActive)
+                      DashPill(
+                        label: l10n.usersInactive,
+                        accent: t.danger,
+                        accentInk: t.dangerInk,
+                        icon: Icons.block,
+                      ),
+                    if (user.authSource != 'local')
+                      DashPill(
+                        label: user.authSource.toUpperCase(),
+                        accent: t.accentOrange,
+                        accentInk: t.accentOrangeInk,
+                        icon: Icons.dns_outlined,
+                      ),
+                    for (final g in user.groups)
+                      DashPill(
+                        label: g.name,
+                        accent: t.textSecondary,
+                        accentInk: t.textSecondary,
+                        icon: Icons.group_outlined,
+                      ),
+                  ],
+                ),
+              ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -249,14 +233,19 @@ class _UserDetailSheet extends ConsumerWidget {
       'sheet.user_detail',
       SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.xl,
+          ),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(user.username, style: t.display),
-                const SizedBox(height: 16),
+                const SizedBox(height: DashSpace.lg),
                 _DetailRow(
                   icon: Icons.alternate_email,
                   label: l10n.usersEmailLabel,
@@ -293,15 +282,15 @@ class _UserDetailSheet extends ConsumerWidget {
                     label: l10n.usersCreatedLabel,
                     value: fmt.dateNamedMonthTime(created),
                   ),
-                const SizedBox(height: 16),
+                const SizedBox(height: DashSpace.lg),
                 Text(
                   l10n.usersOwnedTitle,
                   style: t.bodyBold.copyWith(letterSpacing: 0.3),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: DashSpace.sm),
                 _OwnedCounts(userId: user.id),
                 if (ref.watch(canManageUsersProvider)) ...[
-                  const SizedBox(height: 20),
+                  const SizedBox(height: DashSpace.xl),
                   _SheetActions(user: user),
                 ],
               ],
@@ -345,7 +334,7 @@ class _SheetActions extends ConsumerWidget {
           ).tagged('user_detail.edit'),
         ),
         if (!isSelf) ...[
-          const SizedBox(width: 10),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
@@ -400,7 +389,7 @@ class _OwnedCounts extends ConsumerWidget {
     return dashAsyncStrip(
       context,
       ref.watch(userItemsCountProvider(userId)),
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
       loading: const DashSpinner(size: 20),
       failureMessage: l10n.usersOwnedFailed,
       data: (counts) => Row(
@@ -412,7 +401,7 @@ class _OwnedCounts extends ConsumerWidget {
               icon: Icons.inventory_2_outlined,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Expanded(
             child: _CountTile(
               label: l10n.usersOwnedQueue,
@@ -420,7 +409,7 @@ class _OwnedCounts extends ConsumerWidget {
               icon: Icons.playlist_play_rounded,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Expanded(
             child: _CountTile(
               label: l10n.usersOwnedLibrary,
@@ -449,7 +438,10 @@ class _CountTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.md,
+        vertical: DashSpace.md,
+      ),
       decoration: BoxDecoration(
         color: t.subCard,
         borderRadius: BorderRadius.circular(14),
@@ -458,9 +450,9 @@ class _CountTile extends StatelessWidget {
       child: Column(
         children: [
           Icon(icon, size: 16, color: t.textSecondary),
-          const SizedBox(height: 6),
+          const SizedBox(height: DashSpace.sm),
           Text('$value', style: t.monoHeadline),
-          const SizedBox(height: 2),
+          const SizedBox(height: DashSpace.xs),
           Text(label, textAlign: TextAlign.center, maxLines: 2, style: t.micro),
         ],
       ),
@@ -483,12 +475,12 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 16, color: t.textTertiary),
-          const SizedBox(width: 10),
+          const SizedBox(width: DashSpace.md),
           SizedBox(
             width: 110,
             child: Text(label, style: t.label.copyWith(color: t.textSecondary)),

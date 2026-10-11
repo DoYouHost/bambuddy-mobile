@@ -100,10 +100,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
           child: Form(
             key: _formKey,
             child: ListView(
-              padding: withSystemNavInset(
-                context,
-                const EdgeInsets.fromLTRB(16, 12, 16, 32),
-              ),
+              padding: screenListPadding(context),
               children: [
                 TextFormField(
                   controller: _username,
@@ -119,7 +116,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                       ? l10n.usersFieldRequired
                       : null,
                 ).tagged('user_form.username'),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 TextFormField(
                   controller: _email,
                   style: fieldStyle,
@@ -141,14 +138,14 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                       : null,
                 ).tagged('user_form.email'),
                 if (serverPicksPassword) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   _Notice(
                     icon: Icons.mark_email_read_outlined,
                     text: l10n.usersPasswordMailed,
                     accent: t.accentBlue,
                   ),
                   if (!advanced.smtpConfigured) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: DashSpace.sm),
                     // Creation succeeds and the mail silently doesn't go out
                     // (`users.py::create_user` logs it and returns 201),
                     // leaving an account nobody can sign in to.
@@ -159,14 +156,14 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                     ),
                   ],
                 ] else if (_isLdap) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   _Notice(
                     icon: Icons.dns_outlined,
                     text: l10n.usersLdapPasswordNote,
                     accent: t.accentBlue,
                   ),
                 ] else ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   TextFormField(
                     controller: _password,
                     style: fieldStyle,
@@ -190,7 +187,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                   // reason. On edit the field only appears once there is
                   // something to confirm.
                   if (!widget.isEdit || _password.text.isNotEmpty) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: DashSpace.md),
                     TextFormField(
                       controller: _confirmPassword,
                       style: fieldStyle,
@@ -206,7 +203,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                   ],
                 ],
                 if (widget.isEdit) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: DashSpace.sm),
                   SwitchListTile(
                     value: _isActive,
                     onChanged: (v) => setState(() => _isActive = v),
@@ -216,7 +213,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                   ).tagged('user_form.active'),
                 ],
                 if (groups.isNotEmpty) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: DashSpace.lg),
                   _GroupPicker(
                     groups: groups,
                     selected: _groupIds,
@@ -355,12 +352,12 @@ class _GroupPicker extends StatelessWidget {
           l10n.usersFieldGroups,
           style: t.label.copyWith(color: t.textSecondary),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: DashSpace.xs),
         Text(l10n.usersGroupsAdminHint, style: t.microSoft),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: DashSpace.sm,
+          runSpacing: DashSpace.sm,
           children: [
             for (final g in groups)
               FilterChip(
@@ -372,7 +369,7 @@ class _GroupPicker extends StatelessWidget {
                     // marks them — they cannot be renamed or repurposed, so
                     // what they grant is the same on every install.
                     if (g.isSystem) ...[
-                      const SizedBox(width: 6),
+                      const SizedBox(width: DashSpace.sm),
                       Text(
                         l10n.usersGroupSystem,
                         style: t.micro.copyWith(color: t.accentOrangeInk),
@@ -403,7 +400,10 @@ class _Notice extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.md,
+        vertical: DashSpace.md,
+      ),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
@@ -413,7 +413,7 @@ class _Notice extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 18, color: accent),
-          const SizedBox(width: 10),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(text, style: t.label.copyWith(color: t.textPrimary)),
           ),

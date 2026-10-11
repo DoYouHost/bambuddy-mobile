@@ -13,13 +13,13 @@ class _Shelf extends InventoryNotifier {
   @override
   Future<InventoryState> build() async {
     loads++;
-    return const InventoryState(
+    return InventoryState(
       spools: [Spool(id: 1, material: 'PLA', brand: 'Bambu')],
     );
   }
 
   @override
-  Future<void> refresh() async {
+  Future<void> refresh({bool askBackend = false}) async {
     loads++;
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:clock/clock.dart';
 
@@ -6,6 +7,7 @@ import '../api/ws_messages.dart';
 import '../diagnostics/notif_probe.dart';
 import '../models/archive.dart';
 import 'finish_alert_memory.dart';
+import 'notification_prefs.dart';
 import 'notification_service.dart';
 
 /// Puts the server's finish photo onto the print-ended notification that is
@@ -25,6 +27,10 @@ import 'notification_service.dart';
 ///
 /// Nothing here is load-bearing: no alert, a notification already swiped away, a
 /// download that failed — each ends quietly and leaves the text-only one as is.
+///
+/// It is also what puts the outcome buttons (#1898) on the same notification
+/// ([addOutcome]): the second thing that arrives after the alert, and the one
+/// re-post that must not undo the other.
 class FinishPhotoNotifier {
   FinishPhotoNotifier({
     required this._updates,
@@ -175,7 +181,10 @@ class FinishPhotoNotifier {
         return;
       }
       final alert = await _memory.recall(printerId, clock.now());
-      if (alert == null) {
+      // One with a photo already on it: this is the server's later
+      // "upgraded" shot, and re-posting would bring back a notification the
+      // user may have dismissed in between.
+      if (alert == null || alert.picture != null) {
         // The ordinary case for anything the user was not alerted about: an
         // archive that gained a photo for a print this device never announced.
         NotifProbe.finishPhoto(
@@ -231,17 +240,26 @@ class FinishPhotoNotifier {
     // notification swiped away inside that window would be brought back by the
     // post below, and Android counts a post after a cancel as a new one, so it
     // would ring a second time for a print already dealt with.
-    if (await _gone(archiveId, alert)) return;
+    //
+    // Read again, too: the other isolate may have put the outcome buttons on
+    // while this one was downloading, and re-posting the entry as it was
+    // before would take them off.
+    final current = await _memory.recall(alert.printerId, clock.now()) ?? alert;
+    if (current.id != alert.id || await _gone(archiveId, current)) return;
     await _notifications.showAlert(
-      event: alert.event,
-      printerId: alert.printerId,
-      id: alert.id,
-      title: alert.title,
-      body: alert.body,
-      payload: alert.payload,
+      event: current.event,
+      printerId: current.printerId,
+      id: current.id,
+      title: current.title,
+      body: current.body,
+      payload: current.payload,
+      // The outcome buttons, when they got here first.
+      actions: current.actions,
       picture: picture,
     );
-    await _memory.forget(alert.printerId);
+    // Kept, with the photo on it, rather than dropped: the outcome buttons
+    // may still come and have to re-post the photo along with them.
+    await _memory.remember(current.copyWith(picture: picture));
     NotifProbe.finishPhoto(
       archiveId: archiveId,
       printerId: alert.printerId,
@@ -249,6 +267,81 @@ class FinishPhotoNotifier {
       state: 'attached',
     );
   }
+
+  /// Puts the outcome buttons (#1898) on the print-finished alert for
+  /// [printerId], if that alert is still on screen, and answers whether it
+  /// did — false means the caller asks with a notification of its own.
+  ///
+  /// Through the same queue as the photo: the two re-post one notification,
+  /// and each has to carry what the other added.
+  Future<bool> addOutcome({
+    required int archiveId,
+    required int printerId,
+    required String payload,
+    required List<NotificationAction> actions,
+  }) {
+    final added = Completer<bool>();
+    _pending = _pending
+        .then((_) async {
+          added.complete(
+            await _addOutcome(archiveId, printerId, payload, actions),
+          );
+        })
+        .catchError((Object error) {
+          if (!added.isCompleted) added.complete(false);
+          _failed(archiveId, error, printerId: printerId);
+        });
+    return added.future;
+  }
+
+  Future<bool> _addOutcome(
+    int archiveId,
+    int printerId,
+    String payload,
+    List<NotificationAction> actions,
+  ) async {
+    final now = clock.now();
+    final alert = await _memory.recall(printerId, now);
+    // The question comes a minute or so after the print ends; an alert older
+    // than the photo's own window belongs to an earlier print.
+    if (alert == null ||
+        alert.event != NotifEvent.printFinished ||
+        now.difference(alert.postedAt) > pollWindow) {
+      return false;
+    }
+    if (await _gone(archiveId, alert)) return false;
+    final picture = _stillOnDisk(alert.picture);
+    final updated = alert.copyWith(
+      payload: payload,
+      actions: actions,
+      picture: picture,
+      clearPicture: picture == null,
+    );
+    await _notifications.showAlert(
+      event: updated.event,
+      printerId: updated.printerId,
+      id: updated.id,
+      title: updated.title,
+      body: updated.body,
+      payload: updated.payload,
+      actions: updated.actions,
+      picture: updated.picture,
+      quiet: true,
+    );
+    await _memory.remember(updated);
+    NotifProbe.finishPhoto(
+      archiveId: archiveId,
+      printerId: printerId,
+      nid: updated.id,
+      state: 'outcome_added',
+    );
+    return true;
+  }
+
+  /// The photo files are the app's cache; one cleared since would make the
+  /// plugin refuse the whole post, so the notification goes without it.
+  static AlertPicture? _stillOnDisk(AlertPicture? picture) =>
+      picture == null || !File(picture.photoPath).existsSync() ? null : picture;
 
   void _failed(int archiveId, Object error, {int? printerId}) =>
       NotifProbe.finishPhoto(

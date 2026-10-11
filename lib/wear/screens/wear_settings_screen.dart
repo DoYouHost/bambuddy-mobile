@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/settings/server_profile.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../core/watch/watch_config_sync.dart';
 import '../../features/common/server_version_text.dart';
 import '../../l10n/app_localizations.dart';
@@ -49,7 +50,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
         curved: true,
         children: [
           WearHeader(l10n.wearSettingsTitle),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           if (profile != null) ...[
             Text(
               l10n.wearCurrentServer,
@@ -63,7 +64,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
               overflow: TextOverflow.ellipsis,
               style: WearText.body,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
           ],
           if (busy)
             wearSpinner
@@ -76,18 +77,18 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
                 textAlign: TextAlign.center,
                 style: WearText.small,
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: DashSpace.sm),
               FilledButton(
                 onPressed: () => _switchTo(offered),
                 child: Text(l10n.wearFromPhoneUse),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: DashSpace.sm),
             ],
             FilledButton(
               onPressed: () => _forgetServer(l10n, profile),
               child: Text(l10n.changeServer),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: DashSpace.sm),
             // Said here rather than in the dialog: the shared wear dialog
             // clips its subtitle to one line, and this is the consequence
             // worth reading before the tap, not after it.
@@ -97,7 +98,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
               style: WearText.fine,
             ),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: DashSpace.lg),
           const _WearVersions(),
         ],
       ),

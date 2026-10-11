@@ -4,9 +4,16 @@ part of 'inventory_screen.dart';
 /// (create if [existing] == null, else update). Empty numeric fields → null
 /// (server uses defaults). Color previewed live.
 class _SpoolFormSheet extends ConsumerStatefulWidget {
-  const _SpoolFormSheet({this.existing});
+  const _SpoolFormSheet({this.existing, this.copyOf})
+    : assert(existing == null || copyOf == null);
 
   final Spool? existing;
+
+  /// The spool a create form starts from. Same as the web's copy mode: a fresh
+  /// spool of the same filament, so it starts full and without a scale
+  /// reading, and a single copy takes the per-model presets with it
+  /// (`SpoolFormModal.tsx`, `isCopying`).
+  final Spool? copyOf;
 
   @override
   ConsumerState<_SpoolFormSheet> createState() => _SpoolFormSheetState();
@@ -45,13 +52,30 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   Map<String, SpoolPresetOverride>? _overrides;
   bool _overridesDirty = false;
 
+  /// Supplier assignments as they will be written. Seeded from the spool the
+  /// form opened on — they ride on its row, so there is no read to fail.
+  ///
+  /// Written only when [_linksDirty]: an untouched new spool sends nothing. On
+  /// the built-in inventory the server then copies the assignments of the
+  /// newest spool of the same product (`services/supplier_links.py`), which an
+  /// empty list would wipe; Spoolman mode inherits nothing either way. A copy is
+  /// dirty from the start — the form shows the source's suppliers, so they are
+  /// what the copy must get, and the server's pick is the newest spool of the
+  /// product, not necessarily the one being copied.
+  late final List<_LinkDraft> _links;
+  bool _linksDirty = false;
+
   /// The spool this sheet created, once it has created one.
   ///
-  /// Saving is two writes — the spool, then its per-model presets — and the
-  /// second one failing leaves the sheet open so the picks are not lost. That
-  /// retry must not mint a second spool: from here on the form is editing the
+  /// Saving is up to three writes — the spool, its per-model presets, its
+  /// suppliers — and a later one failing leaves the sheet open so the picks
+  /// are not lost. That retry must not mint a second spool: from here on the form is editing the
   /// one it just made, even though [widget.existing] is still null.
   int? _createdSpoolId;
+
+  /// Whether the user typed a remaining weight. With that or a scale reading
+  /// in place a new spool no longer follows its label, see [_followLabel].
+  bool _remainingTyped = false;
 
   String _colorQuery = '';
   bool _materialMissing = false;
@@ -67,22 +91,29 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   @override
   void initState() {
     super.initState();
-    final s = widget.existing;
+    final copy = widget.copyOf;
+    final s = widget.existing ?? copy;
     String n(num? v) => v == null ? '' : v.toString();
+    // A copy of a spool with no label weight gets the web's 1000 g: Spoolman
+    // refuses to create one below 1 (`spoolman_inventory.py`, `ge=1`).
+    final label = copy != null && copy.labelWeight <= 0 ? 1000 : s?.labelWeight;
     // Remaining weight = label − used. For new spool, default full 1000 g.
-    final remaining = s == null ? '1000' : n(s.remainingWeight.round());
+    final remaining = s == null
+        ? '1000'
+        : n(copy != null ? label : s.remainingWeight.round());
     _c = {
       'material': TextEditingController(text: s?.material ?? ''),
       'brand': TextEditingController(text: s?.brand ?? ''),
       'subtype': TextEditingController(text: s?.subtype ?? ''),
+      'materialNumber': TextEditingController(text: s?.materialNumber ?? ''),
       'colorName': TextEditingController(text: s?.colorName ?? ''),
       'rgba': TextEditingController(text: s?.rgba ?? ''),
       'extraColors': TextEditingController(text: s?.extraColors ?? ''),
-      'labelWeight': TextEditingController(
-        text: s == null ? '1000' : n(s.labelWeight),
-      ),
+      'labelWeight': TextEditingController(text: s == null ? '1000' : n(label)),
       'remaining': TextEditingController(text: remaining),
-      'measured': TextEditingController(text: n(s?.lastScaleWeight)),
+      'measured': TextEditingController(
+        text: copy != null ? '' : n(s?.lastScaleWeight),
+      ),
       'coreWeight': TextEditingController(text: n(s?.coreWeight ?? 250)),
       'costPerKg': TextEditingController(text: n(s?.costPerKg)),
       'category': TextEditingController(text: s?.category ?? ''),
@@ -94,6 +125,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     _effectType = s?.effectType;
     _slicerFilament = s?.slicerFilament;
     _slicerFilamentName = s?.slicerFilamentName;
+    // Where a copy was bought is not known; only a real edit keeps it.
+    _links = [
+      for (final link in s?.suppliers ?? const <SpoolSupplierLink>[])
+        _LinkDraft(link, keepPurchaseSource: copy == null),
+    ];
+    _linksDirty = copy != null;
   }
 
   @override
@@ -101,10 +138,28 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     for (final c in _c.values) {
       c.dispose();
     }
+    for (final link in _links) {
+      link.dispose();
+    }
     super.dispose();
   }
 
   String? _trim(String key) => _trimmedField(_c, key);
+
+  /// Whether the form offers the material number at all: the server has to
+  /// store it and the backend has to take a write (Spoolman's is read-only).
+  bool _showsMaterialNumber(WidgetRef ref) =>
+      ref.read(materialNumberSupportedProvider).orFalse &&
+      ref.read(inventoryBackendProvider).valueOrNull == InventoryBackend.native;
+
+  /// The spool as this sheet last wrote it and the server answered. A retry
+  /// after a failed follow-up write edits that state, not the one the sheet
+  /// opened with, so it is what a blanked field has to clear.
+  Spool? _lastWritten;
+
+  /// The spool a save writes over: what this sheet last wrote, else the one
+  /// being edited. Null for a new spool, which has nothing to clear.
+  Spool? get _writtenOver => _lastWritten ?? widget.existing;
 
   int? _parseIntField(String key) => _intField(_c, key);
 
@@ -141,6 +196,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     if (!formOk || material.isEmpty) return;
 
     final l10n = AppLocalizations.of(context);
+    final kept = _writtenOver;
+    if (_spoolmanKeeps('brand', kept?.brand, l10n) != null ||
+        _spoolmanKeeps('costPerKg', kept?.costPerKg, l10n) != null) {
+      return;
+    }
     final messenger = ScaffoldMessenger.of(context);
     // Server requires low-stock threshold in range 1..99 (outside = 422).
     final lowStock = _parseIntField('lowStock')?.clamp(1, 99);
@@ -153,7 +213,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     } else if (_isEdit && remaining == null) {
       used = widget.existing!.weightUsed;
     }
-    final draft = SpoolDraft(
+    final built = SpoolDraft(
       material: material,
       brand: _trim('brand'),
       subtype: _trim('subtype'),
@@ -170,28 +230,46 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       category: _trim('category'),
       lowStockThresholdPct: lowStock,
       storageLocation: _trim('location'),
+      materialNumber: _showsMaterialNumber(ref)
+          ? _trim('materialNumber')
+          : null,
       slicerFilament: _slicerFilament,
       slicerFilamentName: _slicerFilamentName,
       note: _trim('note'),
     );
+    final before = _writtenOver;
+    final draft = before == null
+        ? built
+        : built.clearing(
+            before,
+            except: {if (!_showsMaterialNumber(ref)) 'material_number'},
+          );
     setState(() => _saving = true);
     final notifier = ref.read(inventoryProvider.notifier);
     // Read before the first await: a WidgetRef is not usable once the sheet it
     // belongs to is gone, and the spool write is what closes it.
     final repo = ref.read(inventoryRepositoryProvider);
+    final writeLinks =
+        _showsSupplierLinks(ref.read(suppliersSupportedProvider).orFalse) &&
+        _linksDirty;
+    final linkWriter = writeLinks
+        ? ref.read(suppliersRepositoryProvider)
+        : null;
     try {
       final String message;
       // Which spool the per-model presets belong to. Null for a restock, which
       // creates several and names none of them.
       final int? spoolId;
       if (_isEdit) {
-        await notifier.updateSpool(widget.existing!.id, draft);
+        _lastWritten =
+            await notifier.updateSpool(widget.existing!.id, draft) ??
+            _lastWritten;
         spoolId = widget.existing!.id;
         message = l10n.inventorySpoolUpdated;
       } else if (_createdSpoolId case final id?) {
-        // A retry after the presets failed: the spool exists, so this is the
-        // PATCH the edit path would send, not another create.
-        await notifier.updateSpool(id, draft);
+        // A retry after a follow-up write failed: the spool exists, so this is
+        // the PATCH the edit path would send, not another create.
+        _lastWritten = await notifier.updateSpool(id, draft) ?? _lastWritten;
         spoolId = id;
         message = l10n.inventorySpoolCreated;
       } else if (_quantity > 1) {
@@ -201,10 +279,36 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       } else {
         final created = await notifier.createSpool(draft);
         _createdSpoolId = created?.id;
+        _lastWritten = created;
         spoolId = created?.id;
         message = l10n.inventorySpoolCreated;
       }
-      if (!await _savePresetOverrides(repo, spoolId, l10n, messenger)) return;
+      final overrides = _overrides;
+      if (spoolId case final id? when overrides != null && _overridesDirty) {
+        final saved = await _followUpWrite(
+          () => repo.savePresetOverrides(id, overrides.values.toList()),
+          logId: 'spool_form.save_model_presets',
+          l10n: l10n,
+          messenger: messenger,
+          unexpected: l10n.inventoryPrinterPresetsSaveFailed,
+        );
+        if (!saved) return;
+        _overridesDirty = false;
+      }
+      if (spoolId case final id? when linkWriter != null) {
+        final saved = await _followUpWrite(
+          () async => linkWriter.saveSpoolLinks(id, [
+            for (final link in _links) link.toLink(),
+          ], backend: await repo.backend()),
+          logId: 'spool_form.save_suppliers',
+          l10n: l10n,
+          messenger: messenger,
+        );
+        if (!saved) return;
+        _linksDirty = false;
+        // The spool write reloaded the shelf before these landed.
+        unawaited(notifier.refresh());
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
       messenger.snack(message);
@@ -223,40 +327,46 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     }
   }
 
-  /// Writes the per-model preset overrides for the spool just saved, and says
-  /// whether the form may close.
+  /// One of the writes that follow the spool's own, and whether the form may
+  /// close.
   ///
-  /// Nothing is sent unless the section was both read and touched: the route
-  /// replaces the whole list, so a blind write is a delete. A failure here
-  /// leaves the sheet open with the picks still in it — the spool itself is
-  /// already saved, and the retry costs one PATCH of a spool that now exists
-  /// either way (see [_createdSpoolId]).
-  Future<bool> _savePresetOverrides(
-    InventoryRepository repo,
-    int? spoolId,
-    AppLocalizations l10n,
-    ScaffoldMessengerState messenger,
-  ) async {
-    final overrides = _overrides;
-    if (spoolId == null || overrides == null || !_overridesDirty) return true;
+  /// The caller sends a write only once its section was touched (presets also
+  /// need to have been read): each route replaces a whole list, so a blind
+  /// write is a delete. A failure leaves the sheet open with the picks still in it — the
+  /// spool itself is already saved, and the retry costs one PATCH of a spool
+  /// that now exists either way (see [_createdSpoolId]). An unexpected error
+  /// goes on to [_save]'s own handler unless [unexpected] words it here.
+  Future<bool> _followUpWrite(
+    Future<void> Function() write, {
+    required String logId,
+    required AppLocalizations l10n,
+    required ScaffoldMessengerState messenger,
+    String? unexpected,
+  }) async {
     try {
-      await repo.savePresetOverrides(spoolId, overrides.values.toList());
-      _overridesDirty = false;
+      await write();
       return true;
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
-      showApiFailure(
-        mounted ? messenger : null,
-        e,
-        l10n,
-        action: 'spool_form.save_model_presets',
-      );
+      showApiFailure(mounted ? messenger : null, e, l10n, action: logId);
       return false;
     } on Object {
+      if (unexpected == null) rethrow;
       if (mounted) setState(() => _saving = false);
-      messenger.snack(l10n.inventoryPrinterPresetsSaveFailed);
+      messenger.snack(unexpected);
       return false;
     }
+  }
+
+  /// Whether the supplier section is offered: the server has to have
+  /// suppliers, and a bulk "restock" has no spool ids to write them to — the
+  /// built-in inventory gives each of those the inherited assignments, and
+  /// Spoolman leaves them without any.
+  bool _showsSupplierLinks(bool supported) {
+    final source = widget.existing ?? widget.copyOf;
+    return supported &&
+        (_isEdit || _quantity == 1) &&
+        (source == null || source.suppliers != null);
   }
 
   @override
@@ -271,17 +381,33 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final cores = ref.watch(coreWeightsProvider).valueOrNull ?? const [];
     // Per-model presets: only asked for on a server that has the routes, and
     // only for a spool that exists — a new one has no rows to read.
-    final overridesSupported = ref
-        .watch(presetOverridesSupportedProvider)
-        .orFalse;
+    final overridesGate = ref.watch(presetOverridesSupportedProvider);
+    final overridesSupported = overridesGate.orFalse;
     final showOverrides = _showsPresetOverrides(overridesSupported);
-    final stored = showOverrides && _isEdit
-        ? ref.watch(spoolPresetOverridesProvider(widget.existing!.id))
+    final sourceId = widget.existing?.id ?? widget.copyOf?.id;
+    final stored = showOverrides && sourceId != null
+        ? ref.watch(spoolPresetOverridesProvider(sourceId))
         : const AsyncValue<List<SpoolPresetOverride>>.data([]);
     if (showOverrides) {
       final rows = stored.valueOrNull;
       if (rows != null) _seedOverrides(rows);
     }
+    // A copy saved before its presets arrive would be created without them;
+    // that includes the gate, which asks for them only once it has answered.
+    ref.watch(materialNumberSupportedProvider);
+    ref.watch(inventoryBackendProvider);
+    final showMaterialNumber = _showsMaterialNumber(ref);
+    final suppliersGate = ref.watch(suppliersSupportedProvider);
+    final showSuppliers = _showsSupplierLinks(suppliersGate.orFalse);
+    final copyPresetsPending =
+        widget.copyOf != null &&
+        _showsPresetOverrides(true) &&
+        (overridesGate.offer == ControlOffer.pending ||
+            (showOverrides && stored.isLoading) ||
+            // A copy saved before this answers would leave the source's
+            // suppliers to the server's inheritance, which may pick another
+            // spool's.
+            suppliersGate.offer == ControlOffer.pending);
     final models = showOverrides
         ? ref.watch(printerModelsProvider).valueOrNull ?? const <String>[]
         : const <String>[];
@@ -293,7 +419,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         key: _formKey,
         child: ListView(
           controller: controller,
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
+          padding: EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.xl + bottomInset,
+          ),
           children: [
             Row(
               children: [
@@ -302,7 +433,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                   builder: (context, _, _) =>
                       SpoolSwatch(rgba: _c['rgba']!.text, size: 40, radius: 12),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Text(
                     _isEdit ? l10n.inventoryEditSpool : l10n.inventoryNewSpool,
@@ -312,12 +443,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 // Bulk "restock": how many identical spools to create. Header
                 // placement (create mode only) so it reads before the fields.
                 if (!_isEdit) ...[
-                  const SizedBox(width: 8),
+                  const SizedBox(width: DashSpace.sm),
                   _quantityStepper(l10n),
                 ],
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
 
             // --- FILAMENT ---
             _FormSection(label: l10n.inventorySectionFilament),
@@ -329,11 +460,32 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               required: true,
               errorText: _materialMissing ? l10n.inventoryFieldRequired : null,
             ),
-            _combo('brand', l10n.inventoryFieldBrand, brands),
+            ValueListenableBuilder(
+              valueListenable: _c['brand']!,
+              builder: (context, _, _) => _combo(
+                'brand',
+                l10n.inventoryFieldBrand,
+                brands,
+                errorText: _spoolmanKeeps('brand', _writtenOver?.brand, l10n),
+              ),
+            ),
             _combo('subtype', l10n.inventoryFieldSubtype, subtypes),
-            _field('labelWeight', l10n.inventoryFieldLabelWeight, number: true),
+            if (showMaterialNumber) ...[
+              _combo(
+                'materialNumber',
+                l10n.inventoryFieldMaterialNumber,
+                ref.watch(materialNumberOptionsProvider),
+              ),
+              Text(l10n.inventoryMaterialNumberHint, style: t.bodySoft),
+            ],
+            _field(
+              'labelWeight',
+              l10n.inventoryFieldLabelWeight,
+              number: true,
+              onChanged: _followLabel,
+            ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
 
             // --- COLOR ---
             _FormSection(label: l10n.inventorySectionColor),
@@ -351,7 +503,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 Expanded(
                   child: _field('colorName', l10n.inventoryFieldColorName),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: ValueListenableBuilder(
                     valueListenable: _c['rgba']!,
@@ -367,7 +519,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             ),
             _effectDropdown(l10n),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
 
             // --- ADDITIONAL ---
             _FormSection(label: l10n.inventorySectionAdditional),
@@ -380,6 +532,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                   'remaining',
                   l10n.inventoryFieldRemainingWeight,
                   number: true,
+                  onChanged: (_) => _remainingTyped = true,
                   suffixText: labelInt != null
                       ? l10n.inventoryRemainingOfLabel(labelInt)
                       : null,
@@ -392,7 +545,19 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               number: true,
               onChanged: _applyScaleWeight,
             ),
-            _field('costPerKg', l10n.inventoryFieldCostPerKg, number: true),
+            ValueListenableBuilder(
+              valueListenable: _c['costPerKg']!,
+              builder: (context, _, _) => _field(
+                'costPerKg',
+                l10n.inventoryFieldCostPerKg,
+                number: true,
+                errorText: _spoolmanKeeps(
+                  'costPerKg',
+                  _writtenOver?.costPerKg,
+                  l10n,
+                ),
+              ),
+            ),
             _field('category', l10n.inventoryFieldCategory),
             _field(
               'lowStock',
@@ -405,30 +570,26 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 
             if (showOverrides) ..._presetOverridesSection(l10n, stored, models),
 
-            const SizedBox(height: 20),
+            if (showSuppliers)
+              _SupplierLinksSection(
+                links: _links,
+                onChanged: (change) => setState(() {
+                  change();
+                  _linksDirty = true;
+                }),
+              ),
+
+            const SizedBox(height: DashSpace.xl),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: t.accentGreen,
-                  foregroundColor: _onAccentGreen,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
-                onPressed: _saving ? null : _save,
-                child: _saving
-                    ? DashSpinner(size: 20, color: _onAccentGreen)
+                onPressed: _saving || copyPresetsPending ? null : _save,
+                child: _saving || copyPresetsPending
+                    ? DashSpinner(size: 20, color: t.onAccent)
                     : Text(
                         !_isEdit && _quantity > 1
                             ? l10n.inventoryAddSpools(_quantity)
                             : l10n.inventorySave,
-                        style: const TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
                       ),
               ).tagged('spool_form.save'),
             ),
@@ -446,41 +607,20 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     List<String> options, {
     bool required = false,
     String? errorText,
-  }) {
-    final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: dashCombo<String>(
-        context,
-        id: _fieldTag(key),
-        controller: _c[key],
-        label: Text(required ? '$label *' : label),
-        errorText: errorText,
-        filterable: true,
-        textStyle: t.body,
-        onSelected: (v) {
-          if (required && v != null && v.isNotEmpty) {
-            setState(() => _materialMissing = false);
-          }
-        },
-        entries: [
-          // `logTagMaterial` keeps the pick out of the identifier: on the
-          // material combo it rides in `mat`, and a brand or variant is not a
-          // known material, so it falls back to the bare id.
-          for (final o in options)
-            DropdownMenuEntry(
-              value: o,
-              label: o,
-              labelWidget: logTagMaterial(
-                '${_fieldTag(key)}.option',
-                o,
-                Text(o),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+  }) => _spoolCombo(
+    context,
+    _c,
+    key,
+    label,
+    options,
+    required: required,
+    errorText: errorText,
+    onSelected: (v) {
+      if (required && v != null && v.isNotEmpty) {
+        setState(() => _materialMissing = false);
+      }
+    },
+  );
 
   /// Empty Spool Weight field: a searchable picker from the core catalog (sets
   /// weight + id) beside an editable weight in grams. If catalog empty — weight
@@ -499,7 +639,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     );
     if (cores.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
         child: InputDecorator(
           decoration: InputDecoration(
             labelText: l10n.inventoryFieldEmptySpoolWeight,
@@ -521,7 +661,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         .where((c) => c.id == _coreWeightCatalogId)
         .firstOrNull;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -537,7 +677,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               padding: EdgeInsets.zero,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           weightField,
         ],
       ),
@@ -562,7 +702,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final t = DashTokens.of(context);
     final options = <String>{..._effectOptions, ?_effectType};
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: dashCombo<String?>(
         context,
         id: _fieldTag('effect'),
@@ -676,7 +816,18 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// watch that scheduled this build, so the frame already reflects them and a
   /// `setState` here would only ask for the same one again.
   void _seedOverrides(List<SpoolPresetOverride> rows) {
-    _overrides ??= {for (final row in rows) row.key: row};
+    if (_overrides != null) return;
+    _overrides = {for (final row in rows) row.key: row};
+    // A copy's rows are the source spool's: the new one has none on the
+    // server until they are written.
+    _overridesDirty = widget.copyOf != null && rows.isNotEmpty;
+  }
+
+  /// Keeps a new spool full while the label weight is being typed.
+  void _followLabel(String raw) {
+    if (_isEdit || _remainingTyped) return;
+    if (_c['measured']!.text.trim().isNotEmpty) return;
+    _c['remaining']!.text = raw;
   }
 
   /// The rows the section offers: one per printer model in the fleet, plus any
@@ -717,18 +868,18 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final rows = _overrideRows(models);
     if (rows.isEmpty && !loadFailed && !loading) return const [];
     return [
-      const SizedBox(height: 8),
+      const SizedBox(height: DashSpace.sm),
       _FormSection(label: l10n.inventorySectionPrinterPresets),
       InlineNote(
         l10n.inventoryPrinterPresetsHint,
         icon: Icons.info_outline,
-        padding: const EdgeInsets.only(bottom: 2),
+        padding: const EdgeInsets.only(bottom: DashSpace.xs),
       ),
       if (loadFailed)
         InlineNote(l10n.inventoryPrinterPresetsLoadFailed, urgent: true)
       else if (loading)
         const Padding(
-          padding: EdgeInsets.symmetric(vertical: 16),
+          padding: EdgeInsets.symmetric(vertical: DashSpace.lg),
           child: DashLoading(),
         )
       else
@@ -840,45 +991,31 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     String? suffixText,
     int maxLines = 1,
     ValueChanged<String>? onChanged,
-  }) {
-    final l10n = AppLocalizations.of(context);
-    final t = DashTokens.of(context);
-    return logTag(
-      _fieldTag(key),
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: TextFormField(
-          controller: _c[key],
-          style: t.body,
-          keyboardType: number
-              ? const TextInputType.numberWithOptions(decimal: true)
-              : (maxLines > 1 ? TextInputType.multiline : TextInputType.text),
-          maxLines: maxLines,
-          textCapitalization: number
-              ? TextCapitalization.none
-              : TextCapitalization.sentences,
-          onChanged: onChanged,
-          decoration: dashDecoration(
-            t,
-            labelText: label,
-            hintText: hint,
-            suffixText: suffixText,
-          ),
-          validator: (v) {
-            final text = (v ?? '').trim();
-            if (!number || text.isEmpty) return null;
-            final value = parseUserDecimal(text);
-            if (value == null) return l10n.inventoryFieldInvalidNumber;
-            // Same floor as the bulk sheet: the server takes a negative core
-            // weight without a word and every remaining-weight sum built on it
-            // is then wrong.
-            if (value < 0) return l10n.inventoryFieldNegative;
-            return null;
-          },
-        ),
-      ),
-    );
-  }
+    String? errorText,
+  }) => _spoolTextField(
+    context,
+    _c,
+    key,
+    label,
+    number: number,
+    hint: hint,
+    suffixText: suffixText,
+    maxLines: maxLines,
+    onChanged: onChanged,
+    errorText: errorText,
+  );
+
+  /// Spoolman can change a spool's brand and price but not empty them (probed:
+  /// the route keeps the old value on null and on an empty string), so a field
+  /// that held one there must not be saved blank - the save would claim a
+  /// removal that never happens.
+  String? _spoolmanKeeps(String key, Object? stored, AppLocalizations l10n) =>
+      stored != null &&
+          _c[key]!.text.trim().isEmpty &&
+          ref.read(inventoryBackendProvider).valueOrNull ==
+              InventoryBackend.spoolman
+      ? l10n.inventorySpoolmanCannotClear
+      : null;
 }
 
 /// `coreWeight` → `core_weight`: log identifiers are lowercase with
@@ -889,6 +1026,111 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 /// mass-edit sheet, which name their fields identically.
 String _fieldTag(String key, {String area = 'spool_form'}) =>
     '$area.${key.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}')}';
+
+/// A text field of the spool form or the mass-edit sheet, which name theirs
+/// identically; [area] is the sheet, for the diagnostic id.
+///
+/// [min] and [max] bound a numeric field the server validates: typing outside
+/// the range has to say so here, because silently clamping it would apply a
+/// value the user never chose - across the whole selection, on the mass edit.
+Widget _spoolTextField(
+  BuildContext context,
+  Map<String, TextEditingController> controllers,
+  String key,
+  String label, {
+  String area = 'spool_form',
+  bool number = false,
+  String? hint,
+  String? suffixText,
+  int maxLines = 1,
+  ValueChanged<String>? onChanged,
+  int? min,
+  int? max,
+  String? errorText,
+}) {
+  final l10n = AppLocalizations.of(context);
+  final t = DashTokens.of(context);
+  return logTag(
+    _fieldTag(key, area: area),
+    Padding(
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+      child: TextFormField(
+        controller: controllers[key],
+        style: t.body,
+        keyboardType: number
+            ? const TextInputType.numberWithOptions(decimal: true)
+            : (maxLines > 1 ? TextInputType.multiline : TextInputType.text),
+        maxLines: maxLines,
+        textCapitalization: number
+            ? TextCapitalization.none
+            : TextCapitalization.sentences,
+        onChanged: onChanged,
+        decoration: dashDecoration(
+          t,
+          labelText: label,
+          hintText: hint,
+          suffixText: suffixText,
+          errorText: errorText,
+        ),
+        validator: (v) {
+          final text = (v ?? '').trim();
+          if (!number || text.isEmpty) return null;
+          final value = parseUserDecimal(text);
+          if (value == null) return l10n.inventoryFieldInvalidNumber;
+          if (min != null && max != null && (value < min || value > max)) {
+            return l10n.inventoryFieldRange(min, max);
+          }
+          // Every numeric field has a floor. `cost_per_kg` is `ge=0`
+          // server-side and a negative one 422s a whole selection;
+          // `core_weight` has no such guard and stores the negative, which
+          // then poisons every remaining-weight sum built on it.
+          if (value < 0) return l10n.inventoryFieldNegative;
+          return null;
+        },
+      ),
+    ),
+  );
+}
+
+/// An editable combo: pick from what the shelf already uses, or type a new
+/// value. [required] only marks the label; the caller owns the check.
+Widget _spoolCombo(
+  BuildContext context,
+  Map<String, TextEditingController> controllers,
+  String key,
+  String label,
+  List<String> options, {
+  String area = 'spool_form',
+  bool required = false,
+  String? errorText,
+  ValueChanged<String?>? onSelected,
+}) {
+  final tag = _fieldTag(key, area: area);
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+    child: dashCombo<String>(
+      context,
+      id: tag,
+      controller: controllers[key],
+      label: Text(required ? '$label *' : label),
+      errorText: errorText,
+      filterable: true,
+      textStyle: DashTokens.of(context).body,
+      onSelected: onSelected,
+      entries: [
+        // `logTagMaterial` keeps the pick out of the identifier: on the
+        // material combo it rides in `mat`, and a brand or variant is not a
+        // known material, so it falls back to the bare id.
+        for (final o in options)
+          DropdownMenuEntry(
+            value: o,
+            label: o,
+            labelWidget: logTagMaterial('$tag.option', o, Text(o)),
+          ),
+      ],
+    ),
+  );
+}
 
 /// A trimmed field value, or null when the user left it blank. Blank means
 /// "unset" on both sheets: the form sends no key rather than an empty string,
@@ -954,19 +1196,19 @@ class _ColorPicker extends ConsumerWidget {
             border: Border.all(color: t.subCardBorder),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         if (colors.isNotEmpty) ...[
           DashSearchField(
             id: 'spool_form.color_search',
             hintText: l10n.inventoryColorSearchHint,
             onChanged: onQuery,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           if (q.isEmpty) Text(l10n.inventoryColorCommon, style: t.microSoft),
-          const SizedBox(height: 4),
+          const SizedBox(height: DashSpace.xs),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: DashSpace.sm,
+            runSpacing: DashSpace.sm,
             children: [
               for (final c in shown)
                 _ColorChip(
@@ -976,7 +1218,7 @@ class _ColorPicker extends ConsumerWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
         ],
       ],
     );
@@ -1069,12 +1311,17 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
       builder: (context, controller) => Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              0,
+              DashSpace.gutter,
+              DashSpace.sm,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(l10n.inventoryFieldSlicerPreset, style: t.display),
-                const SizedBox(height: 8),
+                const SizedBox(height: DashSpace.sm),
                 DashSearchField(
                   id: 'spool_form.preset_search',
                   autofocus: true,
@@ -1083,10 +1330,10 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
                 ),
                 if (model.isNotEmpty || material.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.only(top: DashSpace.sm),
                     child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: DashSpace.sm,
+                      runSpacing: DashSpace.sm,
                       children: [
                         // No avatar: the app's chips say "on" with the
                         // theme's checkmark, and an icon sits in exactly that
@@ -1183,7 +1430,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
       controller: controller,
       children: [
         Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(DashSpace.xxl),
           child: Center(
             child: Text(
               text,
@@ -1230,12 +1477,17 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
       builder: (context, controller) => Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              0,
+              DashSpace.gutter,
+              DashSpace.sm,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(l10n.inventoryFieldEmptySpoolWeight, style: t.display),
-                const SizedBox(height: 8),
+                const SizedBox(height: DashSpace.sm),
                 DashSearchField(
                   id: 'spool_form.core_search',
                   autofocus: true,
@@ -1251,7 +1503,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
                     controller: controller,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.all(32),
+                        padding: const EdgeInsets.all(DashSpace.xxl),
                         child: Center(
                           child: Text(
                             l10n.inventoryNoMatches,
@@ -1296,7 +1548,7 @@ class _FormSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.only(top: DashSpace.sm, bottom: DashSpace.xs),
       child: Text(
         label.toUpperCase(),
         style: t.micro.copyWith(color: t.accentGreenInk, letterSpacing: 1.2),
@@ -1320,7 +1572,7 @@ Future<Color?> _pickSpoolColor(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(l10n.inventoryColorPickTitle),
-      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
       content: SingleChildScrollView(
         child: ColorPicker(
           pickerColor: picked,

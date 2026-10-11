@@ -52,15 +52,13 @@ class LibraryRepository {
     _serverVersion,
   );
 
-  /// Records whether a parsed listing carried the 1.2.6 variant fields. Reads
-  /// the raw rows rather than the model, because the model cannot distinguish
-  /// "absent" from the `0` it defaults to. A listing with no rows at all is
-  /// left unobserved — an empty library reveals nothing either way.
+  /// Records whether a listing carried the 1.2.6 variant fields and the #3077
+  /// extras. A listing with no rows at all is left unobserved — an empty
+  /// library reveals nothing either way.
   void _observeVariantSupport(List<dynamic> rows) {
-    final firstMap = rows.whereType<Map<String, dynamic>>().firstOrNull;
-    if (firstMap == null) return;
-    variantsCapability.observe(present: firstMap.containsKey('variant_count'));
-    fileExtrasCapability.observe(present: firstMap.containsKey('photo_count'));
+    final first = rows.whereType<Map<String, dynamic>>().firstOrNull;
+    variantsCapability.observeKey(first, 'variant_count');
+    fileExtrasCapability.observeKey(first, 'photo_count');
   }
 
   /// GET /library/files — files in folder [folderId] (null = root).

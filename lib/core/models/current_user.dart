@@ -143,6 +143,12 @@ abstract final class Permissions {
   static const pipelinesWrite = 'pipelines:write';
   static const pipelinesRun = 'pipelines:run';
 
+  /// Editing a printer, which is what every Printer Locations write asks for
+  /// (`routes/printer_locations.py`). **An API-key session never holds it**: it
+  /// is outside the key scope allowlist, so the screen is read-only for a key
+  /// whatever `/auth/me` says.
+  static const printersUpdate = 'printers:update';
+
   /// Writing the server's shared configuration (`PUT /settings/`). Reading it
   /// needs `settings:read`, which every session already has — it rides on an
   /// API key's `can_read_status` scope — so only the write is ever gated.
@@ -160,6 +166,30 @@ abstract final class Permissions {
   /// covers them all.
   static const queueCreate = 'queue:create';
   static const queueDeleteAll = 'queue:delete_all';
+  static const queueDeleteOwn = 'queue:delete_own';
   static const queueUpdateOwn = 'queue:update_own';
   static const queueUpdateAll = 'queue:update_all';
+
+  /// Without it (or [queueUpdateAll]) every job the user queues waits until a
+  /// reviewer starts it, and they may start none themselves (#1620,
+  /// `core/auth.py::queue_review_required_for`). An API key's `can_queue`
+  /// covers it only when the key's owner holds it.
+  static const queueStartUnreviewed = 'queue:start_unreviewed';
+
+  /// What a library folder's rename and delete asked for before the server
+  /// answered per folder (#3201) — the fallback for an older one.
+  static const libraryUpdateAll = 'library:update_all';
+  static const libraryDeleteAll = 'library:delete_all';
+  static const libraryDeleteOwn = 'library:delete_own';
+
+  /// Importing a Manyfold file into the library (#1471); an API key's
+  /// `can_manage_library` covers it. Browsing (`manyfold:view`) is not mirrored:
+  /// the status route's 403 answers it.
+  static const manyfoldImport = 'manyfold:import';
+
+  /// Recording an outcome verdict (`PATCH /archives/{id}`): update-own on the
+  /// caller's own prints, update-all on anyone's. An API key's
+  /// `can_manage_archives` covers both.
+  static const archivesUpdateOwn = 'archives:update_own';
+  static const archivesUpdateAll = 'archives:update_all';
 }

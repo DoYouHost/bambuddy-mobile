@@ -32,7 +32,10 @@ class TagChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.sm,
+        vertical: DashSpace.xs,
+      ),
       decoration: BoxDecoration(
         color: t.accentGreen.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(6),
@@ -153,13 +156,16 @@ class _TagList extends ConsumerWidget {
 
     if (async.isLoading && tags == null) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 32),
+        padding: EdgeInsets.symmetric(vertical: DashSpace.xxl),
         child: DashLoading(),
       );
     }
     if (async.hasError) {
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.gutter,
+          vertical: DashSpace.xl,
+        ),
         child: Text(l10n.connectFailed, textAlign: TextAlign.center),
       );
     }
@@ -170,7 +176,10 @@ class _TagList extends ConsumerWidget {
         children: [
           if (tags == null || tags.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.gutter,
+                vertical: DashSpace.lg,
+              ),
               child: Text(l10n.fmTagsEmpty, textAlign: TextAlign.center),
             )
           else
@@ -207,7 +216,12 @@ class _SheetHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 8, 4),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        0,
+        DashSpace.sm,
+        DashSpace.xs,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -217,7 +231,7 @@ class _SheetHeader extends StatelessWidget {
               children: [
                 Text(title, style: Theme.of(context).textTheme.titleMedium),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: DashSpace.xs),
                   Text(subtitle!, style: t.microSoft),
                 ],
               ],
@@ -280,7 +294,12 @@ class _TagFilterSheetState extends ConsumerState<_TagFilterSheet>
           ),
           const Divider(height: 1),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              DashSpace.sm,
+              DashSpace.gutter,
+              DashSpace.sm,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -293,7 +312,7 @@ class _TagFilterSheetState extends ConsumerState<_TagFilterSheet>
                     child: Text(l10n.clear),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: DashSpace.sm),
                 logTag(
                   'tag_filter.apply',
                   FilledButton(
@@ -368,7 +387,12 @@ class _FileTagsSheetState extends ConsumerState<_FileTagsSheet>
           ),
           const Divider(height: 1),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              DashSpace.sm,
+              DashSpace.gutter,
+              DashSpace.sm,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -471,7 +495,12 @@ class _BulkTagsSheetState extends ConsumerState<_BulkTagsSheet>
           ),
           const Divider(height: 1),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              DashSpace.sm,
+              DashSpace.gutter,
+              DashSpace.sm,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -484,7 +513,7 @@ class _BulkTagsSheetState extends ConsumerState<_BulkTagsSheet>
                     child: Text(l10n.fmTagsReplace),
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: DashSpace.xs),
                 logTag(
                   'bulk_tags.remove',
                   TextButton(
@@ -494,7 +523,7 @@ class _BulkTagsSheetState extends ConsumerState<_BulkTagsSheet>
                     child: Text(l10n.fmTagsRemove),
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: DashSpace.xs),
                 logTag(
                   'bulk_tags.add',
                   FilledButton(
@@ -582,7 +611,7 @@ class _TagManageSheetState extends ConsumerState<_TagManageSheet>
           _SheetHeader(title: l10n.fmTagsManage),
           if (async.isLoading && async.valueOrNull == null)
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
+              padding: EdgeInsets.symmetric(vertical: DashSpace.xxl),
               child: DashLoading(),
             )
           else
@@ -593,8 +622,8 @@ class _TagManageSheetState extends ConsumerState<_TagManageSheet>
                   if (tags.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
+                        horizontal: DashSpace.gutter,
+                        vertical: DashSpace.lg,
                       ),
                       child: Text(
                         l10n.fmTagsEmpty,

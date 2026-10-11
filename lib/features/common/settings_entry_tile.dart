@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/theme/dash_theme.dart';
 import 'dash_icon_tile.dart';
+import 'tappable_card.dart';
 
 /// A row on a hub screen: an icon in a green tile, a title, a line saying what
 /// is behind it, and a chevron.
@@ -31,41 +31,28 @@ class SettingsEntryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Material(
-        color: Colors.transparent,
-        child: logTag(
-          id,
-          InkWell(
-            borderRadius: BorderRadius.circular(22),
-            onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: t.cardBox,
-              child: Row(
-                children: [
-                  DashIconTile(icon: icon, size: 44, radius: 14, iconSize: 21),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title, style: t.titleMd),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          style: t.labelSoft.copyWith(color: t.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.chevron_right, color: t.textTertiary),
-                ],
-              ),
+    return TappableCard(
+      id: id,
+      onTap: onTap,
+      child: Row(
+        children: [
+          DashIconTile(icon: icon, size: 44, radius: 14, iconSize: 21),
+          const SizedBox(width: DashSpace.lg),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: t.titleMd),
+                const SizedBox(height: DashSpace.xs),
+                Text(
+                  subtitle,
+                  style: t.labelSoft.copyWith(color: t.textSecondary),
+                ),
+              ],
             ),
           ),
-        ),
+          Icon(Icons.chevron_right, color: t.textTertiary),
+        ],
       ),
     );
   }

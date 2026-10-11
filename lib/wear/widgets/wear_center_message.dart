@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'wear_scroll_view.dart';
 import 'wear_settings_entry.dart';
@@ -30,7 +31,7 @@ class WearCenterMessage extends StatelessWidget {
     centerWhenShort: true,
     children: [
       Text(text, textAlign: TextAlign.center),
-      const SizedBox(height: 12),
+      const SizedBox(height: DashSpace.md),
       FilledButton(
         onPressed: onRetry,
         child: Text(AppLocalizations.of(context).retry),

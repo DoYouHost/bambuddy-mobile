@@ -15,6 +15,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_async.dart';
 import '../common/device_files.dart';
 import '../common/file_export.dart';
 import '../common/inline_note.dart';
@@ -379,7 +380,12 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
       'sheet.archive_media',
       SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.lg,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,7 +398,7 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
                 style: theme.textTheme.titleMedium,
               ),
               Padding(
-                padding: const EdgeInsets.only(top: 2),
+                padding: const EdgeInsets.only(top: DashSpace.xs),
                 child: Text(
                   archive.displayName,
                   style: t.bodySoft,
@@ -451,7 +457,7 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
               ),
       ),
       if (_loading)
-        _Searching(label: l10n.archiveMediaSearching, t: t)
+        BusyLine(l10n.archiveMediaSearching)
       else if (_error case final error?) ...[
         Text(error, style: t.body.copyWith(color: t.dangerInk)),
         // A search over five FTP listings fails for reasons that pass — the
@@ -482,10 +488,10 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
           InlineNote(
             _warningText(warning, l10n),
             icon: Icons.info_outline,
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: DashSpace.sm),
           ),
         if (files.isNotEmpty) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           _DownloadBar(
             busy: _busy,
             preparing: _preparing,
@@ -589,7 +595,10 @@ class _SectionHeader extends StatelessWidget {
     return Padding(
       // The trailing button brings its own height, so the gap under the header
       // is only needed on the plain one.
-      padding: EdgeInsets.only(top: 16, bottom: trailing == null ? 6 : 0),
+      padding: EdgeInsets.only(
+        top: DashSpace.lg,
+        bottom: trailing == null ? DashSpace.sm : 0,
+      ),
       // A `Wrap`, not a `Row` with an `Expanded` heading: at the system's
       // larger text sizes the button beside the heading is wider than the whole
       // row, and `Expanded` shrinking the words to nothing does not help — the
@@ -609,22 +618,6 @@ class _SectionHeader extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Searching extends StatelessWidget {
-  const _Searching({required this.label, required this.t});
-
-  final String label;
-  final DashTokens t;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      const DashSpinner(size: 18),
-      const SizedBox(width: 10),
-      Expanded(child: Text(label, style: t.bodySoft)),
-    ],
-  );
 }
 
 /// One row of the sheet: a name, what it is, and a leading mark that says which
@@ -666,7 +659,7 @@ class _MediaRow extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(DashSpace.md),
         decoration: BoxDecoration(
           color: picked ? t.accentGreen.withValues(alpha: 0.10) : t.subCard,
           border: Border.all(
@@ -688,7 +681,7 @@ class _MediaRow extends StatelessWidget {
                 size: 20,
                 color: picked ? t.accentGreenInk : t.textTertiary,
               ),
-            const SizedBox(width: 10),
+            const SizedBox(width: DashSpace.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,7 +707,7 @@ class _MediaRow extends StatelessWidget {
       ),
     );
     return Padding(
-      padding: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.only(top: DashSpace.sm),
       child: logTag(
         id,
         // The tick is the row's state, not a separate control: a screen reader
@@ -772,7 +765,7 @@ class _DownloadBar extends StatelessWidget {
     return Row(
       children: [
         DashSpinner(size: 20, value: progress),
-        const SizedBox(width: 10),
+        const SizedBox(width: DashSpace.md),
         Expanded(
           // A live region so a screen reader says the phase changed: the row is
           // the only place that distinguishes waiting for the server from

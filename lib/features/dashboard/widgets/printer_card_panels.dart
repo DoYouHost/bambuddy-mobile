@@ -20,14 +20,14 @@ class _InfoRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 14, color: color),
-        const SizedBox(width: 6),
+        const SizedBox(width: DashSpace.sm),
         Text(text, style: t.monoLabel.copyWith(color: color)),
       ],
     );
 
     return Container(
-      margin: const EdgeInsets.only(top: 14),
-      padding: const EdgeInsets.only(top: 12),
+      margin: const EdgeInsets.only(top: DashSpace.lg),
+      padding: const EdgeInsets.only(top: DashSpace.md),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: t.hairline)),
       ),
@@ -98,7 +98,7 @@ class _FirmwareLine extends ConsumerWidget {
     final notes = info.releaseNotes?.trim();
 
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: DashSpace.sm),
       child: Tooltip(
         message: update && notes != null && notes.isNotEmpty
             ? '$tooltip\n\n$notes'
@@ -108,7 +108,7 @@ class _FirmwareLine extends ConsumerWidget {
           children: [
             if (update) ...[
               Icon(Icons.system_update, size: 12, color: color),
-              const SizedBox(width: 4),
+              const SizedBox(width: DashSpace.xs),
             ],
             Flexible(
               child: Text(
@@ -144,7 +144,7 @@ class _TotalPrintTimeLine extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.only(top: DashSpace.xs),
       child: Text(
         l10n.maintenanceTotalHours(hours.round()),
         overflow: TextOverflow.ellipsis,
@@ -211,12 +211,12 @@ class _PrintPanel extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         if (showStage) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: DashSpace.xs),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.autorenew, size: 14, color: t.accentGreenInk),
-              const SizedBox(width: 4),
+              const SizedBox(width: DashSpace.xs),
               Flexible(
                 child: Text(
                   stage,
@@ -231,7 +231,7 @@ class _PrintPanel extends StatelessWidget {
     );
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
         color: t.subCard,
         borderRadius: BorderRadius.circular(16),
@@ -245,22 +245,22 @@ class _PrintPanel extends StatelessWidget {
               _CoverThumbnail(
                 coverUrl: status.isCalibration ? null : status.coverUrl,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: DashSpace.md),
               Expanded(child: nameBlock),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Row(
             children: [
               Expanded(child: _PrintProgressBar(status: status, height: 6)),
               if (progress != null && !showStage) ...[
-                const SizedBox(width: 10),
+                const SizedBox(width: DashSpace.md),
                 Text('${progress.toStringAsFixed(0)}%', style: t.monoValue),
               ],
             ],
           ),
           if (meta.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: DashSpace.md),
             PrintMetaRow(items: meta),
           ],
         ],
@@ -464,11 +464,11 @@ class _FansGrid extends StatelessWidget {
     if (cells.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(top: DashSpace.md),
       child: Row(
         children: [
           for (var i = 0; i < cells.length; i++) ...[
-            if (i > 0) const SizedBox(width: 8),
+            if (i > 0) const SizedBox(width: DashSpace.sm),
             Expanded(child: cells[i]),
           ],
         ],
@@ -508,7 +508,10 @@ class _FanCell extends ConsumerWidget {
     final valueColor = shown > 0 ? tokens.accentBlue : tokens.textPrimary;
 
     final cell = Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      padding: const EdgeInsets.symmetric(
+        vertical: DashSpace.md,
+        horizontal: DashSpace.sm,
+      ),
       decoration: BoxDecoration(
         color: tokens.subCard,
         borderRadius: BorderRadius.circular(14),
@@ -522,7 +525,7 @@ class _FanCell extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
             style: tokens.micro,
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: DashSpace.xs),
           Text(
             '$shown%',
             style: tokens.monoTitle.copyWith(
@@ -617,13 +620,18 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
       'sheet.fan',
       FittedSheetSurface(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            DashSpace.lg,
+            DashSpace.gutter,
+            DashSpace.xl,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(widget.label, style: t.titleLg),
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               Center(
                 child: Text(
                   _speed == 0 ? l10n.ctrlOff : '$_speed%',
@@ -635,7 +643,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: DashSpace.sm),
               Row(
                 children: [
                   _StepButton(
@@ -658,11 +666,11 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               Wrap(
                 alignment: WrapAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
+                spacing: DashSpace.sm,
+                runSpacing: DashSpace.sm,
                 children: [
                   for (final p in _presets)
                     _PresetChip(
@@ -673,7 +681,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                     ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: DashSpace.xl),
               Row(
                 children: [
                   Expanded(
@@ -683,7 +691,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                       onTap: _busy ? null : () => _apply(0),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: _SheetButton(
                       label: l10n.ctrlSet,

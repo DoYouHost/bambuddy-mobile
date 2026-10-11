@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/swatch_code.dart';
 import '../../providers.dart';
 import '../inventory/inventory_providers.dart';
+import '../../core/format/text_compare.dart';
 
 /// Swatch codes registry (local data). Loaded from SharedPreferences on first
 /// access; each mutation persists entire list (small list, rare writes).
@@ -19,10 +20,7 @@ class SwatchCodesNotifier extends Notifier<List<SwatchCode>> {
 
   static List<SwatchCode> _sorted(List<SwatchCode> codes) {
     final list = [...codes]
-      ..sort(
-        (a, b) =>
-            a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
-      );
+      ..sort((a, b) => compareIgnoringCase(a.displayName, b.displayName));
     return list;
   }
 
@@ -129,10 +127,7 @@ final uncodedFilamentsProvider = Provider.autoDispose<List<FilamentIdentity>>((
     if (!seen.add(key)) continue;
     out.add(identity);
   }
-  out.sort(
-    (a, b) =>
-        a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
-  );
+  out.sort((a, b) => compareIgnoringCase(a.displayName, b.displayName));
   return out;
 });
 

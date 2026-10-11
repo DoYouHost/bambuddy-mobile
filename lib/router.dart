@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart';
+import 'features/announcements/announcements_screen.dart';
 import 'features/about/about_screen.dart';
 import 'features/admin/admin_screen.dart';
 import 'features/admin/api_keys_screen.dart';
@@ -24,11 +25,13 @@ import 'features/gcode/gcode_viewer_screen.dart';
 import 'features/inventory/inventory_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
 import 'features/maintenance/maintenance_settings.dart';
-import 'features/makerworld/makerworld_screen.dart';
 import 'features/notifications/notification_settings_screen.dart';
 import 'features/settings/queue_settings_screen.dart';
+import 'features/label_printer/label_printer_screen.dart';
 import 'features/settings/app_settings_screen.dart';
 import 'features/settings/server_settings_screen.dart';
+import 'features/model_sources/model_sources_screen.dart';
+import 'features/locations/printer_locations_screen.dart';
 import 'features/orders/order_edit_screen.dart';
 import 'features/orders/orders_screen.dart';
 import 'features/print_log/print_log_screen.dart';
@@ -41,6 +44,7 @@ import 'features/shell/root_scaffold.dart';
 import 'features/pipelines/pipelines_screen.dart';
 import 'features/stats/statistics_screen.dart';
 import 'features/swatches/swatches_screen.dart';
+import 'features/wall/wall_screen.dart';
 import 'providers.dart';
 
 /// Main navigator key — allows pushing screens (e.g. spool scanner triggered
@@ -100,6 +104,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const AppSettingsScreen(),
       ),
 
+      GoRoute(
+        path: '/settings/label-printer',
+        builder: (_, _) => const LabelPrinterScreen(),
+      ),
+
       // Notification settings — full screen outside shell (pushed from the
       // dashboard's bell and from app settings).
       GoRoute(
@@ -132,6 +141,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       // the recording bar when a session is finished elsewhere).
       GoRoute(path: bugReportRoute, builder: (_, _) => const BugReportScreen()),
 
+      // Wall mode — outside the shell, so it covers the navigation bar. Pushed
+      // from the dashboard, which has to stay mounted under it (WallScreen).
+      GoRoute(path: '/wall', builder: (_, _) => const WallScreen()),
+
+      GoRoute(
+        path: '/announcements',
+        builder: (_, _) => const AnnouncementsScreen(),
+      ),
+
       // Archive statistics — full screen outside shell (pushed from drawer).
       GoRoute(path: '/stats', builder: (_, _) => const StatisticsScreen()),
 
@@ -140,6 +158,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ever reached through a pipeline, and a deep link to it on a server
       // without the routes would land on an error.
       GoRoute(path: '/pipelines', builder: (_, _) => const PipelinesScreen()),
+
+      // Printer locations — full screen outside shell (pushed from drawer).
+      GoRoute(
+        path: '/locations',
+        builder: (_, _) => const PrinterLocationsScreen(),
+      ),
 
       // Print log — per-run history, full screen outside shell (opened from the
       // archive's menu and from the Stats failure card).
@@ -169,7 +193,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Trash as subroute.
       GoRoute(
         path: '/files',
-        builder: (_, _) => const FileManagerScreen(),
+        builder: (_, state) => FileManagerScreen(
+          folderId: int.tryParse(state.uri.queryParameters['folder'] ?? ''),
+        ),
         routes: [
           GoRoute(path: 'trash', builder: (_, _) => const TrashScreen()),
           // Photos, link and notes of one file (#3077). After `trash`, which
@@ -201,8 +227,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-      // MakerWorld — model import; full screen outside shell (pushed from drawer).
-      GoRoute(path: '/makerworld', builder: (_, _) => const MakerWorldScreen()),
+      // Model Sources (MakerWorld, Manyfold) — model import; full screen outside
+      // shell (pushed from drawer).
+      GoRoute(
+        path: '/model-sources',
+        builder: (_, _) => const ModelSourcesScreen(),
+      ),
+      // The screen was MakerWorld-only until Manyfold joined it, as on the web.
+      GoRoute(path: '/makerworld', redirect: (_, _) => '/model-sources'),
 
       // Projects — group prints toward a goal; full screen outside shell
       // (pushed from drawer). Detail as subroute by id.

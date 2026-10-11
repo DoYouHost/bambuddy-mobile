@@ -1,3 +1,4 @@
+import '../announcements/announcements_widgets.dart';
 import '../common/dash_icon_tile.dart';
 import 'dart:async';
 
@@ -20,6 +21,7 @@ import '../../l10n/error_messages.dart';
 import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../common/dash_async.dart';
 import '../common/filter_controls.dart';
+import '../common/sliver_search_bar.dart';
 import '../notifications/finish_photo_providers.dart';
 import '../../core/api/server_reachability.dart';
 import '../../providers.dart';
@@ -27,6 +29,8 @@ import '../common/server_version_text.dart';
 import '../common/dash_search_field.dart';
 import 'card_collapse_providers.dart';
 import 'dashboard_filters.dart';
+import 'dashboard_sort.dart';
+import 'dashboard_view_store.dart';
 import 'providers.dart';
 import 'scheduled_drying_providers.dart';
 import 'smart_plugs_providers.dart';
@@ -34,6 +38,7 @@ import '../../core/theme/dash_theme.dart';
 import 'widgets/connection_banner.dart';
 import 'widgets/connection_mode_chip.dart';
 import 'widgets/dashboard_filter_sheet.dart';
+import 'widgets/power_breakdown_sheet.dart';
 import 'widgets/printer_card.dart';
 import 'ws_providers.dart';
 
@@ -463,7 +468,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final state = ref.watch(dashboardProvider);
     final profile = ref.watch(serverProfileProvider);
     final statuses = ref.watch(printerStatusesProvider);
+    ref.watch(dashboardViewPersistenceProvider);
     final filters = ref.watch(dashboardFiltersProvider);
+    final sort = ref.watch(dashboardSortProvider);
+    final collapsedGroups = ref.watch(dashboardCollapsedGroupsProvider);
     final collapse = ref.watch(printerCardCollapseProvider);
     final wsState = ref.watch(wsConnectionStateProvider).valueOrNull;
     final t = DashTokens.of(context);
@@ -493,7 +501,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             scrolledUnderElevation: 0,
             // Same button AppBar would build implicitly, but named for the log —
             // this screen always has a drawer, so there is no condition to keep.
-            leading: logTag('chrome.drawer', const DrawerButton()),
+            leading: logTag('chrome.drawer', const AnnouncementsDrawerButton()),
             title: Text(
               l10n.printersTitle,
               style: t.displayLg.copyWith(letterSpacing: -0.5),
@@ -501,25 +509,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             iconTheme: IconThemeData(color: t.textPrimary),
             actions: [
               const Center(child: ConnectionModeChip()),
-              const SizedBox(width: 4),
-              logTag(
-                'dashboard.add_printer',
-                IconButton(
-                  tooltip: l10n.addPrinterTitle,
-                  color: t.textPrimary,
-                  icon: const Icon(Icons.add),
-                  onPressed: () => context.push('/printers/add'),
-                ),
-              ),
-              logTag(
-                'dashboard.notifications_menu',
-                IconButton(
-                  tooltip: l10n.batteryOptMenu,
-                  color: t.textPrimary,
-                  icon: const Icon(Icons.notifications_active_outlined),
-                  onPressed: () => _openNotificationMenu(context, l10n),
-                ),
-              ),
+              const SizedBox(width: DashSpace.xs),
+              // One menu for the three actions: as separate icons they left
+              // the title two letters wide next to the connection chip.
+              PopupMenuButton<VoidCallback>(
+                iconColor: t.textPrimary,
+                onSelected: (action) => action(),
+                itemBuilder: (_) => [
+                  _menuItem(
+                    'dashboard.add_printer',
+                    Icons.add,
+                    l10n.addPrinterTitle,
+                    () => context.push('/printers/add'),
+                  ),
+                  _menuItem(
+                    'dashboard.notifications_menu',
+                    Icons.notifications_active_outlined,
+                    l10n.batteryOptMenu,
+                    () => _openNotificationMenu(context, l10n),
+                  ),
+                  _menuItem(
+                    'dashboard.wall_mode',
+                    Icons.view_quilt_outlined,
+                    l10n.wallModeTitle,
+                    // Push, never go: the wall runs on this screen's lifecycle.
+                    () => context.push('/wall'),
+                  ),
+                ],
+              ).tagged('dashboard.menu'),
             ],
             // Only friendly profile label (if set) — no URL.
             bottom: profile?.label == null
@@ -527,7 +544,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 : PreferredSize(
                     preferredSize: const Size.fromHeight(18),
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.only(bottom: DashSpace.xs),
                       child: Text(profile!.label!, style: t.monoMicro),
                     ),
                   ),
@@ -545,7 +562,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 tone: BannerTone.info,
               ),
             Expanded(
-              child: _body(context, state, statuses, filters, collapse, l10n),
+              child: _body(
+                context,
+                state,
+                statuses,
+                filters,
+                sort,
+                collapsedGroups,
+                collapse,
+                l10n,
+              ),
             ),
           ],
         ),
@@ -562,7 +588,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     BuildContext context,
     DashboardState state,
     Map<int, PrinterStatus> statuses,
-    DashboardFilters filters,
+    DashboardFilters savedFilters,
+    DashboardSort sort,
+    Set<String> collapsedGroups,
     PrinterCardCollapse collapse,
     AppLocalizations l10n,
   ) {
@@ -590,24 +618,46 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       return const DashLoading();
     }
 
-    // Printer composition from polling (roster), with status overlaid from
-    // shared statuses map (WS + poll merged in printerStatusesProvider).
-    // Missing map entry → status stays from list alone.
-    final printers = [
-      for (final p in state.printers!)
-        statuses.containsKey(p.printer.id)
-            ? PrinterWithStatus(
-                printer: p.printer,
-                status: statuses[p.printer.id],
-              )
-            : p,
-    ];
+    // Roster from polling, statuses from the WS + poll lanes.
+    final printers = withLiveStatuses(state.printers!, statuses);
+    final locations = printerLocationsOf([
+      for (final p in printers) p.printer.location,
+    ]);
+    // A saved location can outlive what it matched — renamed, cleared, or the
+    // only printer that had it gone. Left in place it would hide every printer,
+    // and with it the control to undo it (the web's #2833). This frame already
+    // draws without it; the saved one is let go of right after.
+    final stale =
+        savedFilters.location != null &&
+        !locations.contains(savedFilters.location);
+    final filters = stale
+        ? savedFilters.copyWith(location: null)
+        : savedFilters;
+    if (stale) {
+      Future.microtask(() {
+        if (mounted) {
+          ref.read(dashboardFiltersProvider.notifier).state = filters;
+        }
+      });
+    }
     final q = _query.trim().toLowerCase();
-    final filtered = [
+    final filtered = sortPrinters([
       for (final p in printers)
         if ((q.isEmpty || p.printer.name.toLowerCase().contains(q)) &&
-            filters.matches(classifyPrinter(p.status)))
+            filters.matches(classifyPrinter(p.status), p.printer.location))
           p,
+    ], sort);
+    final groups = groupPrinters(filtered, sort);
+    // Headers and printers in one flat list, so a folded section simply has
+    // none of its printers in it.
+    final rows = <Object>[
+      if (groups == null)
+        ...filtered
+      else
+        for (final g in groups) ...[
+          g,
+          if (!collapsedGroups.contains(g.key)) ...g.printers,
+        ],
     ];
 
     // Show the search + filter row whenever there is more than one printer, or
@@ -656,7 +706,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             SliverFillRemaining(
               hasScrollBody: false,
               child: Padding(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(DashSpace.xxl),
                 child: Center(
                   child: Text(
                     printers.isEmpty
@@ -670,14 +720,47 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.only(bottom: DashSpace.sm),
               sliver: SliverList.builder(
-                itemCount: filtered.length,
+                itemCount: rows.length,
+                // Cards and headers move when a section folds; finding them by
+                // key keeps a card's state instead of building it again.
+                findChildIndexCallback: (key) {
+                  final i = rows.indexWhere(
+                    (r) => switch (r) {
+                      PrinterGroup g => ValueKey(g.key) == key,
+                      PrinterWithStatus p => ValueKey(p.printer.id) == key,
+                      _ => false,
+                    },
+                  );
+                  return i < 0 ? null : i;
+                },
                 itemBuilder: (_, i) {
-                  final id = filtered[i].printer.id;
+                  final row = rows[i];
+                  if (row is PrinterGroup) {
+                    return _GroupHeader(
+                      key: ValueKey(row.key),
+                      group: row,
+                      open: !collapsedGroups.contains(row.key),
+                      onToggle: () {
+                        // Read now, not the set this frame was built with.
+                        final folded = ref.read(
+                          dashboardCollapsedGroupsProvider,
+                        );
+                        ref
+                            .read(dashboardCollapsedGroupsProvider.notifier)
+                            .state = {
+                          ...folded.difference({row.key}),
+                          if (!folded.contains(row.key)) row.key,
+                        };
+                      },
+                    );
+                  }
+                  final item = row as PrinterWithStatus;
+                  final id = item.printer.id;
                   return PrinterCard(
                     key: ValueKey(id),
-                    item: filtered[i],
+                    item: item,
                     inTouchSince: ref
                         .read(printerStatusesProvider.notifier)
                         .inTouchSince,
@@ -695,6 +778,85 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 }
 
+/// The heading of one section of the list — a location, a model or a status
+/// — with its count; a tap folds the printers under it away.
+class _GroupHeader extends StatelessWidget {
+  const _GroupHeader({
+    super.key,
+    required this.group,
+    required this.open,
+    required this.onToggle,
+  });
+
+  final PrinterGroup group;
+  final bool open;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final bucket = group.bucket;
+    final label = bucket != null
+        ? statusBucketLabel(l10n, bucket)
+        : group.name ??
+              (group.by == PrinterSort.location
+                  ? l10n.dashboardGroupUngrouped
+                  : l10n.dashboardGroupUnknownModel);
+    final dot = switch (bucket) {
+      null ||
+      PrinterStatusBucket.idle ||
+      PrinterStatusBucket.printing => t.accentGreen,
+      PrinterStatusBucket.error => t.danger,
+      PrinterStatusBucket.paused => t.warning,
+      PrinterStatusBucket.finished => t.accentBlue,
+      _ => t.textTertiary,
+    };
+    return logTag(
+      'dashboard.group',
+      expanded: open,
+      InkWell(
+        onTap: onToggle,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            DashSpace.md,
+            DashSpace.gutter,
+            DashSpace.xs,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                open ? Icons.expand_more : Icons.chevron_right,
+                color: t.textSecondary,
+              ),
+              const SizedBox(width: DashSpace.sm),
+              DecoratedBox(
+                decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                child: const SizedBox.square(dimension: _groupDotSize),
+              ),
+              const SizedBox(width: DashSpace.sm),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.titleMd,
+                ),
+              ),
+              const SizedBox(width: DashSpace.sm),
+              Text('(${group.printers.length})', style: t.bodyPlain),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The coloured dot before a section's name.
+const _groupDotSize = 8.0;
+
 /// Navigation drawer with "app-level" screens (secondary to bottom bar tabs):
 /// Statistics, Notifications, change server. Hamburger auto-appears in
 /// Dashboard AppBar because Scaffold has `drawer` set.
@@ -710,8 +872,8 @@ class _AppDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    // The asset is the 1024x1024 launcher source, so without this it decodes at
-    // full size for a 52 dp tile. Width alone, as in `MediaImage`.
+    // The asset is 512x512, so without this it decodes at full size for a
+    // 52 dp tile. Width alone, as in `MediaImage`.
     final iconDecodeWidth = (_iconSize * MediaQuery.devicePixelRatioOf(context))
         .round();
     return Drawer(
@@ -751,7 +913,12 @@ class _AppDrawer extends ConsumerWidget {
                   SafeArea(
                     bottom: false,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 26, 20, 22),
+                      padding: const EdgeInsets.fromLTRB(
+                        DashSpace.gutter,
+                        DashSpace.xl,
+                        DashSpace.gutter,
+                        DashSpace.xl,
+                      ),
                       child: Row(
                         children: [
                           Container(
@@ -769,7 +936,7 @@ class _AppDrawer extends ConsumerWidget {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(15),
                               child: Image.asset(
-                                'assets/icon/icon.png',
+                                'assets/icon/app_logo.png',
                                 width: _iconSize,
                                 height: _iconSize,
                                 cacheWidth: iconDecodeWidth,
@@ -777,7 +944,7 @@ class _AppDrawer extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: DashSpace.lg),
                           Expanded(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -787,11 +954,12 @@ class _AppDrawer extends ConsumerWidget {
                                   'Bambuddy',
                                   style: t.display.copyWith(letterSpacing: 0.2),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: DashSpace.xs),
                                 _ProfileChip(label: profileLabel),
                               ],
                             ),
                           ),
+                          const AnnouncementsHeaderButton(),
                         ],
                       ),
                     ),
@@ -809,7 +977,7 @@ class _AppDrawer extends ConsumerWidget {
                 context,
               ).copyWith(overscroll: false),
               child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
                 children: [
                   _DrawerTile(
                     icon: Icons.folder_outlined,
@@ -822,11 +990,13 @@ class _AppDrawer extends ConsumerWidget {
                   ),
                   _DrawerTile(
                     icon: Icons.travel_explore_rounded,
-                    label: l10n.makerworldMenu,
+                    label: l10n.modelSourcesTitle,
                     onTap: () {
                       Navigator.pop(context);
-                      context.push('/makerworld');
+                      context.push('/model-sources');
                     },
+                    // Id kept from when the screen was MakerWorld-only: log
+                    // ids are wire values.
                     id: 'drawer.makerworld',
                   ),
                   _DrawerTile(
@@ -895,7 +1065,11 @@ class _AppDrawer extends ConsumerWidget {
                     },
                     id: 'drawer.server_settings',
                   ),
-                  const Divider(indent: 16, endIndent: 16, height: 16),
+                  const Divider(
+                    indent: DashSpace.gutter,
+                    endIndent: DashSpace.gutter,
+                    height: DashSpace.lg,
+                  ),
                   _DrawerTile(
                     icon: Icons.swap_horiz_rounded,
                     label: l10n.changeServer,
@@ -933,7 +1107,12 @@ class _AppDrawer extends ConsumerWidget {
           const SafeArea(
             top: false,
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20, 12, 20, 12),
+              padding: EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                DashSpace.md,
+                DashSpace.gutter,
+                DashSpace.md,
+              ),
               child: _DrawerVersions(),
             ),
           ),
@@ -987,10 +1166,10 @@ class _DrawerVersions extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 2),
+          padding: const EdgeInsets.only(top: DashSpace.xs),
           child: Icon(Icons.print_outlined, size: 14, color: t.textTertiary),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: DashSpace.sm),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1020,7 +1199,10 @@ class _ProfileChip extends StatelessWidget {
     if (label == null) return const SizedBox.shrink();
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.md,
+        vertical: DashSpace.xs,
+      ),
       decoration: BoxDecoration(
         color: t.subCard,
         borderRadius: BorderRadius.circular(20),
@@ -1030,7 +1212,7 @@ class _ProfileChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.dns_rounded, size: 13, color: t.textSecondary),
-          const SizedBox(width: 5),
+          const SizedBox(width: DashSpace.xs),
           Flexible(
             child: Text(
               label!,
@@ -1068,7 +1250,10 @@ class _DrawerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.gutter,
+        vertical: DashSpace.xs,
+      ),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
@@ -1078,11 +1263,14 @@ class _DrawerTile extends StatelessWidget {
           InkWell(
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.md,
+                vertical: DashSpace.sm,
+              ),
               child: Row(
                 children: [
                   DashIconTile(icon: icon, size: 40, radius: 12, iconSize: 21),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: DashSpace.lg),
                   Expanded(child: Text(label, style: t.bodyStrong)),
                   Icon(
                     Icons.chevron_right_rounded,
@@ -1121,8 +1309,8 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   // Heights carry generous slack; content is clipped, never overflowed.
   static const double _statusFull = 60;
-  static const double _statusCompact = 44;
-  static const double _searchH = 66;
+  static const double _statusCompact = 48;
+  static const double _searchH = DashSearchBarBody.height;
 
   @override
   double get maxExtent => _statusFull + (hasSearch ? _searchH : 0);
@@ -1160,30 +1348,21 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
                 alignment: Alignment.topCenter,
                 child: Opacity(
                   opacity: (1 - shrink * 1.4).clamp(0.0, 1.0),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 5),
-                    child: SizedBox(
-                      height: 48,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: DashSearchField(
-                              id: 'dashboard.search',
-                              hintText: hint,
-                              onChanged: onQuery,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          FilterButton(
-                            count: filterCount,
-                            tooltip: AppLocalizations.of(
-                              context,
-                            ).dashboardFilters,
-                            id: 'dashboard.filters',
-                            onTap: onOpenFilters,
-                          ),
-                        ],
-                      ),
+                  child: DashSearchBarBody(
+                    child: DashSearchField(
+                      id: 'dashboard.search',
+                      hintText: hint,
+                      onChanged: onQuery,
+                      trailing: [
+                        FilterButton(
+                          count: filterCount,
+                          tooltip: AppLocalizations.of(
+                            context,
+                          ).dashboardFilters,
+                          id: 'dashboard.filters',
+                          onTap: onOpenFilters,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1346,8 +1525,13 @@ class _SummaryHeader extends ConsumerWidget {
       // padding to animate and never any overflow. The bottom margin grows as
       // it collapses, adding a gap between the pinned bar and the list (when
       // expanded the search field below provides that spacing instead).
-      margin: EdgeInsets.fromLTRB(16, 10 - 4 * shrink, 16, 8 * shrink),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      margin: EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        DashSpace.md - DashSpace.xs * shrink,
+        DashSpace.gutter,
+        DashSpace.sm * shrink,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: DashSpace.lg),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: t.subCard,
@@ -1361,7 +1545,7 @@ class _SummaryHeader extends ConsumerWidget {
             height: 8,
             decoration: BoxDecoration(shape: BoxShape.circle, color: dotColor),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Text(
             active.isEmpty
                 ? l10n.noActivePrints
@@ -1371,7 +1555,7 @@ class _SummaryHeader extends ConsumerWidget {
             ),
           ),
           if (next != null) ...[
-            const SizedBox(width: 12),
+            const SizedBox(width: DashSpace.md),
             // Fades out as the card collapses (kept in the tree so its space
             // stays reserved and the power chip doesn't jump).
             Flexible(
@@ -1396,23 +1580,42 @@ class _SummaryHeader extends ConsumerWidget {
             ),
           ],
           if (hasPlugs) ...[
-            if (next == null) const Spacer() else const SizedBox(width: 12),
+            if (next == null)
+              const Spacer()
+            else
+              const SizedBox(width: DashSpace.md),
             Tooltip(
               message: l10n.totalPowerTooltip,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.bolt, size: 15, color: t.accentGreenInk),
-                  const SizedBox(width: 4),
-                  Text(
-                    l10n.powerWatts(totalPowerW.round()),
-                    style: t.monoValue.copyWith(
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => showPowerBreakdownSheet(
+                  context,
+                  printers: [
+                    for (final p in sortPrinters(
+                      printers,
+                      ref.read(dashboardSortProvider),
+                    ))
+                      p.printer,
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(DashSpace.xs),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.bolt, size: 15, color: t.accentGreenInk),
+                      const SizedBox(width: DashSpace.xs),
+                      Text(
+                        l10n.powerWatts(totalPowerW.round()),
+                        style: t.monoValue.copyWith(
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ).tagged('dashboard.power'),
           ],
         ],
       ),
@@ -1429,3 +1632,24 @@ class _SummaryHeader extends ConsumerWidget {
     return parts.isEmpty ? '' : ' (${parts.join(' · ')})';
   }
 }
+
+PopupMenuItem<VoidCallback> _menuItem(
+  String id,
+  IconData icon,
+  String label,
+  VoidCallback action,
+) => PopupMenuItem(
+  value: action,
+  child: logTag(
+    id,
+    Row(
+      children: [
+        Icon(icon, size: 20),
+        const SizedBox(width: DashSpace.md),
+        // A popup menu is capped at 256 px, which a long label at a large
+        // system text size runs past.
+        Flexible(child: Text(label)),
+      ],
+    ),
+  ),
+);

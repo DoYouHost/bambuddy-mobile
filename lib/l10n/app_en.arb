@@ -50,9 +50,9 @@
     }
   },
   "noPrintersMatchFilters": "No printers match the current filters",
-  "dashboardFilters": "Filters",
+  "dashboardFilters": "Filters and sort",
   "@dashboardFilters": {
-    "description": "Title of the dashboard filter sheet / filter button tooltip"
+    "description": "Title of the dashboard filter and sort sheet / its button tooltip"
   },
   "filterStatus": "Status",
   "filtersClear": "Clear",
@@ -74,6 +74,7 @@
   "addPrinterModelNone": "Not set",
   "addPrinterLocation": "Location",
   "addPrinterLocationOptional": "Optional",
+  "printerLocationsManage": "Manage locations",
   "addPrinterSubmit": "Add printer",
   "addPrinterConnectionNote": "The server verifies the connection before saving, so a wrong IP or access code is reported and nothing is created.",
   "addPrinterRequiredField": "Required",
@@ -83,6 +84,26 @@
   "addPrinterErrForbidden": "You do not have permission to add printers",
   "addPrinterErrGeneric": "Could not add the printer. Try again.",
   "addPrinterAutoArchive": "Auto-archive completed prints",
+  "editPrinterTitle": "Edit printer",
+  "editPrinterSubmit": "Save changes",
+  "editPrinterSaved": "Printer saved",
+  "editPrinterSerialLocked": "Serial number cannot be changed",
+  "editPrinterAccessCodeKeep": "Leave empty to keep the current one",
+  "editPrinterMaintenance": "Maintenance mode",
+  "editPrinterMaintenanceHelp": "Pauses the connection, queued jobs and notifications for this printer.",
+  "editPrinterWearCost": "Wear cost per printing hour ({currency})",
+  "@editPrinterWearCost": {
+    "placeholders": {
+      "currency": {
+        "type": "String",
+        "example": "zł"
+      }
+    }
+  },
+  "editPrinterWearCostHelp": "Added to new prints only. Leave empty to turn it off.",
+  "editPrinterWearCostInvalid": "Enter a number from 0 to 100000",
+  "editPrinterPreflightWarning": "Some connection checks failed. This printer may show as offline. Review the checks below, fix what you can, or save anyway.",
+  "editPrinterSaveAnyway": "Save anyway",
   "addPrinterScanTitle": "Find printers on the network",
   "addPrinterSubnet": "Subnet to scan",
   "addPrinterScanButton": "Scan subnet for printers",
@@ -165,6 +186,11 @@
   "ctrlNozzleActive": "Active",
   "ctrlDry": "Dry",
   "ctrlDrying": "Drying",
+  "ctrlDryNotRunning": "Not running",
+  "@ctrlDryNotRunning": {
+    "description": "Drying chip and sheet: the AMS holds a drying timer that is not counting down (server dry_countdown_stalled)"
+  },
+  "ctrlDryNotRunningHint": "The printer holds a drying timer, but it is not counting down, and the AMS reports no drying. The cycle never started or was paused, for example by the power limit or the current print.",
   "ctrlDryStart": "Start",
   "ctrlDryFilament": "Filament",
   "ctrlDryTemp": "Temperature",
@@ -416,6 +442,22 @@
   "totalPowerTooltip": "Total power draw across all plugs",
   "@totalPowerTooltip": {
     "description": "Dashboard header power sum tooltip"
+  },
+  "powerBreakdownTitle": "Power draw",
+  "@powerBreakdownTitle": {
+    "description": "Title of the sheet splitting the dashboard power total per printer"
+  },
+  "powerUnassignedPlugs": "Not assigned to a printer",
+  "@powerUnassignedPlugs": {
+    "description": "Power sheet group for smart plugs with no printer assigned"
+  },
+  "plugStateOn": "On",
+  "@plugStateOn": {
+    "description": "Screen-reader label of a smart plug state dot: switched on"
+  },
+  "plugStateOff": "Off",
+  "@plugStateOff": {
+    "description": "Screen-reader label of a smart plug state dot: switched off"
   },
   "queueEmpty": "The queue is empty",
   "queueAmsFromSlicer": "AMS from slicer",
@@ -791,14 +833,6 @@
   "cameraConnecting": "Connecting to camera…",
   "cameraError": "Couldn't load the camera stream",
   "cameraDemoUnavailable": "Camera preview is not available in demo mode",
-  "amsUnit": "AMS {number}",
-  "@amsUnit": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
   "externalSpool": "External spool",
   "traySlotEmpty": "Empty",
   "amsSlotFilament": "Filament",
@@ -1111,8 +1145,6 @@
   "errMissingTwoFactorCode": "Enter the code",
   "errApiKeyRejected": "API key rejected — check the key and its scope (can_read_status required)",
   "errTooManyAttempts": "Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.",
-  "errSlotTagUnreadable": "This slot has no readable RFID tag — Spoolman binds spools by tag, so it cannot take this one. The built-in inventory assigns by slot instead.",
-  "errPrinterOffline": "The printer is offline, so the app cannot read what the slot holds. Reconnect it and try again.",
   "notifOngoingBody": "{percent}% · ETA {eta}",
   "notifEtaSoon": "soon",
   "@notifOngoingBody": {
@@ -1426,6 +1458,12 @@
   "inventoryFilterMaterial": "Material",
   "inventoryFilterBrand": "Brand",
   "inventoryFiltersClear": "Clear all",
+  "inventorySortLabel": "Sort by",
+  "inventorySortStandard": "Default",
+  "inventorySortUsage": "Usage",
+  "inventorySortAdded": "Date added",
+  "inventorySortPrice": "Price/kg",
+  "inventorySortId": "ID",
   "inventorySpoolCount": "{count} {count, plural, one{spool} other{spools}}",
   "@inventorySpoolCount": {
     "placeholders": {
@@ -1437,14 +1475,6 @@
   "inventoryRemaining": "{grams} g left",
   "inventoryTotalConsumed": "{weight} consumed",
   "@inventoryTotalConsumed": {
-    "placeholders": {
-      "weight": {
-        "type": "String"
-      }
-    }
-  },
-  "inventoryConsumedSinceReset": "Consumed since reset: {weight}",
-  "@inventoryConsumedSinceReset": {
     "placeholders": {
       "weight": {
         "type": "String"
@@ -1466,25 +1496,8 @@
       }
     }
   },
-  "inventoryLoadedIn": "Loaded in {slot}",
-  "@inventoryLoadedIn": {
-    "placeholders": {
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
-  "inventoryNotLoaded": "Not loaded in any AMS slot",
   "inventoryLocation": "Location",
   "inventoryNozzleTemp": "Nozzle temp",
-  "inventoryCostPerKg": "{cost}/kg",
-  "@inventoryCostPerKg": {
-    "placeholders": {
-      "cost": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryNote": "Note",
   "inventoryTag": "Tag",
   "inventoryUsageHistory": "Usage history",
@@ -1523,6 +1536,7 @@
   "inventorySave": "Save",
   "inventoryQuantityHint": "Create several identical spools at once",
   "inventoryEdit": "Edit",
+  "inventoryDuplicate": "Duplicate",
   "inventoryDelete": "Delete",
   "inventoryArchive": "Archive",
   "inventoryRestore": "Restore",
@@ -1585,6 +1599,9 @@
   "inventoryFieldRemainingWeight": "Remaining weight (g)",
   "inventoryFieldMeasuredWeight": "Measured weight (g)",
   "inventoryFieldCategory": "Category",
+  "inventoryFieldMaterialNumber": "Material number",
+  "inventoryMaterialNumberHint": "Shared by every spool of a product. A new spool of a known product gets it filled in.",
+  "inventorySpoolmanCannotClear": "Spoolman can't remove this value. Change it to something else instead.",
   "inventoryFieldExtraColors": "Extra colors",
   "inventoryExtraColorsHint": "2–8 hex stops, comma-separated",
   "inventoryFieldEffect": "Effect",
@@ -1642,6 +1659,10 @@
   "inventoryAssignTitle": "Assign spool",
   "inventoryAssignCurrent": "Currently in this slot",
   "inventoryAssignPick": "Pick a spool",
+  "inventoryTagBound": "The spool in this slot has a tag, so it is linked by the tag rather than assigned here.",
+  "@inventoryTagBound": {
+    "description": "Slot sheet, Spoolman mode: a slot whose spool has an RFID tag is bound by that tag on the server, so the sheet offers no assign or unassign."
+  },
   "inventoryReassignTitle": "Move spool?",
   "inventoryReassignMessage": "This spool is currently in {slot}. It will be removed from there and assigned to this slot.",
   "@inventoryReassignMessage": {
@@ -1796,6 +1817,7 @@
     }
   },
   "inventoryBulkEditUnsupported": "This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.",
+  "inventoryBulkEditConfirmSuppliers": "The suppliers are added to every selected spool.",
   "inventoryApply": "Apply",
   "inventoryLabelsTitle": "Print spool labels",
   "inventoryLabelsPrint": "Print labels",
@@ -2030,6 +2052,10 @@
   "statsFilamentCost": "Filament cost",
   "statsEnergyUsed": "Energy used",
   "statsEnergyCost": "Energy cost",
+  "statsWearCost": "Wear cost",
+  "@statsWearCost": {
+    "description": "Printer wear charged to prints: hours printed times the printer's wear cost per hour. Stats tile, print log run detail and project tile."
+  },
   "statsTotalCost": "Total cost",
   "statsEnergyWarmingUp": "Energy data is still warming up",
   "statsSuccessRate": "Success rate",
@@ -2445,11 +2471,355 @@
     }
   },
   "fmTagsPickSome": "Pick at least one tag",
-  "makerworldMenu": "MakerWorld",
-  "@makerworldMenu": {
-    "description": "Drawer entry: MakerWorld import"
-  },
   "makerworldTitle": "MakerWorld",
+  "modelSourcesTitle": "Model Sources",
+  "@modelSourcesTitle": {
+    "description": "Drawer entry and title of the screen holding the MakerWorld and Manyfold tabs"
+  },
+  "manyfoldTitle": "Manyfold",
+  "@manyfoldTitle": {
+    "description": "Tab name: Manyfold, a self-hosted 3D model library (product name)"
+  },
+  "mfDescription": "Browse and search your Manyfold library and import its files to slice and print them.",
+  "@mfDescription": {
+    "description": "Manyfold tab: description"
+  },
+  "mfNotConnectedTitle": "Manyfold is not connected",
+  "@mfNotConnectedTitle": {
+    "description": "Manyfold tab: notConnectedTitle"
+  },
+  "mfNotConnectedBody": "Ask an administrator to connect your Manyfold library.",
+  "@mfNotConnectedBody": {
+    "description": "Manyfold tab: notConnectedBody"
+  },
+  "mfConnectionTitle": "Manyfold connection",
+  "@mfConnectionTitle": {
+    "description": "Manyfold tab: connectionTitle"
+  },
+  "mfConnectionHelp": "In Manyfold, open Settings → API and create an application with the scopes “public” and “read”. Enter its client ID and secret here. Bambuddy sees the models the application's owner can see.",
+  "@mfConnectionHelp": {
+    "description": "Manyfold tab: connectionHelp"
+  },
+  "mfUrl": "Manyfold URL",
+  "@mfUrl": {
+    "description": "Manyfold tab: url"
+  },
+  "mfUrlPlaceholder": "http://192.168.1.10:3214",
+  "@mfUrlPlaceholder": {
+    "description": "Manyfold tab: urlPlaceholder"
+  },
+  "mfClientId": "Client ID",
+  "@mfClientId": {
+    "description": "Manyfold tab: clientId"
+  },
+  "mfClientSecret": "Client secret",
+  "@mfClientSecret": {
+    "description": "Manyfold tab: clientSecret"
+  },
+  "mfClientSecretStored": "Stored. Leave empty to keep it.",
+  "@mfClientSecretStored": {
+    "description": "Manyfold tab: clientSecretStored"
+  },
+  "mfTest": "Test connection",
+  "@mfTest": {
+    "description": "Manyfold tab: test"
+  },
+  "mfSave": "Save",
+  "@mfSave": {
+    "description": "Manyfold connection form: stores the URL, client ID and secret"
+  },
+  "mfSaved": "Settings saved",
+  "@mfSaved": {
+    "description": "Snackbar after the Manyfold connection was stored"
+  },
+  "mfTestOk": "Connected. Models Bambuddy can see: {count}",
+  "@mfTestOk": {
+    "description": "Manyfold tab: testOk",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mfDisconnect": "Disconnect",
+  "@mfDisconnect": {
+    "description": "Manyfold tab: disconnect"
+  },
+  "mfDisconnectTitle": "Disconnect Manyfold?",
+  "@mfDisconnectTitle": {
+    "description": "Manyfold tab: disconnectTitle"
+  },
+  "mfDisconnectBody": "Bambuddy forgets the Manyfold URL, client ID and secret. Files you imported stay in your library.",
+  "@mfDisconnectBody": {
+    "description": "Manyfold tab: disconnectBody"
+  },
+  "mfDisconnected": "Manyfold disconnected",
+  "@mfDisconnected": {
+    "description": "Manyfold tab: disconnected"
+  },
+  "mfEditConnection": "Connection",
+  "@mfEditConnection": {
+    "description": "Manyfold tab: editConnection"
+  },
+  "mfSearchPlaceholder": "Search models",
+  "@mfSearchPlaceholder": {
+    "description": "Manyfold tab: searchPlaceholder"
+  },
+  "mfModelCount": "Models: {count}",
+  "@mfModelCount": {
+    "description": "Manyfold tab: modelCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mfNoModels": "No models found.",
+  "@mfNoModels": {
+    "description": "Manyfold tab: noModels"
+  },
+  "mfPrevious": "Previous",
+  "@mfPrevious": {
+    "description": "Manyfold tab: previous"
+  },
+  "mfNext": "Next",
+  "@mfNext": {
+    "description": "Manyfold tab: next"
+  },
+  "mfPage": "Page {page}",
+  "@mfPage": {
+    "description": "Manyfold tab: page",
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "mfOpenInManyfold": "Open in Manyfold",
+  "@mfOpenInManyfold": {
+    "description": "Manyfold tab: openInManyfold"
+  },
+  "mfLicense": "License",
+  "@mfLicense": {
+    "description": "Manyfold tab: license"
+  },
+  "mfFiles": "Files",
+  "@mfFiles": {
+    "description": "Manyfold tab: files"
+  },
+  "mfNoFiles": "This model has no files.",
+  "@mfNoFiles": {
+    "description": "Manyfold tab: noFiles"
+  },
+  "mfImportTo": "Import to",
+  "@mfImportTo": {
+    "description": "Manyfold tab: importTo"
+  },
+  "mfFolderAuto": "Manyfold folder",
+  "@mfFolderAuto": {
+    "description": "Manyfold tab: folderAuto"
+  },
+  "mfImport": "Import",
+  "@mfImport": {
+    "description": "Manyfold tab: import"
+  },
+  "mfImporting": "Importing…",
+  "@mfImporting": {
+    "description": "Manyfold tab: importing"
+  },
+  "mfImported": "Imported {filename}",
+  "@mfImported": {
+    "description": "Manyfold tab: imported",
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "mfAlreadyInLibrary": "Already in your library",
+  "@mfAlreadyInLibrary": {
+    "description": "Manyfold tab: alreadyInLibrary"
+  },
+  "mfInLibrary": "In library",
+  "@mfInLibrary": {
+    "description": "Manyfold tab: inLibrary"
+  },
+  "mfShowInLibrary": "Show in library",
+  "@mfShowInLibrary": {
+    "description": "Manyfold tab: showInLibrary"
+  },
+  "mfNotImportable": "Bambuddy can't slice or print this type",
+  "@mfNotImportable": {
+    "description": "Manyfold tab: notImportable"
+  },
+  "mfSelectAll": "Select all",
+  "@mfSelectAll": {
+    "description": "Manyfold tab: selectAll"
+  },
+  "mfSelectFile": "Select {name}",
+  "@mfSelectFile": {
+    "description": "Manyfold tab: selectFile",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mfImportSelected": "Import selected ({count})",
+  "@mfImportSelected": {
+    "description": "Manyfold tab: importSelected",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mfImportAll": "Import all",
+  "@mfImportAll": {
+    "description": "Manyfold tab: importAll"
+  },
+  "mfImportProgress": "Importing {current}/{total}",
+  "@mfImportProgress": {
+    "description": "Manyfold tab: importProgress",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "mfBulkDone": "Imported: {imported} · already in library: {existing} · failed: {failed}",
+  "@mfBulkDone": {
+    "description": "Manyfold tab: bulkDone",
+    "placeholders": {
+      "imported": {
+        "type": "int"
+      },
+      "existing": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "mfBulkFailed": "Not imported: {names}. {reason}",
+  "@mfBulkFailed": {
+    "description": "Manyfold tab: bulkFailed",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "mfBulkNothing": "Nothing to import: every printable file is already in your library.",
+  "@mfBulkNothing": {
+    "description": "Manyfold tab: bulkNothing"
+  },
+  "mfSelectModel": "Select {name}",
+  "@mfSelectModel": {
+    "description": "Manyfold tab: selectModel",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mfSelectPage": "Select page",
+  "@mfSelectPage": {
+    "description": "Manyfold tab: selectPage"
+  },
+  "mfModelsSelected": "Models selected: {count}",
+  "@mfModelsSelected": {
+    "description": "Manyfold tab: modelsSelected",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mfImportModels": "Import their files",
+  "@mfImportModels": {
+    "description": "Manyfold tab: importModels"
+  },
+  "mfClearSelection": "Clear selection",
+  "@mfClearSelection": {
+    "description": "Manyfold tab: clearSelection"
+  },
+  "mfCollectProgress": "Reading models {current}/{total}",
+  "@mfCollectProgress": {
+    "description": "Manyfold tab: collectProgress",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "mfModelsUnreadable": "Could not read: {names}",
+  "@mfModelsUnreadable": {
+    "description": "Manyfold tab: modelsUnreadable",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "mfErrNotConfigured": "Manyfold is not connected.",
+  "@mfErrNotConfigured": {
+    "description": "Manyfold tab: error text for server code manyfold_not_configured"
+  },
+  "mfErrCredentials": "Manyfold did not accept the client ID or secret.",
+  "@mfErrCredentials": {
+    "description": "Manyfold tab: error text for server code manyfold_credentials"
+  },
+  "mfErrScope": "The Manyfold application needs the “read” scope. Edit it in Manyfold under Settings → API.",
+  "@mfErrScope": {
+    "description": "Manyfold tab: error text for server code manyfold_scope"
+  },
+  "mfErrRateLimited": "Manyfold is limiting sign-ins. Try again in a few minutes.",
+  "@mfErrRateLimited": {
+    "description": "Manyfold tab: error text for server code manyfold_rate_limited"
+  },
+  "mfErrUnreachable": "Bambuddy can't reach Manyfold. Check the URL and that Manyfold is running.",
+  "@mfErrUnreachable": {
+    "description": "Manyfold tab: error text for server code manyfold_unreachable"
+  },
+  "mfErrForbidden": "Manyfold refused access. Check that the application's owner can see this model.",
+  "@mfErrForbidden": {
+    "description": "Manyfold tab: error text for server code manyfold_forbidden"
+  },
+  "mfErrNotFound": "Manyfold can't find this model or file.",
+  "@mfErrNotFound": {
+    "description": "Manyfold tab: error text for server code manyfold_not_found"
+  },
+  "mfErrTooLarge": "The file is larger than 200 MB.",
+  "@mfErrTooLarge": {
+    "description": "Manyfold tab: error text for server code manyfold_too_large"
+  },
+  "mfErrNotImportable": "Only 3MF, STL and STEP files can be imported.",
+  "@mfErrNotImportable": {
+    "description": "Manyfold tab: error text for server code manyfold_not_importable"
+  },
+  "mfErrBadUrl": "Enter the Manyfold URL starting with http:// or https://.",
+  "@mfErrBadUrl": {
+    "description": "Manyfold tab: error text for server code manyfold_bad_url"
+  },
+  "mfErrSecretRequired": "Enter the client secret.",
+  "@mfErrSecretRequired": {
+    "description": "Manyfold tab: error text for server code manyfold_secret_required"
+  },
+  "mfErrFailed": "Manyfold answered with an error.",
+  "@mfErrFailed": {
+    "description": "Manyfold tab: error text for server code manyfold_failed"
+  },
   "mwIntro": "Paste a MakerWorld model URL to import and print it directly from Bambuddy.",
   "mwUrlHint": "https://makerworld.com/en/models/… or any MakerWorld link",
   "mwResolve": "Resolve",
@@ -2861,6 +3231,117 @@
   "sliceStart": "Slice",
   "sliceShowAll": "All",
   "sliceSearchHint": "Search presets",
+  "sliceOnlyOnline": "Only printers that are online",
+  "@sliceOnlyOnline": {
+    "description": "Slice form switch: narrow the printer profiles to the models online now (web: slice.filters.onlyConnectedModels)"
+  },
+  "sliceOnlyOnlineHint": "Printer profiles for the models online right now, at every nozzle size.",
+  "@sliceOnlyOnlineHint": {
+    "description": "Line under the online-printers switch"
+  },
+  "sliceOnlyLoaded": "Only spools that are loaded",
+  "@sliceOnlyLoaded": {
+    "description": "Slice form switch: narrow the filament profiles to the spools loaded in online printers"
+  },
+  "sliceOnlyLoadedHint": "Filament profiles of the spools in the online printers of the selected model. A profile you pick yourself stays.",
+  "@sliceOnlyLoadedHint": {
+    "description": "Line under the loaded-spools switch"
+  },
+  "sliceNoneOnline": "No printer is online, so every profile is shown.",
+  "@sliceNoneOnline": {
+    "description": "Note when a filter is on but no printer is online, so it has no effect"
+  },
+  "sliceNoneLoaded": "No loaded spool has a profile for this printer, so every filament profile is shown.",
+  "@sliceNoneLoaded": {
+    "description": "Note when the loaded-spools filter is on but no loaded spool maps to a profile"
+  },
+  "sliceLoadedNoneOfModel": "No printer of this model is online.",
+  "@sliceLoadedNoneOfModel": {
+    "description": "Loaded-spools sheet when no printer of the selected model is online"
+  },
+  "sliceLoadedNothing": "No AMS and no external spool.",
+  "@sliceLoadedNothing": {
+    "description": "Printer in the loaded-spools sheet with no AMS and no external spool"
+  },
+  "sliceSpoolUnidentified": "Unidentified spool",
+  "@sliceSpoolUnidentified": {
+    "description": "Slot holding a spool the printer cannot identify"
+  },
+  "sliceSpoolEmpty": "Empty",
+  "@sliceSpoolEmpty": {
+    "description": "Empty slot in the loaded-spools sheet"
+  },
+  "sliceAllPlates": "Slice all {count} plates",
+  "@sliceAllPlates": {
+    "description": "Slice form switch and submit label: slice every plate of a multi-plate 3MF into one output (web: slice.allPlatesToggle)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sliceAllPlatesHint": "Every plate into one file. The filaments cover every slot of the project.",
+  "@sliceAllPlatesHint": {
+    "description": "Line under the slice-all-plates switch"
+  },
+  "sliceTabSpools": "Spools",
+  "@sliceTabSpools": {
+    "description": "Filament sheet tab: the spools loaded in online printers"
+  },
+  "sliceTabProfiles": "Profiles",
+  "@sliceTabProfiles": {
+    "description": "Filament sheet tab: the profile catalogue"
+  },
+  "sliceNeedsMaterial": "The plate needs: {material}",
+  "@sliceNeedsMaterial": {
+    "description": "Under the filament sheet's title: the material the plate's slot asks for",
+    "placeholders": {
+      "material": {
+        "type": "String"
+      }
+    }
+  },
+  "sliceFilterPrinter": "Printer",
+  "@sliceFilterPrinter": {
+    "description": "Filter row label in the filament sheet: printer model"
+  },
+  "sliceFilterMaterial": "Material",
+  "@sliceFilterMaterial": {
+    "description": "Filter row label in the filament sheet: material"
+  },
+  "sliceFilterBrand": "Brand",
+  "@sliceFilterBrand": {
+    "description": "Filter row label in the filament sheet: brand"
+  },
+  "sliceProfilesShown": "{shown} of {total, plural, =1{1 profile} other{{total} profiles}}",
+  "@sliceProfilesShown": {
+    "description": "Count under the filament filters: profiles shown out of those listed",
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "sliceSpoolsUnavailable": "Unavailable:",
+  "@sliceSpoolsUnavailable": {
+    "description": "Label before the slots that cannot be picked (empty, unidentified, no profile)"
+  },
+  "sliceSpoolFrom": "From a spool · {source}",
+  "@sliceSpoolFrom": {
+    "description": "Line under a filament row filled from a loaded spool; source is printer and slot",
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "sliceSpoolNoProfileShort": "no profile",
+  "@sliceSpoolNoProfileShort": {
+    "description": "In a compact unavailable-slot chip: the spool has no profile for this printer"
+  },
   "sliceOwnedEmpty": "No matching presets for your printer and filaments. Turn on \"All\" to browse the full catalog.",
   "sliceNoPresets": "No presets available",
   "sliceInProgress": "Slicing…",
@@ -3169,18 +3650,186 @@
   },
   "mappingPickTray": "Select AMS slot",
   "mappingExternalSpool": "External spool",
-  "mappingAmsSlot": "AMS {unit} · slot {slot}",
-  "@mappingAmsSlot": {
+  "mappingSaved": "Filament mapping saved",
+  "mappingStatusReady": "Ready",
+  "@mappingStatusReady": {
+    "description": "Filament mapping sheet header: every filament has a slot of its type and color."
+  },
+  "mappingStatusColorMismatch": "Color mismatch",
+  "@mappingStatusColorMismatch": {
+    "description": "Filament mapping sheet header: a filament got a slot of its type but another color."
+  },
+  "mappingStatusTypeNotFound": "Type not found",
+  "@mappingStatusTypeNotFound": {
+    "description": "Filament mapping sheet header: a filament found no slot of its type."
+  },
+  "mappingTapToChange": "Tap a filament to change its slot",
+  "@mappingTapToChange": {
+    "description": "Hint under the filament mapping sheet title."
+  },
+  "mappingExactColor": "Exact color match",
+  "@mappingExactColor": {
+    "description": "Slot picker: the slot holds exactly the color the file asks for."
+  },
+  "mappingSameTypeOtherColor": "Same type, different color: needs {required}, slot has {loaded}",
+  "@mappingSameTypeOtherColor": {
+    "description": "Filament row warning. {required} and {loaded} are color names.",
     "placeholders": {
-      "unit": {
+      "required": {
         "type": "String"
       },
-      "slot": {
+      "loaded": {
         "type": "String"
       }
     }
   },
-  "mappingSaved": "Filament mapping saved",
+  "mappingTypeNotLoaded": "Filament type not loaded",
+  "@mappingTypeNotLoaded": {
+    "description": "Filament row warning: no loaded slot holds this filament type."
+  },
+  "mappingManual": "Picked by hand",
+  "@mappingManual": {
+    "description": "Filament row: the user chose this slot rather than the automatic match. Agrees with \"slot\"."
+  },
+  "mappingRequired": "Required: {name}, {color}",
+  "@mappingRequired": {
+    "description": "Long-press hint on a filament color swatch. {name} is the filament, {color} its color name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "color": {
+        "type": "String"
+      }
+    }
+  },
+  "mappingUseSlicer": "Slicer mapping",
+  "@mappingUseSlicer": {
+    "description": "Filament mapping toggle: take every slot from the mapping the slicer sent with this archived print."
+  },
+  "mappingUseSlicerHint": "Pick every slot from the AMS mapping the slicer saved with this print, instead of matching by type and color.",
+  "@mappingUseSlicerHint": {
+    "description": "Long-press hint on the slicer mapping toggle."
+  },
+  "mappingReRead": "Re-read",
+  "@mappingReRead": {
+    "description": "Filament mapping button: ask the printer to report its AMS again."
+  },
+  "mappingFtsSameInlet": "All filaments for this print are on Filament Track Switch IN-{inlet}. Switching between filaments on the same inlet is slower — move one to an AMS on the other inlet to speed it up.",
+  "@mappingFtsSameInlet": {
+    "description": "Filament mapping warning on a printer with a Filament Track Switch. {inlet} is the inlet letter, A or B.",
+    "placeholders": {
+      "inlet": {
+        "type": "String"
+      }
+    }
+  },
+  "mappingRackPosition": "Rack position",
+  "@mappingRackPosition": {
+    "description": "Title of the sheet that picks which nozzle-rack position (H2C tool changer) prints one filament."
+  },
+  "mappingRackPositionHint": "Which nozzle on the rack prints this filament. Positions are numbered as on the printer.",
+  "@mappingRackPositionHint": {
+    "description": "Tooltip on the rack-position picker in a filament mapping row, and the explanation at the top of its sheet."
+  },
+  "mappingRackNeeds": "This filament needs a {nozzle} nozzle.",
+  "@mappingRackNeeds": {
+    "description": "Top of the rack-position sheet. {nozzle} is a nozzle like \"0.4 High flow\".",
+    "placeholders": {
+      "nozzle": {
+        "type": "String"
+      }
+    }
+  },
+  "mappingRackEmptyPosition": "This rack position is empty",
+  "@mappingRackEmptyPosition": {
+    "description": "Why a rack position cannot be picked: no nozzle is docked there."
+  },
+  "mappingRackWrongNozzle": "Holds a {has} nozzle; this filament needs {needs}",
+  "@mappingRackWrongNozzle": {
+    "description": "Why a rack position cannot be picked. {has} and {needs} are nozzles like \"0.2 Standard\" and \"0.4 High flow\".",
+    "placeholders": {
+      "has": {
+        "type": "String"
+      },
+      "needs": {
+        "type": "String"
+      }
+    }
+  },
+  "mappingRackSlot": "R{position}",
+  "@mappingRackSlot": {
+    "description": "Short name of a nozzle-rack position as the printer numbers it, 1–6 (R1…R6).",
+    "placeholders": {
+      "position": {
+        "type": "int"
+      }
+    }
+  },
+  "colorFamilyRed": "Red",
+  "@colorFamilyRed": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyOrange": "Orange",
+  "@colorFamilyOrange": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyYellow": "Yellow",
+  "@colorFamilyYellow": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyGreen": "Green",
+  "@colorFamilyGreen": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyCyan": "Cyan",
+  "@colorFamilyCyan": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyBlue": "Blue",
+  "@colorFamilyBlue": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyPurple": "Purple",
+  "@colorFamilyPurple": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyPink": "Pink",
+  "@colorFamilyPink": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyBrown": "Brown",
+  "@colorFamilyBrown": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyWhite": "White",
+  "@colorFamilyWhite": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyLightGray": "Light gray",
+  "@colorFamilyLightGray": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyGray": "Gray",
+  "@colorFamilyGray": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyDarkGray": "Dark gray",
+  "@colorFamilyDarkGray": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyBlack": "Black",
+  "@colorFamilyBlack": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyClear": "Clear",
+  "@colorFamilyClear": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyUnknown": "Unknown",
+  "@colorFamilyUnknown": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
   "plateClearTitle": "Is the plate clear?",
   "plateClearBody": "Make sure the build plate is empty before starting this print.",
   "plateClearConfirm": "Plate is clear",
@@ -3422,6 +4071,22 @@
   "queueScheduleSchedule": "Schedule",
   "queueEditPickTime": "Pick date & time",
   "queueEditRequireManualStart": "Require manual start",
+  "queueBadgeStaged": "Staged",
+  "@queueBadgeStaged": {
+    "description": "Chip on a queue row whose job waits for a manual start (web: queue.badges.staged)"
+  },
+  "queueBadgeAwaitingReview": "Waiting for review",
+  "@queueBadgeAwaitingReview": {
+    "description": "Chip on a queue row whose job waits for a reviewer to start it, shown instead of Staged to a user who may not start jobs (#1620)"
+  },
+  "queueAwaitingReviewRefused": "This job waits for review: someone who manages the queue has to start it.",
+  "@queueAwaitingReviewRefused": {
+    "description": "Snackbar when the server refuses to start a job, or to clear its manual start, because the user is held for review"
+  },
+  "queueEditAwaitingReviewNote": "Your print waits for review: it starts once someone who manages the queue starts it.",
+  "@queueEditAwaitingReviewNote": {
+    "description": "Shown in the print form instead of the Require manual start switch to a user whose jobs always wait for review"
+  },
   "queueEditRequirePrevious": "Only start if previous print succeeded",
   "queueEditPowerOff": "Power off printer when done",
   "queueEditGcodeInjection": "Inject auto-print G-code",
@@ -3451,54 +4116,6 @@
     }
   },
   "queueEditForceColorMatch": "Force color match",
-  "queueEditNozzleRack": "Nozzle rack",
-  "queueEditNozzleRackDesc": "Choose which rack nozzle each filament prints from. Left automatic, a fitting position is picked when the print starts.",
-  "queueEditRackGroupLabel": "Filament {slots} · {nozzle}",
-  "@queueEditRackGroupLabel": {
-    "placeholders": {
-      "slots": {
-        "type": "String"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackAuto": "Automatic",
-  "queueEditRackPosition": "Position {position} · {nozzle}",
-  "@queueEditRackPosition": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackPositionTaken": "Position {position} · {nozzle} — already chosen",
-  "@queueEditRackPositionTaken": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackPositionUnfit": "Position {position} · {nozzle} — does not fit",
-  "@queueEditRackPositionUnfit": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackEmpty": "empty",
   "queueEditRackPickStale": "The chosen position no longer fits this filament — pick another, or the print is refused at start.",
   "queueEditRackNoFit": "No rack position holds a {nozzle} nozzle — fit one, or the printer decides for itself.",
   "@queueEditRackNoFit": {
@@ -3700,7 +4317,7 @@
   "groupsAdvancedHint": "Users, API keys, settings, backups — everything the app itself has no screen for.",
   "serverSettingsMenu": "Server settings",
   "serverSettingsTitle": "Server settings",
-  "serverSettingsQueueSubtitle": "Scheduling, preheat, and holding a bed warm between prints",
+  "serverSettingsQueueSubtitle": "Scheduling, preheat, holding a bed warm between prints, and asking how prints came out",
   "serverSettingsMaintenanceSubtitle": "Task types and per-printer intervals",
   "serverSettingsAdminSubtitle": "Accounts, groups and API keys",
   "serverSettingsCloudSubtitle": "The Bambu account the server downloads with",
@@ -3856,6 +4473,8 @@
   "apiKeyScopeCloudHint": "Reads the cloud on behalf of the account that creates the key. Needs authentication switched on server-side.",
   "apiKeyScopeEnergy": "Energy price",
   "apiKeyScopeEnergyHint": "The one settings value a key may write — for a dynamic tariff.",
+  "apiKeyScopeNotifications": "Send notifications",
+  "apiKeyScopeNotificationsHint": "Lets another app post a message to the notification channels that accept messages from connected apps. The key's owner also needs permission to manage notifications.",
   "printLogTitle": "Print log",
   "printLogSearchHint": "Search runs",
   "printLogEmpty": "No runs recorded yet",
@@ -4202,5 +4821,862 @@
   "orderEditTargetMore": "One more run",
   "queueEditOrderRefused": "The order could not be made, so the copies were queued as a plain batch.",
   "inventoryQuantityLess": "One spool fewer to add",
-  "inventoryQuantityMore": "One more spool to add"
+  "inventoryQuantityMore": "One more spool to add",
+  "outcomeGoodPart": "Good part",
+  "@outcomeGoodPart": {
+    "description": "A print the user confirmed came out well (badge on an archive card, verdict line in the detail sheet)"
+  },
+  "outcomeRejected": "Rejected",
+  "@outcomeRejected": {
+    "description": "A print that finished on the printer but the user marked as scrap"
+  },
+  "outcomeAwaiting": "Awaiting verdict",
+  "@outcomeAwaiting": {
+    "description": "A print that asked for an outcome verdict nobody has given yet; also the archive filter that shows only those"
+  },
+  "outcomeNotRecorded": "No verdict recorded",
+  "@outcomeNotRecorded": {
+    "description": "Detail sheet line for a completed print that has no outcome verdict and was never asked for one"
+  },
+  "outcomeSourceDialog": "Recorded in the app.",
+  "@outcomeSourceDialog": {
+    "description": "How an outcome verdict was recorded: in the app (this one or the web UI)"
+  },
+  "outcomeSourceLink": "Recorded with a one-tap link.",
+  "@outcomeSourceLink": {
+    "description": "How an outcome verdict was recorded: a one-tap link from a push notification (Telegram, ntfy…)"
+  },
+  "outcomeSourcePlateClear": "Recorded when the plate was cleared.",
+  "@outcomeSourcePlateClear": {
+    "description": "How an outcome verdict was recorded: automatically counted as good when the build plate was marked clear"
+  },
+  "outcomeSourcePrinterCard": "Recorded from the printer card.",
+  "@outcomeSourcePrinterCard": {
+    "description": "How an outcome verdict was recorded: from the printer card in the web UI"
+  },
+  "outcomeSourceApi": "Recorded through the API.",
+  "@outcomeSourceApi": {
+    "description": "How an outcome verdict was recorded: by a script or integration through the server API"
+  },
+  "outcomeSourceReaction": "Recorded with a reaction in chat.",
+  "@outcomeSourceReaction": {
+    "description": "How an outcome verdict was recorded: with a reaction to the chat message"
+  },
+  "outcomeTitle": "How did your print come out?",
+  "@outcomeTitle": {
+    "description": "Heading of the sheet that asks for a finished print's outcome verdict"
+  },
+  "outcomeGood": "Good",
+  "@outcomeGood": {
+    "description": "Button: record the print as a good part"
+  },
+  "outcomeReject": "Reject",
+  "@outcomeReject": {
+    "description": "Button: record the print as scrap (then asks for an optional reason)"
+  },
+  "outcomeLater": "Ask me later",
+  "@outcomeLater": {
+    "description": "Button: close the outcome sheet without answering; the print keeps its 'awaiting verdict' badge"
+  },
+  "outcomeClear": "Clear verdict",
+  "@outcomeClear": {
+    "description": "Button: remove the verdict a print already has, so it has none again"
+  },
+  "outcomeRejectReason": "Reject reason (optional)",
+  "@outcomeRejectReason": {
+    "description": "Label of the dropdown for why a print was rejected"
+  },
+  "outcomeNoReason": "No reason",
+  "@outcomeNoReason": {
+    "description": "Dropdown entry: reject without naming a reason"
+  },
+  "outcomeSaveReject": "Save",
+  "@outcomeSaveReject": {
+    "description": "Button: save the reject with the chosen reason"
+  },
+  "outcomeRejectAndReprint": "Print again",
+  "@outcomeRejectAndReprint": {
+    "description": "Button: save the reject and open the print form to print the same file again"
+  },
+  "outcomeSavedGood": "Marked as good part",
+  "@outcomeSavedGood": {
+    "description": "Confirmation after a print was recorded as a good part"
+  },
+  "outcomeSavedReject": "Marked as rejected",
+  "@outcomeSavedReject": {
+    "description": "Confirmation after a print was recorded as rejected"
+  },
+  "outcomeCleared": "Verdict removed",
+  "@outcomeCleared": {
+    "description": "Confirmation after a print's verdict was removed"
+  },
+  "outcomeUnsupported": "The server did not store the verdict. Update bambuddy to record print outcomes.",
+  "@outcomeUnsupported": {
+    "description": "Shown when the server answered but did not store the verdict (a server older than the feature)"
+  },
+  "queueOptConfirmOutcome": "Ask for outcome",
+  "@queueOptConfirmOutcome": {
+    "description": "Print form switch: ask how the print came out once it completes"
+  },
+  "queueOptConfirmOutcomeDesc": "Ask whether the print came out well after it completes",
+  "@queueOptConfirmOutcomeDesc": {
+    "description": "Explains the ask-for-outcome switch in the print form"
+  },
+  "queueSettingsOutcomeHeader": "Print outcome",
+  "@queueSettingsOutcomeHeader": {
+    "description": "Section header on the server's queue settings screen: asking how prints came out (#1898)"
+  },
+  "queueSettingsOutcomeDefaultTitle": "Ask for outcome on new prints",
+  "@queueSettingsOutcomeDefaultTitle": {
+    "description": "Server setting default_confirm_outcome: whether new jobs ask for their outcome by default"
+  },
+  "queueSettingsOutcomeDefaultDesc": "New jobs ask for their outcome by default — in the print form, where each job can still change it, and where there is no form, such as adding several files to the queue at once or a pipeline run.",
+  "@queueSettingsOutcomeDefaultDesc": {
+    "description": "Explains default_confirm_outcome: where the print form's switch starts, and whether jobs queued without a form (bulk add, pipelines, webhook, virtual printer) ask"
+  },
+  "queueSettingsOutcomeExternalTitle": "Also ask about prints started elsewhere",
+  "@queueSettingsOutcomeExternalTitle": {
+    "description": "Server setting confirm_outcome_external_prints: also ask about prints bambuddy did not start"
+  },
+  "queueSettingsOutcomeExternalDesc": "A print started on the printer, in Bambu Studio or in Bambu Handy that Bambuddy archives gets the outcome question too.",
+  "@queueSettingsOutcomeExternalDesc": {
+    "description": "Explains confirm_outcome_external_prints"
+  },
+  "queueSettingsOutcomePlateClearTitle": "Count an unanswered print as good once the plate is confirmed clear",
+  "@queueSettingsOutcomePlateClearTitle": {
+    "description": "Server setting confirm_default_good_on_plate_clear: an unanswered outcome counts as good once the plate is marked clear"
+  },
+  "queueSettingsOutcomePlateClearDesc": "When someone confirms the plate is clear — or, with that confirmation off, when the next queued job is sent to this printer — a completed print still awaiting its verdict is recorded as a good part. A notification link opened after that only shows what was recorded.",
+  "@queueSettingsOutcomePlateClearDesc": {
+    "description": "Explains confirm_default_good_on_plate_clear"
+  },
+  "notifEvtOutcome": "Outcome question",
+  "@notifEvtOutcome": {
+    "description": "Notification settings switch: the question asked when a print that opted in completes"
+  },
+  "notifEvtOutcomeDesc": "When a print that asks for its outcome completes — answer Good or Reject from the notification",
+  "@notifEvtOutcomeDesc": {
+    "description": "Explains the outcome-question notification switch"
+  },
+  "outcomeNotifTitle": "How did {name} come out?",
+  "@outcomeNotifTitle": {
+    "description": "Title of the notification asking how a finished print came out; {name} is the print's name",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "outcomeNotifBody": "Answer here, or tap to see the finish photo first.",
+  "@outcomeNotifBody": {
+    "description": "Body of the outcome notification: what tapping it and its two buttons do"
+  },
+  "queueOptConfirmOutcomeSticky": "This print already asks for its outcome, and so does every reprint of it",
+  "@queueOptConfirmOutcomeSticky": {
+    "description": "Replaces the ask-for-outcome description on a reprint of an archive that already asks — the server keeps asking for every reprint of it, so the switch cannot turn it off"
+  },
+  "wallModeTitle": "Wall mode",
+  "@wallModeTitle": {
+    "description": "Name of the always-on farm view for a phone or tablet on a stand; also the dashboard button's tooltip"
+  },
+  "wallModeExit": "Exit wall mode",
+  "@wallModeExit": {
+    "description": "Tooltip of the button that leaves wall mode"
+  },
+  "wallKeepAwakeTitle": "Keep screen awake",
+  "@wallKeepAwakeTitle": {
+    "description": "Switch: hold the screen on while wall mode is open"
+  },
+  "wallKeepAwakeDesc": "The screen stays on while wall mode is open. Off lets the device's own screen timeout apply.",
+  "@wallKeepAwakeDesc": {
+    "description": "Explains the keep-screen-awake switch in wall mode"
+  },
+  "wallPanelFarm": "Farm",
+  "@wallPanelFarm": {
+    "description": "Header of the wall's side panel while it shows the printer farm's errors and queue"
+  },
+  "wallPanelSettings": "Settings",
+  "@wallPanelSettings": {
+    "description": "Header of the wall's side panel while it shows the wall settings; also the settings button's tooltip"
+  },
+  "wallPanelExpand": "Expand panel",
+  "@wallPanelExpand": {
+    "description": "Tooltip of the button that expands the wall's side panel from its rail"
+  },
+  "wallPanelCollapse": "Collapse panel",
+  "@wallPanelCollapse": {
+    "description": "Tooltip of the button that collapses the wall's side panel to a rail"
+  },
+  "wallErrorsTitle": "Errors",
+  "@wallErrorsTitle": {
+    "description": "Section header in the wall panel listing active printer faults across the farm"
+  },
+  "wallNoFaults": "No active errors",
+  "@wallNoFaults": {
+    "description": "Shown in the wall panel's errors section when no printer has an active fault"
+  },
+  "wallQueueCount": "{count, plural, =1{1 in the queue} other{{count} in the queue}}",
+  "@wallQueueCount": {
+    "description": "Screen-reader label for the queue count on the wall's collapsed rail",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "wallLivePaused": "Live paused",
+  "@wallLivePaused": {
+    "description": "Marker on a wall tile whose live camera stream failed; the tile shows a snapshot refreshed every few seconds instead"
+  },
+  "wallLiveCameraTitle": "Live camera",
+  "@wallLiveCameraTitle": {
+    "description": "Switch in the wall settings: stream each printer's camera behind its tile"
+  },
+  "wallLiveCameraDesc": "Off shows each printer's status only and opens no camera stream.",
+  "@wallLiveCameraDesc": {
+    "description": "Explains the wall's live camera switch"
+  },
+  "wallPrintersTitle": "Printers on the wall",
+  "@wallPrintersTitle": {
+    "description": "Header over the list of printers the user can show or hide on the wall"
+  },
+  "wallAllHidden": "Every printer is hidden from this wall — show them in the settings.",
+  "@wallAllHidden": {
+    "description": "Shown in place of the wall's tiles when the server has printers but all are hidden on this device"
+  },
+  "inventorySuppliersTitle": "Suppliers",
+  "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
+  "inventorySuppliersEmpty": "No suppliers yet",
+  "inventorySuppliersLoadFailed": "Couldn't load the suppliers",
+  "inventorySupplierAdd": "Add",
+  "@inventorySupplierAdd": {
+    "description": "Button next to the supplier list's title that opens an empty supplier form."
+  },
+  "inventorySupplierNew": "New supplier",
+  "inventorySupplierEdit": "Edit supplier",
+  "inventorySupplierFieldName": "Name",
+  "inventorySupplierFieldWebsite": "Website",
+  "inventorySupplierFieldCustomerNumber": "Your customer number",
+  "@inventorySupplierFieldCustomerNumber": {
+    "description": "The user's own customer number at this supplier, not the supplier's id."
+  },
+  "inventorySupplierCustomerNumberValue": "Customer no. {number}",
+  "@inventorySupplierCustomerNumberValue": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "inventorySupplierNameSeparator": "A name can't contain a semicolon",
+  "@inventorySupplierNameSeparator": {
+    "description": "The server joins supplier names with ';' in its CSV export and refuses a name containing one."
+  },
+  "inventorySupplierNameTaken": "A supplier with this name already exists",
+  "inventorySupplierSaved": "Supplier saved",
+  "inventorySupplierDeleted": "Supplier deleted",
+  "inventorySupplierDeleteTitle": "Delete {name}?",
+  "@inventorySupplierDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "inventorySupplierDeleteBody": "It's removed from the list of suppliers.",
+  "inventorySupplierInUse": "{count, plural, one{Assigned to 1 spool — remove it from that spool first} other{Assigned to {count} spools — remove it from those spools first}}",
+  "@inventorySupplierInUse": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inventorySupplierInUseUnknown": "Still assigned to a spool — remove it there first",
+  "@inventorySupplierInUseUnknown": {
+    "description": "The server refused a delete because a spool was given this supplier after the list was loaded."
+  },
+  "inventorySupplierBoughtHere": "Bought here",
+  "@inventorySupplierBoughtHere": {
+    "description": "Marks the one supplier a spool was actually bought from; the others are alternative sources. Agrees with 'spool'."
+  },
+  "inventorySupplierArticleValue": "Art. no. {number}",
+  "@inventorySupplierArticleValue": {
+    "description": "The supplier's own article number for the product.",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "inventorySupplierQuotedPrice": "quoted {price}/kg",
+  "@inventorySupplierQuotedPrice": {
+    "description": "A price per kg quoted at this supplier, for comparing sources. Not what the spool cost.",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "inventorySupplierLinksHint": "Where this product can be bought. Mark the one you bought this spool from.",
+  "inventoryBulkSupplierLinksHint": "Added to every selected spool; the suppliers a spool already has stay. “Bought here” replaces its current purchase source.",
+  "inventorySupplierAssign": "Add supplier",
+  "@inventorySupplierAssign": {
+    "description": "Opens a picker to assign a supplier to the spool being edited."
+  },
+  "inventorySupplierUnassign": "Remove from this spool",
+  "inventorySupplierFieldArticle": "Article no.",
+  "@inventorySupplierFieldArticle": {
+    "description": "The supplier's own article number for the product."
+  },
+  "inventorySupplierFieldQuotedPrice": "Quoted price/kg",
+  "@inventorySupplierFieldQuotedPrice": {
+    "description": "Price per kg at this supplier, for comparing sources; the spool's own cost per kg stays what prints are charged at."
+  },
+  "inventorySupplierNoneLeft": "Every supplier is already on this spool",
+  "statsBySupplier": "By supplier",
+  "statsBySupplierHint": "Filament used from spools bought at each supplier, and what it cost. Stock counts active spools and ignores the date range.",
+  "statsBySupplierFailed": "Couldn't load the supplier figures",
+  "statsByMaterialNumber": "By material number",
+  "statsByMaterialNumberHint": "Filament used from spools sharing each material number, and what it cost. Stock counts active spools and ignores the date range.",
+  "statsByMaterialNumberFailed": "Couldn't load the material number figures",
+  "statsSupplierDetail": "{spools} · {remaining} in stock · cost {cost}",
+  "@statsSupplierDetail": {
+    "description": "Line under one supplier's bar. {spools} is already a counted phrase such as '2 spools'; {remaining} is a weight with its unit.",
+    "placeholders": {
+      "spools": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "inventoryDetailSlot": "Slot",
+  "inventoryDetailNotLoaded": "Not loaded",
+  "inventoryDetailConsumedSinceReset": "Consumed since reset",
+  "@inventoryDetailNotLoaded": {
+    "description": "Value of the detail sheet's Slot row when the spool is in no AMS slot or external holder. Agrees with 'spool'."
+  },
+  "inventorySupplierArchivedCount": "{count} archived",
+  "@inventorySupplierArchivedCount": {
+    "description": "Link under a supplier to its archived spools; sits next to the active count ('2 spools'), so the noun is left out. Agrees with 'spool'.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeJustNow": "Just now",
+  "@timeJustNow": {
+    "description": "A moment ago, in a list of past events."
+  },
+  "timeNow": "Now",
+  "@timeNow": {
+    "description": "Within a minute from now."
+  },
+  "timeMinutesAgo": "{count} min ago",
+  "@timeMinutesAgo": {
+    "description": "Short relative time in the past.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeInMinutes": "in {count} min",
+  "@timeInMinutes": {
+    "description": "Short relative time in the future.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeHoursAgo": "{count} h ago",
+  "@timeHoursAgo": {
+    "description": "Short relative time in the past.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeInHours": "in {count} h",
+  "@timeInHours": {
+    "description": "Short relative time in the future.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeDaysAgo": "{count, plural, =1{1 day ago} other{{count} days ago}}",
+  "@timeDaysAgo": {
+    "description": "Short relative time in the past.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeInDays": "{count, plural, =1{in 1 day} other{in {count} days}}",
+  "@timeInDays": {
+    "description": "Short relative time in the future.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueHistory": "History",
+  "@queueHistory": {
+    "description": "Tab and heading of finished, failed, skipped and cancelled queue items."
+  },
+  "queueItemCount": "{count, plural, =1{1 item} other{{count} items}}",
+  "@queueItemCount": {
+    "description": "How many items a list holds.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueHistoryEmpty": "No history yet. Completed, cancelled and failed prints will appear here.",
+  "@queueHistoryEmpty": {
+    "description": "Empty queue history."
+  },
+  "queueHistoryShowMore": "Show more",
+  "@queueHistoryShowMore": {
+    "description": "Button under the queue history that shows the next page of items."
+  },
+  "queueHistoryShowing": "Showing {shown} of {total}",
+  "@queueHistoryShowing": {
+    "description": "Under the queue history: how many items are on screen out of all of them.",
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "queueHistorySort": "Sort",
+  "@queueHistorySort": {
+    "description": "Menu that orders the queue history."
+  },
+  "queueHistorySortDate": "By date",
+  "@queueHistorySortDate": {
+    "description": "Order the queue history by when each item finished."
+  },
+  "queueHistorySortName": "By name",
+  "@queueHistorySortName": {
+    "description": "Order the queue history by file name."
+  },
+  "queueHistorySortPrinter": "By printer",
+  "@queueHistorySortPrinter": {
+    "description": "Order the queue history by printer name."
+  },
+  "queueHistoryNewestFirst": "Newest first",
+  "@queueHistoryNewestFirst": {
+    "description": "Queue history order: newest first."
+  },
+  "queueHistoryOldestFirst": "Oldest first",
+  "@queueHistoryOldestFirst": {
+    "description": "Queue history order: oldest first."
+  },
+  "queueHistoryClear": "Clear history",
+  "@queueHistoryClear": {
+    "description": "Button that removes every item from the queue history."
+  },
+  "queueHistoryClearTitle": "Clear history",
+  "@queueHistoryClearTitle": {
+    "description": "Title of the confirmation before clearing the queue history."
+  },
+  "queueHistoryClearMessage": "{count, plural, =1{Remove 1 item from the history?} other{Remove all {count} items from the history?}}",
+  "@queueHistoryClearMessage": {
+    "description": "Confirmation before clearing the queue history.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueHistoryCleared": "{count, plural, =1{Cleared 1 history item.} other{Cleared {count} history items.}}",
+  "@queueHistoryCleared": {
+    "description": "After clearing the queue history.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueHistoryKeptForOrders": "Kept {kept} that batch orders still need.",
+  "@queueHistoryKeptForOrders": {
+    "description": "After clearing the queue history: items the server kept because a batch order can still re-queue its plate from them.",
+    "placeholders": {
+      "kept": {
+        "type": "int"
+      }
+    }
+  },
+  "queueHistoryClearFailed": "Could not clear the history.",
+  "@queueHistoryClearFailed": {
+    "description": "Clearing the queue history failed."
+  },
+  "queueHistoryNoClear": "You do not have permission to clear all history",
+  "@queueHistoryNoClear": {
+    "description": "Why clearing the queue history is unavailable."
+  },
+  "queueHistoryRequeue": "Re-queue",
+  "@queueHistoryRequeue": {
+    "description": "Button on a queue history item that queues the same file again."
+  },
+  "queueHistoryNoRequeue": "You do not have permission to re-queue items",
+  "@queueHistoryNoRequeue": {
+    "description": "Why re-queueing is unavailable."
+  },
+  "queueHistoryRemove": "Remove",
+  "@queueHistoryRemove": {
+    "description": "Button on a queue history item that removes it."
+  },
+  "queueHistoryNoRemove": "You do not have permission to remove this queue item",
+  "@queueHistoryNoRemove": {
+    "description": "Why removing a queue history item is unavailable."
+  },
+  "queueHistoryRemoveTitle": "Remove from history",
+  "@queueHistoryRemoveTitle": {
+    "description": "Title of the confirmation before removing one queue history item."
+  },
+  "queueHistoryRemoveMessage": "Remove “{name}” from the queue history?",
+  "@queueHistoryRemoveMessage": {
+    "description": "Confirmation before removing one queue history item. {name} is the file name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "queueHistoryAddedBy": "Added by {name}",
+  "@queueHistoryAddedBy": {
+    "description": "Who put a queue item in the queue.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "queueHistoryBatch": "Batch",
+  "@queueHistoryBatch": {
+    "description": "Name of a batch of queue items that has none of its own."
+  },
+  "queueHistoryRemoved": "Queue item removed",
+  "@queueHistoryRemoved": {
+    "description": "After removing one queue history item."
+  },
+  "queueHistoryKeptForOrder": "Cancelled instead of removed: this is the only run its batch order can re-queue this plate from",
+  "@queueHistoryKeptForOrder": {
+    "description": "After removing a queue history item the server kept, cancelled, because its batch order can only re-queue the plate from it."
+  },
+  "queueBillingUseWeb": "Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.",
+  "@queueBillingUseWeb": {
+    "description": "Shown on the print-job form, and in place of the server refusal on create, edit or start, when the server enforces cost-center billing, which the app does not support yet."
+  },
+  "labelPrinterTitle": "Label printer",
+  "labelPrinterEntrySubtitle": "Print spool labels on a Brother QL print server on your network",
+  "labelPrinterIntro": "A separate print server for Brother QL label printers. Spool labels go straight to it instead of the system print dialog.",
+  "labelPrinterNotSet": "No label printer chosen",
+  "labelPrinterReady": "{model} · {label} labels",
+  "@labelPrinterReady": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "labelPrinterPrinterOff": "Server answers, but the printer is not connected",
+  "labelPrinterOffline": "Not answering",
+  "labelPrinterWrongStock": "Loaded with {label} labels; spool labels need 62 × 29 mm",
+  "@labelPrinterWrongStock": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "labelPrinterSearch": "Search network",
+  "labelPrinterSearching": "Searching…",
+  "labelPrinterNoneFound": "Nothing found. Check that the phone is on the same Wi-Fi, or enter the address below.",
+  "labelPrinterDiscoveryFailed": "Network search is not available on this device",
+  "labelPrinterAddress": "Server address",
+  "labelPrinterSave": "Save",
+  "labelPrinterRemove": "Remove",
+  "labelPrinterNotAServer": "Nothing at this address answers as a label print server",
+  "labelPrinterVlanNote": "Discovery does not cross VLANs or a guest Wi-Fi; enter the address by hand there.",
+  "labelPrinterPrintOn": "Print on the label printer",
+  "labelPrinterSent": "Sent to the label printer",
+  "labelPrinterFailed": "The label printer did not accept the job",
+  "labelPrinterUnreachable": "The label printer does not answer",
+  "labelPrinterRefused": "The label printer refused the job: {detail}",
+  "@labelPrinterRefused": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "labelPrinterSetUp": "Set up a label printer",
+  "labelPrinterSetUpHint": "Print these labels on a Brother QL print server in your network",
+  "labelOptionsTitle": "Print options",
+  "labelFieldsTitle": "Print on the label",
+  "labelFieldsReset": "Reset to default",
+  "labelFieldBrand": "Brand",
+  "labelFieldMaterial": "Material and subtype",
+  "labelFieldHex": "Colour code",
+  "labelFieldName": "Colour or filament name",
+  "labelFieldLocation": "Storage location",
+  "labelFieldMaterialNumber": "Material number",
+  "labelFieldTemps": "Nozzle temperature",
+  "labelFieldWeight": "Net weight",
+  "labelFieldNote": "Note",
+  "labelFieldAdded": "Date added",
+  "labelFieldQr": "QR code",
+  "labelFieldSpoolId": "Spool ID",
+  "labelFormatTitle": "Output",
+  "labelFormatPngHint": "Match your printer's resolution. Several labels come as a ZIP.",
+  "labelDpiTitle": "Resolution",
+  "labelSendToTitle": "Send to",
+  "labelSendSystem": "Print dialog",
+  "labelSendShare": "Share",
+  "labelSendSave": "Save to file",
+  "labelSendPrinter": "Label printer",
+  "labelPrinterCopies": "Copies",
+  "labelPrinterCutAtEnd": "Cut after the last label",
+  "labelPrinterCutEvery": "Labels between cuts",
+  "labelPrinterCutEveryHint": "0 means no cut between labels.",
+  "labelCutEveryLess": "One label fewer between cuts",
+  "labelCutEveryMore": "One label more between cuts",
+  "labelSaved": "Labels saved",
+  "printerLocationsMenu": "Printer locations",
+  "printerLocationsSubtitle": "In a location: {grouped}, without one: {ungrouped}",
+  "@printerLocationsSubtitle": {
+    "placeholders": {
+      "grouped": {
+        "type": "int"
+      },
+      "ungrouped": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsSearch": "Search locations",
+  "printerLocationsHideEmpty": "Hide empty",
+  "printerLocationsSortNameAsc": "Name A→Z",
+  "printerLocationsSortNameDesc": "Name Z→A",
+  "printerLocationsSortCountAsc": "Fewest printers",
+  "printerLocationsSortCountDesc": "Most printers",
+  "printerLocationsSort": "Sort",
+  "printerLocationsSelect": "Select",
+  "printerLocationsDone": "Done",
+  "printerLocationsNew": "New location",
+  "printerLocationsCreateTitle": "Create location",
+  "printerLocationsEditTitle": "Edit location",
+  "printerLocationsCreate": "Create",
+  "printerLocationsSave": "Save",
+  "printerLocationsFieldName": "Location name",
+  "printerLocationsFieldIcon": "Icon",
+  "printerLocationsFieldColor": "Color",
+  "printerLocationsNoColor": "No color",
+  "printerLocationsEmpty": "No printer locations yet",
+  "printerLocationsNoResults": "No locations match your search",
+  "printerLocationsPrinterCount": "Printers: {count}",
+  "@printerLocationsPrinterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsNoPrinters": "No printers in this location",
+  "printerLocationsSelectPrinter": "Select printer",
+  "printerLocationsMove": "Move to another location",
+  "printerLocationsMoveButton": "Move",
+  "printerLocationsRemoveFromLocation": "Remove from location",
+  "printerLocationsUngrouped": "Printers without a location: {count}",
+  "@printerLocationsUngrouped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsSelectAll": "Select all",
+  "printerLocationsDeselectAll": "Deselect all",
+  "printerLocationsSelected": "Selected: {count}",
+  "@printerLocationsSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsDeleteSelected": "Delete selected",
+  "printerLocationsMoveTitle": "Move printer",
+  "printerLocationsMoveTitleMany": "Move printers ({count})",
+  "@printerLocationsMoveTitleMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsTargetHint": "Select a location",
+  "printerLocationsNoLocation": "No location",
+  "printerLocationsDeleteTitle": "Delete location",
+  "printerLocationsDeleteTitleMany": "Delete locations ({count})",
+  "@printerLocationsDeleteTitleMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsDeleteMessage": "Delete {names}? Printers left without a location: {count}.",
+  "@printerLocationsDeleteMessage": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsCreated": "Location created",
+  "printerLocationsSaved": "Location saved",
+  "printerLocationsDeleted": "Locations deleted: {count}",
+  "@printerLocationsDeleted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsMoved": "Printers moved: {count}",
+  "@printerLocationsMoved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "printerLocationsNameTaken": "A location with this name already exists",
+  "printerLocationsReadOnly": "Only a user account can change locations; an API key can only read them.",
+  "dashboardSortTitle": "Sort by",
+  "dashboardSortName": "Name",
+  "dashboardSortModel": "Model",
+  "dashboardSortLocation": "Location",
+  "dashboardSortEta": "Time left",
+  "dashboardSortAscending": "Ascending",
+  "dashboardSortDescending": "Descending",
+  "dashboardLocationAll": "All locations",
+  "dashboardGroupUngrouped": "No location",
+  "dashboardGroupUnknownModel": "Unknown model",
+  "announcementsTitle": "Announcements",
+  "announcementsUnread": "Unread announcements: {count}",
+  "@announcementsUnread": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "announcementsEmpty": "No announcements right now.",
+  "announcementsEarlier": "Earlier ({count})",
+  "@announcementsEarlier": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "announcementsNew": "New",
+  "announcementsReadMore": "Read more",
+  "announcementsSource": "From the Bambuddy maintainers, fetched from GitHub.",
+  "announcementLevelInfo": "Info",
+  "announcementLevelImportant": "Important",
+  "announcementLevelCritical": "Critical",
+  "announcementsMarkAllRead": "Mark all as read",
+  "archiveRunCount": "{count, plural, =1{1 run} other{{count} runs}}",
+  "@archiveRunCount": {
+    "description": "How many times this archive was printed, on a chip in the archive detail",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveLayerCount": "{count, plural, =1{1 layer} other{{count} layers}}",
+  "@archiveLayerCount": {
+    "description": "Layer count of a sliced print",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveObjectCount": "{count, plural, =1{1 object} other{{count} objects}}",
+  "@archiveObjectCount": {
+    "description": "Printable objects on the plate",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archivePrintCost": "Print cost",
+  "@archivePrintCost": {
+    "description": "Heading of the summed cost (filament, energy, printer wear) in the archive detail"
+  },
+  "archiveSlicedFor": "Sliced for {model}",
+  "@archiveSlicedFor": {
+    "description": "Screen-reader label of the printer model a file was sliced for",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveTimeDetail": "Estimated {estimated}, actual {actual}",
+  "@archiveTimeDetail": {
+    "description": "Tooltip on the print time: slicer estimate and measured duration",
+    "placeholders": {
+      "estimated": {
+        "type": "String"
+      },
+      "actual": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveOpenLink": "Link",
+  "@archiveOpenLink": {
+    "description": "Button opening the model page (MakerWorld or a user link)"
+  },
+  "archiveSlot": "slot {slot}",
+  "@archiveSlot": {
+    "description": "AMS slot number beside one filament of a multi-material print",
+    "placeholders": {
+      "slot": {
+        "type": "int"
+      }
+    }
+  }
 }

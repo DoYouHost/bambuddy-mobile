@@ -193,5 +193,62 @@ void main() {
         expect(await memory.recall(3, _now), isNull);
       },
     );
+
+    testWithClock('a quiet re-post is an update too', _now, (_) async {
+      final service = RememberingNotifications(
+        RecordingNotifications(),
+        memory,
+      );
+
+      await service.showAlert(
+        event: NotifEvent.printFinished,
+        printerId: 3,
+        id: 1003,
+        title: 't',
+        body: 'b',
+        quiet: true,
+      );
+
+      expect(await memory.recall(3, _now), isNull);
+    });
+  });
+
+  // Both updates re-post everything, so whatever one added has to come back
+  // out of the memory for the other — in whichever isolate reads it.
+  testWithClock('buttons and photo survive the round trip', _now, (_) async {
+    await memory.remember(
+      PostedAlert(
+        event: NotifEvent.printFinished,
+        printerId: 3,
+        id: 1003,
+        title: 't',
+        body: 'b',
+        payload: 'outcome:82:ab',
+        postedAt: _now,
+        actions: const [
+          NotificationAction(
+            id: 'outcome:good',
+            title: 'Good',
+            dismisses: false,
+          ),
+        ],
+        picture: const AlertPicture(
+          photoPath: '/tmp/p.png',
+          thumbnailPath: '/tmp/t.png',
+        ),
+      ),
+    );
+
+    final back = (await memory.entries()).single;
+    expect(back.payload, 'outcome:82:ab');
+    expect(back.actions.single.id, 'outcome:good');
+    expect(back.actions.single.dismisses, isFalse);
+    expect(back.picture?.photoPath, '/tmp/p.png');
+    expect(back.picture?.thumbnailPath, '/tmp/t.png');
+    expect(
+      await memory.recallAll(_now),
+      isEmpty,
+      reason: 'a photo already on it leaves nothing to look for',
+    );
   });
 }

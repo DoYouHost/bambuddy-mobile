@@ -8,23 +8,62 @@ import '../core/api/endpoints.dart';
 import '../core/models/inventory.dart';
 import '../core/models/inventory_bulk.dart';
 import '../core/models/inventory_reference.dart';
-import '../core/models/printer_status.dart';
 import '../core/models/spool_label.dart';
 import '../core/models/spool_preset_override.dart';
 
-/// Filament inventory backend. User has native, but app should also work on Spoolman —
-/// selected via setting (see `inventoryBackendProvider`).
+/// Filament inventory backend, decided by the server (see
+/// [detectInventoryBackend]).
 enum InventoryBackend { native, spoolman }
 
-/// Whether the server would accept [tag] as a link target, by its own rules
-/// (`spoolman.py::link_spool`): 16 or 32 hex digits, not all zeros. The status
-/// route already nulls an unwritten tag, so this catches what an older server
-/// or third-party firmware lets through — a bare 400 otherwise.
-bool _isLinkableTag(String? tag) {
-  final t = tag?.trim().toUpperCase();
-  if (t == null || (t.length != 16 && t.length != 32)) return false;
-  if (!RegExp(r'^[0-9A-F]+$').hasMatch(t)) return false;
-  return t.split('').any((c) => c != '0');
+/// Which inventory the server runs: Spoolman when `/spoolman/status` reports it
+/// enabled with a URL — the rule the web inventory page applies to the same
+/// two settings.
+///
+/// `connected` is left out on purpose: an unreachable Spoolman is still the
+/// inventory the user keeps, and falling back would show the built-in table —
+/// empty, or stale from before the switch — and send writes to it.
+///
+/// A server older than the Spoolman inventory routes (0.2.4) keeps the
+/// built-in one even with Spoolman on, which is what the app showed it before.
+/// Only a 404 from the slot ledger says that; any other refusal there comes
+/// from a server that has the routes.
+///
+/// A 403 or 404 from the status route settles on native: a server without it
+/// has no Spoolman mode, and a session refused it gets the built-in rule the
+/// server itself falls back to (`inventory_mode.py`). Anything else is thrown,
+/// so the caller asks again rather than settling on a backend it never heard.
+Future<InventoryBackend> detectInventoryBackend(Dio dio) async {
+  final Object? body;
+  try {
+    // Untyped, so a body of another shape — a proxy's page, say — is told
+    // apart below; a typed get turns it into a transport error.
+    body = (await dio.get<dynamic>(Endpoints.spoolmanStatus)).data;
+  } on DioException catch (e) {
+    final status = e.response?.statusCode;
+    if (status == 403 || status == 404) return InventoryBackend.native;
+    throw mapDioException(e);
+  }
+  // Only a boolean `enabled` is an answer (the route's `response_model`);
+  // anything else is asked again rather than read as either backend.
+  final spoolman = switch (body) {
+    {'enabled': true, 'url': final String url} => url.trim().isNotEmpty,
+    {'enabled': bool _} => false,
+    _ => throw const ApiException(
+      AppErrorCode.malformedResponse,
+      statusCode: 200,
+      method: 'GET',
+      path: Endpoints.spoolmanStatus,
+    ),
+  };
+  if (!spoolman) return InventoryBackend.native;
+  try {
+    await dio.get<dynamic>(Endpoints.spoolmanAssignments);
+  } on DioException catch (e) {
+    final status = e.response?.statusCode;
+    if (status == 404) return InventoryBackend.native;
+    if (status == null) throw mapDioException(e);
+  }
+  return InventoryBackend.spoolman;
 }
 
 /// [guard] that also keeps what the server wrote when it answers 404.
@@ -70,11 +109,6 @@ abstract class SpoolInventorySource {
   /// [printerId] narrows the answer to one printer, which both backends filter
   /// server-side.
   Future<List<SpoolAssignment>> fetchAssignments({int? printerId});
-
-  /// Throws if the slot [draft] names cannot take a spool on this backend. A
-  /// move unpins the old slot first, so a refusal that only surfaced from
-  /// [assignSpool] would leave the spool in neither.
-  Future<void> ensureAssignable(SpoolAssignmentDraft draft);
 
   /// Assigns a spool to a slot (printer/AMS unit/tray).
   Future<void> assignSpool(SpoolAssignmentDraft draft);
@@ -166,18 +200,11 @@ abstract class SpoolInventorySource {
   );
 }
 
-/// Whether [bytes] open with `%PDF`, the magic number every PDF starts with.
-bool _looksLikePdf(Uint8List bytes) =>
-    bytes.length >= 4 &&
-    bytes[0] == 0x25 && // %
-    bytes[1] == 0x50 && // P
-    bytes[2] == 0x44 && // D
-    bytes[3] == 0x46; //  F
-
 /// Shared label-render call — the two backends differ only in path, since both
-/// routes take the same body and stream back a PDF.
+/// routes take the same body and stream back a PDF, or PNG images of it.
 ///
-/// The result is verified to actually BE a PDF before it reaches the caller.
+/// The result is verified to actually BE what the request asked for before it
+/// reaches the caller — an older server answers a PDF to a PNG request.
 /// A server that answers 200 with something else (an older build without the
 /// label routes, a captive portal, the demo backend — whose catch-all answers
 /// every unrouted POST with `{}`) would otherwise reach the platform print
@@ -191,16 +218,17 @@ Future<Uint8List> _postLabels(
   final res = await dio.post<List<int>>(
     path,
     data: request.toJson(),
-    // The response is a PDF stream, not JSON — without this Dio's default
+    // The response is a file, not JSON — without this Dio's default
     // JSON transformer would try to decode it and throw.
     options: Options(responseType: ResponseType.bytes),
   );
   final bytes = Uint8List.fromList(res.data ?? const []);
-  if (!_looksLikePdf(bytes)) {
+  if (!(SpoolLabelFile.of(bytes)?.answers(request.format) ?? false)) {
     throw ApiException(
       AppErrorCode.malformedResponse,
       statusCode: res.statusCode,
-      detail: 'Expected a PDF from $path, got ${bytes.length} bytes',
+      detail:
+          'Expected ${request.format.wire} from $path, got ${bytes.length} bytes',
     );
   }
   return bytes;
@@ -255,7 +283,8 @@ Future<BulkOutcome> _postChunked(
       total += await send(chunk);
     } on Object {
       if (done == 0) rethrow;
-      return total + BulkOutcome(failed: ids.length - done);
+      final rest = ids.sublist(done);
+      return total + BulkOutcome(failed: rest.length, errorIds: rest);
     }
     done += chunk.length;
   }
@@ -363,10 +392,6 @@ class NativeInventorySource implements SpoolInventorySource {
     });
     return parseJsonList(body, SpoolAssignment.fromNative);
   }
-
-  /// The native route keys on the triple itself, so no slot can refuse.
-  @override
-  Future<void> ensureAssignable(SpoolAssignmentDraft draft) async {}
 
   @override
   Future<void> assignSpool(SpoolAssignmentDraft draft) => guard(
@@ -537,6 +562,25 @@ class NativeInventorySource implements SpoolInventorySource {
   Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
       _postLabels(_dio, Endpoints.inventoryLabels, request);
 
+  /// Not on [SpoolInventorySource]: the aggregate reads the built-in spool
+  /// table, which Spoolman leaves empty, so there is nothing to ask it.
+  ///
+  /// Throws the raw [DioException]: the repository's latch reads the status
+  /// off it, and maps it afterwards.
+  Future<List<MaterialNumberStats>> fetchMaterialNumberStats({
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final res = await _dio.get<List<dynamic>>(
+      Endpoints.inventoryMaterialNumberStats,
+      queryParameters: {
+        if (from != null) 'date_from': calendarDateToJson(from),
+        if (to != null) 'date_to': calendarDateToJson(to),
+      },
+    );
+    return parseJsonList(res.data, MaterialNumberStats.fromJson);
+  }
+
   @override
   Future<List<SpoolPresetOverride>> fetchPresetOverrides(int spoolId) =>
       _getPresetOverrides(
@@ -563,6 +607,21 @@ class SpoolmanInventorySource implements SpoolInventorySource {
 
   final Dio _dio;
 
+  /// Tag (upper case) → linked spool, as the web keys it.
+  Future<Map<String, LinkedSpool>> fetchLinkedSpools() async {
+    final body = await guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.spoolmanLinkedSpools,
+      );
+      return res.data ?? const <String, dynamic>{};
+    });
+    return {
+      if (body['linked'] case final Map<String, dynamic> linked)
+        for (final MapEntry(:key, :value) in linked.entries)
+          if (value is Map<String, dynamic>) key: LinkedSpool.fromJson(value),
+    };
+  }
+
   @override
   Future<List<Spool>> fetchSpools({bool includeArchived = false}) async {
     final body = await guard(() async {
@@ -587,67 +646,33 @@ class SpoolmanInventorySource implements SpoolInventorySource {
     return parseJsonList(body, SpoolAssignment.fromSpoolman);
   }
 
-  /// Spoolman binds a spool to the tag the slot reads, so the tag has to be
-  /// looked up live first. The triple still travels with it: the server writes
-  /// the same slot ledger [fetchAssignments] reads back, which is what keeps
-  /// this path and the native one showing the same thing.
   @override
-  Future<void> ensureAssignable(SpoolAssignmentDraft draft) =>
-      _requireSlotTag(draft);
+  Future<void> assignSpool(SpoolAssignmentDraft draft) => guard(
+    () => _dio.post<dynamic>(
+      Endpoints.spoolmanSlotAssignment,
+      data: {
+        'spoolman_spool_id': draft.spoolId,
+        'printer_id': draft.printerId,
+        'ams_id': draft.amsId,
+        'tray_id': draft.trayId,
+      },
+    ),
+  );
 
-  @override
-  Future<void> assignSpool(SpoolAssignmentDraft draft) async {
-    final tag = await _requireSlotTag(draft);
-    await guard(
-      () => _dio.post<dynamic>(
-        Endpoints.spoolmanSpoolLink(draft.spoolId),
-        data: {
-          ...tag,
-          'printer_id': draft.printerId,
-          'ams_id': draft.amsId,
-          'tray_id': draft.trayId,
-        },
-      ),
-    );
-  }
-
-  /// Unlink is keyed on the spool, so the slot resolves to one first. An empty
-  /// slot is not an error, the same way it is not on the native path.
+  /// The route is keyed on the spool, so the slot resolves to one first. An
+  /// empty slot is not an error, the same way it is not on the native path.
   @override
   Future<void> unassignSpool(int printerId, int amsId, int trayId) async {
     final held = (await fetchAssignments(printerId: printerId))
         .where((a) => a.amsId == amsId && a.trayId == trayId)
         .map((a) => a.spoolId)
-        // An unparsed spool id reads as -1 — that would unlink `/spools/-1`.
+        // An unparsed spool id reads as -1, which the route refuses (`gt=0`).
         .where((id) => id > 0);
     if (held.isEmpty) return;
     await guard(
-      () => _dio.post<dynamic>(Endpoints.spoolmanSpoolUnlink(held.first)),
+      () =>
+          _dio.delete<dynamic>(Endpoints.spoolmanSlotUnassignment(held.first)),
     );
-  }
-
-  /// The slot's RFID identity as the `link` body wants it. `tray_uuid` wins for
-  /// the reason the server prefers it too: only the UUID survives a re-spool.
-  /// Throws rather than returning null, so the precheck and the write refuse
-  /// identically.
-  Future<Map<String, String>> _requireSlotTag(
-    SpoolAssignmentDraft draft,
-  ) async {
-    final status = await guard(() async {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.printerStatus(draft.printerId),
-      );
-      return PrinterStatus.fromJson(res.data ?? const {});
-    });
-    if (status.connected == false) {
-      throw const ApiException(AppErrorCode.printerOffline);
-    }
-    final tray = status.trayAt(amsId: draft.amsId, trayId: draft.trayId);
-    if (_isLinkableTag(tray?.trayUuid)) {
-      return {'tray_uuid': tray!.trayUuid!.trim()};
-    }
-    if (_isLinkableTag(tray?.tagUid)) return {'tag_uid': tray!.tagUid!.trim()};
-    throw const ApiException(AppErrorCode.slotTagUnreadable);
   }
 
   /// Unlike the assignment routes this one mints a spool from what the slot

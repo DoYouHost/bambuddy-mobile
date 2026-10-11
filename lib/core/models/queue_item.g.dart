@@ -64,6 +64,7 @@ QueueItem _$QueueItemFromJson(Map<String, dynamic> json) => QueueItem(
   preheatChamberTargetOverride:
       (json['preheat_chamber_target_override'] as num?)?.toInt(),
   gcodeInjection: json['gcode_injection'] as bool? ?? false,
+  confirmOutcome: json['confirm_outcome'] as bool? ?? false,
   nozzleMapping: (json['nozzle_mapping'] as List<dynamic>?)
       ?.map((e) => (e as num).toInt())
       .toList(),
@@ -72,4 +73,6 @@ QueueItem _$QueueItemFromJson(Map<String, dynamic> json) => QueueItem(
   batchId: (json['batch_id'] as num?)?.toInt(),
   batchName: json['batch_name'] as String?,
   createdById: (json['created_by_id'] as num?)?.toInt(),
+  createdByUsername: json['created_by_username'] as String?,
+  costCenterId: (json['cost_center_id'] as num?)?.toInt(),
 );

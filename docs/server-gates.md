@@ -140,6 +140,20 @@ than the commit is told yes and prints from position 1, which is the same sheet
 it prints today: being early costs a wasted sheet of labels, not a refused
 request.
 
+### labelFields — 1.2.5.7 (server #2981)
+
+`fields`, `format` and `dpi` on the two label routes — which lines a label
+carries, and a PNG (one label) or ZIP (several) instead of a PDF.
+
+Version-only, like `labelStartingPosition`: `LabelRequest` forbids no extra
+fields, so an older server takes all three and answers a PDF with the default
+lines. The response is still a valid file, so nothing can be observed. The
+threshold was measured on the released images: 1.2.5.6 answers a PDF to
+`format: png`, 1.2.5.7 answers the PNG, a ZIP for several labels, and honours
+`fields` and `dpi` (`label_options_contract_test.dart` keeps both halves true). Being
+early costs a PDF where a PNG was asked for; the app checks the bytes it got
+against the format it asked for and says so instead of saving a PDF as `.png`.
+
 ### printerFilesDownloadJob — 1.2.6 (server #2850)
 
 `POST /printers/{id}/files/download-job` and the two routes that go with it — a
@@ -173,6 +187,25 @@ server's Home Assistant connection. A route family, so
 `LocationSensorsRepository` prefers the 404. The gate only spares that one 404 on
 a server known to be older: nothing is offered until the listing comes back
 non-empty, so being early costs a request and never a control.
+
+### printerLocations — 1.2.6 (server #2962, PR #2995, commit fa259567)
+
+`/printer-locations/*`: the list of places a printer can be filed under, with an
+icon and a colour, and the three writes (create or restyle or rename, delete,
+assign printers). Only in 1.2.6 dailies from 2026-10-03.
+
+A route family nothing shadows (`/printers/{id}` is a different prefix), so the
+listing's 404 settles `PrinterLocationsRepository.capability`. Being early costs
+a "Manage locations" link, in the dashboard's filter sheet, that opens onto an
+empty screen on a 1.2.6b1 daily older than the commit: the version row shows the
+link before any request, and the 404 the screen meets on opening settles the
+latch, which hides the link and the write controls from then on. The writes settle nothing: their 403
+is a missing `printers:update`, which no API key can hold — the screen is
+read-only for a key — and taking it for "no locations here" would hide a list
+the session may read.
+
+What an older server does with the free-text `location` string the printer form
+already sends is unchanged, so the form keeps working on both.
 
 ### spoolModelPresets — 1.2.6 (server commit a7b56333)
 
@@ -241,6 +274,23 @@ Nothing in a batch row differs between 0.2.4.7 and 0.2.4.8, so only an order
 row (`has_targets`, 1.2.5.3) observes it; otherwise the version decides, in the
 old numbering like `printerSensorHistory`. Being early costs a refused button,
 nothing silent.
+
+### printOutcome — 1.2.6 (server #1898, PR #3047, commit 44c7e6fb)
+
+Post-print outcome verdicts: `user_verdict` / `user_verdict_source` on
+`PATCH /archives/{id}`, the four verdict fields on `ArchiveResponse`, and
+`confirm_outcome` on queue create / update / response. Only in 1.2.6 dailies
+from 2026-09-26.
+
+Both writes are silent drops below it — `ArchiveUpdate` and
+`PrintQueueItemCreate` forbid no extra fields — so a verdict would read as
+saved and a queued job would never ask. `ArchiveRepository.outcomeCapability`
+observes `confirm_requested` on any archive row, which `archive_to_response`
+sends from that commit on, and `QueueRepository.outcomeCapability` observes
+`confirm_outcome` on any queue row the same way. Each outranks the row as soon
+as its screen has loaded one row; before that a 1.2.6b1 daily older than the
+commit is told yes, and what that costs is a verdict the reply shows was not
+stored (`setVerdict`'s `applied`) or a job that finishes without asking.
 
 ## Not a row: the bed-jog sign (server #1334)
 
@@ -338,7 +388,12 @@ a `maybeWhen(data: (v) => v, …)` read.
 Not on this path, on purpose: gates over `/settings` (`serverGate`, same idea
 over one warmed fetch), permissions from `/auth/me` (enter a gate as a
 synchronous input), and latches that choose *how* to call rather than whether a
-control exists (download jobs, media token, `StatsRepository._hasSlimListing`).
+control exists (download jobs, media token, `StatsRepository._hasSlimListing`,
+the inventory backend from `/spoolman/status`). Nor the Manyfold tab of Model
+Sources (#1471): the screen needs `/manyfold/status`'s payload anyway — whether
+a connection exists decides the tab too — so that one read, made each time the
+screen opens, answers 404 (older server) and 403 (no `manyfold:view`) as "no
+tab", and no latch would learn anything it does not.
 
 ## Adding a gate
 
@@ -361,3 +416,57 @@ control exists (download jobs, media token, `StatsRepository._hasSlimListing`).
 7. Tests: the latch in the repository test, with a mocked version service — a
    latch test without one reads `false` from the start and proves nothing; the
    screen with `gate.overrideWithValue(const AsyncData(...))`.
+
+### apiKeyNotificationScope — 1.2.6 (server commit 6855d65d)
+
+`can_send_notifications` on an API key: the one door to
+`POST /notifications/app-message`, which lets another app post through the
+server's notification channels. Only in 1.2.6 dailies from 2026-09-27.
+
+`APIKeyCreate` and `APIKeyUpdate` forbid no extra fields, so an older server
+takes the flag, says nothing and issues a key that cannot send — a switch that
+reads as on and does nothing. `ApiKeysRepository.notificationScopeCapability`
+observes the field on the first row of `GET /api-keys/`, which `APIKeyResponse`
+sends on every row from that commit on; the list screen loads before the form,
+so the row settles it whenever the server has a key at all. With no keys yet, a
+1.2.6b1 daily older than the commit is told yes, and the key it issues simply
+lacks the flag. A key that already holds it keeps its switch either way, so it
+can be taken away again.
+
+### spoolSuppliers — 1.2.6 (server #2988, PR #2996, commit 053cfa73)
+
+Where filament is bought: the master list on `/inventory/suppliers`, a spool's
+assignments (`PUT /inventory/spools/{id}/suppliers` and the Spoolman twin), and
+`GET /inventory/stats/suppliers`. Only in 1.2.6 dailies from 2026-09-28.
+
+A route family, and nothing shadows it on an older server — `/inventory` has no
+`/{id}` route — so the listing's 404 settles `SuppliersRepository.capability`.
+So does the first spool row: `SpoolResponse` defaults `suppliers` on every row
+from the commit on, and the Spoolman listing merges it in, so an inventory with
+a single spool answers before any supplier route is asked. Being early costs a
+1.2.6b1 daily older than the commit one 404 on the listing and a supplier entry
+that disappears with it; nothing is written to a server that could drop it.
+
+### spoolMaterialNumber — 1.2.5.7 (server #2870)
+
+A purchasing number shared by every spool of a product: `material_number` on a
+spool, in the bulk edit, and `GET /inventory/stats/material-numbers`. In
+1.2.5.7, the first release to carry it; 1.2.5.6 has none (checked against both
+images, which is why the row is not 1.2.6 like its neighbours).
+
+`SpoolCreate`, `SpoolUpdate` and the bulk `update` take no extra-field
+refusal, so an older server accepts the key, says nothing and stores nothing —
+a field that reads as saved and is gone on the next load. `SpoolResponse` sends
+the key on every row from the feature on, null or not, and the Spoolman listing
+merges it in as well, so `InventoryRepository.materialNumberCapability`
+observes it on the first row of the spool listing. An empty inventory says
+nothing and the version row answers. Being early costs something there: a
+1.2.6b1 daily older than the commit, with no spool yet, is offered the field
+and drops the first write silently. Once a row has loaded, its missing key
+settles the gate. Only a 404 on the stats route also settles it; a 403 there
+is a session that may not read the aggregate, not a server without the field.
+
+The gate says the server *has* the number. Whether it can be *written* is the
+backend: Spoolman maps the filament's `article_number` onto it and keeps it
+read-only, so the form and the bulk edit offer the field to the native backend
+only.

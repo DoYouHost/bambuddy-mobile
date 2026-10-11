@@ -15,6 +15,7 @@ import 'project_common.dart';
 import 'project_cover_image.dart';
 import 'project_form_screen.dart';
 import 'projects_providers.dart';
+import '../common/tappable_card.dart';
 
 /// Projects list (full-screen, pushed from the dashboard drawer). Status filter,
 /// pull-to-refresh, cards with cover/progress/counts. FAB → create form.
@@ -84,7 +85,7 @@ class ProjectsScreen extends ConsumerWidget {
           'projects.create',
           FloatingActionButton.extended(
             backgroundColor: t.accentGreen,
-            foregroundColor: const Color(0xFF0A0C08),
+            foregroundColor: t.onAccent,
             onPressed: () => _openCreate(context),
             icon: const Icon(Icons.add),
             label: Text(l10n.projectCreate),
@@ -102,9 +103,9 @@ class ProjectsScreen extends ConsumerWidget {
                     icon: Icons.folder_special_outlined,
                   )
                 : ListView.builder(
-                    padding: withSystemNavInset(
+                    padding: screenListPadding(
                       context,
-                      const EdgeInsets.fromLTRB(12, 8, 12, 88),
+                      bottom: DashSpace.fabClearance,
                     ),
                     itemCount: projects.length,
                     itemBuilder: (_, i) => _ProjectCard(
@@ -165,74 +166,61 @@ class _ProjectCard extends StatelessWidget {
         '${l10n.projectStatQueued} ${project.queueCount}',
     ];
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Material(
-        color: Colors.transparent,
-        child: logTag(
-          'projects.card',
-          InkWell(
-            borderRadius: BorderRadius.circular(22),
-            onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: t.cardBox,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ProjectCoverImage(
-                    projectId: project.id,
-                    hasCover: project.hasCover,
-                    width: 64,
-                    height: 64,
-                    borderRadius: BorderRadius.circular(16),
-                    cacheBust: project.createdAt,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            ProjectColorDot(color: project.color),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                project.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: t.titleMd,
-                              ),
-                            ),
-                            ProjectStatusChip(status: project.status),
-                          ],
-                        ),
-                        if (project.description != null &&
-                            project.description!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              project.description!,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: t.label.copyWith(color: t.textSecondary),
-                            ),
-                          ),
-                        const SizedBox(height: 8),
-                        if (project.progressPercent != null) ...[
-                          DashProgressBar(value: fraction, height: 6),
-                          const SizedBox(height: 6),
-                        ],
-                        Text(counts.join(' · '), style: t.monoLabel),
-                      ],
+    return TappableCard(
+      id: 'projects.card',
+      onTap: onTap,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ProjectCoverImage(
+            projectId: project.id,
+            hasCover: project.hasCover,
+            width: 64,
+            height: 64,
+            borderRadius: BorderRadius.circular(16),
+            cacheBust: project.createdAt,
+          ),
+          const SizedBox(width: DashSpace.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    ProjectColorDot(color: project.color),
+                    const SizedBox(width: DashSpace.sm),
+                    Expanded(
+                      child: Text(
+                        project.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.titleMd,
+                      ),
+                    ),
+                    ProjectStatusChip(status: project.status),
+                  ],
+                ),
+                if (project.description != null &&
+                    project.description!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: DashSpace.xs),
+                    child: Text(
+                      project.description!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.label.copyWith(color: t.textSecondary),
                     ),
                   ),
+                const SizedBox(height: DashSpace.sm),
+                if (project.progressPercent != null) ...[
+                  DashProgressBar(value: fraction, height: 6),
+                  const SizedBox(height: DashSpace.sm),
                 ],
-              ),
+                Text(counts.join(' · '), style: t.monoLabel),
+              ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }

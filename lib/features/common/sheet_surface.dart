@@ -88,7 +88,7 @@ class SheetSurface extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const SizedBox(height: 10),
+          const SizedBox(height: DashSpace.md),
           Container(
             width: 40,
             height: 4,
@@ -99,11 +99,13 @@ class SheetSurface extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: DashSpace.md),
           Expanded(
             child: Padding(
               padding: EdgeInsets.only(bottom: navInset),
-              child: child,
+              // The decoration above paints over any Material further up, so a
+              // ListTile's ink would be drawn underneath it and never seen.
+              child: Material(type: MaterialType.transparency, child: child),
             ),
           ),
         ],
@@ -145,7 +147,7 @@ class FittedSheetSurface extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 10),
+            const SizedBox(height: DashSpace.md),
             Container(
               width: 40,
               height: 4,

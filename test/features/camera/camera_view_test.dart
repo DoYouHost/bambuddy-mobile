@@ -93,5 +93,33 @@ void main() {
         expect(view.url, contains('token=secret-stream-token'));
       },
     );
+
+    testWidgets('decodes the stream at the width it is shown at', (
+      tester,
+    ) async {
+      // A Pixel 7a: 1080 x 2400 physical pixels. A 1080p camera frame decoded
+      // at its own 1920 px would cost three times the memory per frame.
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.625;
+      addTearDown(tester.view.reset);
+      await pumpPhone(
+        tester,
+        const CameraView(printerId: 7, printerName: 'Farm A1'),
+        overrides: [
+          fakeServerProfileOverride(),
+          cameraTokenProvider.overrideWith((ref) async => 'tok'),
+        ],
+      );
+      await settle(tester);
+
+      int? decodeWidth() =>
+          tester.widget<MjpegView>(find.byType(MjpegView)).cacheWidth;
+      expect(decodeWidth(), 1080);
+
+      // Turned to landscape the picture may be drawn wider again.
+      tester.view.physicalSize = const Size(2400, 1080);
+      await tester.pump();
+      expect(decodeWidth(), 2400);
+    });
   });
 }

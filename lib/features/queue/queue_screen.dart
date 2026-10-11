@@ -24,6 +24,7 @@ import '../dashboard/ws_providers.dart';
 import '../files/library_thumbnail.dart';
 import '../orders/orders_providers.dart';
 import 'queue_edit_screen.dart';
+import 'queue_history.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_providers.dart';
 import 'queue_removal.dart';
@@ -42,13 +43,30 @@ class QueueScreen extends ConsumerStatefulWidget {
   ConsumerState<QueueScreen> createState() => _QueueScreenState();
 }
 
-class _QueueScreenState extends ConsumerState<QueueScreen> {
+class _QueueScreenState extends ConsumerState<QueueScreen>
+    with SingleTickerProviderStateMixin {
   /// Auto-refresh frequency in foreground. Less frequent than Dashboard's roster
   /// (5s) — queue changes slower and fetch is heavier.
   static const _refreshInterval = Duration(seconds: 10);
 
   Timer? _timer;
   late final AppLifecycleListener _lifecycle;
+
+  /// The queue and its history, the web's first and History tabs.
+  late final TabController _tabs = TabController(length: 2, vsync: this)
+    ..addListener(_tabSettled);
+  int _shownTab = 0;
+  bool get _onHistory => _tabs.index == 1;
+
+  /// A tab just brought into view shows what is there now rather than waiting
+  /// for the next tick: only the tab on screen is polled, so the other one has
+  /// been standing still.
+  void _tabSettled() {
+    if (_tabs.indexIsChanging || _tabs.index == _shownTab) return;
+    setState(() => _shownTab = _tabs.index);
+    unawaited(_refreshShown());
+    if (_visible) _startTimer();
+  }
 
   /// Whether this tab's branch is the one currently shown — see
   /// [didChangeDependencies]. Starts false; the framework-guaranteed
@@ -65,7 +83,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
         // Return to foreground on a different tab shouldn't resume polling
         // for a screen the user isn't looking at.
         if (!_visible) return;
-        unawaited(ref.read(queueProvider.notifier).refresh());
+        unawaited(_refreshShown());
         _startTimer();
       },
     );
@@ -94,9 +112,15 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
     _timer?.cancel();
     _timer = Timer.periodic(
       _refreshInterval,
-      (_) => unawaited(ref.read(queueProvider.notifier).refresh()),
+      (_) => unawaited(_refreshShown()),
     );
   }
+
+  /// Only the tab on screen is polled: the history is most of what the server
+  /// holds, and nobody is looking at it from the queue tab.
+  Future<void> _refreshShown() => _onHistory
+      ? ref.read(queueHistoryProvider.notifier).refresh()
+      : ref.read(queueProvider.notifier).refresh();
 
   void _stopTimer() {
     _timer?.cancel();
@@ -107,6 +131,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
   void dispose() {
     _stopTimer();
     _lifecycle.dispose();
+    _tabs.dispose();
     super.dispose();
   }
 
@@ -131,6 +156,17 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
         appBar: dashAppBar(
           context,
           title: l10n.navQueue,
+          bottom: TabBar(
+            controller: _tabs,
+            tabs: [
+              Tab(
+                text: l10n.navQueue,
+              ).tagged('queue.tab_queue', selected: !_onHistory),
+              Tab(
+                text: l10n.queueHistory,
+              ).tagged('queue.tab_history', selected: _onHistory),
+            ],
+          ),
           actions: [
             if (ref.watch(batchListingProvider).orFalse)
               IconButton(
@@ -138,9 +174,9 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
                 icon: const Icon(Icons.inventory_2_outlined),
                 onPressed: () => context.push('/orders'),
               ).tagged('queue.orders'),
-            if (queued.isNotEmpty)
+            if (queued.isNotEmpty && !_onHistory)
               Padding(
-                padding: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.only(right: DashSpace.lg),
                 child: Center(
                   child: DashPill(
                     label: '${queued.length}',
@@ -151,33 +187,47 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
               ),
           ],
         ),
-        floatingActionButton: firstQueued == null
+        floatingActionButton:
+            firstQueued == null ||
+                _onHistory ||
+                !ref.watch(
+                  mayStartQueueItemProvider((
+                    createdById: firstQueued.createdById,
+                    printerId: firstQueued.printerId,
+                  )),
+                )
             ? null
             : logTag(
                 'queue.start_next',
                 FloatingActionButton.extended(
                   onPressed: () => _startNext(context, ref, firstQueued, l10n),
                   backgroundColor: t.accentGreen,
-                  foregroundColor: const Color(0xFF0A0C08),
+                  foregroundColor: t.onAccent,
                   icon: const Icon(Icons.play_arrow),
                   label: Text(l10n.queueStartNext),
                 ),
               ),
         body: RefreshWhenShown(
-          onRefresh: () => ref.read(queueProvider.notifier).refresh(),
-          child: dashAsync(
-            context,
-            async,
-            onRetry: () => ref.read(queueProvider.notifier).refresh(),
-            data: (items) => RefreshIndicator(
-              onRefresh: () => ref.read(queueProvider.notifier).refresh(),
-              child: items.isEmpty
-                  ? EmptyStateView(
-                      message: l10n.queueEmpty,
-                      icon: Icons.playlist_add_check,
-                    )
-                  : _QueueList(items: items),
-            ),
+          onRefresh: _refreshShown,
+          child: TabBarView(
+            controller: _tabs,
+            children: [
+              dashAsync(
+                context,
+                async,
+                onRetry: () => ref.read(queueProvider.notifier).refresh(),
+                data: (items) => RefreshIndicator(
+                  onRefresh: () => ref.read(queueProvider.notifier).refresh(),
+                  child: items.isEmpty
+                      ? EmptyStateView(
+                          message: l10n.queueEmpty,
+                          icon: Icons.playlist_add_check,
+                        )
+                      : _QueueList(items: items),
+                ),
+              ),
+              const QueueHistoryView(),
+            ],
           ),
         ),
       ),
@@ -257,7 +307,7 @@ class _QueueList extends ConsumerWidget {
         for (final it in pinned) _QueueCard(item: it, pinned: true),
         Expanded(
           child: ReorderableListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
             physics: const AlwaysScrollableScrollPhysics(),
             // No default long-press drag — reorder only via explicit handle on left
             // side of tile.
@@ -318,8 +368,11 @@ class _QueueCard extends ConsumerWidget {
     final card = logTag(
       'queue.card',
       Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.symmetric(
+          horizontal: DashSpace.gutter,
+          vertical: DashSpace.xs,
+        ),
+        padding: const EdgeInsets.all(DashSpace.lg),
         decoration: BoxDecoration(
           gradient: t.cardGradient,
           borderRadius: BorderRadius.circular(22),
@@ -338,7 +391,7 @@ class _QueueCard extends ConsumerWidget {
                 ReorderableDragStartListener(
                   index: idx,
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 10),
+                    padding: const EdgeInsets.only(right: DashSpace.md),
                     child: Icon(Icons.drag_indicator, color: t.textTertiary),
                   ),
                 ),
@@ -353,7 +406,7 @@ class _QueueCard extends ConsumerWidget {
                     )
                   : PrintThumbnail(archiveId: item.archiveId, size: 56),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: DashSpace.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,7 +418,7 @@ class _QueueCard extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                     style: t.titleMd,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: DashSpace.sm),
                   _Subtitle(item: item),
                 ],
               ),
@@ -385,8 +438,11 @@ class _QueueCard extends ConsumerWidget {
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 24),
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.only(right: DashSpace.xl),
+        margin: const EdgeInsets.symmetric(
+          horizontal: DashSpace.gutter,
+          vertical: DashSpace.xs,
+        ),
         decoration: BoxDecoration(
           color: t.danger.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(22),
@@ -414,13 +470,13 @@ class _QueueCard extends ConsumerWidget {
   }
 }
 
-class _Subtitle extends StatelessWidget {
+class _Subtitle extends ConsumerWidget {
   const _Subtitle({required this.item});
 
   final QueueItem item;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final parts = <String>[
@@ -447,10 +503,25 @@ class _Subtitle extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        _StatusChip(item: item),
+        Wrap(
+          spacing: DashSpace.xs,
+          runSpacing: DashSpace.xs,
+          children: [
+            _StatusChip(item: item),
+            // The web's Staged badge, which says who starts the job to a user
+            // held for review (#1620).
+            if (item.manualStart)
+              _Chip(
+                label: ref.watch(awaitingReviewProvider)
+                    ? l10n.queueBadgeAwaitingReview
+                    : l10n.queueBadgeStaged,
+                accent: t.textTertiary,
+              ),
+          ],
+        ),
         if (parts.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 5),
+            padding: const EdgeInsets.only(top: DashSpace.xs),
             child: Text(
               parts.join(' · '),
               maxLines: 1,
@@ -490,11 +561,27 @@ class _StatusChip extends StatelessWidget {
       QueueItemStatusKind.pending => (l10n.queueStatusPending, t.textTertiary),
       _ => (item.status, t.textTertiary),
     };
+    return _Chip(label: label, accent: accent);
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip({required this.label, required this.accent});
+
+  final String label;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
     // Pending/unknown statuses get a subtle neutral pill instead of a
     // colored one — there's nothing actionable to draw the eye to.
     final neutral = accent == t.textTertiary;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.sm,
+        vertical: DashSpace.xs,
+      ),
       decoration: BoxDecoration(
         color: neutral ? t.subCard : accent.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(20),
@@ -523,6 +610,14 @@ class _QueueActions extends ConsumerWidget {
     final canStart =
         item.statusKind == QueueItemStatusKind.pending ||
         item.statusKind == QueueItemStatusKind.scheduled;
+    final mayStart =
+        canStart &&
+        ref.watch(
+          mayStartQueueItemProvider((
+            createdById: item.createdById,
+            printerId: item.printerId,
+          )),
+        );
     // Which route takes this item out of the queue, and how to word it. The
     // printer's own state only separates "stop the print" from "remove the
     // leftover row": a printer that failed is not printing anything to abort,
@@ -570,7 +665,9 @@ class _QueueActions extends ConsumerWidget {
               printerId: printerId,
               confirmLabel: l10n.fmSave,
             );
-            if (mapping == null) return;
+            // Empty: the printer reported nothing to map to, and the web sends
+            // no mapping then — saving [] would clear the stored one.
+            if (mapping == null || mapping.isEmpty) return;
             final r = await notifier.saveMapping(item.id, mapping);
             messenger.snack(queueWriteMessage(l10n, r) ?? l10n.mappingSaved);
             return;
@@ -580,7 +677,7 @@ class _QueueActions extends ConsumerWidget {
           await _removeFromQueue(context, notifier, messenger, l10n, removal);
         },
         itemBuilder: (_) => [
-          if (canStart)
+          if (mayStart)
             PopupMenuItem(
               value: 'start',
               child: logTag(
@@ -775,18 +872,22 @@ Future<void> _sendQueuedPrint(
   DetachedHandles handles,
 ) async {
   final (:providers, :messenger) = handles;
+  // Only offered with a printer on the job, so it never reaches the picker.
+  final claims = providers.read(startClaimsJobProvider(item.createdById));
   var printerId = item.printerId;
   if (printerId == null) {
     final printer = await _pickQueuePrinter(context, ref, l10n);
     if (printer == null || !context.mounted) return;
     printerId = printer.id;
   }
-  final mapping = await showQueueMappingSheet(
-    context,
-    item: item,
-    printerId: printerId,
-    confirmLabel: l10n.queueStart,
-  );
+  final mapping = claims
+      ? const <int>[]
+      : await showQueueMappingSheet(
+          context,
+          item: item,
+          printerId: printerId,
+          confirmLabel: l10n.queueStart,
+        );
   if (mapping == null) return; // backed out of mapping → abort
 
   // Plate-clear gate: when the scheduler requires it and this printer still has
@@ -835,9 +936,10 @@ Future<void> _sendQueuedPrint(
   // One thing the container does not guarantee: `queueProvider` is autoDispose,
   // so it outlives this row only because the tab badge in `RootScaffold` keeps
   // it listened to.
-  final result = await providers
-      .read(queueProvider.notifier)
-      .startOnPrinter(item, printerId, amsMapping: mapping);
+  final notifier = providers.read(queueProvider.notifier);
+  final result = claims
+      ? await notifier.start(item.id)
+      : await notifier.startOnPrinter(item, printerId, amsMapping: mapping);
   messenger.snack(queueWriteMessage(l10n, result) ?? l10n.queuePrintStarted);
 }
 
@@ -904,7 +1006,7 @@ Future<Printer?> _pickQueuePrinter(
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(DashSpace.lg),
             child: Text(
               l10n.pickPrinterTitle,
               style: Theme.of(ctx).textTheme.titleMedium,

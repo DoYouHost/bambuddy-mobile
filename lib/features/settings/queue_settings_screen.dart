@@ -66,18 +66,17 @@ class QueueSettingsScreen extends ConsumerWidget {
                     icon: Icons.tune,
                   )
                 : ListView(
-                    padding: withSystemNavInset(
-                      context,
-                      const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                    ),
+                    padding: screenListPadding(context),
                     children: [
                       if (_lockReason(l10n, lock) case final reason?) ...[
                         InlineNote(
                           reason,
                           icon: Icons.lock_outline,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: DashSpace.xs,
+                          ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: DashSpace.md),
                       ],
                       ..._sections(context, ref, settings, lock),
                     ],
@@ -288,6 +287,41 @@ class QueueSettingsScreen extends ConsumerWidget {
           const [QueueSetting.keepWarmBedTemp],
         ),
       ),
+      // Three independent switches, no master: the default decides for new
+      // jobs (seeding the form, deciding outright where there is none), the
+      // other two have triggers of their own.
+      ..._section(l10n.queueSettingsOutcomeHeader, [
+        if (has(QueueSetting.confirmOutcomeDefault))
+          SettingsSwitchRow(
+            tag: 'queue_settings.confirm_outcome_default',
+            title: l10n.queueSettingsOutcomeDefaultTitle,
+            subtitle: l10n.queueSettingsOutcomeDefaultDesc,
+            value: settings.flag(QueueSetting.confirmOutcomeDefault),
+            onChanged: writable
+                ? (v) => write(QueueSetting.confirmOutcomeDefault, v)
+                : null,
+          ),
+        if (has(QueueSetting.confirmOutcomeExternal))
+          SettingsSwitchRow(
+            tag: 'queue_settings.confirm_outcome_external',
+            title: l10n.queueSettingsOutcomeExternalTitle,
+            subtitle: l10n.queueSettingsOutcomeExternalDesc,
+            value: settings.flag(QueueSetting.confirmOutcomeExternal),
+            onChanged: writable
+                ? (v) => write(QueueSetting.confirmOutcomeExternal, v)
+                : null,
+          ),
+        if (has(QueueSetting.confirmGoodOnPlateClear))
+          SettingsSwitchRow(
+            tag: 'queue_settings.confirm_good_on_plate_clear',
+            title: l10n.queueSettingsOutcomePlateClearTitle,
+            subtitle: l10n.queueSettingsOutcomePlateClearDesc,
+            value: settings.flag(QueueSetting.confirmGoodOnPlateClear),
+            onChanged: writable
+                ? (v) => write(QueueSetting.confirmGoodOnPlateClear, v)
+                : null,
+          ),
+      ]),
     ];
   }
 
@@ -300,7 +334,7 @@ class QueueSettingsScreen extends ConsumerWidget {
           SettingsSectionHeader(header),
           SettingsCard(rows: rows),
           ?note,
-          const SizedBox(height: 20),
+          const SizedBox(height: DashSpace.xl),
         ];
 
   /// A slider over a span the server keeps in seconds.

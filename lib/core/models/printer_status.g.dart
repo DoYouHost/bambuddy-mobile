@@ -46,6 +46,7 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       nozzles: _toNozzleListOrNull(json['nozzles']),
       nozzleRack: _toNozzleRackListOrNull(json['nozzle_rack']),
       filaSwitch: _toFilaSwitchOrNull(json['fila_switch']),
+      amsFilamentBackup: json['ams_filament_backup'] as bool?,
       extruderSlots: _toExtruderSlotMapOrNull(json['extruder_slots']),
     );
 
@@ -58,6 +59,9 @@ AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(
   dryTime: toIntOrNull(json['dry_time']),
   dryStatus: toIntOrNull(json['dry_status']),
   moduleType: json['module_type'] as String?,
+  dryCountdownStalled: json['dry_countdown_stalled'] == null
+      ? false
+      : toBoolOrFalse(json['dry_countdown_stalled']),
 );
 
 AmsTray _$AmsTrayFromJson(Map<String, dynamic> json) => AmsTray(

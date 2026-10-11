@@ -50,7 +50,7 @@ class SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(DashSpace.lg),
       decoration: t.cardBox,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,7 +61,7 @@ class SectionCard extends StatelessWidget {
               ?trailing,
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: DashSpace.lg),
           child,
         ],
       ),
@@ -188,7 +188,7 @@ class LegendDot extends StatelessWidget {
           height: 10,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: DashSpace.sm),
         Flexible(
           child: Text(
             text,

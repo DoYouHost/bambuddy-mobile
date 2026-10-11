@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/api/observed_capability.dart';
 import 'package:bambuddy_mobile/core/models/api_key.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
@@ -6,6 +7,7 @@ import 'package:bambuddy_mobile/data/api_keys_repository.dart';
 import 'package:bambuddy_mobile/features/admin/api_key_form_screen.dart';
 import 'package:bambuddy_mobile/features/admin/api_keys_providers.dart';
 import 'package:bambuddy_mobile/features/admin/api_keys_screen.dart';
+import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -33,6 +35,14 @@ const _legacy = ApiKey(
 );
 
 class _FakeKeys implements ApiKeysRepository {
+  _FakeKeys({bool notificationScope = false})
+    : notificationScopeCapability = ObservedCapability.unversioned(
+        whenUnknown: notificationScope,
+      );
+
+  @override
+  final ObservedCapability notificationScopeCapability;
+
   ApiKeyCreateInput? created;
   (int, ApiKeyUpdateInput)? updated;
   int? deleted;
@@ -161,6 +171,48 @@ void main() {
       expect(repo.created?.scopes, {ApiKeyScope.readStatus, ApiKeyScope.queue});
     });
 
+    testWidgets('offers "send notifications" only where the server has it', (
+      tester,
+    ) async {
+      // Tall enough for every scope row to be built, or the absence below
+      // would hold for a row that was merely off screen.
+      usePhoneWindow(tester, dp: 2400);
+      final l10n = lookupAppLocalizations(const Locale('pl'));
+      final notifications = find.widgetWithText(
+        SwitchListTile,
+        l10n.apiKeyScopeNotifications,
+      );
+      await tester.pumpWidget(
+        _app(const ApiKeyFormScreen(), repo: repo, signedInAs: _admin),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.widgetWithText(SwitchListTile, l10n.apiKeyScopeEnergy),
+        findsOneWidget,
+      );
+      expect(notifications, findsNothing);
+
+      final current = _FakeKeys(notificationScope: true);
+      await tester.pumpWidget(
+        _app(
+          const ApiKeyFormScreen(key: ValueKey('new')),
+          repo: current,
+          signedInAs: _admin,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Nazwa'),
+        'Skrypt',
+      );
+      await tester.tap(notifications);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Zapisz'));
+      await tester.pumpAndSettle();
+
+      expect(current.created?.scopes, contains(ApiKeyScope.sendNotifications));
+    });
+
     testWidgets('shows the key once, and says it will not come back', (
       tester,
     ) async {
@@ -219,6 +271,45 @@ void main() {
   });
 
   group('editing a key', () {
+    testWidgets('a key holding "send notifications" keeps its switch', (
+      tester,
+    ) async {
+      usePhoneWindow(tester, dp: 2400);
+      final l10n = lookupAppLocalizations(const Locale('pl'));
+      await tester.pumpWidget(
+        _app(
+          ApiKeyFormScreen(
+            existing: ApiKey(
+              id: 9,
+              name: 'n8n',
+              keyPrefix: 'bb_n8n',
+              scopes: const {ApiKeyScope.sendNotifications},
+            ),
+          ),
+          repo: repo,
+          signedInAs: _admin,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final notifications = find.widgetWithText(
+        SwitchListTile,
+        l10n.apiKeyScopeNotifications,
+      );
+      expect(notifications, findsOneWidget);
+
+      // Cleared, it stays where it was, so the tap can be undone.
+      await tester.tap(notifications);
+      await tester.pumpAndSettle();
+      expect(notifications, findsOneWidget);
+      await tester.tap(find.text('Zapisz'));
+      await tester.pumpAndSettle();
+      expect(
+        repo.updated?.$2.scopes,
+        isNot(contains(ApiKeyScope.sendNotifications)),
+      );
+    });
+
     testWidgets('sends only what changed', (tester) async {
       await tester.pumpWidget(
         _app(

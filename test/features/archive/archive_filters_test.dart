@@ -16,6 +16,8 @@ Archive _a(
   int duplicateSequence = 0,
   int? totalLayers,
   DateTime? createdAt,
+  bool confirmRequested = false,
+  PrintVerdict? verdict,
 }) => Archive(
   id: id,
   filename: filename,
@@ -30,6 +32,8 @@ Archive _a(
   duplicateSequence: duplicateSequence,
   totalLayers: totalLayers,
   createdAt: createdAt,
+  confirmRequested: confirmRequested,
+  userVerdict: verdict,
 );
 
 List<int> _ids(List<Archive> l) => l.map((a) => a.id).toList();
@@ -161,6 +165,18 @@ void main() {
         const ArchiveFilters(hideDuplicates: true),
       );
       expect(_ids(out)..sort(), [1, 3]);
+    });
+
+    test('awaiting verdict keeps only the questions still open', () {
+      final list = [
+        _a(1, confirmRequested: true),
+        _a(2, confirmRequested: true, verdict: PrintVerdict.good),
+        _a(3),
+        _a(4, confirmRequested: true, status: 'failed'),
+      ];
+      const filters = ArchiveFilters(awaitingVerdictOnly: true);
+      expect(_ids(applyArchiveFilters(list, filters)), [1]);
+      expect(filters.activeCount, 1);
     });
 
     test('file type filter: sliced vs source', () {

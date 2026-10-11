@@ -48,6 +48,24 @@ class Archive {
     this.fileSize,
     this.duplicateCount = 0,
     this.duplicateSequence = 0,
+    this.userVerdict,
+    this.userVerdictSource,
+    this.userVerdictAt,
+    this.confirmRequested = false,
+    this.failureReason,
+    this.slicerAmsMapping,
+    this.actualTimeSeconds,
+    this.timeAccuracy,
+    this.objectCount,
+    this.projectName,
+    this.tags,
+    this.notes,
+    this.externalUrl,
+    this.energyKwh,
+    this.energyCost,
+    this.wearCost,
+    this.createdByUsername,
+    this.filamentSlots = const [],
   });
 
   factory Archive.fromJson(Map<String, dynamic> json) =>
@@ -177,7 +195,106 @@ class Archive {
   @JsonKey(defaultValue: 0)
   final int duplicateSequence;
 
+  /// The user's judgement of the part (#1898) — deliberately apart from
+  /// [status], which is the machine's: `completed` + [PrintVerdict.reject] is
+  /// "the printer finished it, the part is scrap". Null when nobody answered,
+  /// and on every server older than the feature.
+  @JsonKey(fromJson: PrintVerdict.fromWire)
+  final PrintVerdict? userVerdict;
+
+  /// How [userVerdict] arrived: `dialog`, `link`, `plate_clear`,
+  /// `printer_card`, `api` or `reaction` (`services/print_confirmation.py`
+  /// `VERDICT_SOURCES`). Kept raw: the server may add one, and the label for an
+  /// unknown source is simply no label.
+  final String? userVerdictSource;
+
+  @JsonKey(fromJson: dateTimeFromJson)
+  final DateTime? userVerdictAt;
+
+  /// Whether this print asked for an outcome — copied from the queue item's
+  /// `confirm_outcome` at dispatch, or set for a print started outside
+  /// bambuddy when `confirm_outcome_external_prints` is on. Absent (false) on
+  /// an older server; its presence in the payload is what
+  /// `ArchiveRepository.outcomeCapability` observes.
+  @JsonKey(defaultValue: false)
+  final bool confirmRequested;
+
+  /// Why the print failed, or why a completed one was rejected — an i18n key
+  /// from the failure-reason list, or free text an older web build wrote (see
+  /// `failureReasonLabel`).
+  final String? failureReason;
+
+  /// The AMS mapping the slicer sent with this print, and the printer it was
+  /// resolved against — `extra_data.slicer_ams_mapping`, only on archives a
+  /// virtual printer received. The web offers it as one "Mapping" button for
+  /// that printer alone (`archiveAmsMapping.ts`).
+  @JsonKey(name: 'extra_data', fromJson: _slicerAmsMapping)
+  final ({int printerId, List<int> mapping})? slicerAmsMapping;
+
+  /// How long the print really ran, from `started_at` to `completed_at`. Null
+  /// unless the print completed, for a file printed more than once (its last
+  /// run says nothing about the whole-file estimate, #1608), and on a server
+  /// older than the computed field.
+  final int? actualTimeSeconds;
+
+  /// Estimated over actual time as a percentage: 100 is spot on, above 100
+  /// finished early (`compute_time_accuracy`). Null whenever
+  /// [actualTimeSeconds] is, and outside 5–500 %.
+  final double? timeAccuracy;
+
+  /// Printable objects on the plate, counted by the server from
+  /// `extra_data.printable_objects`.
+  @JsonKey(fromJson: toIntOrNull)
+  final int? objectCount;
+
+  final String? projectName;
+
+  /// Comma-separated, as the web's tag field writes it; see [tagList].
+  final String? tags;
+
+  final String? notes;
+
+  /// A link the user set (Printables, Thingiverse…), preferred over
+  /// [makerworldUrl] the way the web's globe button does.
+  final String? externalUrl;
+
+  final double? energyKwh;
+
+  /// Energy and printer-wear costs in the server's currency, beside the
+  /// filament [cost]. Each is null when the server does not track it —
+  /// `wear_cost` arrived with #694 — which is not the same as zero.
+  final double? energyCost;
+  final double? wearCost;
+
+  final String? createdByUsername;
+
+  /// The slicer's per-filament usage, one entry per AMS slot the print drew
+  /// from. Only a sliced file has it; see [_filamentSlots].
+  @JsonKey(readValue: _readExtraData, fromJson: _filamentSlots)
+  final List<FilamentSlot> filamentSlots;
+
+  /// The question is still open: the web's "unconfirmed" badge. Only a
+  /// completed print is asked — a failed one already has its answer.
+  bool get awaitsVerdict =>
+      status == 'completed' && confirmRequested && userVerdict == null;
+
   String get displayName => printName ?? filename;
+
+  /// What the timer shows: the real duration once there is one, the slicer's
+  /// estimate before that — the web card's `actual || estimate`.
+  int? get shownTimeSeconds => actualTimeSeconds ?? printTimeSeconds;
+
+  List<String> get tagList => filamentTypeTokens(tags);
+
+  String? get link => (externalUrl ?? '').isNotEmpty
+      ? externalUrl
+      : ((makerworldUrl ?? '').isNotEmpty ? makerworldUrl : null);
+
+  /// The three costs added up, or null when the server sent none of them.
+  double? get totalCost {
+    final parts = [?cost, ?energyCost, ?wearCost];
+    return parts.isEmpty ? null : parts.reduce((a, b) => a + b);
+  }
 
   /// Copy with a flipped/overridden favorite flag — for optimistic UI updates
   /// (the only field the app mutates locally).
@@ -199,4 +316,71 @@ class Archive {
   /// Filament colors as a list of hex tokens (a print can use several).
   /// See [filamentColourTokens] for why they stay verbatim.
   List<String> get filamentColors => filamentColourTokens(filamentColor);
+}
+
+/// A user's verdict on a printed part, as `ArchiveUpdate.user_verdict` spells
+/// it.
+enum PrintVerdict {
+  good('good'),
+  reject('reject');
+
+  const PrintVerdict(this.wire);
+
+  final String wire;
+
+  /// Null for a missing verdict and for a spelling this build does not know —
+  /// an unknown verdict is not a verdict it can show.
+  static PrintVerdict? fromWire(Object? value) =>
+      values.where((v) => v.wire == value).firstOrNull;
+}
+
+({int printerId, List<int> mapping})? _slicerAmsMapping(Object? extraData) {
+  if (extraData is! Map<String, dynamic>) return null;
+  final saved = extraData['slicer_ams_mapping'];
+  if (saved is! Map<String, dynamic>) return null;
+  final printerId = toIntOrNull(saved['printer_id']);
+  final mapping = saved['mapping'];
+  if (printerId == null || mapping is! List || mapping.isEmpty) return null;
+  final ids = <int>[];
+  for (final v in mapping) {
+    final id = toIntOrNull(v);
+    if (id == null) return null;
+    ids.add(id);
+  }
+  return (printerId: printerId, mapping: ids);
+}
+
+/// One AMS slot's share of a sliced print, from `slice_info.config`.
+typedef FilamentSlot = ({int slot, String type, String color, double grams});
+
+/// `readValue` hands the converter the whole `extra_data` map rather than a key
+/// of the archive itself.
+Object? _readExtraData(Map<dynamic, dynamic> json, String _) =>
+    json['extra_data'];
+
+/// `extra_data.filament_slots`, merged by slot.
+///
+/// The parser walks every `<filament>` of `slice_info.config`, and a multi-plate
+/// export lists them once per plate (`services/archive.py`,
+/// `_parse_slice_info`), so one slot can come twice. Summing them matches
+/// [Archive.filamentUsedGrams], which the same parser sums over the plates.
+List<FilamentSlot> _filamentSlots(Object? extraData) {
+  if (extraData is! Map) return const [];
+  final raw = extraData['filament_slots'];
+  if (raw is! List) return const [];
+  final bySlot = <int, FilamentSlot>{};
+  for (final entry in raw) {
+    if (entry is! Map) continue;
+    final slot = toIntOrNull(entry['slot_id']);
+    final grams = toDoubleOrNull(entry['used_g']);
+    if (slot == null || grams == null || grams <= 0) continue;
+    final seen = bySlot[slot];
+    bySlot[slot] = (
+      slot: slot,
+      type: seen?.type ?? '${entry['type'] ?? ''}'.trim(),
+      color: seen?.color ?? '${entry['color'] ?? ''}'.trim(),
+      grams: (seen?.grams ?? 0) + grams,
+    );
+  }
+  return bySlot.values.toList()..sort((a, b) => a.slot.compareTo(b.slot));
 }

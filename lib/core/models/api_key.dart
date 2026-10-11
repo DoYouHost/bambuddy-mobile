@@ -27,7 +27,11 @@ enum ApiKeyScope {
 
   /// The one narrow door into settings: `POST /settings/electricity-price`
   /// (`core/auth.py::resolve_apikey_owner`).
-  updateEnergyCost('can_update_energy_cost');
+  updateEnergyCost('can_update_energy_cost'),
+
+  /// `POST /notifications/app-message` only (server 1.2.6). The key's owner
+  /// also needs `notifications:update`, which this form cannot see.
+  sendNotifications('can_send_notifications');
 
   const ApiKeyScope(this.wire);
 

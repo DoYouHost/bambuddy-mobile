@@ -209,9 +209,9 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         const CircularProgressIndicator(),
-        const SizedBox(height: 16),
+        const SizedBox(height: DashSpace.lg),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: DashSpace.xxl),
           child: Text(
             l10n.timelapseEditProcessing,
             textAlign: TextAlign.center,
@@ -226,10 +226,7 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
     final output = (trim.end - trim.start) / _speed;
 
     return ListView(
-      padding: withSystemNavInset(
-        context,
-        const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      ),
+      padding: screenListPadding(context),
       children: [
         if (_preview case final preview?) ...[
           _Preview(
@@ -237,7 +234,7 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
             playing: _wantPlay,
             onToggle: _togglePreview,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: DashSpace.lg),
         ],
         _SectionHeader(
           icon: Icons.content_cut,
@@ -246,7 +243,7 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
               '${formatClock(trim.start)} – ${formatClock(trim.end)}'
               ' (${formatClock(trim.end - trim.start)})',
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         _TrimStrip(
           archiveId: widget.archiveId,
           preview: _preview,
@@ -257,16 +254,16 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
           onTrimCommitted: _previewEdge,
           onSeek: _scrub,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: DashSpace.lg),
         _SectionHeader(
           icon: Icons.speed,
           label: l10n.timelapseEditSpeed,
           value: l10n.timelapseEditOutput(formatClock(output)),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: DashSpace.sm,
+          runSpacing: DashSpace.sm,
           children: [
             for (final speed in _speeds)
               logTag(
@@ -284,7 +281,7 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: DashSpace.xl),
         Text(
           l10n.timelapseEditSource(
             formatClock(info.duration),
@@ -392,7 +389,7 @@ class _Preview extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(DashSpace.md),
                           child: Icon(
                             Icons.play_arrow,
                             size: 36,
@@ -483,7 +480,7 @@ class _SectionHeader extends StatelessWidget {
     return Row(
       children: [
         Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
-        const SizedBox(width: 8),
+        const SizedBox(width: DashSpace.sm),
         SectionHeading(label, style: theme.textTheme.titleSmall),
         const Spacer(),
         Text(value, style: theme.textTheme.bodySmall),

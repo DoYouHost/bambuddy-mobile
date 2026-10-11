@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../wear_theme.dart';
 import 'wear_face.dart';
@@ -138,7 +139,7 @@ class WearToast extends StatelessWidget {
                   size: 26,
                   color: success ? scheme.primary : scheme.error,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: DashSpace.sm),
                 // Flexible plus a line count measured against what is left:
                 // the message gives way to the icon and the hint rather than
                 // pushing them off the glass.
@@ -153,7 +154,7 @@ class WearToast extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 // Not a button: the tap target is the face behind it. It is here
                 // so that waiting out the three seconds looks like a choice.
                 Text(

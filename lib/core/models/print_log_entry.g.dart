@@ -31,6 +31,7 @@ abstract class _$PrintLogEntryCWProxy {
     double? cost,
     double? energyKwh,
     double? energyCost,
+    double? wearCost,
     String? failureReason,
     String? thumbnailPath,
     int? createdById,
@@ -70,6 +71,7 @@ class _$PrintLogEntryCWProxyImpl implements _$PrintLogEntryCWProxy {
     Object? cost = const $CopyWithPlaceholder(),
     Object? energyKwh = const $CopyWithPlaceholder(),
     Object? energyCost = const $CopyWithPlaceholder(),
+    Object? wearCost = const $CopyWithPlaceholder(),
     Object? failureReason = const $CopyWithPlaceholder(),
     Object? thumbnailPath = const $CopyWithPlaceholder(),
     Object? createdById = const $CopyWithPlaceholder(),
@@ -140,6 +142,10 @@ class _$PrintLogEntryCWProxyImpl implements _$PrintLogEntryCWProxy {
           ? _value.energyCost
           // ignore: cast_nullable_to_non_nullable
           : energyCost as double?,
+      wearCost: wearCost == const $CopyWithPlaceholder()
+          ? _value.wearCost
+          // ignore: cast_nullable_to_non_nullable
+          : wearCost as double?,
       failureReason: failureReason == const $CopyWithPlaceholder()
           ? _value.failureReason
           // ignore: cast_nullable_to_non_nullable

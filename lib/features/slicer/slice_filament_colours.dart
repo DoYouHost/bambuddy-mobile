@@ -25,18 +25,24 @@ import 'slice_providers.dart';
 /// slot after it. An all-empty result comes back as an empty list so the caller
 /// can drop the key entirely and leave the request byte-identical to one from
 /// before this existed.
+///
+/// [overrides] wins per slot where it names a colour: a row filled from a
+/// loaded spool (#3172) prints in that spool's colour, whatever else shares
+/// its preset name.
 List<String> sliceFilamentColours({
   required List<SlicerPreset?> picked,
   required List<OwnedFilament> owned,
   required List<FilamentRequirement> requirements,
+  List<String?> overrides = const [],
 }) {
   final colours = [
     for (var i = 0; i < picked.length; i++)
-      sliceSlotColour(
-        picked: picked[i],
-        owned: owned,
-        requirement: i < requirements.length ? requirements[i] : null,
-      ),
+      (i < overrides.length ? overrides[i] : null) ??
+          sliceSlotColour(
+            picked: picked[i],
+            owned: owned,
+            requirement: i < requirements.length ? requirements[i] : null,
+          ),
   ];
   return colours.every((c) => c.isEmpty) ? const [] : colours;
 }

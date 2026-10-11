@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import '../../core/ams/color_names.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/filament_colour.dart';
@@ -13,8 +14,6 @@ import '../../core/models/calibration_option.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/plate_list.dart';
-import '../../core/models/printer_status.dart';
-import '../../core/printers/nozzle_rack.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/settings/print_options.dart';
 import '../../core/theme/dash_theme.dart';
@@ -88,12 +87,6 @@ enum QueueScheduleType { asap, queue, scheduled }
 /// (matches the web `showDualNozzleOptions` model list).
 const _dualNozzleModels = {'H2D', 'H2DPRO', 'H2C', 'X2D'};
 
-/// Dark ink for text/icons painted on a solid [DashTokens.accentGreen] fill.
-/// `accentGreenInk` can't be used here: in the dark theme it equals
-/// `accentGreen`, so the label would vanish into the fill. Mirrors the app's
-/// on-accent ink (`dashPrimaryButtonStyle`).
-const Color _onGreenFill = Color(0xFF0A0C08);
-
 class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   // Target
   late bool _modelMode; // false = specific printer, true = "Any <model>"
@@ -114,6 +107,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   final Map<int, ({String type, String color})> _overrides = {};
   final Map<int, bool> _forceColorMatch = {};
 
+  /// The last model actually targeted — nulls skipped — as the web's
+  /// `prevTargetModel`, for [_dropOverridesOnRetarget].
+  late String? _lastTargetModel = widget.item.targetModel;
+
   // Nozzle rack (H2C, printer mode): filament group → 1-based rack position.
   // A group with no entry is left to the scheduler, which assigns from the rack
   // as it stands at dispatch.
@@ -127,6 +124,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   late bool _timelapse;
   late CalibrationOption _nozzleOffsetCali;
 
+  /// Null until the user touches the switch: a new job then follows the
+  /// server's default, which may arrive after the form has opened.
+  bool? _confirmOutcomeChoice;
+
   // Preheat & heat soak
   late String _preheatOverride; // inherit | on | off
   late final TextEditingController _chamberTarget;
@@ -137,6 +138,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   // Flags
   late bool _requireManualStart;
+
+  /// [awaitingReviewProvider] as [_submit] found it, for the payload builders
+  /// that run past its first `await`.
+  bool _heldForReview = false;
   late bool _requirePreviousSuccess;
   late bool _autoOffAfter;
   late bool _gcodeInjection;
@@ -289,6 +294,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
+    // Loaded with the form, so the overrides name their colours on save.
+    ref.watch(mappingColorCatalogProvider);
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -300,29 +307,30 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         body: AbsorbPointer(
           absorbing: _saving,
           child: ListView(
-            padding: withSystemNavInset(
-              context,
-              const EdgeInsets.fromLTRB(16, 12, 16, 32),
-            ),
+            padding: screenListPadding(context),
             children: [
               _header(l10n, t),
-              const SizedBox(height: 16),
+              // The server refuses the job without a cost center, and the
+              // app has no picker for one yet: say so before the form is
+              // filled in rather than after.
+              if (_billingBlocks)
+                ?inlineNote(l10n.queueBillingUseWeb, urgent: true),
+              const SizedBox(height: DashSpace.lg),
               _targetSection(l10n, t),
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               ?_plateSection(l10n, t),
               ?_copiesSection(l10n, t),
               if (!_modelMode) ...[
                 _mappingSection(l10n, t),
-                const SizedBox(height: 16),
-                ?_nozzleRackSection(l10n, t),
+                const SizedBox(height: DashSpace.lg),
               ] else ...[
                 _filamentOverrideSection(l10n, t),
-                const SizedBox(height: 16),
+                const SizedBox(height: DashSpace.lg),
               ],
               _printOptionsSection(l10n, t),
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               _preheatSection(l10n, t),
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               _scheduleSection(l10n, t),
             ],
           ),
@@ -346,13 +354,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                 )
               : PrintThumbnail(archiveId: it.archiveId, size: 52),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: DashSpace.md),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(l10n.queueEditPrintJob, style: t.micro),
-              const SizedBox(height: 2),
+              const SizedBox(height: DashSpace.xs),
               Text(
                 it.displayName,
                 maxLines: 2,
@@ -409,12 +417,15 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               }
             }),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           if (!_modelMode)
             _printerList(l10n, t, printers)
           else
             _modelTarget(l10n, t, models, locations, modelFixed),
-          ?_missingSnippetNote(l10n, padding: const EdgeInsets.only(top: 10)),
+          ?_missingSnippetNote(
+            l10n,
+            padding: const EdgeInsets.only(top: DashSpace.md),
+          ),
         ],
       ),
     );
@@ -438,7 +449,12 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               if (p.ipAddress != null) p.ipAddress!,
             ].join(' • '),
             onTap: () => setState(() {
-              if (_printerId != p.id) _nozzleRackChoice.clear();
+              if (_printerId != p.id) {
+                _nozzleRackChoice.clear();
+                // A slot id names another spool on another printer; the web
+                // drops its picks on a switch too (`PrintModal/index.tsx`).
+                _amsMapping = null;
+              }
               _printerId = p.id;
             }),
           ).tagged('queue_edit.printer'),
@@ -457,7 +473,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       children: [
         if (!modelFixed && models.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: DashSpace.md),
             child: _Dropdown<String?>(
               label: l10n.queueEditTargetModel,
               value: models.contains(_targetModel) ? _targetModel : null,
@@ -465,7 +481,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               items: [
                 for (final m in models) (value: m, label: m, swatch: null),
               ],
-              onChanged: (v) => setState(() => _targetModel = v),
+              onChanged: (v) => setState(() {
+                _targetModel = v;
+                _dropOverridesOnRetarget(plateChanged: false);
+              }),
             ),
           ),
         _Dropdown<String?>(
@@ -491,24 +510,45 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return Padding(
       // Vertical inset leaves the pill room to grow with the text scale before
       // it meets the 56-high bar.
-      padding: const EdgeInsets.fromLTRB(4, 6, 12, 6),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.xs,
+        DashSpace.xs,
+        DashSpace.md,
+        DashSpace.xs,
+      ),
       child: FilledButton(
         style: dashPrimaryButtonStyle(t).copyWith(
           padding: const WidgetStatePropertyAll(
-            EdgeInsets.symmetric(horizontal: 18),
+            EdgeInsets.symmetric(horizontal: DashSpace.lg),
           ),
           shape: WidgetStatePropertyAll(
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        onPressed: _saving ? null : _submit,
+        onPressed: _saving || _billingBlocks || _billingPending
+            ? null
+            : _submit,
         child: Text(
           widget._isCreate ? l10n.queueCreateSubmit : l10n.queueEditSave,
         ),
       ).tagged(widget._isCreate ? 'queue_create.save' : 'queue_edit.save'),
     );
   }
+
+  /// A billing server refuses a create, and any edit of an item, without a
+  /// cost center (`update_queue_item` checks the budget on every PATCH). An
+  /// item queued in the web with one still edits.
+  bool get _billingBlocks =>
+      _billingApplies && ref.watch(billingEnabledProvider);
+
+  /// Submit waits for the billing flag on a job it could block: the first
+  /// frame would otherwise offer a write the server is about to refuse.
+  bool get _billingPending =>
+      _billingApplies && ref.watch(serverUiFlagsProvider).isLoading;
+
+  bool get _billingApplies =>
+      widget._isCreate || widget.item.costCenterId == null;
 
   /// Name of the printer picked in the Target section, for messages that would
   /// otherwise quote the item's stored (or, on a draft, missing) printer.
@@ -560,7 +600,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               // and across the card rather than squeezed beside the stepper.
               if (_copies > 1)
                 Padding(
-                  padding: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.only(top: DashSpace.xs),
                   child: Text(
                     order
                         ? l10n.queueEditCopiesOrder
@@ -571,7 +611,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: DashSpace.lg),
       ],
     );
   }
@@ -611,11 +651,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         ? l10n.queueEditPlateSelected(_plateId ?? 1)
         : plateLabel(l10n, current);
     final row = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Row(
         children: [
           Icon(Icons.layers_outlined, color: t.textSecondary, size: 20),
-          const SizedBox(width: 12),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(
               widget._isCreate
@@ -642,7 +682,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                 ).tagged('queue_edit.plate')
               : row,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: DashSpace.lg),
       ],
     );
   }
@@ -662,6 +702,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     setState(() {
       _plateId = picked;
       _amsMapping = null;
+      _dropOverridesOnRetarget(plateChanged: true);
       // The pick names filament groups of the plate it was made for; another
       // plate's groups are another set, and a group id that survives means a
       // position chosen for a filament nobody asked about.
@@ -679,6 +720,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         onTap: printerId == null
             ? null
             : () async {
+                // The rows write these back as they change; a sheet dismissed
+                // without saving takes them back, as it does its slot picks.
+                final rackBefore = {..._nozzleRackChoice};
+                final forceBefore = {..._forceColorMatch};
                 final mapping = await showQueueMappingSheet(
                   context,
                   item: widget.item,
@@ -686,15 +731,43 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   printerName: _selectedPrinterName(printerId),
                   confirmLabel: l10n.fmSave,
                   plateId: _plateId,
+                  startFrom: _amsMapping ?? const [],
+                  forceColorMatch: _forceColorMatch,
+                  onForceColorMatch: (slotId, value) => setState(() {
+                    if (value) {
+                      _forceColorMatch[slotId] = true;
+                    } else {
+                      _forceColorMatch.remove(slotId);
+                    }
+                  }),
+                  rackChoice: _nozzleRackChoice,
+                  onRackChoice: (choice) => setState(
+                    () => _nozzleRackChoice
+                      ..clear()
+                      ..addAll(choice),
+                  ),
                 );
-                if (mapping != null) setState(() => _amsMapping = mapping);
+                // Empty: the printer reported nothing to map to, and the web
+                // sends no mapping then — keep the stored one.
+                if (mapping == null) {
+                  setState(() {
+                    _nozzleRackChoice
+                      ..clear()
+                      ..addAll(rackBefore);
+                    _forceColorMatch
+                      ..clear()
+                      ..addAll(forceBefore);
+                  });
+                } else if (mapping.isNotEmpty) {
+                  setState(() => _amsMapping = mapping);
+                }
               },
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
           child: Row(
             children: [
               Icon(Icons.bento_outlined, color: t.textSecondary, size: 20),
-              const SizedBox(width: 12),
+              const SizedBox(width: DashSpace.md),
               Expanded(
                 child: Text(
                   printerId == null
@@ -714,203 +787,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     );
   }
 
-  // --- Nozzle rack (H2C, printer mode) ---
-
-  /// The rack-bound filament groups of the plate about to print, lowest id
-  /// first — the unit a rack position is chosen for.
-  ///
-  /// Groups rather than slots: two slots in one group share a hotend and cannot
-  /// be pointed at different positions. Empty on every plate the server did not
-  /// annotate, which is every plate not sliced for a rack printer and every
-  /// plate at all on a server that predates the group table.
-  List<({int id, RackGroup need, List<int> slots})> _rackGroups() {
-    final slotsByGroup = <int, List<int>>{};
-    final needByGroup = <int, RackGroup>{};
-    for (final requirement in _parsedRequirements()) {
-      final id = requirement.groupId;
-      final need = requirement.group;
-      if (id == null || need == null || !need.onRack) continue;
-      needByGroup[id] = need;
-      (slotsByGroup[id] ??= []).add(requirement.slotId);
-    }
-    final ids = needByGroup.keys.toList()..sort();
-    return [
-      for (final id in ids)
-        (id: id, need: needByGroup[id]!, slots: slotsByGroup[id]!..sort()),
-    ];
-  }
-
-  /// Which rack nozzle each filament group prints from, or null when there is no
-  /// choice to offer.
-  ///
-  /// Three things have to hold, and each absence is itself the answer "leave it
-  /// to the scheduler": a specific printer is targeted (a model target cannot
-  /// name a rack, and a pick the server cannot satisfy stops the print rather
-  /// than degrading), that printer reports a rack, and the plate has groups
-  /// bound to it. So no version check is needed — an older server annotates no
-  /// groups and reports no rack, and the section simply never appears.
-  Widget? _nozzleRackSection(AppLocalizations l10n, DashTokens t) {
-    final printerId = _printerId;
-    if (printerId == null) return null;
-    final groups = _rackGroups();
-    if (groups.isEmpty) return null;
-    final rack = rackByPosition(
-      ref.watch(printerStatusOnceProvider(printerId)).valueOrNull?.nozzleRack,
-    );
-    if (rack.isEmpty) return null;
-
-    return Column(
-      children: [
-        _SectionCard(
-          title: l10n.queueEditNozzleRack,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(l10n.queueEditNozzleRackDesc, style: t.labelSoft),
-              const SizedBox(height: 12),
-              for (final group in groups) _rackGroupRow(l10n, t, group, rack),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-
-  Widget _rackGroupRow(
-    AppLocalizations l10n,
-    DashTokens t,
-    ({int id, RackGroup need, List<int> slots}) group,
-    Map<int, NozzleRackSlot> rack,
-  ) {
-    final taken = {
-      for (final entry in _nozzleRackChoice.entries)
-        if (entry.key != group.id) entry.value,
-    };
-    final fits = {
-      for (final entry in rack.entries)
-        if (rackSlotFits(
-          entry.value,
-          diameter: group.need.nozzleDiameter,
-          volumeType: group.need.volumeType,
-        ))
-          entry.key,
-    };
-    final positions = rack.keys.toList()..sort();
-    final needed = _nozzleLabel(
-      l10n,
-      diameter: group.need.nozzleDiameter,
-      highFlow: highFlowFromName(group.need.volumeType),
-    );
-    // A pick the live rack no longer satisfies is the one case the server does
-    // not paper over: it fails the item at dispatch, after the upload, rather
-    // than choosing something else. Say so while it can still be changed.
-    final picked = _nozzleRackChoice[group.id];
-    final stale = picked != null && !fits.contains(picked);
-    final warning = stale
-        ? l10n.queueEditRackPickStale
-        : (fits.isEmpty ? l10n.queueEditRackNoFit(needed) : null);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _Dropdown<int?>(
-            label: l10n.queueEditRackGroupLabel(
-              group.slots.map((s) => '$s').join(', '),
-              needed,
-            ),
-            value: _nozzleRackChoice[group.id],
-            placeholder: l10n.queueEditRackAuto,
-            items: [
-              (value: null, label: l10n.queueEditRackAuto, swatch: null),
-              for (final position in positions)
-                (
-                  value: position,
-                  label: _rackPositionLabel(
-                    l10n,
-                    position,
-                    rack[position]!,
-                    fits: fits.contains(position),
-                    taken: taken.contains(position),
-                  ),
-                  swatch: null,
-                ),
-            ],
-            // A position the nozzle does not fit, and one another group already
-            // holds, are both refused at dispatch — the pick is checked against
-            // the live rack there, and a stale one fails the print instead of
-            // falling back. Better to refuse it here, where it costs a tap.
-            disabled: {
-              for (final position in positions)
-                if (!fits.contains(position) || taken.contains(position))
-                  position,
-            },
-            onChanged: (picked) => setState(() {
-              if (picked == null) {
-                _nozzleRackChoice.remove(group.id);
-              } else {
-                _nozzleRackChoice[group.id] = picked;
-              }
-            }),
-          ),
-          ?inlineNote(warning, urgent: stale),
-        ],
-      ),
-    );
-  }
-
-  /// One row of the picker: the position, what it holds, and — when it cannot
-  /// be taken — which of the two reasons that is.
-  ///
-  /// The reason is in the label rather than left to the greying out: a disabled
-  /// row otherwise reads as "unavailable, no idea why", and a screen reader
-  /// announces it as dimmed and stops there. Not fitting outranks being taken,
-  /// because freeing the position would not help this group either.
-  String _rackPositionLabel(
-    AppLocalizations l10n,
-    int position,
-    NozzleRackSlot slot, {
-    required bool fits,
-    required bool taken,
-  }) {
-    final held = _rackSlotLabel(l10n, slot);
-    if (!fits) return l10n.queueEditRackPositionUnfit(position, held);
-    if (taken) return l10n.queueEditRackPositionTaken(position, held);
-    return l10n.queueEditRackPosition(position, held);
-  }
-
-  /// What one rack position holds, or the empty-dock label.
-  String _rackSlotLabel(AppLocalizations l10n, NozzleRackSlot slot) =>
-      slot.isEmpty
-      ? l10n.queueEditRackEmpty
-      : _nozzleLabel(
-          l10n,
-          diameter: slot.nozzleDiameter ?? '',
-          highFlow: highFlowFromCode(slot.nozzleType),
-        );
-
-  /// A nozzle as both sides of this screen name it: `0.4 High flow`. The flow
-  /// type is dropped when nothing states it, rather than guessed at standard.
-  String _nozzleLabel(
-    AppLocalizations l10n, {
-    required String diameter,
-    required bool? highFlow,
-  }) {
-    final size = nozzleDiameterLabel(diameter);
-    final flow = switch (highFlow) {
-      true => l10n.nozzleFlowHigh,
-      false => l10n.nozzleFlowStandard,
-      null => '',
-    };
-    return [size, flow].where((part) => part.isNotEmpty).join(' ');
-  }
-
   // --- Filament override (model mode) ---
 
-  /// The filament slots as the server parsed them out of the 3MF, or empty when
-  /// the job has no source to parse (a queued reprint whose archive is created
-  /// only at print start) and while the request is in flight.
+  /// The filament slots the plate prints with, as the server parsed them out of
+  /// the 3MF — unused project slots left out, as the web's print dialog reads
+  /// them — or empty when the job has no source to parse (a queued reprint
+  /// whose archive is created only at print start) and while the request is in
+  /// flight.
   ///
   /// Separate from [_requirements] because that one flattens the records down to
   /// what the override rows need, and the rack picker needs the filament-group
@@ -920,7 +803,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     if (it.archiveId != null) {
       return ref
               .watch(
-                filamentRequirementsProvider((
+                printRequirementsProvider((
                   isArchive: true,
                   id: it.archiveId!,
                   plate: _plateId ?? 1,
@@ -932,7 +815,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     if (it.libraryFileId != null) {
       return ref
               .watch(
-                filamentRequirementsProvider((
+                printRequirementsProvider((
                   isArchive: false,
                   id: it.libraryFileId!,
                   plate: _plateId ?? 1,
@@ -1016,7 +899,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(l10n.queueEditFilamentOverrideDesc, style: t.labelSoft),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           if (reqs.isEmpty)
             Text(
               l10n.queueEditNoFilamentReqs,
@@ -1052,7 +935,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         : '${override.type}|${override.color}';
     final typeLabel = req.type.isEmpty ? '—' : req.type;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: DashSpace.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1113,7 +996,23 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// force-only slot carries the ORIGINAL type/color. Returns null when empty
   /// (sent as an explicit clear). `color_name` has no catalogue on mobile, so
   /// the hex stands in — the backend uses it only for display messages.
+  /// The web's `printerOverridesForPlate`: a job for one printer carries only
+  /// the slots whose filament was changed (#3133) — the mapping was matched
+  /// against them, and the scheduler needs them if it maps again at
+  /// dispatch. A force-colour flag on its own stays behind, as the web's
+  /// does: printer mode never sent one.
+  List<Map<String, dynamic>>? _buildPrinterOverrides() {
+    final entries = [
+      for (final o
+          in _buildFilamentOverrides() ?? const <Map<String, dynamic>>[])
+        if (_overrides.containsKey(o['slot_id'])) o,
+    ];
+    return entries.isEmpty ? null : entries;
+  }
+
   List<Map<String, dynamic>>? _buildFilamentOverrides() {
+    final catalog =
+        ref.read(mappingColorCatalogProvider).valueOrNull ?? ColorCatalog.empty;
     final entries = <Map<String, dynamic>>[];
     for (final r in _requirements()) {
       final ov = _overrides[r.slotId];
@@ -1129,11 +1028,39 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         'slot_id': r.slotId,
         'type': type,
         'color': color,
-        'color_name': color,
+        // The web's `getColorName`: the server quotes it back in its waiting
+        // reasons, where a bare hex tells the reader nothing.
+        'color_name': colorNameForServer(catalog, color),
+        ...?_storedVariant(r.slotId, type, color),
         'force_color_match': force,
       });
     }
     return entries.isEmpty ? null : entries;
+  }
+
+  /// The web's `storedVariantFor`: a slot still asking for the filament its
+  /// stored override named keeps that override's `tray_info_idx` — the exact
+  /// variant a forced colour match is held to (`print_scheduler.py`). Any
+  /// change of type or colour drops it. Only an edit has stored overrides.
+  Map<String, String>? _storedVariant(int slotId, String type, String color) {
+    if (widget._isCreate) return null;
+    String hex(Object? c) {
+      final clean = (c?.toString() ?? '').replaceFirst('#', '').toLowerCase();
+      return clean.length > 6 ? clean.substring(0, 6) : clean;
+    }
+
+    for (final o
+        in widget.item.filamentOverrides ?? const <Map<String, dynamic>>[]) {
+      if (o['slot_id'] != slotId) continue;
+      final idx = o['tray_info_idx'];
+      final same =
+          (o['type']?.toString() ?? '').toUpperCase() == type.toUpperCase() &&
+          hex(o['color']) == hex(color);
+      return idx is String && idx.isNotEmpty && same
+          ? {'tray_info_idx': idx}
+          : null;
+    }
+    return null;
   }
 
   Color? _swatch(String hex) => colorFromHex(hex);
@@ -1185,6 +1112,20 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             value: _timelapse,
             onChanged: (v) => setState(() => _timelapse = v),
           ),
+          if (_offersConfirmOutcome)
+            _OptionSwitch(
+              id: 'queue_edit.confirm_outcome',
+              title: l10n.queueOptConfirmOutcome,
+              subtitle: _confirmOutcomeSticky
+                  ? l10n.queueOptConfirmOutcomeSticky
+                  : l10n.queueOptConfirmOutcomeDesc,
+              value: _confirmOutcome(watch: true),
+              // Held while a new job's default is on its way: a switch that
+              // moves by itself after the first look is one tapped wrong.
+              onChanged: _confirmOutcomeUnanswered || _confirmOutcomeSticky
+                  ? null
+                  : (v) => setState(() => _confirmOutcomeChoice = v),
+            ),
           if (_showNozzleOffset)
             _CalibrationRow(
               id: 'queue_edit.nozzle_offset_cali',
@@ -1207,7 +1148,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(l10n.queueEditPreheatDesc, style: t.labelSoft),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           _SegToggle<String>(
             id: 'queue_edit.preheat_override',
             selected: _preheatOverride,
@@ -1219,7 +1160,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             onChanged: (v) => setState(() => _preheatOverride = v),
           ),
           if (_preheatOverride != 'off') ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
             TextField(
               controller: _chamberTarget,
               keyboardType: TextInputType.number,
@@ -1275,11 +1216,18 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             }),
           ),
           if (_scheduleType == QueueScheduleType.scheduled) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
             _scheduleTimeRow(l10n, t),
           ],
-          const SizedBox(height: 8),
-          if (_scheduleType == QueueScheduleType.queue)
+          const SizedBox(height: DashSpace.sm),
+          // Their jobs always wait, so the switch would only mislead (#1620).
+          if (ref.watch(awaitingReviewProvider))
+            InlineNote(
+              l10n.queueEditAwaitingReviewNote,
+              icon: Icons.pan_tool_outlined,
+              padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+            )
+          else if (_scheduleType == QueueScheduleType.queue)
             _CheckRow(
               id: 'queue_edit.require_manual_start',
               icon: Icons.pan_tool_outlined,
@@ -1317,7 +1265,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           // says it, or the same sentence is read out twice.
           ?_missingSnippetNote(
             l10n,
-            padding: const EdgeInsets.only(left: 4, top: 2),
+            padding: const EdgeInsets.only(
+              left: DashSpace.xs,
+              top: DashSpace.xs,
+            ),
             announce: true,
           ),
         ],
@@ -1332,7 +1283,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return Row(
       children: [
         Icon(Icons.event_outlined, color: t.textSecondary),
-        const SizedBox(width: 12),
+        const SizedBox(width: DashSpace.md),
         Expanded(child: Text(label, style: t.monoValue)),
         OutlinedButton(
           style: OutlinedButton.styleFrom(
@@ -1374,8 +1325,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       return;
     }
 
+    _heldForReview = ref.read(awaitingReviewProvider);
     setState(() => _saving = true);
     _logGcodeInjection();
+    _sentMapping = _modelMode ? null : await _matchMapping();
 
     final result = await ref
         .read(queueProvider.notifier)
@@ -1402,6 +1355,57 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     if (result.isOk) navigator.pop(widget._isCreate);
   }
 
+  /// The web's rule for the filament overrides when the target model or the
+  /// plate changes (`PrintModal/index.tsx`): they go, unless this is the first
+  /// model after none — a choice, not a change — or an edit of a job that had
+  /// no model before. Leaving "any P2S" for a printer keeps them: they are
+  /// the job's filament, not a tray (#3133).
+  void _dropOverridesOnRetarget({required bool plateChanged}) {
+    final previous = _lastTargetModel;
+    final modelChanged = _targetModel != null && _targetModel != previous;
+    if (!modelChanged && !plateChanged) return;
+    if (modelChanged) _lastTargetModel = _targetModel;
+    if (modelChanged && !plateChanged && previous == null) return;
+    if (widget._isCreate || previous != null) {
+      _overrides.clear();
+      _forceColorMatch.clear();
+    }
+  }
+
+  /// What [_update] and [_create] send as `ams_mapping`, worked out just
+  /// before; null is "send none".
+  List<int>? _sentMapping;
+
+  /// The mapping the web sends on save (`getMappingForPrinter`): matched
+  /// afresh against the printer as it is now, from the form's own picks. None
+  /// when the printer reports no loaded slot, which keeps the stored one.
+  Future<List<int>?> _matchMapping() async {
+    final printerId = _printerId;
+    final it = widget.item;
+    final source = it.archiveId ?? it.libraryFileId;
+    if (printerId == null || source == null) return null;
+    try {
+      return await queueMappingToSend(
+        // The provider the form already watches, so this is no second fetch.
+        requirements: await ref.read(
+          printRequirementsProvider((
+            isArchive: it.archiveId != null,
+            id: source,
+            plate: _plateId ?? 1,
+          )).future,
+        ),
+        printers: ref.read(printersRepositoryProvider),
+        printerId: printerId,
+        startFrom: _amsMapping ?? const [],
+        preferLowestSetting: ref.read(preferLowestFilamentProvider).valueOrNull,
+      );
+    } on Object {
+      // A lost session surfaces on the write itself; the mapping only rides
+      // along with it.
+      return null;
+    }
+  }
+
   /// The print toggles as they stand in the form.
   PrintOptions get _options => PrintOptions(
     bedLevelling: _bedLevelling,
@@ -1412,6 +1416,65 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     nozzleOffsetCali: _nozzleOffsetCali,
     gcodeInjection: _gcodeInjection,
   );
+
+  /// Hidden where the server would drop the flag: a switch that is on and
+  /// never asks is worse than no switch.
+  bool get _offersConfirmOutcome => ref.watch(queueOutcomeProvider).orFalse;
+
+  /// What the switch shows: the user's choice, else the item's own flag when
+  /// editing, else the server's default for a new job.
+  bool _confirmOutcome({required bool watch}) {
+    if (_confirmOutcomeSticky) return true;
+    if (_confirmOutcomeChoice case final choice?) return choice;
+    if (!widget._isCreate) return widget.item.confirmOutcome;
+    final server = watch
+        ? ref.watch(defaultConfirmOutcomeProvider)
+        : ref.read(defaultConfirmOutcomeProvider);
+    return server.valueOrNull ?? false;
+  }
+
+  bool get _confirmOutcomeUnanswered =>
+      widget._isCreate &&
+      _confirmOutcomeChoice == null &&
+      ref.watch(defaultConfirmOutcomeProvider).isUnanswered;
+
+  /// The flag for a new job, or null to leave the key out where the server
+  /// would drop it. `POST /queue/` does not read the server's default itself
+  /// (only the paths without a dialog do), so an untouched switch sends the
+  /// default — waited for, since a job submitted before it arrived would
+  /// otherwise go out as `false`.
+  ///
+  /// A choice the user made stands unless the gate has since settled on no:
+  /// it was made on a switch that was on screen, and a gate briefly reloading
+  /// must not throw it away.
+  Future<bool?> _confirmOutcomeForCreate(ProviderContainer providers) async {
+    final gate = providers.read(queueOutcomeProvider);
+    if (gate.valueOrNull == false) return null;
+    if (_confirmOutcomeChoice case final choice?) return choice;
+    if (_confirmOutcomeSticky) return true;
+    if (!gate.orFalse) return null;
+    return settledGate(
+      providers,
+      defaultConfirmOutcomeProvider,
+    ).catchError((Object _) => false);
+  }
+
+  /// The flag for a PATCH, sent only when it changed — as the calibrations
+  /// are ([_calibrationUpdate]) — so a save about something else cannot
+  /// rewrite what another client set meanwhile.
+  bool? get _confirmOutcomeUpdate {
+    final choice = _confirmOutcomeChoice;
+    if (ref.read(queueOutcomeProvider).valueOrNull == false) return null;
+    return choice == widget.item.confirmOutcome ? null : choice;
+  }
+
+  /// A reprint of an archive that already asks: the server copies only a
+  /// `true` onto the archive and never clears it (`print_scheduler.py`), so
+  /// this job asks whatever the switch says — which is why it says so.
+  bool get _confirmOutcomeSticky =>
+      widget._isCreate &&
+      widget.item.archiveId != null &&
+      widget.item.confirmOutcome;
 
   /// The injection flag as it may ship, or null to leave the key out.
   ///
@@ -1483,20 +1546,35 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     CalibrationOption stored,
   ) => current == stored ? null : current;
 
+  /// The web's `editManualStart`: a user held for review always waits (#1620),
+  /// and an edit keeps a scheduled job's wait rather than clearing it — which
+  /// would start it, and is refused to such a user.
+  bool get _manualStartSent =>
+      _heldForReview ||
+      switch (_scheduleType) {
+        QueueScheduleType.queue => _requireManualStart,
+        QueueScheduleType.scheduled =>
+          !widget._isCreate && widget.item.manualStart,
+        QueueScheduleType.asap => false,
+      };
+
   Future<void> _update(QueueRepository repo) => repo.updateItem(
     widget.item.id,
     printerId: _modelMode ? null : _printerId,
     targetModel: _modelMode ? _targetModel : null,
     targetLocation: _modelMode ? _targetLocation : null,
-    amsMapping: _modelMode ? kQueueUpdateUnset : _amsMapping,
+    amsMapping: _modelMode
+        ? kQueueUpdateUnset
+        : _sentMapping ?? kQueueUpdateUnset,
+    // Null, not unset: a job moved to a printer must not keep a model job's
+    // overrides it no longer carries (#3133).
     filamentOverrides: _modelMode
         ? _buildFilamentOverrides()
-        : kQueueUpdateUnset,
+        : _buildPrinterOverrides(),
     scheduledTime: _scheduledTimeIso,
     requirePreviousSuccess: _requirePreviousSuccess,
     autoOffAfter: _autoOffAfter,
-    manualStart:
-        _scheduleType == QueueScheduleType.queue && _requireManualStart,
+    manualStart: _manualStartSent,
     bedLevelling: _calibrationUpdate(_bedLevelling, widget.item.bedLevelling),
     flowCali: _calibrationUpdate(_flowCali, widget.item.flowCali),
     vibrationCali: _vibrationCali,
@@ -1506,6 +1584,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         ? _calibrationUpdate(_nozzleOffsetCali, widget.item.nozzleOffsetCali)
         : null,
     gcodeInjection: _gcodeInjectionPayload,
+    confirmOutcome: _confirmOutcomeUpdate,
     preheatOverride: _preheatOverride,
     preheatChamberTargetOverride: _chamberTargetValue,
     nozzleRackChoice: _rackChoiceUpdate,
@@ -1526,19 +1605,21 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final it = widget.item;
     final providers = ProviderScope.containerOf(context, listen: false);
     final orderId = await _createOrder(providers);
+    final confirmOutcome = await _confirmOutcomeForCreate(providers);
     final plate = _plate;
     final options = QueueCreateOptions(
       // Into an order, the item carries the plate its target names.
       plateId: orderId == null ? _plateId : plate.id,
       targetModel: _modelMode ? _targetModel : null,
       targetLocation: _modelMode ? _targetLocation : null,
-      filamentOverrides: _modelMode ? _buildFilamentOverrides() : null,
-      amsMapping: _modelMode ? null : _amsMapping,
+      filamentOverrides: _modelMode
+          ? _buildFilamentOverrides()
+          : _buildPrinterOverrides(),
+      amsMapping: _modelMode ? null : _sentMapping,
       scheduledTime: _scheduledTimeIso,
       requirePreviousSuccess: _requirePreviousSuccess,
       autoOffAfter: _autoOffAfter,
-      manualStart:
-          _scheduleType == QueueScheduleType.queue && _requireManualStart,
+      manualStart: _manualStartSent,
       bedLevelling: _bedLevelling,
       flowCali: _flowCali,
       vibrationCali: _vibrationCali,
@@ -1546,6 +1627,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       timelapse: _timelapse,
       nozzleOffsetCali: _showNozzleOffset ? _nozzleOffsetCali : null,
       gcodeInjection: _gcodeInjectionPayload,
+      confirmOutcome: confirmOutcome,
       preheatOverride: _preheatOverride,
       preheatChamberTargetOverride: _chamberTargetValue,
       nozzleRackChoice: _modelMode ? null : _nozzleRackChoice,
@@ -1706,7 +1788,7 @@ class _SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
         color: t.subCard,
         borderRadius: BorderRadius.circular(18),
@@ -1716,7 +1798,7 @@ class _SectionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: t.bodyBold.copyWith(letterSpacing: 0.2)),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           child,
         ],
       ),
@@ -1753,7 +1835,7 @@ class _SegToggle<T> extends StatelessWidget {
     return Row(
       children: [
         for (var i = 0; i < segments.length; i++) ...[
-          if (i > 0) const SizedBox(width: 8),
+          if (i > 0) const SizedBox(width: DashSpace.sm),
           Expanded(child: _segButton(t, segments[i])),
         ],
       ],
@@ -1771,7 +1853,7 @@ class _SegToggle<T> extends StatelessWidget {
         child: Container(
           height: 44,
           alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
@@ -1786,9 +1868,9 @@ class _SegToggle<T> extends StatelessWidget {
                 Icon(
                   seg.icon,
                   size: 16,
-                  color: isSel ? _onGreenFill : t.textSecondary,
+                  color: isSel ? t.onAccent : t.textSecondary,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: DashSpace.sm),
               ],
               Flexible(
                 child: Text(
@@ -1796,7 +1878,7 @@ class _SegToggle<T> extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: t.bodyBold.copyWith(
-                    color: isSel ? _onGreenFill : t.textPrimary,
+                    color: isSel ? t.onAccent : t.textPrimary,
                   ),
                 ),
               ),
@@ -1859,14 +1941,14 @@ class _CalibrationRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(title, style: t.titleSm),
-          const SizedBox(height: 2),
+          const SizedBox(height: DashSpace.xs),
           Text(subtitle, style: t.labelSoft),
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           _SegToggle<CalibrationOption>(
             id: id,
             selected: value,
@@ -1902,13 +1984,15 @@ class _OptionSwitch extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool value;
-  final ValueChanged<bool> onChanged;
+
+  /// Null disables the switch.
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       // Merged, so the switch is announced with the setting it belongs to. On
       // its own it read as "off, switch" — six of these sit on this screen and
       // nothing said which one had focus. The probe treats a merged subtree as
@@ -1921,12 +2005,12 @@ class _OptionSwitch extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: t.titleSm),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: DashSpace.xs),
                   Text(subtitle, style: t.labelSoft),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: DashSpace.md),
             Switch(
               value: value,
               activeThumbColor: Colors.white,
@@ -1968,7 +2052,7 @@ class _CheckRow extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       onTap: enabled ? () => onChanged!(!value) : null,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
         child: Row(
           children: [
             Checkbox(
@@ -1983,7 +2067,7 @@ class _CheckRow extends StatelessWidget {
               size: 18,
               color: enabled ? t.textSecondary : t.textTertiary,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: DashSpace.md),
             Expanded(
               child: Text(
                 label,
@@ -2011,7 +2095,6 @@ class _Dropdown<T> extends StatelessWidget {
     required this.items,
     required this.onChanged,
     this.placeholder = '—',
-    this.disabled,
   });
 
   final String label;
@@ -2019,10 +2102,6 @@ class _Dropdown<T> extends StatelessWidget {
   final String placeholder;
   final List<({T value, String label, Color? swatch})> items;
   final ValueChanged<T> onChanged;
-
-  /// Values shown but not selectable. Listing a choice the caller cannot honour
-  /// says why it is unavailable; leaving it out only makes the list shorter.
-  final Set<T>? disabled;
 
   @override
   Widget build(BuildContext context) {
@@ -2037,7 +2116,7 @@ class _Dropdown<T> extends StatelessWidget {
             surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
             elevation: const WidgetStatePropertyAll(8),
             padding: const WidgetStatePropertyAll(
-              EdgeInsets.symmetric(vertical: 6),
+              EdgeInsets.symmetric(vertical: DashSpace.sm),
             ),
             shape: WidgetStatePropertyAll(
               RoundedRectangleBorder(
@@ -2057,7 +2136,6 @@ class _Dropdown<T> extends StatelessWidget {
                 it.label,
                 it.swatch,
                 it.value == value,
-                disabled?.contains(it.value) ?? false,
                 () => onChanged(it.value),
               ),
           ],
@@ -2079,11 +2157,10 @@ class _Dropdown<T> extends StatelessWidget {
     String label,
     Color? swatch,
     bool selected,
-    bool disabled,
     VoidCallback onTap,
   ) {
     return MenuItemButton(
-      onPressed: disabled ? null : onTap,
+      onPressed: onTap,
       leadingIcon: swatch != null
           ? _SwatchDot(color: swatch, ring: selected ? t.accentGreenInk : null)
           : Icon(
@@ -2119,7 +2196,10 @@ class _Dropdown<T> extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DashSpace.lg,
+            vertical: DashSpace.md,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: t.groupCardBorder),
@@ -2128,14 +2208,14 @@ class _Dropdown<T> extends StatelessWidget {
             children: [
               if (swatch != null) ...[
                 _SwatchDot(color: swatch),
-                const SizedBox(width: 10),
+                const SizedBox(width: DashSpace.md),
               ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(label, style: t.micro),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: DashSpace.xs),
                     Text(text, style: t.titleSm),
                   ],
                 ),
@@ -2191,7 +2271,7 @@ class _SelectableTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: Material(
         color: selected ? t.accentGreen.withValues(alpha: 0.14) : t.groupCard,
         borderRadius: BorderRadius.circular(12),
@@ -2199,7 +2279,10 @@ class _SelectableTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(
+              horizontal: DashSpace.lg,
+              vertical: DashSpace.md,
+            ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
@@ -2215,7 +2298,7 @@ class _SelectableTile extends StatelessWidget {
                   size: 20,
                   color: selected ? t.accentGreenInk : t.textSecondary,
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

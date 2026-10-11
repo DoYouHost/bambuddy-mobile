@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:dash_kit/dash_kit.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../../core/format/datetime_format.dart';
 import '../../../core/models/heater_history.dart';
+import '../../../core/theme/dash_theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../common/dash_async.dart';
@@ -97,13 +97,18 @@ class _HeaterHistorySheetState extends ConsumerState<HeaterHistorySheet> {
       'sheet.heater_history',
       SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.lg,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(l10n.heaterHistoryTitle, style: theme.textTheme.titleMedium),
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               if (widget.kinds.length > 1) ...[
                 SegmentedButton<String>(
                   showSelectedIcon: false,
@@ -114,7 +119,7 @@ class _HeaterHistorySheetState extends ConsumerState<HeaterHistorySheet> {
                   selected: {_kind},
                   onSelectionChanged: (s) => setState(() => _kind = s.first),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: DashSpace.sm),
               ],
               HistoryRangeSelector(
                 ranges: _ranges,
@@ -122,7 +127,7 @@ class _HeaterHistorySheetState extends ConsumerState<HeaterHistorySheet> {
                 labelOf: (h) => sensorRangeLabel(l10n, h),
                 onChanged: (h) => setState(() => _hours = h),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               dashAsyncStrip(
                 context,
                 async,
@@ -134,7 +139,7 @@ class _HeaterHistorySheetState extends ConsumerState<HeaterHistorySheet> {
                   hours: _hours,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               Text(
                 l10n.heaterHistoryRecordingInfo,
                 textAlign: TextAlign.center,
@@ -217,9 +222,9 @@ class _Content extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         _Legend(color: color, hasTarget: targets.isNotEmpty),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         SizedBox(
           height: 220,
           child: LineChart(_chartData(context, values, targets)),
@@ -281,7 +286,7 @@ class _Content extends StatelessWidget {
             reservedSize: 24,
             interval: (maxX - minX) / 4,
             getTitlesWidget: (v, meta) => Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: DashSpace.xs),
               child: Text(
                 axisLabel(DateTime.fromMillisecondsSinceEpoch(v.toInt())),
                 style: axis,
@@ -331,7 +336,7 @@ class _Legend extends StatelessWidget {
           height: 2,
           child: CustomPaint(painter: _LinePainter(c, dashed: dashed)),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: DashSpace.sm),
         Text(label, style: style),
       ],
     );
@@ -340,7 +345,7 @@ class _Legend extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         item(color, false, l10n.heaterHistoryReading),
-        const SizedBox(width: 16),
+        const SizedBox(width: DashSpace.lg),
         item(color.withValues(alpha: 0.55), true, l10n.heaterHistoryTarget),
       ],
     );

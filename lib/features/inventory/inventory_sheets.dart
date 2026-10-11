@@ -1,10 +1,11 @@
 part of 'inventory_screen.dart';
 
-/// Opens spool create/edit sheet. [existing] != null → edit mode.
-void openSpoolForm(BuildContext context, {Spool? existing}) {
+/// Opens spool create/edit sheet. [existing] != null → edit mode; [copyOf]
+/// fills a create form from another spool.
+void openSpoolForm(BuildContext context, {Spool? existing, Spool? copyOf}) {
   dashSurfaceSheet<void>(
     context,
-    builder: (_) => _SpoolFormSheet(existing: existing),
+    builder: (_) => _SpoolFormSheet(existing: existing, copyOf: copyOf),
   );
 }
 
@@ -52,7 +53,11 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
     final status = _printerId == null
         ? null
         : ref.watch(printerStatusesProvider)[_printerId];
-    final dual = status?.isDualExtruder ?? false;
+    final printer = roster
+        .where((p) => p.printer.id == _printerId)
+        .firstOrNull
+        ?.printer;
+    final dual = status?.isDualNozzle(printer?.nozzleCount) ?? false;
     // AMS units detected live (their ids) — if none, provide 0..3.
     final unitIds =
         (status?.ams ?? const []).map((u) => u.id ?? 0).toSet().toList()
@@ -73,12 +78,17 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
       minSize: 0.3,
       builder: (context, controller) => ListView(
         controller: controller,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          0,
+          DashSpace.gutter,
+          DashSpace.xl,
+        ),
         children: [
           Text(l10n.inventoryAssignTitle, style: t.display),
-          const SizedBox(height: 4),
+          const SizedBox(height: DashSpace.xs),
           Text(widget.spool.displayName, style: t.bodyPlain),
-          const SizedBox(height: 16),
+          const SizedBox(height: DashSpace.lg),
 
           if (roster.isEmpty)
             Text(l10n.inventoryAssignNoPrinters)
@@ -87,7 +97,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
               l10n.inventoryAssignPrinter,
               style: theme.textTheme.labelLarge,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: DashSpace.sm),
             // The label stays above the field rather than moving inside it:
             // the segmented buttons below cannot carry one, and a single field
             // labelled differently from its neighbours reads as a mistake.
@@ -110,7 +120,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                   ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
 
             SegmentedButton<bool>(
               segments: [
@@ -120,7 +130,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
               selected: {_external},
               onSelectionChanged: (s) => setState(() => _external = s.first),
             ).tagged('spool_assign.slot_kind'),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
 
             if (_external) ...[
               if (dual) ...[
@@ -128,7 +138,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                   l10n.inventoryAssignExtruder,
                   style: theme.textTheme.labelLarge,
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: DashSpace.sm),
                 SegmentedButton<int>(
                   segments: [
                     ButtonSegment(value: 0, label: Text(l10n.extruderLeft)),
@@ -158,12 +168,11 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                       id: 'spool_assign.unit',
                       label: l10n.inventoryAssignUnit,
                       value: _amsUnit,
-                      // Display 1-based, value is unit id.
-                      items: {for (final u in unitOptions) u: '${u + 1}'},
+                      items: {for (final u in unitOptions) u: amsUnitName(u)},
                       onChanged: (v) => setState(() => _amsUnit = v),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: _NumberDropdown(
                       id: 'spool_assign.slot',
@@ -175,27 +184,14 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                   ),
                 ],
               ),
-            const SizedBox(height: 24),
+            const SizedBox(height: DashSpace.xl),
 
             FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: t.accentGreen,
-                foregroundColor: _onAccentGreen,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-              ),
               onPressed: _saving || _printerId == null ? null : _assign,
               icon: _saving
-                  ? DashSpinner(color: _onAccentGreen)
+                  ? DashSpinner(color: t.onAccent)
                   : const Icon(Icons.add_link, size: 18),
-              label: Text(
-                l10n.inventoryAssignConfirm,
-                style: const TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              label: Text(l10n.inventoryAssignConfirm),
             ).tagged('spool_assign.save'),
           ],
         ],
@@ -264,7 +260,7 @@ class _NumberDropdown extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: theme.textTheme.labelLarge),
-        const SizedBox(height: 6),
+        const SizedBox(height: DashSpace.sm),
         dashCombo<int>(
           context,
           id: id,
@@ -302,8 +298,8 @@ class _SpoolActions extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: DashSpace.sm,
+      runSpacing: DashSpace.sm,
       children: [
         _ActionPill(
           tokens: t,
@@ -315,6 +311,15 @@ class _SpoolActions extends ConsumerWidget {
           icon: Icons.edit_outlined,
           label: l10n.inventoryEdit,
         ).tagged('spool_actions.edit'),
+        _ActionPill(
+          tokens: t,
+          onPressed: () {
+            Navigator.of(context).pop();
+            openSpoolForm(context, copyOf: spool);
+          },
+          icon: Icons.copy_outlined,
+          label: l10n.inventoryDuplicate,
+        ).tagged('spool_actions.duplicate'),
         if (!spool.isArchived)
           if (assignment != null)
             _ActionPill(
@@ -352,6 +357,7 @@ class _SpoolActions extends ConsumerWidget {
         if (spool.consumedWeight > 0)
           _ActionPill(
             tokens: t,
+            variant: _ActionPillVariant.warning,
             onPressed: () => _resetUsage(context, ref, l10n),
             icon: Icons.refresh,
             label: l10n.inventoryResetUsage,
@@ -373,6 +379,7 @@ class _SpoolActions extends ConsumerWidget {
         else
           _ActionPill(
             tokens: t,
+            variant: _ActionPillVariant.secondary,
             onPressed: () => _run(
               context,
               ref,
@@ -468,11 +475,12 @@ class _SpoolActions extends ConsumerWidget {
   }
 }
 
-enum _ActionPillVariant { primary, outline, destructive }
+enum _ActionPillVariant { primary, outline, secondary, warning, destructive }
 
 /// Small pill action button used in the spool detail sheet's action row.
-/// [primary] (Edit) is filled with a tinted accent; other actions are
-/// outlined; [destructive] (Delete) is text-only in the danger color.
+/// [primary] (Edit) is filled with a tinted accent; the rest are outlined:
+/// [outline] in the accent (the default), [secondary] (Archive), [warning]
+/// (Reset usage) and [destructive] (Delete) each in their own color.
 class _ActionPill extends StatelessWidget {
   const _ActionPill({
     required this.tokens,
@@ -490,15 +498,25 @@ class _ActionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = variant == _ActionPillVariant.destructive
-        ? tokens.dangerInk
-        : tokens.accentGreenInk;
+    final (color, outline) = switch (variant) {
+      _ActionPillVariant.primary => (tokens.accentGreenInk, null),
+      _ActionPillVariant.outline => (tokens.accentGreenInk, tokens.accentGreen),
+      _ActionPillVariant.secondary => (
+        tokens.textSecondary,
+        tokens.textSecondary,
+      ),
+      _ActionPillVariant.warning => (
+        tokens.accentOrangeInk,
+        tokens.accentOrange,
+      ),
+      _ActionPillVariant.destructive => (tokens.dangerInk, tokens.danger),
+    };
     final fill = variant == _ActionPillVariant.primary
         ? tokens.accentGreen.withValues(alpha: 0.16)
         : Colors.transparent;
-    final border = variant == _ActionPillVariant.outline
-        ? Border.all(color: tokens.accentGreen.withValues(alpha: 0.4))
-        : null;
+    final border = outline == null
+        ? null
+        : Border.all(color: outline.withValues(alpha: 0.4));
 
     return Material(
       color: fill,
@@ -507,7 +525,10 @@ class _ActionPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         onTap: onPressed,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DashSpace.lg,
+            vertical: DashSpace.md,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: border,
@@ -516,7 +537,7 @@ class _ActionPill extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, size: 16, color: color),
-              const SizedBox(width: 6),
+              const SizedBox(width: DashSpace.sm),
               Text(
                 label,
                 style: DashTokens.of(context).label.copyWith(color: color),

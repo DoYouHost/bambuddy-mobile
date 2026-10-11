@@ -82,7 +82,7 @@ class _PhotoPagerState extends State<PhotoPager> {
         ),
         if (photos.length > 1)
           Padding(
-            padding: const EdgeInsets.only(bottom: 24),
+            padding: const EdgeInsets.only(bottom: DashSpace.xl),
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.6),
@@ -90,8 +90,8 @@ class _PhotoPagerState extends State<PhotoPager> {
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+                  horizontal: DashSpace.md,
+                  vertical: DashSpace.sm,
                 ),
                 child: Text(
                   '${_page + 1} / ${photos.length}',
@@ -137,7 +137,7 @@ class _Photo extends StatelessWidget {
 
   Widget _message(String text) => Center(
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: DashSpace.xl),
       child: Text(
         text,
         textAlign: TextAlign.center,

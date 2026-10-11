@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';
 
 /// The spool tile's meta line, where the AMS slot label was being clipped to
-/// "AMS0 ·…".
+/// "AMS-A ·…".
 ///
 /// The cause was a `Spacer` between the weight text and the label: both are flex
 /// children, so whatever space the fixed weight text left over was split evenly
@@ -16,19 +16,6 @@ import '../../helpers.dart';
 /// matter how wide the row was. A tile is unreadable when it says which printer
 /// holds the spool but not which slot, so this measures the rendered label
 /// against the width its own text needs.
-class _Shelf extends InventoryNotifier {
-  _Shelf(this._spool, this._assignment);
-
-  final Spool _spool;
-  final SpoolAssignment _assignment;
-
-  @override
-  Future<InventoryState> build() async => InventoryState(
-    spools: [_spool],
-    assignmentBySpool: {_spool.id: _assignment},
-  );
-}
-
 void main() {
   /// Width the text would take unconstrained — anything narrower on screen
   /// means the ellipsis ate part of it.
@@ -69,7 +56,11 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          inventoryProvider.overrideWith(() => _Shelf(spool, assignment)),
+          inventoryProvider.overrideWith(
+            () => FixedInventory(
+              InventoryState(spools: [spool], assignments: [assignment]),
+            ),
+          ),
           noServerProfileOverride,
         ],
         child: MediaQuery(
@@ -82,7 +73,7 @@ void main() {
   }
 
   /// The slot label as [assignmentSlotLabel] builds it for AMS unit 0, tray 0.
-  final slotLabel = find.text('AMS0 · 1');
+  final slotLabel = find.text('AMS-A · 1');
 
   testWidgets('the AMS slot label is not clipped on a 360 dp phone', (
     tester,

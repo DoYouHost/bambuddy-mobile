@@ -11,9 +11,12 @@
             <solid android:color="@color/ic_launcher_background" />
         </shape>
     </item>
+    <!-- 40 dp, not 48: the foreground layer is drawn edge to edge (the launcher's
+         own 16 % inset makes its margin), so at the oval's size the filament
+         strand almost touched the rim. -->
     <item
-        android:width="48dp"
-        android:height="48dp"
+        android:width="40dp"
+        android:height="40dp"
         android:gravity="center"
         android:drawable="@drawable/ic_launcher_foreground" />
 </layer-list>

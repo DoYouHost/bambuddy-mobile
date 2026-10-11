@@ -288,9 +288,9 @@ void main() {
       expect(status.activeExtruder, 1);
       expect(status.amsExtruderMap, {0: 1});
       expect(
-        status.isDualExtruder,
+        status.isDualNozzle(null),
         isTrue,
-        reason: 'two external spools → dual-extruder machine',
+        reason: 'the X2D capture reports a second nozzle temperature',
       );
     });
 
@@ -842,19 +842,20 @@ void main() {
   });
 
   group('slot addressing', () {
-    test('a single external holder feeds the only nozzle there is', () {
-      // One holder means one nozzle, and that one is extruder 0 — the inverted
-      // 254/255 pair only describes a dual-head machine.
-      final single = PrinterStatus.fromJson(const {
+    test('a holder\'s side is its id, however many the report carries', () {
+      // A two-nozzle printer can report one holder for a while — the server
+      // keeps a lone `vt_tray` until `vir_slot` arrives (`bambu_mqtt.py`) —
+      // and 254 is still the left one, as on the web.
+      final one = PrinterStatus.fromJson(const {
         'id': 1,
         'vt_tray': [
           {'id': 254, 'tray_type': 'PLA'},
         ],
       });
 
-      expect(single.extruderForExternal(254), 0);
+      expect(one.extruderForExternal(254), 1);
       expect(
-        single.extruderForExternal(255),
+        one.extruderForExternal(255),
         isNull,
         reason: 'a spool this printer does not report',
       );
@@ -1050,11 +1051,24 @@ void main() {
       expect(offline.amsSwitchInlet, {0: 'B'});
     });
 
-    test('an FTS machine still counts as dual-extruder', () {
-      // Its AMS units drop out of `ams_extruder_map`, which used to be the
-      // signal — losing it hid the extruder badges and the side labels.
-      expect(withInlets({'0': 'A'}).isDualExtruder, isTrue);
-      expect(withInlets(const {}).isDualExtruder, isFalse);
+    test('two nozzles is the web\'s rule: nozzle_count or nozzle_2', () {
+      // `PrintersPage.tsx`: the printer row's nozzle count, or a second nozzle
+      // temperature. An FTS inlet map or a second holder is not part of it.
+      expect(withInlets({'0': 'A'}).isDualNozzle(2), isTrue);
+      expect(withInlets({'0': 'A'}).isDualNozzle(1), isFalse);
+      final secondTemp = PrinterStatus.fromJson(const {
+        'id': 1,
+        'temperatures': {'nozzle': 200.0, 'nozzle_2': 25.0},
+      });
+      expect(secondTemp.isDualNozzle(null), isTrue);
+      final twoHolders = PrinterStatus.fromJson(const {
+        'id': 1,
+        'vt_tray': [
+          {'id': 254},
+          {'id': 255},
+        ],
+      });
+      expect(twoHolders.isDualNozzle(1), isFalse);
     });
 
     test('an emptied binding wins over the last known one', () {
@@ -1191,5 +1205,145 @@ void main() {
       expect(printers[1].location, isNull);
       expect(printers[1].isActive, isFalse);
     });
+  });
+
+  group('HmsError.level', () {
+    test('is the high half of the code: 0x20070 is serious', () {
+      expect(const HmsError(code: '0x20070').level, 2);
+    });
+
+    test('reads the fatal and info ends of the scale', () {
+      expect(const HmsError(code: '0x10001').level, 1);
+      expect(const HmsError(code: '0x40001').level, 4);
+    });
+
+    test('reads a print_error level off its first hex digit', () {
+      expect(const HmsError(code: '0x4001', attr: 0x03004001).level, 1);
+      expect(const HmsError(code: '0x8004', attr: 0x03008004).level, 2);
+      expect(const HmsError(code: '0xc003', attr: 0x0300c003).level, 3);
+      expect(const HmsError(code: '0x2001', attr: 0x03002001).level, isNull);
+    });
+
+    test('a blank full_code is no full_code', () {
+      // HMSError.full_code defaults to "" server-side; the parser folds it.
+      final e = HmsError.fromJson(const {
+        'code': '0x10007',
+        'attr': 0x05000500,
+        'full_code': '',
+      });
+      expect(e.isHmsChannel, isTrue);
+      expect(e.level, 1);
+    });
+
+    test('full_code decides the channel when the server sends it', () {
+      // Synthetic: no real `hms[]` error group reaches 0x4000
+      // (hms_errors.py::lookup_fault), which is what makes the first digit
+      // tell the two channels apart here at all.
+      const invalid = HmsError(code: '0x8004', fullCode: '0300010000008004');
+      expect(invalid.isHmsChannel, isTrue);
+      expect(invalid.level, isNull);
+      const printError = HmsError(code: '0x8004', fullCode: '03008004');
+      expect(printError.isHmsChannel, isFalse);
+      expect(printError.level, 2);
+    });
+
+    test('is null for a missing, canonical or out-of-range code', () {
+      expect(const HmsError().level, isNull);
+      expect(const HmsError(code: '0500-0600-0002-0070').level, isNull);
+      expect(const HmsError(code: '0x90001').level, isNull);
+    });
+
+    test('ignores severity, which the server fills from the part id', () {
+      expect(const HmsError(code: '0x30001', severity: 1).level, 3);
+    });
+
+    test('a print_error level is the digits 4, 8 and C, and nothing else', () {
+      // hms_errors.py::alert_level_from_print_error: {0x4: 1, 0x8: 2, 0xC: 3},
+      // every other first digit is Bambu's invalid 0.
+      int? level(int code) => HmsError(
+        code: '0x${code.toRadixString(16)}',
+        fullCode: (0x03000000 | code).toRadixString(16).padLeft(8, '0'),
+      ).level;
+      expect(level(0x3FFF), isNull);
+      expect(level(0x4000), 1);
+      expect(level(0x4FFF), 1);
+      expect(level(0x5000), isNull);
+      expect(level(0x7FFF), isNull);
+      expect(level(0x8000), 2);
+      expect(level(0x8FFF), 2);
+      expect(level(0x9000), isNull);
+      expect(level(0xC000), 3);
+      expect(level(0xCFFF), 3);
+      expect(level(0xD000), isNull);
+      expect(level(0xF000), isNull);
+    });
+
+    test(
+      'a code sent as a number is read as that number, not as hex digits',
+      () {
+        // 65546 is 0x1000A. Spelled "65546" and read as hex it would be 0x65546:
+        // level 6, which does not exist, and the fault would never alert.
+        final e = HmsError.fromJson({'code': 65546, 'attr': 0x03009100});
+        expect(e.code, '0x1000a');
+        expect(e.level, 1);
+        expect(e.ecode, '030091000001000A');
+        expect(e.displayCode, '0300-9100-0001-000A');
+
+        final runout = HmsError.fromJson({'code': 0x8004, 'attr': 0x03008004});
+        expect(runout.level, 2);
+        expect(runout.shortCode, '0300_8004');
+      },
+    );
+
+    test('a code that is no whole number is no code', () {
+      for (final odd in <Object?>[-1, 1.5, double.nan, true, '', '  ', null]) {
+        expect(HmsError.fromJson({'code': odd}).code, isNull, reason: '$odd');
+      }
+      // A whole number that arrives as a double is still that number.
+      expect(HmsError.fromJson({'code': 65546.0}).code, '0x1000a');
+    });
+
+    test('an hms[] level outside 1..4 is no level', () {
+      expect(const HmsError(code: '0x0000a').level, isNull);
+      expect(const HmsError(code: '0x5000a').level, isNull);
+      expect(const HmsError(code: '0x1000a').level, 1);
+    });
+
+    test('reads the code however the hex is spelled', () {
+      for (final code in ['0x1000a', '0X1000A', '1000a', ' 0x1000a ']) {
+        final e = HmsError.fromJson({'code': code, 'attr': 0x03009100});
+        expect(e.level, 1, reason: code);
+        expect(e.isHmsChannel, isTrue, reason: code);
+        expect(e.ecode, '030091000001000A', reason: code);
+      }
+    });
+
+    test(
+      'the X2D power-up frame of report #46 parses to two level-1 faults',
+      () {
+        final faults = [
+          for (final (attr, full) in const [
+            (0x03009100, '030091000001000A'),
+            (0x03000100, '030001000001000A'),
+          ])
+            HmsError.fromJson({
+              'code': '0x1000a',
+              'attr': attr,
+              'module': 3,
+              'severity': 1,
+              'actions': const <String>[],
+              'job_id': null,
+              'full_code': full,
+            }),
+        ];
+        expect(faults.map((e) => e.level), [1, 1]);
+        expect(
+          faults.map((e) => e.ecode),
+          ['030091000001000A', '030001000001000A'],
+          reason: 'one code, two parts: the key must keep them apart',
+        );
+        expect(faults.map((e) => e.jobId), [null, null]);
+      },
+    );
   });
 }

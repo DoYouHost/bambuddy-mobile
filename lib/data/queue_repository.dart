@@ -55,6 +55,7 @@ class QueueCreateOptions {
     this.timelapse,
     this.nozzleOffsetCali,
     this.gcodeInjection,
+    this.confirmOutcome,
     this.preheatOverride,
     this.preheatChamberTargetOverride,
     this.nozzleRackChoice,
@@ -87,6 +88,10 @@ class QueueCreateOptions {
   /// the web) into this job's 3MF before it is uploaded. Needed by plate-swap
   /// rigs (SwapMod, Farmloop, …); a no-op when the target model has no snippet.
   final bool? gcodeInjection;
+
+  /// Ask for the outcome when the job completes (#1898). Null leaves it to the
+  /// server's default, `False` on the create route.
+  final bool? confirmOutcome;
 
   final String? preheatOverride;
   final int? preheatChamberTargetOverride;
@@ -124,6 +129,7 @@ class QueueCreateOptions {
     'timelapse': ?timelapse,
     'nozzle_offset_cali': ?nozzleOffsetCali?.toCreateWire(triState: triState),
     'gcode_injection': ?gcodeInjection,
+    'confirm_outcome': ?confirmOutcome,
     'preheat_override': ?preheatOverride,
     'preheat_chamber_target_override': ?preheatChamberTargetOverride,
     'nozzle_rack_choice': ?rackChoiceWire(nozzleRackChoice),
@@ -157,6 +163,15 @@ class QueueRepository {
   /// outright. Unknown → the boolean form, which every server accepts.
   late final triStateCapability = ObservedCapability(
     ServerFeature.triStateCalibration,
+    _serverVersion,
+  );
+
+  /// Whether this server can ask for a job's outcome (#1898). Observed like
+  /// [triStateCapability]: `confirm_outcome` is a defaulted field of every
+  /// queue row from the feature on, absent before it — and an older server
+  /// drops it from a create or an update without a word, so unknown → hidden.
+  late final outcomeCapability = ObservedCapability(
+    ServerFeature.printOutcome,
     _serverVersion,
   );
 
@@ -201,6 +216,7 @@ class QueueRepository {
       return res.data ?? const [];
     });
     _observeCalibrationWire(body);
+    outcomeCapability.observeKey(body.firstOrNull, 'confirm_outcome');
     return parseJsonList(body, QueueItem.fromJson);
   }
 
@@ -245,9 +261,34 @@ class QueueRepository {
   /// Keeps the detail: refused with 400 for a row that is currently printing,
   /// and the status it names is the only thing that explains the refusal — see
   /// [stop].
-  Future<void> delete(int itemId) => guardKeepingDetail(
-    () => _dio.delete<dynamic>(Endpoints.queueItem(itemId)),
-  );
+  ///
+  /// False when the server kept the row as cancelled instead: the last run a
+  /// batch order can re-queue its plate from (`deleted: false`,
+  /// `print_queue.py::delete_queue_item`, #2960).
+  Future<bool> delete(int itemId) => guardKeepingDetail(() async {
+    final res = await _dio.delete<dynamic>(Endpoints.queueItem(itemId));
+    final body = res.data;
+    return !(body is Map && body['deleted'] == false);
+  });
+
+  /// The queue's history as the web's History tab lists it: every item that
+  /// completed, failed, was skipped or was cancelled — one request per status,
+  /// as the server filters on one at a time.
+  ///
+  /// Fetched only while the history is on screen: it is the bulk of an
+  /// unfiltered queue (see [fetchActive]).
+  Future<List<QueueItem>> fetchHistory() async {
+    final lists = await Future.wait([
+      for (final status in const [
+        'completed',
+        'failed',
+        'skipped',
+        'cancelled',
+      ])
+        fetch(status: status),
+    ]);
+    return [for (final list in lists) ...list];
+  }
 
   /// PATCH /queue/{id} — assign printer to item (before start).
   ///
@@ -306,6 +347,7 @@ class QueueRepository {
     bool? useAms,
     CalibrationOption? nozzleOffsetCali,
     bool? gcodeInjection,
+    bool? confirmOutcome,
     String? preheatOverride,
     Object? preheatChamberTargetOverride = kQueueUpdateUnset,
     Object? nozzleRackChoice = kQueueUpdateUnset,
@@ -335,6 +377,7 @@ class QueueRepository {
       'use_ams': ?useAms,
       'nozzle_offset_cali': ?nozzleOffsetCali?.toWire(triState: triState),
       'gcode_injection': ?gcodeInjection,
+      'confirm_outcome': ?confirmOutcome,
       'preheat_override': ?preheatOverride,
       if (preheatChamberTargetOverride != kQueueUpdateUnset)
         'preheat_chamber_target_override': preheatChamberTargetOverride,
@@ -584,6 +627,10 @@ class QueueRepository {
       if (insertAtTop) 'insert_at_top': true,
       ...?options?.toJson(triState: triState),
     }..removeWhere((_, v) => v == null);
-    return guard(() => _dio.post<dynamic>(Endpoints.queue, data: body));
+    // Keeps the detail: a billing server refuses an item with no cost center
+    // with 400, and its sentence is the only thing that says why (#3256).
+    return guardKeepingDetail(
+      () => _dio.post<dynamic>(Endpoints.queue, data: body),
+    );
   }
 }

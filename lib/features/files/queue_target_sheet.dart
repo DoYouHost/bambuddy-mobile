@@ -35,7 +35,12 @@ Future<QueueTarget?> showQueueTargetSheet(
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                0,
+                DashSpace.gutter,
+                DashSpace.sm,
+              ),
               child: Text(
                 l10n.fmQueueTargetTitle(fileCount),
                 style: Theme.of(ctx).textTheme.titleMedium,

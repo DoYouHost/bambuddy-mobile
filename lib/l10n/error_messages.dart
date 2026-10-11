@@ -21,8 +21,6 @@ extension AppApiExceptionL10n on AppApiException {
       l10n.errTwoFactorMethodUnavailable,
     AppErrorCode.twoFactorEmailUnavailable => l10n.errTwoFactorEmailUnavailable,
     AppErrorCode.apiKeyRejected => l10n.errApiKeyRejected,
-    AppErrorCode.slotTagUnreadable => l10n.errSlotTagUnreadable,
-    AppErrorCode.printerOffline => l10n.errPrinterOffline,
     AppErrorCode.tooManyAttempts => l10n.errTooManyAttempts,
   };
 

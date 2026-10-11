@@ -56,6 +56,7 @@ class PrinterStatus {
     this.nozzles,
     this.nozzleRack,
     this.filaSwitch,
+    this.amsFilamentBackup,
     this.extruderSlots,
   });
 
@@ -235,6 +236,12 @@ class PrinterStatus {
   @JsonKey(fromJson: _toFilaSwitchOrNull)
   final FilaSwitch? filaSwitch;
 
+  /// AMS Filament Backup — whether the printer moves to a second spool of the
+  /// same filament when one runs out. Null when the model does not report it
+  /// (A1 family). Off is what stops "prefer lowest remaining" from picking a
+  /// near-empty spool (`effectivePreferLowest`).
+  final bool? amsFilamentBackup;
+
   /// Which AMS slot each hotend is fed from, keyed by extruder id (0 = right /
   /// main, 1 = left / deputy). Null on servers and printers that do not report
   /// it; [trayNow] is printer-wide and cannot answer the same question, because
@@ -324,6 +331,7 @@ class PrinterStatus {
     nozzleRack,
     filaSwitch,
     extruderSlots,
+    amsFilamentBackup,
   ];
 
   /// Value equality — `ingestPoll` uses this to skip publishing a merged
@@ -410,6 +418,7 @@ class PrinterStatus {
       nozzleRack: nozzleRack ?? previous.nozzleRack,
       filaSwitch: filaSwitch ?? previous.filaSwitch,
       extruderSlots: extruderSlots ?? previous.extruderSlots,
+      amsFilamentBackup: amsFilamentBackup ?? previous.amsFilamentBackup,
     )._clearedIfOffline();
   }
 
@@ -440,7 +449,8 @@ class PrinterStatus {
   /// wins over the inherited value in [mergedWith] the same as any other field.
   ///
   /// Kept: identity/hardware
-  /// (`name`/`model`/`supportsDrying`/`nozzles`/`nozzleRack`/`filaSwitch`),
+  /// (`name`/`model`/`supportsDrying`/`nozzles`/`nozzleRack`/`filaSwitch`/
+  /// `amsFilamentBackup`),
   /// the physical AMS inventory
   /// (`ams`/`vtTray`/`amsExtruderMap`/`amsSwitchInlet`/`extruderSlots`/`trayNow`/`activeExtruder`)
   /// which survives a power-off, and `hmsErrors` — [PrintMonitor] pauses its HMS
@@ -464,6 +474,7 @@ class PrinterStatus {
       trayNow: trayNow,
       activeExtruder: activeExtruder,
       filaSwitch: filaSwitch,
+      amsFilamentBackup: amsFilamentBackup,
       extruderSlots: extruderSlots,
       hmsErrors: hmsErrors,
       awaitingPlateClear: awaitingPlateClear,
@@ -654,29 +665,21 @@ class PrinterStatus {
     return list;
   }
 
-  /// Dual-head machine — UI then distinguishes which material on which extruder
-  /// (single-head doesn't need this).
-  bool get isDualExtruder =>
-      externalSpools.length > 1 ||
-      (amsExtruderMap?.length ?? 0) > 1 ||
-      // A Filament Track Switch exists to feed two nozzles from one AMS, and
-      // the units it binds drop out of `ams_extruder_map` — on such a machine
-      // the inlet map is the only thing left saying "dual".
-      (amsSwitchInlet?.isNotEmpty ?? false);
+  /// Two-nozzle machine, by the web's rule wherever it has the printer and its
+  /// status (`PrintersPage.tsx`, `AssignToAmsModal.tsx`): the printer row's
+  /// `nozzle_count` ([nozzleCount], from `GET /printers`) or a second nozzle
+  /// temperature, which the server reports only for a second nozzle.
+  bool isDualNozzle(int? nozzleCount) =>
+      nozzleCount == 2 || (temperatures?.containsKey('nozzle_2') ?? false);
 
   /// Extruder fed by the external spool whose `vt_tray` id is [trayId], or null
-  /// when this printer reports no such spool.
-  ///
-  /// The pair is inverted against id order — [extruderForExternalSide] holds
-  /// that table and the live verification behind it. A printer with a single
-  /// holder has a single nozzle, and that one is extruder 0 however the holder
-  /// happens to be numbered.
+  /// when this printer reports no such spool. The holder's id says it alone —
+  /// 254 is the left one — as on the web, never how many holders the latest
+  /// report happened to carry; a single-nozzle machine does not ask
+  /// ([isDualNozzle]). [extruderForExternalSide] holds the table.
   int? extruderForExternal(int? trayId) {
-    final spools = externalSpools;
-    if (!spools.any((t) => t.id == trayId)) return null;
-    return spools.length == 1
-        ? 0
-        : extruderForExternalSide(externalSideOf(trayId));
+    if (!externalSpools.any((t) => t.id == trayId)) return null;
+    return extruderForExternalSide(externalSideOf(trayId));
   }
 
   /// The tray a slot triple names, or null when this printer reports no such
@@ -762,6 +765,7 @@ class AmsUnit {
     this.dryTime,
     this.dryStatus,
     this.moduleType,
+    this.dryCountdownStalled = false,
   });
 
   factory AmsUnit.fromJson(Map<String, dynamic> json) =>
@@ -795,6 +799,13 @@ class AmsUnit {
   @JsonKey(fromJson: toIntOrNull)
   final int? dryStatus;
 
+  /// `dry_countdown_stalled` (server #2896): [dryTime] has not ticked for a
+  /// while and no drying phase is reported — a start the firmware accepted and
+  /// never ran, or a paused cycle. Such a timer never reaches 0 on its own.
+  /// False on older servers, which cannot tell.
+  @JsonKey(fromJson: toBoolOrFalse)
+  final bool dryCountdownStalled;
+
   /// Module type: 'n3f' (AMS 2 Pro), 'n3s' (AMS-HT), 'ams' (original AMS), …
   /// Only the drying-capable modules ('n3f'/'n3s') accept dry commands.
   final String? moduleType;
@@ -809,6 +820,11 @@ class AmsUnit {
   /// status phase).
   bool get isDrying => (dryTime ?? 0) > 0 || (dryStatus ?? 0) == 2;
 
+  /// A drying timer is held but not running (`ams_drying.py::is_countdown_parked`).
+  /// Still [isDrying], since the sheet has to offer Stop for it; only what the
+  /// card claims about it changes.
+  bool get isDryingParked => dryCountdownStalled && (dryTime ?? 0) > 0;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -820,6 +836,7 @@ class AmsUnit {
           other.dryTime == dryTime &&
           other.dryStatus == dryStatus &&
           other.moduleType == moduleType &&
+          other.dryCountdownStalled == dryCountdownStalled &&
           _deepEquality.equals(other.trays, trays);
 
   @override
@@ -831,6 +848,7 @@ class AmsUnit {
     dryTime,
     dryStatus,
     moduleType,
+    dryCountdownStalled,
     trays == null ? null : _deepEquality.hash(trays),
   );
 }
@@ -1217,6 +1235,33 @@ class HmsError {
     return int.tryParse(hex, radix: 16);
   }
 
+  /// The HMS level — 1 error (task stopped), 2 warning (task paused),
+  /// 3 notification, 4 info, BambuStudio's `HMSMessageLevel`. Computed here
+  /// rather than read from [severity], which servers before #2728 filled with
+  /// the part byte of `attr`; `code` carries the level on every server version.
+  ///
+  /// An `hms[]` fault keeps it in `code`'s high half. A `print_error` one has a
+  /// 16-bit code whose first hex digit stands for it (`0x4xxx` stops, `0x8xxx`
+  /// pauses, `0xCxxx` prompts — `hms_errors.py::alert_level_from_print_error`).
+  /// null when the code is not numeric or its level is Bambu's "invalid" 0.
+  int? get level {
+    final c = _codeInt;
+    if (c == null) return null;
+    final l = isHmsChannel
+        ? (c >> 16) & 0xFFFF
+        : const {0x4: 1, 0x8: 2, 0xC: 3}[(c >> 12) & 0xF] ?? 0;
+    return l >= 1 && l <= 4 ? l : null;
+  }
+
+  /// Whether this came over the `hms[]` channel rather than `print_error`. A
+  /// server too old to send [fullCode] still tells them apart by `code`: only
+  /// an `hms[]` code has a level in its high half.
+  bool get isHmsChannel {
+    final full = fullCode;
+    if (full != null) return full.length == 16;
+    return (_codeInt ?? 0) > 0xFFFF;
+  }
+
   /// Full 16-hex HMS code (`attr`+`code`) used by Bambu catalog, e.g.
   /// `0500060000020070`. null if missing `attr` or `code` not numeric.
   String? get ecode {
@@ -1268,10 +1313,11 @@ class HmsError {
 }
 
 /// HMS code arrives as string (`"0x20070"`, `"0500_0100"`) or number — convert
-/// to string for dedup in sets.
+/// to string for dedup in sets. A number becomes `0x…`: [HmsError] reads a bare
+/// digit string as hex, so `65546` spelled in decimal would read as 0x65546.
 String? _toCodeStringOrNull(dynamic value) => switch (value) {
   String s when s.trim().isNotEmpty => s.trim(),
-  num n => n.toString(),
+  num n when n >= 0 && n == n.truncate() => '0x${n.toInt().toRadixString(16)}',
   _ => null,
 };
 

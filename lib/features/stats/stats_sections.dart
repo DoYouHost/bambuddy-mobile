@@ -10,6 +10,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/archive_stats.dart';
+import '../../core/models/inventory.dart' show StockStats;
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
@@ -70,21 +71,21 @@ class FailureAnalysisCard extends ConsumerWidget {
                     '${fmtNum(f.failureRate)}%',
                     style: t.monoDisplay.copyWith(color: rateColor),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: DashSpace.md),
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.only(bottom: DashSpace.xs),
                     child: Text(rangeLabel, style: t.labelSoft),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: DashSpace.xs),
               Text(
                 l10n.statsFailedOfTotal(f.failedPrints, f.totalPrints),
                 style: t.label,
               ),
               if (reasons.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.only(top: 12),
+                  padding: const EdgeInsets.only(top: DashSpace.md),
                   child: Text(
                     l10n.statsNoFailures,
                     style: TextStyle(
@@ -94,15 +95,15 @@ class FailureAnalysisCard extends ConsumerWidget {
                   ),
                 )
               else ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: DashSpace.lg),
                 Text(
                   l10n.statsTopFailureReasons,
                   style: t.micro.copyWith(color: t.accentGreenInk),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: DashSpace.sm),
                 for (final e in reasons.take(5))
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
                     child: Row(
                       children: [
                         Expanded(
@@ -136,6 +137,8 @@ class PrintActivityCard extends StatelessWidget {
   final DateTimeFormats fmt;
 
   static const _margin = 3.0;
+  // Half the gap on each side of a cell; the legend swatches use it too.
+  static const _cellInset = _margin / 2;
   static const _labelW = 30.0;
 
   /// Widest window shown (GitHub-style ~1 year). "All time" on a
@@ -235,7 +238,7 @@ class PrintActivityCard extends StatelessWidget {
                           Container(
                             width: size,
                             height: size,
-                            margin: const EdgeInsets.all(_margin / 2),
+                            margin: const EdgeInsets.all(_cellInset),
                             decoration: BoxDecoration(
                               color: cellColor(dayAt(w, d)),
                               borderRadius: BorderRadius.circular(3),
@@ -248,7 +251,11 @@ class PrintActivityCard extends StatelessWidget {
 
               final content = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [monthRow, const SizedBox(height: 2), body],
+                children: [
+                  monthRow,
+                  const SizedBox(height: DashSpace.xs),
+                  body,
+                ],
               );
               return scroll
                   ? SingleChildScrollView(
@@ -259,17 +266,17 @@ class PrintActivityCard extends StatelessWidget {
                   : content;
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Text(l10n.statsHeatmapLess, style: labelStyle),
-              const SizedBox(width: 6),
+              const SizedBox(width: DashSpace.sm),
               for (final frac in [0.0, 0.33, 0.66, 1.0])
                 Container(
                   width: 13,
                   height: 13,
-                  margin: const EdgeInsets.all(1.5),
+                  margin: const EdgeInsets.all(_cellInset),
                   decoration: BoxDecoration(
                     color: frac == 0
                         ? track
@@ -277,7 +284,7 @@ class PrintActivityCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
-              const SizedBox(width: 6),
+              const SizedBox(width: DashSpace.sm),
               Text(l10n.statsHeatmapMore, style: labelStyle),
             ],
           ),
@@ -323,11 +330,11 @@ class RecordsCard extends StatelessWidget {
       );
     }
     final exp = data.mostExpensive;
-    if (exp?.cost != null) {
+    if (exp != null) {
       add(
         Icons.payments_outlined,
         l10n.statsMostExpensive,
-        fmtNum(exp!.cost!),
+        fmtNum(runCost(exp)),
         exp.printName,
       );
     }
@@ -382,12 +389,12 @@ class _RecordRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 22, color: t.accentGreenInk),
-          const SizedBox(width: 10),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -403,7 +410,7 @@ class _RecordRow extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Text(value, style: t.monoTitle),
         ],
       ),
@@ -439,11 +446,11 @@ class BarList extends StatelessWidget {
                       style: t.body,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: DashSpace.sm),
                   Text(rows[i].value, style: t.monoLabel),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: DashSpace.xs),
               DashProgressBar(
                 value: rows[i].fraction.clamp(0, 1).toDouble(),
                 height: 8,
@@ -451,9 +458,111 @@ class BarList extends StatelessWidget {
               ),
             ],
           ),
-          if (i != rows.length - 1) const SizedBox(height: 10),
+          if (i != rows.length - 1) const SizedBox(height: DashSpace.md),
         ],
       ],
+    );
+  }
+}
+
+// ── By supplier / by material number ───────────────────────────────────────
+
+/// Consumption per purchase-source supplier, heaviest first as the server
+/// sorts it, with stock and spend under each bar.
+class SupplierStatsCard extends ConsumerWidget {
+  const SupplierStatsCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return _StockStatsCard(
+      title: l10n.statsBySupplier,
+      hint: l10n.statsBySupplierHint,
+      failed: l10n.statsBySupplierFailed,
+      stats: ref.watch(supplierStatsProvider),
+    );
+  }
+}
+
+/// The same per spool material number (#2870).
+class MaterialNumberStatsCard extends ConsumerWidget {
+  const MaterialNumberStatsCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return _StockStatsCard(
+      title: l10n.statsByMaterialNumber,
+      hint: l10n.statsByMaterialNumberHint,
+      failed: l10n.statsByMaterialNumberFailed,
+      stats: ref.watch(materialNumberStatsProvider),
+    );
+  }
+}
+
+/// Absent while it loads and when nothing is grouped: most inventories never
+/// name a supplier or number a spool, and a card saying so on every visit is
+/// noise. A failed read is shown, because it is not the same answer as "none".
+class _StockStatsCard extends StatelessWidget {
+  const _StockStatsCard({
+    required this.title,
+    required this.hint,
+    required this.failed,
+    required this.stats,
+  });
+
+  final String title;
+  final String hint;
+  final String failed;
+  final AsyncValue<List<StockStats>> stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
+    final rows = stats.valueOrNull ?? const <StockStats>[];
+    if (!stats.hasError && rows.isEmpty) return const SizedBox.shrink();
+    final heaviest = rows.fold<double>(
+      1,
+      (m, r) => math.max(m, r.consumedGrams),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(top: DashSpace.md),
+      child: SectionCard(
+        title: title,
+        child: stats.hasError
+            ? Text(failed, style: t.bodyPlain.copyWith(color: t.textSecondary))
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(hint, style: t.label.copyWith(color: t.textSecondary)),
+                  const SizedBox(height: DashSpace.md),
+                  for (final (i, row) in rows.indexed) ...[
+                    if (i > 0) const SizedBox(height: DashSpace.md),
+                    BarList(
+                      rows: [
+                        (
+                          label: row.label,
+                          value: fmtGrams(row.consumedGrams),
+                          fraction: row.consumedGrams / heaviest,
+                          color: null,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: DashSpace.xs),
+                    Text(
+                      l10n.statsSupplierDetail(
+                        l10n.inventorySpoolCount(row.spoolCount),
+                        fmtGrams(row.remainingGrams),
+                        fmtNum(row.cost),
+                      ),
+                      style: t.label.copyWith(color: t.textSecondary),
+                    ),
+                  ],
+                ],
+              ),
+      ),
     );
   }
 }
@@ -681,7 +790,7 @@ class _OverTimeChart extends StatelessWidget {
                       return const SizedBox.shrink();
                     }
                     return Padding(
-                      padding: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.only(top: DashSpace.xs),
                       child: Text(
                         fmt.dayNamedMonth(points[i].key),
                         style: axisStyle,
@@ -713,17 +822,6 @@ class ByMaterialCard extends StatefulWidget {
 class _ByMaterialCardState extends State<ByMaterialCard> {
   StatMetric _metric = StatMetric.weight;
 
-  static const _palette = [
-    Color(0xFF22C55E),
-    Color(0xFF3B82F6),
-    Color(0xFFF59E0B),
-    Color(0xFFEF4444),
-    Color(0xFFA855F7),
-    Color(0xFF14B8A6),
-    Color(0xFFEC4899),
-    Color(0xFF84CC16),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -739,15 +837,15 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
     //    a rendering glitch rather than as data;
     //  - past the palette it would *reuse* a colour already on the ring, so two
     //    legend rows would carry the same dot and neither would identify its
-    //    own arc (the old `i % _palette.length`).
+    //    own arc (the old `i % seriesPalette.length`).
     //
     // The legend keeps every row and every number — nothing is hidden, the tail
     // just stops pretending to be individually findable on a 120px ring.
     const pooledShare = 0.02;
     bool pooled(int i) =>
-        i >= _palette.length ||
+        i >= seriesPalette.length ||
         (total > 0 && _metric.of(entries[i].value) / total < pooledShare);
-    Color colorFor(int i) => pooled(i) ? t.textTertiary : _palette[i];
+    Color colorFor(int i) => pooled(i) ? t.textTertiary : seriesPalette[i];
 
     final pooledTotal = [
       for (var i = 0; i < entries.length; i++)
@@ -789,14 +887,14 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: DashSpace.lg),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (var i = 0; i < entries.length; i++)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
                     child: Row(
                       children: [
                         Expanded(
@@ -906,7 +1004,7 @@ class ColorDistributionCard extends StatelessWidget {
           // card said — leaving the reader to guess between mass, print count
           // and time, all three of which this screen also reports.
           Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: DashSpace.md),
             child: Text(l10n.statsColorShareHint, style: t.microSoft),
           ),
           Row(
@@ -965,11 +1063,11 @@ class ColorDistributionCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: DashSpace.lg),
               Expanded(
                 child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: DashSpace.sm,
+                  runSpacing: DashSpace.sm,
                   children: [
                     for (final e in top)
                       _ColorChip(
@@ -983,7 +1081,7 @@ class ColorDistributionCard extends StatelessWidget {
           ),
           if (moreCount > 0)
             Padding(
-              padding: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.only(top: DashSpace.md),
               child: Text(l10n.statsMoreCount(moreCount), style: t.microSoft),
             ),
         ],
@@ -1003,7 +1101,10 @@ class _ColorChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.sm,
+        vertical: DashSpace.xs,
+      ),
       decoration: BoxDecoration(
         color: t.subCard,
         borderRadius: BorderRadius.circular(20),
@@ -1021,7 +1122,7 @@ class _ColorChip extends StatelessWidget {
               border: Border.all(color: t.cardBorder),
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: DashSpace.sm),
           Text(label, style: t.monoLabel.copyWith(color: t.textPrimary)),
         ],
       ),
@@ -1086,7 +1187,7 @@ class _BarHistogram extends StatelessWidget {
                   }
                   if (i % everyLabel != 0) return const SizedBox.shrink();
                   return Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: DashSpace.xs),
                     child: Text(labels[i], style: axisStyle),
                   );
                 },

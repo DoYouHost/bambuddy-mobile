@@ -9,6 +9,7 @@
 /// orifice.
 library;
 
+import '../models/filament_requirement.dart';
 import '../models/printer_status.dart';
 
 /// Positions as the operator, the printer's screen and Bambu Studio all count
@@ -88,6 +89,73 @@ bool rackSlotFits(
     return false;
   }
   return true;
+}
+
+/// A position for every rack-bound group in [groups], the way the server
+/// assigns them at dispatch: [pinned] picks first, then each remaining group,
+/// lowest id first, takes a free fitting position — one already loaded with
+/// its own colour when there is one, else the lowest
+/// (`autoAssignRackPositions`, web `utils/nozzleRack.ts`).
+///
+/// Null when some group cannot be placed, or a pin is taken twice or does not
+/// fit — the web then shows the picks as they stand rather than a partial
+/// assignment that would read as a decision.
+Map<int, int>? autoAssignRackPositions(
+  List<NozzleRackSlot>? slots,
+  Map<int, RackGroup> groups, [
+  Map<int, int> pinned = const {},
+]) {
+  final byPosition = rackByPosition(slots);
+  bool fits(int position, RackGroup group) {
+    final slot = byPosition[position];
+    return slot != null &&
+        rackSlotFits(
+          slot,
+          diameter: group.nozzleDiameter,
+          volumeType: group.volumeType,
+        );
+  }
+
+  final ids = [
+    for (final MapEntry(:key, :value) in groups.entries)
+      if (value.onRack) key,
+  ]..sort();
+  final assigned = <int, int>{};
+  for (final id in ids) {
+    final position = pinned[id];
+    if (position == null) continue;
+    if (assigned.containsValue(position) || !fits(position, groups[id]!)) {
+      return null;
+    }
+    assigned[id] = position;
+  }
+  for (final id in ids) {
+    if (assigned.containsKey(id)) continue;
+    final group = groups[id]!;
+    final eligible = [
+      for (final position in rackPositions)
+        if (!assigned.containsValue(position) && fits(position, group))
+          position,
+    ];
+    if (eligible.isEmpty) return null;
+    final wanted = _colorKey(group.filamentColor);
+    assigned[id] =
+        (wanted.isEmpty
+            ? null
+            : eligible
+                  .where(
+                    (p) => _colorKey(byPosition[p]?.filamentColor) == wanted,
+                  )
+                  .firstOrNull) ??
+        eligible.first;
+  }
+  return assigned;
+}
+
+/// `#RRGGBB` from the 3MF and `RRGGBBAA` from the printer, as one key.
+String _colorKey(String? hex) {
+  final value = (hex ?? '').trim().replaceFirst(RegExp('^#'), '');
+  return (value.length > 6 ? value.substring(0, 6) : value).toUpperCase();
 }
 
 /// Whether the printer's own flow-type code names a high-flow nozzle: `HH…`

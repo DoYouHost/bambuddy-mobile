@@ -35,3 +35,51 @@ class PrinterCreate {
     if (location != null && location!.isNotEmpty) 'location': location,
   };
 }
+
+/// Request body for `PATCH /printers/{id}` (PrinterUpdate), shaped like the
+/// web's edit dialog sends it (`EditPrinterModal.doSave`): every field each
+/// time, the access code only when one was typed.
+class PrinterUpdate {
+  const PrinterUpdate({
+    required this.name,
+    required this.ipAddress,
+    required this.autoArchive,
+    required this.isActive,
+    required this.location,
+    this.accessCode,
+    this.model,
+    this.wearCostPerHour,
+    this.sendWearCost = false,
+  });
+
+  final String name;
+  final String ipAddress;
+  final bool autoArchive;
+
+  /// False puts the printer in maintenance mode (#1476).
+  final bool isActive;
+  final String? accessCode;
+  final String? model;
+  final String? location;
+
+  /// Null or 0 turns wear cost off, as the web sends it.
+  final double? wearCostPerHour;
+
+  /// Left out for a server that does not know the field.
+  final bool sendWearCost;
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'ip_address': ipAddress,
+    'auto_archive': autoArchive,
+    'is_active': isActive,
+    // Null clears it. The web leaves the key out instead, so its "not set"
+    // keeps the old model; here it does what it says (user's call).
+    'model': (model == null || model!.isEmpty) ? null : model,
+    // Always sent, as the web does: null or empty clears it.
+    'location': (location == null || location!.isEmpty) ? null : location,
+    if (accessCode != null && accessCode!.isNotEmpty) 'access_code': accessCode,
+    if (sendWearCost)
+      'wear_cost_per_hour': (wearCostPerHour ?? 0) > 0 ? wearCostPerHour : null,
+  };
+}

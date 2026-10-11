@@ -3,6 +3,9 @@ import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
+import '../core/api/observed_capability.dart';
+import '../core/api/server_version.dart';
+import '../core/api/server_version_service.dart';
 import '../core/models/api_key.dart';
 
 /// REST data source for API keys — the credentials handed to things that are
@@ -12,14 +15,29 @@ import '../core/models/api_key.dart';
 /// permissions alone decide
 /// (`backend/app/api/routes/api_keys.py::list_api_keys`).
 class ApiKeysRepository {
-  ApiKeysRepository(this._dio);
+  ApiKeysRepository(this._dio, [this._serverVersion]);
 
   final Dio _dio;
+
+  /// Answers [notificationScopeCapability] until a key row has.
+  final ServerVersionService? _serverVersion;
+
+  /// Whether the form may offer [ApiKeyScope.sendNotifications]. A server that
+  /// has the flag sends it on every row; one without it takes the field on
+  /// create and drops it without a word.
+  late final notificationScopeCapability = ObservedCapability(
+    ServerFeature.apiKeyNotificationScope,
+    _serverVersion,
+  );
 
   /// GET /api-keys/ — newest first, as the server orders them.
   Future<List<ApiKey>> list() async {
     try {
       final res = await _dio.get<List<dynamic>>(Endpoints.apiKeys);
+      notificationScopeCapability.observeKey(
+        res.data?.firstOrNull,
+        ApiKeyScope.sendNotifications.wire,
+      );
       return parseJsonList(res.data, ApiKey.fromJson);
     } on DioException catch (e) {
       throw mapDioException(e);

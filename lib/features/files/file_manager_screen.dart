@@ -8,12 +8,14 @@ import 'package:go_router/go_router.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/models/current_user.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/server_refusal.dart';
+import '../../data/queue_repository.dart' show QueueCreateOptions;
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
@@ -23,6 +25,7 @@ import '../common/prompt_name_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
 import '../queue/queue_edit_screen.dart';
+import '../queue/queue_removal.dart';
 import '../slicer/slice_providers.dart';
 import '../../data/pipelines_repository.dart' show PipelineSource;
 import '../pipelines/pipeline_run_screen.dart';
@@ -33,11 +36,15 @@ import 'file_details_screen.dart';
 import 'library_thumbnail.dart';
 import 'queue_target_sheet.dart';
 import 'tag_sheets.dart';
+import '../../core/format/text_compare.dart';
 
 /// File manager (library): folder navigation, thumbnails, file actions (print, queue,
 /// rename, move, delete), folder CRUD, upload, and trash. UI pattern consistent with archive screen.
 class FileManagerScreen extends ConsumerStatefulWidget {
-  const FileManagerScreen({super.key});
+  const FileManagerScreen({super.key, this.folderId});
+
+  /// The folder to open on arrival — where an import just landed.
+  final int? folderId;
 
   @override
   ConsumerState<FileManagerScreen> createState() => _FileManagerScreenState();
@@ -46,6 +53,21 @@ class FileManagerScreen extends ConsumerStatefulWidget {
 class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   final _searchController = TextEditingController();
   Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    final folderId = widget.folderId;
+    if (folderId == null) return;
+    // The root listing has to land first: opening a folder keeps its tree.
+    unawaited(
+      ref.read(fileManagerProvider.future).then((_) {
+        if (mounted) {
+          ref.read(fileManagerProvider.notifier).openFolder(folderId);
+        }
+      }, onError: (Object _) {}),
+    );
+  }
 
   @override
   void dispose() {
@@ -70,8 +92,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   /// was stopped. Unmounted — the screen was left while the request was in
   /// flight — there is neither a messenger nor an `l10n` to resolve, so only
   /// the record is written, marked as one that reached nobody.
-  void _failed(AppApiException e, String action) => mounted
-      ? showApiFailure(_messenger, e, _l10n, action: action)
+  void _failed(AppApiException e, String action, {String? message}) => mounted
+      ? showApiFailure(_messenger, e, _l10n, action: action, message: message)
       : recordActionFailure(e, action: action, shown: false);
 
   @override
@@ -119,13 +141,15 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   ),
                 ],
               ),
-        floatingActionButton: selectionMode
+        // Adding files or a subfolder here would be refused (#3201).
+        floatingActionButton:
+            selectionMode || state?.currentFolder?.canWrite == false
             ? null
             : logTag(
                 'files.create',
                 FloatingActionButton(
                   backgroundColor: t.accentGreen,
-                  foregroundColor: const Color(0xFF0A0C08),
+                  foregroundColor: t.onAccent,
                   onPressed: state == null
                       ? null
                       : () => _openCreateSheet(state),
@@ -182,13 +206,18 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         ),
       );
     } else {
+      final me = ref.watch(currentUserProvider).valueOrNull;
       content = SliverPadding(
-        padding: const EdgeInsets.only(top: 8, bottom: 88),
+        padding: const EdgeInsets.only(
+          top: DashSpace.sm,
+          bottom: DashSpace.fabClearance,
+        ),
         sliver: SliverList.list(
           children: [
             for (final f in folders)
               _FolderTile(
                 folder: f,
+                me: me,
                 onOpen: () => notifier.openFolder(f.id),
                 onRename: () => _renameFolder(f),
                 onDelete: () => _deleteFolder(f),
@@ -222,7 +251,6 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           DashSliverSearchBar(
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
             child: _FilterRow(
               state: s,
               controller: _searchController,
@@ -310,14 +338,18 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 _createFolder(s);
               },
             ).tagged('files.new_folder'),
-            ListTile(
-              leading: const Icon(Icons.upload_file_outlined),
-              title: Text(l10n.fmUpload),
-              onTap: () {
-                Navigator.pop(ctx);
-                _uploadFile(s);
-              },
-            ).tagged('files.upload'),
+            // A read-only mount refuses uploads (`library.py`, 403) whatever
+            // `can_write` says. New folder stays: the server takes it, as a
+            // library-only folder with nothing behind it on the mount.
+            if (s.currentFolder?.externalReadonly != true)
+              ListTile(
+                leading: const Icon(Icons.upload_file_outlined),
+                title: Text(l10n.fmUpload),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _uploadFile(s);
+                },
+              ).tagged('files.upload'),
           ],
         ),
       ),
@@ -385,7 +417,12 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
           shrinkWrap: true,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                0,
+                DashSpace.gutter,
+                DashSpace.md,
+              ),
               child: Row(
                 children: [
                   LibraryThumbnail(
@@ -393,7 +430,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                     hasThumbnail: file.thumbnailPath != null,
                     size: 56,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Text(
                       file.displayName,
@@ -631,7 +668,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final state = ref.read(fileManagerProvider).valueOrNull;
     if (state == null) return;
     final target = await _pickFolder(state, excludeFolderId: null);
-    if (target == null || !mounted) return; // anulowano
+    if (target == null || !mounted) return; // cancelled
     try {
       await ref.read(libraryRepositoryProvider).moveFiles([
         file.id,
@@ -732,6 +769,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   /// priority order. A group that vanished between listing and tap comes back
   /// as null, which is the same "nothing to queue" as an ungrouped file.
   Future<void> _queueAsVariants(LibraryFile file) async {
+    // Taken before the first await: the gates below are read after it.
+    final providers = ProviderScope.containerOf(context, listen: false);
     try {
       final group = await ref
           .read(libraryRepositoryProvider)
@@ -741,13 +780,34 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         _snack(_l10n.fmVariantsGone);
         return;
       }
-      await ref.read(queueRepositoryProvider).addCrossModel([
+      // No form here to show the switch, so the job asks exactly when the
+      // server's own default says to — what the server does itself on its
+      // other paths without a dialog (`confirm_outcome_for_new_queue_item`).
+      // Waited for: `POST /queue/` reads no default, so an answer still on
+      // its way would go out as `false`.
+      final supported = await settledGate(
+        providers,
+        queueOutcomeProvider,
+      ).catchError((Object _) => false);
+      final confirmOutcome = supported
+          ? await settledGate(
+              providers,
+              defaultConfirmOutcomeProvider,
+            ).catchError((Object _) => false)
+          : null;
+      await providers.read(queueRepositoryProvider).addCrossModel([
         for (final m in group.members) m.libraryFileId,
-      ]);
+      ], options: QueueCreateOptions(confirmOutcome: confirmOutcome));
       if (!mounted) return;
       _snack(_l10n.fmAddedToQueue);
     } on AppApiException catch (e) {
-      _failed(e, 'file_actions.queue_variants');
+      // A billing server refuses the job for want of a cost center; the
+      // queue's own wording says what to do about it.
+      _failed(
+        e,
+        'file_actions.queue_variants',
+        message: queueRefusal(_l10n, e),
+      );
     }
   }
 
@@ -780,6 +840,15 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   /// Returns whether anything was queued.
   Future<bool> _queueFiles(List<int> ids, String action) async {
     final repo = ref.read(libraryRepositoryProvider);
+    // This route checks no budget, so on a billing server it would queue a job
+    // without a cost center that can then never start.
+    if (await settledBillingEnabled(
+      ProviderScope.containerOf(context, listen: false),
+    )) {
+      if (mounted) _snack(_l10n.queueBillingUseWeb);
+      return false;
+    }
+    if (!mounted) return false;
     try {
       QueueTarget target = (printerId: null, model: null);
       final canTarget = await settledGate(
@@ -927,7 +996,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }) {
     final l10n = _l10n;
     final folders = [...s.allFolders]
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      ..sort((a, b) => compareIgnoringCase(a.name, b.name));
     return dashSheet<LibraryFolder>(
       context,
       scrollControlled: false,
@@ -936,7 +1005,10 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
           shrinkWrap: true,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.gutter,
+                vertical: DashSpace.lg,
+              ),
               child: Text(
                 l10n.fmMoveTo,
                 style: Theme.of(ctx).textTheme.titleMedium,
@@ -951,7 +1023,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
               ), // Sentinel for root.
             ).tagged('files.move_target_root'),
             for (final f in folders)
-              if (f.id != excludeFolderId && !f.isExternal)
+              if (f.id != excludeFolderId && !f.isExternal && f.canWrite)
                 ListTile(
                   leading: const Icon(Icons.folder_outlined),
                   title: Text(f.name),
@@ -990,7 +1062,10 @@ class _StatsBar extends ConsumerWidget {
     return Container(
       width: double.infinity,
       color: t.subCard,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.gutter,
+        vertical: DashSpace.sm,
+      ),
       child: Text(
         parts.join('  ·  '),
         textAlign: TextAlign.center,
@@ -1017,7 +1092,7 @@ class _Breadcrumb extends StatelessWidget {
       height: 44,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
         children: [
           TextButton.icon(
             icon: Icon(
@@ -1067,18 +1142,13 @@ class _FilterRow extends ConsumerWidget {
     final t = DashTokens.of(context);
     final types = state.availableTypes;
     // Outer padding is supplied by the enclosing [DashSliverSearchBar].
-    return Row(
-      children: [
-        Expanded(
-          child: DashSearchField(
-            id: 'files.search',
-            controller: controller,
-            hintText: l10n.fmSearchHint,
-            onChanged: onSearch,
-          ),
-        ),
-        if (ref.watch(libraryTagsSupportedProvider).orFalse) ...[
-          const SizedBox(width: 4),
+    return DashSearchField(
+      id: 'files.search',
+      controller: controller,
+      hintText: l10n.fmSearchHint,
+      onChanged: onSearch,
+      trailing: [
+        if (ref.watch(libraryTagsSupportedProvider).orFalse)
           logTag(
             'files.tag_filter',
             IconButton(
@@ -1094,9 +1164,7 @@ class _FilterRow extends ConsumerWidget {
               onPressed: () => showTagFilterSheet(context),
             ),
           ),
-        ],
-        if (types.isNotEmpty) ...[
-          const SizedBox(width: 4),
+        if (types.isNotEmpty)
           PopupMenuButton<String>(
             tooltip: l10n.fmFilterType,
             icon: Icon(
@@ -1126,7 +1194,6 @@ class _FilterRow extends ConsumerWidget {
                 ),
             ],
           ).tagged('files.filter_type'),
-        ],
       ],
     );
   }
@@ -1135,12 +1202,14 @@ class _FilterRow extends ConsumerWidget {
 class _FolderTile extends StatelessWidget {
   const _FolderTile({
     required this.folder,
+    required this.me,
     required this.onOpen,
     required this.onRename,
     required this.onDelete,
   });
 
   final LibraryFolder folder;
+  final CurrentUser? me;
   final VoidCallback onOpen;
   final VoidCallback onRename;
   final VoidCallback onDelete;
@@ -1149,8 +1218,15 @@ class _FolderTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
+    final mayRename = folder.mayRename(me);
+    final mayDelete = folder.mayDelete(me);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        0,
+        DashSpace.gutter,
+        DashSpace.sm,
+      ),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -1159,7 +1235,10 @@ class _FolderTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             onTap: onOpen,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.lg,
+                vertical: DashSpace.md,
+              ),
               decoration: BoxDecoration(
                 color: t.subCard,
                 borderRadius: BorderRadius.circular(18),
@@ -1174,7 +1253,7 @@ class _FolderTile extends StatelessWidget {
                     size: 40,
                     radius: 12,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1186,7 +1265,7 @@ class _FolderTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: t.titleSm,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: DashSpace.xs),
                         Text(
                           l10n.fmFolderItems(folder.fileCount),
                           style: t.label,
@@ -1194,7 +1273,7 @@ class _FolderTile extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (!folder.isExternal)
+                  if (!folder.isExternal && (mayRename || mayDelete))
                     logTag(
                       'files.folder_actions',
                       PopupMenuButton<String>(
@@ -1202,20 +1281,22 @@ class _FolderTile extends StatelessWidget {
                         onSelected: (v) =>
                             v == 'rename' ? onRename() : onDelete(),
                         itemBuilder: (ctx) => [
-                          PopupMenuItem(
-                            value: 'rename',
-                            child: logTag(
-                              'files.folder.rename',
-                              Text(l10n.fmRename),
+                          if (mayRename)
+                            PopupMenuItem(
+                              value: 'rename',
+                              child: logTag(
+                                'files.folder.rename',
+                                Text(l10n.fmRename),
+                              ),
                             ),
-                          ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: logTag(
-                              'files.folder.delete',
-                              Text(l10n.fmDelete),
+                          if (mayDelete)
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: logTag(
+                                'files.folder.delete',
+                                Text(l10n.fmDelete),
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),
@@ -1259,7 +1340,12 @@ class _FileTile extends StatelessWidget {
       if (file.createdByUsername != null) file.createdByUsername!,
     ];
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        0,
+        DashSpace.gutter,
+        DashSpace.sm,
+      ),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -1269,7 +1355,10 @@ class _FileTile extends StatelessWidget {
             onTap: onTap,
             onLongPress: onLongPress,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.md,
+                vertical: DashSpace.sm,
+              ),
               decoration: BoxDecoration(
                 color: selected
                     ? t.accentGreen.withValues(alpha: 0.10)
@@ -1302,7 +1391,7 @@ class _FileTile extends StatelessWidget {
                             size: 52,
                           ),
                         ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1314,7 +1403,7 @@ class _FileTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: t.titleSm,
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: DashSpace.xs),
                         Text(
                           meta.join(' · '),
                           maxLines: 1,
@@ -1324,7 +1413,7 @@ class _FileTile extends StatelessWidget {
                         // Marks a file that is one of several alternatives, so
                         // the grouping is visible without opening the sheet.
                         if (file.hasVariants) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: DashSpace.xs),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -1333,7 +1422,7 @@ class _FileTile extends StatelessWidget {
                                 size: 12,
                                 color: t.textTertiary,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: DashSpace.xs),
                               Text(
                                 AppLocalizations.of(
                                   context,
@@ -1346,18 +1435,18 @@ class _FileTile extends StatelessWidget {
                         if (file.photoCount > 0 ||
                             file.externalUrl != null ||
                             file.hasNotes) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: DashSpace.xs),
                           _ExtrasBadges(file: file),
                         ],
                         if (file.tags.isNotEmpty) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: DashSpace.xs),
                           // Capped so a file tagged a dozen times keeps the
                           // tile's height; the full set is in its action sheet.
                           Row(
                             children: [
                               for (final tag in file.tags.take(3)) ...[
                                 Flexible(child: TagChip(tag.name)),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: DashSpace.xs),
                               ],
                               if (file.tags.length > 3)
                                 TagChip('+${file.tags.length - 3}'),
@@ -1406,13 +1495,13 @@ class _ExtrasBadges extends StatelessWidget {
       children: [
         if (file.photoCount > 0) ...[
           icon(Icons.photo_camera_outlined, l10n.archivePhotosTitle),
-          const SizedBox(width: 3),
+          const SizedBox(width: DashSpace.xs),
           Text('${file.photoCount}', style: t.micro),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
         ],
         if (file.externalUrl != null) ...[
           icon(Icons.link, l10n.fmLink),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
         ],
         if (file.hasNotes) icon(Icons.notes, l10n.fmNotes),
       ],

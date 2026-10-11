@@ -1,19 +1,27 @@
 import 'dart:async';
 
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/discovery.dart';
+import '../../core/models/printer.dart';
 import '../../core/models/printer_create.dart';
 import '../../core/models/printer_diagnostic.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
 import '../common/dash_input.dart';
 import 'providers.dart';
+import '../../core/models/printer_location.dart';
+import '../locations/printer_locations_providers.dart';
+import 'dashboard_filters.dart';
 
 /// Bambu Lab model options for the (optional) model dropdown, grouped by series
 /// to mirror the web form. `value` is the code stored on the server; `label` is
@@ -46,8 +54,15 @@ Set<String> get _modelCodes => {
 /// Form to add a printer via `POST /printers/`. The server tests the connection
 /// before saving, so a failure comes back inline. Also offers subnet discovery
 /// (prefill from a found printer) and a pre-save connection diagnostic.
+///
+/// Given a [printer], it edits that one instead (`PATCH /printers/{id}`), the
+/// way the web's `EditPrinterModal` does: no discovery, the serial fixed, the
+/// access code sent only when typed, maintenance mode and the wear rate added,
+/// and a connection check before saving that a failure turns into a question.
 class AddPrinterScreen extends ConsumerStatefulWidget {
-  const AddPrinterScreen({super.key});
+  const AddPrinterScreen({super.key, this.printer});
+
+  final Printer? printer;
 
   @override
   ConsumerState<AddPrinterScreen> createState() => _AddPrinterScreenState();
@@ -60,9 +75,16 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
   final _serial = TextEditingController();
   final _accessCode = TextEditingController();
   final _location = TextEditingController();
+  final _wearCost = TextEditingController();
   String _model = _modelNone;
   bool _obscureAccessCode = true;
   bool _autoArchive = true;
+  bool _isActive = true;
+
+  /// The failed connection check an edit is waiting on "save anyway" for.
+  PrinterDiagnosticResult? _saveWarning;
+
+  bool get _editing => widget.printer != null;
   bool _busy = false;
   String? _error;
 
@@ -95,7 +117,20 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
   @override
   void initState() {
     super.initState();
-    _loadDiscoveryInfo();
+    final p = widget.printer;
+    if (p == null) {
+      _loadDiscoveryInfo();
+      return;
+    }
+    _name.text = p.name;
+    _ip.text = p.ipAddress ?? '';
+    _serial.text = p.serialNumber ?? '';
+    _location.text = p.location ?? '';
+    _model = p.model ?? _modelNone;
+    _autoArchive = p.autoArchive ?? true;
+    _isActive = p.isActive ?? true;
+    final rate = p.wearCostPerHour;
+    if (rate != null && rate > 0) _wearCost.text = fmtRate(rate);
   }
 
   @override
@@ -105,6 +140,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
     _serial.dispose();
     _accessCode.dispose();
     _location.dispose();
+    _wearCost.dispose();
     _customSubnet.dispose();
     super.dispose();
   }
@@ -239,6 +275,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
   Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (_editing) return _checkThenSave();
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     setState(() {
@@ -277,6 +314,87 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
     }
   }
 
+  /// The web's save path: run the connection check first, and when any check
+  /// fails ask before saving — an edit that breaks the connection (a mistyped
+  /// IP) is caught here rather than as an offline card. A check that cannot
+  /// run at all never blocks the save.
+  Future<void> _checkThenSave() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    PrinterDiagnosticResult? failed;
+    try {
+      final result = await ref
+          .read(printersRepositoryProvider)
+          .diagnose(
+            ipAddress: _ip.text.trim(),
+            serialNumber: _serial.text.trim(),
+            accessCode: _accessCode.text,
+          );
+      if (result.checks.any((c) => c.status == 'fail')) failed = result;
+    } on AppApiException {
+      // Diagnostic infrastructure failed — save without it, as the web does.
+    } catch (_) {
+      // Anything else still propagates, but must not leave the form locked.
+      if (mounted) setState(() => _busy = false);
+      rethrow;
+    }
+    if (!mounted) return;
+    if (failed != null) {
+      setState(() {
+        _busy = false;
+        _saveWarning = failed;
+      });
+      return;
+    }
+    await _saveEdit();
+  }
+
+  Future<void> _saveEdit() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final printer = widget.printer!;
+    // "Save anyway" comes from under fields that stayed editable.
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    // The warning stays up until the save lands, so a refused save can be
+    // retried without running the checks again — as on the web.
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(printersRepositoryProvider)
+          .updatePrinter(
+            printer.id,
+            PrinterUpdate(
+              name: _name.text.trim(),
+              ipAddress: _ip.text.trim(),
+              accessCode: _accessCode.text,
+              model: _model == _modelNone ? null : _model,
+              location: _location.text.trim(),
+              autoArchive: _autoArchive,
+              isActive: _isActive,
+              wearCostPerHour: parseUserDecimal(_wearCost.text),
+              sendWearCost: printer.servesWearCost,
+            ),
+          );
+      await ref.read(dashboardProvider.notifier).refresh();
+      if (!mounted) return;
+      messenger.snack(l10n.editPrinterSaved);
+      navigator.pop();
+    } on AppApiException catch (e) {
+      // A 403 here can carry its own sentence (moving a printer between
+      // locations that groups are tied to is admin-only), which `localized`
+      // quotes.
+      if (mounted) setState(() => _error = e.localized(l10n));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   String _failureText(AppLocalizations l10n, CreatePrinterFailure reason) =>
       switch (reason) {
         CreatePrinterFailure.connectionFailed => l10n.addPrinterErrConnection,
@@ -296,13 +414,16 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: dashAppBar(context, title: l10n.addPrinterTitle),
+        appBar: dashAppBar(
+          context,
+          title: _editing ? l10n.editPrinterTitle : l10n.addPrinterTitle,
+        ),
         body: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(DashSpace.lg),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(DashSpace.lg),
               decoration: t.cardBox,
               child: Form(
                 key: _formKey,
@@ -311,7 +432,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                   children: [
                     // Only when the server supports discovery (info request
                     // succeeded — needs the DISCOVERY_SCAN permission).
-                    if (_discovery != null) ...[
+                    if (_discovery != null && !_editing) ...[
                       _scanSection(t, l10n),
                       const Divider(height: 32),
                     ],
@@ -322,7 +443,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                       validator: required,
                       textInputAction: TextInputAction.next,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: DashSpace.md),
                     _field(
                       t,
                       controller: _ip,
@@ -332,22 +453,25 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                       validator: required,
                       textInputAction: TextInputAction.next,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: DashSpace.md),
                     _field(
                       t,
                       controller: _serial,
                       label: l10n.addPrinterSerial,
-                      validator: required,
+                      validator: _editing ? null : required,
                       textInputAction: TextInputAction.next,
+                      readOnly: _editing,
+                      helper: _editing ? l10n.editPrinterSerialLocked : null,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: DashSpace.md),
                     _field(
                       t,
                       controller: _accessCode,
                       label: l10n.addPrinterAccessCode,
                       obscureText: _obscureAccessCode,
                       keyboardType: TextInputType.number,
-                      validator: required,
+                      hint: _editing ? l10n.editPrinterAccessCodeKeep : null,
+                      validator: _editing ? null : required,
                       suffixIcon: IconButton(
                         onPressed: () => setState(
                           () => _obscureAccessCode = !_obscureAccessCode,
@@ -360,17 +484,11 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                         ),
                       ).tagged('add_printer.reveal_access_code'),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: DashSpace.md),
                     _modelDropdown(t, l10n),
-                    const SizedBox(height: 12),
-                    _field(
-                      t,
-                      controller: _location,
-                      label: l10n.addPrinterLocation,
-                      hint: l10n.addPrinterLocationOptional,
-                      textInputAction: TextInputAction.done,
-                    ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: DashSpace.md),
+                    _locationField(t, l10n),
+                    const SizedBox(height: DashSpace.xs),
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
@@ -379,39 +497,49 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                           ? null
                           : (v) => setState(() => _autoArchive = v ?? true),
                       activeColor: t.accentGreen,
-                      checkColor: const Color(0xFF0A0C08),
+                      checkColor: t.onAccent,
                       title: Text(
                         l10n.addPrinterAutoArchive,
                         style: t.bodyStrong,
                       ),
                     ).tagged('add_printer.auto_archive'),
-                    const SizedBox(height: 4),
+                    if (_editing) ..._editFields(t, l10n),
+                    const SizedBox(height: DashSpace.xs),
                     _diagnosticSection(t, l10n),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: DashSpace.lg),
                     if (_error != null)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.only(bottom: DashSpace.md),
                         child: Text(
                           _error!,
                           style: t.body.copyWith(color: t.dangerInk),
                         ),
                       ),
-                    FilledButton(
-                      style: dashPrimaryButtonStyle(t),
-                      onPressed: _busy ? null : _submit,
-                      child: _busy
-                          ? const DashSpinner(size: 20)
-                          : Text(l10n.addPrinterSubmit),
-                    ).tagged('add_printer.submit'),
-                    const SizedBox(height: 10),
-                    Text(
-                      l10n.addPrinterConnectionNote,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 12,
-                        color: t.textSecondary,
+                    if (_saveWarning case final warning?)
+                      _saveWarningSection(t, l10n, warning)
+                    else
+                      FilledButton(
+                        style: dashPrimaryButtonStyle(t),
+                        onPressed: _busy ? null : _submit,
+                        child: _busy
+                            ? const DashSpinner(size: 20)
+                            : Text(
+                                _editing
+                                    ? l10n.editPrinterSubmit
+                                    : l10n.addPrinterSubmit,
+                              ),
+                      ).tagged('add_printer.submit'),
+                    if (!_editing) ...[
+                      const SizedBox(height: DashSpace.md),
+                      Text(
+                        l10n.addPrinterConnectionNote,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 12,
+                          color: t.textSecondary,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -421,6 +549,123 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       ),
     );
   }
+
+  // --- Location -----------------------------------------------------------
+
+  /// One location for the whole app: the names the locations screen manages
+  /// (empty ones included) and those printers already carry, with a new name
+  /// still typed in — the server stores free text and adds it to that list.
+  /// The way in to the locations screen sits under it.
+  Widget _locationField(DashTokens t, AppLocalizations l10n) {
+    final managed = ref.watch(printerLocationsSupportedProvider).orFalse;
+    final names = {
+      if (managed)
+        for (final l
+            in ref.watch(printerLocationsProvider).valueOrNull ??
+                const <PrinterLocation>[])
+          l.name,
+      ...printerLocationsOf([
+        for (final p in ref.watch(dashboardProvider).printers ?? const [])
+          p.printer.location,
+      ]),
+    }.toList()..sort(compareLocationNames);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        dashCombo<String>(
+          context,
+          id: 'add_printer.location',
+          controller: _location,
+          filterable: true,
+          enabled: !_busy,
+          label: Text(l10n.addPrinterLocation),
+          helperText: l10n.addPrinterLocationOptional,
+          textStyle: _fieldTextStyle(t),
+          entries: [
+            for (final name in names)
+              DropdownMenuEntry(
+                value: name,
+                label: name,
+                labelWidget: logTag('add_printer.location_option', Text(name)),
+              ),
+          ],
+        ),
+        if (managed && ref.watch(canUpdatePrintersProvider))
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _busy ? null : () => context.push('/locations'),
+              icon: const Icon(Icons.place_outlined),
+              label: Text(l10n.printerLocationsManage),
+            ).tagged('add_printer.manage_locations'),
+          ),
+      ],
+    );
+  }
+
+  // --- Edit-only fields ---------------------------------------------------
+
+  List<Widget> _editFields(DashTokens t, AppLocalizations l10n) => [
+    CheckboxListTile(
+      contentPadding: EdgeInsets.zero,
+      controlAffinity: ListTileControlAffinity.leading,
+      // Ticked means "in maintenance", the inverse of the server's flag.
+      value: !_isActive,
+      onChanged: _busy
+          ? null
+          : (v) => setState(() => _isActive = !(v ?? false)),
+      activeColor: t.accentGreen,
+      checkColor: t.onAccent,
+      title: Text(l10n.editPrinterMaintenance, style: t.bodyStrong),
+      subtitle: Text(l10n.editPrinterMaintenanceHelp, style: t.microSoft),
+    ).tagged('add_printer.maintenance'),
+    if (widget.printer!.servesWearCost) ...[
+      const SizedBox(height: DashSpace.md),
+      _field(
+        t,
+        controller: _wearCost,
+        label: l10n.editPrinterWearCost(ref.watch(currencySymbolProvider)),
+        hint: '0.00',
+        helper: l10n.editPrinterWearCostHelp,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        textInputAction: TextInputAction.done,
+        validator: (v) =>
+            rateIsValid(v ?? '') ? null : l10n.editPrinterWearCostInvalid,
+      ),
+    ],
+  ];
+
+  Widget _saveWarningSection(
+    DashTokens t,
+    AppLocalizations l10n,
+    PrinterDiagnosticResult warning,
+  ) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(
+        l10n.editPrinterPreflightWarning,
+        style: t.body.copyWith(color: t.warningInk),
+      ),
+      const SizedBox(height: DashSpace.sm),
+      for (final c in warning.checks) _checkRow(t, l10n, c),
+      const SizedBox(height: DashSpace.md),
+      ButtonPair(
+        primaryLabel: l10n.back,
+        secondaryLabel: l10n.editPrinterSaveAnyway,
+        primaryStyle: OutlinedButtonTheme.of(context).style,
+        secondaryStyle: dashPrimaryButtonStyle(t),
+        primary: OutlinedButton(
+          onPressed: _busy ? null : () => setState(() => _saveWarning = null),
+          child: Text(l10n.back),
+        ).tagged('add_printer.preflight_back'),
+        secondary: FilledButton(
+          style: dashPrimaryButtonStyle(t),
+          onPressed: _busy ? null : _saveEdit,
+          child: Text(l10n.editPrinterSaveAnyway),
+        ).tagged('add_printer.preflight_save_anyway'),
+      ),
+    ],
+  );
 
   // --- Scan section -------------------------------------------------------
 
@@ -436,7 +681,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _sectionLabel(t, l10n.addPrinterScanTitle),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         // Detected subnets → dropdown (+ "Custom…" sentinel). No detected
         // subnets → a plain CIDR field below is the only input.
         if (subnets.isNotEmpty)
@@ -475,7 +720,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             ],
           ),
         if (custom) ...[
-          if (subnets.isNotEmpty) const SizedBox(height: 8),
+          if (subnets.isNotEmpty) const SizedBox(height: DashSpace.sm),
           TextField(
             controller: _customSubnet,
             enabled: !_scanning,
@@ -489,14 +734,14 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             ),
           ).tagged('add_printer.custom_subnet'),
         ],
-        const SizedBox(height: 6),
+        const SizedBox(height: DashSpace.sm),
         Text(
           isDocker
               ? l10n.addPrinterSubnetDockerNote
               : l10n.addPrinterSubnetCustomNote,
           style: t.microSoft,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: DashSpace.md),
         OutlinedButton.icon(
           onPressed: _scanning ? null : _scan,
           icon: _scanning
@@ -506,7 +751,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         ).tagged('add_printer.scan_network'),
         if (_scanError != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: DashSpace.sm),
             child: Text(
               _scanError!,
               style: TextStyle(
@@ -517,10 +762,10 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             ),
           ),
         if (_found.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           for (final p in _found) _discoveredTile(t, p),
         ] else if (!_scanning && _hasScanned) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           Text(
             l10n.addPrinterScanNoResults,
             style: t.labelSoft.copyWith(color: t.textSecondary),
@@ -543,7 +788,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
 
   Widget _discoveredTile(DashTokens t, DiscoveredPrinter p) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: Material(
         color: t.subCard,
         borderRadius: BorderRadius.circular(12),
@@ -551,11 +796,14 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
           borderRadius: BorderRadius.circular(12),
           onTap: () => _applyDiscovered(p),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(
+              horizontal: DashSpace.md,
+              vertical: DashSpace.md,
+            ),
             child: Row(
               children: [
                 Icon(Icons.print_outlined, size: 20, color: t.accentGreenInk),
-                const SizedBox(width: 12),
+                const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -603,7 +851,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         ).tagged('add_printer.diagnose'),
         if (_diagnosticError != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: DashSpace.sm),
             child: Text(
               _diagnosticError!,
               style: TextStyle(
@@ -614,12 +862,12 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             ),
           ),
         if (result != null) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: DashSpace.md),
           Text(
             _overallText(l10n, result.overall),
             style: t.bodyBold.copyWith(color: _overallColor(t, result.overall)),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: DashSpace.sm),
           for (final c in result.checks) _checkRow(t, l10n, c),
         ],
       ],
@@ -634,11 +882,11 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       _ => (Icons.remove_circle_outline, t.textTertiary),
     };
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: Row(
         children: [
           Icon(icon, size: 18, color: color),
-          const SizedBox(width: 10),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(
               _checkTitle(l10n, c.id),
@@ -697,6 +945,14 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             Text(l10n.addPrinterModelNone),
           ),
         ),
+        // A model the list does not name (the server takes free text) stays
+        // selectable, so opening an edit does not quietly change it.
+        if (_model != _modelNone && !_modelCodes.contains(_model))
+          DropdownMenuEntry(
+            value: _model,
+            label: _model,
+            labelWidget: logTag('add_printer.model_option', Text(_model)),
+          ),
         for (final (series, models) in _modelGroups) ...[
           DropdownMenuEntry(
             value: '::$series',
@@ -728,10 +984,12 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
     bool obscureText = false,
     Widget? suffixIcon,
     TextInputAction? textInputAction,
+    bool readOnly = false,
+    String? helper,
   }) {
     return TextFormField(
       controller: controller,
-      enabled: !_busy,
+      enabled: !_busy && !readOnly,
       autocorrect: false,
       obscureText: obscureText,
       keyboardType: keyboardType,
@@ -742,8 +1000,9 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         t,
         labelText: label,
         hintText: hint,
+        helperText: helper,
         suffixIcon: suffixIcon,
-      ),
+      ).copyWith(helperMaxLines: 5),
     ).tagged('add_printer.field');
   }
 
@@ -754,3 +1013,15 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
     child: Text(label, style: t.bodyBold),
   );
 }
+
+/// The server's own bound (`Field(ge=0, le=100000)`), checked before it 422s.
+/// Empty is allowed and means "off".
+bool rateIsValid(String text) {
+  if (text.trim().isEmpty) return true;
+  final v = parseUserDecimal(text);
+  return v != null && v >= 0 && v <= 100000;
+}
+
+/// A stored rate back into the field, without a trailing `.0`.
+String fmtRate(double rate) =>
+    rate == rate.roundToDouble() ? rate.toInt().toString() : '$rate';

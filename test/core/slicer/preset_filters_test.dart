@@ -157,4 +157,35 @@ void main() {
 
     expect(namesOf(kept), ['Bambu PLA Basic @BBL X1C']);
   });
+
+  group('maker and material read off a name', () {
+    SlicerPreset named(String name, [String? type]) =>
+        SlicerPreset(source: 'cloud', id: name, name: name, filamentType: type);
+
+    test('the parts the slice filters use', () {
+      final cases = {
+        'Bambu PLA Basic @BBL H2D': ('Bambu', 'PLA'),
+        'Bambu PETG-CF @BBL X1C': ('Bambu', 'PETG-CF'),
+        '# eSUN PETG @BBL H2D': ('eSUN', 'PETG'),
+        '#2 Generic PLA': ('Generic', 'PLA'),
+        'PLA Support for PETG': ('PLA', 'PETG'),
+      };
+      for (final MapEntry(key: name, value: (maker, material))
+          in cases.entries) {
+        expect(presetMakerName(named(name)), maker, reason: name);
+        expect(presetMaterialName(named(name)), material, reason: name);
+      }
+    });
+
+    test('nothing is guessed from a name with no known material', () {
+      expect(presetMakerName(named('My farm thing')), isNull);
+      expect(presetMaterialName(named('My farm thing')), isNull);
+      expect(presetMaterialName(named('My farm thing', 'pctg')), 'PCTG');
+    });
+
+    test('the inventory\'s "Bambu Lab" is the presets\' "Bambu"', () {
+      expect(makerKey('Bambu Lab'), makerKey('Bambu'));
+      expect(makerKey('eSUN'), isNot(makerKey('Bambu')));
+    });
+  });
 }

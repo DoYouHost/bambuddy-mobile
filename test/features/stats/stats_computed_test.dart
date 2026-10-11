@@ -13,6 +13,7 @@ ArchiveSlim _a({
   int? printerId,
   double? energyKwh,
   double? energyCost,
+  double? wearCost,
 }) => ArchiveSlim.fromJson({
   'status': status,
   'created_at': createdAt,
@@ -24,6 +25,7 @@ ArchiveSlim _a({
   'printer_id': printerId,
   'energy_kwh': energyKwh,
   'energy_cost': energyCost,
+  'wear_cost': wearCost,
 });
 
 void main() {
@@ -235,6 +237,31 @@ void main() {
       ]);
       expect(c.byPrinter[1]!.energyKwh, closeTo(1.0, 1e-9));
       expect(c.byPrinter[1]!.energyCost, closeTo(0.5, 1e-9));
+    });
+
+    test('the most expensive run adds energy and wear to filament', () {
+      // The web's record sums all three; filament alone would crown the
+      // first run here, which cost less once its printer's wear is counted.
+      final cheapFilament = _a(
+        status: 'completed',
+        createdAt: '2026-06-02T10:00:00Z',
+        cost: 2.0,
+        energyCost: 0.5,
+        wearCost: 1.0,
+      );
+      final c = StatsComputed.from([
+        _a(status: 'completed', createdAt: '2026-06-01T10:00:00Z', cost: 3.0),
+        cheapFilament,
+      ]);
+      expect(c.mostExpensive, same(cheapFilament));
+      expect(runCost(cheapFilament), 3.5);
+    });
+
+    test('runs with no recorded cost set no record', () {
+      final c = StatsComputed.from([
+        _a(status: 'completed', createdAt: '2026-06-01T10:00:00Z'),
+      ]);
+      expect(c.mostExpensive, isNull);
     });
   });
 }

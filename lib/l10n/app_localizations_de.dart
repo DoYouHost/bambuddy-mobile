@@ -84,7 +84,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Keine Drucker entsprechen den aktuellen Filtern';
 
   @override
-  String get dashboardFilters => 'Filter';
+  String get dashboardFilters => 'Filter und Sortierung';
 
   @override
   String get filterStatus => 'Status';
@@ -147,6 +147,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get addPrinterLocationOptional => 'Optional';
 
   @override
+  String get printerLocationsManage => 'Standorte verwalten';
+
+  @override
   String get addPrinterSubmit => 'Drucker hinzufügen';
 
   @override
@@ -178,6 +181,49 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get addPrinterAutoArchive =>
       'Abgeschlossene Drucke automatisch archivieren';
+
+  @override
+  String get editPrinterTitle => 'Drucker bearbeiten';
+
+  @override
+  String get editPrinterSubmit => 'Änderungen speichern';
+
+  @override
+  String get editPrinterSaved => 'Drucker gespeichert';
+
+  @override
+  String get editPrinterSerialLocked =>
+      'Seriennummer kann nicht geändert werden';
+
+  @override
+  String get editPrinterAccessCodeKeep =>
+      'Leer lassen, um den aktuellen zu behalten';
+
+  @override
+  String get editPrinterMaintenance => 'Wartungsmodus';
+
+  @override
+  String get editPrinterMaintenanceHelp =>
+      'Pausiert Verbindung, Warteschlange und Benachrichtigungen dieses Druckers.';
+
+  @override
+  String editPrinterWearCost(String currency) {
+    return 'Verschleißkosten pro Druckstunde ($currency)';
+  }
+
+  @override
+  String get editPrinterWearCostHelp =>
+      'Wird nur zu neuen Drucken addiert. Leer lassen zum Abschalten.';
+
+  @override
+  String get editPrinterWearCostInvalid => 'Gib eine Zahl von 0 bis 100000 ein';
+
+  @override
+  String get editPrinterPreflightWarning =>
+      'Einige Verbindungsprüfungen sind fehlgeschlagen. Dieser Drucker wird möglicherweise als offline angezeigt. Prüfe die Punkte unten, behebe was möglich ist, oder speichere trotzdem.';
+
+  @override
+  String get editPrinterSaveAnyway => 'Trotzdem speichern';
 
   @override
   String get addPrinterScanTitle => 'Drucker im Netzwerk suchen';
@@ -370,6 +416,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get ctrlDrying => 'Trocknung läuft';
+
+  @override
+  String get ctrlDryNotRunning => 'Läuft nicht';
+
+  @override
+  String get ctrlDryNotRunningHint =>
+      'Der Drucker hält einen Trocknungstimer, aber er zählt nicht herunter und das AMS meldet keine Trocknung. Der Zyklus wurde nie gestartet oder pausiert, zum Beispiel durch das Leistungslimit oder den laufenden Druck.';
 
   @override
   String get ctrlDryStart => 'Starten';
@@ -683,6 +736,18 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get totalPowerTooltip => 'Gesamte Leistungsaufnahme aller Steckdosen';
+
+  @override
+  String get powerBreakdownTitle => 'Leistungsaufnahme';
+
+  @override
+  String get powerUnassignedPlugs => 'Keinem Drucker zugeordnet';
+
+  @override
+  String get plugStateOn => 'Ein';
+
+  @override
+  String get plugStateOff => 'Aus';
 
   @override
   String get queueEmpty => 'Die Warteschlange ist leer';
@@ -1352,11 +1417,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Kameravorschau ist im Demo-Modus nicht verfügbar';
 
   @override
-  String amsUnit(int number) {
-    return 'AMS $number';
-  }
-
-  @override
   String get externalSpool => 'Externe Spule';
 
   @override
@@ -1904,14 +1964,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Zu viele Versuche — der Server blockiert die Anmeldung für einige Minuten. Warte kurz und versuche es erneut, oder verwende einen API-Schlüssel.';
 
   @override
-  String get errSlotTagUnreadable =>
-      'Dieser Slot hat keinen lesbaren RFID-Tag — Spoolman verknüpft Spulen per Tag und kann diese daher nicht übernehmen. Der integrierte Bestand weist stattdessen nach Slot zu.';
-
-  @override
-  String get errPrinterOffline =>
-      'Der Drucker ist offline, daher kann die App den Inhalt des Slots nicht auslesen. Verbinde ihn erneut und versuche es noch einmal.';
-
-  @override
   String notifOngoingBody(int percent, String eta) {
     return '$percent% · ETA $eta';
   }
@@ -2365,6 +2417,24 @@ class AppLocalizationsDe extends AppLocalizations {
   String get inventoryFiltersClear => 'Alle zurücksetzen';
 
   @override
+  String get inventorySortLabel => 'Sortieren nach';
+
+  @override
+  String get inventorySortStandard => 'Standard';
+
+  @override
+  String get inventorySortUsage => 'Verbrauch';
+
+  @override
+  String get inventorySortAdded => 'Hinzugefügt am';
+
+  @override
+  String get inventorySortPrice => 'Preis/kg';
+
+  @override
+  String get inventorySortId => 'ID';
+
+  @override
   String inventorySpoolCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2386,33 +2456,15 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String inventoryConsumedSinceReset(String weight) {
-    return 'Seit Zurücksetzen verbraucht: $weight';
-  }
-
-  @override
   String inventoryOfTotal(int total) {
     return 'von $total g';
   }
-
-  @override
-  String inventoryLoadedIn(String slot) {
-    return 'Geladen in $slot';
-  }
-
-  @override
-  String get inventoryNotLoaded => 'In keinem AMS-Slot geladen';
 
   @override
   String get inventoryLocation => 'Lagerort';
 
   @override
   String get inventoryNozzleTemp => 'Düsentemperatur';
-
-  @override
-  String inventoryCostPerKg(String cost) {
-    return '$cost/kg';
-  }
 
   @override
   String get inventoryNote => 'Notiz';
@@ -2468,6 +2520,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inventoryEdit => 'Bearbeiten';
+
+  @override
+  String get inventoryDuplicate => 'Duplizieren';
 
   @override
   String get inventoryDelete => 'Löschen';
@@ -2594,6 +2649,17 @@ class AppLocalizationsDe extends AppLocalizations {
   String get inventoryFieldCategory => 'Kategorie';
 
   @override
+  String get inventoryFieldMaterialNumber => 'Materialnummer';
+
+  @override
+  String get inventoryMaterialNumberHint =>
+      'Gilt für alle Spulen eines Produkts. Eine neue Spule eines bekannten Produkts erhält sie automatisch.';
+
+  @override
+  String get inventorySpoolmanCannotClear =>
+      'Spoolman erlaubt es nicht, diesen Wert zu entfernen. Ändere ihn stattdessen.';
+
+  @override
   String get inventoryFieldExtraColors => 'Zusätzliche Farben';
 
   @override
@@ -2715,6 +2781,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inventoryAssignPick => 'Spule auswählen';
+
+  @override
+  String get inventoryTagBound =>
+      'Die Spule in diesem Slot hat einen Tag, daher wird sie über den Tag verknüpft und nicht hier zugewiesen.';
 
   @override
   String get inventoryReassignTitle => 'Spule verschieben?';
@@ -2921,6 +2991,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get inventoryBulkEditUnsupported =>
       'Dieser Server ist zu alt für Massenbearbeitung. Aktualisiere Bambuddy oder bearbeite die Spulen einzeln.';
+
+  @override
+  String get inventoryBulkEditConfirmSuppliers =>
+      'Die Lieferanten werden jeder ausgewählten Spule hinzugefügt.';
 
   @override
   String get inventoryApply => 'Anwenden';
@@ -3310,6 +3384,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get statsEnergyCost => 'Energiekosten';
+
+  @override
+  String get statsWearCost => 'Verschleißkosten';
 
   @override
   String get statsTotalCost => 'Gesamtkosten';
@@ -3973,10 +4050,249 @@ class AppLocalizationsDe extends AppLocalizations {
   String get fmTagsPickSome => 'Wähle mindestens einen Tag aus';
 
   @override
-  String get makerworldMenu => 'MakerWorld';
+  String get makerworldTitle => 'MakerWorld';
 
   @override
-  String get makerworldTitle => 'MakerWorld';
+  String get modelSourcesTitle => 'Modellquellen';
+
+  @override
+  String get manyfoldTitle => 'Manyfold';
+
+  @override
+  String get mfDescription =>
+      'Durchsuche deine Manyfold-Bibliothek und importiere ihre Dateien, um sie zu slicen und zu drucken.';
+
+  @override
+  String get mfNotConnectedTitle => 'Manyfold ist nicht verbunden';
+
+  @override
+  String get mfNotConnectedBody =>
+      'Bitte einen Administrator, deine Manyfold-Bibliothek zu verbinden.';
+
+  @override
+  String get mfConnectionTitle => 'Manyfold-Verbindung';
+
+  @override
+  String get mfConnectionHelp =>
+      'Öffne in Manyfold Einstellungen → API und lege eine Anwendung mit den Berechtigungen „public“ und „read“ an. Trage hier ihre Client-ID und ihr Secret ein. Bambuddy sieht die Modelle, die der Besitzer der Anwendung sehen kann.';
+
+  @override
+  String get mfUrl => 'Manyfold-URL';
+
+  @override
+  String get mfUrlPlaceholder => 'http://192.168.1.10:3214';
+
+  @override
+  String get mfClientId => 'Client-ID';
+
+  @override
+  String get mfClientSecret => 'Client-Secret';
+
+  @override
+  String get mfClientSecretStored =>
+      'Gespeichert. Leer lassen, um es zu behalten.';
+
+  @override
+  String get mfTest => 'Verbindung testen';
+
+  @override
+  String get mfSave => 'Speichern';
+
+  @override
+  String get mfSaved => 'Einstellungen gespeichert';
+
+  @override
+  String mfTestOk(int count) {
+    return 'Verbunden. Für Bambuddy sichtbare Modelle: $count';
+  }
+
+  @override
+  String get mfDisconnect => 'Trennen';
+
+  @override
+  String get mfDisconnectTitle => 'Manyfold trennen?';
+
+  @override
+  String get mfDisconnectBody =>
+      'Bambuddy vergisst URL, Client-ID und Secret von Manyfold. Importierte Dateien bleiben in deiner Bibliothek.';
+
+  @override
+  String get mfDisconnected => 'Manyfold getrennt';
+
+  @override
+  String get mfEditConnection => 'Verbindung';
+
+  @override
+  String get mfSearchPlaceholder => 'Modelle suchen';
+
+  @override
+  String mfModelCount(int count) {
+    return 'Modelle: $count';
+  }
+
+  @override
+  String get mfNoModels => 'Keine Modelle gefunden.';
+
+  @override
+  String get mfPrevious => 'Zurück';
+
+  @override
+  String get mfNext => 'Weiter';
+
+  @override
+  String mfPage(int page) {
+    return 'Seite $page';
+  }
+
+  @override
+  String get mfOpenInManyfold => 'In Manyfold öffnen';
+
+  @override
+  String get mfLicense => 'Lizenz';
+
+  @override
+  String get mfFiles => 'Dateien';
+
+  @override
+  String get mfNoFiles => 'Dieses Modell hat keine Dateien.';
+
+  @override
+  String get mfImportTo => 'Importieren nach';
+
+  @override
+  String get mfFolderAuto => 'Ordner „Manyfold“';
+
+  @override
+  String get mfImport => 'Importieren';
+
+  @override
+  String get mfImporting => 'Wird importiert…';
+
+  @override
+  String mfImported(String filename) {
+    return '$filename importiert';
+  }
+
+  @override
+  String get mfAlreadyInLibrary => 'Bereits in deiner Bibliothek';
+
+  @override
+  String get mfInLibrary => 'In der Bibliothek';
+
+  @override
+  String get mfShowInLibrary => 'In der Bibliothek zeigen';
+
+  @override
+  String get mfNotImportable =>
+      'Bambuddy kann diesen Dateityp weder slicen noch drucken';
+
+  @override
+  String get mfSelectAll => 'Alle auswählen';
+
+  @override
+  String mfSelectFile(String name) {
+    return '$name auswählen';
+  }
+
+  @override
+  String mfImportSelected(int count) {
+    return 'Auswahl importieren ($count)';
+  }
+
+  @override
+  String get mfImportAll => 'Alle importieren';
+
+  @override
+  String mfImportProgress(int current, int total) {
+    return 'Importiere $current/$total';
+  }
+
+  @override
+  String mfBulkDone(int imported, int existing, int failed) {
+    return 'Importiert: $imported · bereits in der Bibliothek: $existing · fehlgeschlagen: $failed';
+  }
+
+  @override
+  String mfBulkFailed(String names, String reason) {
+    return 'Nicht importiert: $names. $reason';
+  }
+
+  @override
+  String get mfBulkNothing =>
+      'Nichts zu importieren: Jede druckbare Datei ist bereits in deiner Bibliothek.';
+
+  @override
+  String mfSelectModel(String name) {
+    return '$name auswählen';
+  }
+
+  @override
+  String get mfSelectPage => 'Seite auswählen';
+
+  @override
+  String mfModelsSelected(int count) {
+    return 'Ausgewählte Modelle: $count';
+  }
+
+  @override
+  String get mfImportModels => 'Ihre Dateien importieren';
+
+  @override
+  String get mfClearSelection => 'Auswahl aufheben';
+
+  @override
+  String mfCollectProgress(int current, int total) {
+    return 'Lese Modelle $current/$total';
+  }
+
+  @override
+  String mfModelsUnreadable(String names) {
+    return 'Nicht lesbar: $names';
+  }
+
+  @override
+  String get mfErrNotConfigured => 'Manyfold ist nicht verbunden.';
+
+  @override
+  String get mfErrCredentials =>
+      'Manyfold hat Client-ID oder Secret nicht akzeptiert.';
+
+  @override
+  String get mfErrScope =>
+      'Die Manyfold-Anwendung braucht die Berechtigung „read“. Bearbeite sie in Manyfold unter Einstellungen → API.';
+
+  @override
+  String get mfErrRateLimited =>
+      'Manyfold begrenzt die Anmeldungen. Versuche es in ein paar Minuten erneut.';
+
+  @override
+  String get mfErrUnreachable =>
+      'Bambuddy erreicht Manyfold nicht. Prüfe die URL und ob Manyfold läuft.';
+
+  @override
+  String get mfErrForbidden =>
+      'Manyfold hat den Zugriff verweigert. Prüfe, ob der Besitzer der Anwendung dieses Modell sehen kann.';
+
+  @override
+  String get mfErrNotFound =>
+      'Manyfold findet dieses Modell oder diese Datei nicht.';
+
+  @override
+  String get mfErrTooLarge => 'Die Datei ist größer als 200 MB.';
+
+  @override
+  String get mfErrNotImportable =>
+      'Nur 3MF-, STL- und STEP-Dateien können importiert werden.';
+
+  @override
+  String get mfErrBadUrl =>
+      'Gib die Manyfold-URL mit http:// oder https:// am Anfang ein.';
+
+  @override
+  String get mfErrSecretRequired => 'Gib das Client-Secret ein.';
+
+  @override
+  String get mfErrFailed => 'Manyfold hat mit einem Fehler geantwortet.';
 
   @override
   String get mwIntro =>
@@ -4750,6 +5066,92 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sliceSearchHint => 'Profile suchen';
 
   @override
+  String get sliceOnlyOnline => 'Nur Drucker, die online sind';
+
+  @override
+  String get sliceOnlyOnlineHint =>
+      'Druckerprofile für die gerade verbundenen Modelle, in jeder Düsengröße.';
+
+  @override
+  String get sliceOnlyLoaded => 'Nur eingelegte Spulen';
+
+  @override
+  String get sliceOnlyLoadedHint =>
+      'Filamentprofile der Spulen in den verbundenen Druckern des gewählten Modells. Ein selbst gewähltes Profil bleibt erhalten.';
+
+  @override
+  String get sliceNoneOnline =>
+      'Kein Drucker ist online, daher werden alle Profile angezeigt.';
+
+  @override
+  String get sliceNoneLoaded =>
+      'Keine eingelegte Spule hat ein Profil für diesen Drucker, daher werden alle Filamentprofile angezeigt.';
+
+  @override
+  String get sliceLoadedNoneOfModel =>
+      'Kein Drucker dieses Modells ist online.';
+
+  @override
+  String get sliceLoadedNothing => 'Kein AMS und keine externe Spule.';
+
+  @override
+  String get sliceSpoolUnidentified => 'Unbekannte Spule';
+
+  @override
+  String get sliceSpoolEmpty => 'Leer';
+
+  @override
+  String sliceAllPlates(int count) {
+    return 'Alle $count Druckplatten slicen';
+  }
+
+  @override
+  String get sliceAllPlatesHint =>
+      'Alle Druckplatten in eine Datei. Die Filamente decken jeden Slot des Projekts ab.';
+
+  @override
+  String get sliceTabSpools => 'Spulen';
+
+  @override
+  String get sliceTabProfiles => 'Profile';
+
+  @override
+  String sliceNeedsMaterial(String material) {
+    return 'Die Druckplatte braucht: $material';
+  }
+
+  @override
+  String get sliceFilterPrinter => 'Drucker';
+
+  @override
+  String get sliceFilterMaterial => 'Material';
+
+  @override
+  String get sliceFilterBrand => 'Hersteller';
+
+  @override
+  String sliceProfilesShown(int shown, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total Profilen',
+      one: '1 Profil',
+    );
+    return '$shown von $_temp0';
+  }
+
+  @override
+  String get sliceSpoolsUnavailable => 'Nicht verfügbar:';
+
+  @override
+  String sliceSpoolFrom(String source) {
+    return 'Von einer Spule · $source';
+  }
+
+  @override
+  String get sliceSpoolNoProfileShort => 'kein Profil';
+
+  @override
   String get sliceOwnedEmpty =>
       'Keine passenden Profile für deinen Drucker und deine Filamente. Aktiviere „Alle“, um den gesamten Katalog zu durchsuchen.';
 
@@ -5241,12 +5643,127 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mappingExternalSpool => 'Externe Spule';
 
   @override
-  String mappingAmsSlot(String unit, String slot) {
-    return 'AMS $unit · Slot $slot';
+  String get mappingSaved => 'Filament-Zuordnung gespeichert';
+
+  @override
+  String get mappingStatusReady => 'Bereit';
+
+  @override
+  String get mappingStatusColorMismatch => 'Andere Farbe';
+
+  @override
+  String get mappingStatusTypeNotFound => 'Typ nicht gefunden';
+
+  @override
+  String get mappingTapToChange =>
+      'Tippe auf ein Filament, um seinen Slot zu ändern';
+
+  @override
+  String get mappingExactColor => 'Exakt diese Farbe';
+
+  @override
+  String mappingSameTypeOtherColor(String required, String loaded) {
+    return 'Gleicher Typ, andere Farbe: benötigt $required, im Slot $loaded';
   }
 
   @override
-  String get mappingSaved => 'Filament-Zuordnung gespeichert';
+  String get mappingTypeNotLoaded => 'Filamenttyp nicht geladen';
+
+  @override
+  String get mappingManual => 'Von Hand gewählt';
+
+  @override
+  String mappingRequired(String name, String color) {
+    return 'Benötigt: $name, $color';
+  }
+
+  @override
+  String get mappingUseSlicer => 'Slicer-Zuordnung';
+
+  @override
+  String get mappingUseSlicerHint =>
+      'Jeden Slot aus der AMS-Zuordnung wählen, die der Slicer mit diesem Druck gespeichert hat, statt nach Typ und Farbe abzugleichen.';
+
+  @override
+  String get mappingReRead => 'Neu einlesen';
+
+  @override
+  String mappingFtsSameInlet(String inlet) {
+    return 'Alle Filamente dieses Drucks hängen am Eingang IN-$inlet des Filament Track Switch. Ein Wechsel zwischen Filamenten am selben Eingang dauert länger – verschiebe eines in ein AMS am anderen Eingang, um ihn zu beschleunigen.';
+  }
+
+  @override
+  String get mappingRackPosition => 'Position im Magazin';
+
+  @override
+  String get mappingRackPositionHint =>
+      'Welche Düse aus dem Magazin dieses Filament druckt. Die Positionen sind wie am Drucker nummeriert.';
+
+  @override
+  String mappingRackNeeds(String nozzle) {
+    return 'Dieses Filament braucht eine $nozzle-Düse.';
+  }
+
+  @override
+  String get mappingRackEmptyPosition => 'Diese Position im Magazin ist leer';
+
+  @override
+  String mappingRackWrongNozzle(String has, String needs) {
+    return 'Hat eine $has-Düse; dieses Filament braucht $needs';
+  }
+
+  @override
+  String mappingRackSlot(int position) {
+    return 'R$position';
+  }
+
+  @override
+  String get colorFamilyRed => 'Rot';
+
+  @override
+  String get colorFamilyOrange => 'Orange';
+
+  @override
+  String get colorFamilyYellow => 'Gelb';
+
+  @override
+  String get colorFamilyGreen => 'Grün';
+
+  @override
+  String get colorFamilyCyan => 'Cyan';
+
+  @override
+  String get colorFamilyBlue => 'Blau';
+
+  @override
+  String get colorFamilyPurple => 'Lila';
+
+  @override
+  String get colorFamilyPink => 'Rosa';
+
+  @override
+  String get colorFamilyBrown => 'Braun';
+
+  @override
+  String get colorFamilyWhite => 'Weiß';
+
+  @override
+  String get colorFamilyLightGray => 'Hellgrau';
+
+  @override
+  String get colorFamilyGray => 'Grau';
+
+  @override
+  String get colorFamilyDarkGray => 'Dunkelgrau';
+
+  @override
+  String get colorFamilyBlack => 'Schwarz';
+
+  @override
+  String get colorFamilyClear => 'Transparent';
+
+  @override
+  String get colorFamilyUnknown => 'Unbekannt';
 
   @override
   String get plateClearTitle => 'Ist die Druckplatte frei?';
@@ -5710,6 +6227,20 @@ class AppLocalizationsDe extends AppLocalizations {
   String get queueEditRequireManualStart => 'Manuellen Start erfordern';
 
   @override
+  String get queueBadgeStaged => 'Bereitgestellt';
+
+  @override
+  String get queueBadgeAwaitingReview => 'Wartet auf Freigabe';
+
+  @override
+  String get queueAwaitingReviewRefused =>
+      'Dieser Auftrag wartet auf Freigabe: Jemand, der die Warteschlange verwaltet, muss ihn starten.';
+
+  @override
+  String get queueEditAwaitingReviewNote =>
+      'Dein Druck wartet auf Freigabe: Er beginnt, sobald jemand, der die Warteschlange verwaltet, ihn startet.';
+
+  @override
   String get queueEditRequirePrevious =>
       'Nur starten, wenn der vorherige Druck erfolgreich war';
 
@@ -5751,39 +6282,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueEditForceColorMatch => 'Farbübereinstimmung erzwingen';
-
-  @override
-  String get queueEditNozzleRack => 'Düsenmagazin';
-
-  @override
-  String get queueEditNozzleRackDesc =>
-      'Wähle, mit welcher Düse aus dem Magazin jedes Filament gedruckt wird. Bleibt dies automatisch, wird bei Druckbeginn eine passende Position gewählt.';
-
-  @override
-  String queueEditRackGroupLabel(String slots, String nozzle) {
-    return 'Filament $slots · $nozzle';
-  }
-
-  @override
-  String get queueEditRackAuto => 'Automatisch';
-
-  @override
-  String queueEditRackPosition(int position, String nozzle) {
-    return 'Position $position · $nozzle';
-  }
-
-  @override
-  String queueEditRackPositionTaken(int position, String nozzle) {
-    return 'Position $position · $nozzle — bereits ausgewählt';
-  }
-
-  @override
-  String queueEditRackPositionUnfit(int position, String nozzle) {
-    return 'Position $position · $nozzle — passt nicht';
-  }
-
-  @override
-  String get queueEditRackEmpty => 'leer';
 
   @override
   String get queueEditRackPickStale =>
@@ -6244,7 +6742,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get serverSettingsQueueSubtitle =>
-      'Planung, Vorheizen und Warmhalten des Druckbetts zwischen Drucken';
+      'Planung, Vorheizen, Warmhalten des Druckbetts zwischen Drucken und die Frage nach dem Druckergebnis';
 
   @override
   String get serverSettingsMaintenanceSubtitle =>
@@ -6556,6 +7054,13 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get apiKeyScopeEnergyHint =>
       'Der einzige Einstellungswert, den ein Schlüssel schreiben darf – für dynamische Stromtarife.';
+
+  @override
+  String get apiKeyScopeNotifications => 'Benachrichtigungen senden';
+
+  @override
+  String get apiKeyScopeNotificationsHint =>
+      'Erlaubt einer anderen App, eine Nachricht an die Benachrichtigungskanäle zu senden, die Nachrichten verbundener Apps annehmen. Der Besitzer des Schlüssels braucht außerdem die Berechtigung, Benachrichtigungen zu verwalten.';
 
   @override
   String get printLogTitle => 'Druckprotokoll';
@@ -7130,4 +7635,975 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inventoryQuantityMore => 'Eine Spule mehr anlegen';
+
+  @override
+  String get outcomeGoodPart => 'Gutteil';
+
+  @override
+  String get outcomeRejected => 'Ausschuss';
+
+  @override
+  String get outcomeAwaiting => 'Bewertung ausstehend';
+
+  @override
+  String get outcomeNotRecorded => 'Keine Bewertung erfasst';
+
+  @override
+  String get outcomeSourceDialog => 'In der App erfasst.';
+
+  @override
+  String get outcomeSourceLink => 'Über einen Ein-Tipp-Link erfasst.';
+
+  @override
+  String get outcomeSourcePlateClear =>
+      'Bei der Freigabe der Druckplatte erfasst.';
+
+  @override
+  String get outcomeSourcePrinterCard => 'Über die Druckerkarte erfasst.';
+
+  @override
+  String get outcomeSourceApi => 'Über die API erfasst.';
+
+  @override
+  String get outcomeSourceReaction => 'Über eine Reaktion im Chat erfasst.';
+
+  @override
+  String get outcomeTitle => 'Wie ist Ihr Druck geworden?';
+
+  @override
+  String get outcomeGood => 'Gut';
+
+  @override
+  String get outcomeReject => 'Ausschuss';
+
+  @override
+  String get outcomeLater => 'Später fragen';
+
+  @override
+  String get outcomeClear => 'Bewertung entfernen';
+
+  @override
+  String get outcomeRejectReason => 'Ausschussgrund (optional)';
+
+  @override
+  String get outcomeNoReason => 'Kein Grund';
+
+  @override
+  String get outcomeSaveReject => 'Speichern';
+
+  @override
+  String get outcomeRejectAndReprint => 'Erneut drucken';
+
+  @override
+  String get outcomeSavedGood => 'Als Gutteil markiert';
+
+  @override
+  String get outcomeSavedReject => 'Als Ausschuss markiert';
+
+  @override
+  String get outcomeCleared => 'Bewertung entfernt';
+
+  @override
+  String get outcomeUnsupported =>
+      'Der Server hat die Bewertung nicht gespeichert. Aktualisieren Sie bambuddy, um Druckergebnisse zu erfassen.';
+
+  @override
+  String get queueOptConfirmOutcome => 'Nach Ergebnis fragen';
+
+  @override
+  String get queueOptConfirmOutcomeDesc =>
+      'Nach Abschluss fragen, ob der Druck gut geworden ist';
+
+  @override
+  String get queueSettingsOutcomeHeader => 'Druckergebnis';
+
+  @override
+  String get queueSettingsOutcomeDefaultTitle =>
+      'Bei neuen Drucken nach dem Ergebnis fragen';
+
+  @override
+  String get queueSettingsOutcomeDefaultDesc =>
+      'Neue Aufträge fragen standardmäßig nach ihrem Ergebnis – im Druckformular, wo jeder Auftrag das noch ändern kann, und dort, wo es kein Formular gibt, etwa beim Hinzufügen mehrerer Dateien zur Warteschlange oder bei einem Pipeline-Lauf.';
+
+  @override
+  String get queueSettingsOutcomeExternalTitle =>
+      'Auch bei Drucken fragen, die nicht über Bambuddy gestartet wurden';
+
+  @override
+  String get queueSettingsOutcomeExternalDesc =>
+      'Ein Druck, der am Drucker, in Bambu Studio oder in Bambu Handy gestartet und von Bambuddy archiviert wird, bekommt die Ergebnisabfrage ebenfalls.';
+
+  @override
+  String get queueSettingsOutcomePlateClearTitle =>
+      'Unbeantwortete Drucke nach bestätigter freier Druckplatte als gut zählen';
+
+  @override
+  String get queueSettingsOutcomePlateClearDesc =>
+      'Wenn jemand bestätigt, dass die Druckplatte frei ist – oder, wenn diese Bestätigung aus ist, sobald der nächste Auftrag aus der Warteschlange an diesen Drucker geht –, wird ein fertiger Druck, der noch auf seine Bewertung wartet, als Gutteil erfasst. Ein danach geöffneter Link aus der Benachrichtigung zeigt nur noch das gespeicherte Ergebnis.';
+
+  @override
+  String get notifEvtOutcome => 'Ergebnisabfrage';
+
+  @override
+  String get notifEvtOutcomeDesc =>
+      'Wenn ein Druck mit Ergebnisabfrage fertig ist — „Gut“ oder „Ausschuss“ direkt aus der Benachrichtigung';
+
+  @override
+  String outcomeNotifTitle(String name) {
+    return 'Wie ist $name geworden?';
+  }
+
+  @override
+  String get outcomeNotifBody =>
+      'Hier antworten oder tippen, um zuerst das Abschlussfoto zu sehen.';
+
+  @override
+  String get queueOptConfirmOutcomeSticky =>
+      'Dieser Druck fragt bereits nach seinem Ergebnis, und jeder erneute Druck davon ebenso';
+
+  @override
+  String get wallModeTitle => 'Wandmodus';
+
+  @override
+  String get wallModeExit => 'Wandmodus beenden';
+
+  @override
+  String get wallKeepAwakeTitle => 'Bildschirm eingeschaltet lassen';
+
+  @override
+  String get wallKeepAwakeDesc =>
+      'Der Bildschirm bleibt an, solange der Wandmodus geöffnet ist. Ist die Option aus, gilt die automatische Bildschirmabschaltung des Geräts.';
+
+  @override
+  String get wallPanelFarm => 'Farm';
+
+  @override
+  String get wallPanelSettings => 'Einstellungen';
+
+  @override
+  String get wallPanelExpand => 'Seitenleiste ausklappen';
+
+  @override
+  String get wallPanelCollapse => 'Seitenleiste einklappen';
+
+  @override
+  String get wallErrorsTitle => 'Fehler';
+
+  @override
+  String get wallNoFaults => 'Keine aktiven Fehler';
+
+  @override
+  String wallQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count in der Warteschlange',
+      one: '1 in der Warteschlange',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wallLivePaused => 'Live pausiert';
+
+  @override
+  String get wallLiveCameraTitle => 'Live-Kamera';
+
+  @override
+  String get wallLiveCameraDesc =>
+      'Ausgeschaltet zeigt jede Kachel nur den Druckerstatus und öffnet keinen Kamerastream.';
+
+  @override
+  String get wallPrintersTitle => 'Drucker an der Wand';
+
+  @override
+  String get wallAllHidden =>
+      'Alle Drucker sind auf dieser Wand ausgeblendet — blende sie in den Einstellungen ein.';
+
+  @override
+  String get inventorySuppliersTitle => 'Lieferanten';
+
+  @override
+  String get inventorySuppliersHint =>
+      'Lieferanten sind die Shops, in denen du Filament kaufst – nicht die Marke, die es hergestellt hat. Du weist sie im Formular der Spule zu; ein Lieferant, der noch einer Spule zugewiesen ist, lässt sich nicht löschen.';
+
+  @override
+  String get inventorySuppliersEmpty => 'Noch keine Lieferanten';
+
+  @override
+  String get inventorySuppliersLoadFailed =>
+      'Lieferanten konnten nicht geladen werden';
+
+  @override
+  String get inventorySupplierAdd => 'Hinzufügen';
+
+  @override
+  String get inventorySupplierNew => 'Neuer Lieferant';
+
+  @override
+  String get inventorySupplierEdit => 'Lieferant bearbeiten';
+
+  @override
+  String get inventorySupplierFieldName => 'Name';
+
+  @override
+  String get inventorySupplierFieldWebsite => 'Website';
+
+  @override
+  String get inventorySupplierFieldCustomerNumber => 'Deine Kundennummer';
+
+  @override
+  String inventorySupplierCustomerNumberValue(String number) {
+    return 'Kundennr. $number';
+  }
+
+  @override
+  String get inventorySupplierNameSeparator =>
+      'Der Name darf kein Semikolon enthalten';
+
+  @override
+  String get inventorySupplierNameTaken =>
+      'Ein Lieferant mit diesem Namen existiert bereits';
+
+  @override
+  String get inventorySupplierSaved => 'Lieferant gespeichert';
+
+  @override
+  String get inventorySupplierDeleted => 'Lieferant gelöscht';
+
+  @override
+  String inventorySupplierDeleteTitle(String name) {
+    return '$name löschen?';
+  }
+
+  @override
+  String get inventorySupplierDeleteBody =>
+      'Er wird aus der Lieferantenliste entfernt.';
+
+  @override
+  String inventorySupplierInUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Spulen zugewiesen – entferne ihn zuerst dort',
+      one: 'Einer Spule zugewiesen – entferne ihn zuerst dort',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inventorySupplierInUseUnknown =>
+      'Noch einer Spule zugewiesen – entferne ihn zuerst dort';
+
+  @override
+  String get inventorySupplierBoughtHere => 'Hier gekauft';
+
+  @override
+  String inventorySupplierArticleValue(String number) {
+    return 'Art.-Nr. $number';
+  }
+
+  @override
+  String inventorySupplierQuotedPrice(String price) {
+    return 'Angebot $price/kg';
+  }
+
+  @override
+  String get inventorySupplierLinksHint =>
+      'Wo es dieses Produkt zu kaufen gibt. Markiere den Shop, in dem du diese Spule gekauft hast.';
+
+  @override
+  String get inventoryBulkSupplierLinksHint =>
+      'Lieferanten werden jeder ausgewählten Spule hinzugefügt, vorhandene bleiben erhalten. „Hier gekauft“ ersetzt den Shop, in dem sie gekauft wurde.';
+
+  @override
+  String get inventorySupplierAssign => 'Lieferant hinzufügen';
+
+  @override
+  String get inventorySupplierUnassign => 'Von dieser Spule entfernen';
+
+  @override
+  String get inventorySupplierFieldArticle => 'Artikelnr.';
+
+  @override
+  String get inventorySupplierFieldQuotedPrice => 'Angebotspreis/kg';
+
+  @override
+  String get inventorySupplierNoneLeft =>
+      'Alle Lieferanten sind dieser Spule schon zugewiesen';
+
+  @override
+  String get statsBySupplier => 'Nach Lieferant';
+
+  @override
+  String get statsBySupplierHint =>
+      'Verbrauch aus Spulen, die bei einem Lieferanten gekauft wurden, und was er gekostet hat. Der Bestand zählt aktive Spulen und ignoriert den Zeitraum.';
+
+  @override
+  String get statsBySupplierFailed =>
+      'Lieferantendaten konnten nicht geladen werden';
+
+  @override
+  String get statsByMaterialNumber => 'Nach Materialnummer';
+
+  @override
+  String get statsByMaterialNumberHint =>
+      'Verbrauch aus Spulen mit derselben Materialnummer und was er gekostet hat. Der Bestand zählt aktive Spulen und ignoriert den Zeitraum.';
+
+  @override
+  String get statsByMaterialNumberFailed =>
+      'Daten zu Materialnummern konnten nicht geladen werden';
+
+  @override
+  String statsSupplierDetail(String spools, String remaining, String cost) {
+    return '$spools · $remaining auf Lager · Kosten $cost';
+  }
+
+  @override
+  String get inventoryDetailSlot => 'Slot';
+
+  @override
+  String get inventoryDetailNotLoaded => 'Nicht geladen';
+
+  @override
+  String get inventoryDetailConsumedSinceReset =>
+      'Seit Zurücksetzen verbraucht';
+
+  @override
+  String inventorySupplierArchivedCount(int count) {
+    return '$count archiviert';
+  }
+
+  @override
+  String get timeJustNow => 'Gerade eben';
+
+  @override
+  String get timeNow => 'Jetzt';
+
+  @override
+  String timeMinutesAgo(int count) {
+    return 'vor $count Min.';
+  }
+
+  @override
+  String timeInMinutes(int count) {
+    return 'in $count Min.';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return 'vor $count Std.';
+  }
+
+  @override
+  String timeInHours(int count) {
+    return 'in $count Std.';
+  }
+
+  @override
+  String timeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'vor $count Tagen',
+      one: 'vor 1 Tag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String timeInDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'in $count Tagen',
+      one: 'in 1 Tag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueHistory => 'Verlauf';
+
+  @override
+  String queueItemCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Elemente',
+      one: '1 Element',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueHistoryEmpty =>
+      'Noch kein Verlauf. Abgeschlossene, abgebrochene und fehlgeschlagene Drucke erscheinen hier.';
+
+  @override
+  String get queueHistoryShowMore => 'Mehr anzeigen';
+
+  @override
+  String queueHistoryShowing(int shown, int total) {
+    return '$shown von $total werden angezeigt';
+  }
+
+  @override
+  String get queueHistorySort => 'Sortierung';
+
+  @override
+  String get queueHistorySortDate => 'Nach Datum';
+
+  @override
+  String get queueHistorySortName => 'Nach Name';
+
+  @override
+  String get queueHistorySortPrinter => 'Nach Drucker';
+
+  @override
+  String get queueHistoryNewestFirst => 'Neueste zuerst';
+
+  @override
+  String get queueHistoryOldestFirst => 'Älteste zuerst';
+
+  @override
+  String get queueHistoryClear => 'Verlauf löschen';
+
+  @override
+  String get queueHistoryClearTitle => 'Verlauf löschen?';
+
+  @override
+  String queueHistoryClearMessage(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Alle $count Elemente aus dem Verlauf entfernen?',
+      one: '1 Element aus dem Verlauf entfernen?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueHistoryCleared(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Verlaufselemente gelöscht.',
+      one: '1 Verlaufselement gelöscht.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueHistoryKeptForOrders(int kept) {
+    return '$kept behalten, die Stapelaufträge noch brauchen.';
+  }
+
+  @override
+  String get queueHistoryClearFailed =>
+      'Der Verlauf konnte nicht gelöscht werden.';
+
+  @override
+  String get queueHistoryNoClear =>
+      'Du hast keine Berechtigung, den gesamten Verlauf zu löschen';
+
+  @override
+  String get queueHistoryRequeue => 'Erneut einreihen';
+
+  @override
+  String get queueHistoryNoRequeue =>
+      'Du hast keine Berechtigung, Elemente erneut einzureihen';
+
+  @override
+  String get queueHistoryRemove => 'Entfernen';
+
+  @override
+  String get queueHistoryNoRemove =>
+      'Du hast keine Berechtigung, dieses Element zu entfernen';
+
+  @override
+  String get queueHistoryRemoveTitle => 'Aus dem Verlauf entfernen?';
+
+  @override
+  String queueHistoryRemoveMessage(String name) {
+    return '„$name“ aus dem Warteschlangenverlauf entfernen?';
+  }
+
+  @override
+  String queueHistoryAddedBy(String name) {
+    return 'Hinzugefügt von $name';
+  }
+
+  @override
+  String get queueHistoryBatch => 'Stapel';
+
+  @override
+  String get queueHistoryRemoved => 'Warteschlangenelement entfernt';
+
+  @override
+  String get queueHistoryKeptForOrder =>
+      'Abgebrochen statt entfernt: Nur aus diesem Durchlauf kann der Stapelauftrag diese Platte erneut einreihen';
+
+  @override
+  String get queueBillingUseWeb =>
+      'Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, die die App noch nicht setzen kann. Reihe diesen Auftrag in Bambuddy im Browser ein, bearbeite und starte ihn dort.';
+
+  @override
+  String get labelPrinterTitle => 'Etikettendrucker';
+
+  @override
+  String get labelPrinterEntrySubtitle =>
+      'Spulenetiketten über einen Brother-QL-Druckserver im Netzwerk drucken';
+
+  @override
+  String get labelPrinterIntro =>
+      'Ein eigener Druckserver für Brother-QL-Etikettendrucker. Spulenetiketten gehen direkt dorthin, am System-Druckdialog vorbei.';
+
+  @override
+  String get labelPrinterNotSet => 'Kein Etikettendrucker gewählt';
+
+  @override
+  String labelPrinterReady(String model, String label) {
+    return '$model · $label-Etiketten';
+  }
+
+  @override
+  String get labelPrinterPrinterOff =>
+      'Server antwortet, aber der Drucker ist nicht verbunden';
+
+  @override
+  String get labelPrinterOffline => 'Keine Antwort';
+
+  @override
+  String labelPrinterWrongStock(String label) {
+    return 'Geladen sind $label-Etiketten, Spulenetiketten brauchen 62 × 29 mm';
+  }
+
+  @override
+  String get labelPrinterSearch => 'Im Netzwerk suchen';
+
+  @override
+  String get labelPrinterSearching => 'Suche läuft …';
+
+  @override
+  String get labelPrinterNoneFound =>
+      'Nichts gefunden. Prüfe, ob das Handy im selben WLAN ist, oder gib unten die Adresse ein.';
+
+  @override
+  String get labelPrinterDiscoveryFailed =>
+      'Die Netzwerksuche ist auf diesem Gerät nicht verfügbar';
+
+  @override
+  String get labelPrinterAddress => 'Serveradresse';
+
+  @override
+  String get labelPrinterSave => 'Speichern';
+
+  @override
+  String get labelPrinterRemove => 'Entfernen';
+
+  @override
+  String get labelPrinterNotAServer =>
+      'Unter dieser Adresse antwortet kein Etikettendruckserver';
+
+  @override
+  String get labelPrinterVlanNote =>
+      'Die Suche kommt nicht über VLANs oder ein Gast-WLAN hinaus; gib dort die Adresse von Hand ein.';
+
+  @override
+  String get labelPrinterPrintOn => 'Auf dem Etikettendrucker drucken';
+
+  @override
+  String get labelPrinterSent => 'An den Etikettendrucker gesendet';
+
+  @override
+  String get labelPrinterFailed =>
+      'Der Etikettendrucker hat den Auftrag nicht angenommen';
+
+  @override
+  String get labelPrinterUnreachable => 'Der Etikettendrucker antwortet nicht';
+
+  @override
+  String labelPrinterRefused(String detail) {
+    return 'Der Etikettendrucker hat den Auftrag abgelehnt: $detail';
+  }
+
+  @override
+  String get labelPrinterSetUp => 'Etikettendrucker einrichten';
+
+  @override
+  String get labelPrinterSetUpHint =>
+      'Diese Etiketten über einen Brother-QL-Druckserver in deinem Netzwerk drucken';
+
+  @override
+  String get labelOptionsTitle => 'Druckoptionen';
+
+  @override
+  String get labelFieldsTitle => 'Auf das Etikett drucken';
+
+  @override
+  String get labelFieldsReset => 'Auf Standard zurücksetzen';
+
+  @override
+  String get labelFieldBrand => 'Marke';
+
+  @override
+  String get labelFieldMaterial => 'Material und Untertyp';
+
+  @override
+  String get labelFieldHex => 'Farbcode';
+
+  @override
+  String get labelFieldName => 'Farb- oder Filamentname';
+
+  @override
+  String get labelFieldLocation => 'Lagerort';
+
+  @override
+  String get labelFieldMaterialNumber => 'Materialnummer';
+
+  @override
+  String get labelFieldTemps => 'Düsentemperatur';
+
+  @override
+  String get labelFieldWeight => 'Nettogewicht';
+
+  @override
+  String get labelFieldNote => 'Notiz';
+
+  @override
+  String get labelFieldAdded => 'Hinzugefügt am';
+
+  @override
+  String get labelFieldQr => 'QR-Code';
+
+  @override
+  String get labelFieldSpoolId => 'Spulen-ID';
+
+  @override
+  String get labelFormatTitle => 'Ausgabe';
+
+  @override
+  String get labelFormatPngHint =>
+      'Passe die Auflösung an deinen Drucker an. Mehrere Etiketten kommen als ZIP.';
+
+  @override
+  String get labelDpiTitle => 'Auflösung';
+
+  @override
+  String get labelSendToTitle => 'Senden an';
+
+  @override
+  String get labelSendSystem => 'Druckdialog';
+
+  @override
+  String get labelSendShare => 'Teilen';
+
+  @override
+  String get labelSendSave => 'In Datei speichern';
+
+  @override
+  String get labelSendPrinter => 'Etikettendrucker';
+
+  @override
+  String get labelPrinterCopies => 'Kopien';
+
+  @override
+  String get labelPrinterCutAtEnd => 'Nach dem letzten Etikett schneiden';
+
+  @override
+  String get labelPrinterCutEvery => 'Etiketten zwischen Schnitten';
+
+  @override
+  String get labelPrinterCutEveryHint =>
+      '0 bedeutet kein Schnitt zwischen den Etiketten.';
+
+  @override
+  String get labelCutEveryLess => 'Ein Etikett weniger zwischen den Schnitten';
+
+  @override
+  String get labelCutEveryMore => 'Ein Etikett mehr zwischen den Schnitten';
+
+  @override
+  String get labelSaved => 'Etiketten gespeichert';
+
+  @override
+  String get printerLocationsMenu => 'Druckerstandorte';
+
+  @override
+  String printerLocationsSubtitle(int grouped, int ungrouped) {
+    return 'An einem Standort: $grouped, ohne Standort: $ungrouped';
+  }
+
+  @override
+  String get printerLocationsSearch => 'Standorte suchen';
+
+  @override
+  String get printerLocationsHideEmpty => 'Leere ausblenden';
+
+  @override
+  String get printerLocationsSortNameAsc => 'Name A→Z';
+
+  @override
+  String get printerLocationsSortNameDesc => 'Name Z→A';
+
+  @override
+  String get printerLocationsSortCountAsc => 'Wenigste Drucker';
+
+  @override
+  String get printerLocationsSortCountDesc => 'Meiste Drucker';
+
+  @override
+  String get printerLocationsSort => 'Sortieren';
+
+  @override
+  String get printerLocationsSelect => 'Auswählen';
+
+  @override
+  String get printerLocationsDone => 'Fertig';
+
+  @override
+  String get printerLocationsNew => 'Neuer Standort';
+
+  @override
+  String get printerLocationsCreateTitle => 'Standort erstellen';
+
+  @override
+  String get printerLocationsEditTitle => 'Standort bearbeiten';
+
+  @override
+  String get printerLocationsCreate => 'Erstellen';
+
+  @override
+  String get printerLocationsSave => 'Speichern';
+
+  @override
+  String get printerLocationsFieldName => 'Name des Standorts';
+
+  @override
+  String get printerLocationsFieldIcon => 'Symbol';
+
+  @override
+  String get printerLocationsFieldColor => 'Farbe';
+
+  @override
+  String get printerLocationsNoColor => 'Keine Farbe';
+
+  @override
+  String get printerLocationsEmpty => 'Noch keine Druckerstandorte';
+
+  @override
+  String get printerLocationsNoResults => 'Kein Standort passt zur Suche';
+
+  @override
+  String printerLocationsPrinterCount(int count) {
+    return 'Drucker: $count';
+  }
+
+  @override
+  String get printerLocationsNoPrinters => 'Keine Drucker an diesem Standort';
+
+  @override
+  String get printerLocationsSelectPrinter => 'Drucker auswählen';
+
+  @override
+  String get printerLocationsMove => 'An einen anderen Standort verschieben';
+
+  @override
+  String get printerLocationsMoveButton => 'Verschieben';
+
+  @override
+  String get printerLocationsRemoveFromLocation => 'Vom Standort entfernen';
+
+  @override
+  String printerLocationsUngrouped(int count) {
+    return 'Drucker ohne Standort: $count';
+  }
+
+  @override
+  String get printerLocationsSelectAll => 'Alle auswählen';
+
+  @override
+  String get printerLocationsDeselectAll => 'Auswahl aufheben';
+
+  @override
+  String printerLocationsSelected(int count) {
+    return 'Ausgewählt: $count';
+  }
+
+  @override
+  String get printerLocationsDeleteSelected => 'Ausgewählte löschen';
+
+  @override
+  String get printerLocationsMoveTitle => 'Drucker verschieben';
+
+  @override
+  String printerLocationsMoveTitleMany(int count) {
+    return 'Drucker verschieben ($count)';
+  }
+
+  @override
+  String get printerLocationsTargetHint => 'Standort auswählen';
+
+  @override
+  String get printerLocationsNoLocation => 'Kein Standort';
+
+  @override
+  String get printerLocationsDeleteTitle => 'Standort löschen';
+
+  @override
+  String printerLocationsDeleteTitleMany(int count) {
+    return 'Standorte löschen ($count)';
+  }
+
+  @override
+  String printerLocationsDeleteMessage(String names, int count) {
+    return '$names löschen? Drucker ohne Standort danach: $count.';
+  }
+
+  @override
+  String get printerLocationsCreated => 'Standort erstellt';
+
+  @override
+  String get printerLocationsSaved => 'Standort gespeichert';
+
+  @override
+  String printerLocationsDeleted(int count) {
+    return 'Gelöschte Standorte: $count';
+  }
+
+  @override
+  String printerLocationsMoved(int count) {
+    return 'Verschobene Drucker: $count';
+  }
+
+  @override
+  String get printerLocationsNameTaken =>
+      'Ein Standort mit diesem Namen existiert bereits';
+
+  @override
+  String get printerLocationsReadOnly =>
+      'Standorte kann nur ein Benutzerkonto ändern — ein API-Schlüssel darf sie nur lesen.';
+
+  @override
+  String get dashboardSortTitle => 'Sortieren nach';
+
+  @override
+  String get dashboardSortName => 'Name';
+
+  @override
+  String get dashboardSortModel => 'Modell';
+
+  @override
+  String get dashboardSortLocation => 'Standort';
+
+  @override
+  String get dashboardSortEta => 'Restzeit';
+
+  @override
+  String get dashboardSortAscending => 'Aufsteigend';
+
+  @override
+  String get dashboardSortDescending => 'Absteigend';
+
+  @override
+  String get dashboardLocationAll => 'Alle Standorte';
+
+  @override
+  String get dashboardGroupUngrouped => 'Ohne Standort';
+
+  @override
+  String get dashboardGroupUnknownModel => 'Unbekanntes Modell';
+
+  @override
+  String get announcementsTitle => 'Ankündigungen';
+
+  @override
+  String announcementsUnread(int count) {
+    return 'Ungelesene Ankündigungen: $count';
+  }
+
+  @override
+  String get announcementsEmpty => 'Derzeit keine Ankündigungen.';
+
+  @override
+  String announcementsEarlier(int count) {
+    return 'Frühere ($count)';
+  }
+
+  @override
+  String get announcementsNew => 'Neu';
+
+  @override
+  String get announcementsReadMore => 'Mehr erfahren';
+
+  @override
+  String get announcementsSource =>
+      'Von den Bambuddy-Entwicklern, über GitHub bereitgestellt.';
+
+  @override
+  String get announcementLevelInfo => 'Hinweis';
+
+  @override
+  String get announcementLevelImportant => 'Wichtig';
+
+  @override
+  String get announcementLevelCritical => 'Kritisch';
+
+  @override
+  String get announcementsMarkAllRead => 'Alle als gelesen markieren';
+
+  @override
+  String archiveRunCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Durchläufe',
+      one: '1 Durchlauf',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveLayerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Schichten',
+      one: '1 Schicht',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveObjectCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Objekte',
+      one: '1 Objekt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivePrintCost => 'Druckkosten';
+
+  @override
+  String archiveSlicedFor(String model) {
+    return 'Gesliced für $model';
+  }
+
+  @override
+  String archiveTimeDetail(String estimated, String actual) {
+    return 'Geschätzt $estimated, tatsächlich $actual';
+  }
+
+  @override
+  String get archiveOpenLink => 'Link';
+
+  @override
+  String archiveSlot(int slot) {
+    return 'Slot $slot';
+  }
 }

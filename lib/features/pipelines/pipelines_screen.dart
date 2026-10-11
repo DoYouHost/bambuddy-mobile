@@ -69,7 +69,12 @@ class PipelinesScreen extends ConsumerWidget {
                   icon: Icons.account_tree_outlined,
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                  padding: const EdgeInsets.fromLTRB(
+                    DashSpace.gutter,
+                    DashSpace.sm,
+                    DashSpace.gutter,
+                    DashSpace.xl,
+                  ),
                   itemCount: list.length,
                   itemBuilder: (ctx, i) => _PipelineCard(pipeline: list[i]),
                 ),
@@ -95,9 +100,14 @@ class _PipelineCard extends ConsumerWidget {
     final canWrite = ref.watch(canWritePipelinesProvider).orFalse;
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.lg,
+          DashSpace.md,
+          DashSpace.sm,
+          DashSpace.sm,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -116,7 +126,7 @@ class _PipelineCard extends ConsumerWidget {
                       ),
                       if ((pipeline.description ?? '').isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(top: 2),
+                          padding: const EdgeInsets.only(top: DashSpace.xs),
                           child: Text(
                             pipeline.description!,
                             style: theme.textTheme.bodySmall,
@@ -180,7 +190,7 @@ class _PipelineCard extends ConsumerWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             _row(
               theme,
               l10n.slicePrinter,
@@ -193,7 +203,7 @@ class _PipelineCard extends ConsumerWidget {
             ),
             if (pipeline.bedType != null)
               _row(theme, l10n.pipelineBed, pipeline.bedType!),
-            const SizedBox(height: 6),
+            const SizedBox(height: DashSpace.sm),
             Text(
               l10n.pipelineFilamentsCount(pipeline.filamentPresets.length),
               style: theme.textTheme.labelSmall,
@@ -209,7 +219,7 @@ class _PipelineCard extends ConsumerWidget {
                   l10n,
                 ),
               ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             _targetLine(
               theme,
               l10n,
@@ -236,7 +246,7 @@ class _PipelineCard extends ConsumerWidget {
             size: 18,
             color: theme.colorScheme.tertiary,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(
               l10n.pipelineNeedsTarget,
@@ -263,7 +273,7 @@ class _PipelineCard extends ConsumerWidget {
           size: 18,
           color: theme.colorScheme.onSurfaceVariant,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: DashSpace.sm),
         Expanded(child: Text(label, style: theme.textTheme.bodySmall)),
       ],
     );
@@ -274,7 +284,7 @@ class _PipelineCard extends ConsumerWidget {
   /// each filament slot — would ignore the system font size while the name above
   /// it grew.
   Widget _row(ThemeData theme, String label, String value) => Padding(
-    padding: const EdgeInsets.only(bottom: 2),
+    padding: const EdgeInsets.only(bottom: DashSpace.xs),
     child: Text.rich(
       TextSpan(
         style: theme.textTheme.bodySmall,

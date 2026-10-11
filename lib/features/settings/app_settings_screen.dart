@@ -9,6 +9,7 @@ import '../common/settings_entry_tile.dart';
 import '../common/settings_rows.dart';
 import '../../providers.dart';
 import '../dashboard/card_collapse_providers.dart';
+import '../wall/wall_providers.dart';
 import 'demo_printers_provider.dart';
 
 /// What this app does on this phone, as opposed to [ServerSettingsScreen],
@@ -25,10 +26,7 @@ class AppSettingsScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.appSettingsTitle),
         body: ListView(
-          padding: withSystemNavInset(
-            context,
-            const EdgeInsets.fromLTRB(12, 8, 12, 24),
-          ),
+          padding: screenListPadding(context),
           children: [
             SettingsSectionHeader(l10n.navDashboard),
             SettingsCard(
@@ -44,10 +42,23 @@ class AppSettingsScreen extends ConsumerWidget {
                 ),
               ],
             ),
+            const SizedBox(height: DashSpace.xl),
+            SettingsSectionHeader(l10n.wallModeTitle),
+            SettingsCard(
+              rows: [
+                SettingsSwitchRow(
+                  tag: 'app_settings.wall_keep_awake',
+                  title: l10n.wallKeepAwakeTitle,
+                  subtitle: l10n.wallKeepAwakeDesc,
+                  value: ref.watch(wallKeepAwakeProvider),
+                  onChanged: ref.read(wallKeepAwakeProvider.notifier).set,
+                ),
+              ],
+            ),
             // Demo only: on a real server the number of printing machines is
             // the server's business, and this row would be a lie.
             if (ref.watch(serverProfileProvider)?.isDemo ?? false) ...[
-              const SizedBox(height: 20),
+              const SizedBox(height: DashSpace.xl),
               SettingsSectionHeader(l10n.demoSettingsSection),
               SettingsCard(
                 rows: [
@@ -67,7 +78,15 @@ class AppSettingsScreen extends ConsumerWidget {
                 ],
               ),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: DashSpace.xl),
+            SettingsEntryTile(
+              icon: Icons.label_outline,
+              title: l10n.labelPrinterTitle,
+              subtitle: l10n.labelPrinterEntrySubtitle,
+              onTap: () => context.push('/settings/label-printer'),
+              id: 'app_settings.label_printer',
+            ),
+            const SizedBox(height: DashSpace.xl),
             SettingsSectionHeader(l10n.notifSettingsTitle),
             SettingsEntryTile(
               icon: Icons.tune_rounded,

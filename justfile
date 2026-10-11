@@ -409,6 +409,26 @@ _upload-assets tag file_a file_b:
         fi
     done
 
+# Succeeds when a failed run only has the Play upload left: the release is
+# tagged on HEAD, both APKs are attached to it, and the bundles in build/dist
+# carry this versionName. A re-run then skips the tests and the four release
+# builds instead of paying ~8 minutes for bytes it already has. The versionName
+# is what ties the fixed-name bundles to this tag — any later build overwrites
+# them with its own.
+[no-exit-message]
+_play-only tag name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    git fetch --tags --quiet origin
+    grep -qxF {{ quote(tag) }} <<<"$(git tag --points-at HEAD)"
+    assets=$(gh release view {{ quote(tag) }} --repo {{repo}} --json assets --jq '.assets[].name' 2>/dev/null)
+    grep -q '^app-mobile-.*\.apk$' <<<"$assets"
+    grep -q '^app-wear-.*\.apk$' <<<"$assets"
+    for f in {{aab}} {{wear_aab}}; do
+        [ -f "$f" ]
+        grep -qF " {{name}} " <<<"$(python3 tool/aab_versions.py "$f")"
+    done
+
 # Produces everything a stable version needs: APKs for the GitHub release (and
 # Obtainium), plus both Play bundles released to internal testing. Promoting
 # them to production stays a click in the Play Console.
@@ -416,13 +436,19 @@ _upload-assets tag file_a file_b:
 [doc('bump, test, build and publish a stable release')]
 [group('4-release')]
 ship ver:
+    #!/usr/bin/env bash
+    set -euo pipefail
     just _bump {{ver}}
-    just test
-    just build
-    just build-wear
-    just build-aab
-    just build-wear-aab
-    just release-publish {{ver}}
+    if just _play-only "v{{ver}}" "{{ver}}" 2>/dev/null; then
+        echo "v{{ver}} is published and its bundles are built — resuming at the Play upload"
+    else
+        just test
+        just build
+        just build-wear
+        just build-aab
+        just build-wear-aab
+        just release-publish {{ver}}
+    fi
     just play-internal
 
 # Test, build both flavors and publish the current commit as a dev prerelease.
@@ -549,6 +575,12 @@ ship-dev target='' bundles='yes':
         exit 1
     fi
     echo "Dev build $name (versionCode $code) from ${sha:0:8}"
+    tag="v$name"
+    if [ '{{bundles}}' != 'no' ] && just _play-only "$tag" "$name" 2>/dev/null; then
+        echo "$tag is published and its bundles are built — resuming at the Play upload"
+        just play-internal
+        exit 0
+    fi
     just test
     just build "$name" "$code"
     just build-wear "$name" "$code"
@@ -560,7 +592,6 @@ ship-dev target='' bundles='yes':
         just build-aab "$name" "$code"
         just build-wear-aab "$name" "$code"
     fi
-    tag="v$name"
     # Resumable like `release-publish`: skip whatever a failed earlier run did.
     if gh release view "$tag" --repo {{repo}} >/dev/null 2>&1; then
         echo "Release $tag already exists, skipping create"

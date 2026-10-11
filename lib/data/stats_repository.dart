@@ -7,6 +7,7 @@ import '../core/models/archive_slim.dart';
 import '../core/models/archive_stats.dart';
 import '../core/models/failure_analysis.dart';
 import '../core/models/user_summary.dart';
+import '../core/format/text_compare.dart';
 
 /// REST data source for archive stats (`GET /archives/stats`).
 ///
@@ -173,9 +174,8 @@ class StatsRepository {
   /// which route answered. `toList()` because [parseJsonList] can hand back a
   /// `const []`, which cannot be sorted in place.
   static List<UserSummary> _byUsername(List<dynamic>? data) =>
-      parseJsonList(data, UserSummary.fromJson).toList()..sort(
-        (a, b) => a.username.toLowerCase().compareTo(b.username.toLowerCase()),
-      );
+      parseJsonList(data, UserSummary.fromJson).toList()
+        ..sort((a, b) => compareIgnoringCase(a.username, b.username));
 
   static String? _ymd(DateTime? d) => d == null ? null : calendarDateToJson(d);
 }

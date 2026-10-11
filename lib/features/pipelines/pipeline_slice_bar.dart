@@ -61,7 +61,7 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
         ref.watch(canWritePipelinesProvider).orFalse && _selectionComplete;
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: Column(
         children: [
           ListTile(
@@ -82,7 +82,12 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
           ).tagged('slice.pipeline_apply'),
           if (ref.watch(canWritePipelinesProvider).orFalse)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.lg,
+                0,
+                DashSpace.lg,
+                DashSpace.sm,
+              ),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(

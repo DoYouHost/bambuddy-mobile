@@ -17,6 +17,9 @@ library;
 /// different.
 const _modelAliases = <String, List<String>>{
   'A1 MINI': ['A1M'],
+  // The bundle tags every H2D Pro preset "@BBL H2DP" while the printer preset
+  // spells it "H2D Pro" (web `slicerPrinterMatch.ts`, traced in #2982).
+  'H2D PRO': ['H2DP'],
 };
 
 /// The nozzle segment a preset name ends with. The word itself is optional:

@@ -44,6 +44,24 @@ abstract class _$ArchiveCWProxy {
     int? fileSize,
     int duplicateCount,
     int duplicateSequence,
+    PrintVerdict? userVerdict,
+    String? userVerdictSource,
+    DateTime? userVerdictAt,
+    bool confirmRequested,
+    String? failureReason,
+    ({List<int> mapping, int printerId})? slicerAmsMapping,
+    int? actualTimeSeconds,
+    double? timeAccuracy,
+    int? objectCount,
+    String? projectName,
+    String? tags,
+    String? notes,
+    String? externalUrl,
+    double? energyKwh,
+    double? energyCost,
+    double? wearCost,
+    String? createdByUsername,
+    List<FilamentSlot> filamentSlots,
   });
 }
 
@@ -92,6 +110,24 @@ class _$ArchiveCWProxyImpl implements _$ArchiveCWProxy {
     Object? fileSize = const $CopyWithPlaceholder(),
     Object? duplicateCount = const $CopyWithPlaceholder(),
     Object? duplicateSequence = const $CopyWithPlaceholder(),
+    Object? userVerdict = const $CopyWithPlaceholder(),
+    Object? userVerdictSource = const $CopyWithPlaceholder(),
+    Object? userVerdictAt = const $CopyWithPlaceholder(),
+    Object? confirmRequested = const $CopyWithPlaceholder(),
+    Object? failureReason = const $CopyWithPlaceholder(),
+    Object? slicerAmsMapping = const $CopyWithPlaceholder(),
+    Object? actualTimeSeconds = const $CopyWithPlaceholder(),
+    Object? timeAccuracy = const $CopyWithPlaceholder(),
+    Object? objectCount = const $CopyWithPlaceholder(),
+    Object? projectName = const $CopyWithPlaceholder(),
+    Object? tags = const $CopyWithPlaceholder(),
+    Object? notes = const $CopyWithPlaceholder(),
+    Object? externalUrl = const $CopyWithPlaceholder(),
+    Object? energyKwh = const $CopyWithPlaceholder(),
+    Object? energyCost = const $CopyWithPlaceholder(),
+    Object? wearCost = const $CopyWithPlaceholder(),
+    Object? createdByUsername = const $CopyWithPlaceholder(),
+    Object? filamentSlots = const $CopyWithPlaceholder(),
   }) {
     return Archive(
       id: id == const $CopyWithPlaceholder() || id == null
@@ -216,6 +252,81 @@ class _$ArchiveCWProxyImpl implements _$ArchiveCWProxy {
           ? _value.duplicateSequence
           // ignore: cast_nullable_to_non_nullable
           : duplicateSequence as int,
+      userVerdict: userVerdict == const $CopyWithPlaceholder()
+          ? _value.userVerdict
+          // ignore: cast_nullable_to_non_nullable
+          : userVerdict as PrintVerdict?,
+      userVerdictSource: userVerdictSource == const $CopyWithPlaceholder()
+          ? _value.userVerdictSource
+          // ignore: cast_nullable_to_non_nullable
+          : userVerdictSource as String?,
+      userVerdictAt: userVerdictAt == const $CopyWithPlaceholder()
+          ? _value.userVerdictAt
+          // ignore: cast_nullable_to_non_nullable
+          : userVerdictAt as DateTime?,
+      confirmRequested:
+          confirmRequested == const $CopyWithPlaceholder() ||
+              confirmRequested == null
+          ? _value.confirmRequested
+          // ignore: cast_nullable_to_non_nullable
+          : confirmRequested as bool,
+      failureReason: failureReason == const $CopyWithPlaceholder()
+          ? _value.failureReason
+          // ignore: cast_nullable_to_non_nullable
+          : failureReason as String?,
+      slicerAmsMapping: slicerAmsMapping == const $CopyWithPlaceholder()
+          ? _value.slicerAmsMapping
+          // ignore: cast_nullable_to_non_nullable
+          : slicerAmsMapping as ({List<int> mapping, int printerId})?,
+      actualTimeSeconds: actualTimeSeconds == const $CopyWithPlaceholder()
+          ? _value.actualTimeSeconds
+          // ignore: cast_nullable_to_non_nullable
+          : actualTimeSeconds as int?,
+      timeAccuracy: timeAccuracy == const $CopyWithPlaceholder()
+          ? _value.timeAccuracy
+          // ignore: cast_nullable_to_non_nullable
+          : timeAccuracy as double?,
+      objectCount: objectCount == const $CopyWithPlaceholder()
+          ? _value.objectCount
+          // ignore: cast_nullable_to_non_nullable
+          : objectCount as int?,
+      projectName: projectName == const $CopyWithPlaceholder()
+          ? _value.projectName
+          // ignore: cast_nullable_to_non_nullable
+          : projectName as String?,
+      tags: tags == const $CopyWithPlaceholder()
+          ? _value.tags
+          // ignore: cast_nullable_to_non_nullable
+          : tags as String?,
+      notes: notes == const $CopyWithPlaceholder()
+          ? _value.notes
+          // ignore: cast_nullable_to_non_nullable
+          : notes as String?,
+      externalUrl: externalUrl == const $CopyWithPlaceholder()
+          ? _value.externalUrl
+          // ignore: cast_nullable_to_non_nullable
+          : externalUrl as String?,
+      energyKwh: energyKwh == const $CopyWithPlaceholder()
+          ? _value.energyKwh
+          // ignore: cast_nullable_to_non_nullable
+          : energyKwh as double?,
+      energyCost: energyCost == const $CopyWithPlaceholder()
+          ? _value.energyCost
+          // ignore: cast_nullable_to_non_nullable
+          : energyCost as double?,
+      wearCost: wearCost == const $CopyWithPlaceholder()
+          ? _value.wearCost
+          // ignore: cast_nullable_to_non_nullable
+          : wearCost as double?,
+      createdByUsername: createdByUsername == const $CopyWithPlaceholder()
+          ? _value.createdByUsername
+          // ignore: cast_nullable_to_non_nullable
+          : createdByUsername as String?,
+      filamentSlots:
+          filamentSlots == const $CopyWithPlaceholder() || filamentSlots == null
+          ? _value.filamentSlots
+          // ignore: cast_nullable_to_non_nullable
+          : filamentSlots as List<FilamentSlot>,
     );
   }
 }
@@ -262,4 +373,24 @@ Archive _$ArchiveFromJson(Map<String, dynamic> json) => Archive(
   fileSize: (json['file_size'] as num?)?.toInt(),
   duplicateCount: (json['duplicate_count'] as num?)?.toInt() ?? 0,
   duplicateSequence: (json['duplicate_sequence'] as num?)?.toInt() ?? 0,
+  userVerdict: PrintVerdict.fromWire(json['user_verdict']),
+  userVerdictSource: json['user_verdict_source'] as String?,
+  userVerdictAt: dateTimeFromJson(json['user_verdict_at']),
+  confirmRequested: json['confirm_requested'] as bool? ?? false,
+  failureReason: json['failure_reason'] as String?,
+  slicerAmsMapping: _slicerAmsMapping(json['extra_data']),
+  actualTimeSeconds: (json['actual_time_seconds'] as num?)?.toInt(),
+  timeAccuracy: (json['time_accuracy'] as num?)?.toDouble(),
+  objectCount: toIntOrNull(json['object_count']),
+  projectName: json['project_name'] as String?,
+  tags: json['tags'] as String?,
+  notes: json['notes'] as String?,
+  externalUrl: json['external_url'] as String?,
+  energyKwh: (json['energy_kwh'] as num?)?.toDouble(),
+  energyCost: (json['energy_cost'] as num?)?.toDouble(),
+  wearCost: (json['wear_cost'] as num?)?.toDouble(),
+  createdByUsername: json['created_by_username'] as String?,
+  filamentSlots: _readExtraData(json, 'filament_slots') == null
+      ? const []
+      : _filamentSlots(_readExtraData(json, 'filament_slots')),
 );

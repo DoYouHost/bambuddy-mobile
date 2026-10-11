@@ -19,6 +19,10 @@ enum NotifEvent {
   /// Maintenance task became overdue (`is_due`). Source: REST `/maintenance/overview`
   /// (NOT WS frames) — checked periodically in background.
   maintenanceDue,
+
+  /// A completed print asks how it came out (#1898). Source: the server's
+  /// `print_confirm_request` frame, sent only for a print that opted in.
+  outcomeRequest,
 }
 
 /// User's notification preferences: which events trigger notifications and with what thresholds.
@@ -73,6 +77,8 @@ class NotificationPrefs {
     NotifEvent.plateNotEmpty,
     NotifEvent.printerError,
     NotifEvent.maintenanceDue,
+    // On: it only fires for a print somebody asked to be asked about.
+    NotifEvent.outcomeRequest,
   };
 
   static const NotificationPrefs defaults = NotificationPrefs(

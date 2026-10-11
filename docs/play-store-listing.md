@@ -1,8 +1,9 @@
 # Google Play Store Listing — Bambuddy
 
 Copy-paste source for the Play Console "Main store listing" page.
-Default language: **English (en-US)**. Polish (pl-PL) provided as an optional
-additional translation.
+Default language: **English (en-US)**. Polish (pl-PL), German (de-DE), Spanish
+(es-ES) and French (fr-FR) provided as additional translations — the five
+languages the app ships in.
 
 ---
 
@@ -47,6 +48,7 @@ MANAGE FILAMENT & HARDWARE
 MORE
 • Print archive and statistics
 • Projects, plates and parts overview
+• Wall mode: always-on landscape view for a phone or tablet on a stand, with live camera and status tiles, side panel for active errors and the print queue
 • Home-screen widget with printer status and a quick spool-scan shortcut
 • Wear OS companion: check status and control prints from your watch
 
@@ -72,7 +74,7 @@ independent, community-built companion app and is not affiliated with Bambu Lab.
 
 ### Short description (max 80 chars)
 ```
-Nieoficjalny towarzysz dla Twojego self-hostowanego menedżera drukarek Bambu Lab.
+Nieoficjalny towarzysz Twojego self-hostowanego menedżera drukarek Bambu Lab.
 ```
 
 ### Full description
@@ -102,6 +104,7 @@ FILAMENT I SPRZĘT
 
 WIĘCEJ
 • Archiwum i statystyki wydruków, projekty
+• Tryb ściany: stały podgląd w poziomie na telefonie lub tablecie na stojaku — kafelki z kamerą na żywo i statusem, panel błędów i kolejki, ekran bez wygaszania
 • Widget na ekran główny
 • Wersja na Wear OS
 
@@ -117,6 +120,184 @@ https://github.com/DoYouHost/bambuddy-mobile
 
 „Bambu Lab" i „Bambu" to znaki towarowe ich właściciela. Bambuddy mobile jest niezależną
 aplikacją społecznościową, niepowiązaną z Bambu Lab.
+```
+
+---
+
+## German translation (de-DE) — optional
+
+### Short description (max 80 chars)
+```
+Inoffizielle Begleit-App für deinen bambuddy-Server für Bambu-Lab-Drucker.
+```
+
+### Full description
+```
+Bambuddy mobile ist eine inoffizielle Open-Source-Begleit-App für einen selbst gehosteten
+„bambuddy“-Server, der deine Bambu-Lab-3D-Drucker verwaltet. Dies ist KEINE offizielle
+App von Bambu Lab und steht in keiner Verbindung zu Bambu Lab.
+
+WICHTIG: Bambuddy mobile erfordert deinen eigenen, laufenden bambuddy-Server. Die App
+verbindet sich nicht eigenständig mit der Bambu-Lab-Cloud und funktioniert ohne einen
+konfigurierten Server nicht.
+
+DRUCKER ÜBERWACHEN
+• Live-Druckerstatus: Zustand, Fortschritt, Schicht, ETA und Temperaturen
+• Dauerhafte Benachrichtigung während des Drucks, um stets den Status zu sehen
+• Konfigurierbare Benachrichtigungen für Druckereignisse und Hardware-Fehler (HMS)
+
+DRUCKER STEUERN
+• Drucke pausieren, fortsetzen und stoppen
+• Druckplatte freigeben und nächsten Auftrag aus der Warteschlange starten
+• Druck-Warteschlange neu anordnen und verwalten
+
+FILAMENT & HARDWARE
+• Spulenbestand verwalten und Spulen AMS-Slots zuweisen
+• Spulen-QR-Codes mit der Kamera scannen, um direkt zur Spule zu springen
+• Smarte Steckdosen steuern und Leistung überwachen
+• Wartungsübersicht mit Erinnerungen
+
+WEITERES
+• Druckarchiv und Statistiken
+• Übersicht über Projekte, Druckplatten und Bauteile
+• Wandmodus: dauerhafte Querformat-Ansicht für Smartphone oder Tablet auf einem Ständer — Kacheln mit Live-Kamera und Status, Seitenleiste für aktive Fehler und Warteschlange, Option für dauerhaft aktiven Bildschirm
+• Startbildschirm-Widget mit Druckerstatus und Schnellzugriff auf den Spulenscan
+• Wear-OS-Begleiter: Status prüfen und Drucke direkt von der Uhr steuern
+
+DATENSCHUTZ
+Im alltäglichen Gebrauch kommuniziert Bambuddy mobile ausschließlich mit dem von dir
+konfigurierten bambuddy-Server. Es gibt weder Analysedienste, Werbung noch eigene
+Cloud-Dienste. Deine Anmeldedaten werden verschlüsselt im Keystore auf deinem Gerät
+gespeichert und nur an deinen eigenen Server übertragen. Wenn du dich entscheidest, einen
+Fehler aus der App zu melden, werden deine Beschreibung und ein Diagnoseprotokoll — das
+du vorher einsehen kannst — als öffentliches GitHub-Issue veröffentlicht. Ohne deine
+Entscheidung wird nichts übertragen.
+
+OPEN SOURCE (AGPL-3.0)
+Bambuddy mobile ist freie Software unter der AGPL-3.0-Lizenz.
+Quellcode: https://github.com/DoYouHost/bambuddy-mobile
+
+„Bambu Lab“ und „Bambu“ sind Marken ihrer jeweiligen Inhaber. Bambuddy mobile ist eine
+unabhängige, von der Community entwickelte Begleit-App und steht in keiner Verbindung
+zu Bambu Lab.
+```
+
+---
+
+## Spanish translation (es-ES) — optional
+
+### Short description (max 80 chars)
+```
+Cliente no oficial para tu servidor bambuddy de impresoras Bambu Lab.
+```
+
+### Full description
+```
+Bambuddy mobile es una app complementaria no oficial de código abierto para un servidor
+autoalojado «bambuddy» que gestiona tus impresoras 3D Bambu Lab. NO es una aplicación
+oficial de Bambu Lab y no está afiliada ni respaldada por Bambu Lab.
+
+IMPORTANTE: Bambuddy mobile requiere tu propio servidor bambuddy en funcionamiento. No se
+conecta por sí sola a la nube de Bambu Lab y no funcionará sin un servidor al que apuntar.
+
+MONITORIZACIÓN
+• Estado de la impresora en directo: estado, progreso, capa, tiempo restante (ETA) y temperaturas
+• Notificación permanente durante la impresión para saber siempre qué ocurre
+• Alertas configurables para eventos de impresión y errores de hardware (HMS)
+
+CONTROL
+• Pausar, reanudar y detener impresiones
+• Despejar la placa e iniciar el siguiente trabajo de la cola
+• Reordenar y gestionar la cola de impresión
+
+FILAMENTO Y HARDWARE
+• Control de inventario de bobinas y asignación a ranuras AMS
+• Escaneo de códigos QR de bobinas con la cámara para acceder a ellas directamente
+• Control de enchufes inteligentes y monitorización de consumo eléctrico
+• Seguimiento de mantenimiento con recordatorios
+
+MÁS
+• Archivo de impresiones y estadísticas
+• Vista general de proyectos, placas y piezas
+• Modo pared: vista horizontal permanente para teléfono o tableta en soporte — mosaicos con cámara en directo y estado, panel lateral de errores activos y cola de impresión, y opción de mantener la pantalla encendida
+• Widget para la pantalla de inicio con estado de la impresora y acceso rápido al escaneo de bobinas
+• App para Wear OS: consulta el estado y controla las impresiones desde tu reloj
+
+PRIVACIDAD
+En el uso cotidiano, Bambuddy mobile solo se comunica con el servidor bambuddy que
+configures. No hay analíticas, publicidad ni servicios en la nube. Tus credenciales se
+guardan cifradas en el almacenamiento protegido por Keystore de tu dispositivo y solo se
+envían a tu propio servidor. Si decides notificar un error desde la app, tu descripción y
+un registro de diagnóstico — que puedes revisar antes — se publican como una incidencia
+abierta en GitHub. No se envía nada sin tu decisión.
+
+OPEN SOURCE (AGPL-3.0)
+Bambuddy mobile es software libre bajo licencia AGPL-3.0.
+Código fuente: https://github.com/DoYouHost/bambuddy-mobile
+
+«Bambu Lab» y «Bambu» son marcas comerciales de sus respectivos propietarios. Bambuddy
+mobile es una aplicación independiente desarrollada por la comunidad y no está afiliada
+a Bambu Lab.
+```
+
+---
+
+## French translation (fr-FR) — optional
+
+### Short description (max 80 chars)
+```
+Compagnon non officiel pour votre serveur bambuddy d'imprimantes Bambu Lab.
+```
+
+### Full description
+```
+Bambuddy mobile est une application compagnon open source non officielle pour un
+serveur « bambuddy » auto-hébergé qui gère vos imprimantes 3D Bambu Lab. Ce n'est PAS une
+application officielle de Bambu Lab et elle n'est ni affiliée à Bambu Lab ni approuvée par
+celle-ci.
+
+IMPORTANT : Bambuddy mobile nécessite votre propre serveur bambuddy en fonctionnement.
+L'application ne se connecte pas au cloud Bambu Lab de manière autonome et ne
+fonctionnera pas sans serveur vers lequel pointer.
+
+SURVEILLANCE
+• État de l'imprimante en direct : statut, progression, couche, temps restant (ETA) et températures
+• Notification persistante pendant l'impression pour suivre l'avancement en temps réel
+• Alertes configurables pour les événements d'impression et les erreurs matérielles (HMS)
+
+CONTRÔLE
+• Mettre en pause, reprendre et arrêter les impressions
+• Dégager le plateau et lancer la tâche suivante dans la file d'attente
+• Réorganiser et gérer la file d'attente d'impression
+
+GESTION DU FILAMENT ET DU MATÉRIEL
+• Suivi de l'inventaire des bobines et assignation aux emplacements AMS
+• Scanner les codes QR des bobines avec l'appareil photo pour y accéder directement
+• Contrôle des prises connectées et suivi de la puissance
+• Suivi de la maintenance avec rappels
+
+AUTRES FONCTIONNALITÉS
+• Archives d'impression et statistiques
+• Vue d'ensemble des projets, plateaux et pièces
+• Mode mural : affichage paysage permanent pour téléphone ou tablette sur support — vignettes avec caméra en direct et statut, panneau latéral des erreurs actives et file d'attente, avec maintien de l'écran allumé
+• Widget pour l'écran d'accueil avec statut de l'imprimante et raccourci pour scanner une bobine
+• Application Wear OS : vérification de l'état et contrôle des impressions depuis votre montre
+
+CONFIDENTIALITÉ
+Lors de son utilisation, Bambuddy mobile communique uniquement avec le serveur bambuddy
+que vous configurez. Il n'y a pas d'outils d'analyse, pas de publicité et pas de service
+cloud. Vos identifiants sont stockés de manière chiffrée dans le Keystore de votre
+appareil et ne sont jamais envoyés qu'à votre propre serveur. Si vous choisissez de
+signaler une anomalie depuis l'application, votre description et un journal de
+diagnostic — que vous consultez d'abord — sont publiés sous forme de ticket GitHub
+public. Rien n'est envoyé sans votre décision.
+
+OPEN SOURCE (AGPL-3.0)
+Bambuddy mobile est un logiciel libre sous licence AGPL-3.0.
+Source : https://github.com/DoYouHost/bambuddy-mobile
+
+« Bambu Lab » et « Bambu » sont des marques de leur propriétaire respectif. Bambuddy
+mobile est une application communautaire indépendante et n'est pas affiliée à Bambu Lab.
 ```
 
 ---

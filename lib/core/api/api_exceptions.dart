@@ -40,16 +40,6 @@ enum AppErrorCode {
 
   apiKeyRejected,
 
-  /// The slot holds no readable RFID tag, so Spoolman — which binds to the tag
-  /// rather than to the (printer, AMS, tray) triple — has nothing to bind to.
-  /// Raised before the request, since the server spends a bare 400 on it.
-  slotTagUnreadable,
-
-  /// The printer is not reachable, so the app cannot read what its slot holds.
-  /// Told apart from [slotTagUnreadable] because the remedy is the opposite:
-  /// nothing is wrong with the filament, the machine simply has to come back.
-  printerOffline,
-
   /// 429 — refusing for now, not forever. bambuddy answers it *before* checking
   /// the password, so a rate-limited user gets it even when they finally type
   /// the right one, and "wait 15 minutes" sends them somewhere else entirely.

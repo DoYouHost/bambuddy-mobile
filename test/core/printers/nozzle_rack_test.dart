@@ -1,6 +1,9 @@
+import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/printers/nozzle_rack.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../helpers.dart';
 
 /// The rack as the printer reports it: physical nozzle ids 16–21 for the six
 /// docks, and 0 for whatever is currently mounted on the carriage.
@@ -219,6 +222,62 @@ void main() {
     test('anything unparseable is passed through', () {
       expect(nozzleDiameterLabel(null), '');
       expect(nozzleDiameterLabel('wide'), 'wide');
+    });
+  });
+
+  /// Against the web itself: every answer comes from `utils/nozzleRack.ts`
+  /// (`tool/gen_nozzle_rack_golden.sh`).
+  group('as the web assigns and offers positions', () {
+    final cases = (readFixture('nozzle_rack_golden.json') as List)
+        .cast<Map<String, dynamic>>();
+
+    List<NozzleRackSlot> rackOf(Map<String, dynamic> c) => [
+      for (final s in (c['rack'] as List).cast<Map<String, dynamic>>())
+        NozzleRackSlot.fromJson(s),
+    ];
+    Map<int, RackGroup> groupsOf(Map<String, dynamic> c) => {
+      for (final MapEntry(:key, :value)
+          in (c['groups'] as Map<String, dynamic>).entries)
+        int.parse(key): RackGroup.fromJson(value as Map<String, dynamic>),
+    };
+
+    test('autoAssignRackPositions', () {
+      for (final (i, c) in cases.indexed) {
+        final pinned = {
+          for (final MapEntry(:key, :value)
+              in (c['pinned'] as Map<String, dynamic>).entries)
+            int.parse(key): value as int,
+        };
+        final want = (c['assigned'] as Map<String, dynamic>?)?.map(
+          (k, v) => MapEntry(int.parse(k), v as int),
+        );
+        expect(
+          autoAssignRackPositions(rackOf(c), groupsOf(c), pinned),
+          want,
+          reason: 'case $i',
+        );
+      }
+    });
+
+    test('which of the six positions fit a group', () {
+      for (final (i, c) in cases.indexed) {
+        final rack = rackByPosition(rackOf(c));
+        for (final MapEntry(:key, :value) in groupsOf(c).entries) {
+          expect(
+            [
+              for (final p in rackPositions)
+                rack[p] != null &&
+                    rackSlotFits(
+                      rack[p]!,
+                      diameter: value.nozzleDiameter,
+                      volumeType: value.volumeType,
+                    ),
+            ],
+            (c['eligible'] as Map<String, dynamic>)['$key'],
+            reason: 'case $i group $key',
+          );
+        }
+      }
     });
   });
 }

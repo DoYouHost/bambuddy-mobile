@@ -10,6 +10,9 @@ import '../ws_providers.dart';
 /// dashboard: live WebSocket (`connected`) or REST polling (any other state —
 /// the fast 5 s fallback). Styled as the design's "Live" pill (green dot);
 /// polling falls back to an amber sync pill.
+/// The pill's height at the default text size; a larger one grows it.
+const _chipHeight = 32.0;
+
 class ConnectionModeChip extends ConsumerWidget {
   const ConnectionModeChip({super.key});
 
@@ -28,9 +31,19 @@ class ConnectionModeChip extends ConsumerWidget {
 
     return Tooltip(
       message: tooltip,
+      // Sized, not squeezed: the toolbar is 56 dp, and a vertical margin plus
+      // padding left the label less height than its line, so it was drawn from
+      // the top and hung below the middle. The caller centres the chip.
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        // No `alignment`: an Align under the toolbar's finite height takes all
+        // 56 dp. The Row centres the content in the minimum height instead.
+        constraints: const BoxConstraints(minHeight: _chipHeight),
+        // The vertical inset only shows once a large text size outgrows the
+        // minimum height; it keeps the label off the border then.
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.md,
+          vertical: DashSpace.xs,
+        ),
         decoration: BoxDecoration(
           color: accent.withValues(alpha: 0.14),
           borderRadius: BorderRadius.circular(20),
@@ -50,7 +63,7 @@ class ConnectionModeChip extends ConsumerWidget {
               )
             else
               Icon(Icons.sync, size: 13, color: ink),
-            const SizedBox(width: 6),
+            const SizedBox(width: DashSpace.sm),
             Text(label, style: t.label.copyWith(color: ink)),
           ],
         ),

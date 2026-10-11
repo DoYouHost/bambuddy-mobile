@@ -70,7 +70,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
     return Scaffold(
       appBar: dashAppBar(context, title: l10n.pipelineRun),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
         child: Column(
           children: [
             Expanded(
@@ -82,9 +82,9 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: DashSpace.sm),
                   Card(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    margin: const EdgeInsets.symmetric(vertical: DashSpace.xs),
                     child: ListTile(
                       leading: const Icon(Icons.account_tree_outlined),
                       title: Text(
@@ -112,7 +112,9 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
                   // Saying so here points at the edit screen instead.
                   if (_pipeline != null && !_pipeline!.isRunnable)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: DashSpace.sm,
+                      ),
                       child: Row(
                         children: [
                           Icon(
@@ -120,7 +122,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
                             size: 18,
                             color: theme.colorScheme.tertiary,
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: DashSpace.sm),
                           Expanded(
                             child: Text(
                               l10n.pipelineNeedsTarget,
@@ -136,14 +138,16 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
                     _copiesCard(l10n, theme, maxCopies),
                   if (_checking)
                     const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
+                      padding: EdgeInsets.symmetric(vertical: DashSpace.lg),
                       child: Center(child: CircularProgressIndicator()),
                     ),
                   if (report != null && !_checking)
                     Card(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      margin: const EdgeInsets.symmetric(
+                        vertical: DashSpace.xs,
+                      ),
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(DashSpace.lg),
                         child: EligibilityView(report: report),
                       ),
                     ),
@@ -153,7 +157,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
             SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
                 child: SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
@@ -182,7 +186,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
 
   Widget _copiesCard(AppLocalizations l10n, ThemeData theme, int maxCopies) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       // The row itself has no tap of its own; the id names the stepper the two
       // buttons belong to, so a press on either reads as one control.
       child: ListTile(

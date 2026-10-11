@@ -236,10 +236,10 @@ abstract class AppLocalizations {
   /// **'No printers match the current filters'**
   String get noPrintersMatchFilters;
 
-  /// Title of the dashboard filter sheet / filter button tooltip
+  /// Title of the dashboard filter and sort sheet / its button tooltip
   ///
   /// In en, this message translates to:
-  /// **'Filters'**
+  /// **'Filters and sort'**
   String get dashboardFilters;
 
   /// No description provided for @filterStatus.
@@ -362,6 +362,12 @@ abstract class AppLocalizations {
   /// **'Optional'**
   String get addPrinterLocationOptional;
 
+  /// No description provided for @printerLocationsManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage locations'**
+  String get printerLocationsManage;
+
   /// No description provided for @addPrinterSubmit.
   ///
   /// In en, this message translates to:
@@ -415,6 +421,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Auto-archive completed prints'**
   String get addPrinterAutoArchive;
+
+  /// No description provided for @editPrinterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit printer'**
+  String get editPrinterTitle;
+
+  /// No description provided for @editPrinterSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get editPrinterSubmit;
+
+  /// No description provided for @editPrinterSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer saved'**
+  String get editPrinterSaved;
+
+  /// No description provided for @editPrinterSerialLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Serial number cannot be changed'**
+  String get editPrinterSerialLocked;
+
+  /// No description provided for @editPrinterAccessCodeKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to keep the current one'**
+  String get editPrinterAccessCodeKeep;
+
+  /// No description provided for @editPrinterMaintenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance mode'**
+  String get editPrinterMaintenance;
+
+  /// No description provided for @editPrinterMaintenanceHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Pauses the connection, queued jobs and notifications for this printer.'**
+  String get editPrinterMaintenanceHelp;
+
+  /// No description provided for @editPrinterWearCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Wear cost per printing hour ({currency})'**
+  String editPrinterWearCost(String currency);
+
+  /// No description provided for @editPrinterWearCostHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to new prints only. Leave empty to turn it off.'**
+  String get editPrinterWearCostHelp;
+
+  /// No description provided for @editPrinterWearCostInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number from 0 to 100000'**
+  String get editPrinterWearCostInvalid;
+
+  /// No description provided for @editPrinterPreflightWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Some connection checks failed. This printer may show as offline. Review the checks below, fix what you can, or save anyway.'**
+  String get editPrinterPreflightWarning;
+
+  /// No description provided for @editPrinterSaveAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Save anyway'**
+  String get editPrinterSaveAnyway;
 
   /// No description provided for @addPrinterScanTitle.
   ///
@@ -763,6 +841,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Drying'**
   String get ctrlDrying;
+
+  /// Drying chip and sheet: the AMS holds a drying timer that is not counting down (server dry_countdown_stalled)
+  ///
+  /// In en, this message translates to:
+  /// **'Not running'**
+  String get ctrlDryNotRunning;
+
+  /// No description provided for @ctrlDryNotRunningHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer holds a drying timer, but it is not counting down, and the AMS reports no drying. The cycle never started or was paused, for example by the power limit or the current print.'**
+  String get ctrlDryNotRunningHint;
 
   /// No description provided for @ctrlDryStart.
   ///
@@ -1273,6 +1363,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Total power draw across all plugs'**
   String get totalPowerTooltip;
+
+  /// Title of the sheet splitting the dashboard power total per printer
+  ///
+  /// In en, this message translates to:
+  /// **'Power draw'**
+  String get powerBreakdownTitle;
+
+  /// Power sheet group for smart plugs with no printer assigned
+  ///
+  /// In en, this message translates to:
+  /// **'Not assigned to a printer'**
+  String get powerUnassignedPlugs;
+
+  /// Screen-reader label of a smart plug state dot: switched on
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get plugStateOn;
+
+  /// Screen-reader label of a smart plug state dot: switched off
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get plugStateOff;
 
   /// No description provided for @queueEmpty.
   ///
@@ -2306,12 +2420,6 @@ abstract class AppLocalizations {
   /// **'Camera preview is not available in demo mode'**
   String get cameraDemoUnavailable;
 
-  /// No description provided for @amsUnit.
-  ///
-  /// In en, this message translates to:
-  /// **'AMS {number}'**
-  String amsUnit(int number);
-
   /// No description provided for @externalSpool.
   ///
   /// In en, this message translates to:
@@ -3254,18 +3362,6 @@ abstract class AppLocalizations {
   /// **'Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.'**
   String get errTooManyAttempts;
 
-  /// No description provided for @errSlotTagUnreadable.
-  ///
-  /// In en, this message translates to:
-  /// **'This slot has no readable RFID tag — Spoolman binds spools by tag, so it cannot take this one. The built-in inventory assigns by slot instead.'**
-  String get errSlotTagUnreadable;
-
-  /// No description provided for @errPrinterOffline.
-  ///
-  /// In en, this message translates to:
-  /// **'The printer is offline, so the app cannot read what the slot holds. Reconnect it and try again.'**
-  String get errPrinterOffline;
-
   /// No description provided for @notifOngoingBody.
   ///
   /// In en, this message translates to:
@@ -4052,6 +4148,42 @@ abstract class AppLocalizations {
   /// **'Clear all'**
   String get inventoryFiltersClear;
 
+  /// No description provided for @inventorySortLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get inventorySortLabel;
+
+  /// No description provided for @inventorySortStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get inventorySortStandard;
+
+  /// No description provided for @inventorySortUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage'**
+  String get inventorySortUsage;
+
+  /// No description provided for @inventorySortAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Date added'**
+  String get inventorySortAdded;
+
+  /// No description provided for @inventorySortPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Price/kg'**
+  String get inventorySortPrice;
+
+  /// No description provided for @inventorySortId.
+  ///
+  /// In en, this message translates to:
+  /// **'ID'**
+  String get inventorySortId;
+
   /// No description provided for @inventorySpoolCount.
   ///
   /// In en, this message translates to:
@@ -4070,29 +4202,11 @@ abstract class AppLocalizations {
   /// **'{weight} consumed'**
   String inventoryTotalConsumed(String weight);
 
-  /// No description provided for @inventoryConsumedSinceReset.
-  ///
-  /// In en, this message translates to:
-  /// **'Consumed since reset: {weight}'**
-  String inventoryConsumedSinceReset(String weight);
-
   /// No description provided for @inventoryOfTotal.
   ///
   /// In en, this message translates to:
   /// **'of {total} g'**
   String inventoryOfTotal(int total);
-
-  /// No description provided for @inventoryLoadedIn.
-  ///
-  /// In en, this message translates to:
-  /// **'Loaded in {slot}'**
-  String inventoryLoadedIn(String slot);
-
-  /// No description provided for @inventoryNotLoaded.
-  ///
-  /// In en, this message translates to:
-  /// **'Not loaded in any AMS slot'**
-  String get inventoryNotLoaded;
 
   /// No description provided for @inventoryLocation.
   ///
@@ -4105,12 +4219,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nozzle temp'**
   String get inventoryNozzleTemp;
-
-  /// No description provided for @inventoryCostPerKg.
-  ///
-  /// In en, this message translates to:
-  /// **'{cost}/kg'**
-  String inventoryCostPerKg(String cost);
 
   /// No description provided for @inventoryNote.
   ///
@@ -4195,6 +4303,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit'**
   String get inventoryEdit;
+
+  /// No description provided for @inventoryDuplicate.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate'**
+  String get inventoryDuplicate;
 
   /// No description provided for @inventoryDelete.
   ///
@@ -4424,6 +4538,24 @@ abstract class AppLocalizations {
   /// **'Category'**
   String get inventoryFieldCategory;
 
+  /// No description provided for @inventoryFieldMaterialNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Material number'**
+  String get inventoryFieldMaterialNumber;
+
+  /// No description provided for @inventoryMaterialNumberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared by every spool of a product. A new spool of a known product gets it filled in.'**
+  String get inventoryMaterialNumberHint;
+
+  /// No description provided for @inventorySpoolmanCannotClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Spoolman can\'t remove this value. Change it to something else instead.'**
+  String get inventorySpoolmanCannotClear;
+
   /// No description provided for @inventoryFieldExtraColors.
   ///
   /// In en, this message translates to:
@@ -4639,6 +4771,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pick a spool'**
   String get inventoryAssignPick;
+
+  /// Slot sheet, Spoolman mode: a slot whose spool has an RFID tag is bound by that tag on the server, so the sheet offers no assign or unassign.
+  ///
+  /// In en, this message translates to:
+  /// **'The spool in this slot has a tag, so it is linked by the tag rather than assigned here.'**
+  String get inventoryTagBound;
 
   /// No description provided for @inventoryReassignTitle.
   ///
@@ -4861,6 +4999,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.'**
   String get inventoryBulkEditUnsupported;
+
+  /// No description provided for @inventoryBulkEditConfirmSuppliers.
+  ///
+  /// In en, this message translates to:
+  /// **'The suppliers are added to every selected spool.'**
+  String get inventoryBulkEditConfirmSuppliers;
 
   /// No description provided for @inventoryApply.
   ///
@@ -5527,6 +5671,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Energy cost'**
   String get statsEnergyCost;
+
+  /// Printer wear charged to prints: hours printed times the printer's wear cost per hour. Stats tile, print log run detail and project tile.
+  ///
+  /// In en, this message translates to:
+  /// **'Wear cost'**
+  String get statsWearCost;
 
   /// No description provided for @statsTotalCost.
   ///
@@ -6596,17 +6746,413 @@ abstract class AppLocalizations {
   /// **'Pick at least one tag'**
   String get fmTagsPickSome;
 
-  /// Drawer entry: MakerWorld import
-  ///
-  /// In en, this message translates to:
-  /// **'MakerWorld'**
-  String get makerworldMenu;
-
   /// No description provided for @makerworldTitle.
   ///
   /// In en, this message translates to:
   /// **'MakerWorld'**
   String get makerworldTitle;
+
+  /// Drawer entry and title of the screen holding the MakerWorld and Manyfold tabs
+  ///
+  /// In en, this message translates to:
+  /// **'Model Sources'**
+  String get modelSourcesTitle;
+
+  /// Tab name: Manyfold, a self-hosted 3D model library (product name)
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold'**
+  String get manyfoldTitle;
+
+  /// Manyfold tab: description
+  ///
+  /// In en, this message translates to:
+  /// **'Browse and search your Manyfold library and import its files to slice and print them.'**
+  String get mfDescription;
+
+  /// Manyfold tab: notConnectedTitle
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold is not connected'**
+  String get mfNotConnectedTitle;
+
+  /// Manyfold tab: notConnectedBody
+  ///
+  /// In en, this message translates to:
+  /// **'Ask an administrator to connect your Manyfold library.'**
+  String get mfNotConnectedBody;
+
+  /// Manyfold tab: connectionTitle
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold connection'**
+  String get mfConnectionTitle;
+
+  /// Manyfold tab: connectionHelp
+  ///
+  /// In en, this message translates to:
+  /// **'In Manyfold, open Settings → API and create an application with the scopes “public” and “read”. Enter its client ID and secret here. Bambuddy sees the models the application\'s owner can see.'**
+  String get mfConnectionHelp;
+
+  /// Manyfold tab: url
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold URL'**
+  String get mfUrl;
+
+  /// Manyfold tab: urlPlaceholder
+  ///
+  /// In en, this message translates to:
+  /// **'http://192.168.1.10:3214'**
+  String get mfUrlPlaceholder;
+
+  /// Manyfold tab: clientId
+  ///
+  /// In en, this message translates to:
+  /// **'Client ID'**
+  String get mfClientId;
+
+  /// Manyfold tab: clientSecret
+  ///
+  /// In en, this message translates to:
+  /// **'Client secret'**
+  String get mfClientSecret;
+
+  /// Manyfold tab: clientSecretStored
+  ///
+  /// In en, this message translates to:
+  /// **'Stored. Leave empty to keep it.'**
+  String get mfClientSecretStored;
+
+  /// Manyfold tab: test
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection'**
+  String get mfTest;
+
+  /// Manyfold connection form: stores the URL, client ID and secret
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get mfSave;
+
+  /// Snackbar after the Manyfold connection was stored
+  ///
+  /// In en, this message translates to:
+  /// **'Settings saved'**
+  String get mfSaved;
+
+  /// Manyfold tab: testOk
+  ///
+  /// In en, this message translates to:
+  /// **'Connected. Models Bambuddy can see: {count}'**
+  String mfTestOk(int count);
+
+  /// Manyfold tab: disconnect
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get mfDisconnect;
+
+  /// Manyfold tab: disconnectTitle
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect Manyfold?'**
+  String get mfDisconnectTitle;
+
+  /// Manyfold tab: disconnectBody
+  ///
+  /// In en, this message translates to:
+  /// **'Bambuddy forgets the Manyfold URL, client ID and secret. Files you imported stay in your library.'**
+  String get mfDisconnectBody;
+
+  /// Manyfold tab: disconnected
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold disconnected'**
+  String get mfDisconnected;
+
+  /// Manyfold tab: editConnection
+  ///
+  /// In en, this message translates to:
+  /// **'Connection'**
+  String get mfEditConnection;
+
+  /// Manyfold tab: searchPlaceholder
+  ///
+  /// In en, this message translates to:
+  /// **'Search models'**
+  String get mfSearchPlaceholder;
+
+  /// Manyfold tab: modelCount
+  ///
+  /// In en, this message translates to:
+  /// **'Models: {count}'**
+  String mfModelCount(int count);
+
+  /// Manyfold tab: noModels
+  ///
+  /// In en, this message translates to:
+  /// **'No models found.'**
+  String get mfNoModels;
+
+  /// Manyfold tab: previous
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get mfPrevious;
+
+  /// Manyfold tab: next
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get mfNext;
+
+  /// Manyfold tab: page
+  ///
+  /// In en, this message translates to:
+  /// **'Page {page}'**
+  String mfPage(int page);
+
+  /// Manyfold tab: openInManyfold
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Manyfold'**
+  String get mfOpenInManyfold;
+
+  /// Manyfold tab: license
+  ///
+  /// In en, this message translates to:
+  /// **'License'**
+  String get mfLicense;
+
+  /// Manyfold tab: files
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get mfFiles;
+
+  /// Manyfold tab: noFiles
+  ///
+  /// In en, this message translates to:
+  /// **'This model has no files.'**
+  String get mfNoFiles;
+
+  /// Manyfold tab: importTo
+  ///
+  /// In en, this message translates to:
+  /// **'Import to'**
+  String get mfImportTo;
+
+  /// Manyfold tab: folderAuto
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold folder'**
+  String get mfFolderAuto;
+
+  /// Manyfold tab: import
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get mfImport;
+
+  /// Manyfold tab: importing
+  ///
+  /// In en, this message translates to:
+  /// **'Importing…'**
+  String get mfImporting;
+
+  /// Manyfold tab: imported
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {filename}'**
+  String mfImported(String filename);
+
+  /// Manyfold tab: alreadyInLibrary
+  ///
+  /// In en, this message translates to:
+  /// **'Already in your library'**
+  String get mfAlreadyInLibrary;
+
+  /// Manyfold tab: inLibrary
+  ///
+  /// In en, this message translates to:
+  /// **'In library'**
+  String get mfInLibrary;
+
+  /// Manyfold tab: showInLibrary
+  ///
+  /// In en, this message translates to:
+  /// **'Show in library'**
+  String get mfShowInLibrary;
+
+  /// Manyfold tab: notImportable
+  ///
+  /// In en, this message translates to:
+  /// **'Bambuddy can\'t slice or print this type'**
+  String get mfNotImportable;
+
+  /// Manyfold tab: selectAll
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get mfSelectAll;
+
+  /// Manyfold tab: selectFile
+  ///
+  /// In en, this message translates to:
+  /// **'Select {name}'**
+  String mfSelectFile(String name);
+
+  /// Manyfold tab: importSelected
+  ///
+  /// In en, this message translates to:
+  /// **'Import selected ({count})'**
+  String mfImportSelected(int count);
+
+  /// Manyfold tab: importAll
+  ///
+  /// In en, this message translates to:
+  /// **'Import all'**
+  String get mfImportAll;
+
+  /// Manyfold tab: importProgress
+  ///
+  /// In en, this message translates to:
+  /// **'Importing {current}/{total}'**
+  String mfImportProgress(int current, int total);
+
+  /// Manyfold tab: bulkDone
+  ///
+  /// In en, this message translates to:
+  /// **'Imported: {imported} · already in library: {existing} · failed: {failed}'**
+  String mfBulkDone(int imported, int existing, int failed);
+
+  /// Manyfold tab: bulkFailed
+  ///
+  /// In en, this message translates to:
+  /// **'Not imported: {names}. {reason}'**
+  String mfBulkFailed(String names, String reason);
+
+  /// Manyfold tab: bulkNothing
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to import: every printable file is already in your library.'**
+  String get mfBulkNothing;
+
+  /// Manyfold tab: selectModel
+  ///
+  /// In en, this message translates to:
+  /// **'Select {name}'**
+  String mfSelectModel(String name);
+
+  /// Manyfold tab: selectPage
+  ///
+  /// In en, this message translates to:
+  /// **'Select page'**
+  String get mfSelectPage;
+
+  /// Manyfold tab: modelsSelected
+  ///
+  /// In en, this message translates to:
+  /// **'Models selected: {count}'**
+  String mfModelsSelected(int count);
+
+  /// Manyfold tab: importModels
+  ///
+  /// In en, this message translates to:
+  /// **'Import their files'**
+  String get mfImportModels;
+
+  /// Manyfold tab: clearSelection
+  ///
+  /// In en, this message translates to:
+  /// **'Clear selection'**
+  String get mfClearSelection;
+
+  /// Manyfold tab: collectProgress
+  ///
+  /// In en, this message translates to:
+  /// **'Reading models {current}/{total}'**
+  String mfCollectProgress(int current, int total);
+
+  /// Manyfold tab: modelsUnreadable
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read: {names}'**
+  String mfModelsUnreadable(String names);
+
+  /// Manyfold tab: error text for server code manyfold_not_configured
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold is not connected.'**
+  String get mfErrNotConfigured;
+
+  /// Manyfold tab: error text for server code manyfold_credentials
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold did not accept the client ID or secret.'**
+  String get mfErrCredentials;
+
+  /// Manyfold tab: error text for server code manyfold_scope
+  ///
+  /// In en, this message translates to:
+  /// **'The Manyfold application needs the “read” scope. Edit it in Manyfold under Settings → API.'**
+  String get mfErrScope;
+
+  /// Manyfold tab: error text for server code manyfold_rate_limited
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold is limiting sign-ins. Try again in a few minutes.'**
+  String get mfErrRateLimited;
+
+  /// Manyfold tab: error text for server code manyfold_unreachable
+  ///
+  /// In en, this message translates to:
+  /// **'Bambuddy can\'t reach Manyfold. Check the URL and that Manyfold is running.'**
+  String get mfErrUnreachable;
+
+  /// Manyfold tab: error text for server code manyfold_forbidden
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold refused access. Check that the application\'s owner can see this model.'**
+  String get mfErrForbidden;
+
+  /// Manyfold tab: error text for server code manyfold_not_found
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold can\'t find this model or file.'**
+  String get mfErrNotFound;
+
+  /// Manyfold tab: error text for server code manyfold_too_large
+  ///
+  /// In en, this message translates to:
+  /// **'The file is larger than 200 MB.'**
+  String get mfErrTooLarge;
+
+  /// Manyfold tab: error text for server code manyfold_not_importable
+  ///
+  /// In en, this message translates to:
+  /// **'Only 3MF, STL and STEP files can be imported.'**
+  String get mfErrNotImportable;
+
+  /// Manyfold tab: error text for server code manyfold_bad_url
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the Manyfold URL starting with http:// or https://.'**
+  String get mfErrBadUrl;
+
+  /// Manyfold tab: error text for server code manyfold_secret_required
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the client secret.'**
+  String get mfErrSecretRequired;
+
+  /// Manyfold tab: error text for server code manyfold_failed
+  ///
+  /// In en, this message translates to:
+  /// **'Manyfold answered with an error.'**
+  String get mfErrFailed;
 
   /// No description provided for @mwIntro.
   ///
@@ -7958,6 +8504,138 @@ abstract class AppLocalizations {
   /// **'Search presets'**
   String get sliceSearchHint;
 
+  /// Slice form switch: narrow the printer profiles to the models online now (web: slice.filters.onlyConnectedModels)
+  ///
+  /// In en, this message translates to:
+  /// **'Only printers that are online'**
+  String get sliceOnlyOnline;
+
+  /// Line under the online-printers switch
+  ///
+  /// In en, this message translates to:
+  /// **'Printer profiles for the models online right now, at every nozzle size.'**
+  String get sliceOnlyOnlineHint;
+
+  /// Slice form switch: narrow the filament profiles to the spools loaded in online printers
+  ///
+  /// In en, this message translates to:
+  /// **'Only spools that are loaded'**
+  String get sliceOnlyLoaded;
+
+  /// Line under the loaded-spools switch
+  ///
+  /// In en, this message translates to:
+  /// **'Filament profiles of the spools in the online printers of the selected model. A profile you pick yourself stays.'**
+  String get sliceOnlyLoadedHint;
+
+  /// Note when a filter is on but no printer is online, so it has no effect
+  ///
+  /// In en, this message translates to:
+  /// **'No printer is online, so every profile is shown.'**
+  String get sliceNoneOnline;
+
+  /// Note when the loaded-spools filter is on but no loaded spool maps to a profile
+  ///
+  /// In en, this message translates to:
+  /// **'No loaded spool has a profile for this printer, so every filament profile is shown.'**
+  String get sliceNoneLoaded;
+
+  /// Loaded-spools sheet when no printer of the selected model is online
+  ///
+  /// In en, this message translates to:
+  /// **'No printer of this model is online.'**
+  String get sliceLoadedNoneOfModel;
+
+  /// Printer in the loaded-spools sheet with no AMS and no external spool
+  ///
+  /// In en, this message translates to:
+  /// **'No AMS and no external spool.'**
+  String get sliceLoadedNothing;
+
+  /// Slot holding a spool the printer cannot identify
+  ///
+  /// In en, this message translates to:
+  /// **'Unidentified spool'**
+  String get sliceSpoolUnidentified;
+
+  /// Empty slot in the loaded-spools sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Empty'**
+  String get sliceSpoolEmpty;
+
+  /// Slice form switch and submit label: slice every plate of a multi-plate 3MF into one output (web: slice.allPlatesToggle)
+  ///
+  /// In en, this message translates to:
+  /// **'Slice all {count} plates'**
+  String sliceAllPlates(int count);
+
+  /// Line under the slice-all-plates switch
+  ///
+  /// In en, this message translates to:
+  /// **'Every plate into one file. The filaments cover every slot of the project.'**
+  String get sliceAllPlatesHint;
+
+  /// Filament sheet tab: the spools loaded in online printers
+  ///
+  /// In en, this message translates to:
+  /// **'Spools'**
+  String get sliceTabSpools;
+
+  /// Filament sheet tab: the profile catalogue
+  ///
+  /// In en, this message translates to:
+  /// **'Profiles'**
+  String get sliceTabProfiles;
+
+  /// Under the filament sheet's title: the material the plate's slot asks for
+  ///
+  /// In en, this message translates to:
+  /// **'The plate needs: {material}'**
+  String sliceNeedsMaterial(String material);
+
+  /// Filter row label in the filament sheet: printer model
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get sliceFilterPrinter;
+
+  /// Filter row label in the filament sheet: material
+  ///
+  /// In en, this message translates to:
+  /// **'Material'**
+  String get sliceFilterMaterial;
+
+  /// Filter row label in the filament sheet: brand
+  ///
+  /// In en, this message translates to:
+  /// **'Brand'**
+  String get sliceFilterBrand;
+
+  /// Count under the filament filters: profiles shown out of those listed
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} of {total, plural, =1{1 profile} other{{total} profiles}}'**
+  String sliceProfilesShown(int shown, int total);
+
+  /// Label before the slots that cannot be picked (empty, unidentified, no profile)
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable:'**
+  String get sliceSpoolsUnavailable;
+
+  /// Line under a filament row filled from a loaded spool; source is printer and slot
+  ///
+  /// In en, this message translates to:
+  /// **'From a spool · {source}'**
+  String sliceSpoolFrom(String source);
+
+  /// In a compact unavailable-slot chip: the spool has no profile for this printer
+  ///
+  /// In en, this message translates to:
+  /// **'no profile'**
+  String get sliceSpoolNoProfileShort;
+
   /// No description provided for @sliceOwnedEmpty.
   ///
   /// In en, this message translates to:
@@ -8786,17 +9464,221 @@ abstract class AppLocalizations {
   /// **'External spool'**
   String get mappingExternalSpool;
 
-  /// No description provided for @mappingAmsSlot.
-  ///
-  /// In en, this message translates to:
-  /// **'AMS {unit} · slot {slot}'**
-  String mappingAmsSlot(String unit, String slot);
-
   /// No description provided for @mappingSaved.
   ///
   /// In en, this message translates to:
   /// **'Filament mapping saved'**
   String get mappingSaved;
+
+  /// Filament mapping sheet header: every filament has a slot of its type and color.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get mappingStatusReady;
+
+  /// Filament mapping sheet header: a filament got a slot of its type but another color.
+  ///
+  /// In en, this message translates to:
+  /// **'Color mismatch'**
+  String get mappingStatusColorMismatch;
+
+  /// Filament mapping sheet header: a filament found no slot of its type.
+  ///
+  /// In en, this message translates to:
+  /// **'Type not found'**
+  String get mappingStatusTypeNotFound;
+
+  /// Hint under the filament mapping sheet title.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a filament to change its slot'**
+  String get mappingTapToChange;
+
+  /// Slot picker: the slot holds exactly the color the file asks for.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact color match'**
+  String get mappingExactColor;
+
+  /// Filament row warning. {required} and {loaded} are color names.
+  ///
+  /// In en, this message translates to:
+  /// **'Same type, different color: needs {required}, slot has {loaded}'**
+  String mappingSameTypeOtherColor(String required, String loaded);
+
+  /// Filament row warning: no loaded slot holds this filament type.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament type not loaded'**
+  String get mappingTypeNotLoaded;
+
+  /// Filament row: the user chose this slot rather than the automatic match. Agrees with "slot".
+  ///
+  /// In en, this message translates to:
+  /// **'Picked by hand'**
+  String get mappingManual;
+
+  /// Long-press hint on a filament color swatch. {name} is the filament, {color} its color name.
+  ///
+  /// In en, this message translates to:
+  /// **'Required: {name}, {color}'**
+  String mappingRequired(String name, String color);
+
+  /// Filament mapping toggle: take every slot from the mapping the slicer sent with this archived print.
+  ///
+  /// In en, this message translates to:
+  /// **'Slicer mapping'**
+  String get mappingUseSlicer;
+
+  /// Long-press hint on the slicer mapping toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick every slot from the AMS mapping the slicer saved with this print, instead of matching by type and color.'**
+  String get mappingUseSlicerHint;
+
+  /// Filament mapping button: ask the printer to report its AMS again.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-read'**
+  String get mappingReRead;
+
+  /// Filament mapping warning on a printer with a Filament Track Switch. {inlet} is the inlet letter, A or B.
+  ///
+  /// In en, this message translates to:
+  /// **'All filaments for this print are on Filament Track Switch IN-{inlet}. Switching between filaments on the same inlet is slower — move one to an AMS on the other inlet to speed it up.'**
+  String mappingFtsSameInlet(String inlet);
+
+  /// Title of the sheet that picks which nozzle-rack position (H2C tool changer) prints one filament.
+  ///
+  /// In en, this message translates to:
+  /// **'Rack position'**
+  String get mappingRackPosition;
+
+  /// Tooltip on the rack-position picker in a filament mapping row, and the explanation at the top of its sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Which nozzle on the rack prints this filament. Positions are numbered as on the printer.'**
+  String get mappingRackPositionHint;
+
+  /// Top of the rack-position sheet. {nozzle} is a nozzle like "0.4 High flow".
+  ///
+  /// In en, this message translates to:
+  /// **'This filament needs a {nozzle} nozzle.'**
+  String mappingRackNeeds(String nozzle);
+
+  /// Why a rack position cannot be picked: no nozzle is docked there.
+  ///
+  /// In en, this message translates to:
+  /// **'This rack position is empty'**
+  String get mappingRackEmptyPosition;
+
+  /// Why a rack position cannot be picked. {has} and {needs} are nozzles like "0.2 Standard" and "0.4 High flow".
+  ///
+  /// In en, this message translates to:
+  /// **'Holds a {has} nozzle; this filament needs {needs}'**
+  String mappingRackWrongNozzle(String has, String needs);
+
+  /// Short name of a nozzle-rack position as the printer numbers it, 1–6 (R1…R6).
+  ///
+  /// In en, this message translates to:
+  /// **'R{position}'**
+  String mappingRackSlot(int position);
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get colorFamilyRed;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get colorFamilyOrange;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow'**
+  String get colorFamilyYellow;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get colorFamilyGreen;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyan'**
+  String get colorFamilyCyan;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get colorFamilyBlue;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get colorFamilyPurple;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get colorFamilyPink;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Brown'**
+  String get colorFamilyBrown;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'White'**
+  String get colorFamilyWhite;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Light gray'**
+  String get colorFamilyLightGray;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Gray'**
+  String get colorFamilyGray;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark gray'**
+  String get colorFamilyDarkGray;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Black'**
+  String get colorFamilyBlack;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get colorFamilyClear;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get colorFamilyUnknown;
 
   /// No description provided for @plateClearTitle.
   ///
@@ -9572,6 +10454,30 @@ abstract class AppLocalizations {
   /// **'Require manual start'**
   String get queueEditRequireManualStart;
 
+  /// Chip on a queue row whose job waits for a manual start (web: queue.badges.staged)
+  ///
+  /// In en, this message translates to:
+  /// **'Staged'**
+  String get queueBadgeStaged;
+
+  /// Chip on a queue row whose job waits for a reviewer to start it, shown instead of Staged to a user who may not start jobs (#1620)
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for review'**
+  String get queueBadgeAwaitingReview;
+
+  /// Snackbar when the server refuses to start a job, or to clear its manual start, because the user is held for review
+  ///
+  /// In en, this message translates to:
+  /// **'This job waits for review: someone who manages the queue has to start it.'**
+  String get queueAwaitingReviewRefused;
+
+  /// Shown in the print form instead of the Require manual start switch to a user whose jobs always wait for review
+  ///
+  /// In en, this message translates to:
+  /// **'Your print waits for review: it starts once someone who manages the queue starts it.'**
+  String get queueEditAwaitingReviewNote;
+
   /// No description provided for @queueEditRequirePrevious.
   ///
   /// In en, this message translates to:
@@ -9643,54 +10549,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Force color match'**
   String get queueEditForceColorMatch;
-
-  /// No description provided for @queueEditNozzleRack.
-  ///
-  /// In en, this message translates to:
-  /// **'Nozzle rack'**
-  String get queueEditNozzleRack;
-
-  /// No description provided for @queueEditNozzleRackDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose which rack nozzle each filament prints from. Left automatic, a fitting position is picked when the print starts.'**
-  String get queueEditNozzleRackDesc;
-
-  /// No description provided for @queueEditRackGroupLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Filament {slots} · {nozzle}'**
-  String queueEditRackGroupLabel(String slots, String nozzle);
-
-  /// No description provided for @queueEditRackAuto.
-  ///
-  /// In en, this message translates to:
-  /// **'Automatic'**
-  String get queueEditRackAuto;
-
-  /// No description provided for @queueEditRackPosition.
-  ///
-  /// In en, this message translates to:
-  /// **'Position {position} · {nozzle}'**
-  String queueEditRackPosition(int position, String nozzle);
-
-  /// No description provided for @queueEditRackPositionTaken.
-  ///
-  /// In en, this message translates to:
-  /// **'Position {position} · {nozzle} — already chosen'**
-  String queueEditRackPositionTaken(int position, String nozzle);
-
-  /// No description provided for @queueEditRackPositionUnfit.
-  ///
-  /// In en, this message translates to:
-  /// **'Position {position} · {nozzle} — does not fit'**
-  String queueEditRackPositionUnfit(int position, String nozzle);
-
-  /// No description provided for @queueEditRackEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'empty'**
-  String get queueEditRackEmpty;
 
   /// No description provided for @queueEditRackPickStale.
   ///
@@ -10421,7 +11279,7 @@ abstract class AppLocalizations {
   /// No description provided for @serverSettingsQueueSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Scheduling, preheat, and holding a bed warm between prints'**
+  /// **'Scheduling, preheat, holding a bed warm between prints, and asking how prints came out'**
   String get serverSettingsQueueSubtitle;
 
   /// No description provided for @serverSettingsMaintenanceSubtitle.
@@ -10933,6 +11791,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The one settings value a key may write — for a dynamic tariff.'**
   String get apiKeyScopeEnergyHint;
+
+  /// No description provided for @apiKeyScopeNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Send notifications'**
+  String get apiKeyScopeNotifications;
+
+  /// No description provided for @apiKeyScopeNotificationsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Lets another app post a message to the notification channels that accept messages from connected apps. The key\'s owner also needs permission to manage notifications.'**
+  String get apiKeyScopeNotificationsHint;
 
   /// No description provided for @printLogTitle.
   ///
@@ -11881,6 +12751,1560 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'One more spool to add'**
   String get inventoryQuantityMore;
+
+  /// A print the user confirmed came out well (badge on an archive card, verdict line in the detail sheet)
+  ///
+  /// In en, this message translates to:
+  /// **'Good part'**
+  String get outcomeGoodPart;
+
+  /// A print that finished on the printer but the user marked as scrap
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get outcomeRejected;
+
+  /// A print that asked for an outcome verdict nobody has given yet; also the archive filter that shows only those
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting verdict'**
+  String get outcomeAwaiting;
+
+  /// Detail sheet line for a completed print that has no outcome verdict and was never asked for one
+  ///
+  /// In en, this message translates to:
+  /// **'No verdict recorded'**
+  String get outcomeNotRecorded;
+
+  /// How an outcome verdict was recorded: in the app (this one or the web UI)
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded in the app.'**
+  String get outcomeSourceDialog;
+
+  /// How an outcome verdict was recorded: a one-tap link from a push notification (Telegram, ntfy…)
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded with a one-tap link.'**
+  String get outcomeSourceLink;
+
+  /// How an outcome verdict was recorded: automatically counted as good when the build plate was marked clear
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded when the plate was cleared.'**
+  String get outcomeSourcePlateClear;
+
+  /// How an outcome verdict was recorded: from the printer card in the web UI
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded from the printer card.'**
+  String get outcomeSourcePrinterCard;
+
+  /// How an outcome verdict was recorded: by a script or integration through the server API
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded through the API.'**
+  String get outcomeSourceApi;
+
+  /// How an outcome verdict was recorded: with a reaction to the chat message
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded with a reaction in chat.'**
+  String get outcomeSourceReaction;
+
+  /// Heading of the sheet that asks for a finished print's outcome verdict
+  ///
+  /// In en, this message translates to:
+  /// **'How did your print come out?'**
+  String get outcomeTitle;
+
+  /// Button: record the print as a good part
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get outcomeGood;
+
+  /// Button: record the print as scrap (then asks for an optional reason)
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get outcomeReject;
+
+  /// Button: close the outcome sheet without answering; the print keeps its 'awaiting verdict' badge
+  ///
+  /// In en, this message translates to:
+  /// **'Ask me later'**
+  String get outcomeLater;
+
+  /// Button: remove the verdict a print already has, so it has none again
+  ///
+  /// In en, this message translates to:
+  /// **'Clear verdict'**
+  String get outcomeClear;
+
+  /// Label of the dropdown for why a print was rejected
+  ///
+  /// In en, this message translates to:
+  /// **'Reject reason (optional)'**
+  String get outcomeRejectReason;
+
+  /// Dropdown entry: reject without naming a reason
+  ///
+  /// In en, this message translates to:
+  /// **'No reason'**
+  String get outcomeNoReason;
+
+  /// Button: save the reject with the chosen reason
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get outcomeSaveReject;
+
+  /// Button: save the reject and open the print form to print the same file again
+  ///
+  /// In en, this message translates to:
+  /// **'Print again'**
+  String get outcomeRejectAndReprint;
+
+  /// Confirmation after a print was recorded as a good part
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as good part'**
+  String get outcomeSavedGood;
+
+  /// Confirmation after a print was recorded as rejected
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as rejected'**
+  String get outcomeSavedReject;
+
+  /// Confirmation after a print's verdict was removed
+  ///
+  /// In en, this message translates to:
+  /// **'Verdict removed'**
+  String get outcomeCleared;
+
+  /// Shown when the server answered but did not store the verdict (a server older than the feature)
+  ///
+  /// In en, this message translates to:
+  /// **'The server did not store the verdict. Update bambuddy to record print outcomes.'**
+  String get outcomeUnsupported;
+
+  /// Print form switch: ask how the print came out once it completes
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for outcome'**
+  String get queueOptConfirmOutcome;
+
+  /// Explains the ask-for-outcome switch in the print form
+  ///
+  /// In en, this message translates to:
+  /// **'Ask whether the print came out well after it completes'**
+  String get queueOptConfirmOutcomeDesc;
+
+  /// Section header on the server's queue settings screen: asking how prints came out (#1898)
+  ///
+  /// In en, this message translates to:
+  /// **'Print outcome'**
+  String get queueSettingsOutcomeHeader;
+
+  /// Server setting default_confirm_outcome: whether new jobs ask for their outcome by default
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for outcome on new prints'**
+  String get queueSettingsOutcomeDefaultTitle;
+
+  /// Explains default_confirm_outcome: where the print form's switch starts, and whether jobs queued without a form (bulk add, pipelines, webhook, virtual printer) ask
+  ///
+  /// In en, this message translates to:
+  /// **'New jobs ask for their outcome by default — in the print form, where each job can still change it, and where there is no form, such as adding several files to the queue at once or a pipeline run.'**
+  String get queueSettingsOutcomeDefaultDesc;
+
+  /// Server setting confirm_outcome_external_prints: also ask about prints bambuddy did not start
+  ///
+  /// In en, this message translates to:
+  /// **'Also ask about prints started elsewhere'**
+  String get queueSettingsOutcomeExternalTitle;
+
+  /// Explains confirm_outcome_external_prints
+  ///
+  /// In en, this message translates to:
+  /// **'A print started on the printer, in Bambu Studio or in Bambu Handy that Bambuddy archives gets the outcome question too.'**
+  String get queueSettingsOutcomeExternalDesc;
+
+  /// Server setting confirm_default_good_on_plate_clear: an unanswered outcome counts as good once the plate is marked clear
+  ///
+  /// In en, this message translates to:
+  /// **'Count an unanswered print as good once the plate is confirmed clear'**
+  String get queueSettingsOutcomePlateClearTitle;
+
+  /// Explains confirm_default_good_on_plate_clear
+  ///
+  /// In en, this message translates to:
+  /// **'When someone confirms the plate is clear — or, with that confirmation off, when the next queued job is sent to this printer — a completed print still awaiting its verdict is recorded as a good part. A notification link opened after that only shows what was recorded.'**
+  String get queueSettingsOutcomePlateClearDesc;
+
+  /// Notification settings switch: the question asked when a print that opted in completes
+  ///
+  /// In en, this message translates to:
+  /// **'Outcome question'**
+  String get notifEvtOutcome;
+
+  /// Explains the outcome-question notification switch
+  ///
+  /// In en, this message translates to:
+  /// **'When a print that asks for its outcome completes — answer Good or Reject from the notification'**
+  String get notifEvtOutcomeDesc;
+
+  /// Title of the notification asking how a finished print came out; {name} is the print's name
+  ///
+  /// In en, this message translates to:
+  /// **'How did {name} come out?'**
+  String outcomeNotifTitle(String name);
+
+  /// Body of the outcome notification: what tapping it and its two buttons do
+  ///
+  /// In en, this message translates to:
+  /// **'Answer here, or tap to see the finish photo first.'**
+  String get outcomeNotifBody;
+
+  /// Replaces the ask-for-outcome description on a reprint of an archive that already asks — the server keeps asking for every reprint of it, so the switch cannot turn it off
+  ///
+  /// In en, this message translates to:
+  /// **'This print already asks for its outcome, and so does every reprint of it'**
+  String get queueOptConfirmOutcomeSticky;
+
+  /// Name of the always-on farm view for a phone or tablet on a stand; also the dashboard button's tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Wall mode'**
+  String get wallModeTitle;
+
+  /// Tooltip of the button that leaves wall mode
+  ///
+  /// In en, this message translates to:
+  /// **'Exit wall mode'**
+  String get wallModeExit;
+
+  /// Switch: hold the screen on while wall mode is open
+  ///
+  /// In en, this message translates to:
+  /// **'Keep screen awake'**
+  String get wallKeepAwakeTitle;
+
+  /// Explains the keep-screen-awake switch in wall mode
+  ///
+  /// In en, this message translates to:
+  /// **'The screen stays on while wall mode is open. Off lets the device\'s own screen timeout apply.'**
+  String get wallKeepAwakeDesc;
+
+  /// Header of the wall's side panel while it shows the printer farm's errors and queue
+  ///
+  /// In en, this message translates to:
+  /// **'Farm'**
+  String get wallPanelFarm;
+
+  /// Header of the wall's side panel while it shows the wall settings; also the settings button's tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get wallPanelSettings;
+
+  /// Tooltip of the button that expands the wall's side panel from its rail
+  ///
+  /// In en, this message translates to:
+  /// **'Expand panel'**
+  String get wallPanelExpand;
+
+  /// Tooltip of the button that collapses the wall's side panel to a rail
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse panel'**
+  String get wallPanelCollapse;
+
+  /// Section header in the wall panel listing active printer faults across the farm
+  ///
+  /// In en, this message translates to:
+  /// **'Errors'**
+  String get wallErrorsTitle;
+
+  /// Shown in the wall panel's errors section when no printer has an active fault
+  ///
+  /// In en, this message translates to:
+  /// **'No active errors'**
+  String get wallNoFaults;
+
+  /// Screen-reader label for the queue count on the wall's collapsed rail
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 in the queue} other{{count} in the queue}}'**
+  String wallQueueCount(int count);
+
+  /// Marker on a wall tile whose live camera stream failed; the tile shows a snapshot refreshed every few seconds instead
+  ///
+  /// In en, this message translates to:
+  /// **'Live paused'**
+  String get wallLivePaused;
+
+  /// Switch in the wall settings: stream each printer's camera behind its tile
+  ///
+  /// In en, this message translates to:
+  /// **'Live camera'**
+  String get wallLiveCameraTitle;
+
+  /// Explains the wall's live camera switch
+  ///
+  /// In en, this message translates to:
+  /// **'Off shows each printer\'s status only and opens no camera stream.'**
+  String get wallLiveCameraDesc;
+
+  /// Header over the list of printers the user can show or hide on the wall
+  ///
+  /// In en, this message translates to:
+  /// **'Printers on the wall'**
+  String get wallPrintersTitle;
+
+  /// Shown in place of the wall's tiles when the server has printers but all are hidden on this device
+  ///
+  /// In en, this message translates to:
+  /// **'Every printer is hidden from this wall — show them in the settings.'**
+  String get wallAllHidden;
+
+  /// No description provided for @inventorySuppliersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suppliers'**
+  String get inventorySuppliersTitle;
+
+  /// No description provided for @inventorySuppliersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can\'t be deleted.'**
+  String get inventorySuppliersHint;
+
+  /// No description provided for @inventorySuppliersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No suppliers yet'**
+  String get inventorySuppliersEmpty;
+
+  /// No description provided for @inventorySuppliersLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the suppliers'**
+  String get inventorySuppliersLoadFailed;
+
+  /// Button next to the supplier list's title that opens an empty supplier form.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get inventorySupplierAdd;
+
+  /// No description provided for @inventorySupplierNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New supplier'**
+  String get inventorySupplierNew;
+
+  /// No description provided for @inventorySupplierEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit supplier'**
+  String get inventorySupplierEdit;
+
+  /// No description provided for @inventorySupplierFieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get inventorySupplierFieldName;
+
+  /// No description provided for @inventorySupplierFieldWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get inventorySupplierFieldWebsite;
+
+  /// The user's own customer number at this supplier, not the supplier's id.
+  ///
+  /// In en, this message translates to:
+  /// **'Your customer number'**
+  String get inventorySupplierFieldCustomerNumber;
+
+  /// No description provided for @inventorySupplierCustomerNumberValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer no. {number}'**
+  String inventorySupplierCustomerNumberValue(String number);
+
+  /// The server joins supplier names with ';' in its CSV export and refuses a name containing one.
+  ///
+  /// In en, this message translates to:
+  /// **'A name can\'t contain a semicolon'**
+  String get inventorySupplierNameSeparator;
+
+  /// No description provided for @inventorySupplierNameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'A supplier with this name already exists'**
+  String get inventorySupplierNameTaken;
+
+  /// No description provided for @inventorySupplierSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier saved'**
+  String get inventorySupplierSaved;
+
+  /// No description provided for @inventorySupplierDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier deleted'**
+  String get inventorySupplierDeleted;
+
+  /// No description provided for @inventorySupplierDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}?'**
+  String inventorySupplierDeleteTitle(String name);
+
+  /// No description provided for @inventorySupplierDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s removed from the list of suppliers.'**
+  String get inventorySupplierDeleteBody;
+
+  /// No description provided for @inventorySupplierInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{Assigned to 1 spool — remove it from that spool first} other{Assigned to {count} spools — remove it from those spools first}}'**
+  String inventorySupplierInUse(int count);
+
+  /// The server refused a delete because a spool was given this supplier after the list was loaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Still assigned to a spool — remove it there first'**
+  String get inventorySupplierInUseUnknown;
+
+  /// Marks the one supplier a spool was actually bought from; the others are alternative sources. Agrees with 'spool'.
+  ///
+  /// In en, this message translates to:
+  /// **'Bought here'**
+  String get inventorySupplierBoughtHere;
+
+  /// The supplier's own article number for the product.
+  ///
+  /// In en, this message translates to:
+  /// **'Art. no. {number}'**
+  String inventorySupplierArticleValue(String number);
+
+  /// A price per kg quoted at this supplier, for comparing sources. Not what the spool cost.
+  ///
+  /// In en, this message translates to:
+  /// **'quoted {price}/kg'**
+  String inventorySupplierQuotedPrice(String price);
+
+  /// No description provided for @inventorySupplierLinksHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Where this product can be bought. Mark the one you bought this spool from.'**
+  String get inventorySupplierLinksHint;
+
+  /// No description provided for @inventoryBulkSupplierLinksHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to every selected spool; the suppliers a spool already has stay. “Bought here” replaces its current purchase source.'**
+  String get inventoryBulkSupplierLinksHint;
+
+  /// Opens a picker to assign a supplier to the spool being edited.
+  ///
+  /// In en, this message translates to:
+  /// **'Add supplier'**
+  String get inventorySupplierAssign;
+
+  /// No description provided for @inventorySupplierUnassign.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from this spool'**
+  String get inventorySupplierUnassign;
+
+  /// The supplier's own article number for the product.
+  ///
+  /// In en, this message translates to:
+  /// **'Article no.'**
+  String get inventorySupplierFieldArticle;
+
+  /// Price per kg at this supplier, for comparing sources; the spool's own cost per kg stays what prints are charged at.
+  ///
+  /// In en, this message translates to:
+  /// **'Quoted price/kg'**
+  String get inventorySupplierFieldQuotedPrice;
+
+  /// No description provided for @inventorySupplierNoneLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Every supplier is already on this spool'**
+  String get inventorySupplierNoneLeft;
+
+  /// No description provided for @statsBySupplier.
+  ///
+  /// In en, this message translates to:
+  /// **'By supplier'**
+  String get statsBySupplier;
+
+  /// No description provided for @statsBySupplierHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament used from spools bought at each supplier, and what it cost. Stock counts active spools and ignores the date range.'**
+  String get statsBySupplierHint;
+
+  /// No description provided for @statsBySupplierFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the supplier figures'**
+  String get statsBySupplierFailed;
+
+  /// No description provided for @statsByMaterialNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'By material number'**
+  String get statsByMaterialNumber;
+
+  /// No description provided for @statsByMaterialNumberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament used from spools sharing each material number, and what it cost. Stock counts active spools and ignores the date range.'**
+  String get statsByMaterialNumberHint;
+
+  /// No description provided for @statsByMaterialNumberFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the material number figures'**
+  String get statsByMaterialNumberFailed;
+
+  /// Line under one supplier's bar. {spools} is already a counted phrase such as '2 spools'; {remaining} is a weight with its unit.
+  ///
+  /// In en, this message translates to:
+  /// **'{spools} · {remaining} in stock · cost {cost}'**
+  String statsSupplierDetail(String spools, String remaining, String cost);
+
+  /// No description provided for @inventoryDetailSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot'**
+  String get inventoryDetailSlot;
+
+  /// Value of the detail sheet's Slot row when the spool is in no AMS slot or external holder. Agrees with 'spool'.
+  ///
+  /// In en, this message translates to:
+  /// **'Not loaded'**
+  String get inventoryDetailNotLoaded;
+
+  /// No description provided for @inventoryDetailConsumedSinceReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Consumed since reset'**
+  String get inventoryDetailConsumedSinceReset;
+
+  /// Link under a supplier to its archived spools; sits next to the active count ('2 spools'), so the noun is left out. Agrees with 'spool'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} archived'**
+  String inventorySupplierArchivedCount(int count);
+
+  /// A moment ago, in a list of past events.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get timeJustNow;
+
+  /// Within a minute from now.
+  ///
+  /// In en, this message translates to:
+  /// **'Now'**
+  String get timeNow;
+
+  /// Short relative time in the past.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min ago'**
+  String timeMinutesAgo(int count);
+
+  /// Short relative time in the future.
+  ///
+  /// In en, this message translates to:
+  /// **'in {count} min'**
+  String timeInMinutes(int count);
+
+  /// Short relative time in the past.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} h ago'**
+  String timeHoursAgo(int count);
+
+  /// Short relative time in the future.
+  ///
+  /// In en, this message translates to:
+  /// **'in {count} h'**
+  String timeInHours(int count);
+
+  /// Short relative time in the past.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day ago} other{{count} days ago}}'**
+  String timeDaysAgo(int count);
+
+  /// Short relative time in the future.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{in 1 day} other{in {count} days}}'**
+  String timeInDays(int count);
+
+  /// Tab and heading of finished, failed, skipped and cancelled queue items.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get queueHistory;
+
+  /// How many items a list holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item} other{{count} items}}'**
+  String queueItemCount(int count);
+
+  /// Empty queue history.
+  ///
+  /// In en, this message translates to:
+  /// **'No history yet. Completed, cancelled and failed prints will appear here.'**
+  String get queueHistoryEmpty;
+
+  /// Button under the queue history that shows the next page of items.
+  ///
+  /// In en, this message translates to:
+  /// **'Show more'**
+  String get queueHistoryShowMore;
+
+  /// Under the queue history: how many items are on screen out of all of them.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {shown} of {total}'**
+  String queueHistoryShowing(int shown, int total);
+
+  /// Menu that orders the queue history.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get queueHistorySort;
+
+  /// Order the queue history by when each item finished.
+  ///
+  /// In en, this message translates to:
+  /// **'By date'**
+  String get queueHistorySortDate;
+
+  /// Order the queue history by file name.
+  ///
+  /// In en, this message translates to:
+  /// **'By name'**
+  String get queueHistorySortName;
+
+  /// Order the queue history by printer name.
+  ///
+  /// In en, this message translates to:
+  /// **'By printer'**
+  String get queueHistorySortPrinter;
+
+  /// Queue history order: newest first.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest first'**
+  String get queueHistoryNewestFirst;
+
+  /// Queue history order: oldest first.
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest first'**
+  String get queueHistoryOldestFirst;
+
+  /// Button that removes every item from the queue history.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear history'**
+  String get queueHistoryClear;
+
+  /// Title of the confirmation before clearing the queue history.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear history'**
+  String get queueHistoryClearTitle;
+
+  /// Confirmation before clearing the queue history.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Remove 1 item from the history?} other{Remove all {count} items from the history?}}'**
+  String queueHistoryClearMessage(int count);
+
+  /// After clearing the queue history.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Cleared 1 history item.} other{Cleared {count} history items.}}'**
+  String queueHistoryCleared(int count);
+
+  /// After clearing the queue history: items the server kept because a batch order can still re-queue its plate from them.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept {kept} that batch orders still need.'**
+  String queueHistoryKeptForOrders(int kept);
+
+  /// Clearing the queue history failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not clear the history.'**
+  String get queueHistoryClearFailed;
+
+  /// Why clearing the queue history is unavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to clear all history'**
+  String get queueHistoryNoClear;
+
+  /// Button on a queue history item that queues the same file again.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-queue'**
+  String get queueHistoryRequeue;
+
+  /// Why re-queueing is unavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to re-queue items'**
+  String get queueHistoryNoRequeue;
+
+  /// Button on a queue history item that removes it.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get queueHistoryRemove;
+
+  /// Why removing a queue history item is unavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to remove this queue item'**
+  String get queueHistoryNoRemove;
+
+  /// Title of the confirmation before removing one queue history item.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from history'**
+  String get queueHistoryRemoveTitle;
+
+  /// Confirmation before removing one queue history item. {name} is the file name.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove “{name}” from the queue history?'**
+  String queueHistoryRemoveMessage(String name);
+
+  /// Who put a queue item in the queue.
+  ///
+  /// In en, this message translates to:
+  /// **'Added by {name}'**
+  String queueHistoryAddedBy(String name);
+
+  /// Name of a batch of queue items that has none of its own.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch'**
+  String get queueHistoryBatch;
+
+  /// After removing one queue history item.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue item removed'**
+  String get queueHistoryRemoved;
+
+  /// After removing a queue history item the server kept, cancelled, because its batch order can only re-queue the plate from it.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled instead of removed: this is the only run its batch order can re-queue this plate from'**
+  String get queueHistoryKeptForOrder;
+
+  /// Shown on the print-job form, and in place of the server refusal on create, edit or start, when the server enforces cost-center billing, which the app does not support yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.'**
+  String get queueBillingUseWeb;
+
+  /// No description provided for @labelPrinterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Label printer'**
+  String get labelPrinterTitle;
+
+  /// No description provided for @labelPrinterEntrySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print spool labels on a Brother QL print server on your network'**
+  String get labelPrinterEntrySubtitle;
+
+  /// No description provided for @labelPrinterIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'A separate print server for Brother QL label printers. Spool labels go straight to it instead of the system print dialog.'**
+  String get labelPrinterIntro;
+
+  /// No description provided for @labelPrinterNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'No label printer chosen'**
+  String get labelPrinterNotSet;
+
+  /// No description provided for @labelPrinterReady.
+  ///
+  /// In en, this message translates to:
+  /// **'{model} · {label} labels'**
+  String labelPrinterReady(String model, String label);
+
+  /// No description provided for @labelPrinterPrinterOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Server answers, but the printer is not connected'**
+  String get labelPrinterPrinterOff;
+
+  /// No description provided for @labelPrinterOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Not answering'**
+  String get labelPrinterOffline;
+
+  /// No description provided for @labelPrinterWrongStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Loaded with {label} labels; spool labels need 62 × 29 mm'**
+  String labelPrinterWrongStock(String label);
+
+  /// No description provided for @labelPrinterSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search network'**
+  String get labelPrinterSearch;
+
+  /// No description provided for @labelPrinterSearching.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching…'**
+  String get labelPrinterSearching;
+
+  /// No description provided for @labelPrinterNoneFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found. Check that the phone is on the same Wi-Fi, or enter the address below.'**
+  String get labelPrinterNoneFound;
+
+  /// No description provided for @labelPrinterDiscoveryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Network search is not available on this device'**
+  String get labelPrinterDiscoveryFailed;
+
+  /// No description provided for @labelPrinterAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Server address'**
+  String get labelPrinterAddress;
+
+  /// No description provided for @labelPrinterSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get labelPrinterSave;
+
+  /// No description provided for @labelPrinterRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get labelPrinterRemove;
+
+  /// No description provided for @labelPrinterNotAServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing at this address answers as a label print server'**
+  String get labelPrinterNotAServer;
+
+  /// No description provided for @labelPrinterVlanNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovery does not cross VLANs or a guest Wi-Fi; enter the address by hand there.'**
+  String get labelPrinterVlanNote;
+
+  /// No description provided for @labelPrinterPrintOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Print on the label printer'**
+  String get labelPrinterPrintOn;
+
+  /// No description provided for @labelPrinterSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to the label printer'**
+  String get labelPrinterSent;
+
+  /// No description provided for @labelPrinterFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The label printer did not accept the job'**
+  String get labelPrinterFailed;
+
+  /// No description provided for @labelPrinterUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'The label printer does not answer'**
+  String get labelPrinterUnreachable;
+
+  /// No description provided for @labelPrinterRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The label printer refused the job: {detail}'**
+  String labelPrinterRefused(String detail);
+
+  /// No description provided for @labelPrinterSetUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up a label printer'**
+  String get labelPrinterSetUp;
+
+  /// No description provided for @labelPrinterSetUpHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print these labels on a Brother QL print server in your network'**
+  String get labelPrinterSetUpHint;
+
+  /// No description provided for @labelOptionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print options'**
+  String get labelOptionsTitle;
+
+  /// No description provided for @labelFieldsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print on the label'**
+  String get labelFieldsTitle;
+
+  /// No description provided for @labelFieldsReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to default'**
+  String get labelFieldsReset;
+
+  /// No description provided for @labelFieldBrand.
+  ///
+  /// In en, this message translates to:
+  /// **'Brand'**
+  String get labelFieldBrand;
+
+  /// No description provided for @labelFieldMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Material and subtype'**
+  String get labelFieldMaterial;
+
+  /// No description provided for @labelFieldHex.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour code'**
+  String get labelFieldHex;
+
+  /// No description provided for @labelFieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour or filament name'**
+  String get labelFieldName;
+
+  /// No description provided for @labelFieldLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage location'**
+  String get labelFieldLocation;
+
+  /// No description provided for @labelFieldMaterialNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Material number'**
+  String get labelFieldMaterialNumber;
+
+  /// No description provided for @labelFieldTemps.
+  ///
+  /// In en, this message translates to:
+  /// **'Nozzle temperature'**
+  String get labelFieldTemps;
+
+  /// No description provided for @labelFieldWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Net weight'**
+  String get labelFieldWeight;
+
+  /// No description provided for @labelFieldNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get labelFieldNote;
+
+  /// No description provided for @labelFieldAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Date added'**
+  String get labelFieldAdded;
+
+  /// No description provided for @labelFieldQr.
+  ///
+  /// In en, this message translates to:
+  /// **'QR code'**
+  String get labelFieldQr;
+
+  /// No description provided for @labelFieldSpoolId.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool ID'**
+  String get labelFieldSpoolId;
+
+  /// No description provided for @labelFormatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Output'**
+  String get labelFormatTitle;
+
+  /// No description provided for @labelFormatPngHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Match your printer\'s resolution. Several labels come as a ZIP.'**
+  String get labelFormatPngHint;
+
+  /// No description provided for @labelDpiTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution'**
+  String get labelDpiTitle;
+
+  /// No description provided for @labelSendToTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to'**
+  String get labelSendToTitle;
+
+  /// No description provided for @labelSendSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Print dialog'**
+  String get labelSendSystem;
+
+  /// No description provided for @labelSendShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get labelSendShare;
+
+  /// No description provided for @labelSendSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to file'**
+  String get labelSendSave;
+
+  /// No description provided for @labelSendPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Label printer'**
+  String get labelSendPrinter;
+
+  /// No description provided for @labelPrinterCopies.
+  ///
+  /// In en, this message translates to:
+  /// **'Copies'**
+  String get labelPrinterCopies;
+
+  /// No description provided for @labelPrinterCutAtEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut after the last label'**
+  String get labelPrinterCutAtEnd;
+
+  /// No description provided for @labelPrinterCutEvery.
+  ///
+  /// In en, this message translates to:
+  /// **'Labels between cuts'**
+  String get labelPrinterCutEvery;
+
+  /// No description provided for @labelPrinterCutEveryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'0 means no cut between labels.'**
+  String get labelPrinterCutEveryHint;
+
+  /// No description provided for @labelCutEveryLess.
+  ///
+  /// In en, this message translates to:
+  /// **'One label fewer between cuts'**
+  String get labelCutEveryLess;
+
+  /// No description provided for @labelCutEveryMore.
+  ///
+  /// In en, this message translates to:
+  /// **'One label more between cuts'**
+  String get labelCutEveryMore;
+
+  /// No description provided for @labelSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Labels saved'**
+  String get labelSaved;
+
+  /// No description provided for @printerLocationsMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer locations'**
+  String get printerLocationsMenu;
+
+  /// No description provided for @printerLocationsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'In a location: {grouped}, without one: {ungrouped}'**
+  String printerLocationsSubtitle(int grouped, int ungrouped);
+
+  /// No description provided for @printerLocationsSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search locations'**
+  String get printerLocationsSearch;
+
+  /// No description provided for @printerLocationsHideEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide empty'**
+  String get printerLocationsHideEmpty;
+
+  /// No description provided for @printerLocationsSortNameAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Name A→Z'**
+  String get printerLocationsSortNameAsc;
+
+  /// No description provided for @printerLocationsSortNameDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Name Z→A'**
+  String get printerLocationsSortNameDesc;
+
+  /// No description provided for @printerLocationsSortCountAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewest printers'**
+  String get printerLocationsSortCountAsc;
+
+  /// No description provided for @printerLocationsSortCountDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Most printers'**
+  String get printerLocationsSortCountDesc;
+
+  /// No description provided for @printerLocationsSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get printerLocationsSort;
+
+  /// No description provided for @printerLocationsSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get printerLocationsSelect;
+
+  /// No description provided for @printerLocationsDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get printerLocationsDone;
+
+  /// No description provided for @printerLocationsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New location'**
+  String get printerLocationsNew;
+
+  /// No description provided for @printerLocationsCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create location'**
+  String get printerLocationsCreateTitle;
+
+  /// No description provided for @printerLocationsEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit location'**
+  String get printerLocationsEditTitle;
+
+  /// No description provided for @printerLocationsCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get printerLocationsCreate;
+
+  /// No description provided for @printerLocationsSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get printerLocationsSave;
+
+  /// No description provided for @printerLocationsFieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Location name'**
+  String get printerLocationsFieldName;
+
+  /// No description provided for @printerLocationsFieldIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon'**
+  String get printerLocationsFieldIcon;
+
+  /// No description provided for @printerLocationsFieldColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get printerLocationsFieldColor;
+
+  /// No description provided for @printerLocationsNoColor.
+  ///
+  /// In en, this message translates to:
+  /// **'No color'**
+  String get printerLocationsNoColor;
+
+  /// No description provided for @printerLocationsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No printer locations yet'**
+  String get printerLocationsEmpty;
+
+  /// No description provided for @printerLocationsNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No locations match your search'**
+  String get printerLocationsNoResults;
+
+  /// No description provided for @printerLocationsPrinterCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Printers: {count}'**
+  String printerLocationsPrinterCount(int count);
+
+  /// No description provided for @printerLocationsNoPrinters.
+  ///
+  /// In en, this message translates to:
+  /// **'No printers in this location'**
+  String get printerLocationsNoPrinters;
+
+  /// No description provided for @printerLocationsSelectPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Select printer'**
+  String get printerLocationsSelectPrinter;
+
+  /// No description provided for @printerLocationsMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to another location'**
+  String get printerLocationsMove;
+
+  /// No description provided for @printerLocationsMoveButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get printerLocationsMoveButton;
+
+  /// No description provided for @printerLocationsRemoveFromLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from location'**
+  String get printerLocationsRemoveFromLocation;
+
+  /// No description provided for @printerLocationsUngrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'Printers without a location: {count}'**
+  String printerLocationsUngrouped(int count);
+
+  /// No description provided for @printerLocationsSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get printerLocationsSelectAll;
+
+  /// No description provided for @printerLocationsDeselectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all'**
+  String get printerLocationsDeselectAll;
+
+  /// No description provided for @printerLocationsSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected: {count}'**
+  String printerLocationsSelected(int count);
+
+  /// No description provided for @printerLocationsDeleteSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete selected'**
+  String get printerLocationsDeleteSelected;
+
+  /// No description provided for @printerLocationsMoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Move printer'**
+  String get printerLocationsMoveTitle;
+
+  /// No description provided for @printerLocationsMoveTitleMany.
+  ///
+  /// In en, this message translates to:
+  /// **'Move printers ({count})'**
+  String printerLocationsMoveTitleMany(int count);
+
+  /// No description provided for @printerLocationsTargetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a location'**
+  String get printerLocationsTargetHint;
+
+  /// No description provided for @printerLocationsNoLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'No location'**
+  String get printerLocationsNoLocation;
+
+  /// No description provided for @printerLocationsDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete location'**
+  String get printerLocationsDeleteTitle;
+
+  /// No description provided for @printerLocationsDeleteTitleMany.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete locations ({count})'**
+  String printerLocationsDeleteTitleMany(int count);
+
+  /// No description provided for @printerLocationsDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {names}? Printers left without a location: {count}.'**
+  String printerLocationsDeleteMessage(String names, int count);
+
+  /// No description provided for @printerLocationsCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Location created'**
+  String get printerLocationsCreated;
+
+  /// No description provided for @printerLocationsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Location saved'**
+  String get printerLocationsSaved;
+
+  /// No description provided for @printerLocationsDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Locations deleted: {count}'**
+  String printerLocationsDeleted(int count);
+
+  /// No description provided for @printerLocationsMoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Printers moved: {count}'**
+  String printerLocationsMoved(int count);
+
+  /// No description provided for @printerLocationsNameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'A location with this name already exists'**
+  String get printerLocationsNameTaken;
+
+  /// No description provided for @printerLocationsReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only a user account can change locations; an API key can only read them.'**
+  String get printerLocationsReadOnly;
+
+  /// No description provided for @dashboardSortTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get dashboardSortTitle;
+
+  /// No description provided for @dashboardSortName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get dashboardSortName;
+
+  /// No description provided for @dashboardSortModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get dashboardSortModel;
+
+  /// No description provided for @dashboardSortLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get dashboardSortLocation;
+
+  /// No description provided for @dashboardSortEta.
+  ///
+  /// In en, this message translates to:
+  /// **'Time left'**
+  String get dashboardSortEta;
+
+  /// No description provided for @dashboardSortAscending.
+  ///
+  /// In en, this message translates to:
+  /// **'Ascending'**
+  String get dashboardSortAscending;
+
+  /// No description provided for @dashboardSortDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Descending'**
+  String get dashboardSortDescending;
+
+  /// No description provided for @dashboardLocationAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All locations'**
+  String get dashboardLocationAll;
+
+  /// No description provided for @dashboardGroupUngrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'No location'**
+  String get dashboardGroupUngrouped;
+
+  /// No description provided for @dashboardGroupUnknownModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown model'**
+  String get dashboardGroupUnknownModel;
+
+  /// No description provided for @announcementsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Announcements'**
+  String get announcementsTitle;
+
+  /// No description provided for @announcementsUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread announcements: {count}'**
+  String announcementsUnread(int count);
+
+  /// No description provided for @announcementsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No announcements right now.'**
+  String get announcementsEmpty;
+
+  /// No description provided for @announcementsEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier ({count})'**
+  String announcementsEarlier(int count);
+
+  /// No description provided for @announcementsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get announcementsNew;
+
+  /// No description provided for @announcementsReadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Read more'**
+  String get announcementsReadMore;
+
+  /// No description provided for @announcementsSource.
+  ///
+  /// In en, this message translates to:
+  /// **'From the Bambuddy maintainers, fetched from GitHub.'**
+  String get announcementsSource;
+
+  /// No description provided for @announcementLevelInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get announcementLevelInfo;
+
+  /// No description provided for @announcementLevelImportant.
+  ///
+  /// In en, this message translates to:
+  /// **'Important'**
+  String get announcementLevelImportant;
+
+  /// No description provided for @announcementLevelCritical.
+  ///
+  /// In en, this message translates to:
+  /// **'Critical'**
+  String get announcementLevelCritical;
+
+  /// No description provided for @announcementsMarkAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all as read'**
+  String get announcementsMarkAllRead;
+
+  /// How many times this archive was printed, on a chip in the archive detail
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 run} other{{count} runs}}'**
+  String archiveRunCount(int count);
+
+  /// Layer count of a sliced print
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 layer} other{{count} layers}}'**
+  String archiveLayerCount(int count);
+
+  /// Printable objects on the plate
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 object} other{{count} objects}}'**
+  String archiveObjectCount(int count);
+
+  /// Heading of the summed cost (filament, energy, printer wear) in the archive detail
+  ///
+  /// In en, this message translates to:
+  /// **'Print cost'**
+  String get archivePrintCost;
+
+  /// Screen-reader label of the printer model a file was sliced for
+  ///
+  /// In en, this message translates to:
+  /// **'Sliced for {model}'**
+  String archiveSlicedFor(String model);
+
+  /// Tooltip on the print time: slicer estimate and measured duration
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated {estimated}, actual {actual}'**
+  String archiveTimeDetail(String estimated, String actual);
+
+  /// Button opening the model page (MakerWorld or a user link)
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get archiveOpenLink;
+
+  /// AMS slot number beside one filament of a multi-material print
+  ///
+  /// In en, this message translates to:
+  /// **'slot {slot}'**
+  String archiveSlot(int slot);
 }
 
 class _AppLocalizationsDelegate

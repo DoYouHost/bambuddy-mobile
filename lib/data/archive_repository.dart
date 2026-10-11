@@ -34,6 +34,18 @@ class ArchiveRepository {
     _serverVersion,
   );
 
+  /// Whether this server records post-print verdicts (#1898). Observed on
+  /// every archive row a request here reads: `confirm_requested` is a field of
+  /// `ArchiveResponse` from the feature on and absent before it. Unknown →
+  /// hidden, because `ArchiveUpdate` drops `user_verdict` without a word.
+  late final outcomeCapability = ObservedCapability(
+    ServerFeature.printOutcome,
+    _serverVersion,
+  );
+
+  bool? _observeOutcome(Object? row) =>
+      outcomeCapability.observeKey(row, 'confirm_requested');
+
   /// GET /archives/ — paginated archive list.
   ///
   /// Defensive parsing: unparseable entries are skipped.
@@ -54,6 +66,7 @@ class ArchiveRepository {
       );
       return res.data ?? const [];
     });
+    _observeOutcome(body.firstOrNull);
     return parseJsonList(body, Archive.fromJson);
   }
 
@@ -76,6 +89,7 @@ class ArchiveRepository {
       );
       return res.data ?? const [];
     });
+    _observeOutcome(body.firstOrNull);
     return parseJsonList(body, Archive.fromJson);
   }
 
@@ -86,7 +100,48 @@ class ArchiveRepository {
     final res = await _dio.get<Map<String, dynamic>>(
       Endpoints.archive(archiveId),
     );
+    _observeOutcome(res.data);
     return Archive.fromJson(res.data ?? const {});
+  });
+
+  /// PATCH /archives/{id} — record the user's verdict on the part, or clear it
+  /// with a null (#1898).
+  ///
+  /// `user_verdict_source` is always `dialog`: of the three a client may claim
+  /// (`dialog`, `printer_card`, `api`) it is the one the server words as "in
+  /// the app", which is where every verdict from here is given. A [reason]
+  /// goes into `failure_reason`, as the web's reject dialog sends it; the
+  /// server mirrors both onto the run's log entry, which is what the yield
+  /// figures count.
+  ///
+  /// [clearReason] sends `failure_reason: null`, for a verdict leaving a
+  /// reject: the cause belonged to the reject, and the web's edit dialog clears
+  /// it the same way (`EditArchiveModal.tsx`).
+  ///
+  /// `applied` for the same reason as [setFilamentGrams]: an older server
+  /// answers 200 and drops both keys. The verdict alone cannot say so for a
+  /// clear — an older server's row has no verdict either — so the row must
+  /// also be one that carries the fields.
+  Future<({Archive archive, bool applied})> setVerdict(
+    int archiveId,
+    PrintVerdict? verdict, {
+    String? reason,
+    bool clearReason = false,
+  }) => guard(() async {
+    final res = await _dio.patch<Map<String, dynamic>>(
+      Endpoints.archive(archiveId),
+      data: <String, dynamic>{
+        'user_verdict': verdict?.wire,
+        if (verdict != null) 'user_verdict_source': 'dialog',
+        if (clearReason) 'failure_reason': null else 'failure_reason': ?reason,
+      },
+    );
+    final carriesFields = _observeOutcome(res.data) ?? false;
+    final archive = Archive.fromJson(res.data ?? const {});
+    return (
+      archive: archive,
+      applied: carriesFields && archive.userVerdict == verdict,
+    );
   });
 
   /// POST /archives/{id}/favorite — toggle the favorite flag server-side and
@@ -95,6 +150,7 @@ class ArchiveRepository {
     final res = await _dio.post<Map<String, dynamic>>(
       Endpoints.archiveFavorite(archiveId),
     );
+    _observeOutcome(res.data);
     return Archive.fromJson(res.data ?? const {});
   });
 
@@ -130,6 +186,7 @@ class ArchiveRepository {
         Endpoints.archive(archiveId),
         data: <String, dynamic>{'filament_used_grams': grams},
       );
+      _observeOutcome(res.data);
       final archive = Archive.fromJson(res.data ?? const {});
       return (
         archive: archive,

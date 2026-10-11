@@ -15,17 +15,18 @@ import 'makerworld_providers.dart';
 import 'makerworld_thumbnail.dart';
 import '../common/web_link.dart';
 
-/// MakerWorld screen: paste model URL → resolve → pick plate → import (download) to library.
-/// Download requires Bambu Cloud login; if missing, import action goes to settings login screen
-/// (`/settings/cloud`) — login NOT built into this screen.
-class MakerWorldScreen extends ConsumerStatefulWidget {
-  const MakerWorldScreen({super.key});
+/// MakerWorld tab of Model Sources: paste model URL → resolve → pick plate →
+/// import (download) to library. Download requires Bambu Cloud login; if
+/// missing, import action goes to settings login screen (`/settings/cloud`) —
+/// login NOT built into this tab.
+class MakerWorldTab extends ConsumerStatefulWidget {
+  const MakerWorldTab({super.key});
 
   @override
-  ConsumerState<MakerWorldScreen> createState() => _MakerWorldScreenState();
+  ConsumerState<MakerWorldTab> createState() => _MakerWorldTabState();
 }
 
-class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
+class _MakerWorldTabState extends ConsumerState<MakerWorldTab> {
   final _urlController = TextEditingController();
 
   /// `profileId` (or -1 for none) of plates currently importing.
@@ -117,57 +118,48 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
     final status = ref.watch(makerworldStatusProvider).valueOrNull;
     final canDownload = status?.canDownload ?? false;
 
-    return DashBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: dashAppBar(context, title: l10n.makerworldTitle),
-        body: ListView(
-          padding: withSystemNavInset(
-            context,
-            const EdgeInsets.fromLTRB(16, 8, 16, 32),
-          ),
-          children: [
-            Text(l10n.mwIntro, style: t.bodySoft),
-            const SizedBox(height: 16),
-            _UrlBar(
-              controller: _urlController,
-              loading: resolveAsync.isLoading,
-              onResolve: _resolve,
-            ),
-            if (!canDownload) ...[
-              const SizedBox(height: 16),
-              _LoginBanner(
-                onSignIn: () async {
-                  await context.push('/settings/cloud');
-                  if (!mounted) return;
-                  ref.invalidate(cloudAuthStatusProvider);
-                  ref.invalidate(makerworldStatusProvider);
-                },
-              ),
-            ],
-            const SizedBox(height: 8),
-            dashAsyncStrip(
-              context,
-              resolveAsync,
-              padding: const EdgeInsets.symmetric(vertical: 32),
-              failureMessage: l10n.ctrlFailed,
-              failureBuilder: (message) =>
-                  _InlineError(message: message, onRetry: _resolve),
-              data: (model) => model == null
-                  ? const SizedBox.shrink()
-                  : _ResolvedModel(
-                      model: model,
-                      importing: _importing,
-                      imported: _imported,
-                      onImport: (plate) => _import(model, plate),
-                      keyOf: _key,
-                    ),
-            ),
-            const SizedBox(height: 24),
-            _RecentImports(),
-          ],
+    return ListView(
+      padding: screenListPadding(context),
+      children: [
+        Text(l10n.mwIntro, style: t.bodySoft),
+        const SizedBox(height: DashSpace.lg),
+        _UrlBar(
+          controller: _urlController,
+          loading: resolveAsync.isLoading,
+          onResolve: _resolve,
         ),
-      ),
+        if (!canDownload) ...[
+          const SizedBox(height: DashSpace.lg),
+          _LoginBanner(
+            onSignIn: () async {
+              await context.push('/settings/cloud');
+              if (!mounted) return;
+              ref.invalidate(cloudAuthStatusProvider);
+              ref.invalidate(makerworldStatusProvider);
+            },
+          ),
+        ],
+        const SizedBox(height: DashSpace.sm),
+        dashAsyncStrip(
+          context,
+          resolveAsync,
+          padding: const EdgeInsets.symmetric(vertical: DashSpace.xxl),
+          failureMessage: l10n.ctrlFailed,
+          failureBuilder: (message) =>
+              _InlineError(message: message, onRetry: _resolve),
+          data: (model) => model == null
+              ? const SizedBox.shrink()
+              : _ResolvedModel(
+                  model: model,
+                  importing: _importing,
+                  imported: _imported,
+                  onImport: (plate) => _import(model, plate),
+                  keyOf: _key,
+                ),
+        ),
+        const SizedBox(height: DashSpace.xl),
+        _RecentImports(),
+      ],
     );
   }
 }
@@ -209,14 +201,14 @@ class _UrlBar extends StatelessWidget {
               ).copyWith(prefixIcon: Icon(Icons.link, color: t.textTertiary)),
             ).tagged('makerworld.url'),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: DashSpace.md),
           logTag(
             'makerworld.resolve',
             FilledButton.icon(
               style: dashPrimaryButtonStyle(t),
               onPressed: loading ? null : onResolve,
               icon: loading
-                  ? DashSpinner(color: Color(0xFF0A0C08))
+                  ? DashSpinner(color: DashTokens.of(context).onAccent)
                   : const Icon(Icons.arrow_forward),
               label: Text(l10n.mwResolve),
             ),
@@ -238,7 +230,7 @@ class _LoginBanner extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
         color: t.accentOrange.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
@@ -247,9 +239,9 @@ class _LoginBanner extends StatelessWidget {
       child: Row(
         children: [
           Icon(Icons.cloud_off, color: t.accentOrangeInk),
-          const SizedBox(width: 12),
+          const SizedBox(width: DashSpace.md),
           Expanded(child: Text(l10n.mwLoginRequired, style: t.body)),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           logTag(
             'makerworld.sign_in',
             FilledButton(
@@ -308,7 +300,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
         ? model.instances
         : model.instances.take(_collapsedCount).toList();
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(DashSpace.lg),
       decoration: t.cardBox,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -323,7 +315,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
                   size: 72,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: DashSpace.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,7 +326,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
                       overflow: TextOverflow.ellipsis,
                       style: t.titleMd,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: DashSpace.xs),
                     Text(
                       l10n.mwPlatesCount(model.instances.length),
                       style: t.monoLabel,
@@ -347,7 +339,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
           Divider(height: 24, color: t.hairline),
           if (model.instances.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
               child: Text(l10n.mwNoPlates, style: t.bodyPlain),
             )
           else ...[
@@ -402,14 +394,14 @@ class _PlateRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Row(
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: MakerWorldThumbnail(coverUrl: plate.coverUrl, size: 48),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(
               plate.name,
@@ -418,7 +410,7 @@ class _PlateRow extends StatelessWidget {
               style: t.body,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           if (imported)
             // A state, not an action, so the button is permanently disabled —
             // and the ink has to be handed over as the *disabled* colour. A
@@ -441,12 +433,18 @@ class _PlateRow extends StatelessWidget {
               FilledButton.icon(
                 style: dashPrimaryButtonStyle(t).copyWith(
                   padding: const WidgetStatePropertyAll(
-                    EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    EdgeInsets.symmetric(
+                      horizontal: DashSpace.lg,
+                      vertical: DashSpace.sm,
+                    ),
                   ),
                 ),
                 onPressed: importing ? null : onImport,
                 icon: importing
-                    ? DashSpinner(size: 16, color: Color(0xFF0A0C08))
+                    ? DashSpinner(
+                        size: 16,
+                        color: DashTokens.of(context).onAccent,
+                      )
                     : const Icon(Icons.download, size: 18),
                 label: Text(l10n.mwImport),
               ),
@@ -469,10 +467,10 @@ class _RecentImports extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(l10n.mwRecentImports, style: t.titleSm),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         async.when(
           loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
+            padding: EdgeInsets.symmetric(vertical: DashSpace.lg),
             child: DashLoading(),
           ),
           error: (_, _) => Text(l10n.mwNoRecent, style: emptyStyle),
@@ -498,7 +496,7 @@ class _RecentRow extends StatelessWidget {
     final t = DashTokens.of(context);
     final source = item.sourceUrl;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -507,7 +505,10 @@ class _RecentRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             onTap: () => context.push('/files'),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.md,
+                vertical: DashSpace.sm,
+              ),
               decoration: BoxDecoration(
                 color: t.subCard,
                 borderRadius: BorderRadius.circular(16),
@@ -523,7 +524,7 @@ class _RecentRow extends StatelessWidget {
                       size: 48,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Text(
                       item.filename,
@@ -567,13 +568,13 @@ class _InlineError extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.xl),
       child: Column(
         children: [
           Icon(Icons.error_outline, size: 40, color: t.dangerInk),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Text(message, textAlign: TextAlign.center, style: t.bodyPlain),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           OutlinedButton(
             style: OutlinedButton.styleFrom(
               foregroundColor: t.textPrimary,

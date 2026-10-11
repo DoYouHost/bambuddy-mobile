@@ -4,6 +4,7 @@ import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/dashboard/card_collapse_providers.dart';
 import 'package:bambuddy_mobile/features/settings/demo_printers_provider.dart';
 import 'package:bambuddy_mobile/features/settings/app_settings_screen.dart';
+import 'package:bambuddy_mobile/features/wall/wall_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
@@ -64,19 +65,50 @@ void main() {
     tester,
   ) async {
     final container = await pumpScreen(tester);
+    Switch collapseSwitch() => tester.widget<Switch>(
+      find.descendant(
+        of: byLogId('app_settings.collapse_printer_cards'),
+        matching: find.byType(Switch),
+      ),
+    );
 
-    expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
+    expect(collapseSwitch().value, isFalse);
 
     await tester.tap(find.text(l10n.collapsePrinterCardsTitle));
     await tester.pumpAndSettle();
 
-    expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
+    expect(collapseSwitch().value, isTrue);
     expect(container.read(printerCardsCollapsedByDefaultProvider), isTrue);
     expect(
       container.read(settingsRepositoryProvider).loadPrinterCardsCollapsed(),
       isTrue,
     );
   });
+
+  testWidgets(
+    'the wall keep-awake switch starts on and saves what it is set to',
+    (tester) async {
+      final container = await pumpScreen(tester);
+      Switch wallSwitch() => tester.widget<Switch>(
+        find.descendant(
+          of: byLogId('app_settings.wall_keep_awake'),
+          matching: find.byType(Switch),
+        ),
+      );
+
+      expect(wallSwitch().value, isTrue);
+
+      await tester.tap(find.text(l10n.wallKeepAwakeTitle));
+      await tester.pumpAndSettle();
+
+      expect(wallSwitch().value, isFalse);
+      expect(container.read(wallKeepAwakeProvider), isFalse);
+      expect(
+        container.read(settingsRepositoryProvider).loadWallKeepAwake(),
+        isFalse,
+      );
+    },
+  );
 
   testWidgets('notification settings are one entry away', (tester) async {
     await pumpScreen(tester);
@@ -94,6 +126,7 @@ void main() {
       identifiersIn(tester),
       containsAll(<String>[
         'app_settings.collapse_printer_cards',
+        'app_settings.wall_keep_awake',
         'app_settings.notifications',
       ]),
     );

@@ -44,7 +44,11 @@ import 'data/firmware_repository.dart';
 import 'data/groups_repository.dart';
 import 'data/heater_history_repository.dart';
 import 'data/location_sensors_repository.dart';
+import 'data/printer_locations_repository.dart';
+import 'data/suppliers_repository.dart';
 import 'data/makerworld_repository.dart';
+import 'data/announcements_repository.dart';
+import 'data/manyfold_repository.dart';
 import 'data/pipelines_repository.dart';
 import 'data/inventory_repository.dart';
 import 'data/inventory_source.dart';
@@ -488,6 +492,20 @@ final identifiedPermissionProvider = Provider.family<bool, String>((ref, p) {
   return user != null && user.can(p);
 });
 
+/// Whether this session may change a printer — its settings, or the location
+/// it stands in. **An API-key session never may:** `printers:update` is outside
+/// the key scope allowlist, so it is decided on the auth mode rather than on
+/// what `/auth/me` claims, as in [identifiedPermissionProvider].
+///
+/// Unlike that provider an unknown identity answers yes: the server is the
+/// enforcer, and a server without auth has nobody to refuse.
+final canUpdatePrintersProvider = Provider<bool>((ref) {
+  if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
+    return false;
+  }
+  return ref.watch(permissionProvider(Permissions.printersUpdate));
+});
+
 /// The accounts on the server (`GET /users/`). Shares the authenticated Dio.
 final usersRepositoryProvider = Provider<UsersRepository>(
   (ref) => UsersRepository(ref.watch(apiClientProvider).dio),
@@ -500,11 +518,27 @@ final groupsRepositoryProvider = Provider<GroupsRepository>(
 
 /// The API keys issued on the server. Shares the authenticated Dio.
 final apiKeysRepositoryProvider = Provider<ApiKeysRepository>(
-  (ref) => ApiKeysRepository(ref.watch(apiClientProvider).dio),
+  (ref) => ApiKeysRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether the key form may offer "Send notifications". See
+/// `ApiKeysRepository.notificationScopeCapability`.
+final apiKeyNotificationScopeProvider = capabilityGate(
+  (ref) => ref.watch(apiKeysRepositoryProvider).notificationScopeCapability,
 );
 
 final printersRepositoryProvider = Provider<PrintersRepository>(
   (ref) => PrintersRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Whether the server can hold a user's jobs for review (#1620). See
+/// `PrintersRepository.reviewGateCapability`; who is held is
+/// `awaitingReviewProvider`.
+final queueReviewGateProvider = capabilityGate(
+  (ref) => ref.watch(printersRepositoryProvider).reviewGateCapability,
 );
 
 /// Network discovery (SSDP + subnet scan) for the Add-Printer flow.
@@ -546,6 +580,40 @@ final scheduledDryingRepositoryProvider = Provider<ScheduledDryingRepository>(
 /// Home Assistant sensors bound to a storage location — read-only. Shares
 /// authenticated Dio; the version service answers whether the route family is
 /// there until the listing itself has.
+/// Filament suppliers — one route family for both inventory backends.
+final suppliersRepositoryProvider = Provider<SuppliersRepository>(
+  (ref) => SuppliersRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether this server has filament suppliers. Read by the Filaments tab and by
+/// the statistics screen's supplier card.
+final suppliersSupportedProvider = capabilityGate(
+  (ref) => ref.watch(suppliersRepositoryProvider).capability,
+);
+
+/// Whether this server stores a material number on a spool. Whether the
+/// number can also be written is the backend's call: Spoolman's is read-only.
+final materialNumberSupportedProvider = capabilityGate(
+  (ref) => ref.watch(inventoryRepositoryProvider).materialNumberCapability,
+);
+
+final printerLocationsRepositoryProvider = Provider<PrinterLocationsRepository>(
+  (ref) => PrinterLocationsRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether this server has the managed Printer Locations. Read by the printer
+/// form, which holds the way in and offers their names, and by the locations
+/// screen. See `PrinterLocationsRepository.capability`.
+final printerLocationsSupportedProvider = capabilityGate(
+  (ref) => ref.watch(printerLocationsRepositoryProvider).capability,
+);
+
 final locationSensorsRepositoryProvider = Provider<LocationSensorsRepository>(
   (ref) => LocationSensorsRepository(
     ref.watch(apiClientProvider).dio,
@@ -600,6 +668,9 @@ final archiveChangedProvider = NotifierProvider<Epoch, int>(Epoch.new);
 /// edited on the web, a scale reporting a weight, a tray loaded. The screen
 /// reading it re-fetches when it is the tab being looked at.
 final inventoryChangedProvider = NotifierProvider<Epoch, int>(Epoch.new);
+
+/// Bumped when the server says its announcements changed.
+final announcementsChangedProvider = NotifierProvider<Epoch, int>(Epoch.new);
 
 /// The connected server's version, for a synchronous reader. Warmed by the
 /// shell at start, and asked again on every regained contact — a read that
@@ -681,6 +752,19 @@ final triStateCalibrationProvider = capabilityGate(
   (ref) => ref.watch(queueRepositoryProvider).triStateCapability,
 );
 
+/// Whether a queued job can ask for its outcome (#1898) — the print form's
+/// "Ask for outcome" switch. See `QueueRepository.outcomeCapability`.
+final queueOutcomeProvider = capabilityGate(
+  (ref) => ref.watch(queueRepositoryProvider).outcomeCapability,
+);
+
+/// What the server's own print dialog starts the switch at
+/// (`default_confirm_outcome`, Settings → Workflow on the web). A new job here
+/// starts from the same answer rather than from one this phone remembers.
+final defaultConfirmOutcomeProvider = serverGate<bool>(
+  (settings) => settings.settingBool('default_confirm_outcome'),
+);
+
 /// Highest chamber target the connected server accepts, in °C — 65 from 1.2.6,
 /// 60 before it and whenever the version is not known yet. A value, not a gate:
 /// the default until known, never a loading state.
@@ -720,6 +804,13 @@ final processOverridesProvider = capabilityGate(
 final labelStartingPositionProvider = capabilityGate(
   (ref) =>
       ref.watch(inventoryRepositoryProvider).labelStartingPositionCapability,
+);
+
+/// Whether the label sheet may choose the printed lines and a PNG output
+/// (server #2981). Version-only, like the start position: an older server takes
+/// the fields and answers a PDF with every default line on it.
+final labelFieldsProvider = capabilityGate(
+  (ref) => ref.watch(inventoryRepositoryProvider).labelFieldsCapability,
 );
 
 /// Whether "Add to queue" in the file manager may ask which printer or model
@@ -835,6 +926,49 @@ final serverSettingsProvider =
     AsyncNotifierProvider<ServerSettingsNotifier, Map<String, dynamic>>(
       ServerSettingsNotifier.new,
     );
+
+/// [Endpoints.uiFlags]. autoDispose, so each screen that asks reads it afresh: billing can be
+/// switched on in the web while the app runs, and a read that failed must not
+/// stand for the rest of the session.
+final serverUiFlagsProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
+  (ref) => ref.watch(serverSettingsRepositoryProvider).fetchUiFlags(),
+);
+
+/// Whether the server enforces cost-center billing, which makes every new queue
+/// item require a `cost_center_id` the app cannot pick yet (maziggy/bambuddy
+/// #3256). Read from the UI flags any user may see, else from the full
+/// settings on a server too old to have them — the flags win when present,
+/// being the only source a non-admin can read; false until either answers.
+final billingEnabledProvider = Provider.autoDispose<bool>(
+  (ref) => _billingFrom(
+    ref.watch(serverUiFlagsProvider).valueOrNull,
+    ref.watch(serverSettingsProvider).valueOrNull,
+  ),
+);
+
+/// [billingEnabledProvider] for an action outside a build, once the flags have
+/// answered.
+Future<bool> settledBillingEnabled(ProviderContainer container) async {
+  final flags = container.listen(serverUiFlagsProvider.future, (_, _) {});
+  try {
+    return _billingFrom(
+      await flags.read(),
+      await container
+          .read(serverSettingsProvider.future)
+          .catchError((Object _) => const <String, dynamic>{}),
+    );
+  } finally {
+    flags.close();
+  }
+}
+
+bool _billingFrom(
+  Map<String, dynamic>? flags,
+  Map<String, dynamic>? settings,
+) =>
+    ((flags ?? const {})['billing_enabled'] ??
+        (settings ?? const {})['billing_enabled']) ==
+    true;
 
 class ServerSettingsNotifier extends AsyncNotifier<Map<String, dynamic>> {
   @override
@@ -1013,6 +1147,12 @@ final requirePlateClearProvider = serverGate<bool>(
   (settings) => settings.settingBool('require_plate_clear'),
 );
 
+/// "Prefer lowest remaining filament": among equal matches the mapping picks
+/// the emptiest spool, as the web's (`effectivePreferLowest`).
+final preferLowestFilamentProvider = serverGate<bool>(
+  (settings) => settings.settingBool('prefer_lowest_filament'),
+);
+
 /// Printer models with an auto-print G-code snippet configured on the server.
 /// Gates the print form's `gcode_injection` checkbox (see
 /// [gcodeSnippetModels]): without snippets the flag does nothing, so the web
@@ -1048,48 +1188,72 @@ final makerworldRecentImportsProvider =
       (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
     );
 
-/// Chosen filament inventory backend (native by default). User toggle;
-/// Spoolman is drop-in — see [SpoolInventorySource].
-final inventoryBackendProvider =
-    NotifierProvider<InventoryBackendNotifier, InventoryBackend>(
-      InventoryBackendNotifier.new,
-    );
+/// Announcements from the Bambuddy maintainers. Shares authenticated Dio.
+final announcementsRepositoryProvider = Provider<AnnouncementsRepository>(
+  (ref) => AnnouncementsRepository(ref.watch(apiClientProvider).dio),
+);
 
-class InventoryBackendNotifier extends Notifier<InventoryBackend> {
-  @override
-  InventoryBackend build() {
-    final raw = ref.watch(settingsRepositoryProvider).loadInventoryBackend();
-    return InventoryBackend.values.firstWhere(
-      (b) => b.name == raw,
-      orElse: () => InventoryBackend.native,
-    );
+/// Manyfold library (#1471). Shares authenticated Dio.
+final manyfoldRepositoryProvider = Provider<ManyfoldRepository>(
+  (ref) => ManyfoldRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Whether this session may connect Manyfold — `settings:update`, which an API
+/// key never holds; a server without auth refuses nobody.
+final canConfigureManyfoldProvider = Provider<bool>((ref) {
+  if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
+    return false;
   }
+  return ref.watch(permissionProvider(Permissions.settingsUpdate));
+});
 
-  Future<void> set(InventoryBackend backend) async {
-    await ref
-        .read(settingsRepositoryProvider)
-        .saveInventoryBackend(backend.name);
-    state = backend;
-  }
-}
+/// The filament inventory the server runs — asked once per server, the server
+/// being where the choice is made. A failed ask is an error rather than a
+/// guess; [inventoryRepositoryProvider] asks again on its next call.
+final inventoryBackendProvider = FutureProvider<InventoryBackend>(
+  (ref) => detectInventoryBackend(ref.watch(apiClientProvider).dio),
+);
 
-/// Inventory data source dependent on chosen backend. Shares authenticated Dio;
-/// rebuilt on profile or backend change.
-final inventorySourceProvider = Provider<SpoolInventorySource>((ref) {
+/// Inventory data source for the backend the server runs. Shares authenticated
+/// Dio; rebuilt on profile or backend change.
+final inventorySourceProvider = FutureProvider<SpoolInventorySource>((
+  ref,
+) async {
   final dio = ref.watch(apiClientProvider).dio;
-  return switch (ref.watch(inventoryBackendProvider)) {
+  return switch (await ref.watch(inventoryBackendProvider.future)) {
     InventoryBackend.native => NativeInventorySource(dio),
     InventoryBackend.spoolman => SpoolmanInventorySource(dio),
   };
 });
 
-/// Filament inventory. Facade over chosen source.
-final inventoryRepositoryProvider = Provider<InventoryRepository>(
-  (ref) => InventoryRepository(
-    ref.watch(inventorySourceProvider),
+/// Filament inventory. Facade over the chosen source, usable before the server
+/// has said which one: its calls wait for the answer.
+///
+/// A failed answer is not kept — the next call asks again, so Retry and
+/// pull-to-refresh recover once the server is back. Only a settled failure:
+/// one still being asked again is awaited, not doubled. Code that needs the
+/// backend itself reads [InventoryRepository.backend] for the same reason,
+/// never [inventoryBackendProvider]'s future.
+final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
+  void askAgainIfFailed() {
+    final asked = ref.read(inventoryBackendProvider);
+    if (asked.hasError && !asked.isLoading) {
+      ref.invalidate(inventoryBackendProvider);
+    }
+  }
+
+  return InventoryRepository.resolving(
+    () {
+      askAgainIfFailed();
+      return ref.read(inventorySourceProvider.future);
+    },
+    () {
+      askAgainIfFailed();
+      return ref.read(inventoryBackendProvider.future);
+    },
     ref.watch(serverVersionServiceProvider),
-  ),
-);
+  );
+});
 
 /// Service minting the camera stream token (the live view; on servers older
 /// than #3025 also every other `?token=` image). Rebuilt with client on profile

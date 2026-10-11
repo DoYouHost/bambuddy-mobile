@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
 import 'package:bambuddy_mobile/core/demo/demo_config.dart';
 import 'package:bambuddy_mobile/core/demo/demo_ws.dart';
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
+import 'package:bambuddy_mobile/core/slicer/loaded_spool_match.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
 import 'package:bambuddy_mobile/data/ams_history_repository.dart';
@@ -24,7 +25,11 @@ import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/data/location_sensors_repository.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
 import 'package:bambuddy_mobile/data/makerworld_repository.dart';
+import 'package:bambuddy_mobile/core/models/manyfold.dart';
+import 'package:bambuddy_mobile/data/manyfold_repository.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
+import 'package:bambuddy_mobile/core/models/printer_location.dart';
+import 'package:bambuddy_mobile/data/printer_locations_repository.dart';
 import 'package:bambuddy_mobile/core/models/printer_download_job.dart';
 import 'package:bambuddy_mobile/data/printer_files_repository.dart';
 import 'package:bambuddy_mobile/data/print_log_repository.dart';
@@ -41,6 +46,9 @@ import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
+import 'package:bambuddy_mobile/data/inventory_repository.dart';
+import 'package:bambuddy_mobile/data/suppliers_repository.dart';
+import 'package:bambuddy_mobile/core/models/supplier.dart';
 import 'package:bambuddy_mobile/core/models/calibration_option.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
@@ -82,6 +90,24 @@ void main() {
   });
 
   group('queue + archives + stats', () {
+    // Every part of the archive detail has a print to stand on.
+    test('archives carry what the detail sheet shows', () async {
+      final list = await ArchiveRepository(dio).list();
+      final drawer = list.firstWhere(
+        (a) => a.printName == 'Drawer organizer x4',
+      );
+      expect(drawer.filamentSlots.map((s) => s.slot), [1, 2]);
+      expect(drawer.filamentSlots.first.grams, closeTo(81.7, 1e-9));
+      expect(drawer.projectName, isNotNull);
+      expect(drawer.tagList, isNotEmpty);
+      expect(drawer.notes, isNotNull);
+      expect(drawer.runCount, greaterThan(1));
+      expect(list.where((a) => a.link != null), isNotEmpty);
+      expect(list.where((a) => a.timeAccuracy != null), isNotEmpty);
+      expect(list.where((a) => a.wearCost != null), isNotEmpty);
+      expect(list.every((a) => a.createdByUsername != null), isTrue);
+    });
+
     test('queue has pending items', () async {
       final items = await QueueRepository(dio).fetch();
       expect(items.length, greaterThanOrEqualTo(2));
@@ -423,6 +449,32 @@ void main() {
       expect(fresh.isRunnable, isFalse);
     });
 
+    test(
+      'the online printers\' spools map to slice profiles (#3172)',
+      () async {
+        // The slice form offers its filters and the Pick button only once this
+        // answers, and a spool the catalogue cannot name is greyed out.
+        final repo = SlicerRepository(dio);
+        final printers = (await repo.loadedSpools())!;
+        final filaments = (await repo.presets()).filaments;
+
+        expect(printers, isNotEmpty);
+        expect(
+          printers.any((p) => p.name == 'A1 mini'),
+          isFalse,
+          reason: 'offline printers are left out, as on the server',
+        );
+        final matched = matchedFilamentKeys(
+          printers,
+          filaments: filaments,
+          index: buildFilamentNameIndex(filaments),
+          selectedPrinterName: null,
+          registry: const {},
+        );
+        expect(matched, contains('standard:Bambu PLA Basic @BBL X1C'));
+      },
+    );
+
     test('the stored preset refs resolve against /slicer/presets', () async {
       // The same catalogue the slice form's pickers read, or every row of the card would
       // read "No longer in the catalog".
@@ -665,6 +717,10 @@ void main() {
   });
 
   group('inventory (native)', () {
+    test('the demo says it runs the built-in inventory', () async {
+      expect(await detectInventoryBackend(dio), InventoryBackend.native);
+    });
+
     final source = NativeInventorySource(dio);
 
     test('spools, assignments, reference data', () async {
@@ -1239,6 +1295,85 @@ void main() {
     );
   });
 
+  group('manyfold', () {
+    test('browses, previews and imports into a "Manyfold" folder', () async {
+      final repo = ManyfoldRepository(dio);
+      expect((await repo.status())?.configured, isTrue);
+
+      final first = await repo.models();
+      expect(first.models, hasLength(4));
+      expect(first.hasNext, isTrue);
+      final second = await repo.models(page: 2);
+      expect(second.hasPrevious, isTrue);
+      expect((await repo.models(query: 'gear')).models.single.id, 'r2t6yb8s');
+
+      final dragon = await repo.model('k3x9pq2a');
+      expect(dragon.files.map((f) => f.importable), [true, true, false]);
+      expect(await repo.preview('k3x9pq2a'), isNotEmpty);
+      // The model with neither, for both empty states.
+      expect((await repo.model('z9c1fk5u')).files, isEmpty);
+      expect(await repo.preview('z9c1fk5u'), isNull);
+
+      final imported = await repo.import(
+        modelId: 'k3x9pq2a',
+        fileId: 'f1dragon',
+      );
+      expect(imported.wasExisting, isFalse);
+      final again = await repo.import(modelId: 'k3x9pq2a', fileId: 'f1dragon');
+      expect(again.wasExisting, isTrue);
+      expect(again.libraryFileId, imported.libraryFileId);
+      expect(
+        (await repo.model('k3x9pq2a')).files.first.libraryFile?.id,
+        imported.libraryFileId,
+      );
+      final folders = await LibraryRepository(dio).listFolders();
+      expect(
+        folders.where((f) => f.id == imported.folderId).single.name,
+        'Manyfold',
+      );
+
+      await expectLater(
+        repo.import(modelId: 'k3x9pq2a', fileId: 'f3readme'),
+        throwsA(
+          isA<ManyfoldFailure>().having(
+            (f) => f.code,
+            'code',
+            'manyfold_not_importable',
+          ),
+        ),
+      );
+    });
+
+    test('the connection tests, disconnects and reconnects', () async {
+      final repo = ManyfoldRepository(dio);
+      expect((await repo.config()).hasClientSecret, isTrue);
+      expect(
+        await repo.testConfig(url: 'http://mf:3214', clientId: 'x'),
+        greaterThan(0),
+      );
+      await expectLater(
+        repo.testConfig(url: 'mf:3214', clientId: 'x'),
+        throwsA(isA<ManyfoldFailure>()),
+      );
+
+      await repo.deleteConfig();
+      expect((await repo.status())?.configured, isFalse);
+      await expectLater(repo.models(), throwsA(isA<ManyfoldFailure>()));
+      // With nothing stored, the secret has to be typed.
+      await expectLater(
+        repo.saveConfig(url: 'http://mf:3214', clientId: 'x'),
+        throwsA(isA<ManyfoldFailure>()),
+      );
+
+      await repo.saveConfig(
+        url: 'http://mf:3214',
+        clientId: 'x',
+        clientSecret: 'secret',
+      );
+      expect((await repo.status())?.configured, isTrue);
+    });
+  });
+
   group('printer commands (mutate simulation — keep last)', () {
     final commands = PrinterCommandsRepository(dio);
     final printers = PrintersRepository(dio);
@@ -1647,6 +1782,347 @@ void main() {
       final temps = status['temperatures'] as Map;
       expect(temps['nozzle_target'], greaterThan(0));
       expect(temps['bed_target'], greaterThan(0));
+    });
+  });
+
+  test('the demo reports a version every gate says yes to', () async {
+    // The demo presents every feature; its version is invented, so it must
+    // never be the thing that hides one. A new gate above it fails here.
+    final version = await ServerVersionService(dio).current();
+    expect(version, isNotNull);
+    expect([
+      for (final f in ServerFeature.values)
+        if (!version!.supports(f)) f.name,
+    ], isEmpty);
+  });
+
+  group('material numbers', () {
+    final source = NativeInventorySource(dio);
+
+    test('every row carries the key, so the gate opens off the rows', () async {
+      final spools = await source.fetchSpools();
+      expect(spools.every((s) => s.materialNumberReported), isTrue);
+      expect(spools.any((s) => s.materialNumber == null), isTrue);
+      expect(spools.any((s) => s.materialNumber == '15'), isTrue);
+    });
+
+    test('stats group by number and the range narrows usage only', () async {
+      final repo = InventoryRepository(source);
+      final all = await repo.fetchMaterialNumberStats();
+      expect(all.map((r) => r.materialNumber), contains('15'));
+      expect(all.first.consumedGrams, greaterThan(0));
+
+      final far = DateTime(2000);
+      final none = await repo.fetchMaterialNumberStats(from: far, to: far);
+      expect(none.every((r) => r.consumedGrams == 0), isTrue);
+      expect(
+        none.map((r) => r.remainingGrams),
+        all.map((r) => r.remainingGrams),
+        reason: 'stock is point-in-time',
+      );
+    });
+
+    test('a new spool of a numbered product inherits the number', () async {
+      final numbered = (await source.fetchSpools()).firstWhere(
+        (s) => s.materialNumber != null,
+      );
+      final created = await source.createSpool(
+        SpoolDraft(
+          material: numbered.material,
+          subtype: numbered.subtype,
+          brand: numbered.brand,
+          colorName: numbered.colorName,
+        ),
+      );
+      expect(created.materialNumber, numbered.materialNumber);
+
+      final own = await source.createSpool(
+        SpoolDraft(
+          material: numbered.material,
+          subtype: numbered.subtype,
+          brand: numbered.brand,
+          colorName: numbered.colorName,
+          materialNumber: ' X-1 ',
+        ),
+      );
+      expect(own.materialNumber, 'X-1');
+      await source.deleteSpool(created.id);
+      await source.deleteSpool(own.id);
+    });
+
+    test('a blank number clears it, like the schema validator', () async {
+      final created = await source.createSpool(
+        const SpoolDraft(material: 'PCTG', materialNumber: '77'),
+      );
+      expect(created.materialNumber, '77');
+      final cleared = await source.updateSpool(
+        created.id,
+        const SpoolDraft(material: 'PCTG', materialNumber: ' '),
+      );
+      expect(cleared.materialNumber, isNull);
+      await source.deleteSpool(created.id);
+    });
+
+    test('a bulk edit sets it on every selected spool', () async {
+      final created = [
+        await source.createSpool(const SpoolDraft(material: 'PVA')),
+        await source.createSpool(const SpoolDraft(material: 'HIPS')),
+      ];
+      final ids = [for (final s in created) s.id];
+      await source.bulkUpdate(ids, const SpoolBulkPatch(materialNumber: '9'));
+      final after = await source.fetchSpools();
+      expect(
+        after.where((s) => ids.contains(s.id)).map((s) => s.materialNumber),
+        ['9', '9'],
+      );
+      for (final id in ids) {
+        await source.deleteSpool(id);
+      }
+    });
+  });
+
+  group('printer locations', () {
+    final repo = PrinterLocationsRepository(dio);
+
+    test('the list counts the printers, styled or not, and keeps an empty '
+        'location', () async {
+      final rows = await repo.list();
+      final byName = {for (final l in rows) l.name: l};
+
+      expect(byName['Workshop']!.printerCount, 4);
+      expect(byName['Workshop']!.icon, 'wrench');
+      expect(byName['Office']!.printerCount, 1);
+      expect(byName['Storage']!.printerCount, 0);
+      expect(rows.map((l) => l.name), orderedEquals([...byName.keys]..sort()));
+    });
+
+    test(
+      'a rename moves the printers with it and a case variant is a 409',
+      () async {
+        await expectLater(
+          repo.create(const PrinterLocationDraft(name: 'WORKSHOP')),
+          throwsA(
+            isA<AppApiException>().having((e) => e.statusCode, 'status', 409),
+          ),
+        );
+
+        final renamed = await repo.update(
+          const PrinterLocationDraft(
+            name: 'Office',
+            newName: 'Front office',
+            icon: 'home',
+          ),
+        );
+        expect(renamed.printerCount, 1);
+        expect(
+          (await PrintersRepository(
+            dio,
+          ).fetchAll()).where((p) => p.printer.location == 'Front office'),
+          hasLength(1),
+        );
+
+        await repo.update(
+          const PrinterLocationDraft(
+            name: 'Front office',
+            newName: 'Office',
+            icon: 'home',
+          ),
+        );
+      },
+    );
+
+    test('assign moves the ids named, null takes them out, an unknown id '
+        'is a 404', () async {
+      expect(await repo.assign([2], 'Storage'), 1);
+      expect(
+        (await repo.list()).firstWhere((l) => l.name == 'Storage').printerCount,
+        1,
+      );
+      await expectLater(
+        repo.assign([2, 999], 'Storage'),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 404),
+        ),
+      );
+      expect(await repo.assign([2], 'Office'), 1);
+    });
+
+    test('delete ungroups the printers and counts the locations', () async {
+      final home = (await PrintersRepository(
+        dio,
+      ).fetchAll()).firstWhere((p) => p.printer.id == 5).printer.location;
+      await repo.create(const PrinterLocationDraft(name: 'Scratch'));
+      await repo.assign([5], 'Scratch');
+
+      expect(await repo.delete(['Scratch']), 1);
+      expect(
+        (await PrintersRepository(
+          dio,
+        ).fetchAll()).firstWhere((p) => p.printer.id == 5).printer.location,
+        isNull,
+      );
+      await repo.assign([5], home);
+    });
+  });
+
+  group('suppliers', () {
+    final suppliers = SuppliersRepository(dio);
+
+    test('the gate opens off the spool rows alone', () async {
+      final spools = await NativeInventorySource(dio).fetchSpools();
+      final repo = SuppliersRepository(dio);
+      repo.observeSpools(spools);
+      expect(repo.capability.observedAnswer, isTrue);
+      final linked = spools.where((s) => s.suppliers!.isNotEmpty).toList();
+      expect(linked, isNotEmpty);
+      expect(
+        linked.any((s) => s.suppliers!.any((l) => l.isPurchaseSource)),
+        isTrue,
+      );
+      // A spool with none, so the filter and the card's absence show too.
+      expect(spools.any((s) => s.suppliers!.isEmpty), isTrue);
+    });
+
+    test('the list has one deletable row and refuses the others', () async {
+      final rows = await suppliers.listSuppliers();
+      expect(rows.length, greaterThanOrEqualTo(3));
+      expect(rows.where((r) => r.spoolCount == 0), isNotEmpty);
+      final used = rows.firstWhere((r) => r.spoolCount > 0);
+      await expectLater(
+        suppliers.deleteSupplier(used.id),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 409),
+        ),
+      );
+      await expectLater(
+        suppliers.createSupplier(SupplierDraft(name: used.name.toUpperCase())),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 409),
+        ),
+      );
+    });
+
+    test('create, rename onto the links, delete', () async {
+      final created = await suppliers.createSupplier(
+        const SupplierDraft(name: 'Demo test shop'),
+      );
+      final source = NativeInventorySource(dio);
+      final spool = (await source.fetchSpools()).last;
+      final before = spool.suppliers!;
+      await suppliers.saveSpoolLinks(spool.id, [
+        ...before,
+        SpoolSupplierLink(supplierId: created.id),
+      ], backend: InventoryBackend.native);
+
+      await suppliers.updateSupplier(
+        created.id,
+        const SupplierDraft(name: 'Demo test shop 2'),
+      );
+      final reread = (await source.fetchSpools()).firstWhere(
+        (s) => s.id == spool.id,
+      );
+      expect(reread.suppliers!.last.supplierName, 'Demo test shop 2');
+
+      await suppliers.saveSpoolLinks(
+        spool.id,
+        before,
+        backend: InventoryBackend.native,
+      );
+      await suppliers.deleteSupplier(created.id);
+      expect(
+        (await suppliers.listSuppliers()).any((r) => r.id == created.id),
+        isFalse,
+      );
+    });
+
+    test('two purchase sources are refused like the route does', () async {
+      final spool = (await NativeInventorySource(dio).fetchSpools()).first;
+      await expectLater(
+        suppliers.saveSpoolLinks(spool.id, const [
+          SpoolSupplierLink(supplierId: 1, isPurchaseSource: true),
+          SpoolSupplierLink(supplierId: 2, isPurchaseSource: true),
+        ], backend: InventoryBackend.native),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 400),
+        ),
+      );
+    });
+
+    test('stats: purchase sources only, and the range narrows usage', () async {
+      final all = await suppliers.fetchStats();
+      expect(all, isNotEmpty);
+      expect(all.first.consumedGrams, greaterThan(0));
+      expect(all.any((r) => r.supplierName == 'Printed Solid'), isFalse);
+
+      final far = DateTime(2000);
+      final none = await suppliers.fetchStats(from: far, to: far);
+      expect(none.every((r) => r.consumedGrams == 0), isTrue);
+      // Stock is point-in-time and ignores the range.
+      expect(
+        none.map((r) => r.remainingGrams),
+        all.map((r) => r.remainingGrams),
+      );
+    });
+
+    test('a spool with no sources is never the donor', () async {
+      final source = NativeInventorySource(dio);
+      final linked = (await source.fetchSpools()).firstWhere(
+        (s) => s.suppliers!.isNotEmpty,
+      );
+      final draft = SpoolDraft(
+        material: linked.material,
+        subtype: linked.subtype,
+        brand: linked.brand,
+        colorName: linked.colorName,
+      );
+      final bare = await source.createSpool(draft);
+      await suppliers.saveSpoolLinks(
+        bare.id,
+        const [],
+        backend: InventoryBackend.native,
+      );
+      final next = await source.createSpool(draft);
+
+      expect(
+        next.suppliers!.map((l) => l.supplierId),
+        linked.suppliers!.map((l) => l.supplierId),
+      );
+      await source.deleteSpool(next.id);
+      await source.deleteSpool(bare.id);
+    });
+
+    test('a rename is trimmed like the create', () async {
+      final created = await suppliers.createSupplier(
+        const SupplierDraft(name: 'Trim test'),
+      );
+      // Raw, because the model's parser trims on its own and would hide it.
+      final res = await dio.patch<Map<String, dynamic>>(
+        '/api/v1/inventory/suppliers/${created.id}',
+        data: const SupplierDraft(name: '  Trim test 2  ').toJson(),
+      );
+      expect(res.data!['name'], 'Trim test 2');
+      await suppliers.deleteSupplier(created.id);
+    });
+
+    test('a new spool inherits the sources, not the purchase', () async {
+      final source = NativeInventorySource(dio);
+      final linked = (await source.fetchSpools()).firstWhere(
+        (s) => s.suppliers!.any((l) => l.isPurchaseSource),
+      );
+      final created = await source.createSpool(
+        SpoolDraft(
+          material: linked.material,
+          subtype: linked.subtype,
+          brand: linked.brand,
+          colorName: linked.colorName,
+        ),
+      );
+      expect(
+        created.suppliers!.map((l) => l.supplierId),
+        linked.suppliers!.map((l) => l.supplierId),
+      );
+      expect(created.suppliers!.every((l) => !l.isPurchaseSource), isTrue);
+      await source.deleteSpool(created.id);
     });
   });
 }

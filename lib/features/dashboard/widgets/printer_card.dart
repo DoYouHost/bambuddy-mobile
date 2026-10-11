@@ -12,6 +12,7 @@ import '../../../core/api/api_exceptions.dart';
 import '../../../core/format/datetime_format.dart';
 import '../../../core/format/duration_format.dart';
 import '../../../core/models/inventory.dart';
+import '../../../core/models/printer.dart';
 import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';
 import '../../../core/models/scheduled_drying.dart';
@@ -46,6 +47,7 @@ import '../../inventory/inventory_screen.dart'
     show SpoolSwatch, assignmentSlotLabel, openSpoolInInventory;
 import '../../inventory/spool_scanner_screen.dart';
 import '../../maintenance/maintenance_providers.dart';
+import '../add_printer_screen.dart';
 import '../controls_providers.dart';
 import '../drying_schedule.dart';
 import '../scheduled_drying_providers.dart';
@@ -210,6 +212,7 @@ class _PrinterCardState extends State<PrinterCard> {
             _HeaderLine(
               leading: _IconSquare(tokens: t, offline: true),
               name: name,
+              editable: widget.item.printer,
               // Smart plug stays controllable even when OFFLINE — the only way to
               // remotely power the printer back on. Auto-hides if none assigned.
               beforeStatus: _SmartPlugButton(
@@ -266,6 +269,7 @@ class _PrinterCardState extends State<PrinterCard> {
           _HeaderLine(
             leading: _IconSquare(tokens: t, offline: !connected),
             name: name,
+            editable: widget.item.printer,
             status: _StateChip(
               label: _stateChipLabel(l10n, status),
               offline: !connected,
@@ -287,7 +291,10 @@ class _PrinterCardState extends State<PrinterCard> {
               ),
               if (connected)
                 Padding(
-                  padding: const EdgeInsets.only(left: 10, top: 10),
+                  padding: const EdgeInsets.only(
+                    left: DashSpace.md,
+                    top: DashSpace.md,
+                  ),
                   child: _HeaderActions(
                     printerId: printerId,
                     printerName: name,
@@ -299,7 +306,7 @@ class _PrinterCardState extends State<PrinterCard> {
           if (status != null)
             _PlateClearBanner(printerId: printerId, status: status),
           if (hmsErrors.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: DashSpace.md),
             _HmsErrorsPanel(
               printerId: printerId,
               printerName: name,
@@ -307,11 +314,11 @@ class _PrinterCardState extends State<PrinterCard> {
             ),
           ],
           if (printing) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
             _PrintPanel(status: status!),
           ],
           if (readings.isNotEmpty) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: DashSpace.lg),
             _TempGrid(
               readings: readings,
               printerId: printerId,
@@ -353,7 +360,12 @@ class _PrinterCardState extends State<PrinterCard> {
                           _MovementTile(printerId: printerId, model: model),
                         if (hasFans)
                           _FansGrid(status: status, printerId: printerId),
-                        if (hasDetails) _DetailsPanel(status: status),
+                        if (hasDetails)
+                          _DetailsPanel(
+                            status: status,
+                            serial: widget.item.printer.serialNumber,
+                            nozzleCount: widget.item.printer.nozzleCount,
+                          ),
                       ],
                     )
                   : const SizedBox(width: double.infinity),
@@ -383,8 +395,16 @@ class _CardShell extends StatelessWidget {
     return logTag(
       'dashboard.printer_card',
       Container(
-        margin: const EdgeInsets.fromLTRB(16, 7, 16, 7),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        margin: const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          DashSpace.sm,
+          DashSpace.gutter,
+          DashSpace.sm,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.lg,
+          vertical: DashSpace.lg,
+        ),
         decoration: BoxDecoration(
           gradient: tokens.cardGradient,
           borderRadius: BorderRadius.circular(26),
@@ -464,10 +484,15 @@ class _HeaderLine extends StatelessWidget {
     this.toggle,
     this.afterName,
     this.belowName,
+    this.editable,
   });
 
   final Widget leading;
   final String name;
+
+  /// The printer a long press on the name opens for editing, when the session
+  /// may change printers. Null for a header that offers no edit.
+  final Printer? editable;
   final Widget status;
   final Widget? beforeStatus;
   final Widget? toggle;
@@ -531,7 +556,10 @@ class _HeaderLine extends StatelessWidget {
                         return Row(
                           children: [
                             Flexible(
-                              child: _NameText(name: name, tokens: t),
+                              child: _EditableName(
+                                printer: editable,
+                                child: _NameText(name: name, tokens: t),
+                              ),
                             ),
                             if (showAfterName) ...[
                               const SizedBox(width: _afterNameGap),
@@ -570,6 +598,34 @@ class _HeaderLine extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// Opens the printer's edit form on a long press — the card has no menu, and
+/// a fourth header icon would crowd the name out on a narrow screen. Absent
+/// for an API-key session, which the server refuses `printers:update`.
+class _EditableName extends ConsumerWidget {
+  const _EditableName({required this.printer, required this.child});
+
+  final Printer? printer;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final printer = this.printer;
+    if (printer == null || !ref.watch(canUpdatePrintersProvider)) return child;
+    return Semantics(
+      onLongPressHint: AppLocalizations.of(context).editPrinterTitle,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onLongPress: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => AddPrinterScreen(printer: printer),
+          ),
+        ),
+        child: child,
+      ).tagged('printer.edit'),
     );
   }
 }
@@ -626,7 +682,7 @@ class _HeaderActions extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: DashSpace.sm),
         _HeaderIconButton(
           id: 'printer.camera',
           tooltip: l10n.cameraTooltip,
@@ -640,7 +696,7 @@ class _HeaderActions extends StatelessWidget {
         ),
         // Skip objects only makes sense during an active print.
         if (printing) ...[
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           _HeaderIconButton(
             id: 'printer.skip_objects',
             tooltip: l10n.skipObjectsTitle,
@@ -655,7 +711,7 @@ class _HeaderActions extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(width: 8),
+        const SizedBox(width: DashSpace.sm),
         _SmartPlugButton(printerId: printerId, printing: printing),
       ],
     );

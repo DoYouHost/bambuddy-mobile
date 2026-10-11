@@ -74,24 +74,30 @@ class _CameraViewState extends ConsumerState<CameraView> {
   Widget _stream(String baseUrl, String token, AppLocalizations l10n) {
     final url =
         '$baseUrl${Endpoints.cameraStream(widget.printerId)}?token=$token';
-    return MjpegView(
-      url: url,
-      fit: BoxFit.contain,
-      loading: (_) => _Loading(text: l10n.cameraConnecting),
-      retrying: (_) => const _Retrying(),
-      error: (context, error) {
-        // 401 = token expired -> once force re-mint and restart stream.
-        if (_isTokenExpired(error) && _remintedFor != token) {
-          _remintedFor = token;
-          Future.microtask(() {
-            if (!mounted) return;
-            ref.read(cameraTokenServiceProvider).invalidate();
-            ref.invalidate(cameraTokenProvider);
-          });
-          return _Loading(text: l10n.cameraConnecting);
-        }
-        return _Message(text: l10n.cameraError, onRetry: _retry);
-      },
+    return LayoutBuilder(
+      builder: (context, box) => MjpegView(
+        url: url,
+        fit: BoxFit.contain,
+        // `contain` never draws wider than the box, so neither is the decode.
+        cacheWidth: box.maxWidth.isFinite
+            ? (box.maxWidth * MediaQuery.devicePixelRatioOf(context)).round()
+            : null,
+        loading: (_) => _Loading(text: l10n.cameraConnecting),
+        retrying: (_) => const CameraRetryingBadge(),
+        error: (context, error) {
+          // 401 = token expired -> once force re-mint and restart stream.
+          if (_isTokenExpired(error) && _remintedFor != token) {
+            _remintedFor = token;
+            Future.microtask(() {
+              if (!mounted) return;
+              ref.read(cameraTokenServiceProvider).invalidate();
+              ref.invalidate(cameraTokenProvider);
+            });
+            return _Loading(text: l10n.cameraConnecting);
+          }
+          return _Message(text: l10n.cameraError, onRetry: _retry);
+        },
+      ),
     );
   }
 }
@@ -107,12 +113,12 @@ class _DemoUnavailable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(DashSpace.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Icons.videocam_off, color: Colors.white54, size: 48),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Text(
             text,
             textAlign: TextAlign.center,
@@ -135,7 +141,7 @@ class _Loading extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         const CircularProgressIndicator(color: Colors.white),
-        const SizedBox(height: 16),
+        const SizedBox(height: DashSpace.lg),
         Text(text, style: const TextStyle(color: Colors.white70)),
       ],
     );
@@ -145,8 +151,8 @@ class _Loading extends StatelessWidget {
 /// Sits in the corner of the last frame while the stream is being retried. The
 /// picture is frozen but still worth more than an error message a blip will
 /// outlive — this is what says so.
-class _Retrying extends StatelessWidget {
-  const _Retrying();
+class CameraRetryingBadge extends StatelessWidget {
+  const CameraRetryingBadge({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -154,8 +160,8 @@ class _Retrying extends StatelessWidget {
       label: AppLocalizations.of(context).cameraConnecting,
       liveRegion: true,
       child: Container(
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.all(8),
+        margin: const EdgeInsets.all(DashSpace.md),
+        padding: const EdgeInsets.all(DashSpace.sm),
         decoration: const BoxDecoration(
           color: Colors.black54,
           shape: BoxShape.circle,
@@ -179,18 +185,18 @@ class _Message extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(DashSpace.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Icons.videocam_off, color: Colors.white54, size: 48),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Text(
             text,
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white70),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: DashSpace.lg),
           FilledButton(
             onPressed: onRetry,
             child: Text(l10n.retry),

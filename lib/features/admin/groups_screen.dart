@@ -9,6 +9,7 @@ import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
 import 'group_form_screen.dart';
 import 'groups_providers.dart';
+import '../common/tappable_card.dart';
 
 /// The groups on the server (full screen, pushed from the dashboard drawer).
 ///
@@ -34,7 +35,7 @@ class GroupsScreen extends ConsumerWidget {
                 'groups.create',
                 FloatingActionButton.extended(
                   backgroundColor: t.accentGreen,
-                  foregroundColor: const Color(0xFF0A0C08),
+                  foregroundColor: t.onAccent,
                   onPressed: () => openGroupCreate(context),
                   icon: const Icon(Icons.add),
                   label: Text(l10n.groupsCreate),
@@ -53,9 +54,9 @@ class GroupsScreen extends ConsumerWidget {
                     icon: Icons.group_outlined,
                   )
                 : ListView.builder(
-                    padding: withSystemNavInset(
+                    padding: screenListPadding(
                       context,
-                      const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                      bottom: canManage ? DashSpace.fabClearance : DashSpace.xl,
                     ),
                     itemCount: groups.length,
                     itemBuilder: (_, i) => GroupCard(
@@ -88,87 +89,68 @@ class GroupCard extends StatelessWidget {
     // ink, and the warm one is the only accent whose vivid form fails there.
     final accentInk = group.isSystem ? t.accentOrangeInk : t.accentBlue;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Material(
-        color: Colors.transparent,
-        child: logTag(
-          'groups.group',
-          InkWell(
-            borderRadius: BorderRadius.circular(22),
-            onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: t.cardBox,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.16),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: accent.withValues(alpha: 0.4)),
+    return TappableCard(
+      id: 'groups.group',
+      onTap: onTap,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.16),
+              shape: BoxShape.circle,
+              border: Border.all(color: accent.withValues(alpha: 0.4)),
+            ),
+            child: Icon(Icons.group_outlined, size: 20, color: accentInk),
+          ),
+          const SizedBox(width: DashSpace.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        group.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.titleMd,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.group_outlined,
-                      size: 20,
-                      color: accentInk,
-                    ),
+                    if (group.isSystem) ...[
+                      const SizedBox(width: DashSpace.sm),
+                      Text(
+                        l10n.usersGroupSystem,
+                        style: t.micro.copyWith(color: t.accentOrangeInk),
+                      ),
+                    ],
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: DashSpace.xs),
+                  child: Text(
+                    (group.description?.isNotEmpty ?? false)
+                        ? group.description!
+                        : l10n.groupsNoDescription,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.labelSoft.copyWith(color: t.textSecondary),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                group.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: t.titleMd,
-                              ),
-                            ),
-                            if (group.isSystem) ...[
-                              const SizedBox(width: 8),
-                              Text(
-                                l10n.usersGroupSystem,
-                                style: t.micro.copyWith(
-                                  color: t.accentOrangeInk,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(
-                            (group.description?.isNotEmpty ?? false)
-                                ? group.description!
-                                : l10n.groupsNoDescription,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: t.labelSoft.copyWith(color: t.textSecondary),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${l10n.groupsMemberCount(group.userCount)}'
-                          ' · ${l10n.groupsPermissionCount(group.permissions.length)}',
-                          style: t.monoLabel,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: DashSpace.sm),
+                Text(
+                  '${l10n.groupsMemberCount(group.userCount)}'
+                  ' · ${l10n.groupsPermissionCount(group.permissions.length)}',
+                  style: t.monoLabel,
+                ),
+              ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }

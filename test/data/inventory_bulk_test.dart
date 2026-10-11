@@ -225,6 +225,7 @@ void main() {
 
         expect(outcome.ok, 500);
         expect(outcome.failed, 1, reason: 'the chunk that never took effect');
+        expect(outcome.errorIds, [501]);
       },
     );
 

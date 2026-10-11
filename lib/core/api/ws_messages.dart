@@ -34,6 +34,17 @@ class WsPlateNotEmpty extends WsMessage {
   final String? message;
 }
 
+/// A completed print asked for its outcome verdict (#1898): the queue item
+/// opted in, or the server asks about every print it did not start. Sent once,
+/// as the print ends, to every connected client — whoever answers first
+/// settles it, which is why the sheet re-reads the archive before asking.
+class WsPrintConfirmRequest extends WsMessage {
+  const WsPrintConfirmRequest(this.printerId, this.archiveId, this.printName);
+  final int printerId;
+  final int archiveId;
+  final String? printName;
+}
+
 /// Purely a trigger to refresh queue and maintenance: their state changes
 /// exactly at these moments — the queue advances, maintenance counters tick —
 /// and the server pushes neither over WS.
@@ -85,6 +96,13 @@ class WsPipelineRunUpdated extends WsMessage {
 /// reaches the phone without a pull.
 class WsInventoryChanged extends WsMessage {
   const WsInventoryChanged();
+}
+
+/// The maintainers' announcements changed on the server: its periodic fetch of
+/// the feed brought something new (`services/announcements.py`). Carries
+/// nothing; the inbox is re-read.
+class WsAnnouncementsChanged extends WsMessage {
+  const WsAnnouncementsChanged();
 }
 
 /// Any arriving frame resets the watchdog; this one is told apart so the
@@ -152,6 +170,18 @@ WsMessage? parseWsMessage(String raw) {
         archiveId,
         photoAdded: photo is String && photo.isNotEmpty ? photo : null,
       );
+    case 'print_confirm_request':
+      // Printer-scoped like `plate_not_empty`, with the archive under `data`.
+      final printerId = toIntOrNull(decoded['printer_id']);
+      final data = decoded['data'];
+      if (printerId == null || data is! Map) return WsUnknown(type);
+      final archiveId = toIntOrNull(data['archive_id']);
+      if (archiveId == null) return WsUnknown(type);
+      return WsPrintConfirmRequest(
+        printerId,
+        archiveId,
+        data['print_name']?.toString(),
+      );
     case 'pipeline_run_updated':
       // The run sits under `run`, not `data` — a third shape, alongside the
       // printer-scoped frames and `archive_updated`'s `data`.
@@ -159,6 +189,8 @@ WsMessage? parseWsMessage(String raw) {
       if (run is! Map<String, dynamic>) return WsUnknown(type);
       if (toIntOrNull(run['id']) == null) return WsUnknown(type);
       return WsPipelineRunUpdated(run);
+    case 'announcements_changed':
+      return const WsAnnouncementsChanged();
     case 'pong':
       return const WsPong();
     default:

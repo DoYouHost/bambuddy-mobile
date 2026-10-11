@@ -7,6 +7,7 @@ import '../../core/models/library_stats.dart';
 import '../../core/models/library_tag.dart';
 import '../../core/models/trash_file.dart';
 import '../../providers.dart';
+import '../../core/format/text_compare.dart';
 
 /// File list sort keys (client-side — endpoint doesn't sort).
 enum FileSort { dateDesc, dateAsc, nameAsc, nameDesc, sizeDesc, sizeAsc }
@@ -133,7 +134,7 @@ class FileManagerState {
   /// Subfolders of current folder (sorted alphabetically).
   List<LibraryFolder> get subfolders {
     final list = allFolders.where((f) => f.parentId == currentFolderId).toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      ..sort((a, b) => compareIgnoringCase(a.name, b.name));
     return list;
   }
 
@@ -175,7 +176,7 @@ class FileManagerState {
     }).toList();
 
     int byName(LibraryFile a, LibraryFile b) =>
-        a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+        compareIgnoringCase(a.displayName, b.displayName);
     int byDate(LibraryFile a, LibraryFile b) {
       final da = a.createdAt, db = b.createdAt;
       if (da == null && db == null) return 0;
@@ -211,21 +212,7 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
     final repo = ref.read(libraryRepositoryProvider);
     final folders = await repo.listFolders();
     final files = await repo.listFiles(folderId: null);
-    return FileManagerState(allFolders: _flatten(folders), files: files);
-  }
-
-  /// Flattens nested folder tree to a single list.
-  List<LibraryFolder> _flatten(List<LibraryFolder> roots) {
-    final out = <LibraryFolder>[];
-    void walk(List<LibraryFolder> nodes) {
-      for (final n in nodes) {
-        out.add(n);
-        if (n.children.isNotEmpty) walk(n.children);
-      }
-    }
-
-    walk(roots);
-    return out;
+    return FileManagerState(allFolders: flattenFolders(folders), files: files);
   }
 
   /// Opens folder [folderId] (null = root) and fetches its files.
@@ -272,7 +259,7 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
       final repo = ref.read(libraryRepositoryProvider);
       final folders = await repo.listFolders();
       final files = await repo.listFiles(folderId: folderId);
-      final flat = _flatten(folders);
+      final flat = flattenFolders(folders);
       // Folder may have disappeared (deleted) — back to root.
       final stillExists = folderId == null || flat.any((f) => f.id == folderId);
       return FileManagerState(

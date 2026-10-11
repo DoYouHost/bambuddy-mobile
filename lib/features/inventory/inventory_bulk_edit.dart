@@ -35,6 +35,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
       'material',
       'brand',
       'subtype',
+      'materialNumber',
       'colorName',
       'rgba',
       'labelWeight',
@@ -50,14 +51,29 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
 
   String? _slicerFilament;
   String? _slicerFilamentName;
+
+  /// Suppliers to add to every selected spool — never a replacement of their
+  /// lists, see [InventoryNotifier.bulkUpdateSpools].
+  final _links = <_LinkDraft>[];
+
+  /// Whether the last build showed the supplier section. Drafts it no longer
+  /// shows (a reload lost a spool's list) must not be sent unseen.
+  bool _suppliersShown = false;
   bool _saving = false;
 
   int get _count => widget.spoolIds.length;
+
+  /// Native backend only, and only where the server stores the number; the
+  /// patch drops it otherwise so a field that was never shown cannot be sent.
+  bool _showsMaterialNumber = false;
 
   @override
   void dispose() {
     for (final c in _c.values) {
       c.dispose();
+    }
+    for (final link in _links) {
+      link.dispose();
     }
     super.dispose();
   }
@@ -74,12 +90,15 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   /// the button dead with nothing on screen saying why. Enabled, the tap runs
   /// the validator and the field explains itself.
   bool get _hasInput =>
-      _slicerFilament != null || _c.values.any((c) => c.text.trim().isNotEmpty);
+      _slicerFilament != null ||
+      (_suppliersShown && _links.isNotEmpty) ||
+      _c.values.any((c) => c.text.trim().isNotEmpty);
 
   SpoolBulkPatch _patch() => SpoolBulkPatch(
     material: _trim('material'),
     brand: _trim('brand'),
     subtype: _trim('subtype'),
+    materialNumber: _showsMaterialNumber ? _trim('materialNumber') : null,
     colorName: _trim('colorName'),
     rgba: normalizeRgba(_c['rgba']!.text),
     labelWeight: _int('labelWeight'),
@@ -103,13 +122,20 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     // dropped from the patch and the tally would still report success.
     if (!_formKey.currentState!.validate()) return;
     final patch = _patch();
-    if (patch.isEmpty) return;
+    final links = [
+      if (_suppliersShown)
+        for (final link in _links) link.toLink(),
+    ];
+    if (patch.isEmpty && links.isEmpty) return;
 
     final confirmed = await confirmDialog(
       context,
       id: 'bulk_edit.apply',
       title: l10n.inventoryBulkEditConfirmTitle(_count),
-      message: l10n.inventoryBulkEditConfirmBody(patch.fieldCount),
+      message: [
+        if (!patch.isEmpty) l10n.inventoryBulkEditConfirmBody(patch.fieldCount),
+        if (links.isNotEmpty) l10n.inventoryBulkEditConfirmSuppliers,
+      ].join(' '),
       confirmLabel: l10n.inventoryApply,
     );
     if (!confirmed || !mounted) return;
@@ -118,7 +144,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     try {
       final outcome = await ref
           .read(inventoryProvider.notifier)
-          .bulkUpdateSpools(widget.spoolIds, patch);
+          .bulkUpdateSpools(widget.spoolIds, patch, addSuppliers: links);
       if (!mounted) return;
       Navigator.of(context).pop(outcome);
     } on AppApiException catch (e) {
@@ -129,9 +155,13 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
         l10n,
         action: 'bulk_edit.apply',
         // A 404 here is the server saying it has no bulk-update route at all
-        // (it predates 0.2.5b1), which the generic wording would report as a
-        // missing spool.
-        message: e.statusCode == 404 ? l10n.inventoryBulkEditUnsupported : null,
+        // (it predates 0.2.5b1), which a bare "error 404" would not explain.
+        // A server that offers suppliers is far newer than
+        // that route, so with suppliers in the edit a 404 is a replace that
+        // found no such spool or supplier.
+        message: e.statusCode == 404 && links.isEmpty
+            ? l10n.inventoryBulkEditUnsupported
+            : null,
       );
     } on Object {
       if (!mounted) return;
@@ -146,7 +176,21 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final native =
-        ref.watch(inventoryBackendProvider) == InventoryBackend.native;
+        ref.watch(inventoryBackendProvider).valueOrNull ==
+        InventoryBackend.native;
+    // Every selected spool has to have brought its list along: the write
+    // merges into it, and a spool without one cannot be merged into.
+    final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+    final listed = {
+      for (final s in spools)
+        if (s.suppliers != null) s.id,
+    };
+    final showSuppliers =
+        ref.watch(suppliersSupportedProvider).orFalse &&
+        widget.spoolIds.every(listed.contains);
+    _suppliersShown = showSuppliers;
+    _showsMaterialNumber =
+        native && ref.watch(materialNumberSupportedProvider).orFalse;
 
     return DraggableSheetSurface(
       initialSize: 0.9,
@@ -155,12 +199,17 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
         key: _formKey,
         child: ListView(
           controller: controller,
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
+          padding: EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.xl + bottomInset,
+          ),
           children: [
             Text(l10n.inventoryBulkEditTitle(_count), style: t.display),
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
             Text(l10n.inventoryBulkEditHint, style: t.bodySoft),
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
 
             _FormSection(label: l10n.inventorySectionFilament),
             _presetField(l10n),
@@ -179,9 +228,15 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
               l10n.inventoryFieldSubtype,
               ref.watch(subtypeOptionsProvider),
             ),
+            if (_showsMaterialNumber)
+              _combo(
+                'materialNumber',
+                l10n.inventoryFieldMaterialNumber,
+                ref.watch(materialNumberOptionsProvider),
+              ),
             _field('labelWeight', l10n.inventoryFieldLabelWeight, number: true),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             _FormSection(label: l10n.inventorySectionColor),
             _field('colorName', l10n.inventoryFieldColorName),
             ValueListenableBuilder(
@@ -189,7 +244,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
               builder: (context, _, _) => _colorField(l10n),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             _FormSection(label: l10n.inventorySectionAdditional),
             _field(
               'coreWeight',
@@ -218,7 +273,15 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
             ),
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
 
-            const SizedBox(height: 20),
+            if (showSuppliers)
+              _SupplierLinksSection(
+                links: _links,
+                bulk: true,
+                hint: l10n.inventoryBulkSupplierLinksHint,
+                onChanged: setState,
+              ),
+
+            const SizedBox(height: DashSpace.xl),
             _applyButton(t, l10n),
           ],
         ),
@@ -237,59 +300,17 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     builder: (context, _) => SizedBox(
       width: double.infinity,
       child: FilledButton(
-        style: FilledButton.styleFrom(
-          backgroundColor: t.accentGreen,
-          foregroundColor: _onAccentGreen,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-        ),
         onPressed: _saving || !_hasInput ? null : _apply,
         child: _saving
-            ? DashSpinner(size: 20, color: _onAccentGreen)
-            : Text(
-                l10n.inventoryBulkEditApply(_count),
-                style: const TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+            ? DashSpinner(size: 20, color: t.onAccent)
+            : Text(l10n.inventoryBulkEditApply(_count)),
       ).tagged('bulk_edit.apply'),
     ),
   );
 
-  /// Editable combo: pick from what the shelf already uses, or type a new
-  /// value. Same widget the per-spool form uses, minus the required marker —
-  /// nothing is required here.
-  Widget _combo(String key, String label, List<String> options) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: dashCombo<String>(
-      context,
-      id: _fieldTag(key, area: 'bulk_edit'),
-      controller: _c[key],
-      label: Text(label),
-      filterable: true,
-      textStyle: DashTokens.of(context).body,
-      entries: [
-        for (final o in options)
-          DropdownMenuEntry(
-            value: o,
-            label: o,
-            labelWidget: logTagMaterial(
-              '${_fieldTag(key, area: 'bulk_edit')}.option',
-              o,
-              Text(o),
-            ),
-          ),
-      ],
-    ),
-  );
+  Widget _combo(String key, String label, List<String> options) =>
+      _spoolCombo(context, _c, key, label, options, area: 'bulk_edit');
 
-  /// [min] and [max] bound a numeric field the server validates: typing
-  /// outside the range has to say so here, because silently clamping it would
-  /// apply a value the user never chose — across the whole selection.
   Widget _field(
     String key,
     String label, {
@@ -298,43 +319,18 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     int maxLines = 1,
     int? min,
     int? max,
-  }) {
-    final l10n = AppLocalizations.of(context);
-    final t = DashTokens.of(context);
-    return logTag(
-      _fieldTag(key, area: 'bulk_edit'),
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: TextFormField(
-          controller: _c[key],
-          style: t.body,
-          keyboardType: number
-              ? const TextInputType.numberWithOptions(decimal: true)
-              : (maxLines > 1 ? TextInputType.multiline : TextInputType.text),
-          maxLines: maxLines,
-          textCapitalization: number
-              ? TextCapitalization.none
-              : TextCapitalization.sentences,
-          decoration: dashDecoration(t, labelText: label, hintText: hint),
-          validator: (v) {
-            final text = (v ?? '').trim();
-            if (!number || text.isEmpty) return null;
-            final value = parseUserDecimal(text);
-            if (value == null) return l10n.inventoryFieldInvalidNumber;
-            if (min != null && max != null && (value < min || value > max)) {
-              return l10n.inventoryFieldRange(min, max);
-            }
-            // Fields without a declared range still have a floor. `cost_per_kg`
-            // is `ge=0` server-side and a negative one 422s the whole selection;
-            // `core_weight` has no such guard and stores the negative, which
-            // then poisons every remaining-weight sum built on it.
-            if (value < 0) return l10n.inventoryFieldNegative;
-            return null;
-          },
-        ),
-      ),
-    );
-  }
+  }) => _spoolTextField(
+    context,
+    _c,
+    key,
+    label,
+    area: 'bulk_edit',
+    number: number,
+    hint: hint,
+    maxLines: maxLines,
+    min: min,
+    max: max,
+  );
 
   /// Slicer preset for the whole selection. Clearing it means "leave every
   /// spool's preset as it is" — it does not unset the preset server-side.

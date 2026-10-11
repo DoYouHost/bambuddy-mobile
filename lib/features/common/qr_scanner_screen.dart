@@ -133,9 +133,11 @@ class _QrScannerScreenState<T extends Object>
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: DashSpace.xl),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DashSpace.xxl,
+                  ),
                   child: Text(
                     widget.hint,
                     textAlign: TextAlign.center,
@@ -174,7 +176,7 @@ class _ScannerError extends StatelessWidget {
     final denied = error.errorCode == MobileScannerErrorCode.permissionDenied;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(DashSpace.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -183,14 +185,14 @@ class _ScannerError extends StatelessWidget {
               color: t.textSecondary,
               size: 56,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             Text(
               denied ? l10n.cameraPermissionTitle : title,
               textAlign: TextAlign.center,
               style: t.titleLg,
             ),
             if (denied) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: DashSpace.sm),
               Text(
                 l10n.cameraPermissionBody,
                 textAlign: TextAlign.center,
@@ -200,7 +202,7 @@ class _ScannerError extends StatelessWidget {
                 ),
               ),
             ],
-            const SizedBox(height: 24),
+            const SizedBox(height: DashSpace.xl),
             FilledButton(
               style: dashPrimaryButtonStyle(t),
               onPressed: () => Navigator.of(context).maybePop(),

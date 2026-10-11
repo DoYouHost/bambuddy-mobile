@@ -10,6 +10,7 @@ import '../../core/auth/auth_headers.dart';
 import '../../core/demo/demo_ws.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_catalog.dart';
+import '../../core/notifications/outcome_prompt.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/widget/home_widget_publisher.dart';
 import '../../core/widget/multi_widget_publisher.dart';
@@ -80,6 +81,19 @@ final printerStatusesProvider =
       PrinterStatusesNotifier.new,
     );
 
+/// The roster with the live statuses laid over it — what every screen showing
+/// printers draws. A printer without an entry keeps the status the roster
+/// came with.
+List<PrinterWithStatus> withLiveStatuses(
+  List<PrinterWithStatus> roster,
+  Map<int, PrinterStatus> statuses,
+) => [
+  for (final p in roster)
+    statuses.containsKey(p.printer.id)
+        ? PrinterWithStatus(printer: p.printer, status: statuses[p.printer.id])
+        : p,
+];
+
 class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
   /// When the app last (re)gained an unbroken line to the server, or `null`
   /// while it has none. It answers the only question a `connected:false` frame
@@ -149,6 +163,17 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
       (_) => ref.read(archiveChangedProvider.notifier).bump(),
     );
     ref.onDispose(archiveSub.cancel);
+
+    final announcementsSub = client.announcementChanges.listen(
+      (_) => ref.read(announcementsChangedProvider.notifier).bump(),
+    );
+    ref.onDispose(announcementsSub.cancel);
+
+    // The shell owns the sheet; this only hands it the question.
+    final confirmSub = client.confirmRequests.listen(
+      (request) => outcomePrompts.post(request.archiveId),
+    );
+    ref.onDispose(confirmSub.cancel);
 
     // Primary trigger: explicit print_start/print_complete frames.
     final printSub = client.printEvents.listen(

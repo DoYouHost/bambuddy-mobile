@@ -209,7 +209,9 @@ Widget dashPickerField(
   IconData trailingIcon = Icons.arrow_drop_down,
   ({String id, VoidCallback onPressed})? clear,
   TextStyle? valueStyle,
-  EdgeInsetsGeometry padding = const EdgeInsets.symmetric(vertical: 6),
+  EdgeInsetsGeometry padding = const EdgeInsets.symmetric(
+    vertical: DashSpace.sm,
+  ),
 }) => _DashPickerField(
   id: id,
   label: label,
@@ -304,7 +306,10 @@ class _DashPickerFieldState extends State<_DashPickerField> {
           ),
           child: Row(
             children: [
-              if (leading != null) ...[leading, const SizedBox(width: 8)],
+              if (leading != null) ...[
+                leading,
+                const SizedBox(width: DashSpace.sm),
+              ],
               Expanded(
                 child: Text(
                   unset ? widget.placeholder : value,

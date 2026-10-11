@@ -23,11 +23,11 @@ class _ControlsActions extends ConsumerWidget {
     if (forbidden) {
       // API key lacks `can_control_printer`—show clear reason instead of dead buttons.
       return Padding(
-        padding: const EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.only(top: DashSpace.md),
         child: Row(
           children: [
             Icon(Icons.lock_outline, size: 16, color: t.textSecondary),
-            const SizedBox(width: 6),
+            const SizedBox(width: DashSpace.sm),
             Flexible(
               child: Text(
                 l10n.ctrlForbidden,
@@ -79,7 +79,7 @@ class _ControlsActions extends ConsumerWidget {
     if (buttons.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(top: DashSpace.md),
       child: _ControlsGrid(buttons: buttons),
     );
   }
@@ -149,7 +149,7 @@ class _LightSwitchRow extends ConsumerWidget {
     final busy = pending.isBusy(ControlAction.light);
 
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: DashSpace.md),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(18),
@@ -159,7 +159,10 @@ class _LightSwitchRow extends ConsumerWidget {
           InkWell(
             onTap: busy ? null : () => _toggle(context, ref, on: !on),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.lg,
+                vertical: DashSpace.lg,
+              ),
               decoration: BoxDecoration(
                 color: t.accentGreen.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(18),
@@ -179,7 +182,7 @@ class _LightSwitchRow extends ConsumerWidget {
                           size: 18,
                           color: t.accentGreenInk,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: DashSpace.sm),
                         Flexible(
                           child: Text(
                             l10n.ctrlLight,
@@ -189,7 +192,7 @@ class _LightSwitchRow extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   busy
                       ? const DashSpinner(size: 20)
                       : _PillSwitch(on: on, tokens: t),
@@ -227,6 +230,9 @@ class _PillSwitch extends StatelessWidget {
   final bool on;
   final DashTokens tokens;
 
+  static const _height = 24.0;
+  static const _knob = 20.0;
+
   @override
   Widget build(BuildContext context) {
     final knobColor = tokens.isDark
@@ -236,8 +242,8 @@ class _PillSwitch extends StatelessWidget {
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeInOut,
       width: 42,
-      height: 24,
-      padding: const EdgeInsets.all(2),
+      height: _height,
+      padding: const EdgeInsets.all((_height - _knob) / 2),
       decoration: BoxDecoration(
         color: on ? tokens.accentGreen : tokens.gaugeTrack,
         borderRadius: BorderRadius.circular(12),
@@ -247,8 +253,8 @@ class _PillSwitch extends StatelessWidget {
         curve: Curves.easeInOut,
         alignment: on ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
-          width: 20,
-          height: 20,
+          width: _knob,
+          height: _knob,
           decoration: BoxDecoration(color: knobColor, shape: BoxShape.circle),
         ),
       ),
@@ -476,7 +482,10 @@ class _LifecycleButton extends StatelessWidget {
         InkWell(
           onTap: busy ? null : onPressed,
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
+            padding: const EdgeInsets.symmetric(
+              vertical: DashSpace.md,
+              horizontal: DashSpace.md,
+            ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: border),
@@ -485,7 +494,7 @@ class _LifecycleButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 busy ? _btnSpinner : Icon(icon, size: 18, color: fg),
-                const SizedBox(width: 8),
+                const SizedBox(width: DashSpace.sm),
                 Text(label, style: t.bodyBold.copyWith(color: fg)),
               ],
             ),
@@ -523,11 +532,11 @@ class _SpeedControlTile extends ConsumerWidget {
     final speedLevel = pending.speedLevel ?? status.speedLevel;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(top: DashSpace.md),
       child: Row(
         children: [
           Icon(Icons.speed, size: 16, color: t.textSecondary),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Text(l10n.ctrlSpeed, style: t.body.copyWith(color: t.textSecondary)),
           const Spacer(),
           _SpeedControl(
@@ -586,7 +595,10 @@ class _SpeedControl extends StatelessWidget {
           ),
       ],
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.md,
+          vertical: DashSpace.md,
+        ),
         decoration: BoxDecoration(
           color: t.subCard,
           borderRadius: BorderRadius.circular(14),
@@ -598,7 +610,7 @@ class _SpeedControl extends StatelessWidget {
             busy
                 ? _btnSpinner
                 : Icon(Icons.speed, size: 18, color: t.textSecondary),
-            const SizedBox(width: 8),
+            const SizedBox(width: DashSpace.sm),
             Text(label, style: t.bodyBold.copyWith(color: t.textPrimary)),
             Icon(Icons.arrow_drop_down, size: 18, color: t.textSecondary),
           ],

@@ -1,28 +1,56 @@
 import 'dart:async';
+import 'dart:math';
 
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/ams/slot_addressing.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/location_sensor.dart';
+import '../../core/models/printer_status.dart';
 import '../../core/models/spool_preset_override.dart';
+import '../../core/models/supplier.dart';
 import '../../data/inventory_repository.dart';
+import '../../data/inventory_source.dart';
 import '../../providers.dart';
+import '../../core/format/text_compare.dart';
 
 /// Inventory snapshot for the screen: all spools (including archived) plus a map
 /// `spoolId → assignment to AMS slot`. Filtering (search / show archived) is done
 /// client-side on this list — data changes infrequently, so a single fetch suffices
 /// and toggles respond instantly.
 class InventoryState {
-  const InventoryState({
+  InventoryState({
     this.spools = const [],
-    this.assignmentBySpool = const {},
-  });
+    this.assignments = const [],
+    this.builtInSlots = const [],
+    this.linkedTags = const {},
+  }) : assignmentBySpool = {for (final a in assignments) a.spoolId: a};
 
   final List<Spool> spools;
+
+  /// Every slot assignment the backend lists. The server keys a row by the
+  /// slot alone, so one spool can sit in several slots — the slot lookups
+  /// read this, never [assignmentBySpool].
+  final List<SpoolAssignment> assignments;
+
+  /// One row per spool, for the Filaments list's "where is it": the last one
+  /// listed when a spool sits in several slots.
   final Map<int, SpoolAssignment> assignmentBySpool;
+
+  /// In Spoolman mode, the built-in inventory's slot assignments, each with
+  /// its spool: the web reads a slot's fill from them after Spoolman's own
+  /// (`getAssignment` in `PrintersPage.tsx`, fetched whatever the mode). In
+  /// built-in mode those are [assignments], and this stays empty.
+  final List<SpoolAssignment> builtInSlots;
+
+  /// In Spoolman mode, `GET /spoolman/spools/linked`: the web's first source
+  /// of a slot's fill, keyed by tag. Not the shelf: it leaves out archived
+  /// spools and keeps a missing net weight null rather than 1000.
+  final Map<String, LinkedSpool> linkedTags;
 
   SpoolAssignment? assignmentFor(int spoolId) => assignmentBySpool[spoolId];
 
@@ -57,26 +85,47 @@ final inventoryProvider =
 
 /// Fetches spools and assignments in one pass. Assignments degrade to an empty map
 /// if the endpoint fails/is unavailable — the spool list is more important than
-/// knowing which slot they occupy. Rebuilds on profile/backend change.
+/// knowing which slot they occupy. Rebuilds on profile change.
 class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   @override
   Future<InventoryState> build() async {
     ref.watch(serverProfileProvider);
-    ref.watch(inventoryBackendProvider);
+    ref.watch(inventoryRepositoryProvider);
     return _load();
   }
 
   Future<InventoryState> _load() async {
     final repo = ref.read(inventoryRepositoryProvider);
     final spools = await repo.fetchSpools(includeArchived: true);
+    ref.read(suppliersRepositoryProvider).observeSpools(spools);
+    repo.observeSpools(spools);
 
-    var bySpool = <int, SpoolAssignment>{};
+    var assignments = const <SpoolAssignment>[];
     try {
-      final assignments = await repo.fetchAssignments();
-      bySpool = {for (final a in assignments) a.spoolId: a};
+      assignments = await repo.fetchAssignments();
     } on Object {
       // Assignments are a bonus — their absence must not break the screen.
-      bySpool = const {};
+    }
+    final bySpool = {for (final a in assignments) a.spoolId: a};
+    var builtInSlots = const <SpoolAssignment>[];
+    var linkedTags = const <String, LinkedSpool>{};
+    // Both only feed the fill, and the web runs both queries whatever they
+    // answer: a failure, the backend question's included, leaves them empty
+    // rather than taking the spool list down.
+    try {
+      if (await repo.backend() == InventoryBackend.spoolman) {
+        final dio = ref.read(apiClientProvider).dio;
+        (builtInSlots, linkedTags) = await (
+          NativeInventorySource(
+            dio,
+          ).fetchAssignments().catchError((Object _) => <SpoolAssignment>[]),
+          SpoolmanInventorySource(dio).fetchLinkedSpools().catchError(
+            (Object _) => <String, LinkedSpool>{},
+          ),
+        ).wait;
+      }
+    } on Object {
+      // The backend is unknown, so neither query applies yet.
     }
 
     spools.sort((a, b) {
@@ -91,13 +140,23 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
         final byRemaining = a.remainingWeight.compareTo(b.remainingWeight);
         if (byRemaining != 0) return byRemaining;
       }
-      return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+      return compareIgnoringCase(a.displayName, b.displayName);
     });
-    return InventoryState(spools: spools, assignmentBySpool: bySpool);
+    return InventoryState(
+      spools: spools,
+      assignments: assignments,
+      builtInSlots: builtInSlots,
+      linkedTags: linkedTags,
+    );
   }
 
   /// Pull-to-refresh. Keeps previous data underneath (no spinner flicker), same pattern as maintenance.
-  Future<void> refresh() async {
+  ///
+  /// [askBackend] is for what the user asked for (a pull, Retry): it asks the
+  /// server again which backend it runs, which an automatic reload after every
+  /// pushed change would send for nothing.
+  Future<void> refresh({bool askBackend = false}) async {
+    if (askBackend) ref.invalidate(inventoryBackendProvider);
     state = const AsyncValue<InventoryState>.loading().copyWithPrevious(state);
     state = await AsyncValue.guard(_load);
   }
@@ -154,17 +213,43 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     SpoolAssignmentDraft draft, {
     SpoolAssignment? from,
   }) => _mutate((repo) async {
-    if (from != null &&
+    final moving =
+        from != null &&
         !(from.printerId == draft.printerId &&
             from.amsId == draft.amsId &&
-            from.trayId == draft.trayId)) {
-      // The target has to be refused before the source is given up, or a move
-      // onto a slot this backend cannot write leaves the spool in neither.
-      await repo.ensureAssignable(draft);
+            from.trayId == draft.trayId);
+    // The old slot is cleared first: Spoolman takes a spool off by its id, so
+    // clearing after the new assignment would take that off too.
+    if (moving) {
       await repo.unassignSpool(from.printerId, from.amsId, from.trayId);
     }
-    await repo.assignSpool(draft);
+    try {
+      await repo.assignSpool(draft);
+    } on Object {
+      // A move that fails halfway puts the spool back where it was, rather
+      // than leaving it in neither slot. If that fails too, the reload after
+      // the error shows where the spool really is.
+      if (moving) {
+        await repo
+            .assignSpool(
+              SpoolAssignmentDraft(
+                spoolId: from.spoolId,
+                printerId: from.printerId,
+                amsId: from.amsId,
+                trayId: from.trayId,
+              ),
+            )
+            .then(
+              (_) => _nudgeRepublish(from.printerId),
+              onError: (Object _) {},
+            );
+      }
+      rethrow;
+    }
     _nudgeRepublish(draft.printerId);
+    if (moving && from.printerId != draft.printerId) {
+      _nudgeRepublish(from.printerId);
+    }
     return null;
   });
 
@@ -230,9 +315,12 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     }
   }
 
-  /// One call per spool, for a server without the bulk routes. One failure
-  /// doesn't abort the rest — the tally it builds is the same shape the bulk
-  /// routes answer with, minus the detail they carry.
+  /// One call per spool, for a server without the bulk routes. One spool the
+  /// server refuses doesn't abort the rest — the tally it builds is the same
+  /// shape the bulk routes answer with, minus the detail they carry. What is
+  /// not about one spool propagates as it does from [_bulk]: a 401/403 or a
+  /// dead server would refuse every spool the same way, and anything else is a
+  /// bug in the app that belongs in the log.
   Future<BulkOutcome> _perSpoolFallback(
     InventoryRepository repo,
     List<int> ids,
@@ -244,7 +332,7 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
       try {
         await action(repo, id);
         ok++;
-      } on Object {
+      } on ApiException {
         failed++;
       }
     }
@@ -255,13 +343,66 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   /// fallback worth having here: replaying a 14-field patch as N PATCHes on a
   /// server that never offered mass edit would be a different feature, so an
   /// older server surfaces the 404 and the UI says the server cannot do it.
+  ///
+  /// [addSuppliers] has no bulk route at all: it is one replace per spool, of
+  /// that spool's own list merged with these ([mergeSupplierLinks]). A spool
+  /// whose list the shelf never received is counted failed rather than
+  /// written, since a replace from nothing would wipe what it has.
   Future<BulkOutcome> bulkUpdateSpools(
     Iterable<int> ids,
-    SpoolBulkPatch patch,
-  ) async {
+    SpoolBulkPatch patch, {
+    List<SpoolSupplierLink> addSuppliers = const [],
+  }) async {
     final repo = ref.read(inventoryRepositoryProvider);
+    final linkWriter = ref.read(suppliersRepositoryProvider);
+    final current = {
+      for (final s in state.valueOrNull?.spools ?? const <Spool>[])
+        s.id: s.suppliers,
+    };
     try {
-      return await repo.bulkUpdate(ids.toList(), patch);
+      final patched = patch.isEmpty
+          ? null
+          : await repo.bulkUpdate(ids.toList(), patch);
+      if (addSuppliers.isEmpty) return patched ?? BulkOutcome.empty;
+
+      // Counted per spool, not per write: a spool is done only when every
+      // write to it landed, and one the patch already failed gets no replace.
+      final failedIds = {...?patched?.notFound, ...?patched?.errorIds};
+      var succeeded = 0;
+      AppApiException? lastRefusal;
+      for (final id in ids.where((id) => !failedIds.contains(id))) {
+        final existing = current[id];
+        if (existing == null) {
+          failedIds.add(id);
+          continue;
+        }
+        try {
+          await linkWriter.saveSpoolLinks(
+            id,
+            mergeSupplierLinks(existing, addSuppliers),
+            backend: await repo.backend(),
+          );
+          succeeded++;
+        } on AppApiException catch (e) {
+          failedIds.add(id);
+          lastRefusal = e;
+        } on Object {
+          failedIds.add(id);
+        }
+      }
+      // Nothing landed at all: the refusal is the answer, and the sheet stays
+      // open to word it. Once the patch did land the sheet must close on a
+      // tally, or a dismissed error reads as "nothing changed" — and the patch
+      // needs the same permission as the replace, so a 403 cannot follow it.
+      if (patched == null && lastRefusal != null && succeeded == 0) {
+        throw lastRefusal;
+      }
+      final failed = ids.where(failedIds.contains).length;
+      return BulkOutcome(
+        ok: ids.length - failed,
+        failed: failed,
+        notFound: patched?.notFound ?? const [],
+      );
     } finally {
       state = await AsyncValue.guard(_load);
     }
@@ -292,12 +433,22 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   );
 }
 
+/// [AssignedSpools.fillOf]'s answer.
+typedef TrayFill = ({int? percent, double? grams, Spool? spool});
+
 /// Resolves which spool from inventory sits in a given slot of a specific printer —
 /// to enrich AMS chips on the dashboard (exact remaining weight + name).
 /// Built from [InventoryState]; matching depends on assignment structure
 /// (see [[inventory-filaments]]).
 class AssignedSpools {
-  const AssignedSpools(this.printerId, this._byKey, this._byExtruder);
+  const AssignedSpools(
+    this.printerId,
+    this._byKey,
+    this._byExtruder, [
+    this._tagShelf,
+    this._spoolmanSlots = const {},
+    this._builtInSlots = const {},
+  ]);
 
   /// Empty resolver (inventory not loaded / error) — enriches nothing.
   static const empty = AssignedSpools(-1, {}, {});
@@ -318,6 +469,126 @@ class AssignedSpools {
   Spool? forExtruder(int? extruder) =>
       extruder == null ? null : _byExtruder[extruder];
 
+  /// The shelf to match tags against — set only in Spoolman mode, where the
+  /// server binds a tagged spool by its tag rather than by slot.
+  final InventoryState? _tagShelf;
+
+  /// Whether [tray]'s spool is bound by its RFID tag rather than by a slot
+  /// assignment. In Spoolman mode bambuddy links a tagged spool on its own at
+  /// every AMS sync (`spoolman.py::sync_ams_tray`) and charges usage to it
+  /// before any slot assignment (`spoolman_tracking.py`); the web offers no
+  /// assign or unassign on such a slot (`isBambuLabSpool` in PrintersPage).
+  bool tagBinds(AmsTray tray) =>
+      _tagShelf != null &&
+      (_read(normalizeTrayUuid(tray.trayUuid)) != null ||
+          _read(normalizeTagUid(tray.tagUid)) != null);
+
+  /// The spool [tray]'s tag is bound to, if [tagBinds] and the server has one:
+  /// looked up as the web does, in `/spoolman/spools/linked` by the first tag
+  /// present, so an archived spool still carrying the tag binds nothing.
+  Spool? boundByTag(AmsTray tray) {
+    final shelf = _tagShelf;
+    if (shelf == null || !tagBinds(tray)) return null;
+    final tag = _nonEmpty(tray.trayUuid) ?? _nonEmpty(tray.tagUid);
+    final linked = tag == null ? null : shelf.linkedTags[tag.toUpperCase()];
+    return linked == null
+        ? null
+        : shelf.spools.firstWhereOrNull((s) => s.id == linked.id);
+  }
+
+  // An unread tag arrives as zeros, which still normalises to digits.
+  static String? _read(String id) => id.contains(RegExp('[^0]')) ? id : null;
+
+  /// Raw `ams_id`/`tray_id` → spool, as the web matches its rows: Spoolman's
+  /// slot ledger (Spoolman mode only) and the built-in inventory's.
+  final Map<int, Spool> _spoolmanSlots;
+  final Map<int, Spool> _builtInSlots;
+
+  static int slotKey(int amsId, int trayId) => amsId * 1000 + trayId;
+
+  /// The built-in inventory's spool in a slot — for the external holder
+  /// [amsId] 255 and the side as [trayId].
+  Spool? builtInAt(int amsId, int trayId) =>
+      _builtInSlots[slotKey(amsId, trayId)];
+
+  /// The fill a slot shows, the grams left on the spool it was read from and
+  /// that spool — both null when the AMS's own reading won. A linked spool
+  /// off the shelf still has its grams, from the linked map. The web's chain branch for branch
+  /// (`PrintersPage.tsx`, ~5532 for an AMS slot, ~6299 for the holder): the
+  /// Spoolman spool linked by the tray's tag, the Spoolman spool assigned to
+  /// the slot, the built-in inventory's spool, the AMS. For the external
+  /// holder [amsId] is 255 and [trayId] the side.
+  TrayFill fillOf(
+    AmsTray tray, {
+    required int amsId,
+    required int trayId,
+    String? serial,
+  }) {
+    final shelf = _tagShelf;
+    if (shelf != null) {
+      // `tray_uuid || tag_uid || fallback`: only the first one present is
+      // looked up, as the web keys its linked map by a single tag.
+      final tag =
+          _nonEmpty(tray.trayUuid) ??
+          _nonEmpty(tray.tagUid) ??
+          fallbackSpoolTag(serial, amsId, trayId);
+      final linked = tag == null ? null : shelf.linkedTags[tag.toUpperCase()];
+      final remaining = linked?.remaining;
+      final net = linked?.filament;
+      // `getSpoolmanFillLevel`: no remaining weight (0 included) or no net
+      // weight reads as no answer.
+      if (linked != null &&
+          remaining != null &&
+          remaining != 0 &&
+          net != null &&
+          net > 0) {
+        return (
+          percent: min(100, _jsRound(remaining / net * 100)),
+          grams: remaining,
+          spool: shelf.spools.firstWhereOrNull((s) => s.id == linked.id),
+        );
+      }
+      // The web's Spoolman list leaves archived spools out.
+      final slot = _spoolmanSlots[slotKey(amsId, trayId)];
+      if (slot != null && !slot.isArchived && slot.labelWeight > 0) {
+        return (
+          percent: _percentOf(slot),
+          grams: slot.remainingWeight,
+          spool: slot,
+        );
+      }
+    }
+    final remain = tray.remain;
+    final ams =
+        _nonEmpty(tray.trayType) != null && remain != null && remain >= 0
+        ? remain
+        : null;
+    final builtIn = builtInAt(amsId, trayId);
+    if (builtIn != null && builtIn.labelWeight > 0) {
+      final percent = _percentOf(builtIn);
+      // Read as empty while the AMS still sees filament: a stale
+      // `weight_used`, and the AMS wins (#676).
+      if (percent != 0 || (ams ?? 0) <= 0) {
+        return (
+          percent: percent,
+          grams: builtIn.remainingWeight,
+          spool: builtIn,
+        );
+      }
+    }
+    return (percent: ams, grams: null, spool: null);
+  }
+
+  static int _percentOf(Spool s) =>
+      _jsRound(max(0, s.labelWeight - s.weightUsed) / s.labelWeight * 100);
+
+  /// `Math.round`: halves go up, so -1.5 is -1 where Dart's `round` says -2.
+  /// Only a linked spool can go negative (Spoolman's remaining weight is not
+  /// clamped), and the web shows that number as it is.
+  static int _jsRound(double x) => (x + 0.5).floor();
+
+  static String? _nonEmpty(String? s) => (s?.isEmpty ?? true) ? null : s;
+
   bool get isEmpty => _byKey.isEmpty && _byExtruder.isEmpty;
 }
 
@@ -328,13 +599,18 @@ final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
   (ref, printerId) {
     final inv = ref.watch(inventoryProvider).valueOrNull;
     if (inv == null) return AssignedSpools.empty;
+    final spoolman =
+        ref.watch(inventoryBackendProvider).valueOrNull ==
+        InventoryBackend.spoolman;
     final spoolById = {for (final s in inv.spools) s.id: s};
     final byKey = <int, Spool>{};
     final byExtruder = <int, Spool>{};
-    for (final a in inv.assignmentBySpool.values) {
+    final bySlot = <int, Spool>{};
+    for (final a in inv.assignments) {
       if (a.printerId != printerId) continue;
-      final spool = spoolById[a.spoolId];
+      final spool = spoolById[a.spoolId] ?? a.spool;
       if (spool == null) continue;
+      bySlot[AssignedSpools.slotKey(a.amsId, a.trayId)] = spool;
       if (a.isExternalSpool) {
         final ext = a.extruder;
         if (ext != null) byExtruder[ext] = spool;
@@ -342,7 +618,21 @@ final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
         byKey[a.amsId * 1000 + a.trayId] = spool;
       }
     }
-    return AssignedSpools(printerId, byKey, byExtruder);
+    final builtIn = spoolman
+        ? {
+            for (final a in inv.builtInSlots)
+              if (a.printerId == printerId && a.spool != null)
+                AssignedSpools.slotKey(a.amsId, a.trayId): a.spool!,
+          }
+        : bySlot;
+    return AssignedSpools(
+      printerId,
+      byKey,
+      byExtruder,
+      spoolman ? inv : null,
+      spoolman ? bySlot : const {},
+      builtIn,
+    );
   },
 );
 
@@ -365,9 +655,41 @@ final inventoryConsumedTotalProvider = Provider.autoDispose<double>((ref) {
 /// Search text (material/brand/color/location). Filtered client-side in the view.
 final inventoryQueryProvider = StateProvider.autoDispose<String>((_) => '');
 
+/// What the spool list is ordered by. [standard] is the order
+/// [InventoryNotifier] loads it in, and has no direction.
+enum InventorySort { standard, usage, added, price, id }
+
+/// [spools] reordered by [sort]. Stable, so ties keep the standard order, and
+/// a spool without a price or an added date goes last in either direction —
+/// "unknown" is not the cheapest nor the oldest.
+List<Spool> sortSpools(
+  List<Spool> spools,
+  InventorySort sort, {
+  required bool descending,
+}) {
+  int nullsLast(Comparable<Object>? a, Comparable<Object>? b) {
+    if (a == null || b == null) return a == null ? (b == null ? 0 : 1) : -1;
+    return descending ? b.compareTo(a) : a.compareTo(b);
+  }
+
+  final int Function(Spool, Spool)? compare = switch (sort) {
+    InventorySort.standard => null,
+    InventorySort.usage => (a, b) => nullsLast(a.weightUsed, b.weightUsed),
+    InventorySort.added => (a, b) => nullsLast(a.createdAt, b.createdAt),
+    InventorySort.price => (a, b) => nullsLast(a.costPerKg, b.costPerKg),
+    InventorySort.id => (a, b) => nullsLast(a.id, b.id),
+  };
+  if (compare == null) return spools;
+  // `List.sort` is not stable; ties must keep the standard order.
+  final sorted = [...spools];
+  mergeSort(sorted, compare: compare);
+  return sorted;
+}
+
 /// Set of inventory filters (apart from search) — chosen in the filter sheet.
 /// All applied client-side on the full spool list. Defaults: active only, no limits.
-/// Empty sets = "all".
+/// Empty sets = "all". [sort] and [descending] are a view preference, not a
+/// filter, so they are left out of [activeCount] and survive "clear all".
 class InventoryFilters {
   const InventoryFilters({
     this.showArchived = false,
@@ -375,6 +697,10 @@ class InventoryFilters {
     this.materials = const {},
     this.brands = const {},
     this.locations = const {},
+    this.materialNumbers = const {},
+    this.suppliers = const {},
+    this.sort = InventorySort.standard,
+    this.descending = true,
   });
 
   /// false → active only (default); true → archived only.
@@ -384,13 +710,30 @@ class InventoryFilters {
   final Set<String> brands;
   final Set<String> locations;
 
+  /// Material numbers (#2870), matched exactly: the server trims them, so a
+  /// chip built from one spool matches every other spool of that product.
+  final Set<String> materialNumbers;
+
+  /// Supplier ids; a spool matches on any assignment, the purchase source or
+  /// an alternative — "what can I get from this shop". Ids, not names: a
+  /// rename reaches the links only with the next reload.
+  final Set<int> suppliers;
+  final InventorySort sort;
+  final bool descending;
+
   /// Count of non-default filters — for badge on filter button.
   int get activeCount =>
       (showArchived ? 1 : 0) +
       (lowStockOnly ? 1 : 0) +
       (materials.isNotEmpty ? 1 : 0) +
       (brands.isNotEmpty ? 1 : 0) +
-      (locations.isNotEmpty ? 1 : 0);
+      (locations.isNotEmpty ? 1 : 0) +
+      (materialNumbers.isNotEmpty ? 1 : 0) +
+      (suppliers.isNotEmpty ? 1 : 0);
+
+  /// Every filter back to its default, the sort left as it was.
+  InventoryFilters cleared() =>
+      InventoryFilters(sort: sort, descending: descending);
 
   InventoryFilters copyWith({
     bool? showArchived,
@@ -398,12 +741,20 @@ class InventoryFilters {
     Set<String>? materials,
     Set<String>? brands,
     Set<String>? locations,
+    Set<String>? materialNumbers,
+    Set<int>? suppliers,
+    InventorySort? sort,
+    bool? descending,
   }) => InventoryFilters(
     showArchived: showArchived ?? this.showArchived,
     lowStockOnly: lowStockOnly ?? this.lowStockOnly,
     materials: materials ?? this.materials,
     brands: brands ?? this.brands,
     locations: locations ?? this.locations,
+    materialNumbers: materialNumbers ?? this.materialNumbers,
+    suppliers: suppliers ?? this.suppliers,
+    sort: sort ?? this.sort,
+    descending: descending ?? this.descending,
   );
 }
 
@@ -504,6 +855,18 @@ final spoolPresetOverridesProvider = FutureProvider.autoDispose
           .watch(inventoryRepositoryProvider)
           .fetchPresetOverrides(spoolId);
     });
+
+/// The supplier master list. Empty until the gate says yes, and empty on a
+/// failed read too: it only feeds pickers and the management sheet, while the
+/// assignments a spool form writes back come from the spool itself.
+final supplierListProvider = FutureProvider.autoDispose<List<Supplier>>((
+  ref,
+) async {
+  if (!(ref.watch(suppliersSupportedProvider).valueOrNull ?? false)) {
+    return const [];
+  }
+  return ref.watch(suppliersRepositoryProvider).listSuppliers();
+});
 
 /// Server-side storage-location catalog (native backend). Degrades to empty on
 /// error; [locationOptionsProvider] still surfaces locations used by spools.
@@ -664,6 +1027,16 @@ final brandOptionsProvider = Provider.autoDispose<List<String>>((ref) {
       if (s.brand != null && s.brand!.trim().isNotEmpty) s.brand!.trim(),
   };
   final list = set.toList()..sort();
+  return list;
+});
+
+/// Material numbers already in use, for the form's suggestions.
+final materialNumberOptionsProvider = Provider.autoDispose<List<String>>((ref) {
+  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  final list = <String>{
+    for (final s in spools)
+      if (s.materialNumber != null) s.materialNumber!,
+  }.toList()..sort();
   return list;
 });
 

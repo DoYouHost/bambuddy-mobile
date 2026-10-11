@@ -45,15 +45,12 @@ class NotificationSettingsScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.notifSettingsTitle),
         body: ListView(
-          padding: withSystemNavInset(
-            context,
-            const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          ),
+          padding: screenListPadding(context),
           children: [
             if (ref.watch(_notificationsBlockedProvider).orFalse)
               _BlockedBanner(l10n.notificationsBlocked),
             Text(l10n.notifSettingsHint, style: t.label),
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
             SettingsCard(
               rows: [
                 SettingsSwitchRow(
@@ -65,7 +62,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: DashSpace.xl),
             SettingsSectionHeader(l10n.notifEventsHeader),
             SettingsCard(
               rows: [
@@ -83,7 +80,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: DashSpace.xl),
             SettingsSectionHeader(l10n.notifExtrasHeader),
             SettingsCard(
               rows: [
@@ -102,7 +99,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: DashSpace.xl),
             SettingsSectionHeader(l10n.notifThresholdsHeader),
             SettingsCard(
               rows: [
@@ -194,6 +191,11 @@ class NotificationSettingsScreen extends ConsumerWidget {
       l.notifEvtMaintenance,
       l.notifEvtMaintenanceDesc,
     ),
+    _EventRow(
+      NotifEvent.outcomeRequest,
+      l.notifEvtOutcome,
+      l.notifEvtOutcomeDesc,
+    ),
   ];
 }
 
@@ -214,8 +216,11 @@ class _BlockedBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      margin: const EdgeInsets.only(bottom: DashSpace.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.md,
+        vertical: DashSpace.md,
+      ),
       decoration: BoxDecoration(
         color: scheme.errorContainer,
         borderRadius: BorderRadius.circular(10),
@@ -228,7 +233,7 @@ class _BlockedBanner extends StatelessWidget {
             size: 18,
             color: scheme.onErrorContainer,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(
               text,

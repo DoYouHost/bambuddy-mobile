@@ -16,7 +16,7 @@ import '../../helpers.dart';
 class _HeldDeletes extends QueueRepository {
   _HeldDeletes() : super(Dio());
 
-  final deletes = <int, Completer<void>>{};
+  final deletes = <int, Completer<bool>>{};
   Completer<void>? reorders;
 
   @override
@@ -37,7 +37,7 @@ class _HeldDeletes extends QueueRepository {
   int reorderCalls = 0;
 
   @override
-  Future<void> delete(int itemId) => (deletes[itemId] = Completer()).future;
+  Future<bool> delete(int itemId) => (deletes[itemId] = Completer()).future;
 }
 
 List<int> ids(ProviderContainer container) => [
@@ -67,7 +67,7 @@ void main() {
 
     final first = notifier.delete(1);
     final second = notifier.delete(2);
-    repository.deletes[2]!.complete();
+    repository.deletes[2]!.complete(true);
     await second;
     repository.deletes[1]!.completeError(
       const ApiException(AppErrorCode.badResponse, statusCode: 500),
@@ -85,7 +85,7 @@ void main() {
     // 2 sat at index 1; with 1 gone, index 1 is between 3 and 4.
     final second = notifier.delete(2);
     final first = notifier.delete(1);
-    repository.deletes[1]!.complete();
+    repository.deletes[1]!.complete(true);
     await first;
     repository.deletes[2]!.completeError(
       const ApiException(AppErrorCode.badResponse, statusCode: 500),
@@ -112,7 +112,7 @@ void main() {
       final reorder = notifier.reorder(0, 2);
       expect(ids(container), [2, 3, 1, 4]);
       final delete = notifier.delete(3);
-      repository.deletes[3]!.complete();
+      repository.deletes[3]!.complete(true);
       await delete;
       repository.reorders!.completeError(_refused);
       await reorder;

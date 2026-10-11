@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:async';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
@@ -65,24 +66,13 @@ class _NoopNotifications implements NotificationService {
     String? payload,
     List<NotificationAction>? actions,
     AlertPicture? picture,
+    bool quiet = false,
   }) async {}
   @override
   Future<bool> isAlertActive(int id) async => true;
 }
 
 late SharedPreferences _prefs;
-
-class _FakeDashboardNotifier extends DashboardNotifier {
-  _FakeDashboardNotifier(this._fixed);
-
-  final DashboardState _fixed;
-
-  @override
-  DashboardState build() => _fixed;
-
-  @override
-  Future<void> refresh() async {}
-}
 
 /// Background service with no Android underneath — the lifecycle tests check who
 /// the dashboard hands work to and takes it back from, not the service itself.
@@ -160,11 +150,12 @@ class _SpyFinishPhoto extends FinishPhotoNotifier {
 }
 
 List<Override> _overrides(DashboardState state) => [
-  dashboardProvider.overrideWith(() => _FakeDashboardNotifier(state)),
+  fixedDashboardOverride(state),
   fakeServerProfileOverride(),
   inertStatusesOverride,
   inertSmartPlugsOverride,
   inertFirmwareOverride,
+  inertAnnouncementsOverride,
   inertTotalPrintHoursOverride,
   sharedPreferencesProvider.overrideWithValue(_prefs),
   // Touched on the very first frame (taking over from a surviving service), so
@@ -232,6 +223,7 @@ void main() {
     // reads it to decide whether a credential coming back should lower the
     // flag, a leftover from the test before changes what this one does.
     await _prefs.remove('sign_in_reason');
+    await _prefs.remove('dashboard_view');
   });
 
   testWidgets(
@@ -492,6 +484,24 @@ void main() {
     );
   });
 
+  testWidgets('the app bar menu holds add printer, notifications and wall', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(const DashboardState()));
+    await settle(tester);
+
+    await tester.tap(byLogId('dashboard.menu'));
+    await settle(tester);
+
+    for (final id in [
+      'dashboard.add_printer',
+      'dashboard.notifications_menu',
+      'dashboard.wall_mode',
+    ]) {
+      expect(byLogId(id), findsOneWidget, reason: id);
+    }
+  });
+
   testWidgets('a card toggled by hand keeps it after leaving the list', (
     tester,
   ) async {
@@ -524,6 +534,157 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byTooltip('Zwiń kartę'), findsOneWidget);
     expect(find.byTooltip('Rozwiń kartę'), findsOneWidget);
+  });
+
+  group('sort, sections and the location filter', () {
+    const farm = DashboardState(
+      printers: [
+        PrinterWithStatus(
+          printer: Printer(id: 1, name: 'Bench', location: 'Workshop'),
+        ),
+        PrinterWithStatus(printer: Printer(id: 2, name: 'Spare')),
+        PrinterWithStatus(
+          printer: Printer(id: 3, name: 'Desk', location: 'Office'),
+        ),
+        PrinterWithStatus(
+          printer: Printer(id: 4, name: 'Lathe', location: 'Workshop'),
+        ),
+      ],
+    );
+
+    Future<void> remember(Map<String, Object?> view) =>
+        _prefs.setString('dashboard_view', jsonEncode(view));
+
+    Future<void> pumpFarm(WidgetTester tester) => tester.pumpWidget(_app(farm));
+
+    testWidgets('a fresh install starts sorted by status, in sections', (
+      tester,
+    ) async {
+      await pumpFarm(tester);
+
+      // The four have no status yet, so they are one section, headed and
+      // counted.
+      expect(byLogId('dashboard.group'), findsOneWidget);
+      expect(find.text('(4)'), findsOneWidget);
+    });
+
+    testWidgets('sorted by name there are no headings', (tester) async {
+      await remember({'sort': 'name'});
+      await pumpFarm(tester);
+
+      expect(byLogId('dashboard.group'), findsNothing);
+    });
+
+    testWidgets('sorted by location the list is cut into counted sections, '
+        'and a tap folds one away', (tester) async {
+      await remember({'sort': 'location'});
+      await pumpFarm(tester);
+
+      expect(byLogId('dashboard.group'), findsNWidgets(3));
+      expect(find.text('Workshop'), findsOneWidget);
+      expect(find.text('(2)'), findsOneWidget);
+      expect(find.text('Bez lokalizacji'), findsOneWidget);
+      expect(find.text('Lathe'), findsOneWidget);
+
+      await tester.tap(find.text('Workshop'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lathe'), findsNothing);
+      expect(find.text('Bench'), findsNothing);
+      expect(find.text('Desk'), findsOneWidget);
+      // Remembered, so the next visit finds it folded.
+      expect(jsonDecode(_prefs.getString('dashboard_view')!)['collapsed'], [
+        'location:Workshop',
+      ]);
+    });
+
+    testWidgets('a folded section is still folded after a restart', (
+      tester,
+    ) async {
+      await remember({'sort': 'location'});
+      await pumpFarm(tester);
+      await tester.tap(find.text('Workshop'));
+      await tester.pumpAndSettle();
+      expect(find.text('Lathe'), findsNothing);
+
+      // A new scope is a new start: nothing is kept but what was written down.
+      await tester.pumpWidget(const SizedBox());
+      await pumpFarm(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lathe'), findsNothing);
+      expect(find.text('Desk'), findsOneWidget);
+    });
+
+    testWidgets('a remembered location filters the list', (tester) async {
+      await remember({'location': 'Office'});
+      await pumpFarm(tester);
+
+      expect(find.text('Desk'), findsOneWidget);
+      expect(find.text('Bench'), findsNothing);
+      expect(find.text('Spare'), findsNothing);
+    });
+
+    testWidgets('a remembered location nothing has any more is let go of, '
+        'not left hiding the list', (tester) async {
+      await remember({'location': 'Gone'});
+      await pumpFarm(tester);
+
+      // Already drawn without it, not an empty list for one frame.
+      expect(find.text('Bench'), findsOneWidget);
+      expect(
+        find.text(
+          AppLocalizations.of(
+            tester.element(find.byType(Scaffold).first),
+          ).noPrintersMatchFilters,
+        ),
+        findsNothing,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bench'), findsOneWidget);
+      expect(find.text('Spare'), findsOneWidget);
+      expect(
+        jsonDecode(_prefs.getString('dashboard_view')!)['location'],
+        isNull,
+      );
+    });
+
+    testWidgets('the sheet picks a location and a sort', (tester) async {
+      await pumpFarm(tester);
+
+      await tester.tap(byLogId('dashboard.filters'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(byLogId('dashboard_filters.location'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Office').last);
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('dashboard_filters.direction').last);
+      await tester.pumpAndSettle();
+
+      final saved = jsonDecode(_prefs.getString('dashboard_view')!);
+      expect(saved['location'], 'Office');
+      expect(saved['ascending'], isFalse);
+    });
+
+    testWidgets('no location to pick leaves the section out', (tester) async {
+      await tester.pumpWidget(
+        _app(
+          const DashboardState(
+            printers: [
+              PrinterWithStatus(printer: Printer(id: 1, name: 'A')),
+              PrinterWithStatus(printer: Printer(id: 2, name: 'B')),
+            ],
+          ),
+        ),
+      );
+
+      await tester.tap(byLogId('dashboard.filters'));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('dashboard_filters.location'), findsNothing);
+    });
   });
 
   testWidgets('the search box filters the list by name', (tester) async {
@@ -950,6 +1111,24 @@ void main() {
 
       expect(find.text('Zaloguj się ponownie'), findsNothing);
       expect(_prefs.getBool('sign_in_required'), isNot(isTrue));
+    });
+
+    testWidgets('a session that expires on screen goes to setup', (
+      tester,
+    ) async {
+      // Also what takes a wall pushed over the dashboard down with it.
+      await tester.pumpWidget(_routedApp(state));
+      await tester.pumpAndSettle();
+
+      final notifier =
+          ProviderScope.containerOf(
+                tester.element(find.byType(DashboardScreen)),
+              ).read(dashboardProvider.notifier)
+              as FixedDashboard;
+      notifier.expire();
+      await tester.pumpAndSettle();
+
+      expect(find.text('SETUP SCREEN'), findsOneWidget);
     });
 
     testWidgets('"Sign in" leads to the setup screen', (tester) async {

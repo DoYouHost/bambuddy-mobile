@@ -37,6 +37,18 @@ void main() {
       skipObjects = SkipObjectsRepository(dio);
     });
 
+    test('the seeded X1C reads as one nozzle by the web\'s rule', () async {
+      // `nozzle_count` from the printer row, `nozzle_2` from the status: the
+      // two signals the web decides "two nozzles" by (`PrintersPage.tsx`).
+      final printer = (await printers.fetchPrinters()).first;
+      expect(printer.nozzleCount, 1);
+      expect(printer.serialNumber, '00M09A000000001');
+
+      final status = await printers.fetchStatus(printer.id);
+      expect(status, isNotNull);
+      expect(status!.isDualNozzle(printer.nozzleCount), isFalse);
+    });
+
     test('GET /printers/ decodes printer list into Printer models', () async {
       final list = await printers.fetchPrinters();
 

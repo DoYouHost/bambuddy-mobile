@@ -74,8 +74,19 @@ abstract final class Endpoints {
   /// optional `location`) — options for model-based filament overrides.
   static const printersAvailableFilaments =
       '$apiPrefix/printers/available-filaments';
+
+  /// `PATCH` edits the printer — `printers:update`, refused to every API key.
+  static String printer(int printerId) => '$apiPrefix/printers/$printerId';
   static String printerStatus(int printerId) =>
       '$apiPrefix/printers/$printerId/status';
+
+  /// `GET` → `{inventory_remain_g: {"254": grams, …}, slot_materials:
+  /// [...]}`: grams left on the spool bound to each loaded slot, which the
+  /// web's mapping sorts by when "prefer lowest remaining" is on
+  /// (`routes/printers.py::get_inventory_remain`). Newer than most servers in
+  /// the field — a 404 is the same as nothing bound.
+  static String printerInventoryRemain(int printerId) =>
+      '$apiPrefix/printers/$printerId/inventory-remain';
 
   /// Pre-save connection diagnostic for the Add-Printer flow (`POST`, body
   /// `{ip_address, serial_number?, access_code?}`). Returns
@@ -131,6 +142,11 @@ abstract final class Endpoints {
   /// Authorization via `?token=` (minted at [cameraStreamToken]).
   static String cameraStream(int printerId) =>
       '$apiPrefix/printers/$printerId/camera/stream';
+
+  /// One JPEG from the camera, authorised like [cameraStream]. The server's own
+  /// camera wall polls it per tile every 8 s (`camera.py`, `camera_snapshot`).
+  static String cameraSnapshot(int printerId) =>
+      '$apiPrefix/printers/$printerId/camera/snapshot';
 
   // --- Printer storage / file manager ---
   // Browse the printer's own storage (SD/eMMC) over the server's FTP bridge.
@@ -671,6 +687,13 @@ abstract final class Endpoints {
   /// statement about the server's age rather than about its configuration.
   static const appSettings = '$apiPrefix/settings';
 
+  /// The few settings the app shell needs (`billing_enabled` among them),
+  /// readable by any signed-in user or key — unlike [appSettings], which wants
+  /// `settings:read` and so answers a non-admin with 403 (#3023).
+  ///
+  /// **1.2.6+ only**; an older server 404s and [appSettings] is all there is.
+  static const uiFlags = '$apiPrefix/settings/ui-flags';
+
   /// The same settings, written — body `AppSettingsUpdate`, dumped with
   /// `exclude_unset=True`, so a request carrying three keys changes three rows.
   ///
@@ -927,6 +950,30 @@ abstract final class Endpoints {
   static String inventorySpoolFilamentPresets(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/filament-presets';
 
+  /// Supplier master list (`SupplierResponse[]`, server #2988) — `POST` here,
+  /// `PATCH`/`DELETE` on [inventorySupplier]. The same list in Spoolman mode:
+  /// the server keeps suppliers Bambuddy-side for both inventories.
+  static const inventorySuppliers = '$apiPrefix/inventory/suppliers';
+
+  static String inventorySupplier(int supplierId) =>
+      '$apiPrefix/inventory/suppliers/$supplierId';
+
+  /// Stock, consumption and cost per purchase-source supplier
+  /// (`SupplierStats[]`). `date_from`/`date_to` narrow the usage half only.
+  static const inventorySupplierStats = '$apiPrefix/inventory/stats/suppliers';
+
+  /// Stock, consumption and cost per material number (`MaterialNumberStats[]`,
+  /// server #2870), heaviest consumer first. `date_from`/`date_to` narrow the
+  /// usage half only. Reads the built-in spool table, so Spoolman has no twin.
+  static const inventoryMaterialNumberStats =
+      '$apiPrefix/inventory/stats/material-numbers';
+
+  /// One spool's supplier assignments. `PUT` only — there is no `GET` on the
+  /// built-in side, the rows ride on `SpoolResponse.suppliers` — and it
+  /// replaces the whole list.
+  static String inventorySpoolSuppliers(int spoolId) =>
+      '$apiPrefix/inventory/spools/$spoolId/suppliers';
+
   /// Render spool labels as a PDF stream (`POST`, body
   /// `{spool_ids:[int], template:str, monochrome:bool}`). Response is the raw
   /// PDF, not JSON — fetch with `ResponseType.bytes`. Server caps the batch at
@@ -948,8 +995,38 @@ abstract final class Endpoints {
   static String locationHaSensorReadings(int locationId) =>
       '$apiPrefix/location-ha-sensors/by-location/$locationId/readings';
 
+  // --- Printer locations (server #2962) ---
+
+  /// The managed list (`PrinterLocationResponse[]`): `GET` lists, `POST`
+  /// creates, `PATCH` renames and/or restyles the one named in the body. The
+  /// trailing slash is the declared route (`printer_locations.py`).
+  ///
+  /// No path carries a name, because a location name is free text: `PATCH`,
+  /// delete and assign all take it in the body.
+  static const printerLocations = '$apiPrefix/printer-locations/';
+
+  /// `POST {names:[…]}` — deletes locations; their printers end up with none.
+  static const printerLocationsDelete = '$apiPrefix/printer-locations/delete';
+
+  /// `POST {printer_ids:[…], location}` — moves printers in one transaction,
+  /// out of any location with `location: null`.
+  static const printerLocationsAssign = '$apiPrefix/printer-locations/assign';
+
   // Backend Spoolman (drop-in replacement — different data shape).
+
+  /// `GET` → `{enabled, connected, url}`. Decides which of the two inventory
+  /// backends the app talks to (`detectInventoryBackend`); `connected` is a live
+  /// health check of Spoolman, not part of that decision.
+  static const spoolmanStatus = '$apiPrefix/spoolman/status';
   static const spoolmanSpools = '$apiPrefix/spoolman/inventory/spools';
+
+  /// `GET` → `{linked: {TAG: {id, remaining_weight, filament_weight}}}`: every
+  /// non-archived Spoolman spool with an `extra.tag`, keyed by the tag in
+  /// upper case (`routes/spoolman.py::get_linked_spools`). The web reads a
+  /// slot's fill from it first. Its `filament_weight` is null where Spoolman
+  /// knows no net weight; the inventory routes give such a spool 1000
+  /// (`_spoolman_helpers.py::_map_spoolman_spool`).
+  static const spoolmanLinkedSpools = '$apiPrefix/spoolman/spools/linked';
   static const spoolmanSpoolsBulk = '$apiPrefix/spoolman/inventory/spools/bulk';
   static String spoolmanSpool(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId';
@@ -989,21 +1066,16 @@ abstract final class Endpoints {
   static const spoolmanSpoolFromSlot = '$apiPrefix/spoolman/spools/from-slot';
 
   /// Spoolman's answer to the native `POST /inventory/assignments` (`POST`,
-  /// body `{tray_uuid|tag_uid, printer_id, ams_id, tray_id}`). The spool binds
-  /// to the tag, not to the slot: without one the server answers 400, so a slot
-  /// with no readable RFID cannot be assigned here at all. The triple is
-  /// optional context it uses to write the slot ledger [spoolmanAssignments]
-  /// reads back (`spoolman.py::link_spool`). Gated on `filaments:update` like
-  /// [spoolmanSpoolFromSlot] — denied to every API key.
-  static String spoolmanSpoolLink(int spoolId) =>
-      '$apiPrefix/spoolman/spools/$spoolId/link';
+  /// body `{spoolman_spool_id, printer_id, ams_id, tray_id}`): keyed on the
+  /// slot, so a spool without RFID can be assigned too — what the web assign
+  /// dialog sends. Gated on `inventory:update`, which an API key can hold.
+  static const spoolmanSlotAssignment =
+      '$apiPrefix/spoolman/inventory/slot-assignments';
 
-  /// Clear a spool's tag link and drop its slot assignment (`POST`, no body).
-  /// Keyed on the spool, not the slot — the server deletes every assignment
-  /// row for it, since one spool can only sit in one slot
-  /// (`spoolman.py::unlink_spool`).
-  static String spoolmanSpoolUnlink(int spoolId) =>
-      '$apiPrefix/spoolman/spools/$spoolId/unlink';
+  /// Takes a spool off its slot (`DELETE`). Keyed on the spool, not the slot —
+  /// every ledger row for it goes (`spoolman_inventory.py::unassign_spoolman_slot`).
+  static String spoolmanSlotUnassignment(int spoolId) =>
+      '$apiPrefix/spoolman/inventory/slot-assignments/$spoolId';
 
   /// Spoolman counterpart of [inventoryLabels]. Note the path is NOT under
   /// `/spoolman/inventory/` — the label routes live at `/spoolman/labels`.
@@ -1014,6 +1086,11 @@ abstract final class Endpoints {
   /// keyed by the remote spool id — same body, same replace semantics.
   static String spoolmanSpoolFilamentPresets(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId/filament-presets';
+
+  /// Spoolman counterpart of [inventorySpoolSuppliers]: rows stored
+  /// Bambuddy-side and keyed by the remote spool id, same body.
+  static String spoolmanSpoolSuppliers(int spoolId) =>
+      '$apiPrefix/spoolman/inventory/spools/$spoolId/suppliers';
 
   // Filament catalog (definitions/profiles — `FilamentResponse[]`).
   static const filamentCatalog = '$apiPrefix/filament-catalog/';
@@ -1179,6 +1256,64 @@ abstract final class Endpoints {
   static String libraryTrashItem(int fileId) =>
       '$apiPrefix/library/trash/$fileId';
 
+  // --- Manyfold (#1471, server dev from 2026-10-04) ---
+  //
+  // A self-hosted model library, browsed through the server; nothing is
+  // mirrored. An older server 404s the whole family. Failures Manyfold causes
+  // answer `{"detail": {"code": "manyfold_…", "message"}}` with 409 (not set
+  // up), 404 (model or file gone) or 502 — never 401/403, which stay Bambuddy's
+  // own refusals (`routes/manyfold.py::_map_error`).
+
+  /// `GET` → `{configured, url}`. `manyfold:view`, which an API key's
+  /// `can_read_status` covers.
+  static const manyfoldStatus = '$apiPrefix/manyfold/status';
+
+  /// `GET ?q=&page=` → one page of `{id, name}`. `q` is Manyfold's own search
+  /// syntax (capped at 200 chars server-side).
+  static const manyfoldModels = '$apiPrefix/manyfold/models';
+
+  /// `GET` → the model and its files, each with the library file an earlier
+  /// import made.
+  static String manyfoldModel(String id) => '$apiPrefix/manyfold/models/$id';
+
+  /// `GET` → image bytes; 404 for a model without one. Behind the normal auth,
+  /// not the media token, so it is fetched rather than given to an image URL.
+  static String manyfoldPreview(String id) =>
+      '$apiPrefix/manyfold/models/$id/preview';
+
+  /// `POST {model_id, file_id, folder_id?}` → `{library_file_id, filename,
+  /// folder_id, was_existing}`. `manyfold:import` (a key's
+  /// `can_manage_library`). No folder files it under a top-level "Manyfold"
+  /// folder, created on first use.
+  static const manyfoldImport = '$apiPrefix/manyfold/import';
+
+  /// `GET` (`settings:read`) → `{url, client_id, has_client_secret,
+  /// configured}`; `PUT {url, client_id, client_secret?}` stores it and
+  /// `DELETE` forgets it (`settings:update`, never an API key). An empty
+  /// secret keeps the stored one.
+  static const manyfoldConfig = '$apiPrefix/manyfold/config';
+
+  /// `POST {url, client_id, client_secret?}` → `{model_count}`; stores
+  /// nothing. `settings:update`.
+  static const manyfoldConfigTest = '$apiPrefix/manyfold/config/test';
+
+  // --- Announcements (server 1.2.5.7 and the 1.2.6 dailies, 5eb37cd4) ---
+  //
+  // Messages from the Bambuddy maintainers, which the server pulls from a
+  // signed feed. Not a permission gate but `_may_see`: an admin, everyone
+  // signed in once `announcements_all_users` is on, anyone with auth off — and
+  // never an API key, which is answered `visible: false` rather than 403. An
+  // older server 404s both.
+
+  /// `GET` → `{visible, announcements: [{id, level, texts, link_url,
+  /// published_at, expires_at, archived, read}]}`, newest first.
+  static const announcements = '$apiPrefix/announcements';
+
+  /// `POST`, no body → 204. 404 for an unknown id, and for every id when this
+  /// session may not see announcements.
+  static String announcementRead(String id) =>
+      '$apiPrefix/announcements/$id/read';
+
   // --- MakerWorld + Bambu Cloud ---
 
   /// MakerWorld integration status (`GET`): `{has_cloud_token, can_download}`.
@@ -1237,6 +1372,21 @@ abstract final class Endpoints {
   /// the filament picker always has.
   static const cloudBuiltinFilaments = '$apiPrefix/cloud/builtin-filaments';
 
+  /// `GET` → `{filament_id: name}` for the user's own cloud presets,
+  /// which the built-in table cannot name. Needs a cloud login: without one
+  /// the answer is an error, and the built-in names are all there is.
+  static const cloudFilamentIdMap = '$apiPrefix/cloud/filament-id-map';
+
+  /// `GET` → the colour catalogue, `{colors: {hex: name}, by_material:
+  /// {"material|hex": name}}`. Not gated on an inventory permission:
+  /// every view that names a sliced colour needs it (`routes/inventory.py`).
+  static const inventoryColorMap = '$apiPrefix/inventory/colors/map';
+
+  /// `GET ?hex=&material=` → `{color_name}`, null when the catalogue has no
+  /// such hex. The material picks between colours sharing one hex.
+  static const inventoryColorByMaterial =
+      '$apiPrefix/inventory/colors/by-material';
+
   /// Presets imported from a slicer bundle (`GET`) — same grouping as
   /// [cloudSettings], entries carry `filament_type`, `nozzle_temp_min/max` and
   /// a JSON-encoded `compatible_printers` string. Gated on `settings:read`, so
@@ -1247,6 +1397,12 @@ abstract final class Endpoints {
   /// Static reference data, no auth. Maps the long names that appear inside
   /// preset names to the short codes `Printer.model` uses.
   static const slicerPrinterModels = '$apiPrefix/slicer/printer-models';
+
+  /// What the connected printers have loaded (`GET`, server #3172, 1.2.6 dailies
+  /// from 2026-10-04): every printer online now with its AMS units, external
+  /// holders and the profile saved per slot, limited to the caller's printers.
+  /// Needs `library:upload` and `printers:read`. An older server answers 404.
+  static const slicerLoadedSpools = '$apiPrefix/slicer/loaded-spools';
 
   // --- Projects ---
   //

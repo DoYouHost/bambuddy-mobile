@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/two_factor.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/watch/watch_config_sync.dart';
 import '../../core/watch/wear_text_input.dart';
@@ -95,7 +96,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         resetKey: _manual ? 'manual' : (offer != null ? 'offer' : 'handoff'),
         children: [
           const WearHeader('Bambuddy'),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           if (offer case final offer? when !_manual)
             ..._offerSection(l10n, offer)
           else if (!_manual)
@@ -114,7 +115,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
   /// watch silently, and nothing on the watch said which server it was on.
   List<Widget> _offerSection(AppLocalizations l10n, WatchConfig offer) => [
     Text(l10n.wearFromPhone, textAlign: TextAlign.center, style: WearText.body),
-    const SizedBox(height: 4),
+    const SizedBox(height: DashSpace.xs),
     Text(
       offer.profile.displayName,
       textAlign: TextAlign.center,
@@ -122,7 +123,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       overflow: TextOverflow.ellipsis,
       style: WearText.section,
     ),
-    const SizedBox(height: 2),
+    const SizedBox(height: DashSpace.xs),
     Text(
       switch (offer.profile.authMode) {
         AuthMode.apiKey => l10n.wearAuthKey,
@@ -133,14 +134,14 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       style: WearText.fine,
     ),
     if (_phoneError != null) ...[
-      const SizedBox(height: 6),
+      const SizedBox(height: DashSpace.sm),
       Text(
         _errorText(l10n, _phoneError!),
         textAlign: TextAlign.center,
         style: wearErrorStyle(context),
       ),
     ],
-    const SizedBox(height: 10),
+    const SizedBox(height: DashSpace.md),
     if (busy)
       wearSpinner
     else
@@ -173,14 +174,14 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       textAlign: TextAlign.center,
       style: WearText.section,
     ),
-    const SizedBox(height: 6),
+    const SizedBox(height: DashSpace.sm),
     Text(
       l10n.wearSetupPhoneBody,
       textAlign: TextAlign.center,
       style: WearText.small,
     ),
     if (_phoneEmpty || _phoneError != null) ...[
-      const SizedBox(height: 6),
+      const SizedBox(height: DashSpace.sm),
       Text(
         switch (_phoneError) {
           final error? => _errorText(l10n, error),
@@ -190,7 +191,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         style: wearErrorStyle(context),
       ),
     ],
-    const SizedBox(height: 10),
+    const SizedBox(height: DashSpace.md),
     if (busy)
       wearSpinner
     else
@@ -266,7 +267,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       keyboard: TextInputType.url,
       enabled: !state.busy,
     ),
-    const SizedBox(height: 8),
+    const SizedBox(height: DashSpace.sm),
     if (state.busy)
       wearSpinner
     else if (!state.needsAuth)
@@ -276,7 +277,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       ),
     if (state.error != null)
       Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DashSpace.sm),
         child: Text(
           _errorText(l10n, state.error!),
           textAlign: TextAlign.center,
@@ -300,7 +301,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
     SetupController controller,
     AppLocalizations l10n,
   ) => [
-    const SizedBox(height: 12),
+    const SizedBox(height: DashSpace.md),
     SegmentedButton<bool>(
       showSelectedIcon: false,
       segments: [
@@ -310,19 +311,19 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       selected: {_useLogin},
       onSelectionChanged: (s) => setState(() => _useLogin = s.first),
     ),
-    const SizedBox(height: 8),
+    const SizedBox(height: DashSpace.sm),
     if (!_useLogin) ...[
       _compactField(_apiKey, '${l10n.apiKeyLabel} (bb_…)'),
-      const SizedBox(height: 8),
+      const SizedBox(height: DashSpace.sm),
       FilledButton(
         onPressed: () => controller.connectWithApiKey(_apiKey.text),
         child: Text(l10n.fmSave),
       ),
     ] else ...[
       _compactField(_username, l10n.wearUsername),
-      const SizedBox(height: 8),
+      const SizedBox(height: DashSpace.sm),
       _compactField(_password, l10n.passwordLabel, obscure: true),
-      const SizedBox(height: 8),
+      const SizedBox(height: DashSpace.sm),
       FilledButton(
         // Watch has no background re-login flow; always remember credentials
         // so an expired JWT recovers silently.
@@ -349,13 +350,13 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
   ) {
     final method = challenge.methods.first;
     return [
-      const SizedBox(height: 12),
+      const SizedBox(height: DashSpace.md),
       Text(
         l10n.twoFactorTitle,
         textAlign: TextAlign.center,
         style: WearText.section,
       ),
-      const SizedBox(height: 8),
+      const SizedBox(height: DashSpace.sm),
       _compactField(
         _code,
         l10n.twoFactorCodeLabel,
@@ -364,7 +365,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
             : TextInputType.visiblePassword,
         enabled: !state.busy,
       ),
-      const SizedBox(height: 8),
+      const SizedBox(height: DashSpace.sm),
       if (method == TwoFactorMethod.email)
         TextButton(
           onPressed: state.busy ? null : controller.sendTwoFactorEmailCode,

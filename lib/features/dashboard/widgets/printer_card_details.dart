@@ -56,9 +56,14 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(top: DashSpace.md),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.lg,
+          DashSpace.md,
+          DashSpace.md,
+          DashSpace.md,
+        ),
         decoration: BoxDecoration(
           color: t.accentBlue.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(14),
@@ -67,7 +72,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
         child: Row(
           children: [
             Icon(Icons.layers_clear_outlined, size: 20, color: t.accentBlue),
-            const SizedBox(width: 8),
+            const SizedBox(width: DashSpace.sm),
             Expanded(
               child: Text(
                 l10n.plateClearBadge,
@@ -142,7 +147,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
         .contains(ControlAction.hms);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(DashSpace.md),
       decoration: BoxDecoration(
         color: scheme.error.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
@@ -160,7 +165,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
                   size: 18,
                   color: scheme.error,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: DashSpace.sm),
                 Expanded(
                   child: Text(
                     l10n.hmsErrorsCount(widget.errors.length),
@@ -191,7 +196,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
                 error: e,
                 busy: busy,
               ),
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
             Align(
               alignment: Alignment.centerRight,
               child: logTag(
@@ -301,8 +306,13 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
         ? const <String>[]
         : hmsRenderableActions(error.actions);
     return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      margin: const EdgeInsets.only(top: DashSpace.sm),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.md,
+        DashSpace.sm,
+        DashSpace.md,
+        DashSpace.sm,
+      ),
       decoration: BoxDecoration(
         // Its own tile inside the red panel: with several faults reported at
         // once, one unbroken column of text and buttons reads as a single long
@@ -324,7 +334,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                 style: t.bodyPlain.copyWith(color: t.textPrimary, height: 1.25),
               ),
             ).tagged('printer.hms_description'),
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
           ],
           Row(
             children: [
@@ -339,7 +349,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                         l10n.hmsViewInWiki,
                         style: t.microSoft.copyWith(color: scheme.primary),
                       ),
-                      const SizedBox(width: 2),
+                      const SizedBox(width: DashSpace.xs),
                       Icon(Icons.open_in_new, size: 14, color: scheme.primary),
                     ],
                   ),
@@ -347,14 +357,14 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
             ],
           ),
           if (actions.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             // A row per fault, not a button per line: the labels are short
             // enough that three fit across a phone, and Wrap still breaks
             // rather than overflowing when a translation or a font scale makes
             // them wider.
             Wrap(
-              spacing: 6,
-              runSpacing: 6,
+              spacing: DashSpace.sm,
+              runSpacing: DashSpace.sm,
               children: [
                 for (final action in actions)
                   // One id per action, not one for the whole row: the log has
@@ -368,7 +378,9 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                       style: FilledButton.styleFrom(
                         visualDensity: VisualDensity.compact,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: DashSpace.lg,
+                        ),
                         minimumSize: const Size(0, 34),
                         textStyle: const TextStyle(
                           fontFamily: DashTokens.fontUi,
@@ -416,7 +428,7 @@ class _DetailsToggle extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(top: DashSpace.md),
       child: Material(
         color: t.subCard,
         borderRadius: BorderRadius.circular(14),
@@ -426,7 +438,7 @@ class _DetailsToggle extends StatelessWidget {
           InkWell(
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: t.subCardBorder),
@@ -438,7 +450,7 @@ class _DetailsToggle extends StatelessWidget {
                     expanded ? l10n.detailsHide : l10n.detailsShow,
                     style: t.label.copyWith(color: t.textSecondary),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: DashSpace.sm),
                   AnimatedRotation(
                     turns: expanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
@@ -461,9 +473,11 @@ class _DetailsToggle extends StatelessWidget {
 /// Expanded details section: AMS unit(s) and external spool as list rows inside
 /// a grouping card, followed by the connectivity (Wi-Fi/door) row.
 class _DetailsPanel extends ConsumerWidget {
-  const _DetailsPanel({required this.status});
+  const _DetailsPanel({required this.status, this.serial, this.nozzleCount});
 
   final PrinterStatus status;
+  final String? serial;
+  final int? nozzleCount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -471,7 +485,7 @@ class _DetailsPanel extends ConsumerWidget {
     final ams = status.ams ?? const [];
     final spools = status.externalSpools;
     final active = status.activeTray;
-    final dual = status.isDualExtruder;
+    final dual = status.isDualNozzle(nozzleCount);
     final activeExtruder = status.activeExtruder;
     final assigned = ref.watch(assignedSpoolsProvider(status.id));
     final printerId = status.id;
@@ -495,6 +509,7 @@ class _DetailsPanel extends ConsumerWidget {
           slotExtruder: dual ? status.extruderForSlot(ams[i].id ?? i, 0) : null,
           activeExtruder: activeExtruder,
           assigned: assigned,
+          serial: serial,
           printerId: printerId,
           printerName: printerName,
           supportsDrying: status.supportsDrying ?? false,
@@ -511,9 +526,14 @@ class _DetailsPanel extends ConsumerWidget {
           extruderOf: dual
               ? (i) => status.extruderForExternal(spools[i].id)
               : (_) => null,
-          assignedOf: (i) => assigned.forExtruder(
-            dual ? status.extruderForExternal(spools[i].id) : 1,
+          fillOf: (i) => assigned.fillOf(
+            spools[i],
+            amsId: externalHolderUnit,
+            trayId: trayIdOf(i),
+            serial: serial,
           ),
+          tagBindsOf: (i) => assigned.tagBinds(spools[i]),
+          boundByTagOf: (i) => assigned.boundByTag(spools[i]),
           trayIdOf: trayIdOf,
           printerId: printerId,
           printerName: printerName,
@@ -528,14 +548,14 @@ class _DetailsPanel extends ConsumerWidget {
     ];
 
     return Padding(
-      padding: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.only(top: DashSpace.xs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (blocks.isNotEmpty)
             Container(
-              margin: const EdgeInsets.only(top: 10),
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+              margin: const EdgeInsets.only(top: DashSpace.md),
+              padding: const EdgeInsets.all(DashSpace.lg),
               decoration: BoxDecoration(
                 color: t.groupCard,
                 borderRadius: BorderRadius.circular(20),
@@ -545,7 +565,7 @@ class _DetailsPanel extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (var i = 0; i < blocks.length; i++) ...[
-                    if (i > 0) const SizedBox(height: 16),
+                    if (i > 0) const SizedBox(height: DashSpace.lg),
                     blocks[i],
                   ],
                 ],
@@ -574,6 +594,7 @@ class _AmsSection extends ConsumerWidget {
     required this.slotExtruder,
     required this.activeExtruder,
     required this.assigned,
+    required this.serial,
     required this.printerId,
     required this.printerName,
     required this.supportsDrying,
@@ -598,6 +619,7 @@ class _AmsSection extends ConsumerWidget {
   final int? slotExtruder;
   final int? activeExtruder;
   final AssignedSpools assigned;
+  final String? serial;
   final int printerId;
   final String? printerName;
   final bool supportsDrying;
@@ -617,7 +639,6 @@ class _AmsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
-    final l10n = AppLocalizations.of(context);
     final trays = unit.trays ?? const <AmsTray>[];
     final history = ref.watch(amsHistorySupportedProvider).orFalse;
 
@@ -626,7 +647,7 @@ class _AmsSection extends ConsumerWidget {
             context,
             printerId: printerId,
             amsId: unit.id ?? unitIndex,
-            amsLabel: l10n.amsUnit(unitIndex + 1),
+            amsLabel: amsUnitName(unit.id ?? unitIndex),
             initialMetric: metric,
           )
         : null;
@@ -657,14 +678,14 @@ class _AmsSection extends ConsumerWidget {
         Row(
           children: [
             Text(
-              l10n.amsUnit(unitIndex + 1).toUpperCase(),
+              amsUnitName(unit.id ?? unitIndex).toUpperCase(),
               style: t.bodyBold.copyWith(
                 color: t.textPrimary,
                 letterSpacing: 0.4,
               ),
             ),
             if (extruder != null) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: DashSpace.sm),
               _ExtruderBadge(
                 extruder: extruder!,
                 active: extruder == activeExtruder,
@@ -672,17 +693,17 @@ class _AmsSection extends ConsumerWidget {
             ],
             const Spacer(),
             for (var i = 0; i < metaParts.length; i++) ...[
-              if (i > 0) const SizedBox(width: 12),
+              if (i > 0) const SizedBox(width: DashSpace.md),
               metaParts[i],
             ],
             // Only AMS 2 Pro / AMS-HT modules can dry — hide the control on
             // regular AMS even when the printer supports drying.
             if (supportsDrying && unit.canDry) ...[
-              const SizedBox(width: 12),
+              const SizedBox(width: DashSpace.md),
               _AmsDryControl(
                 printerId: printerId,
                 amsId: unit.id ?? unitIndex,
-                amsLabel: l10n.amsUnit(unitIndex + 1),
+                amsLabel: amsUnitName(unit.id ?? unitIndex),
                 unit: unit,
               ),
             ],
@@ -697,7 +718,7 @@ class _AmsSection extends ConsumerWidget {
             amsId: unit.id ?? unitIndex,
             drying: unit.isDrying,
           ),
-        const SizedBox(height: 10),
+        const SizedBox(height: DashSpace.md),
         if (trays.isEmpty)
           Text(
             '—',
@@ -707,31 +728,35 @@ class _AmsSection extends ConsumerWidget {
             ),
           )
         else
+          // The web addresses a slot by its index (`slotIdx`) — its fill,
+          // label and every action alike.
           for (var i = 0; i < trays.length; i++)
             _FilamentRow(
               tray: trays[i],
               active: identical(trays[i], active),
-              assignedSpool: assigned.forAmsSlot(
-                unit.id ?? unitIndex,
-                trays[i].id ?? 0,
+              fill: assigned.fillOf(
+                trays[i],
+                amsId: unit.id ?? unitIndex,
+                trayId: i,
+                serial: serial,
               ),
-              allowRemain: true,
               last: i == trays.length - 1,
               slot: _SlotRef(
                 printerId: printerId,
                 printerName: printerName,
                 amsId: unit.id ?? unitIndex,
-                trayId: trays[i].id ?? 0,
-                label:
-                    '${l10n.amsUnit(unitIndex + 1)} · ${(trays[i].id ?? 0) + 1}',
+                trayId: i,
+                label: amsSlotName(unit.id ?? unitIndex, i),
                 printing: printing,
                 loadTrayId: amsLoadTrayId(
                   amsId: unit.id ?? unitIndex,
-                  trayId: trays[i].id ?? 0,
+                  trayId: i,
                 ),
                 canRereadRfid: true,
                 tagUid: trays[i].tagUid,
                 trayUuid: trays[i].trayUuid,
+                tagBound: assigned.tagBinds(trays[i]),
+                tagSpool: assigned.boundByTag(trays[i]),
                 trayInfoIdx: trays[i].trayInfoIdx,
                 trayColour: trays[i].trayColor,
                 caliIdx: trays[i].caliIdx,
@@ -747,14 +772,16 @@ class _AmsSection extends ConsumerWidget {
   }
 }
 
-/// External spool section (design "SZPULA ZEWNĘTRZNA"): title + one row per spool,
+/// External spool section (design "EXTERNAL SPOOL"): title + one row per spool,
 /// each prefixed with its extruder side on dual machines.
 class _SpoolSection extends StatelessWidget {
   const _SpoolSection({
     required this.trays,
     required this.active,
     required this.extruderOf,
-    required this.assignedOf,
+    required this.fillOf,
+    required this.tagBindsOf,
+    required this.boundByTagOf,
     required this.trayIdOf,
     required this.printerId,
     required this.printerName,
@@ -766,7 +793,9 @@ class _SpoolSection extends StatelessWidget {
   final List<AmsTray> trays;
   final AmsTray? active;
   final int? Function(int index) extruderOf;
-  final Spool? Function(int index) assignedOf;
+  final TrayFill Function(int index) fillOf;
+  final bool Function(int index) tagBindsOf;
+  final Spool? Function(int index) boundByTagOf;
   final int Function(int index) trayIdOf;
   final int printerId;
   final String? printerName;
@@ -785,13 +814,12 @@ class _SpoolSection extends StatelessWidget {
           l10n.externalSpool.toUpperCase(),
           style: t.label.copyWith(color: t.textPrimary, letterSpacing: 0.4),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: DashSpace.md),
         for (var i = 0; i < trays.length; i++)
           _FilamentRow(
             tray: trays[i],
             active: identical(trays[i], active),
-            assignedSpool: assignedOf(i),
-            allowRemain: false,
+            fill: fillOf(i),
             last: i == trays.length - 1,
             sidePrefix: switch (extruderOf(i)) {
               1 => l10n.extruderLeftShort,
@@ -819,6 +847,8 @@ class _SpoolSection extends StatelessWidget {
               nozzleDiameter: nozzleDiameterOf(i),
               printerModel: printerModel,
               extruderId: extruderOf(i),
+              tagBound: tagBindsOf(i),
+              tagSpool: boundByTagOf(i),
             ),
           ),
       ],
@@ -833,19 +863,21 @@ class _FilamentRow extends StatelessWidget {
   const _FilamentRow({
     required this.tray,
     required this.active,
-    required this.allowRemain,
+    required this.fill,
     required this.last,
     this.sidePrefix,
-    this.assignedSpool,
     this.slot,
   });
 
   final AmsTray tray;
   final bool active;
-  final bool allowRemain;
+
+  /// [AssignedSpools.fillOf]: the percent, and the grams and name of the
+  /// spool it was read from — none when the AMS's own number won, so the two
+  /// never disagree.
+  final TrayFill fill;
   final bool last;
   final String? sidePrefix;
-  final Spool? assignedSpool;
   final _SlotRef? slot;
 
   @override
@@ -860,22 +892,22 @@ class _FilamentRow extends StatelessWidget {
         : (tray.materialLabel ?? l10n.traySlotEmpty);
     final label = sidePrefix == null ? material : '$sidePrefix · $material';
 
-    final remain = tray.remain;
-    final showRemain = allowRemain && !empty && remain != null && remain >= 0;
-    final spool = empty ? null : assignedSpool;
-    final grams = spool == null
+    final percent = empty ? null : fill.percent;
+    final remaining = empty ? null : fill.grams;
+    final spool = empty ? null : fill.spool;
+    final grams = remaining == null
         ? null
-        : l10n.inventoryUsageWeight(spool.remainingWeight.toStringAsFixed(0));
-    final trailing = [if (showRemain) '$remain%', ?grams].join(' · ');
+        : l10n.inventoryUsageWeight(remaining.toStringAsFixed(0));
+    final trailing = [if (percent != null) '$percent%', ?grams].join(' · ');
 
     final textColor = active ? t.accentGreenInk : t.textSecondary;
 
     final row = Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: Row(
         children: [
           _ColorDot(color: dotColor, size: 9),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(
               label,
@@ -915,7 +947,7 @@ class _FilamentRow extends StatelessWidget {
               : DashedLine(color: t.dottedRule)
         else if (active)
           Container(height: 1, color: t.accentGreen),
-        if (!last) const SizedBox(height: 7),
+        if (!last) const SizedBox(height: DashSpace.sm),
       ],
     );
 
@@ -958,18 +990,54 @@ class _AmsMeta extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(6),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.xs,
+          vertical: DashSpace.xs,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 13, color: t.textTertiary),
-            const SizedBox(width: 4),
+            const SizedBox(width: DashSpace.xs),
             Text(text, style: t.monoLabel),
           ],
         ),
       ),
     ).tagged('printer.ams_meta');
   }
+}
+
+/// How an AMS's drying state is drawn, on the chip and in the sheet alike: a
+/// parked timer (neutral), a running cycle (heat colour, time left) or none.
+/// [noTimer] is the label when there is no countdown to show: "Dry" on the
+/// chip (idle, or a cycle cooling down), "Drying" in the sheet, which draws
+/// running units only.
+({IconData icon, Color color, String label}) _dryLook(
+  AmsUnit unit,
+  DashTokens t,
+  AppLocalizations l10n, {
+  required String noTimer,
+}) {
+  if (unit.isDryingParked) {
+    return (
+      icon: Icons.hourglass_empty,
+      color: t.textTertiary,
+      label: l10n.ctrlDryNotRunning,
+    );
+  }
+  if (!unit.isDrying) {
+    return (
+      icon: Icons.wb_sunny_outlined,
+      color: t.textTertiary,
+      label: noTimer,
+    );
+  }
+  final remain = unit.dryTime ?? 0;
+  return (
+    icon: Icons.local_fire_department,
+    color: t.accentOrangeInk,
+    label: remain > 0 ? formatMinutes(l10n, remain) : noTimer,
+  );
 }
 
 /// AMS header dry control: a compact chip. While drying it shows the remaining
@@ -997,12 +1065,7 @@ class _AmsDryControl extends ConsumerWidget {
 
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final drying = unit.isDrying;
-    final remain = unit.dryTime ?? 0;
-    final color = drying ? t.accentOrangeInk : t.textTertiary;
-    final label = drying && remain > 0
-        ? formatMinutes(l10n, remain)
-        : l10n.ctrlDry;
+    final look = _dryLook(unit, t, l10n, noTimer: l10n.ctrlDry);
 
     return InkWell(
       onTap: () {
@@ -1023,17 +1086,16 @@ class _AmsDryControl extends ConsumerWidget {
       },
       borderRadius: BorderRadius.circular(6),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.xs,
+          vertical: DashSpace.xs,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              drying ? Icons.local_fire_department : Icons.wb_sunny_outlined,
-              size: 13,
-              color: color,
-            ),
-            const SizedBox(width: 4),
-            Text(label, style: t.monoLabel.copyWith(color: color)),
+            Icon(look.icon, size: 13, color: look.color),
+            const SizedBox(width: DashSpace.xs),
+            Text(look.label, style: t.monoLabel.copyWith(color: look.color)),
           ],
         ),
       ),
@@ -1207,7 +1269,12 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
             // own Start button.
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                padding: const EdgeInsets.fromLTRB(
+                  DashSpace.gutter,
+                  DashSpace.lg,
+                  DashSpace.gutter,
+                  DashSpace.xl,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisSize: MainAxisSize.min,
@@ -1222,7 +1289,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: DashSpace.lg),
                     // Above both bodies: it explains a running cycle nobody
                     // started just as much as it explains one about to be.
                     const _AutoDryingNote(),
@@ -1239,30 +1306,35 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   }
 
   List<Widget> _runningBody(DashTokens t, AppLocalizations l10n) {
-    final remain = widget.unit.dryTime ?? 0;
+    final look = _dryLook(widget.unit, t, l10n, noTimer: l10n.ctrlDrying);
     return [
       Center(
         child: Column(
           children: [
-            Icon(
-              Icons.local_fire_department,
-              size: 32,
-              color: t.accentOrangeInk,
-            ),
-            const SizedBox(height: 8),
+            Icon(look.icon, size: 32, color: look.color),
+            const SizedBox(height: DashSpace.sm),
             Text(
-              remain > 0 ? formatMinutes(l10n, remain) : l10n.ctrlDrying,
+              look.label,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: DashTokens.fontMono,
                 fontSize: 32,
                 fontWeight: FontWeight.w700,
-                color: t.accentOrangeInk,
+                color: look.color,
               ),
             ),
+            if (widget.unit.isDryingParked) ...[
+              const SizedBox(height: DashSpace.sm),
+              Text(
+                l10n.ctrlDryNotRunningHint,
+                textAlign: TextAlign.center,
+                style: t.bodySoft,
+              ),
+            ],
           ],
         ),
       ),
-      const SizedBox(height: 20),
+      const SizedBox(height: DashSpace.xl),
       _SheetButton(
         label: l10n.ctrlStop,
         id: 'drying.stop',
@@ -1292,8 +1364,8 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
         filled: true,
         fillColor: t.subCard,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
+          horizontal: DashSpace.lg,
+          vertical: DashSpace.md,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -1326,7 +1398,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
           ),
       ],
     ),
-    const SizedBox(height: 16),
+    const SizedBox(height: DashSpace.lg),
     _DrySlider(
       id: 'drying.temp',
       label: l10n.ctrlDryTemp,
@@ -1341,7 +1413,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
         _temp = v;
       }),
     ),
-    const SizedBox(height: 16),
+    const SizedBox(height: DashSpace.lg),
     _DrySlider(
       id: 'drying.hours',
       label: l10n.ctrlDryDuration,
@@ -1357,7 +1429,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
       }),
     ),
     ..._startWhen(l10n),
-    const SizedBox(height: 20),
+    const SizedBox(height: DashSpace.xl),
     // Two buttons rather than one with a chosen id: an identifier picked by
     // an expression is invisible to the scan that keeps the log's action
     // tags pointing at real controls (`action_tag_vocabulary_test`).
@@ -1394,7 +1466,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     final offered = ref.watch(scheduledDryingSupportedProvider).orFalse;
     if (!offered) return const [];
     return [
-      const SizedBox(height: 16),
+      const SizedBox(height: DashSpace.lg),
       _DryStartPicker(
         mode: _startMode,
         delayMinutes: _delayMinutes,
@@ -1514,11 +1586,11 @@ class _DrySlider extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         Wrap(
           alignment: WrapAlignment.center,
-          spacing: 8,
-          runSpacing: 8,
+          spacing: DashSpace.sm,
+          runSpacing: DashSpace.sm,
           children: [
             for (final p in presets)
               _PresetChip(
@@ -1547,6 +1619,8 @@ class _SlotRef {
     this.canRereadRfid = false,
     this.tagUid,
     this.trayUuid,
+    this.tagBound = false,
+    this.tagSpool,
     this.trayInfoIdx,
     this.trayColour,
     this.caliIdx,
@@ -1562,7 +1636,7 @@ class _SlotRef {
   final int amsId;
   final int trayId;
 
-  /// Readable slot label (e.g., "AMS 1 · 2" or "Left extruder").
+  /// Readable slot label (e.g., "AMS-A · 2" or "Left extruder").
   final String label;
 
   /// Whether a job is actively running on this printer. A paused one does not
@@ -1590,6 +1664,19 @@ class _SlotRef {
   /// (`backend/app/api/routes/inventory.py::create_spool_from_slot`).
   final String? tagUid;
   final String? trayUuid;
+
+  /// Whether the server binds this slot's spool by its RFID tag — Spoolman
+  /// mode with a tag read ([AssignedSpools.tagBinds]).
+  final bool tagBound;
+
+  /// The spool that tag is bound to, when the shelf has it.
+  final Spool? tagSpool;
+
+  /// Whether the sheet locks assigning: only once the tag names a spool. The
+  /// web disables Assign for an unknown tag too and offers Link instead, which
+  /// the app has not got — and there the server charges usage to the slot
+  /// assignment (`spoolman_tracking.py`), so assigning still works.
+  bool get lockedByTag => tagBound && tagSpool != null;
 
   /// Whether a spool can be created out of what this slot holds. Needs a
   /// readable tag — a tagless slot has no identity to re-link to, so the
@@ -1752,23 +1839,23 @@ class _SlotActions extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(l10n.amsSlotFilament, style: theme.textTheme.labelLarge),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         if (canLoad)
           Row(
             children: [
               Expanded(child: load),
-              const SizedBox(width: 8),
+              const SizedBox(width: DashSpace.sm),
               Expanded(child: unload),
             ],
           ),
-        if (canLoad && canReread) const SizedBox(height: 8),
+        if (canLoad && canReread) const SizedBox(height: DashSpace.sm),
         if (canReread) reread,
         if (canDrive) ...[
-          if (canLoad || canReread) const SizedBox(height: 8),
+          if (canLoad || canReread) const SizedBox(height: DashSpace.sm),
           configure,
         ],
         if (slot.printing) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           Text(
             l10n.amsActionsWhilePrinting,
             style: theme.textTheme.bodySmall?.copyWith(
@@ -1776,7 +1863,7 @@ class _SlotActions extends ConsumerWidget {
             ),
           ),
         ],
-        const SizedBox(height: 16),
+        const SizedBox(height: DashSpace.lg),
       ],
     );
   }
@@ -1902,9 +1989,9 @@ class _SlotActions extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.amsFeedPrompt),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             option(ctx, 1, l10n.extruderLeft, 'feed_direction.left'),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             option(ctx, 0, l10n.extruderRight, 'feed_direction.right'),
           ],
         ),
@@ -1957,6 +2044,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
         break;
       }
     }
+    current ??= slot.tagSpool;
 
     bool assignedElsewhere(Spool s) => inv?.assignmentFor(s.id) != null;
     final offered = [
@@ -1983,17 +2071,22 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
         minChildSize: 0.4,
         builder: (context, controller) => ListView(
           controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.xl,
+          ),
           children: [
             Text(l10n.inventoryAssignTitle, style: theme.textTheme.titleLarge),
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
             Text(
               [?slot.printerName, slot.label].join(' · '),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             _SlotActions(slot: slot),
             if (_offersRegister(inv, current)) ...[
               FilledButton.tonalIcon(
@@ -2001,7 +2094,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                 icon: const Icon(Icons.add_circle_outline, size: 18),
                 label: Text(l10n.inventoryFromSlot),
               ).tagged('assign_spool.add_to_inventory'),
-              const SizedBox(height: 6),
+              const SizedBox(height: DashSpace.sm),
               Text(
                 l10n.inventoryFromSlotHint,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -2015,7 +2108,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                 l10n.inventoryAssignCurrent,
                 style: theme.textTheme.labelLarge,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: DashSpace.xs),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: SpoolSwatch(rgba: current.rgba),
@@ -2028,61 +2121,78 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                       )
                     : null,
                 onTap: () => _openInInventory(context, current!.id),
-                trailing: TextButton.icon(
-                  onPressed: () => _unassign(context, ref, l10n),
-                  icon: const Icon(Icons.link_off, size: 18),
-                  label: Text(l10n.inventoryUnassign),
-                ).taggedMaterial('assign_spool.unassign', current.material),
+                trailing: slot.lockedByTag
+                    ? null
+                    : TextButton.icon(
+                        onPressed: () => _unassign(context, ref, l10n),
+                        icon: const Icon(Icons.link_off, size: 18),
+                        label: Text(l10n.inventoryUnassign),
+                      ).taggedMaterial(
+                        'assign_spool.unassign',
+                        current.material,
+                      ),
               ).taggedMaterial('assign_spool.current', current.material),
               const Divider(height: 24),
             ],
-            Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
-            const SizedBox(height: 8),
-            _spoolSearchRow(l10n),
-            const SizedBox(height: 8),
-            if (options.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  // Told apart on purpose: an empty inventory and a search that
-                  // matched nothing look identical otherwise, and only one of
-                  // them is fixed by clearing the field.
-                  offered.isEmpty
-                      ? l10n.inventoryEmpty
-                      : l10n.noSearchResults(_query),
-                  style: theme.textTheme.bodyMedium,
+            if (slot.lockedByTag) ...[
+              // Only true of the spool the tag names; one pinned by hand in
+              // the meantime (the next AMS sync replaces it) gets no reason.
+              if (current?.id == slot.tagSpool?.id)
+                Text(
+                  l10n.inventoryTagBound,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              )
-            else
-              for (final s in options)
-                Builder(
-                  builder: (context) {
-                    final from = inv?.assignmentFor(s.id);
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: SpoolSwatch(rgba: s.rgba),
-                      title: Text(s.displayName),
-                      subtitle: Text(
-                        [
-                          if (s.remainingFraction != null)
-                            l10n.inventoryRemaining(
-                              s.remainingWeight.toStringAsFixed(0),
-                            ),
-                          '#${s.id}',
-                          if (from != null)
-                            [
-                              ?from.printerName,
-                              assignmentSlotLabel(l10n, from),
-                            ].join(' '),
-                        ].join(' · '),
-                      ),
-                      trailing: from != null
-                          ? const Icon(Icons.swap_horiz, size: 20)
-                          : null,
-                      onTap: () => _assign(context, ref, l10n, s, from: from),
-                    ).taggedMaterial('assign_spool.option', s.material);
-                  },
-                ),
+            ] else ...[
+              Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
+              const SizedBox(height: DashSpace.sm),
+              _spoolSearchRow(l10n),
+              const SizedBox(height: DashSpace.sm),
+              if (options.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
+                  child: Text(
+                    // Told apart on purpose: an empty inventory and a search that
+                    // matched nothing look identical otherwise, and only one of
+                    // them is fixed by clearing the field.
+                    offered.isEmpty
+                        ? l10n.inventoryEmpty
+                        : l10n.noSearchResults(_query),
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                )
+              else
+                for (final s in options)
+                  Builder(
+                    builder: (context) {
+                      final from = inv?.assignmentFor(s.id);
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: SpoolSwatch(rgba: s.rgba),
+                        title: Text(s.displayName),
+                        subtitle: Text(
+                          [
+                            if (s.remainingFraction != null)
+                              l10n.inventoryRemaining(
+                                s.remainingWeight.toStringAsFixed(0),
+                              ),
+                            '#${s.id}',
+                            if (from != null)
+                              [
+                                ?from.printerName,
+                                assignmentSlotLabel(l10n, from),
+                              ].join(' '),
+                          ].join(' · '),
+                        ),
+                        trailing: from != null
+                            ? const Icon(Icons.swap_horiz, size: 20)
+                            : null,
+                        onTap: () => _assign(context, ref, l10n, s, from: from),
+                      ).taggedMaterial('assign_spool.option', s.material);
+                    },
+                  ),
+            ],
           ],
         ),
       ),
@@ -2122,7 +2232,8 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       return false;
     }
     final onSpoolman =
-        ref.watch(inventoryBackendProvider) == InventoryBackend.spoolman;
+        ref.watch(inventoryBackendProvider).valueOrNull ==
+        InventoryBackend.spoolman;
     final keyed = ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey;
     return !(onSpoolman && keyed);
   }
@@ -2182,42 +2293,34 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
   /// scrolling a hundred rows at the printer is the case both exist to avoid.
   Widget _spoolSearchRow(AppLocalizations l10n) {
     final t = DashTokens.of(context);
-    return SizedBox(
-      height: 48,
-      child: Row(
-        children: [
-          Expanded(
-            child: DashSearchField(
-              id: 'assign_spool.search',
-              hintText: l10n.inventorySearchHint,
-              onChanged: (v) => setState(() => _query = v),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Tooltip(
-            message: l10n.inventoryScanSpool,
-            child: SizedBox(
-              width: 48,
-              height: 48,
-              child: Material(
-                color: t.subCard,
+    return DashSearchField(
+      id: 'assign_spool.search',
+      hintText: l10n.inventorySearchHint,
+      onChanged: (v) => setState(() => _query = v),
+      trailing: [
+        Tooltip(
+          message: l10n.inventoryScanSpool,
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: Material(
+              color: t.subCard,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => _scanAndAssign(l10n),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: t.subCardBorder),
-                    ),
-                    child: Icon(Icons.qr_code_scanner, color: t.textSecondary),
+                onTap: () => _scanAndAssign(l10n),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: t.subCardBorder),
                   ),
+                  child: Icon(Icons.qr_code_scanner, color: t.textSecondary),
                 ),
               ),
             ),
-          ).tagged('assign_spool.scan'),
-        ],
-      ),
+          ),
+        ).tagged('assign_spool.scan'),
+      ],
     );
   }
 
@@ -2361,7 +2464,7 @@ class _ExtruderBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.print_outlined, size: 13, color: color),
-          const SizedBox(width: 2),
+          const SizedBox(width: DashSpace.xs),
           Text(short, style: t.monoLabel.copyWith(color: color)),
         ],
       ),

@@ -36,6 +36,7 @@ class SpoolBulkPatch {
     this.coreWeight,
     this.category,
     this.lowStockThresholdPct,
+    this.materialNumber,
   });
 
   final String? material;
@@ -52,6 +53,10 @@ class SpoolBulkPatch {
   final int? coreWeight;
   final String? category;
   final int? lowStockThresholdPct;
+
+  /// Native only: in Spoolman mode the number is the filament's
+  /// `article_number`, maintained in Spoolman itself.
+  final String? materialNumber;
 
   /// `weight_used` is absent on purpose: the native route sets
   /// `weight_locked = true` by itself whenever the patch carries it
@@ -79,10 +84,11 @@ class SpoolBulkPatch {
     if (category != null) 'category': category,
     if (lowStockThresholdPct != null)
       'low_stock_threshold_pct': lowStockThresholdPct,
+    if (materialNumber != null) 'material_number': materialNumber,
   };
 
-  /// The narrower set Spoolman's schema accepts. `category` and
-  /// `low_stock_threshold_pct` are native-only columns and are dropped, the
+  /// The narrower set Spoolman's schema accepts. `category`, `material_number`
+  /// and `low_stock_threshold_pct` are native-only columns and are dropped, the
   /// same way `SpoolDraft.toSpoolmanJson` drops them on the per-spool path.
   /// `core_weight` is kept for that parity even though Spoolman stores it on
   /// the filament type rather than the spool and silently ignores it here.
@@ -121,6 +127,7 @@ class BulkOutcome {
     this.skipped = 0,
     this.failed = 0,
     this.notFound = const [],
+    this.errorIds = const [],
   });
 
   /// Reads `{ok: n, …}` for the four `{ids: […]}` routes.
@@ -143,6 +150,12 @@ class BulkOutcome {
       skipped: skippedKey == null ? 0 : _countOf(data[skippedKey]),
       failed: notFound.length + errorCount,
       notFound: notFound,
+      errorIds: errors is List
+          ? [
+              for (final e in errors)
+                if (e is Map) ?toIntOrNull(e['id']),
+            ]
+          : const [],
     );
   }
 
@@ -171,6 +184,11 @@ class BulkOutcome {
 
   final List<int> notFound;
 
+  /// Ids the call is known to have failed — Spoolman's per-spool `errors`
+  /// and the chunks after one that threw — so a follow-up write can tell
+  /// which spools it would be adding to a failure.
+  final List<int> errorIds;
+
   bool get isComplete => failed == 0;
 
   /// Sums the chunks a selection was split into for the 500-id cap.
@@ -179,6 +197,7 @@ class BulkOutcome {
     skipped: skipped + other.skipped,
     failed: failed + other.failed,
     notFound: [...notFound, ...other.notFound],
+    errorIds: [...errorIds, ...other.errorIds],
   );
 }
 

@@ -21,6 +21,7 @@ import '../common/file_export.dart';
 import 'printer_download_job.dart';
 import 'printer_selection_download.dart';
 import '../../data/streamed_download.dart';
+import '../../core/format/text_compare.dart';
 
 /// Client-side sort keys for the printer file list (the endpoint doesn't sort).
 enum PrinterFileSort { nameAsc, nameDesc, sizeAsc, sizeDesc, dateAsc, dateDesc }
@@ -165,12 +166,8 @@ class _PrinterFileManagerScreenState
     filtered.sort((a, b) {
       if (a.isDirectory != b.isDirectory) return a.isDirectory ? -1 : 1;
       return switch (_sort) {
-        PrinterFileSort.nameAsc => a.name.toLowerCase().compareTo(
-          b.name.toLowerCase(),
-        ),
-        PrinterFileSort.nameDesc => b.name.toLowerCase().compareTo(
-          a.name.toLowerCase(),
-        ),
+        PrinterFileSort.nameAsc => compareIgnoringCase(a.name, b.name),
+        PrinterFileSort.nameDesc => compareIgnoringCase(b.name, a.name),
         PrinterFileSort.sizeAsc => a.size.compareTo(b.size),
         PrinterFileSort.sizeDesc => b.size.compareTo(a.size),
         PrinterFileSort.dateAsc => _compareDate(a, b),
@@ -480,7 +477,7 @@ class _PrinterFileManagerScreenState
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(18),
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.only(bottom: DashSpace.sm),
               child: Text(widget.printerName, style: t.label),
             ),
           ),
@@ -488,7 +485,7 @@ class _PrinterFileManagerScreenState
             if (_storage.usedBytes != null)
               Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
                   child: Text(
                     l10n.pfmStorageUsed(formatBytes(_storage.usedBytes!)),
                     style: t.monoLabel,
@@ -549,11 +546,14 @@ class _PrinterFileManagerScreenState
     height: 48,
     child: ListView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.gutter,
+        vertical: DashSpace.sm,
+      ),
       children: [
         for (final (path, tab) in _quickDirs)
           Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: DashSpace.sm),
             child: ChoiceChip(
               label: Text(_quickLabel(tab, l10n)),
               selected: _path == path,
@@ -579,7 +579,7 @@ class _PrinterFileManagerScreenState
   };
 
   Widget _breadcrumb(DashTokens t, AppLocalizations l10n) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8),
+    padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
     decoration: BoxDecoration(
       border: Border(bottom: BorderSide(color: t.hairline)),
     ),
@@ -616,15 +616,11 @@ class _PrinterFileManagerScreenState
     AppLocalizations l10n,
     bool hasSelectable,
     bool allSelected,
-  ) => Row(
-    children: [
-      Expanded(
-        child: DashSearchField(
-          id: 'printer_files.search',
-          hintText: l10n.pfmSearchHint,
-          onChanged: (v) => setState(() => _query = v),
-        ),
-      ),
+  ) => DashSearchField(
+    id: 'printer_files.search',
+    hintText: l10n.pfmSearchHint,
+    onChanged: (v) => setState(() => _query = v),
+    trailing: [
       if (hasSelectable)
         logTag(
           'printer_files.select_all',
@@ -664,7 +660,6 @@ class _PrinterFileManagerScreenState
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           DashSliverSearchBar(
-            padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
             child: _searchAndSelectAll(t, l10n, hasSelectable, allSelected),
           ),
           if (items.isEmpty)
@@ -691,13 +686,13 @@ class _PrinterFileManagerScreenState
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
               sliver: SliverList.separated(
                 itemCount: items.length,
                 separatorBuilder: (_, _) => Divider(
                   height: 1,
-                  indent: 16,
-                  endIndent: 16,
+                  indent: DashSpace.gutter,
+                  endIndent: DashSpace.gutter,
                   color: t.hairline,
                 ),
                 itemBuilder: (_, i) => _row(items[i], t),
@@ -742,7 +737,7 @@ class _PrinterFileManagerScreenState
                 value: selected,
                 onChanged: (_) => _toggleSelection(file.path),
                 activeColor: t.accentGreen,
-                checkColor: const Color(0xFF0A0C08),
+                checkColor: t.onAccent,
               ),
             ),
             title: Text(
@@ -806,7 +801,10 @@ class _PrinterFileManagerScreenState
     ),
     child: SafeArea(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.gutter,
+          vertical: DashSpace.sm,
+        ),
         child: Row(
           children: [
             Expanded(
@@ -830,12 +828,15 @@ class _PrinterFileManagerScreenState
             ),
             if (_busy)
               Padding(
-                padding: EdgeInsets.only(left: 8, right: _preparing ? 0 : 16),
+                padding: EdgeInsets.only(
+                  left: DashSpace.sm,
+                  right: _preparing ? 0 : DashSpace.lg,
+                ),
                 child: Row(
                   children: [
                     if (_progressLabel() case final label?)
                       Padding(
-                        padding: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.only(right: DashSpace.sm),
                         child: Text(label, style: t.monoLabel),
                       ),
                     DashSpinner(size: 20, value: _downloadProgress),
@@ -873,7 +874,7 @@ class _PrinterFileManagerScreenState
                   label: Text(l10n.pfmDownload),
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: DashSpace.xs),
               logTag(
                 'printer_files.delete',
                 TextButton.icon(
@@ -897,14 +898,14 @@ class _PrinterFileManagerScreenState
     Widget? action,
   }) => Center(
     child: Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(DashSpace.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 48, color: tokens.textTertiary),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Text(message, textAlign: TextAlign.center, style: tokens.bodySoft),
-          if (action != null) ...[const SizedBox(height: 16), action],
+          if (action != null) ...[const SizedBox(height: DashSpace.lg), action],
         ],
       ),
     ),

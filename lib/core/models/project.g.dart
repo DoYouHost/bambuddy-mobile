@@ -90,6 +90,9 @@ ProjectStats _$ProjectStatsFromJson(Map<String, dynamic> json) => ProjectStats(
   totalEnergyCost: json['total_energy_cost'] == null
       ? 0
       : toDouble(json['total_energy_cost']),
+  totalWearCost: json['total_wear_cost'] == null
+      ? 0
+      : toDouble(json['total_wear_cost']),
   remainingPrints: toIntOrNull(json['remaining_prints']),
   remainingParts: toIntOrNull(json['remaining_parts']),
   bomTotalItems: json['bom_total_items'] == null

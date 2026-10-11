@@ -173,10 +173,10 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
             bottom: false,
             child: Padding(
               padding: EdgeInsets.fromLTRB(
-                8,
-                12,
-                8,
-                10 + MediaQuery.of(context).viewPadding.bottom,
+                DashSpace.sm,
+                DashSpace.md,
+                DashSpace.sm,
+                DashSpace.md + MediaQuery.of(context).viewPadding.bottom,
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -249,7 +249,7 @@ class _NavItem extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -267,7 +267,9 @@ class _NavItem extends StatelessWidget {
                         top: -5,
                         right: -8,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: DashSpace.xs,
+                          ),
                           constraints: const BoxConstraints(
                             minWidth: 15,
                             minHeight: 15,
@@ -293,7 +295,7 @@ class _NavItem extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: DashSpace.xs),
               Text(
                 label,
                 maxLines: 1,

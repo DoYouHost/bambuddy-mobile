@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/swatch_code.dart';
 import '../notifications/notification_prefs.dart';
+import 'label_print_prefs.dart';
 import 'print_options.dart';
 import 'server_profile.dart';
 import 'sign_in_reason.dart';
@@ -21,7 +22,6 @@ class SettingsRepository {
   static const _notifPrefsKey = 'notification_prefs';
   static const _maintNotifiedKey = 'maintenance_notified_due_ids';
   static const _maintDirtyKey = 'maintenance_dirty';
-  static const _inventoryBackendKey = 'inventory_backend';
   static const _demoPrintingKey = 'demo_printing_count';
   static const _swatchCodesKey = 'swatch_codes';
   static const _printOptionsKey = 'print_options';
@@ -30,6 +30,16 @@ class SettingsRepository {
   static const _wearFleetCacheKey = 'wear_fleet_cache';
   static const _no3mfDismissedKey = 'archive_no3mf_dismissed';
   static const _printerCardsCollapsedKey = 'printer_cards_collapsed';
+  static const _wallKeepAwakeKey = 'wall_keep_screen_awake';
+  static const _wallPanelExpandedKey = 'wall_panel_expanded';
+  static const _wallLiveCameraKey = 'wall_live_camera';
+  static const _sliceOnlyOnlineKey = 'slice_only_online_printers';
+  static const _sliceOnlyLoadedKey = 'slice_only_loaded_spools';
+  static const _labelPrinterUrlKey = 'label_printer_url';
+  static const _labelPrintPrefsKey = 'label_print_prefs';
+  static const _dashboardViewKey = 'dashboard_view';
+  static const _labelPrinterNameKey = 'label_printer_name';
+  static const _wallHiddenPrintersKey = 'wall_hidden_printer_ids';
 
   final SharedPreferences _prefs;
 
@@ -135,6 +145,96 @@ class SettingsRepository {
   Future<void> savePrinterCardsCollapsed(bool collapsed) =>
       _prefs.setBool(_printerCardsCollapsedKey, collapsed);
 
+  /// Whether wall mode holds the screen on. Absent reads as on: an always-on
+  /// view is what the mode is for.
+  /// Base URL of the label print server, or null while none is chosen. Not a
+  /// secret: the server has no authentication.
+  String? loadLabelPrinterUrl() => _prefs.getString(_labelPrinterUrlKey);
+
+  Future<void> saveLabelPrinterUrl(String? url) => url == null
+      ? _prefs.remove(_labelPrinterUrlKey)
+      : _prefs.setString(_labelPrinterUrlKey, url);
+
+  /// The mDNS instance name of the chosen label print server, kept so its
+  /// address can be found again when the router hands it a new one. Null for an
+  /// address typed by hand.
+  String? loadLabelPrinterName() => _prefs.getString(_labelPrinterNameKey);
+
+  Future<void> saveLabelPrinterName(String? name) => name == null
+      ? _prefs.remove(_labelPrinterNameKey)
+      : _prefs.setString(_labelPrinterNameKey, name);
+
+  LabelPrintPrefs loadLabelPrintPrefs() {
+    final raw = _prefs.getString(_labelPrintPrefsKey);
+    if (raw == null) return const LabelPrintPrefs();
+    try {
+      return LabelPrintPrefs.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } on Object {
+      return const LabelPrintPrefs();
+    }
+  }
+
+  Future<void> saveLabelPrintPrefs(LabelPrintPrefs prefs) =>
+      _prefs.setString(_labelPrintPrefsKey, jsonEncode(prefs.toJson()));
+
+  /// The dashboard's filters, sort and folded sections as one JSON object —
+  /// empty when nothing was saved or it cannot be read.
+  Map<String, dynamic> loadDashboardView() {
+    final raw = _prefs.getString(_dashboardViewKey);
+    if (raw == null) return const {};
+    try {
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } on Object {
+      return const {};
+    }
+  }
+
+  Future<void> saveDashboardView(Map<String, dynamic> view) =>
+      _prefs.setString(_dashboardViewKey, jsonEncode(view));
+
+  bool loadWallKeepAwake() => _prefs.getBool(_wallKeepAwakeKey) ?? true;
+
+  Future<void> saveWallKeepAwake(bool on) =>
+      _prefs.setBool(_wallKeepAwakeKey, on);
+
+  /// The wall panel's last expand/collapse choice on this device. Null until
+  /// the user makes one, and then the screen width decides.
+  bool? loadWallPanelExpanded() => _prefs.getBool(_wallPanelExpandedKey);
+
+  Future<void> saveWallPanelExpanded(bool expanded) =>
+      _prefs.setBool(_wallPanelExpandedKey, expanded);
+
+  /// Whether wall tiles stream their cameras. Absent reads as on.
+  bool loadWallLiveCamera() => _prefs.getBool(_wallLiveCameraKey) ?? true;
+
+  Future<void> saveWallLiveCamera(bool on) =>
+      _prefs.setBool(_wallLiveCameraKey, on);
+
+  /// The slice form's two filters (#3172), remembered on this device as the
+  /// web remembers them per browser. Absent reads as off, as there.
+  bool loadSliceOnlyOnline() => _prefs.getBool(_sliceOnlyOnlineKey) ?? false;
+
+  Future<void> saveSliceOnlyOnline(bool on) =>
+      _prefs.setBool(_sliceOnlyOnlineKey, on);
+
+  bool loadSliceOnlyLoaded() => _prefs.getBool(_sliceOnlyLoadedKey) ?? false;
+
+  Future<void> saveSliceOnlyLoaded(bool on) =>
+      _prefs.setBool(_sliceOnlyLoadedKey, on);
+
+  /// Printers this device keeps off its wall. A local choice only: the server
+  /// and the dashboard never see it. An id the server no longer has is simply
+  /// never matched, so a deleted printer needs no cleanup.
+  Set<int> loadWallHiddenPrinters() => {
+    for (final id in _prefs.getStringList(_wallHiddenPrintersKey) ?? const [])
+      ?int.tryParse(id),
+  };
+
+  Future<void> saveWallHiddenPrinters(Set<int> ids) => _prefs.setStringList(
+    _wallHiddenPrintersKey,
+    [for (final id in ids) '$id'],
+  );
+
   /// How many printers the demo runs a print on. Read by both isolates: the UI
   /// sets it, the service re-reads it on [BackgroundSync.demoPrinters].
   int loadDemoPrintingCount() => _prefs.getInt(_demoPrintingKey) ?? 1;
@@ -172,14 +272,6 @@ class SettingsRepository {
   Future<void> setMaintenanceDirty(bool dirty) => dirty
       ? _prefs.setBool(_maintDirtyKey, true)
       : _prefs.remove(_maintDirtyKey);
-
-  /// Filament inventory backend: `native` (default) or `spoolman`. Stored as enum name;
-  /// unknown/corrupted → native.
-  String loadInventoryBackend() =>
-      _prefs.getString(_inventoryBackendKey) ?? 'native';
-
-  Future<void> saveInventoryBackend(String backend) =>
-      _prefs.setString(_inventoryBackendKey, backend);
 
   /// Print toggles the user last sent with a new job — what the print form
   /// starts from, so a preference like "no flow calibration" survives instead of

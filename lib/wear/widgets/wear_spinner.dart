@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/dash_theme.dart';
 import '../wear_theme.dart';
 
 /// Watch-sized busy indicator, shown wherever a wear screen waits for something.
@@ -7,7 +8,7 @@ import '../wear_theme.dart';
 /// of a 384 px face.
 const wearSpinner = Center(
   child: Padding(
-    padding: EdgeInsets.all(8),
+    padding: EdgeInsets.all(DashSpace.sm),
     child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator()),
   ),
 );

@@ -2,11 +2,13 @@ part of 'inventory_screen.dart';
 
 class _SearchBar extends StatelessWidget {
   const _SearchBar({
+    required this.controller,
     required this.filterCount,
     required this.onQuery,
     required this.onOpenFilters,
   });
 
+  final TextEditingController controller;
   final int filterCount;
   final ValueChanged<String> onQuery;
   final VoidCallback onOpenFilters;
@@ -14,33 +16,26 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // Common height for both elements so field and button align. Outer padding
-    // is supplied by the enclosing [DashSliverSearchBar].
-    return SizedBox(
-      height: 48,
-      child: Row(
-        children: [
-          Expanded(
-            child: DashSearchField(
-              id: 'inventory.search',
-              hintText: l10n.inventorySearchHint,
-              onChanged: onQuery,
-            ),
-          ),
-          const SizedBox(width: 8),
-          FilterButton(
-            count: filterCount,
-            tooltip: l10n.inventoryFilters,
-            id: 'inventory.filters',
-            onTap: onOpenFilters,
-          ),
-        ],
-      ),
+    // Outer padding is supplied by the enclosing [DashSliverSearchBar].
+    return DashSearchField(
+      id: 'inventory.search',
+      controller: controller,
+      hintText: l10n.inventorySearchHint,
+      onChanged: onQuery,
+      trailing: [
+        FilterButton(
+          count: filterCount,
+          tooltip: l10n.inventoryFilters,
+          id: 'inventory.filters',
+          onTap: onOpenFilters,
+        ),
+      ],
     );
   }
 }
 
-/// Inventory filter sheet: status, stock, material, brand, location.
+/// Inventory filter sheet: status, stock, material, brand, location, material
+/// number, supplier.
 /// Changes saved immediately to [inventoryFiltersProvider] — list below updates live.
 /// Options passed from view (values that actually occur).
 class _FilterSheet extends ConsumerWidget {
@@ -48,11 +43,17 @@ class _FilterSheet extends ConsumerWidget {
     required this.materials,
     required this.brands,
     required this.locations,
+    required this.materialNumbers,
+    required this.suppliers,
   });
 
   final List<String> materials;
   final List<String> brands;
   final List<String> locations;
+  final List<String> materialNumbers;
+
+  /// Supplier id → name, for the suppliers some spool carries.
+  final Map<int, String> suppliers;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -61,7 +62,7 @@ class _FilterSheet extends ConsumerWidget {
     final filters = ref.watch(inventoryFiltersProvider);
     final notifier = ref.read(inventoryFiltersProvider.notifier);
 
-    Set<String> toggled(Set<String> set, String value) {
+    Set<T> toggled<T>(Set<T> set, T value) {
       final next = {...set};
       if (!next.remove(value)) next.add(value);
       return next;
@@ -75,7 +76,12 @@ class _FilterSheet extends ConsumerWidget {
         minSize: 0.35,
         builder: (context, controller) => ListView(
           controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.xl,
+          ),
           children: [
             Row(
               children: [
@@ -83,12 +89,48 @@ class _FilterSheet extends ConsumerWidget {
                 const Spacer(),
                 if (filters.activeCount > 0)
                   TextButton(
-                    onPressed: () => notifier.state = const InventoryFilters(),
+                    onPressed: () => notifier.state = filters.cleared(),
                     child: Text(l10n.inventoryFiltersClear),
                   ).tagged('inventory.filters_clear'),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
+
+            FilterGroupLabel(label: l10n.inventorySortLabel),
+            Wrap(
+              spacing: DashSpace.sm,
+              runSpacing: DashSpace.xs,
+              children: [
+                for (final sort in InventorySort.values)
+                  ChoiceChip(
+                    label: Text(_sortLabel(l10n, sort)),
+                    selected: filters.sort == sort,
+                    onSelected: (_) =>
+                        notifier.state = filters.copyWith(sort: sort),
+                  ),
+              ],
+            ),
+            if (filters.sort != InventorySort.standard) ...[
+              const SizedBox(height: DashSpace.sm),
+              SegmentedButton<bool>(
+                segments: [
+                  ButtonSegment(
+                    value: true,
+                    label: Text(l10n.printLogSortDescending),
+                    icon: const Icon(Icons.arrow_downward),
+                  ),
+                  ButtonSegment(
+                    value: false,
+                    label: Text(l10n.printLogSortAscending),
+                    icon: const Icon(Icons.arrow_upward),
+                  ),
+                ],
+                selected: {filters.descending},
+                onSelectionChanged: (s) =>
+                    notifier.state = filters.copyWith(descending: s.first),
+              ),
+            ],
+            const SizedBox(height: DashSpace.lg),
 
             FilterGroupLabel(label: l10n.inventoryFilterStatus),
             SegmentedButton<bool>(
@@ -108,7 +150,7 @@ class _FilterSheet extends ConsumerWidget {
               onSelectionChanged: (s) =>
                   notifier.state = filters.copyWith(showArchived: s.first),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
 
             FilterGroupLabel(label: l10n.inventoryFilterStock),
             SegmentedButton<bool>(
@@ -129,7 +171,7 @@ class _FilterSheet extends ConsumerWidget {
             ),
 
             if (materials.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               FilterGroupLabel(label: l10n.inventoryFilterMaterial),
               _ChipWrap(
                 options: materials,
@@ -140,7 +182,7 @@ class _FilterSheet extends ConsumerWidget {
               ),
             ],
             if (brands.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               FilterGroupLabel(label: l10n.inventoryFilterBrand),
               _ChipWrap(
                 options: brands,
@@ -151,7 +193,7 @@ class _FilterSheet extends ConsumerWidget {
               ),
             ],
             if (locations.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               FilterGroupLabel(label: l10n.inventoryLocation),
               _ChipWrap(
                 options: locations,
@@ -161,12 +203,52 @@ class _FilterSheet extends ConsumerWidget {
                 ),
               ),
             ],
+            if (materialNumbers.isNotEmpty) ...[
+              const SizedBox(height: DashSpace.lg),
+              FilterGroupLabel(label: l10n.inventoryFieldMaterialNumber),
+              _ChipWrap(
+                options: materialNumbers,
+                selected: filters.materialNumbers,
+                onToggle: (v) => notifier.state = filters.copyWith(
+                  materialNumbers: toggled(filters.materialNumbers, v),
+                ),
+              ),
+            ],
+            if (suppliers.isNotEmpty) ...[
+              const SizedBox(height: DashSpace.lg),
+              FilterGroupLabel(label: l10n.inventorySuppliersTitle),
+              Wrap(
+                spacing: DashSpace.sm,
+                runSpacing: DashSpace.xs,
+                children: [
+                  for (final MapEntry(key: id, value: name)
+                      in (suppliers.entries.toList()..sort(
+                        (a, b) => compareIgnoringCase(a.value, b.value),
+                      )))
+                    FilterChip(
+                      label: Text(name),
+                      selected: filters.suppliers.contains(id),
+                      onSelected: (_) => notifier.state = filters.copyWith(
+                        suppliers: toggled(filters.suppliers, id),
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 }
+
+String _sortLabel(AppLocalizations l10n, InventorySort sort) => switch (sort) {
+  InventorySort.standard => l10n.inventorySortStandard,
+  InventorySort.usage => l10n.inventorySortUsage,
+  InventorySort.added => l10n.inventorySortAdded,
+  InventorySort.price => l10n.inventorySortPrice,
+  InventorySort.id => l10n.inventorySortId,
+};
 
 class _ChipWrap extends StatelessWidget {
   const _ChipWrap({
@@ -182,8 +264,8 @@ class _ChipWrap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 4,
+      spacing: DashSpace.sm,
+      runSpacing: DashSpace.xs,
       children: [
         for (final o in options)
           FilterChip(

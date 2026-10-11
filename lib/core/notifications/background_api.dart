@@ -1,17 +1,23 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/archive_repository.dart';
 import '../../data/maintenance_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../api/api_client.dart';
+import '../api/api_exceptions.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../diagnostics/notif_probe.dart';
 import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
 import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
+import 'finish_alert_memory.dart';
 import 'hms_actions.dart';
 import 'hms_stop_request.dart';
+import 'outcome_alert.dart';
+import 'outcome_prompt.dart';
+import 'server_tag.dart';
 import '../diagnostics/diagnostics_wiring.dart';
 
 /// Action ID for "Mark Done" in maintenance notifications.
@@ -22,29 +28,32 @@ const String maintenancePerformActionId = 'maint_perform';
 /// travels in the payload, since Android hands back only these two strings.
 const String hmsActionIdPrefix = 'hms:';
 
-/// Payload of an HMS alert: `hms:<printerId>:<full_code>:<job_id>`. The job id
-/// is a bare `subtask_id` and the full code is hex, so neither can contain the
-/// separator.
+/// Payload of an HMS alert: `hms:<printerId>:<full_code>:<job_id>:<server>`.
+/// The job id is a bare `subtask_id`, the full code and the [serverTag] are
+/// hex, so none can contain the separator.
 String hmsPayload({
   required int printerId,
   required String fullCode,
+  required String serverUrl,
   String? jobId,
-}) => 'hms:$printerId:$fullCode:${jobId ?? ''}';
+}) => 'hms:$printerId:$fullCode:${jobId ?? ''}:${serverTag(serverUrl)}';
 
 /// The fault an HMS notification action refers to, or null when the payload is
-/// not one (or was written by a version that formatted it differently).
-({int printerId, String fullCode, String? jobId})? parseHmsPayload(
-  String? payload,
-) {
+/// not one — including the four-part form builds before the server tag wrote:
+/// such a notification cannot say which server's printer it means, and a
+/// resume sent to the wrong one is worse than a button that does nothing.
+({int printerId, String fullCode, String? jobId, String server})?
+parseHmsPayload(String? payload) {
   if (payload == null || !payload.startsWith('hms:')) return null;
   final parts = payload.split(':');
-  if (parts.length != 4) return null;
+  if (parts.length != 5 || parts[4].isEmpty) return null;
   final printerId = int.tryParse(parts[1]);
   if (printerId == null || parts[2].isEmpty) return null;
   return (
     printerId: printerId,
     fullCode: parts[2],
     jobId: parts[3].isEmpty ? null : parts[3],
+    server: parts[4],
   );
 }
 
@@ -123,6 +132,163 @@ void maintenanceNotificationBackgroundHandler(NotificationResponse response) {
 Future<void> handleNotificationAction(NotificationResponse response) async {
   await handleMaintenanceAction(response);
   await handleHmsAction(response);
+  await handleOutcomeAction(response);
+}
+
+/// Good or Reject tapped on an outcome question — its own notification or
+/// the print-finished alert it was put on — or the notification itself.
+///
+/// The body opens the app, so it only ever arrives where the app is coming up
+/// — the foreground handler or the launch details — and is handed to the
+/// shell's sheet, where a reject can be given a cause. The two buttons record
+/// the verdict from here, like "Mark Done": a reject without a cause, and
+/// never touching one the print already carries.
+///
+/// The buttons do not dismiss the notification themselves (the server asks
+/// once): it is taken away here once the answer landed, or once no retry can
+/// land it — a refusal, or a question from a server the app has since been
+/// switched away from, whose archive id names some other print here.
+Future<void> handleOutcomeAction(NotificationResponse response) async {
+  final target = parseOutcomePayload(response.payload);
+  if (target == null) return;
+  final actionId = response.actionId;
+  final verdict = outcomeActionVerdict(actionId);
+  if (verdict == null || actionId == null) {
+    if (response.notificationResponseType ==
+            NotificationResponseType.selectedNotification &&
+        await _asksThisServer(target.server)) {
+      outcomePrompts.post(target.archiveId);
+    }
+    return;
+  }
+
+  await _runAction(
+    actionId,
+    items: 1,
+    failedItems: 1,
+    run: (prefs, api) async {
+      if (!_isServer(prefs, target.server)) {
+        NotifProbe.actionFailed(const ServerChanged(), items: 1);
+        await _dismiss(response.id, target.archiveId);
+        return;
+      }
+      final bool applied;
+      try {
+        applied = (await ArchiveRepository(
+          api.dio,
+        ).setVerdict(target.archiveId, verdict)).applied;
+      } on AppApiException catch (error) {
+        // On the record before the dismissal's awaits, which the engine may
+        // not outlive. Only a refusal makes the button pointless.
+        NotifProbe.actionFailed(error, items: 1);
+        if (_isRefusal(error)) await _dismiss(response.id, target.archiveId);
+        return;
+      }
+      // A server older than the feature answers 200 and keeps nothing; the
+      // tap did not do what the button said, and no second tap will.
+      if (!applied) {
+        NotifProbe.actionFailed(const VerdictNotStored(), items: 1);
+      }
+      await _dismiss(response.id, target.archiveId);
+    },
+  );
+}
+
+/// One button tap, run in whichever isolate the plugin delivered it to: the
+/// recording opened first, so everything after it is on the record; the tap
+/// recorded; a client for the saved server, from preferences re-read off disk
+/// (the other isolate may have switched servers since this one opened them);
+/// and every failure recorded rather than thrown — the callback cannot crash,
+/// and a swallowed error is "I pressed it and nothing happened".
+///
+/// [failedItems] is what the failure record says was still pending when the
+/// whole handler broke; null where [run] records its items one by one.
+Future<void> _runAction(
+  String actionId, {
+  required int items,
+  int? failedItems,
+  required Future<void> Function(SharedPreferences prefs, ApiClient api) run,
+}) async {
+  BackgroundRecording? recording;
+  try {
+    recording = await startActionRecording();
+    NotifProbe.action(id: actionId, items: items);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    final api = await buildBackgroundApiClient(prefs);
+    if (api == null) {
+      NotifProbe.noClient();
+      return;
+    }
+    await run(prefs, api);
+  } on Object catch (error) {
+    NotifProbe.actionFailed(error, items: failedItems);
+  } finally {
+    // Best effort: the plugin's entry point cannot await this handler (its
+    // signature returns void), so the engine may go away first. It costs at
+    // most the last line — every one before it was flushed as it was written.
+    await recording?.stop();
+  }
+}
+
+/// A notification gone already is not a failed action: the command it
+/// carried went out.
+Future<void> _cancel(int? id) async {
+  if (id == null) return;
+  try {
+    await FlutterLocalNotificationsPlugin().cancel(id: id);
+  } on Object {
+    // Gone already, or no plugin to ask.
+  }
+}
+
+/// Whether the saved profile is the server a payload's [tag] names.
+Future<bool> _asksThisServer(String tag) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return _isServer(prefs, tag);
+  } on Object {
+    return false;
+  }
+}
+
+/// [_asksThisServer] on preferences already re-read.
+bool _isServer(SharedPreferences prefs, String tag) {
+  final profile = SettingsRepository(prefs).loadProfile();
+  return profile != null && serverTag(profile.baseUrl) == tag;
+}
+
+/// The server answered and said no; asking again would get the same answer.
+/// A 5xx is not one — a proxy's 502 can arrive after the server stored it.
+bool _isRefusal(AppApiException error) =>
+    error.code == AppErrorCode.forbidden ||
+    (error is ApiException && (error.statusCode ?? 500) < 500);
+
+/// Takes the tapped notification away, and with it the memory entry that
+/// would let a photo landing later bring an answered alert back.
+Future<void> _dismiss(int? id, int archiveId) async {
+  try {
+    await cancelOutcomeAlert(
+      archiveId,
+      memory: FinishAlertMemory(await SharedPreferences.getInstance()),
+    );
+    if (id != null) await FlutterLocalNotificationsPlugin().cancel(id: id);
+  } on Object {
+    // Gone already, or no plugin to ask.
+  }
+}
+
+/// The server answered a verdict with a row that does not carry it. Only its
+/// class name reaches the log.
+class VerdictNotStored implements Exception {
+  const VerdictNotStored();
+}
+
+/// A notification button tapped after the app was switched to another server
+/// than the one whose printer or print it names.
+class ServerChanged implements Exception {
+  const ServerChanged();
 }
 
 /// Runs the remediation action the user tapped on an HMS alert.
@@ -130,7 +296,7 @@ Future<void> handleNotificationAction(NotificationResponse response) async {
 /// Stopping a print is the exception: it never runs from here, because a tap
 /// that abandons hours of printing has to be confirmed and a notification has
 /// nowhere to ask. That button brings the app up instead, and the request is
-/// parked in [postHmsStopRequest] for the shell to pick up.
+/// parked in [hmsStopRequests] for the shell to pick up.
 Future<void> handleHmsAction(NotificationResponse response) async {
   final actionId = response.actionId;
   if (actionId == null || !actionId.startsWith(hmsActionIdPrefix)) return;
@@ -138,7 +304,14 @@ Future<void> handleHmsAction(NotificationResponse response) async {
   final fault = parseHmsPayload(response.payload);
   if (fault == null) return;
   if (action == hmsStopAction) {
-    postHmsStopRequest(
+    // Checked here too: the shell confirms and sends the stop to whichever
+    // server the app is on now.
+    if (!await _asksThisServer(fault.server)) {
+      NotifProbe.actionFailed(const ServerChanged(), items: 1);
+      await _cancel(response.id);
+      return;
+    }
+    hmsStopRequests.post(
       HmsStopRequest(
         printerId: fault.printerId,
         fullCode: fault.fullCode,
@@ -148,35 +321,28 @@ Future<void> handleHmsAction(NotificationResponse response) async {
     return;
   }
 
-  BackgroundRecording? recording;
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    recording = await startActionRecording();
-    NotifProbe.action(id: actionId, items: 1);
-
-    final api = await buildBackgroundApiClient(prefs);
-    if (api == null) {
-      NotifProbe.noClient();
-      return;
-    }
-    await PrinterCommandsRepository(api.dio).executeHmsAction(
-      fault.printerId,
-      printError: fault.fullCode,
-      action: action,
-      jobId: fault.jobId,
-    );
-    final id = response.id;
-    if (id != null) {
-      await FlutterLocalNotificationsPlugin().cancel(id: id);
-    }
-  } on Object catch (error) {
-    // The callback isolate cannot crash — but from the user's side this is "I
-    // pressed Resume and the printer stayed paused", so it goes on the record.
-    // A 502 lands here too: the command went out, the printer never answered.
-    NotifProbe.actionFailed(error, items: 1);
-  } finally {
-    await recording?.stop();
-  }
+  // From the user's side a failure here is "I pressed Resume and the printer
+  // stayed paused" — a 502 too: the command went out, the printer never
+  // answered.
+  await _runAction(
+    actionId,
+    items: 1,
+    failedItems: 1,
+    run: (prefs, api) async {
+      if (!_isServer(prefs, fault.server)) {
+        NotifProbe.actionFailed(const ServerChanged(), items: 1);
+        await _cancel(response.id);
+        return;
+      }
+      await PrinterCommandsRepository(api.dio).executeHmsAction(
+        fault.printerId,
+        printError: fault.fullCode,
+        action: action,
+        jobId: fault.jobId,
+      );
+      await _cancel(response.id);
+    },
+  );
 }
 
 /// Handles tapping the "Mark Done" action on a maintenance notification.
@@ -189,54 +355,35 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
   final itemIds = parseMaintenancePayload(response.payload);
   if (itemIds.isEmpty) return;
 
-  BackgroundRecording? recording;
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    recording = await startActionRecording();
-    NotifProbe.action(id: maintenancePerformActionId, items: itemIds.length);
-
-    final api = await buildBackgroundApiClient(prefs);
-    if (api == null) {
-      NotifProbe.noClient();
-      return;
-    }
-    final repo = MaintenanceRepository(api.dio);
-    var anyPerformed = false;
-    for (final id in itemIds) {
-      try {
-        await repo.perform(id);
-        anyPerformed = true;
-      } on Object catch (error) {
-        // Isolate callback cannot crash. The request itself is in the HTTP lane;
-        // this says the counter the user tapped was not reset.
-        NotifProbe.actionFailed(error, items: 1);
+  await _runAction(
+    maintenancePerformActionId,
+    items: itemIds.length,
+    run: (prefs, api) async {
+      final repo = MaintenanceRepository(api.dio);
+      var anyPerformed = false;
+      for (final id in itemIds) {
+        try {
+          await repo.perform(id);
+          anyPerformed = true;
+        } on Object catch (error) {
+          // The request itself is in the HTTP lane; this says the counter the
+          // user tapped was not reset.
+          NotifProbe.actionFailed(error, items: 1);
+        }
       }
-    }
-    // Read-modify-write on a set the service isolate also writes.
-    final settings = await SettingsRepository(prefs).reloaded();
-    // Failed resets are re-armed too: being *in* this set suppresses the alert,
-    // and the button already took the notification away
-    // (`cancelNotification: true`), so a re-alert is the only way the user
-    // learns the counter never reset.
-    final notified = settings.loadNotifiedMaintenanceDueIds()
-      ..removeAll(itemIds);
-    await settings.saveNotifiedMaintenanceDueIds(notified);
-    // Signal to UI: server state changed outside the app.
-    // Maintenance screen will fetch fresh data on return instead of polling.
-    if (anyPerformed) await settings.setMaintenanceDirty(true);
-
-    final id = response.id;
-    if (id != null) {
-      await FlutterLocalNotificationsPlugin().cancel(id: id);
-    }
-  } on Object catch (error) {
-    // Prevent callback isolate crash — but say so, because from the user's side
-    // this is "I pressed Mark Done and nothing happened".
-    NotifProbe.actionFailed(error);
-  } finally {
-    // Best effort: the plugin's entry point cannot await this handler (its
-    // signature returns void), so the engine may go away first. It costs at most
-    // the last line — every one before it was flushed as it was written.
-    await recording?.stop();
-  }
+      // Read-modify-write on a set the service isolate also writes.
+      final settings = await SettingsRepository(prefs).reloaded();
+      // Failed resets are re-armed too: being *in* this set suppresses the
+      // alert, and the button already took the notification away
+      // (`cancelNotification: true`), so a re-alert is the only way the user
+      // learns the counter never reset.
+      final notified = settings.loadNotifiedMaintenanceDueIds()
+        ..removeAll(itemIds);
+      await settings.saveNotifiedMaintenanceDueIds(notified);
+      // Signal to UI: server state changed outside the app.
+      // Maintenance screen will fetch fresh data on return instead of polling.
+      if (anyPerformed) await settings.setMaintenanceDirty(true);
+      await _cancel(response.id);
+    },
+  );
 }

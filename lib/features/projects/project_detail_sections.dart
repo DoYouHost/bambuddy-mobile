@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exceptions.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/models/current_user.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/project.dart';
@@ -41,8 +42,16 @@ class SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      margin: const EdgeInsets.symmetric(
+        horizontal: DashSpace.gutter,
+        vertical: DashSpace.sm,
+      ),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.lg,
+        DashSpace.md,
+        DashSpace.md,
+        DashSpace.md,
+      ),
       decoration: t.cardBox,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,12 +59,12 @@ class SectionCard extends StatelessWidget {
           Row(
             children: [
               Icon(icon, size: 19, color: t.accentGreenInk),
-              const SizedBox(width: 8),
+              const SizedBox(width: DashSpace.sm),
               Expanded(child: Text(title, style: t.titleSm)),
               ?action,
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           child,
         ],
       ),
@@ -83,7 +92,7 @@ Widget sectionCardAction({
 Widget _emptyHint(BuildContext context, String text) {
   final t = DashTokens.of(context);
   return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 12),
+    padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
     child: Text(text, style: t.bodySoft.copyWith(color: t.textTertiary)),
   );
 }
@@ -100,20 +109,26 @@ class ProjectFilesSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final foldersAsync = ref.watch(projectFoldersProvider(projectId));
     final filesAsync = ref.watch(projectFilesProvider(projectId));
+    // Setting or clearing a folder's project is update-all only
+    // (`library.py::update_folder`), as the web's File Manager gates its Link
+    // entry; the web has no such control on the project page at all.
+    final mayLink = ref.watch(permissionProvider(Permissions.libraryUpdateAll));
 
     return SectionCard(
       icon: Icons.folder_open_outlined,
       title: l10n.projectTabFiles,
-      action: sectionCardAction(
-        id: 'project.section_action',
-        icon: Icons.create_new_folder_outlined,
-        label: l10n.projectLinkFolder,
-        onPressed: () => _linkFolder(context, ref),
-      ),
+      action: mayLink
+          ? sectionCardAction(
+              id: 'project.section_action',
+              icon: Icons.create_new_folder_outlined,
+              label: l10n.projectLinkFolder,
+              onPressed: () => _linkFolder(context, ref),
+            )
+          : null,
       child: dashAsyncStrip(
         context,
         foldersAsync,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(DashSpace.md),
         failureBuilder: (message) => _emptyHint(context, message),
         data: (folders) {
           if (folders.isEmpty) {
@@ -130,7 +145,9 @@ class ProjectFilesSection extends ConsumerWidget {
                       if (f.folderId == folder.id) f,
                   ],
                   onPrint: (f) => _print(context, ref, f),
-                  onUnlink: () => _unlink(context, ref, folder),
+                  onUnlink: mayLink
+                      ? () => _unlink(context, ref, folder)
+                      : null,
                 ),
             ],
           );
@@ -157,8 +174,8 @@ class ProjectFilesSection extends ConsumerWidget {
     try {
       final tree = await ref.read(libraryRepositoryProvider).listFolders();
       candidates = [
-        for (final f in _flatten(tree))
-          if (!linked.contains(f.id) && f.projectName == null) f,
+        for (final f in flattenFolders(tree))
+          if (!linked.contains(f.id) && f.projectId == null) f,
       ];
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.link_folder');
@@ -174,7 +191,7 @@ class ProjectFilesSection extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(DashSpace.lg),
               child: Text(
                 l10n.projectLinkFolder,
                 style: Theme.of(ctx).textTheme.titleMedium,
@@ -182,7 +199,7 @@ class ProjectFilesSection extends ConsumerWidget {
             ),
             if (candidates.isEmpty)
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(DashSpace.lg),
                 child: Text(l10n.projectNoFoldersToLink),
               )
             else
@@ -252,10 +269,6 @@ class ProjectFilesSection extends ConsumerWidget {
         ),
         schedule: QueueScheduleType.asap,
       );
-
-  List<LibraryFolder> _flatten(List<LibraryFolder> tree) => [
-    for (final f in tree) ...[f, ..._flatten(f.children)],
-  ];
 }
 
 class _FolderTile extends StatelessWidget {
@@ -269,7 +282,7 @@ class _FolderTile extends StatelessWidget {
   final LibraryFolder folder;
   final List<LibraryFile> files;
   final ValueChanged<LibraryFile> onPrint;
-  final VoidCallback onUnlink;
+  final VoidCallback? onUnlink;
 
   @override
   Widget build(BuildContext context) {
@@ -280,7 +293,10 @@ class _FolderTile extends StatelessWidget {
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
-        childrenPadding: const EdgeInsets.only(left: 8, bottom: 8),
+        childrenPadding: const EdgeInsets.only(
+          left: DashSpace.sm,
+          bottom: DashSpace.sm,
+        ),
         iconColor: t.textSecondary,
         collapsedIconColor: t.textSecondary,
         leading: Icon(Icons.folder_outlined, color: t.accentGreenInk),
@@ -289,11 +305,13 @@ class _FolderTile extends StatelessWidget {
           l10n.projectFolderFileCount(folder.fileCount),
           style: t.labelSoft,
         ),
-        trailing: IconButton(
-          icon: Icon(Icons.link_off, color: t.textSecondary),
-          tooltip: l10n.projectUnlinkFolder,
-          onPressed: onUnlink,
-        ).tagged('project.unlink_folder'),
+        trailing: onUnlink == null
+            ? null
+            : IconButton(
+                icon: Icon(Icons.link_off, color: t.textSecondary),
+                tooltip: l10n.projectUnlinkFolder,
+                onPressed: onUnlink,
+              ).tagged('project.unlink_folder'),
         children: [
           if (files.isEmpty)
             _emptyHint(context, l10n.projectFilesEmpty)
@@ -301,7 +319,9 @@ class _FolderTile extends StatelessWidget {
             for (final f in files)
               ListTile(
                 dense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: DashSpace.sm,
+                ),
                 leading: LibraryThumbnail(
                   fileId: f.id,
                   hasThumbnail: f.thumbnailPath != null,
@@ -489,7 +509,7 @@ class ProjectBomSection extends ConsumerWidget {
       child: dashAsyncStrip(
         context,
         async,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(DashSpace.md),
         failureBuilder: (message) => _emptyHint(context, message),
         data: (items) => items.isEmpty
             ? _emptyHint(context, l10n.projectBomEmpty)
@@ -515,7 +535,7 @@ class ProjectBomSection extends ConsumerWidget {
       leading: Checkbox(
         value: item.isComplete,
         activeColor: t.accentGreen,
-        checkColor: const Color(0xFF0A0C08),
+        checkColor: t.onAccent,
         onChanged: (v) => ref
             .read(projectBomProvider(projectId).notifier)
             .edit(
@@ -605,7 +625,7 @@ class ProjectTimelineSection extends ConsumerWidget {
       child: dashAsyncStrip(
         context,
         async,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(DashSpace.md),
         // A timeline nobody could load reads as one nothing happened on: this
         // section is a sidebar of a screen that has already said the project
         // failed to load, and does not need to say it twice.

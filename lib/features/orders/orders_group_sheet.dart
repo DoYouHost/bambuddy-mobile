@@ -121,15 +121,25 @@ class _GroupSheetState extends ConsumerState<_GroupSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                0,
+                DashSpace.gutter,
+                DashSpace.xs,
+              ),
               child: Text(l10n.ordersGroup, style: t.titleMd),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                0,
+                DashSpace.gutter,
+                DashSpace.sm,
+              ),
               child: Text(l10n.ordersGroupHint, style: t.bodySoft),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
               child: TextField(
                 controller: _name,
                 style: t.bodyStrong,
@@ -147,7 +157,7 @@ class _GroupSheetState extends ConsumerState<_GroupSheet> {
                 onRetry: () => ref.invalidate(_groupableProvider),
                 data: (items) => items.length < 2
                     ? Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(DashSpace.lg),
                         child: Text(l10n.ordersGroupEmpty, style: t.body),
                       )
                     : ListView(
@@ -178,7 +188,12 @@ class _GroupSheetState extends ConsumerState<_GroupSheet> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                DashSpace.sm,
+                DashSpace.gutter,
+                DashSpace.lg,
+              ),
               child: FilledButton(
                 onPressed: _ready ? _group : null,
                 child: Text(l10n.ordersGroupConfirm),

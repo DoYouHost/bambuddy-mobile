@@ -400,17 +400,114 @@ void main() {
       expect(hmsIsNotifiable(e, description: 'Nozzle clog'), isTrue);
     });
 
-    test(
-      'severity 1 with a description → no alert (bambuddy drops sev < 2)',
-      () {
-        const e = HmsError(code: 'x', severity: 1);
-        expect(hmsIsNotifiable(e, description: 'Some status message'), isFalse);
-      },
-    );
+    test('a print-stopping fault alerts whatever severity says (#2728)', () {
+      // Level 1 in the code's high half. A current server sends severity 1 for
+      // it, an older one the part byte — neither may silence it.
+      for (final severity in [1, 2, 6, null]) {
+        final e = HmsError(
+          code: '0x10007',
+          attr: 0x05000500,
+          severity: severity,
+          fullCode: '0500050000010007',
+        );
+        expect(
+          hmsIsNotifiable(e, description: 'Nozzle clog'),
+          isTrue,
+          reason: 'severity $severity',
+        );
+      }
+    });
+
+    test('Bambu\'s invalid level never alerts, described or not', () {
+      const e = HmsError(code: '0x2001', attr: 0x03002001, severity: 3);
+      expect(hmsIsNotifiable(e, description: 'Idle'), isFalse);
+    });
+
+    test('an hms[] notification alerts only when it offers actions', () {
+      const notice = HmsError(
+        code: '0x30001',
+        attr: 0x0C000100,
+        fullCode: '0C00010000030001',
+      );
+      expect(hmsIsNotifiable(notice, description: 'Top cover open'), isFalse);
+      const withActions = HmsError(
+        code: '0x30001',
+        attr: 0x0C000100,
+        fullCode: '0C00010000030001',
+        actions: ['RESUME_PRINTING'],
+      );
+      expect(
+        hmsIsNotifiable(withActions, description: 'Top cover open'),
+        isTrue,
+      );
+    });
+
+    test('a print_error prompt at the same level still alerts', () {
+      const prompt = HmsError(
+        code: '0xc003',
+        attr: 0x0700c003,
+        fullCode: '0700C003',
+      );
+      expect(hmsIsNotifiable(prompt, description: 'Unable to dry'), isTrue);
+    });
 
     test('server message → alert', () {
       const e = HmsError(code: 'x', message: 'Filament runout');
       expect(hmsIsNotifiable(e), isTrue);
+    });
+
+    test('an hms[] warning or info alerts without actions', () {
+      // Only level 3 needs actions to count (`_hms_fault_counts`).
+      for (final code in ['0x20007', '0x40007']) {
+        final e = HmsError(
+          code: code,
+          attr: 0x05000500,
+          fullCode: '05000500000${code.substring(2)}'.padRight(16, '0'),
+        );
+        expect(
+          hmsIsNotifiable(e, description: 'described'),
+          isTrue,
+          reason: code,
+        );
+      }
+    });
+
+    test('a server message does not lift the notice rule', () {
+      const notice = HmsError(
+        code: '0x30001',
+        attr: 0x0C000100,
+        fullCode: '0C00010000030001',
+        message: 'The top cover is open.',
+      );
+      expect(hmsIsNotifiable(notice), isFalse);
+    });
+
+    test('a legacy text-only fault is decided by its text alone', () {
+      // `{code, message}` from an old server: no attr, a code that is not a
+      // number, so there is no level to read and none to hold against it.
+      const said = HmsError(code: 'HMS_0300_8004', message: 'Filament runout');
+      const silent = HmsError(code: 'HMS_0300_8004');
+      expect(said.level, isNull);
+      expect(hmsIsNotifiable(said), isTrue);
+      expect(hmsIsNotifiable(silent), isFalse);
+      expect(hmsIsNotifiable(silent, description: '  '), isFalse);
+    });
+
+    test('a print_error with no level digit never alerts', () {
+      // 0x0xxx–0x3xxx are status values; 0xFxxx has no level either.
+      for (final code in [0x0002, 0x3FFF, 0xF001]) {
+        final value = 0x03000000 | code;
+        final e = HmsError(
+          code: '0x${code.toRadixString(16)}',
+          attr: value,
+          fullCode: value.toRadixString(16).padLeft(8, '0').toUpperCase(),
+        );
+        expect(
+          hmsIsNotifiable(e, description: 'described'),
+          isFalse,
+          reason: e.fullCode,
+        );
+      }
     });
   });
 

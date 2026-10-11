@@ -16,63 +16,54 @@ const defaultMaxFrameBytes = 8 * 1024 * 1024;
 /// The multipart headers between frames (`--frame`, `Content-Type: …`) are not
 /// parsed: everything outside an SOI…EOI pair is dropped, which is what makes
 /// this work the same for a server that sends them and one that does not.
-/// Markers split across two chunks are handled — the scan starts one byte
-/// before the end of what was already searched.
+/// Markers split across two chunks are handled through the last byte of the
+/// previous chunk.
+///
+/// Each chunk is scanned once and copied into the frame being collected once,
+/// so the cost stays linear in the bytes received. Re-joining a growing buffer
+/// with every chunk — what this did before — is quadratic, and a frame that
+/// never ends made that hundreds of megabytes of copying on the UI isolate
+/// before the cap dropped it.
 Stream<Uint8List> mjpegFrames(
   Stream<List<int>> chunks, {
   int maxFrameBytes = defaultMaxFrameBytes,
 }) async* {
-  var buffer = Uint8List(0);
-  var frameStart = -1; // Index of the SOI being collected, -1 between frames.
-  var scanned = 0;
+  final frame = BytesBuilder();
+  var inFrame = false;
+  var previous = -1; // Last byte of the previous chunk, -1 before the first.
 
   await for (final chunk in chunks) {
-    buffer = _concat(buffer, chunk);
+    if (chunk.isEmpty) continue;
+    final bytes = chunk is Uint8List ? chunk : Uint8List.fromList(chunk);
+    var from = 0; // Start of this chunk's part of the frame being collected.
 
-    var i = scanned == 0 ? 0 : scanned - 1;
-    while (i + 1 < buffer.length) {
-      if (buffer[i] != _marker) {
-        i++;
-        continue;
+    for (var i = 0; i < bytes.length; i++) {
+      final before = i == 0 ? previous : bytes[i - 1];
+      if (before != _marker) continue;
+      final byte = bytes[i];
+      if (!inFrame && byte == _soi) {
+        inFrame = true;
+        frame.clear();
+        if (i == 0) {
+          frame.addByte(_marker); // The FF ended the previous chunk.
+          from = 0;
+        } else {
+          from = i - 1;
+        }
+      } else if (inFrame && byte == _eoi) {
+        frame.add(Uint8List.sublistView(bytes, from, i + 1));
+        yield frame.takeBytes();
+        inFrame = false;
       }
-      final next = buffer[i + 1];
-      if (frameStart < 0 && next == _soi) {
-        frameStart = i;
-        i += 2;
-      } else if (frameStart >= 0 && next == _eoi) {
-        yield Uint8List.sublistView(buffer, frameStart, i + 2);
-        buffer = Uint8List.fromList(buffer.sublist(i + 2));
-        frameStart = -1;
-        i = 0;
-      } else {
-        i++;
+    }
+
+    if (inFrame) {
+      frame.add(Uint8List.sublistView(bytes, from));
+      if (frame.length > maxFrameBytes) {
+        frame.clear();
+        inFrame = false;
       }
     }
-
-    if (frameStart < 0) {
-      // Nothing before the next SOI can belong to a frame. The last byte stays:
-      // it may be the `FF` of a marker whose `D8` is in the next chunk.
-      buffer = buffer.isEmpty
-          ? buffer
-          : Uint8List.fromList([buffer[buffer.length - 1]]);
-    } else if (frameStart > 0) {
-      buffer = Uint8List.fromList(buffer.sublist(frameStart));
-      frameStart = 0;
-    }
-    if (buffer.length > maxFrameBytes) {
-      buffer = Uint8List(0);
-      frameStart = -1;
-    }
-    scanned = buffer.length;
+    previous = bytes.last;
   }
-}
-
-Uint8List _concat(Uint8List head, List<int> tail) {
-  if (head.isEmpty) {
-    return tail is Uint8List ? tail : Uint8List.fromList(tail);
-  }
-  final out = Uint8List(head.length + tail.length)
-    ..setRange(0, head.length, head);
-  out.setRange(head.length, out.length, tail);
-  return out;
 }

@@ -12,6 +12,9 @@ import '../../core/theme/dash_theme.dart';
 /// default it paints a second outline *inside* the radius-20 pill (offset
 /// after the icon), which reads as a UI glitch. Killing every border state
 /// leaves only the pill's own border.
+///
+/// [trailing] puts buttons (filters, scan, select all) beside the field in a
+/// row of the field's own height, so every screen lines them up the same way.
 class DashSearchField extends StatefulWidget {
   const DashSearchField({
     super.key,
@@ -21,6 +24,7 @@ class DashSearchField extends StatefulWidget {
     this.autofocus = false,
     this.textCapitalization = TextCapitalization.none,
     this.id = 'search',
+    this.trailing = const [],
   });
 
   final String hintText;
@@ -35,6 +39,10 @@ class DashSearchField extends StatefulWidget {
   /// Name for the diagnostic log. Typed text is never recorded — the id is all
   /// that says which screen's search this was.
   final String id;
+
+  final List<Widget> trailing;
+
+  static const height = 48.0;
 
   @override
   State<DashSearchField> createState() => _DashSearchFieldState();
@@ -59,7 +67,7 @@ class _DashSearchFieldState extends State<DashSearchField> {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    return logTag(
+    final field = logTag(
       widget.id,
       DecoratedBox(
         decoration: BoxDecoration(
@@ -71,13 +79,19 @@ class _DashSearchFieldState extends State<DashSearchField> {
           controller: _controller,
           autofocus: widget.autofocus,
           textCapitalization: widget.textCapitalization,
+          // Without it a borderless field aligns its text to the top, and the
+          // 48 dp search icon makes the pill taller than a line of text — so
+          // hint and cursor sat a few dp above the middle.
+          textAlignVertical: TextAlignVertical.center,
           style: t.bodyStrong,
           decoration: InputDecoration(
             isDense: true,
             filled: false,
+            // No vertical padding: the pill is always [height] tall, and at a
+            // large system text size a 12 dp inset squeezed the line to 24 dp
+            // and pushed it out through the top of the pill.
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: 4,
-              vertical: 12,
+              horizontal: DashSpace.xs,
             ),
             prefixIcon: Icon(Icons.search, color: t.textTertiary),
             hintText: widget.hintText,
@@ -107,6 +121,22 @@ class _DashSearchFieldState extends State<DashSearchField> {
           onChanged: widget.onChanged,
         ),
       ),
+    );
+    // Fixed at any text size: the headers that host the field reserve exactly
+    // this much, and a field that grew with the text overflowed them.
+    return SizedBox(
+      height: DashSearchField.height,
+      child: widget.trailing.isEmpty
+          ? field
+          : Row(
+              children: [
+                Expanded(child: field),
+                for (final action in widget.trailing) ...[
+                  const SizedBox(width: DashSpace.sm),
+                  action,
+                ],
+              ],
+            ),
     );
   }
 }

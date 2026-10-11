@@ -21,8 +21,8 @@ enum NotifSkip {
   /// pair a print cancel always emits.
   userAction,
 
-  /// An HMS code with no catalogue description and no server message, or
-  /// severity below the notification floor. The firmware emits several such
+  /// An HMS code with no catalogue description and no server message, or at a
+  /// level that never alerts (`hmsIsNotifiable`). The firmware emits several such
   /// codes per physical fault; the largest silent drop on the error path.
   undocumented,
 
@@ -51,6 +51,11 @@ enum NotifSkip {
   /// The same reading already earned an alert recently. Not a decision about
   /// the condition — it still holds — only about saying so again.
   throttled,
+
+  /// An HMS fault that stayed away for the clear grace before it had stood long
+  /// enough to alert — an X2D reports its AC board as broken for a few seconds
+  /// after every power-up.
+  transient,
 }
 
 /// Records what the notification layer decided, and what it decided *not* to do
@@ -353,6 +358,7 @@ class LoggingNotifications implements NotificationService {
     String? payload,
     List<NotificationAction>? actions,
     AlertPicture? picture,
+    bool quiet = false,
   }) {
     NotifProbe.posted(event: event, printerId: printerId, nid: id);
     return _inner
@@ -365,6 +371,7 @@ class LoggingNotifications implements NotificationService {
           payload: payload,
           actions: actions,
           picture: picture,
+          quiet: quiet,
         )
         // Rethrown with its original stack: absorbing it would remove an error
         // that today reaches the isolate's uncaught handler and gets its own

@@ -80,10 +80,25 @@ void main() {
       );
     });
 
-    test('FAILED is an error on its own, with no HMS at all', () {
+    test('FAILED with no HMS is finished, as on the web — a cancelled print '
+        'is not a fault', () {
       expect(
         classifyPrinter(_status(state: 'FAILED')),
+        PrinterStatusBucket.finished,
+      );
+    });
+
+    test('FAILED with a displayable HMS error is an error', () {
+      expect(
+        classifyPrinter(_status(state: 'FAILED', hms: const [_catalogued])),
         PrinterStatusBucket.error,
+      );
+    });
+
+    test('a preparing printer is idle, as on the web', () {
+      expect(
+        classifyPrinter(_status(state: 'PREPARE')),
+        PrinterStatusBucket.idle,
       );
     });
 

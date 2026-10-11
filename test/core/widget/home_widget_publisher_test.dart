@@ -1,6 +1,12 @@
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/core/widget/home_widget_publisher.dart';
+import 'package:bambuddy_mobile/l10n/app_localizations.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../hms_samples.dart';
 
 /// Catalog resolver that gives every HMS code a description → makes it
 /// "displayable", so the publisher would treat it as an active error.
@@ -75,5 +81,47 @@ void main() {
         expect(key.progressPct, 40);
       },
     );
+  });
+
+  group('HomeWidgetPublisher.publish', () {
+    test('an hms[] fault reads in the server words the alert uses', () async {
+      // The widget isolate has its own catalogue; with no word for an hms[]
+      // code it must fall back to the same sentence as the card and the alert.
+      TestWidgetsFlutterBinding.ensureInitialized();
+      final saved = <String, Object?>{};
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(const MethodChannel('home_widget'), (
+            call,
+          ) async {
+            if (call.method == 'saveWidgetData') {
+              final args = call.arguments as Map;
+              saved[args['id'] as String] = args['data'];
+            }
+            return true;
+          });
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(const MethodChannel('home_widget'), null),
+      );
+      final pl = HmsCatalog();
+      await pl.load(const Locale('pl'));
+
+      await HomeWidgetPublisher.publish(
+        {
+          1: PrinterStatus(
+            id: 1,
+            name: 'X2D-3DP',
+            connected: true,
+            state: 'IDLE',
+            hmsErrors: [hmsX2dChamberHeater.fault],
+          ),
+        },
+        lookupAppLocalizations(const Locale('pl')),
+        describeHms: pl.describe,
+      );
+
+      expect(saved['status_key'], 'error');
+      expect(saved['error_text'], hmsX2dChamberHeater.description);
+    });
   });
 }
