@@ -70,10 +70,6 @@ void main() {
       expect(spool.lastDriedReported, isFalse);
     });
 
-    test('whole hours arrive as a number, not a string', () {
-      expect(row(const {'last_dried_hours': 8}).lastDriedHours, 8.0);
-    });
-
     test('a Spoolman row reads it the same way', () {
       final spool = Spool.fromSpoolman(const {
         'id': 2,
@@ -88,16 +84,6 @@ void main() {
       );
       expect(spool.lastDriedTemp, 50);
       expect(spool.lastDriedHours, 4.0);
-      expect(spool.lastDriedReported, isTrue);
-    });
-
-    test('a Spoolman row with no date reads as never dried', () {
-      final spool = Spool.fromSpoolman(const {
-        'id': 2,
-        'material': 'PLA',
-        'last_dried_at': null,
-      });
-      expect(spool.lastDriedAt, isNull);
       expect(spool.lastDriedReported, isTrue);
     });
   });

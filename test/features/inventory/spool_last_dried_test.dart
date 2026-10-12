@@ -52,28 +52,21 @@ Spool _spool(int id, String brand, {DateTime? at, int? temp, double? hours}) =>
 
 void main() {
   group('lastDriedRun', () {
-    test('names the temperature and the hours of the run', () {
-      expect(
-        lastDriedRun(_spool(1, 'A', temp: 55, hours: 7.5)),
+    // The web's formatLastDriedDetails: whole hours drop their decimal, the
+    // rest rounds to one; a date set by hand has no figures to name.
+    final cases = <String, (Spool, String?)>{
+      'temperature and hours': (
+        _spool(1, 'A', temp: 55, hours: 7.5),
         '55 °C · 7.5 h',
-      );
-    });
-
-    test('whole hours drop their decimal', () {
-      expect(lastDriedRun(_spool(1, 'A', temp: 50, hours: 8)), '50 °C · 8 h');
-    });
-
-    test('rounds to one decimal like the web', () {
-      expect(lastDriedRun(_spool(1, 'A', hours: 7.54)), '7.5 h');
-      expect(lastDriedRun(_spool(1, 'A', hours: 7.96)), '8 h');
-    });
-
-    test('says nothing for a date set by hand', () {
-      expect(lastDriedRun(_spool(1, 'A', at: _dried)), isNull);
-    });
-
-    test('a run without a temperature still shows its hours', () {
-      expect(lastDriedRun(_spool(1, 'A', hours: 4)), '4 h');
+      ),
+      'whole hours': (_spool(1, 'A', temp: 50, hours: 8), '50 °C · 8 h'),
+      'rounded down': (_spool(1, 'A', hours: 7.54), '7.5 h'),
+      'rounded up to whole': (_spool(1, 'A', hours: 7.96), '8 h'),
+      'hours without a temperature': (_spool(1, 'A', hours: 4), '4 h'),
+      'a date set by hand': (_spool(1, 'A', at: _dried), null),
+    };
+    cases.forEach((name, c) {
+      test(name, () => expect(lastDriedRun(c.$1), c.$2));
     });
   });
 

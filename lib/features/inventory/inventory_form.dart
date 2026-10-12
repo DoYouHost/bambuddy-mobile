@@ -240,6 +240,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     } else if (_isEdit && remaining == null) {
       used = widget.existing!.weightUsed;
     }
+    final writesDried = _showsLastDried(ref) && _lastDriedTouched;
     final built = SpoolDraft(
       material: material,
       brand: _trim('brand'),
@@ -263,13 +264,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       slicerFilament: _slicerFilament,
       slicerFilamentName: _slicerFilamentName,
       note: _trim('note'),
-      lastDriedAt: _showsLastDried(ref) && _lastDriedTouched
-          ? _lastDried
-          : null,
-      clears: {
-        if (_showsLastDried(ref) && _lastDriedTouched && _lastDried == null)
-          'last_dried_at',
-      },
+      lastDriedAt: writesDried ? _lastDried : null,
+      clears: {if (writesDried && _lastDried == null) 'last_dried_at'},
     );
     final before = _writtenOver;
     final draft = before == null
