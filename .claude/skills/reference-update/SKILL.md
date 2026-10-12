@@ -62,10 +62,12 @@ are already above it in the body, so it counts them instead of repeating them.
 It also carries `## Watch only`, which is the one section that belongs in the
 comment rather than on the list — nothing there is work.
 
-The job lifts anything ticked out of the checklist and into that comment before
-it writes the body, so the list you are handed holds no ticked lines. That is
-mechanical and none of your business: do not re-add a ticked line, and do not
-tick a box yourself.
+The standing list **does** reach you with the maintainer's ticked lines in it
+(`- [x]`): the job lifts them out of the file you write, after you finish. That
+is mechanical and none of your business. Carry every ticked line forward
+untouched, tick included; never tick a box yourself, and never list a ticked
+line under *Struck off* — the job already quotes it in the comment's *Lifted out
+of the checklist* section, so naming it again only doubles the comment.
 
 So the checklist shrinks as work gets done, and nothing is lost by the
 shrinking — the comment from that week says what went and why. The record is
@@ -211,7 +213,13 @@ Where each kind of finding comes from in `facts.md`:
 | CHANGELOG entries with no footprint above | Watch only or Cheap win — see the rule below |
 
 The report carries the same one-line entries, in the three checklist sections
-it added to, plus `## Watch only` and **Struck off**.
+it added to, plus `## Watch only` and **Struck off** — and **nothing else**: no
+`Questions`, `Unresolved`, `Not carried onto the checklist` or any other
+heading, because the job reads only those sections and a reader scanning a
+week's comment expects the same shape every time. An open question is a
+`## Feature` line marked `(needs a decision)`; something you read and judged not
+worth a line is one more `## Watch only` line, with the place our code gets that
+data, or it is left out.
 
 ## Rules that decide what goes in
 
@@ -219,13 +227,19 @@ it added to, plus `## Watch only` and **Struck off**.
   list is prose rather than one line per change, rewrite every entry into a
   checkbox line — keeping each item and its tick — and say in the report that
   you converted it. This is the one exception to copying lines byte-for-byte.
-- **A ticked box is the maintainer speaking**, and the job has already acted on
-  it: the standing list reaches you with those lines gone. Never re-add one,
-  never tick a box yourself, and never reword a line you are carrying forward —
-  a rewritten line reads as a new one and loses its tick.
+- **A ticked box is the maintainer speaking.** Carry the line forward exactly as
+  it stands, and the job lifts it. Never tick a box yourself, and never reword a
+  line you are carrying forward — a rewritten line reads as a new one and
+  loses its tick.
 - **Evidence or it stays on the list.** Never strike an item off without a
   `file:line` from our tree. A false "done" disappears and comes back as a bug
   months later; a false "to do" costs ten seconds of reading.
+- **Every `file:line` is copied from output you saw in this run**, a `grep -n`
+  or a Read, never typed from memory. A server symbol is cited as
+  `backend/app/...:N` from the reference clone, a client one as `lib/...:N`. One
+  line cited `schemas/printer.py:2207` for a file that is 551 lines long; the
+  field was at line 424 of it and built at `routes/printers.py:838`. When you
+  did not look the line up, cite the file alone.
 - **Every removal is accounted for.** A line may leave `open-items.md` only
   through the report's *Struck off* section, which quotes the line verbatim
   without its checkbox — the job compares the two lists and fails the run on
