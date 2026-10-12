@@ -42,6 +42,7 @@ import 'features/queue/queue_screen.dart';
 import 'features/setup/setup_screen.dart';
 import 'features/shell/root_scaffold.dart';
 import 'features/pipelines/pipelines_screen.dart';
+import 'features/finance/finance_screen.dart';
 import 'features/stats/statistics_screen.dart';
 import 'features/swatches/swatches_screen.dart';
 import 'features/tour/tips_screen.dart';
@@ -190,6 +191,7 @@ GoRouter buildAppRouter({
 
       // Archive statistics — full screen outside shell (pushed from drawer).
       GoRoute(path: '/stats', builder: (_, _) => const StatisticsScreen()),
+      GoRoute(path: '/finance', builder: (_, _) => const FinanceScreen()),
 
       // Slicer pipelines — full screen outside shell (pushed from drawer).
       // The runs dashboard is pushed from it rather than routed: it is only

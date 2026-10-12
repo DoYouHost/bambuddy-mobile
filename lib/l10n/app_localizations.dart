@@ -13544,11 +13544,587 @@ abstract class AppLocalizations {
   /// **'Cancelled instead of removed: this is the only run its batch order can re-queue this plate from'**
   String get queueHistoryKeptForOrder;
 
-  /// Shown on the print-job form, and in place of the server refusal on create, edit or start, when the server enforces cost-center billing, which the app does not support yet.
+  /// In place of the server refusal on a start, or a bulk add, of a job without a cost center, and where the app cannot choose one.
   ///
   /// In en, this message translates to:
-  /// **'Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.'**
+  /// **'Billing is on for this server, so every print job needs a cost center, which this action cannot set. Open the job in the app to choose one, or use Bambuddy in a browser.'**
   String get queueBillingUseWeb;
+
+  /// Shown instead of a bulk "Add to queue" or a queue-as-alternatives of library files when billing is on: those routes take no cost center, so every job would be refused or could never start.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing is on for this server, so every print job needs a cost center, which this action cannot set. Queue the files one at a time, or use Bambuddy in a browser.'**
+  String get queueBillingNoBulk;
+
+  /// Drawer entry for the finance screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Finance'**
+  String get financeMenu;
+
+  /// Title of the finance screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Finance'**
+  String get financeTitle;
+
+  /// Explains at the top of the finance screen what the account balance does and does not limit; the web's own sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Account balances track costs. Printing is limited only by the selected cost center budget; without a budget, printing is unlimited.'**
+  String get financeBudgetPolicyHint;
+
+  /// Label above the user's account balance.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal account balance'**
+  String get financeBalance;
+
+  /// Heading of the list of the user's cost centers.
+  ///
+  /// In en, this message translates to:
+  /// **'My cost centers'**
+  String get financeMyCostCenters;
+
+  /// Under the cost centers heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Review budget limits and keep costs under control'**
+  String get financeCostCentersHint;
+
+  /// Shown when the user has no cost centers.
+  ///
+  /// In en, this message translates to:
+  /// **'No cost centers found.'**
+  String get financeNoCostCenters;
+
+  /// A cost center's account balance, on its card.
+  ///
+  /// In en, this message translates to:
+  /// **'Account balance: {amount}'**
+  String financeAccountBalance(String amount);
+
+  /// A cost center card with no budget limit.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited'**
+  String get financeUnlimited;
+
+  /// Names the kind of budget a cost center has.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly budget'**
+  String get financeBudgetMonthly;
+
+  /// Names the kind of budget a cost center has.
+  ///
+  /// In en, this message translates to:
+  /// **'Total budget'**
+  String get financeBudgetTotal;
+
+  /// Names the kind of budget a cost center has.
+  ///
+  /// In en, this message translates to:
+  /// **'No budget'**
+  String get financeBudgetNone;
+
+  /// Heading of the ledger.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent transactions'**
+  String get financeRecentTransactions;
+
+  /// Under the ledger heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by type and cost center'**
+  String get financeTransactionsHint;
+
+  /// Label of the ledger's type filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get financeType;
+
+  /// The ledger type filter with nothing chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'All types'**
+  String get financeAllTypes;
+
+  /// Label of the ledger's cost center filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost center'**
+  String get financeCostCenter;
+
+  /// The ledger cost center filter with nothing chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'All cost centers'**
+  String get financeAllCostCenters;
+
+  /// A ledger row: the cost of a print.
+  ///
+  /// In en, this message translates to:
+  /// **'Print charge'**
+  String get financeTypePrintCharge;
+
+  /// A ledger row: money added.
+  ///
+  /// In en, this message translates to:
+  /// **'Deposit'**
+  String get financeTypeDeposit;
+
+  /// A ledger row: money taken out.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdrawal'**
+  String get financeTypeWithdraw;
+
+  /// A ledger row: a manual correction.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjustment'**
+  String get financeTypeAdjustment;
+
+  /// Shown when the ledger is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions available.'**
+  String get financeNoTransactions;
+
+  /// Shown when the filters leave no ledger row.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions match the selected filters.'**
+  String get financeNoTransactionsForFilter;
+
+  /// On a ledger row: the balance once it was applied.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance after: {amount}'**
+  String financeBalanceAfter(String amount);
+
+  /// Badge on a print charge for a print that was aborted.
+  ///
+  /// In en, this message translates to:
+  /// **'Aborted'**
+  String get financePartialAborted;
+
+  /// Badge on a print charge for a print that failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get financePartialFailed;
+
+  /// Badge on a print charge for a print that was cancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get financePartialCancelled;
+
+  /// Button that fetches the next page of the ledger.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get financeLoadMore;
+
+  /// How many ledger rows are loaded of how many there are.
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} of {total}'**
+  String financeShowing(int shown, int total);
+
+  /// Shown in place of a part of the finance screen that could not be read.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load your finances.'**
+  String get financeLoadFailed;
+
+  /// Button that books a manual print charge.
+  ///
+  /// In en, this message translates to:
+  /// **'Add charge'**
+  String get financeAddCharge;
+
+  /// Button and title: charge a print the server never saw.
+  ///
+  /// In en, this message translates to:
+  /// **'Add manual print'**
+  String get financeAddManualPrint;
+
+  /// Button that adds a user to a cost center.
+  ///
+  /// In en, this message translates to:
+  /// **'Add member'**
+  String get financeAddMember;
+
+  /// Button and title: deposit to or withdraw from a user's wallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust wallet'**
+  String get financeAdjustWallet;
+
+  /// The administrator's side of the finance screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin view'**
+  String get financeAdminView;
+
+  /// Label of an amount field.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get financeAmount;
+
+  /// Field error: the amount is not a number, or is negative where it may not be.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount must be a valid number'**
+  String get financeAmountInvalid;
+
+  /// Field error: a deposit or withdrawal of nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount must be greater than zero'**
+  String get financeAmountPositive;
+
+  /// Button that applies a wallet adjustment.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply adjustment'**
+  String get financeApplyAdjustment;
+
+  /// Label of the select for a cost center's kind of budget.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget type'**
+  String get financeBudgetType;
+
+  /// Beside a member's switch: may they book prints to the center.
+  ///
+  /// In en, this message translates to:
+  /// **'Can print'**
+  String get financeCanPrint;
+
+  /// Question before a cost center is deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete cost center “{name}”?'**
+  String financeConfirmDeleteCostCenter(String name);
+
+  /// Snack after a cost center was created.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost center created'**
+  String get financeCostCenterCreated;
+
+  /// Snack after a cost center was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost center deleted'**
+  String get financeCostCenterDeleted;
+
+  /// Label of the cost center name field.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get financeCostCenterName;
+
+  /// Field error: no name given.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost center name is required'**
+  String get financeCostCenterNameRequired;
+
+  /// Field error: no cost center chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a cost center'**
+  String get financeCostCenterRequired;
+
+  /// Heading of the administrator's list of every cost center.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost centers'**
+  String get financeCostCenters;
+
+  /// Snack after a cost center was changed.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost center updated'**
+  String get financeCostCenterUpdated;
+
+  /// Button that creates a cost center.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get financeCreate;
+
+  /// Button and title: create a shared cost center.
+  ///
+  /// In en, this message translates to:
+  /// **'Create cost center'**
+  String get financeCreateCostCenter;
+
+  /// Menu entry and button: delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get financeDelete;
+
+  /// The server refused to delete a cost center that queued jobs still hold budget on.
+  ///
+  /// In en, this message translates to:
+  /// **'This cost center cannot be deleted while queued jobs still hold part of its budget.'**
+  String get financeDeleteBlockedReservations;
+
+  /// The server refused to delete a cost center that ledger rows still name.
+  ///
+  /// In en, this message translates to:
+  /// **'This cost center cannot be deleted while transactions refer to it.'**
+  String get financeDeleteBlockedTransactions;
+
+  /// Title of the confirmation before a cost center is deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete cost center'**
+  String get financeDeleteCostCenter;
+
+  /// Title of the confirmation before a ledger row is deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete transaction'**
+  String get financeDeleteTransaction;
+
+  /// Question before a ledger row is deleted; the web's own sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this transaction? Balances will be recalculated automatically.'**
+  String get financeDeleteTransactionConfirm;
+
+  /// Snack after a deposit.
+  ///
+  /// In en, this message translates to:
+  /// **'Deposit successful'**
+  String get financeDepositDone;
+
+  /// Label of an optional description field.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (optional)'**
+  String get financeDescription;
+
+  /// Menu entry: edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get financeEdit;
+
+  /// Title of the cost center edit sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit cost center'**
+  String get financeEditCostCenter;
+
+  /// Title of the ledger row edit sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit transaction'**
+  String get financeEditTransaction;
+
+  /// Caption of the members sheet of a cost center.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage cost center members'**
+  String get financeManageMembers;
+
+  /// Snack after a manual print charge.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual print charge added and ledger recalculated'**
+  String get financeManualPrintDone;
+
+  /// Label of the switch for a member about to be added.
+  ///
+  /// In en, this message translates to:
+  /// **'Member can print'**
+  String get financeMemberCanPrint;
+
+  /// Under that switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Without it the member sees the cost center but cannot book prints to it.'**
+  String get financeMemberCanPrintHint;
+
+  /// Snack after a member was removed.
+  ///
+  /// In en, this message translates to:
+  /// **'Member removed'**
+  String get financeMemberRemoved;
+
+  /// Menu entry that opens a cost center's members.
+  ///
+  /// In en, this message translates to:
+  /// **'Members'**
+  String get financeMembers;
+
+  /// Snack after a member was added.
+  ///
+  /// In en, this message translates to:
+  /// **'Member saved'**
+  String get financeMemberSaved;
+
+  /// The any-row of the cost center select: none.
+  ///
+  /// In en, this message translates to:
+  /// **'No cost center'**
+  String get financeNoCostCenter;
+
+  /// Snack: no user was chosen to add as a member.
+  ///
+  /// In en, this message translates to:
+  /// **'No eligible users available'**
+  String get financeNoEligibleUsers;
+
+  /// Shown on a cost center with no members.
+  ///
+  /// In en, this message translates to:
+  /// **'No members assigned.'**
+  String get financeNoMembers;
+
+  /// The user's own side of the finance screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal view'**
+  String get financePersonalView;
+
+  /// On the edit sheet of a personal cost center.
+  ///
+  /// In en, this message translates to:
+  /// **'A personal cost center keeps its name; only its budget can change. Set it to 0 to stop it printing.'**
+  String get financePrivateBudgetOnly;
+
+  /// Tooltip of the button that removes a member.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove member'**
+  String get financeRemoveMember;
+
+  /// Button that saves an edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get financeSave;
+
+  /// A shared cost center's owner line.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared'**
+  String get financeShared;
+
+  /// Snack after a ledger row was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction deleted'**
+  String get financeTransactionDeleted;
+
+  /// Snack after a ledger row was changed.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction updated and ledger recalculated'**
+  String get financeTransactionEdited;
+
+  /// Heading of the administrator's ledger of every user.
+  ///
+  /// In en, this message translates to:
+  /// **'Transactions'**
+  String get financeTransactions;
+
+  /// Label of a user select.
+  ///
+  /// In en, this message translates to:
+  /// **'User'**
+  String get financeUser;
+
+  /// Field error: no user chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a user'**
+  String get financeUserRequired;
+
+  /// A user the app has no name for.
+  ///
+  /// In en, this message translates to:
+  /// **'User #{id}'**
+  String financeUserWithId(int id);
+
+  /// Snack after a withdrawal.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdrawal successful'**
+  String get financeWithdrawDone;
+
+  /// Shown on the print-job form when billing is on and this session may not list its cost centers (an API key on a server before maziggy/bambuddy #3256), so none can be picked.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing is on for this server, so every print job needs a cost center, but this account cannot list its cost centers in the app. Queue, edit and start this job in Bambuddy in a browser.'**
+  String get queueBillingCostCentersRefused;
+
+  /// Shown on the print-job form when billing is on and the user may print to no active cost center; the web's own sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'No active cost center is available for printing. Ask an administrator to grant you print access.'**
+  String get queueBillingNoCostCenter;
+
+  /// Heading of the cost-center select on the print-job form, shown while the server has billing on.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost center'**
+  String get queueCostCenterTitle;
+
+  /// A user's own cost center in the select, as the web labels it.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} (personal)'**
+  String queueCostCenterPersonal(String name);
+
+  /// Under the cost-center select when the chosen center has no budget limit; the web's own sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited – no budget limit is set.'**
+  String get queueCostCenterUnlimited;
+
+  /// Beside the retry button when the list of cost centers could not be read.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your cost centers.'**
+  String get queueCostCenterLoadFailed;
+
+  /// The server refused a job because it could not work out a cost for it: the file lists no filament usage (`Estimated cost is required for cost center prints`).
+  ///
+  /// In en, this message translates to:
+  /// **'The server could not work out what this job costs because the file lists no filament usage, and a cost center needs that.'**
+  String get queueBillingEstimateRequired;
+
+  /// The server refused a job because its cost center was deactivated meanwhile.
+  ///
+  /// In en, this message translates to:
+  /// **'That cost center is no longer active. Pick another one.'**
+  String get queueBillingCostCenterInactive;
+
+  /// The server refused a job because the user may not book prints to that cost center (private to someone else, or no print right).
+  ///
+  /// In en, this message translates to:
+  /// **'You are not allowed to print with that cost center. Pick another one.'**
+  String get queueBillingCostCenterNoAccess;
+
+  /// The server refused a job because its estimated cost is more than what is left of the cost center's budget.
+  ///
+  /// In en, this message translates to:
+  /// **'This job costs more than the budget left in that cost center.'**
+  String get queueBillingBudgetExceeded;
 
   /// No description provided for @labelPrinterTitle.
   ///

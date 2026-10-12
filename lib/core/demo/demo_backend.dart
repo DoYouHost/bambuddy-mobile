@@ -10,6 +10,7 @@ import '../models/print_run.dart';
 import '../models/spool_label.dart';
 import '../app_context.dart';
 import 'demo_labels.dart';
+import 'demo_finance.dart';
 import 'demo_manyfold.dart';
 import '../format/text_utils.dart';
 
@@ -665,12 +666,28 @@ class DemoBackend {
         return _ok(const <String, dynamic>{});
 
       case 'users':
-        return _ok([
-          {'id': 1, 'username': DemoConfig.username},
-        ]);
+        return _ok(DemoFinance.users);
+
+      case 'finance':
+        return _finance.route(m, s.skip(1).toList(), q, body);
     }
     return null;
   }
+
+  /// Billing: the cost centers, their members and the ledger.
+  final _finance = DemoFinance();
+
+  /// `validate_print_budget` for a job of [cost] booked to [costCenterId], when
+  /// the server has billing on (it does, in the demo).
+  DemoResult? _budgetRefusal(Object? costCenterId, double cost) =>
+      {..._settings, ..._settingsWrites}['billing_enabled'] == true
+      ? _finance.budgetRefusal(costCenterId, cost)
+      : null;
+
+  /// A job's cost as the demo works it out: the filament at the rate the
+  /// archives are priced with, times the copies.
+  double _jobCost(Map<String, dynamic> item, [int copies = 1]) =>
+      ((item['filament_used_grams'] as num?)?.toDouble() ?? 0) * 0.025 * copies;
 
   DemoResult _login(Map<String, dynamic> body) {
     if (body['username'] == DemoConfig.username &&
@@ -705,6 +722,9 @@ class DemoBackend {
     'confirm_outcome_external_prints': false,
     'confirm_default_good_on_plate_clear': false,
     'currency': 'USD',
+    // Billing on, so the print form shows its cost-center select and the queue
+    // refuses a job without one, as a billing server does (#3256).
+    'billing_enabled': true,
     // Auto-print snippets, as the real server stores them: a JSON string
     // keyed by printer model. Only the A1 mini has one, so demo shows both
     // halves of the gate — the injection checkbox appears, and picking the
@@ -2487,8 +2507,10 @@ class DemoBackend {
     // A job queued from the library, as the server shapes one: the file's
     // name and thumbnail in place of the archive's.
     int? libraryFileId,
+    int? costCenterId = 1,
   }) => {
     'id': id,
+    'cost_center_id': costCenterId,
     'batch_id': batchId,
     'batch_name': batchName,
     'printer_id': printerId,
@@ -2581,6 +2603,7 @@ class DemoBackend {
         ],
         batchId: batch?['id'] as int?,
         batchName: batch?['name'] as String?,
+        costCenterId: body['cost_center_id'] as int?,
       ),
     );
 
@@ -2658,6 +2681,16 @@ class DemoBackend {
             (lead?['print_name'] as String?) ??
             (archive?['print_name'] as String?) ??
             'Reprint';
+        // Before the batch is made, so a refused create leaves nothing behind.
+        final grams =
+            (lead?['filament_used_grams'] as num?)?.toDouble() ??
+            (archive?['filament_used_grams'] as num?)?.toDouble() ??
+            20;
+        final overBudget = _budgetRefusal(
+          body['cost_center_id'],
+          grams * 0.025 * copies,
+        );
+        if (overBudget != null) return overBudget;
         final batch = _batchForCopies(body['batch_id'] as int?, copies, name);
         if (batch case DemoResult refused) return refused;
         final batchMap = batch as Map<String, dynamic>?;
@@ -2691,6 +2724,14 @@ class DemoBackend {
       return _ok(const {'ok': true});
     }
     if (m == 'PATCH') {
+      // Every edit is checked against the cost center it will have, as
+      // `update_queue_item` does.
+      final center = body.containsKey('cost_center_id')
+          ? body['cost_center_id']
+          : item['cost_center_id'];
+      final overBudget = _budgetRefusal(center, _jobCost(item));
+      if (overBudget != null) return overBudget;
+      item['cost_center_id'] = center;
       if (body.containsKey('printer_id')) {
         item['printer_id'] = body['printer_id'];
         item['printer_name'] = _printers
@@ -2713,6 +2754,8 @@ class DemoBackend {
       return _ok(const {'ok': true});
     }
     if (s.length >= 3 && s[2] == 'start') {
+      final overBudget = _budgetRefusal(item['cost_center_id'], _jobCost(item));
+      if (overBudget != null) return overBudget;
       item['status'] = 'printing';
       item['started_at'] = _iso(DateTime.now());
       return _ok(const {'ok': true});

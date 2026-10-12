@@ -771,6 +771,12 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   Future<void> _queueAsVariants(LibraryFile file) async {
     // Taken before the first await: the gates below are read after it.
     final providers = ProviderScope.containerOf(context, listen: false);
+    // `POST /queue/` with variants would need a cost center the file manager has
+    // no form to pick, and billing refuses it without one.
+    if (await settledBillingEnabled(providers)) {
+      if (mounted) _snack(_l10n.queueBillingNoBulk);
+      return;
+    }
     try {
       final group = await ref
           .read(libraryRepositoryProvider)
@@ -827,25 +833,43 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }
 
   Future<void> _addSelectedToQueue(FileManagerState s) async {
+    final only = s.selected.length == 1
+        ? s.files.where((f) => f.id == s.selected.single).firstOrNull
+        : null;
+    if (only != null && await _billingOn()) {
+      final added = await _printFile(only, schedule: QueueScheduleType.queue);
+      if (added && mounted) {
+        ref.read(fileManagerProvider.notifier).clearSelection();
+      }
+      return;
+    }
     final added = await _queueFiles(s.selected.toList(), 'files.add_to_queue');
     if (added && mounted) {
       ref.read(fileManagerProvider.notifier).clearSelection();
     }
   }
 
-  Future<void> _addToQueue(LibraryFile file) =>
-      _queueFiles([file.id], 'file_actions.add_to_queue');
+  /// On a billing server the job needs a cost center, which only the print form
+  /// can set: one file opens it, lined up rather than started.
+  Future<void> _addToQueue(LibraryFile file) async {
+    if (await _billingOn()) {
+      await _printFile(file, schedule: QueueScheduleType.queue);
+      return;
+    }
+    await _queueFiles([file.id], 'file_actions.add_to_queue');
+  }
+
+  Future<bool> _billingOn() =>
+      settledBillingEnabled(ProviderScope.containerOf(context, listen: false));
 
   /// Queues [ids], first asking where when the server can be told (#3112).
   /// Returns whether anything was queued.
   Future<bool> _queueFiles(List<int> ids, String action) async {
     final repo = ref.read(libraryRepositoryProvider);
-    // This route checks no budget, so on a billing server it would queue a job
-    // without a cost center that can then never start.
-    if (await settledBillingEnabled(
-      ProviderScope.containerOf(context, listen: false),
-    )) {
-      if (mounted) _snack(_l10n.queueBillingUseWeb);
+    // This route checks no budget and takes no cost center, so on a billing
+    // server it would queue jobs that can then never start.
+    if (await _billingOn()) {
+      if (mounted) _snack(_l10n.queueBillingNoBulk);
       return false;
     }
     if (!mounted) return false;
@@ -909,8 +933,11 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   /// Print: the full print form, opened on ASAP. The job is configured before
   /// the queue item exists, so nothing can dispatch it mid-setup.
-  Future<void> _printFile(LibraryFile file) async {
-    await openQueueCreate(
+  Future<bool> _printFile(
+    LibraryFile file, {
+    QueueScheduleType schedule = QueueScheduleType.asap,
+  }) {
+    return openQueueCreate(
       context,
       draft: QueueItem.draft(
         libraryFileId: file.id,
@@ -918,7 +945,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         thumbnail: file.thumbnailPath,
         slicedForModel: file.slicedForModel,
       ),
-      schedule: QueueScheduleType.asap,
+      schedule: schedule,
     );
   }
 

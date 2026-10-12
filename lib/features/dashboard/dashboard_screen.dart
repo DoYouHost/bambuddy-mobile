@@ -11,6 +11,7 @@ import '../../core/auth/auth_headers.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart' show bugReportRoute;
 import '../../core/format/duration_format.dart';
+import '../../core/models/current_user.dart' show Permissions;
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/background_sync.dart';
 import '../../core/notifications/battery_optimization.dart';
@@ -1054,6 +1055,23 @@ class _AppDrawer extends ConsumerWidget {
                     },
                     id: 'drawer.stats',
                   ),
+                  // Only where billing is on and this account has a ledger: no
+                  // API key can read one, so a key session never sees the entry.
+                  if (ref.watch(billingEnabledProvider) &&
+                      ref.watch(
+                        identifiedPermissionProvider(
+                          Permissions.costCentersReadOwn,
+                        ),
+                      ))
+                    _DrawerTile(
+                      icon: Icons.account_balance_wallet_outlined,
+                      label: l10n.financeMenu,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/finance');
+                      },
+                      id: 'drawer.finance',
+                    ),
                   // Absent until a call has proved the routes are there and this
                   // session may read them: an older server 404s, and an API key
                   // was refused every pipeline permission before server 1.2.5.3.

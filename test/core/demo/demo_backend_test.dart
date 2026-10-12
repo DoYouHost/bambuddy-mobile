@@ -18,6 +18,8 @@ import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
 import 'package:bambuddy_mobile/core/models/print_batch.dart';
+import 'package:bambuddy_mobile/core/models/cost_center.dart';
+import 'package:bambuddy_mobile/data/finance_repository.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/core/models/location_sensor.dart';
@@ -53,6 +55,7 @@ import 'package:bambuddy_mobile/core/models/calibration_option.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
+import 'package:bambuddy_mobile/core/models/wallet.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -157,9 +160,13 @@ void main() {
       await queue.addFromArchive(
         1,
         quantity: 2,
-        options: QueueCreateOptions(batchId: order.id),
+        options: QueueCreateOptions(batchId: order.id, costCenterId: 1),
       );
-      await queue.addFromArchive(1, quantity: 3);
+      await queue.addFromArchive(
+        1,
+        quantity: 3,
+        options: const QueueCreateOptions(costCenterId: 1),
+      );
 
       final after = await batches.list();
       final filled = after.firstWhere((b) => b.id == order.id);
@@ -170,6 +177,232 @@ void main() {
         hasLength(1),
       );
     });
+
+    test('billing: the queue refuses a job as a billing server does', () async {
+      final queue = QueueRepository(dio);
+      Future<void> add(int? costCenter, {int quantity = 1}) =>
+          queue.addFromArchive(
+            1,
+            quantity: quantity,
+            options: QueueCreateOptions(costCenterId: costCenter),
+          );
+      // A 403 is an `AuthException` and a 400 an `ApiException`; the sentence is
+      // what tells the two refusals apart.
+      Matcher refusedWith(String text) => throwsA(
+        isA<AppApiException>().having(
+          (e) => e.detail,
+          'detail',
+          contains(text),
+        ),
+      );
+
+      // The flag the app reads, and the centers it lists.
+      expect(
+        (await ServerSettingsRepository(dio).fetchUiFlags())['billing_enabled'],
+        isTrue,
+      );
+      final mine = await FinanceRepository(dio).myCostCenters();
+      expect(mine.where((c) => c.isPrivate), hasLength(1));
+      expect(mine.where((c) => !c.canPrint), isNotEmpty);
+
+      await expectLater(add(null), refusedWith('Cost center is required'));
+      await expectLater(add(4), refusedWith('cannot print'));
+      // `Maker club` has 0.40 left; the archive's filament costs more.
+      await expectLater(add(3), refusedWith('exceeds available'));
+      await add(1);
+      await add(2, quantity: 2);
+
+      final added = (await queue.fetch()).where((i) => i.costCenterId != null);
+      expect(added.map((i) => i.costCenterId), containsAll([1, 2]));
+    });
+
+    test(
+      'finance: the ledger pages, and the balance is where it ends',
+      () async {
+        final finance = FinanceRepository(dio);
+        final first = await finance.myTransactions(limit: 50, offset: 0);
+        final rest = await finance.myTransactions(limit: 50, offset: 50);
+
+        expect(first.total, 60);
+        expect(first.items, hasLength(50));
+        expect(rest.items, hasLength(10));
+        // Newest first, and the ids do not repeat across the page edge.
+        expect({
+          for (final t in [...first.items, ...rest.items]) t.id,
+        }, hasLength(60));
+        // The personal wallet is where the newest row on no center, or on the
+        // user's own, left it; a row on a shared center moves that center's.
+        final personal = first.items.firstWhere(
+          (t) => t.costCenterId == null || t.costCenterId == 1,
+        );
+        expect(
+          (await finance.balance()).balance,
+          closeTo(personal.balanceAfter!, 1e-9),
+        );
+        expect(
+          first.items.any((t) => t.costCenterId == 2),
+          isTrue,
+          reason: 'the ledger holds charges to a shared center too',
+        );
+        expect(
+          [...first.items, ...rest.items].map((t) => t.type).toSet(),
+          containsAll([
+            WalletTransactionType.printCharge,
+            WalletTransactionType.deposit,
+          ]),
+        );
+        expect(
+          [
+            for (final t in first.items)
+              parsePrintCharge(t.description).partial,
+          ].nonNulls,
+          isNotEmpty,
+          reason: 'the demo shows a partial charge',
+        );
+      },
+    );
+
+    test(
+      'finance: an administrator\'s changes are what the next listing shows',
+      () async {
+        final finance = FinanceRepository(dio);
+        Future<AppApiException> refusal(Future<void> Function() write) async {
+          try {
+            await write();
+          } on AppApiException catch (e) {
+            return e;
+          }
+          fail('the demo should have refused');
+        }
+
+        // Every center, the private ones of other users and a closed one included.
+        final all = await finance.allCostCenters();
+        expect(all.where((c) => c.isPrivate), hasLength(3));
+        expect(all.where((c) => !c.isActive), isNotEmpty);
+
+        // A new shared center, with a budget that can be replaced and removed.
+        final made = await finance.createCostCenter(
+          name: 'Demo lab',
+          budget: const BudgetInput(CostCenterBudget.monthly, 50),
+        );
+        // The demo is one backend for the whole file: a failure half-way must not
+        // leave the center behind. Deleted already, on a pass.
+        addTearDown(() async {
+          try {
+            await finance.deleteCostCenter(made.id);
+          } on AppApiException {
+            // Gone, or still named by a row the test did not get to remove.
+          }
+        });
+        await finance.setBudget(
+          made.id,
+          const BudgetInput(CostCenterBudget.total, 9),
+        );
+        var detail = await finance.costCenter(made.id);
+        expect(detail.center.budget, CostCenterBudget.total);
+        expect(detail.center.budgetLimit, 9);
+        await finance.setBudget(made.id, BudgetInput.none);
+        expect(
+          (await finance.costCenter(made.id)).center.budget,
+          CostCenterBudget.none,
+        );
+
+        // Members come and go, and a personal center takes none.
+        await finance.setMember(made.id, 2, canPrint: false);
+        await finance.setMember(made.id, 2, canPrint: true);
+        detail = await finance.costCenter(made.id);
+        expect(detail.members.single.canPrint, isTrue);
+        await finance.removeMember(made.id, 2);
+        expect((await finance.costCenter(made.id)).members, isEmpty);
+        final private = all.firstWhere((c) => c.isPrivate);
+        expect(
+          (await refusal(
+            () => finance.setMember(private.id, 2, canPrint: true),
+          )).detail,
+          contains('Private cost center memberships'),
+        );
+        expect(
+          (await refusal(
+            () => finance.updateCostCenter(private.id, name: 'x'),
+          )).detail,
+          contains('cannot be deactivated or renamed'),
+        );
+
+        // The ledger. A deposit to the user's wallet raises the balance; one booked
+        // to a shared center raises the center's own, and leaves the wallet alone.
+        final before = (await finance.balance()).balance;
+        await finance.adjustWallet(
+          1,
+          amount: 10,
+          deposit: true,
+          costCenterId: made.id,
+        );
+        expect((await finance.balance()).balance, closeTo(before, 1e-9));
+        expect(
+          (await refusal(() => finance.deleteCostCenter(made.id))).detail,
+          contains('while transactions reference'),
+        );
+        final onCenter = (await finance.myTransactions(
+          limit: 1,
+          offset: 0,
+        )).items.single;
+        expect(onCenter.costCenterId, made.id);
+        expect(onCenter.balanceAfter, closeTo(10, 1e-9));
+        await finance.deleteTransaction(onCenter.id);
+
+        await finance.adjustWallet(1, amount: 10, deposit: true);
+        expect((await finance.balance()).balance, closeTo(before + 10, 0.11));
+        final top = (await finance.myTransactions(
+          limit: 1,
+          offset: 0,
+        )).items.single;
+        expect(top.type, WalletTransactionType.deposit);
+        expect(
+          top.balanceAfter,
+          closeTo((await finance.balance()).balance, 1e-9),
+        );
+
+        // Editing and deleting a row rebuild every balance after it.
+        await finance.editTransaction(top.id, amount: 20);
+        expect((await finance.balance()).balance, closeTo(before + 20, 0.11));
+        await finance.deleteTransaction(top.id);
+        expect((await finance.balance()).balance, closeTo(before, 0.11));
+        expect(
+          (await refusal(
+            () => finance.addManualPrint(
+              userId: 2,
+              costCenterId: made.id,
+              amount: 0,
+            ),
+          )).detail,
+          contains('greater than zero'),
+        );
+        // A charge counts against the center's budget.
+        await finance.setBudget(
+          made.id,
+          const BudgetInput(CostCenterBudget.total, 9),
+        );
+        await finance.addManualPrint(
+          userId: 2,
+          costCenterId: made.id,
+          amount: 4,
+        );
+        final spent = (await finance.allCostCenters()).firstWhere(
+          (c) => c.id == made.id,
+        );
+        expect(spent.budgetUsed, closeTo(4, 1e-9));
+        expect(spent.budgetAvailable, closeTo(5, 1e-9));
+        final others = await finance.transactions(
+          limit: 50,
+          offset: 0,
+          userId: 2,
+        );
+        expect(others.items.first.amount, -4);
+        expect(others.items.every((t) => t.userId == 2), isTrue);
+        await finance.deleteTransaction(others.items.first.id);
+        await finance.deleteCostCenter(made.id);
+      },
+    );
 
     test('the queue speaks the 1.2.5 contract, including auto', () async {
       // The demo is the only place tri-state calibrations can be exercised
@@ -345,7 +578,9 @@ void main() {
       expect(failures.failedPrints, greaterThan(0));
       expect(failures.failuresByReason, isNotEmpty);
       final users = await repo.fetchUsers();
-      expect(users, hasLength(1));
+      // The signed-in user, and two more for an administrator's pickers.
+      expect(users, hasLength(3));
+      expect(users.map((u) => u.username), contains(DemoConfig.username));
     });
   });
 

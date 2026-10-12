@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
 import 'core/api/api_client.dart';
+import 'core/api/api_exceptions.dart';
 import 'core/api/camera_token.dart';
 import 'core/api/media_auth.dart';
 import 'core/api/cached_token_service.dart';
@@ -32,6 +33,7 @@ import 'core/watch/watch_config_sync.dart';
 import 'core/watch/wear_relay_claim.dart';
 import 'core/watch/wear_relay_handler.dart';
 import 'core/models/cloud_auth.dart';
+import 'core/models/cost_center.dart';
 import 'core/models/current_user.dart';
 import 'core/models/makerworld.dart';
 import 'data/account_repository.dart';
@@ -40,6 +42,7 @@ import 'data/api_keys_repository.dart';
 import 'data/archive_repository.dart';
 import 'data/cloud_repository.dart';
 import 'data/discovery_repository.dart';
+import 'data/finance_repository.dart';
 import 'data/firmware_repository.dart';
 import 'data/groups_repository.dart';
 import 'data/heater_history_repository.dart';
@@ -859,9 +862,10 @@ final serverUiFlagsProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
   (ref) => ref.watch(serverSettingsRepositoryProvider).fetchUiFlags(),
 );
 
-/// Whether the server enforces cost-center billing, which makes every new queue
-/// item require a `cost_center_id` the app cannot pick yet (maziggy/bambuddy
-/// #3256). Read from the UI flags any user may see, else from the full
+/// Whether the server enforces cost-center billing, which makes every queue
+/// create, edit and start need a `cost_center_id` (maziggy/bambuddy #3256),
+/// chosen in the print form from [printableCostCentersProvider]. Read from the
+/// UI flags any user may see, else from the full
 /// settings on a server too old to have them — the flags win when present,
 /// being the only source a non-admin can read; false until either answers.
 final billingEnabledProvider = Provider.autoDispose<bool>(
@@ -894,6 +898,33 @@ bool _billingFrom(
     ((flags ?? const {})['billing_enabled'] ??
         (settings ?? const {})['billing_enabled']) ==
     true;
+
+final financeRepositoryProvider = Provider<FinanceRepository>(
+  (ref) => FinanceRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// The cost centers the print form can book a job to, in the server's order. Empty
+/// without billing, and **`null` when this session may not list them** — an API
+/// key on a server before #3256 is answered 401, and so is a server with
+/// authentication off — which is not the same thing as "none": the first is
+/// solved in a browser, the second by an administrator. A password login's 401
+/// is a lost session and stays an error.
+/// autoDispose, so each form opens on the budget as it stands.
+final printableCostCentersProvider =
+    FutureProvider.autoDispose<List<CostCenter>?>((ref) async {
+      if (!ref.watch(billingEnabledProvider)) return const [];
+      try {
+        return printableCostCenters(
+          await ref.watch(financeRepositoryProvider).myCostCenters(),
+        );
+      } on AuthException {
+        // Only a session with no signed-in user is refused for good. A JWT that
+        // got a 401 has lost its session, which the form's retry — and every
+        // other request — will say, not "use a browser".
+        if (ref.watch(serverProfileProvider)?.authMode == AuthMode.jwt) rethrow;
+        return null;
+      }
+    });
 
 class ServerSettingsNotifier extends AsyncNotifier<Map<String, dynamic>> {
   @override

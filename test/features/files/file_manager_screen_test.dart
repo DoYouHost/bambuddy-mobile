@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/models/cost_center.dart';
 import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_folder.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
@@ -8,6 +9,7 @@ import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_screen.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
+import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import '../queue/queue_form_harness.dart';
 
 class _FakeNotifier extends FileManagerNotifier {
   _FakeNotifier(this._state);
@@ -244,8 +247,11 @@ void main() {
       required bool canTarget,
       Set<int> selected = const {1},
       bool billing = false,
+      List<Override> extra = const [],
+      LibraryFile? grouped,
     }) async {
-      final file = _file(filename: 'thing.gcode.3mf', fileType: 'gcode');
+      final file =
+          grouped ?? _file(filename: 'thing.gcode.3mf', fileType: 'gcode');
       await pumpPhone(
         tester,
         const FileManagerScreen(),
@@ -258,8 +264,8 @@ void main() {
             () => _FakeNotifier(
               FileManagerState(
                 files: [file],
-                selectionMode: true,
-                selected: selected,
+                selectionMode: grouped == null,
+                selected: grouped == null ? selected : const {},
               ),
             ),
           ),
@@ -274,24 +280,143 @@ void main() {
             (ref) async => {'billing_enabled': billing},
           ),
           serverSettingsOverride(const {}),
+          ...extra,
         ],
       );
       await tester.pumpAndSettle();
     }
 
-    testWidgets('a billing server is told to queue in the browser', (
+    testWidgets('on a billing server several files cannot be added at once', (
       tester,
     ) async {
-      // This route checks no budget: the job would be queued without a cost
-      // center and could never start. Nothing is mocked, so a request fails.
+      // This route checks no budget and takes no cost center: the jobs would
+      // be queued without one and could never start. Nothing is mocked, so a
+      // request fails.
       final dio = testDio();
       mockServer(dio);
-      await pumpQueueing(tester, dio: dio, canTarget: false, billing: true);
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        selected: const {1, 2},
+      );
 
       await tester.tap(byLogId('files.add_to_queue'));
       await tester.pumpAndSettle();
 
-      expect(find.text(pl.queueBillingUseWeb), findsOneWidget);
+      expect(find.text(pl.queueBillingNoBulk), findsOneWidget);
+    });
+
+    testWidgets('on a billing server a group is not queued as alternatives', (
+      tester,
+    ) async {
+      // `POST /queue/` with variants needs a cost center this screen has no
+      // form to pick. Nothing is mocked, so reading the group would fail.
+      final dio = testDio();
+      mockServer(dio);
+      final file = _file(variantCount: 2);
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        grouped: file,
+      );
+
+      await tester.tap(find.text(file.displayName));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('file_actions.queue_variants'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.queueBillingNoBulk), findsOneWidget);
+    });
+
+    testWidgets('on a billing server the file sheet opens the print form', (
+      tester,
+    ) async {
+      await setUpQueueForm();
+      final dio = testDio();
+      mockServer(dio);
+      final file = _file();
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        grouped: file,
+        extra: [
+          ...queueFormOverrides(),
+          printableCostCentersProvider.overrideWith((ref) async => const []),
+        ],
+      );
+
+      await tester.tap(find.text(file.displayName));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('file_actions.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(QueueEditScreen), findsOneWidget);
+    });
+
+    testWidgets('a job queued through the form ends the selection', (
+      tester,
+    ) async {
+      await setUpQueueForm();
+      usePhoneWindow(tester, dp: 2400);
+      final dio = testDio();
+      mockServer(dio);
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        extra: [
+          ...queueFormOverrides(),
+          printableCostCentersProvider.overrideWith(
+            (ref) async => const [CostCenter(id: 1, name: 'Alice')],
+          ),
+        ],
+      );
+      expect(byLogId('files.add_to_queue'), findsOneWidget);
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('queue_edit.printer').first);
+      await tester.pumpAndSettle();
+      await submitQueueForm(tester);
+
+      expect(find.byType(QueueEditScreen), findsNothing);
+      expect(
+        byLogId('files.add_to_queue'),
+        findsNothing,
+        reason: 'the selection bar goes with the selection',
+      );
+    });
+
+    testWidgets('on a billing server one file opens the print form', (
+      tester,
+    ) async {
+      // The form carries the cost center picker the bulk route has no field for.
+      await setUpQueueForm();
+      final dio = testDio();
+      mockServer(dio);
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        extra: [
+          ...queueFormOverrides(),
+          printableCostCentersProvider.overrideWith((ref) async => const []),
+        ],
+      );
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(QueueEditScreen), findsOneWidget);
+      expect(find.text(pl.queueBillingNoBulk), findsNothing);
     });
 
     testWidgets('asks where, offering only active printers and their models', (

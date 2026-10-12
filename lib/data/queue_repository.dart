@@ -55,6 +55,7 @@ class QueueCreateOptions {
     this.preheatChamberTargetOverride,
     this.nozzleRackChoice,
     this.batchId,
+    this.costCenterId,
   });
 
   final String? targetModel;
@@ -101,6 +102,11 @@ class QueueCreateOptions {
   /// beforehand gets its runs. Without it, `quantity > 1` makes a grouping.
   final int? batchId;
 
+  /// Where the job's cost is booked. Sent only while the server has billing on,
+  /// when a create without one is refused (`validate_print_budget`); the server
+  /// derives the estimate itself and ignores one sent.
+  final int? costCenterId;
+
   /// Body fragment merged into the POST. Null fields are absent, not null-valued.
   ///
   /// [triState] says whether the server can store `auto` on the three
@@ -129,6 +135,7 @@ class QueueCreateOptions {
     'preheat_chamber_target_override': ?preheatChamberTargetOverride,
     'nozzle_rack_choice': ?rackChoiceWire(nozzleRackChoice),
     'batch_id': ?batchId,
+    'cost_center_id': ?costCenterId,
   };
 }
 
@@ -323,6 +330,7 @@ class QueueRepository {
     String? preheatOverride,
     Object? preheatChamberTargetOverride = kQueueUpdateUnset,
     Object? nozzleRackChoice = kQueueUpdateUnset,
+    int? costCenterId,
   }) async {
     final triState = await triStateCapability.supported;
     final body = <String, dynamic>{
@@ -355,6 +363,7 @@ class QueueRepository {
         'preheat_chamber_target_override': preheatChamberTargetOverride,
       if (nozzleRackChoice != kQueueUpdateUnset)
         'nozzle_rack_choice': rackChoiceWire(nozzleRackChoice),
+      'cost_center_id': ?costCenterId,
     };
     return guardKeepingDetail(
       () => _dio.patch<dynamic>(Endpoints.queueItem(itemId), data: body),

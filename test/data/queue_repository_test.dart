@@ -861,6 +861,44 @@ void main() {
     );
   });
 
+  group('cost center', () {
+    test('a create books the job to it', () async {
+      adapter.onPost(
+        '/api/v1/queue/',
+        (server) => server.reply(200, null),
+        data: {
+          'archive_id': 77,
+          'printer_id': 1,
+          'quantity': 1,
+          'cost_center_id': 4,
+        },
+      );
+
+      await repo.addFromArchive(
+        77,
+        printerId: 1,
+        options: const QueueCreateOptions(costCenterId: 4),
+      );
+    });
+
+    test('an edit sends it, and says nothing when there is none', () async {
+      adapter
+        ..onPatch(
+          '/api/v1/queue/5',
+          (server) => server.reply(200, null),
+          data: {'cost_center_id': 4},
+        )
+        ..onPatch(
+          '/api/v1/queue/6',
+          (server) => server.reply(200, null),
+          data: {'timelapse': true},
+        );
+
+      await repo.updateItem(5, costCenterId: 4);
+      await repo.updateItem(6, timelapse: true);
+    });
+  });
+
   group('addCrossModel (#671)', () {
     test('sends variants in order and WITHOUT printer_id', () async {
       // The server rejects printer_id together with variants outright — naming

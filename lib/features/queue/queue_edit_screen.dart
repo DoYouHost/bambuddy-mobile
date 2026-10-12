@@ -11,6 +11,7 @@ import '../../core/format/datetime_format.dart';
 import '../../core/format/filament_colour.dart';
 import '../../core/models/available_filament.dart';
 import '../../core/models/calibration_option.dart';
+import '../../core/models/cost_center.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/plate_list.dart';
@@ -21,6 +22,7 @@ import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_input.dart';
 import '../common/dash_stepper.dart';
 import '../common/date_time_picker.dart';
 import '../common/inline_note.dart';
@@ -83,6 +85,36 @@ enum QueueEditMode { edit, create }
 /// `manual_start`; the other two dispatch on their own terms.
 enum QueueScheduleType { asap, queue, scheduled }
 
+/// Where the form stands on billing, which decides what the cost-center section
+/// shows and whether Save waits on it.
+enum _CostCenterStep {
+  /// Neither the server's UI flags nor, on a server without them, its settings
+  /// have said whether billing is on.
+  unknown,
+
+  /// Billing is off, so no cost center is asked for or sent.
+  off,
+
+  /// Billing is on and the centers are being read.
+  loading,
+
+  /// Something to choose from.
+  pick,
+
+  /// Billing is on and this user may print to no active center: an administrator
+  /// has to grant one.
+  none,
+
+  /// Billing is on but this session may not list its centers (an API key on a
+  /// server before #3256), which only the browser gets around.
+  refused,
+
+  /// The list could not be read — a dropped connection, a server error.
+  failed,
+}
+
+typedef _CostCenterState = ({_CostCenterStep step, List<CostCenter> centers});
+
 /// Models with two nozzles — gate for the nozzle-offset-calibration option
 /// (matches the web `showDualNozzleOptions` model list).
 const _dualNozzleModels = {'H2D', 'H2DPRO', 'H2C', 'X2D'};
@@ -138,6 +170,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   // Flags
   late bool _requireManualStart;
+
+  /// The cost center the user picked; null until they do, and then the form
+  /// follows [_selectedCostCenter]'s fallback. Starts at the item's own.
+  late int? _costCenterId = widget.item.costCenterId;
 
   /// [awaitingReviewProvider] as [_submit] found it, for the payload builders
   /// that run past its first `await`.
@@ -310,11 +346,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             padding: screenListPadding(context),
             children: [
               _header(l10n, t),
-              // The server refuses the job without a cost center, and the
-              // app has no picker for one yet: say so before the form is
-              // filled in rather than after.
-              if (_billingBlocks)
-                ?inlineNote(l10n.queueBillingUseWeb, urgent: true),
+              // The server refuses the job without a cost center and this
+              // session has none to pick: say so before the form is filled
+              // in rather than after.
+              ?_costCenterBlockedNote(l10n),
               const SizedBox(height: DashSpace.lg),
               _targetSection(l10n, t),
               const SizedBox(height: DashSpace.lg),
@@ -331,6 +366,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               const SizedBox(height: DashSpace.lg),
               _preheatSection(l10n, t),
               const SizedBox(height: DashSpace.lg),
+              if (_costCenterSection(l10n, t) case final section?) ...[
+                section,
+                const SizedBox(height: DashSpace.lg),
+              ],
               _scheduleSection(l10n, t),
             ],
           ),
@@ -526,9 +565,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           ),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        onPressed: _saving || _billingBlocks || _billingPending
-            ? null
-            : _submit,
+        onPressed: _saving || !_costCenterAllowsSubmit ? null : _submit,
         child: Text(
           widget._isCreate ? l10n.queueCreateSubmit : l10n.queueEditSave,
         ),
@@ -536,19 +573,136 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     );
   }
 
-  /// A billing server refuses a create, and any edit of an item, without a
-  /// cost center (`update_queue_item` checks the budget on every PATCH). An
-  /// item queued in the web with one still edits.
-  bool get _billingBlocks =>
-      _billingApplies && ref.watch(billingEnabledProvider);
+  // --- Billing ---
 
-  /// Submit waits for the billing flag on a job it could block: the first
-  /// frame would otherwise offer a write the server is about to refuse.
-  bool get _billingPending =>
-      _billingApplies && ref.watch(serverUiFlagsProvider).isLoading;
+  /// What the form can do about billing, from the flag and the centers this
+  /// session may book to. [watch] as in [_snippetModels].
+  _CostCenterState _costCenterState({required bool watch}) {
+    T read<T>(ProviderListenable<T> provider) =>
+        watch ? ref.watch(provider) : ref.read(provider);
+    // A server before 1.2.6 has no UI flags and answers them at once with
+    // nothing, so billing is then the full settings' to say.
+    final flags = read(serverUiFlagsProvider);
+    final flagAnswered =
+        flags.valueOrNull?.containsKey('billing_enabled') ?? false;
+    if (flags.isLoading ||
+        (!flagAnswered && read(serverSettingsProvider).isLoading)) {
+      return (step: _CostCenterStep.unknown, centers: const []);
+    }
+    if (!read(billingEnabledProvider)) {
+      return (step: _CostCenterStep.off, centers: const []);
+    }
+    return read(printableCostCentersProvider).when(
+      loading: () => (step: _CostCenterStep.loading, centers: const []),
+      error: (_, _) => (step: _CostCenterStep.failed, centers: const []),
+      data: (centers) => switch (centers) {
+        null => (step: _CostCenterStep.refused, centers: const []),
+        [] => (step: _CostCenterStep.none, centers: const []),
+        _ => (step: _CostCenterStep.pick, centers: centers),
+      },
+    );
+  }
 
-  bool get _billingApplies =>
+  /// A new job, or one queued before billing was on, cannot be saved without a
+  /// cost center. An item that already has one keeps it on the server, so an
+  /// edit of it never waits for, or depends on, the list.
+  bool get _costCenterRequired =>
       widget._isCreate || widget.item.costCenterId == null;
+
+  /// Whether Save may be pressed as far as billing is concerned: every step
+  /// that cannot offer a pick leaves a job without a cost center stuck.
+  bool get _costCenterAllowsSubmit =>
+      switch (_costCenterState(watch: true).step) {
+        _CostCenterStep.off || _CostCenterStep.pick => true,
+        _ => !_costCenterRequired,
+      };
+
+  /// The center Save sends: what the user picked if it is still on offer, else
+  /// the web's default. Null when there is nothing to choose from.
+  CostCenter? _selectedCostCenter(List<CostCenter> centers) =>
+      centers.where((c) => c.id == _costCenterId).firstOrNull ??
+      defaultCostCenter(centers);
+
+  /// `cost_center_id` for the write, or null to leave the key out: on a server
+  /// without billing, where the field is not read, and wherever there is no
+  /// center to offer — an item that already has one keeps it server-side.
+  int? get _costCenterPayload =>
+      _selectedCostCenter(_costCenterState(watch: false).centers)?.id;
+
+  /// Why the job cannot be saved, said before the form is filled in. Only for
+  /// a job that needs a center: an item that has one is not blocked by this.
+  Widget? _costCenterBlockedNote(AppLocalizations l10n) {
+    if (!_costCenterRequired) return null;
+    return inlineNote(switch (_costCenterState(watch: true).step) {
+      _CostCenterStep.refused => l10n.queueBillingCostCentersRefused,
+      _CostCenterStep.none => l10n.queueBillingNoCostCenter,
+      _ => null,
+    }, urgent: true);
+  }
+
+  /// The web's cost-center select (`PrintModal/CostCenterSelect.tsx`): shown
+  /// while billing is on and there is something to choose from.
+  Widget? _costCenterSection(AppLocalizations l10n, DashTokens t) {
+    final state = _costCenterState(watch: true);
+    final body = switch (state.step) {
+      _CostCenterStep.loading => const LinearProgressIndicator(),
+      _CostCenterStep.failed => Row(
+        children: [
+          Expanded(
+            child: Text(
+              l10n.queueCostCenterLoadFailed,
+              style: t.bodyPlain.copyWith(color: t.textTertiary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => ref.invalidate(printableCostCentersProvider),
+            child: Text(l10n.retry),
+          ).tagged('queue_edit.cost_center_retry'),
+        ],
+      ),
+      _CostCenterStep.pick => _costCenterPicker(l10n, t, state.centers),
+      _ => null,
+    };
+    return body == null
+        ? null
+        : _SectionCard(title: l10n.queueCostCenterTitle, child: body);
+  }
+
+  Widget _costCenterPicker(
+    AppLocalizations l10n,
+    DashTokens t,
+    List<CostCenter> centers,
+  ) {
+    final selected = _selectedCostCenter(centers);
+    String label(CostCenter c) =>
+        c.isPrivate ? l10n.queueCostCenterPersonal(c.name) : c.name;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        dashCombo<int>(
+          context,
+          id: 'queue_edit.cost_center',
+          initialSelection: selected?.id,
+          onSelected: (v) => setState(() => _costCenterId = v),
+          entries: [
+            for (final c in centers)
+              DropdownMenuEntry(
+                value: c.id,
+                label: label(c),
+                // A center's name is the user's own words, so every row is one
+                // id — see `dashAnyOrOne`.
+                labelWidget: logTag(
+                  'queue_edit.cost_center.option',
+                  Text(label(c)),
+                ),
+              ),
+          ],
+        ),
+        if (selected?.budget == CostCenterBudget.none)
+          InlineNote(l10n.queueCostCenterUnlimited, icon: Icons.info_outline),
+      ],
+    );
+  }
 
   /// Name of the printer picked in the Target section, for messages that would
   /// otherwise quote the item's stored (or, on a draft, missing) printer.
@@ -1588,6 +1742,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     preheatOverride: _preheatOverride,
     preheatChamberTargetOverride: _chamberTargetValue,
     nozzleRackChoice: _rackChoiceUpdate,
+    costCenterId: _costCenterPayload,
   );
 
   /// The rack pick for a PATCH: the chosen positions, `null` to clear one the
@@ -1632,6 +1787,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       preheatChamberTargetOverride: _chamberTargetValue,
       nozzleRackChoice: _modelMode ? null : _nozzleRackChoice,
       batchId: orderId,
+      costCenterId: _costCenterPayload,
     );
     // ASAP is a position at insertion, not a stored field — the web sends it the
     // same way, and it is what makes "reprint" print next.

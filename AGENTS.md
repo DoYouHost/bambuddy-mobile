@@ -134,6 +134,10 @@ do not stay silent because it was not part of the task.
   exists, what an older server does without it and what being early costs, and
   how a capability travels from its latch to a screen. **Read it before adding
   a gate**; the enum keeps one line per member.
+- [docs/billing.md](docs/billing.md) — how the app meets a server with billing on: the
+  cost center select and the states it has, why "refused" is not "none", the routes
+  that cannot take a center, and the Finance screen's personal and admin halves.
+  **Read it before touching the print form's billing code or `lib/features/finance/`.**
 - [docs/notification-delivery.md](docs/notification-delivery.md) — what happens to an
   alert once it exists: the `NotificationService` contract, the finish photo that
   arrives after it, button taps in a background isolate, and which HMS faults are

@@ -134,6 +134,35 @@ them per lifecycle, and the service isolate takes over in the background.
   `InventoryRepository.backend` for the same reason, never
   `inventoryBackendProvider`'s future.
 
+## Billing
+
+- **`printableCostCentersProvider` answers `null` for a session the server will
+  not list for, and `[]` for a user with nothing to print to.** The two read
+  alike in a list and need opposite words: an API key on a server before #3256
+  is answered 401 by `GET /finance/cost-centers/mine` (the permission checks hand
+  a key no user) and only a browser gets around that, while an empty list is
+  fixed by an administrator granting a center. Every other failure is an
+  `AsyncError`, which the form offers to retry.
+- **It filters as the web does** (active and `can_print`) and asks nothing while
+  billing is off, so a server without billing sees no request for it.
+- **autoDispose**, so each form opens on the budget as it stands; a center's
+  `budget_available` moves with every queued job.
+- **An edit of an item that already has a center never waits for it.** The
+  server keeps the stored center on a PATCH that omits it, so an API key that
+  cannot list centers still edits what was queued with one.
+
+- **The personal finance screen reads the same list unfiltered.**
+  `myCostCentersProvider` keeps the centers the user may *see* but not print
+  with, because the budget a member cannot use is still theirs to look at; the
+  print form's provider drops them. The ledger is paged on the wire
+  (`financeTransactionsProvider`, 50 a page, fetched ahead of the scroll), and
+  the type and center filters narrow the rows already loaded — the endpoint
+  filters on neither, so a filter that matches nothing on this page is not proof
+  that nothing matches.
+- **The drawer entry needs `identifiedPermissionProvider`, not
+  `permissionProvider`**: no API key can hold `cost_centers:read_own`, and an
+  unknown identity must not offer a screen the server will refuse.
+
 ## Server settings
 
 - **`ServerSettingsNotifier.adopt`** takes the map a write answered with.
