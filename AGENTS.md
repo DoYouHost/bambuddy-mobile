@@ -142,6 +142,10 @@ do not stay silent because it was not part of the task.
   `PrintMonitor` decides to alert: the baseline frame, which frame describes this
   print, the first-layer window, HMS grace and hold, the humidity band, the
   ongoing notification. **Read it before changing a rule or adding an event.**
+- [docs/ui-primitives.md](docs/ui-primitives.md) — why the shared fields, selects and
+  async helpers behave as they do: the 40 dp select arrow, the null any-row,
+  "unresolved is off", restoring an optimistically removed row by neighbours.
+  **Read it before building a field, a select or a loading state of your own.**
 - [docs/test-harness.md](docs/test-harness.md) — the traps behind
   `test/helpers.dart`: why a mock handler cannot count requests, why a widget
   test needs a server profile, why a tap below the fold silently misses, what a

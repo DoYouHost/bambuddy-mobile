@@ -8,16 +8,10 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 
 /// A capability the app has to ask the server for, read as a plain flag:
-/// **unresolved is off.**
-///
-/// A name rather than a spelling, because `!= false` says the opposite and
-/// looks just as reasonable at the call site. Every one of these gates a
-/// control, so loading, an error and a refusal all have to read the same way —
-/// otherwise a control flashes into a screen and out again, or leads to a route
-/// the server does not have.
-///
-/// A gate that would rather show its control while the answer loads belongs on
-/// the other side of the question, in `ObservedCapability.whenUnknown`.
+/// **unresolved is off.** A name rather than a spelling, since `!= false` says the
+/// opposite; loading, an error and a refusal must all read the same (docs/ui-primitives.md, "Async
+/// state"). A gate that would rather show its control while loading belongs in
+/// `ObservedCapability.whenUnknown`.
 extension AsyncFlag on AsyncValue<bool> {
   bool get orFalse => valueOrNull ?? false;
 
@@ -44,15 +38,10 @@ enum ControlOffer {
   /// The answer settled on "no". The control does not belong on this screen.
   hidden,
 
-  /// On screen but not pressable, because nothing has answered yet. A button
-  /// the user is waiting to press reads better greyed out for a moment than
-  /// absent and then suddenly there — which is what [AsyncFlag.orFalse] would
-  /// give, and why it is the wrong reader for one.
-  ///
-  /// Only for a widget that **watches** the answer; one that cannot rebuild
-  /// would sit greyed for as long as it is on screen. And only while there is
-  /// nothing to say: a control left disabled for good owes the user a line
-  /// saying why, next to it.
+  /// On screen but not pressable, because nothing has answered yet: better greyed out
+  /// for a moment than absent and then suddenly there. Only for a widget that
+  /// **watches** the answer, and only while there is nothing to say; a control left
+  /// disabled for good owes the user a line saying why (docs/ui-primitives.md, "Async state").
   pending,
 
   /// The answer is in, and it is yes.
@@ -60,17 +49,9 @@ enum ControlOffer {
 }
 
 /// A screen's three states, with the two every screen words identically already
-/// written: the spinner while the data is on its way, and "could not load it,
-/// try again" when the server said no.
-///
-/// Only the data branch is left to the caller, because that is the only one a
-/// screen has an opinion about. A screen that needs different words for a
-/// failure — the photo view, which explains that *this print* has no picture —
-/// still writes its own `when`.
-///
-/// Both skip flags are on by default: a list that is already on screen should
-/// not blink back to a spinner because it is being refreshed underneath. Pass
-/// false where the wait is worth showing.
+/// written: the spinner, and "could not load it, try again". Only the data branch is
+/// left to the caller. Both skip flags are on by default, so a list already on screen
+/// does not blink back to a spinner while it is refreshed (docs/ui-primitives.md, "Async state").
 Widget dashAsync<T>(
   BuildContext context,
   AsyncValue<T> value, {
@@ -130,18 +111,9 @@ Widget dashAsync<T>(
   );
 }
 
-/// The same three states for a section inside a screen rather than the whole
-/// of it: a spinner in a strip, and one sentence in the same strip when it
-/// fails.
-///
-/// One [padding] for both states on purpose — a section that pads its spinner
-/// differently from its failure line makes the page jump as the answer
-/// arrives. [height] gives the waiting and failed states the height the
-/// content will have, so a chart's slot does not collapse and spring back
-/// (the history sheets); the data branch keeps sizing itself.
-///
-/// [failureBuilder] is for a section that already has its own way of saying
-/// "nothing here" and wants the failure to look the same.
+/// The same three states for a section inside a screen. One [padding] for both
+/// states, so the page does not jump as the answer arrives; [height] keeps a chart's
+/// slot from collapsing and springing back (docs/ui-primitives.md, "Async state").
 Widget dashAsyncStrip<T>(
   BuildContext context,
   AsyncValue<T> value, {
@@ -198,20 +170,10 @@ Widget dashAsyncStrip<T>(
   );
 }
 
-/// Where a row that was optimistically removed belongs in the list **as it is
-/// now** — read off the rows that were around it, never off the index it used
-/// to sit at.
-///
-/// An index is the obvious thing to remember and it is wrong as soon as a
-/// second removal is in flight. Delete A then B from `[A, B, C]` and both
-/// remember index 0, because B was at 0 once A had gone; when both fail, both
-/// are put back at 0 and the list comes back as `[B, A, C]` — two rows swapped
-/// although neither was deleted. Neighbours survive that: whatever else moved,
-/// the row goes after the last row that was above it.
-///
-/// [before] is the list as it stood when the row was still in it. With nothing
-/// above it left, the row goes in front of the first row that was below it, so
-/// a row the server added meanwhile keeps its place.
+/// Where a row that was optimistically removed belongs in the list **as it is now**,
+/// read off the rows that were around it, never off the index it used to sit at: with
+/// two removals in flight an index puts two failed rows back swapped. [before] is the
+/// list as it stood when the row was still in it (docs/ui-primitives.md, "Optimistic removal").
 int restoredPositionOf<T>(
   List<T> now,
   T row,
@@ -229,20 +191,10 @@ int restoredPositionOf<T>(
   return firstBelow >= 0 ? firstBelow : 0;
 }
 
-/// Put a row that was optimistically removed back into the list **as it is
-/// now** — never into the snapshot it was removed from.
-///
-/// Restoring that snapshot is the bug this exists to stop, and it has been
-/// written wrong in four places: swipe A, swipe B, A's request fails, and the
-/// rollback puts B back on screen, along with undoing whatever a refresh landed
-/// in between. Only the row that failed goes back.
-///
-/// Its place comes from [restoredPositionOf]. Returns [now] itself when
-/// something has already restored the row, so the caller can assign the result
-/// unconditionally and a no-op stays a no-op.
-///
-/// The queue does its own insertion ([QueueNotifier] pins printing rows on top)
-/// but reads its position from the same function.
+/// Put a row that was optimistically removed back into the list **as it is now**, never
+/// into the snapshot it was removed from; only the row that failed goes back. Its place
+/// comes from [restoredPositionOf]. Returns [now] itself when something has already
+/// restored the row (docs/ui-primitives.md, "Optimistic removal").
 List<T> withRowRestored<T>(
   List<T> now,
   T row,
@@ -255,17 +207,9 @@ List<T> withRowRestored<T>(
     ..insert(restoredPositionOf(now, row, before, idOf: idOf), row);
 }
 
-/// Rebuilds on [ServerReachability], and asks its screen to fetch again the
-/// moment the server comes back.
-///
-/// Without that last part only the dashboard recovered by itself, because it
-/// is the one screen that polls: every other tab kept the failure it had
-/// collected in flight mode until the user pulled it down by hand — the
-/// connection was back, the app knew it, and the screen still said otherwise.
-///
-/// Only a connection failure is retried. A 500 or a refusal is the server's
-/// answer, and asking again the moment the radio comes back would be a
-/// request per screen for a state nothing has changed about.
+/// Rebuilds on [ServerReachability], and asks its screen to fetch again the moment the
+/// server comes back. Only a connection failure is retried: a 500 or a refusal is the
+/// server's answer (docs/ui-primitives.md, "Refetching when the server returns").
 class _WhenServerReturns extends StatefulWidget {
   const _WhenServerReturns({
     required this.value,
@@ -326,12 +270,9 @@ class _WhenServerReturnsState extends State<_WhenServerReturns> {
     if (mounted) widget.onServerBack();
   });
 
-  /// Whether this screen is holding a failure the server has since disproved.
-  ///
-  /// A request still in the air is not one: it may well be the one that brings
-  /// the server back, and starting a second alongside it means two requests
-  /// and a race over which answer the provider keeps. Whatever it ends as
-  /// reaches [didUpdateWidget], which is where a late failure is picked up.
+  /// Whether this screen is holding a failure the server has since disproved. A request
+  /// still in the air is not one: a second alongside it races for which answer the
+  /// provider keeps (docs/ui-primitives.md, "Refetching when the server returns").
   bool get _waitingOnTheServer {
     final value = widget.value;
     if (value.hasValue) return false;

@@ -2,31 +2,22 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/dash_theme.dart';
 
-/// A caveat under a control, or beside a result: what is about to happen is not
-/// what the control looks like it does, or part of an answer is missing and the
-/// user is owed the reason.
+/// A caveat under a control, or beside a result: what is about to happen is not what
+/// the control looks like it does, or part of an answer is missing and the user is
+/// owed the reason.
 ///
-/// **Quiet by default** — tertiary ink, not the amber a fault card uses. Most
-/// of these sit next to a setting the user chose and is still free to change,
-/// and the job goes ahead either way. [urgent] is for the one that is not like
-/// that: a note about something that will fail the work later, after the point
-/// where the user could have done anything about it. Grey is an honest colour
-/// for every other note and the wrong one for that, and amber that appears next
-/// to things that turn out not to matter stops being read at all.
+/// **Quiet by default** — tertiary ink, not the amber a fault card uses. [urgent] is
+/// for a note about something that will fail the work later, after the point where
+/// the user could have done anything about it; amber on notes that turn out not to
+/// matter stops being read at all.
 ///
 /// **[urgent] colours the icon, not the sentence.** The light theme's amber is
-/// `#E07C36`, which reads 2.7:1 against the palest card — fine for a 16 px
-/// mark, and well under the 4.5:1 a 12 px line has to clear, so the one note
-/// the user most needs to read was the hardest one to. The tertiary ink it
-/// keeps instead clears it at 4.6:1, and the amber still marks the row.
+/// `#E07C36`, 2.7:1 against the palest card: fine for a 16 px mark, under the 4.5:1 a
+/// 12 px line has to clear. The tertiary ink the sentence keeps clears it at 4.6:1.
 ///
-/// [announce] reads the note out when it appears. Only for a note that is the
-/// answer to the tap just made, and only where one of them appears at a time: a
-/// change that raises several would read them all out in a row, which is worse
-/// than the silence.
-///
-/// [icon] is the warning triangle by default. Pass a quieter one where the note
-/// is not a caveat at all but a statement of what was not looked at.
+/// [announce] reads the note out when it appears: only for the answer to the tap just
+/// made, and only where one appears at a time. [icon] is the warning triangle by
+/// default; pass a quieter one where the note is a statement of what was not looked at.
 class InlineNote extends StatelessWidget {
   const InlineNote(
     this.text, {

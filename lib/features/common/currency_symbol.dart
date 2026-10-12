@@ -50,19 +50,15 @@ String currencySymbol(String? code) {
   return _symbols[key] ?? key;
 }
 
-/// [amount] with the server's currency symbol on the side that currency puts
-/// it — `$12.50`, but `12.50 zł`.
+/// [amount] with the server's currency symbol on the side that currency puts it —
+/// `$12.50`, but `12.50 zł`. **Deliberately unlike the web**, which renders
+/// `{symbol}{amount}` for every currency and writes `zł12.50`, a spelling no Polish
+/// price uses; this app follows the currency, and the figures are identical.
 ///
-/// **Deliberately unlike the web**, which renders `{symbol}{amount}` for every
-/// currency and so writes `zł12.50` — a spelling no Polish price uses. This app
-/// is translated and read in the locale it prices in, so it follows the
-/// currency rather than the other client; the figures are identical either way.
-///
-/// The side is decided by the symbol's own first character rather than by a
-/// second table: every symbol here that is written after the amount is
-/// alphabetic (`zł`, `kr`, `Kč`, `Ft`, `RM`, `Fr.`), and every glyph one
-/// (`$`, `€`, `£`, `¥`, `₹`, `₺`…) is written before it. An unknown code falls
-/// out on the alphabetic side, which is where a bare code belongs anyway.
+/// The side is decided by the symbol's first character, not by a second table: every
+/// symbol written after the amount is alphabetic (`zł`, `kr`, `Kč`, `Ft`, `RM`,
+/// `Fr.`), every glyph one (`$`, `€`, `£`, `¥`, `₹`, `₺`…) goes before it. An unknown
+/// code falls out on the alphabetic side, where a bare code belongs anyway.
 String formatMoney(String symbol, String amount) {
   if (symbol.isEmpty) return amount;
   return _startsWithLetter(symbol) ? '$amount $symbol' : '$symbol$amount';
