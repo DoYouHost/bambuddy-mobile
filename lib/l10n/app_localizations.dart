@@ -13304,7 +13304,7 @@ abstract class AppLocalizations {
   /// **'Consumed since reset'**
   String get inventoryDetailConsumedSinceReset;
 
-  /// Label of the spool detail sheet's row with the date of the last drying, followed by the temperature and hours of that run.
+  /// Label of the spool detail sheet's row with the date of the last drying, followed by the temperature and hours of that run. Also the name of the sort that orders spools by that date.
   ///
   /// In en, this message translates to:
   /// **'Last dried'**

@@ -2,6 +2,8 @@ import 'package:bambuddy_mobile/core/format/datetime_format.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
+import 'package:bambuddy_mobile/providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -67,17 +69,51 @@ void main() {
       _spool(2, 'Beta'),
     ];
 
-    Future<void> pumpShelf(WidgetTester tester) async {
+    Future<void> pumpShelf(WidgetTester tester, {bool supported = true}) async {
       await pumpPhone(
         tester,
         const InventoryScreen(),
         overrides: [
           inventoryProvider.overrideWith(() => _Shelf(shelf)),
           noServerProfileOverride,
+          lastDriedSupportedProvider.overrideWithValue(AsyncData(supported)),
         ],
       );
       await settle(tester);
     }
+
+    Future<void> openFilters(WidgetTester tester) async {
+      await tester.tap(byLogId('inventory.filters'));
+      await settle(tester);
+    }
+
+    testWidgets('the sort is offered where the server records a drying', (
+      tester,
+    ) async {
+      await pumpShelf(tester);
+      await openFilters(tester);
+      await tester.tap(find.widgetWithText(ChoiceChip, pl.inventoryLastDried));
+      await settle(tester);
+      final filters = ProviderScope.containerOf(
+        tester.element(find.byType(InventoryScreen)),
+      ).read(inventoryFiltersProvider);
+      expect(filters.sort, InventorySort.lastDried);
+    });
+
+    testWidgets('an older server is not offered a sort with nothing to order', (
+      tester,
+    ) async {
+      await pumpShelf(tester, supported: false);
+      await openFilters(tester);
+      expect(
+        find.widgetWithText(ChoiceChip, pl.inventoryLastDried),
+        findsNothing,
+      );
+      expect(
+        find.widgetWithText(ChoiceChip, pl.inventorySortAdded),
+        findsOneWidget,
+      );
+    });
 
     testWidgets('a dried spool carries its date on the tile, others none', (
       tester,

@@ -5160,7 +5160,7 @@
   "inventoryDetailConsumedSinceReset": "Consumed since reset",
   "inventoryLastDried": "Last dried",
   "@inventoryLastDried": {
-    "description": "Label of the spool detail sheet's row with the date of the last drying, followed by the temperature and hours of that run."
+    "description": "Label of the spool detail sheet's row with the date of the last drying, followed by the temperature and hours of that run. Also the name of the sort that orders spools by that date."
   },
   "@inventoryDetailNotLoaded": {
     "description": "Value of the detail sheet's Slot row when the spool is in no AMS slot or external holder. Agrees with 'spool'."
