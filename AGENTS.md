@@ -243,7 +243,7 @@ do not stay silent because it was not part of the task.
   are a **form or a choice** (text field, colour picker, checkbox that changes the
   outcome) — not for a plain question.
 - **Spacing goes through `DashSpace`**
-  ([lib/core/theme/dash_space.dart](lib/core/theme/dash_space.dart)): the 4 dp
+  ([lib/core/theme/dash_theme.dart](lib/core/theme/dash_theme.dart)): the 4 dp
   scale `xs 4 · sm 8 · md 12 · lg 16 · xl 24 · xxl 32`, plus `gutter` for the
   left/right inset of anything meeting the screen, sheet or drawer edge, and
   `fabClearance` for a list under a FAB. No number typed into an `EdgeInsets`,

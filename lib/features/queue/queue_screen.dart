@@ -16,7 +16,7 @@ import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../common/refresh_when_shown.dart';
-import '../common/detached_flow.dart';
+import '../../core/app_context.dart';
 import '../common/plate_clear.dart';
 import '../gcode/gcode_viewer_route.dart';
 import '../common/print_thumbnail.dart';

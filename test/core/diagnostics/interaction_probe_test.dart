@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:bambuddy_mobile/core/diagnostics/log_tag_material.dart';
+import 'package:bambuddy_mobile/core/diagnostics/filament_material.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

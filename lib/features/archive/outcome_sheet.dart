@@ -16,7 +16,7 @@ import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../common/dash_input.dart';
-import '../common/detached_flow.dart';
+import '../../core/app_context.dart';
 import '../common/media_image.dart';
 import '../common/print_run_labels.dart';
 import '../common/print_thumbnail.dart';

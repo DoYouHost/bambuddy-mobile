@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
-import 'package:bambuddy_mobile/core/api/ws_token.dart';
+import 'package:bambuddy_mobile/core/api/cached_token_service.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart'
     show wsUrlFor;

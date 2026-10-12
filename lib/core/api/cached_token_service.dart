@@ -2,6 +2,7 @@ import 'package:clock/clock.dart';
 import 'package:dio/dio.dart';
 
 import 'api_exceptions.dart';
+import 'endpoints.dart';
 
 /// Cache, TTL and single-flight mint shared by the three token services.
 /// Without the single flight, concurrent callers meeting an expired cache each
@@ -112,4 +113,29 @@ abstract class CachedTokenService {
     _routeAbsent = false;
     _routeAbsentStatus = null;
   }
+}
+
+/// Mints the token an `<img>`/video element carries in `?token=`, having no way
+/// to send a header. `null` on a server predating #3025 — see
+/// [MediaAuthService], which decides what to send instead.
+///
+/// That server answers the mint with 405, not 404; `CachedTokenService` reads
+/// both as absence and says why.
+class MediaTokenService extends CachedTokenService {
+  MediaTokenService(Dio dio) : super(dio, Endpoints.mediaToken);
+
+  Future<String?> token({bool forceRefresh = false}) =>
+      cachedToken(forceRefresh: forceRefresh);
+}
+
+/// Mints and caches the WebSocket token. The handshake validates an opaque
+/// `?token=` before `accept()` (GHSA-r2qv follow-up) because the upgrade cannot
+/// carry `Authorization`/`X-API-Key` headers.
+class WsTokenService extends CachedTokenService {
+  WsTokenService(Dio dio) : super(dio, Endpoints.wsToken);
+
+  /// `null` when the server lacks the endpoint, which is an older build — the
+  /// caller then connects header-only.
+  Future<String?> token({bool forceRefresh = false}) =>
+      cachedToken(forceRefresh: forceRefresh);
 }

@@ -1,5 +1,5 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
-import 'package:bambuddy_mobile/features/slicer/slice_refusal.dart';
+import 'package:bambuddy_mobile/features/slicer/slice_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';
 

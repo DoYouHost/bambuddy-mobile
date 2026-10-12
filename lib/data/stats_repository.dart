@@ -6,7 +6,6 @@ import '../core/api/endpoints.dart';
 import '../core/models/archive_slim.dart';
 import '../core/models/archive_stats.dart';
 import '../core/models/failure_analysis.dart';
-import '../core/models/user_summary.dart';
 import '../core/format/text_utils.dart';
 
 /// REST data source for archive stats (`GET /archives/stats`).

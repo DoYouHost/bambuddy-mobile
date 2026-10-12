@@ -1,4 +1,4 @@
-import 'package:bambuddy_mobile/core/demo/demo_config.dart';
+import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// The gate between a reviewer's fabricated dataset and a real server: what it

@@ -1,4 +1,4 @@
-import 'package:bambuddy_mobile/core/api/ws_token.dart';
+import 'package:bambuddy_mobile/core/api/cached_token_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
 import '../../core/api/ws_client.dart';
-import '../../core/api/ws_token.dart';
+import '../../core/api/cached_token_service.dart';
 import '../../core/auth/auth_headers.dart';
 import '../../core/demo/demo_ws.dart';
 import '../../core/models/printer_status.dart';
@@ -16,7 +16,7 @@ import '../../core/widget/home_widget_publisher.dart';
 import '../../core/widget/multi_widget_publisher.dart';
 import '../../core/widget/widget_cover_cache.dart';
 import '../../data/printers_repository.dart';
-import '../../l10n/app_locale.dart';
+import '../../core/app_context.dart';
 import '../../providers.dart';
 import '../maintenance/maintenance_providers.dart';
 import '../queue/queue_providers.dart';

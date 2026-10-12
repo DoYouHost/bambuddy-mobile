@@ -1,4 +1,4 @@
-import 'package:bambuddy_mobile/core/demo/demo_config.dart';
+import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';

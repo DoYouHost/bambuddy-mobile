@@ -13,7 +13,7 @@ import '../../core/notifications/hms_actions.dart';
 import '../../core/notifications/hms_catalog.dart';
 import '../../core/notifications/notification_prefs.dart';
 import '../../core/printers/offline_debounce.dart';
-import '../../l10n/app_locale.dart';
+import '../../core/app_context.dart';
 import '../../l10n/app_localizations.dart';
 
 /// `TimerFactory` is part of this library's surface: the monitor takes one so

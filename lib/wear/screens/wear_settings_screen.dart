@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../core/watch/watch_config_sync.dart';
-import '../../features/common/server_version_text.dart';
+import '../../core/app_context.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../wear_action.dart';

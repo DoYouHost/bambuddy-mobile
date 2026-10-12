@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers.dart';
 import 'media_auth_image_recovery.dart';
-import 'demo_media.dart';
+import '../../core/demo/demo_backend.dart';
 
 /// Why a [MediaImage] is showing its placeholder.
 ///

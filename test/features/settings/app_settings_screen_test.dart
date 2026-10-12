@@ -1,5 +1,5 @@
 import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
-import 'package:bambuddy_mobile/core/demo/demo_config.dart';
+import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/dashboard/card_collapse_providers.dart';
 import 'package:bambuddy_mobile/features/settings/demo_printers_provider.dart';

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../common/demo_media.dart';
+import '../../core/demo/demo_backend.dart';
 
 /// The demo's camera: the frames it ships for the printer, cycled at the two
 /// frames a second a busy chamber stream manages. [empty] stands in for a

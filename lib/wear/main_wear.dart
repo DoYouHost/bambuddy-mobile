@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/notifications/hms_catalog.dart';
-import '../l10n/app_locale.dart';
+import '../core/app_context.dart';
 import '../providers.dart';
 import 'wear_app.dart';
 

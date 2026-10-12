@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 
 import '../../core/format/duration_format.dart';
 import '../common/api_failure_snack.dart';
-import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/embedded_settings.dart';
 import '../../core/models/filament_requirement.dart';
@@ -32,10 +32,10 @@ import '../pipelines/pipeline_presets.dart';
 import '../pipelines/pipeline_slice_bar.dart';
 import 'process_settings_screen.dart';
 import 'slice_filament_colours.dart';
-import 'slice_refusal.dart';
 import 'slice_preset_sheet.dart';
 import '../queue/queue_plate_sheet.dart' show plateLabel, showQueuePlateSheet;
 import 'slice_providers.dart';
+import '../../l10n/server_refusal.dart';
 
 /// What gets sliced — an archive or a library file. Both use the same
 /// `SliceRequest`; only the enqueue endpoint differs.
@@ -1548,3 +1548,19 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
     );
   }
 }
+
+/// What to tell the user when the server refused to start a slice.
+///
+/// The status names none of the three reasons; only the server's English
+/// `detail` does. [serverRefusal] is the ladder every feature shares.
+String sliceRefusalMessage(AppLocalizations l10n, AppApiException error) =>
+    serverRefusal(l10n, error, _rules);
+
+final _rules = <RefusalRule>[
+  // Before the STEP rule, and that order is the whole point: the archive
+  // route's format refusal is "must be STL, 3MF, or STEP", which names the
+  // format without being about it.
+  (['must be stl'], (l10n) => l10n.sliceRefusedFormat),
+  (['step'], (l10n) => l10n.sliceRefusedStep),
+  (['no source file'], (l10n) => l10n.sliceRefusedNoSource),
+];

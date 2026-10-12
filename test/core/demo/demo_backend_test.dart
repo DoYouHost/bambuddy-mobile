@@ -5,7 +5,7 @@ import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
-import 'package:bambuddy_mobile/core/demo/demo_config.dart';
+import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:bambuddy_mobile/core/demo/demo_ws.dart';
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
 import 'package:bambuddy_mobile/core/slicer/loaded_spool_match.dart';

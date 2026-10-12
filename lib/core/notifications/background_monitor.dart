@@ -1,6 +1,6 @@
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
-import '../../l10n/app_locale.dart';
+import '../app_context.dart';
 import 'background_sync.dart';
 import 'print_monitor_task_handler.dart';
 

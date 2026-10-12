@@ -10,7 +10,7 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 import 'core/api/api_client.dart';
 import 'core/api/camera_token.dart';
 import 'core/api/media_auth.dart';
-import 'core/api/media_token.dart';
+import 'core/api/cached_token_service.dart';
 import 'core/api/observed_capability.dart';
 import 'core/api/server_version.dart';
 import 'core/api/server_version_service.dart';

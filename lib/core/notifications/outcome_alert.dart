@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../../l10n/app_locale.dart';
+import '../app_context.dart';
 import '../api/ws_messages.dart';
 import '../diagnostics/notif_probe.dart';
 import '../models/archive.dart';
