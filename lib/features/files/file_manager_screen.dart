@@ -36,7 +36,7 @@ import 'file_details_screen.dart';
 import 'library_thumbnail.dart';
 import 'queue_target_sheet.dart';
 import 'tag_sheets.dart';
-import '../../core/format/text_compare.dart';
+import '../../core/format/text_utils.dart';
 
 /// File manager (library): folder navigation, thumbnails, file actions (print, queue,
 /// rename, move, delete), folder CRUD, upload, and trash. UI pattern consistent with archive screen.

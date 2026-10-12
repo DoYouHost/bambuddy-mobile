@@ -10,7 +10,7 @@ import '../../core/auth/auth_headers.dart';
 import '../../core/demo/demo_ws.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_catalog.dart';
-import '../../core/notifications/outcome_prompt.dart';
+import '../../core/notifications/launch_relay.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/widget/home_widget_publisher.dart';
 import '../../core/widget/multi_widget_publisher.dart';

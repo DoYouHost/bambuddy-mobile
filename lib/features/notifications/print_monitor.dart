@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:clock/clock.dart';
 
-import '../../core/format/stable_digest.dart';
-import '../../core/notifications/alert_ids.dart';
+import '../../core/format/text_utils.dart';
+import '../../core/notifications/notification_service.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/notif_probe.dart';
 import '../../core/format/datetime_format.dart';
@@ -12,19 +12,17 @@ import '../../core/notifications/background_api.dart';
 import '../../core/notifications/hms_actions.dart';
 import '../../core/notifications/hms_catalog.dart';
 import '../../core/notifications/notification_prefs.dart';
-import '../../core/notifications/notification_service.dart';
 import '../../core/printers/offline_debounce.dart';
-import '../../core/time/timer_factory.dart';
 import '../../l10n/app_locale.dart';
 import '../../l10n/app_localizations.dart';
 
 /// `TimerFactory` is part of this library's surface: the monitor takes one so
 /// tests can control time instead of waiting out a window.
-export '../../core/time/timer_factory.dart' show TimerFactory;
+export '../../core/printers/offline_debounce.dart' show TimerFactory;
 
 /// The band width moved to core so a core isolate can compute its own ids;
 /// re-exported so every caller keeps reading it from here.
-export '../../core/notifications/alert_ids.dart' show alertBandWidth;
+export '../../core/notifications/notification_service.dart' show alertBandWidth;
 
 /// Alert ID base per event type; add `printer_id` so alerts from different
 /// printers (and types) don't overwrite each other. ID

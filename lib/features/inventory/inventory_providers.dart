@@ -16,7 +16,7 @@ import '../../core/models/supplier.dart';
 import '../../data/inventory_repository.dart';
 import '../../data/inventory_source.dart';
 import '../../providers.dart';
-import '../../core/format/text_compare.dart';
+import '../../core/format/text_utils.dart';
 
 /// Inventory snapshot for the screen: all spools (including archived) plus a map
 /// `spoolId → assignment to AMS slot`. Filtering (search / show archived) is done

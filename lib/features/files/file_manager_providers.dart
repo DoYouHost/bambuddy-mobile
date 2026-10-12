@@ -7,7 +7,7 @@ import '../../core/models/library_stats.dart';
 import '../../core/models/library_tag.dart';
 import '../../core/models/trash_file.dart';
 import '../../providers.dart';
-import '../../core/format/text_compare.dart';
+import '../../core/format/text_utils.dart';
 
 /// File list sort keys (client-side — endpoint doesn't sort).
 enum FileSort { dateDesc, dateAsc, nameAsc, nameDesc, sizeDesc, sizeAsc }

@@ -15,10 +15,16 @@ import '../settings/settings_repository.dart';
 import 'finish_alert_memory.dart';
 import 'hms_actions.dart';
 import 'hms_stop_request.dart';
+import 'launch_relay.dart';
 import 'outcome_alert.dart';
-import 'outcome_prompt.dart';
-import 'server_tag.dart';
 import '../diagnostics/diagnostics_wiring.dart';
+import '../format/text_utils.dart';
+
+/// The server a notification's payload belongs to, as a digest rather than in
+/// the clear. A payload names rows by id — a printer, an archive — and an id
+/// means something only on the server that sent it, while the notification
+/// outlives a switch to another server, where the same id is somebody else's.
+String serverTag(String baseUrl) => stableDigest(baseUrl).toRadixString(16);
 
 /// Action ID for "Mark Done" in maintenance notifications.
 /// The notification payload carries a comma-separated list of item IDs to reset.

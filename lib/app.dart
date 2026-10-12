@@ -11,7 +11,7 @@ import 'core/format/system_clock_sync.dart';
 import 'core/notifications/background_api.dart';
 import 'core/notifications/hms_actions.dart';
 import 'core/notifications/hms_stop_request.dart';
-import 'core/notifications/outcome_prompt.dart';
+import 'core/notifications/launch_relay.dart';
 import 'core/models/current_user.dart';
 import 'core/theme/dash_theme.dart';
 import 'features/archive/outcome_sheet.dart';

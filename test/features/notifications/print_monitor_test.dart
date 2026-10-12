@@ -8,7 +8,7 @@ import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
-import 'package:bambuddy_mobile/core/notifications/server_tag.dart';
+import 'package:bambuddy_mobile/core/notifications/background_api.dart';
 import 'package:bambuddy_mobile/features/notifications/print_monitor.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';

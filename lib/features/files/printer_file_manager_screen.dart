@@ -21,7 +21,7 @@ import '../common/file_export.dart';
 import 'printer_download_job.dart';
 import 'printer_selection_download.dart';
 import '../../data/streamed_download.dart';
-import '../../core/format/text_compare.dart';
+import '../../core/format/text_utils.dart';
 
 /// Client-side sort keys for the printer file list (the endpoint doesn't sort).
 enum PrinterFileSort { nameAsc, nameDesc, sizeAsc, sizeDesc, dateAsc, dateDesc }

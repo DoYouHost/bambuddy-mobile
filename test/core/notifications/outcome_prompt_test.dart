@@ -1,4 +1,4 @@
-import 'package:bambuddy_mobile/core/notifications/outcome_prompt.dart';
+import 'package:bambuddy_mobile/core/notifications/launch_relay.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

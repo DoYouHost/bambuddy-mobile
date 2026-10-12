@@ -11,7 +11,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_search_field.dart';
 import '../inventory/inventory_screen.dart' show SpoolSwatch;
-import '../../core/format/text_compare.dart';
+import '../../core/format/text_utils.dart';
 
 /// Where a filament row was filled from a spool loaded in a printer (#3172):
 /// its colour (`#RRGGBB`, null when the printer named none) and the printer

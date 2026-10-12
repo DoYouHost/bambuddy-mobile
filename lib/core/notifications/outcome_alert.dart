@@ -7,16 +7,15 @@ import '../../l10n/app_locale.dart';
 import '../api/ws_messages.dart';
 import '../diagnostics/notif_probe.dart';
 import '../models/archive.dart';
-import 'alert_ids.dart';
+import 'notification_service.dart';
 import 'finish_alert_memory.dart';
 import 'notification_prefs.dart';
-import 'notification_service.dart';
-import 'server_tag.dart';
+import 'background_api.dart';
 
 /// The outcome question as a notification (#1898): what the foreground
 /// service posts when the server's `print_confirm_request` arrives while the
 /// app is in the background. The app on screen asks with a sheet instead
-/// (`outcome_prompt.dart`), so the two never ask at once.
+/// (`outcomePrompts`), so the two never ask at once.
 
 /// Band 14 of the alert ids (bands 1–13 are `print_monitor.dart` and
 /// `maintenance_monitor.dart`).

@@ -9,7 +9,7 @@ import '../../core/models/print_run.dart';
 import '../../core/models/printer.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../../core/format/text_compare.dart';
+import '../../core/format/text_utils.dart';
 
 /// Upper bound on how many archives we load in one shot. Filtering/sorting runs
 /// client-side over the full set (matching bambuddy), so we fetch everything

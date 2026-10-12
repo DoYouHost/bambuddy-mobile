@@ -11,7 +11,7 @@ library;
 
 import '../models/k_profile.dart';
 import 'filament_naming.dart';
-import '../format/text_compare.dart';
+import '../format/text_utils.dart';
 
 /// The picker's two groups: profiles that look like they belong to the selected
 /// preset, and everything else the printer holds.

@@ -19,7 +19,7 @@ import '../common/print_thumbnail.dart';
 import '../files/library_thumbnail.dart';
 import 'queue_edit_screen.dart';
 import 'queue_removal.dart';
-import '../../core/format/text_compare.dart';
+import '../../core/format/text_utils.dart';
 
 /// The queue's History tab, as the web's `QueuePage.tsx` (`HistorySection`,
 /// `CompactHistoryRow`) shows it: every finished, failed, skipped and
