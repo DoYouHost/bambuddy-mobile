@@ -7,6 +7,7 @@ import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -280,6 +281,18 @@ void main() {
       await save(tester);
       expect(shelf.drafts.single.lastDriedAt, isNull);
       expect(shelf.drafts.single.clears.contains('last_dried_at'), isFalse);
+    });
+
+    testWidgets('the hint wraps instead of being cut to one line', (
+      tester,
+    ) async {
+      await openForm(tester, existing: dried);
+      final hint = find.text(pl.inventoryLastDriedHelp);
+      await tester.ensureVisible(hint);
+      expect(
+        tester.renderObject<RenderParagraph>(hint).didExceedMaxLines,
+        isFalse,
+      );
     });
 
     testWidgets('Now sets the date to the present moment', (tester) async {

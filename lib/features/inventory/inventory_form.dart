@@ -604,7 +604,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               hint: l10n.inventoryLowStockHint,
             ),
             _combo('location', l10n.inventoryFieldLocation, locations),
-            if (_showsLastDried(ref)) _lastDriedField(l10n),
+            if (_showsLastDried(ref)) ...[
+              _lastDriedField(l10n),
+              // Under the field, not its `helperText`, which keeps to one line
+              // and cut the sentence off.
+              Text(l10n.inventoryLastDriedHelp, style: t.bodySoft),
+            ],
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
 
             if (showOverrides) ..._presetOverridesSection(l10n, stored, models),
@@ -1066,7 +1071,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           decoration: dashDecoration(
             t,
             labelText: l10n.inventoryLastDried,
-            helperText: l10n.inventoryLastDriedHelp,
             suffixIcon: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
