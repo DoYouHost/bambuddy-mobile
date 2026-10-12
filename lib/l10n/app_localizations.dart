@@ -4547,7 +4547,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventoryMaterialNumberHint.
   ///
   /// In en, this message translates to:
-  /// **'Shared by every spool of a product. A new spool of a known product gets it filled in.'**
+  /// **'Shared by every spool of a product.'**
   String get inventoryMaterialNumberHint;
 
   /// No description provided for @inventorySpoolmanCannotClear.
@@ -13303,6 +13303,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Consumed since reset'**
   String get inventoryDetailConsumedSinceReset;
+
+  /// Label of the spool detail sheet's row with the date of the last drying, followed by the temperature and hours of that run. Also the name of the sort that orders spools by that date.
+  ///
+  /// In en, this message translates to:
+  /// **'Last dried'**
+  String get inventoryLastDried;
+
+  /// Button in the spool form that sets the last-dried date to the present moment.
+  ///
+  /// In en, this message translates to:
+  /// **'Now'**
+  String get inventoryLastDriedNow;
+
+  /// No description provided for @inventoryLastDriedHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Filled in after an AMS drying. Set it by hand for a spool dried elsewhere.'**
+  String get inventoryLastDriedHelp;
 
   /// Link under a supplier to its archived spools; sits next to the active count ('2 spools'), so the noun is left out. Agrees with 'spool'.
   ///

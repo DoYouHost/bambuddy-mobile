@@ -61,6 +61,7 @@ class _FilterSheet extends ConsumerWidget {
     final theme = Theme.of(context);
     final filters = ref.watch(inventoryFiltersProvider);
     final notifier = ref.read(inventoryFiltersProvider.notifier);
+    final lastDriedSupported = ref.watch(lastDriedSupportedProvider).orFalse;
 
     Set<T> toggled<T>(Set<T> set, T value) {
       final next = {...set};
@@ -102,12 +103,20 @@ class _FilterSheet extends ConsumerWidget {
               runSpacing: DashSpace.xs,
               children: [
                 for (final sort in InventorySort.values)
-                  ChoiceChip(
-                    label: Text(_sortLabel(l10n, sort)),
-                    selected: filters.sort == sort,
-                    onSelected: (_) =>
-                        notifier.state = filters.copyWith(sort: sort),
-                  ),
+                  // A server that does not record a drying has no date to
+                  // order by, and a chip that sorts nothing reads as broken -
+                  // unless it is the sort already chosen (the filters outlive a
+                  // switch to an older server), which has to stay visible to be
+                  // changed.
+                  if (sort != InventorySort.lastDried ||
+                      lastDriedSupported ||
+                      filters.sort == sort)
+                    ChoiceChip(
+                      label: Text(_sortLabel(l10n, sort)),
+                      selected: filters.sort == sort,
+                      onSelected: (_) =>
+                          notifier.state = filters.copyWith(sort: sort),
+                    ),
               ],
             ),
             if (filters.sort != InventorySort.standard) ...[
@@ -247,6 +256,7 @@ String _sortLabel(AppLocalizations l10n, InventorySort sort) => switch (sort) {
   InventorySort.usage => l10n.inventorySortUsage,
   InventorySort.added => l10n.inventorySortAdded,
   InventorySort.price => l10n.inventorySortPrice,
+  InventorySort.lastDried => l10n.inventoryLastDried,
   InventorySort.id => l10n.inventorySortId,
 };
 

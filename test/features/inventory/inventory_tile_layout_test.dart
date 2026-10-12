@@ -31,6 +31,7 @@ void main() {
     WidgetTester tester, {
     required Size surface,
     double textScale = 1.0,
+    bool crowded = false,
   }) async {
     tester.view.physicalSize = surface;
     tester.view.devicePixelRatio = 1.0;
@@ -38,13 +39,17 @@ void main() {
 
     // A four-digit label weight and a three-digit remainder: the longest the
     // weight half realistically gets, which is when the row is tightest.
-    const spool = Spool(
+    // [crowded] adds the other two things the row can carry, a material number
+    // and a last-dried date, which is when the three fixed parts compete.
+    final spool = Spool(
       id: 128,
       material: 'PETG',
       brand: 'Polymaker',
       subtype: 'Translucent',
       labelWeight: 1000,
       weightUsed: 340,
+      materialNumber: crowded ? 'BL-PLA-BK-1' : null,
+      lastDriedAt: crowded ? DateTime(2026, 10, 28) : null,
     );
     const assignment = SpoolAssignment(
       spoolId: 128,
@@ -92,6 +97,33 @@ void main() {
     // The weight half has to give way here, and it can: it ends in the label
     // weight, which the progress bar above already shows.
     await pumpShelf(tester, surface: const Size(360, 640), textScale: 1.3);
+
+    expect(
+      tester.getSize(slotLabel).width,
+      greaterThanOrEqualTo(intrinsicWidth(tester.widget<Text>(slotLabel))),
+    );
+    expect(tester.takeException(), isNull, reason: 'and nothing overflows');
+  });
+
+  testWidgets('with a number and a drying date too, the slot still fits', (
+    tester,
+  ) async {
+    await pumpShelf(tester, surface: const Size(360, 640), crowded: true);
+
+    expect(
+      tester.getSize(slotLabel).width,
+      greaterThanOrEqualTo(intrinsicWidth(tester.widget<Text>(slotLabel))),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('and at the largest system text size', (tester) async {
+    await pumpShelf(
+      tester,
+      surface: const Size(360, 640),
+      textScale: 1.3,
+      crowded: true,
+    );
 
     expect(
       tester.getSize(slotLabel).width,

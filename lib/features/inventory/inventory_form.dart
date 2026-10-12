@@ -52,6 +52,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   Map<String, SpoolPresetOverride>? _overrides;
   bool _overridesDirty = false;
 
+  /// The drying date as the form shows it (#2863). Written only once the user
+  /// changed it, so saving an unrelated edit cannot put back a date an AMS run
+  /// stamped while the sheet was open.
+  DateTime? _lastDried;
+  bool _lastDriedTouched = false;
+
   /// Supplier assignments as they will be written. Seeded from the spool the
   /// form opened on — they ride on its row, so there is no read to fail.
   ///
@@ -122,6 +128,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       'note': TextEditingController(text: s?.note ?? ''),
     };
     _coreWeightCatalogId = s?.coreWeightCatalogId;
+    _lastDried = widget.existing?.lastDriedAt;
     _effectType = s?.effectType;
     _slicerFilament = s?.slicerFilament;
     _slicerFilamentName = s?.slicerFilamentName;
@@ -151,6 +158,26 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   bool _showsMaterialNumber(WidgetRef ref) =>
       ref.read(materialNumberSupportedProvider).orFalse &&
       ref.read(inventoryBackendProvider).valueOrNull == InventoryBackend.native;
+
+  /// Whether the form offers the drying date: only on a spool that exists (the
+  /// web's `showLastDried={isEditing}`), and only where the server stores it —
+  /// an older one drops the key and answers 200.
+  bool _showsLastDried(WidgetRef ref) =>
+      _isEdit && ref.read(lastDriedSupportedProvider).orFalse;
+
+  Future<void> _pickLastDried() async {
+    final picked = await pickDateTime(
+      context,
+      initial: _lastDried ?? clock.now(),
+      // A drying is in the past; the picker's default floor is today.
+      firstDate: DateTime(2020),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _lastDried = picked;
+      _lastDriedTouched = true;
+    });
+  }
 
   /// The spool as this sheet last wrote it and the server answered. A retry
   /// after a failed follow-up write edits that state, not the one the sheet
@@ -213,6 +240,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     } else if (_isEdit && remaining == null) {
       used = widget.existing!.weightUsed;
     }
+    final writesDried = _showsLastDried(ref) && _lastDriedTouched;
     final built = SpoolDraft(
       material: material,
       brand: _trim('brand'),
@@ -236,6 +264,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       slicerFilament: _slicerFilament,
       slicerFilamentName: _slicerFilamentName,
       note: _trim('note'),
+      lastDriedAt: writesDried ? _lastDried : null,
+      clears: {if (writesDried && _lastDried == null) 'last_dried_at'},
     );
     final before = _writtenOver;
     final draft = before == null
@@ -264,6 +294,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         _lastWritten =
             await notifier.updateSpool(widget.existing!.id, draft) ??
             _lastWritten;
+        // Written: a retry of a failed follow-up must not send the date again,
+        // which would drop the figures of a drying that finished meanwhile.
+        _lastDriedTouched = false;
         spoolId = widget.existing!.id;
         message = l10n.inventorySpoolUpdated;
       } else if (_createdSpoolId case final id?) {
@@ -395,6 +428,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     // A copy saved before its presets arrive would be created without them;
     // that includes the gate, which asks for them only once it has answered.
     ref.watch(materialNumberSupportedProvider);
+    ref.watch(lastDriedSupportedProvider);
     ref.watch(inventoryBackendProvider);
     final showMaterialNumber = _showsMaterialNumber(ref);
     final suppliersGate = ref.watch(suppliersSupportedProvider);
@@ -475,8 +509,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 'materialNumber',
                 l10n.inventoryFieldMaterialNumber,
                 ref.watch(materialNumberOptionsProvider),
+                helperText: l10n.inventoryMaterialNumberHint,
               ),
-              Text(l10n.inventoryMaterialNumberHint, style: t.bodySoft),
             ],
             _field(
               'labelWeight',
@@ -566,6 +600,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               hint: l10n.inventoryLowStockHint,
             ),
             _combo('location', l10n.inventoryFieldLocation, locations),
+            if (_showsLastDried(ref)) _lastDriedField(l10n),
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
 
             if (showOverrides) ..._presetOverridesSection(l10n, stored, models),
@@ -607,6 +642,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     List<String> options, {
     bool required = false,
     String? errorText,
+    String? helperText,
   }) => _spoolCombo(
     context,
     _c,
@@ -615,6 +651,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     options,
     required: required,
     errorText: errorText,
+    helperText: helperText,
     onSelected: (v) {
       if (required && v != null && v.isNotEmpty) {
         setState(() => _materialMissing = false);
@@ -1005,6 +1042,56 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     errorText: errorText,
   );
 
+  /// The drying date and what sets it: tap for the pickers, **Now** for a spool
+  /// just taken out of a dryer, the cross to say it was never dried.
+  Widget _lastDriedField(AppLocalizations l10n) {
+    final t = DashTokens.of(context);
+    final at = _lastDried;
+    return logTag(
+      'spool_form.last_dried',
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+        child: TextFormField(
+          // The text is not a controller's: a new key is what makes it re-read
+          // [at] after a pick, Now or clear.
+          key: ValueKey(at),
+          initialValue: at == null
+              ? ''
+              : DateTimeFormats.of(context).dateTime(at),
+          readOnly: true,
+          style: t.body,
+          onTap: _pickLastDried,
+          decoration: dashDecoration(
+            t,
+            labelText: l10n.inventoryLastDried,
+            helperText: l10n.inventoryLastDriedHelp,
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (at != null)
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 18),
+                    tooltip: l10n.clear,
+                    onPressed: () => setState(() {
+                      _lastDried = null;
+                      _lastDriedTouched = true;
+                    }),
+                  ).tagged('spool_form.last_dried_clear'),
+                TextButton(
+                  onPressed: () => setState(() {
+                    _lastDried = clock.now();
+                    _lastDriedTouched = true;
+                  }),
+                  child: Text(l10n.inventoryLastDriedNow),
+                ).tagged('spool_form.last_dried_now'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Spoolman can change a spool's brand and price but not empty them (probed:
   /// the route keeps the old value on null and on an empty string), so a field
   /// that held one there must not be saved blank - the save would claim a
@@ -1103,6 +1190,7 @@ Widget _spoolCombo(
   String area = 'spool_form',
   bool required = false,
   String? errorText,
+  String? helperText,
   ValueChanged<String?>? onSelected,
 }) {
   final tag = _fieldTag(key, area: area);
@@ -1114,6 +1202,7 @@ Widget _spoolCombo(
       controller: controllers[key],
       label: Text(required ? '$label *' : label),
       errorText: errorText,
+      helperText: helperText,
       filterable: true,
       textStyle: DashTokens.of(context).body,
       onSelected: onSelected,

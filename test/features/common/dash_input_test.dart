@@ -33,6 +33,11 @@ void main() {
       expect(menu.filled, isTrue);
     });
 
+    test('a hint of two sentences wraps on both kinds of field ($name)', () {
+      expect(dashDecoration(tokens).helperMaxLines, greaterThan(1));
+      expect(dashInputTheme(tokens).helperMaxLines, greaterThan(1));
+    });
+
     test('the form decoration is the same chrome, suffix included ($name)', () {
       final plain = dashFieldDecoration(tokens, suffixText: 'g');
       final shared = dashDecoration(tokens, suffixText: 'g');

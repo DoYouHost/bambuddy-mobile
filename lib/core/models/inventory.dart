@@ -83,6 +83,10 @@ class Spool {
     this.suppliers,
     this.materialNumber,
     this.materialNumberReported = false,
+    this.lastDriedAt,
+    this.lastDriedTemp,
+    this.lastDriedHours,
+    this.lastDriedReported = false,
   });
 
   /// Native `SpoolResponse` from `GET /inventory/spools`.
@@ -124,6 +128,10 @@ class Spool {
     ),
     materialNumber: toStringOrNull(json['material_number']),
     materialNumberReported: json.containsKey('material_number'),
+    lastDriedAt: dateTimeFromJson(json['last_dried_at']),
+    lastDriedTemp: toIntOrNull(json['last_dried_temp']),
+    lastDriedHours: toDoubleOrNull(json['last_dried_hours']),
+    lastDriedReported: json.containsKey('last_dried_at'),
   );
 
   /// Spoolman returns loose object (passthrough) — field names vary, so read
@@ -183,6 +191,12 @@ class Spool {
       // The backend maps the filament's `article_number` onto this key.
       materialNumber: toStringOrNull(json['material_number']),
       materialNumberReported: json.containsKey('material_number'),
+      // The backend unpacks the three `bambu_last_dried_*` extras onto the
+      // native keys (`_spoolman_helpers.py::_map_spoolman_spool`).
+      lastDriedAt: dateTimeFromJson(json['last_dried_at']),
+      lastDriedTemp: toIntOrNull(json['last_dried_temp']),
+      lastDriedHours: toDoubleOrNull(json['last_dried_hours']),
+      lastDriedReported: json.containsKey('last_dried_at'),
     );
   }
 
@@ -264,6 +278,26 @@ class Spool {
   /// sends it on every row from the feature on, null or not, so its presence is
   /// what tells a server with the feature from one that predates it.
   final bool materialNumberReported;
+
+  /// When the spool was last dried (server #2863): stamped when an AMS drying
+  /// run of at least half its length ends, or set by hand. Null for a spool
+  /// never dried and for a server that predates the field.
+  final DateTime? lastDriedAt;
+
+  /// Target temperature [°C] of that run. Null when unknown: a date set by
+  /// hand, or a run Bambuddy did not start (the printer does not report it).
+  /// Independent of [lastDriedHours]: either can be known without the other.
+  final int? lastDriedTemp;
+
+  /// Time the run actually lasted [h]. Null when unknown: a date set by hand,
+  /// or a run whose start Bambuddy neither watched nor requested, where the
+  /// elapsed share is only a lower bound (`services/spool_drying.py`).
+  final double? lastDriedHours;
+
+  /// Whether the row carried the `last_dried_at` key at all. `SpoolResponse`
+  /// sends it on every row from the feature on, null or not, so its presence
+  /// is what tells a server with the feature from one that predates it.
+  final bool lastDriedReported;
 
   /// Remaining filament [g] (clamps to 0).
   double get remainingWeight {
@@ -412,6 +446,7 @@ class SpoolDraft {
     this.slicerFilamentName,
     this.note,
     this.materialNumber,
+    this.lastDriedAt,
     this.clears = const {},
   });
 
@@ -466,6 +501,13 @@ class SpoolDraft {
   /// `null` leaves the number alone and keeps the key off the wire, which is
   /// also what a server that predates the number needs.
   final String? materialNumber;
+
+  /// The drying date typed in by hand (#2863). Null leaves the date alone and
+  /// keeps the key off the wire: unlike the other fields it is *not* in
+  /// [_clearable], because the server stamps it while a form is open and a blank
+  /// draft must not erase that. The form names `last_dried_at` in [clears] only
+  /// when the user emptied the field.
+  final DateTime? lastDriedAt;
 
   /// Native wire keys of the fields the user emptied, see [clearing]. A null
   /// field is "leave it as it is" everywhere else in this class, so a field
@@ -552,6 +594,7 @@ class SpoolDraft {
         slicerFilamentName: slicerFilamentName,
         note: note,
         materialNumber: materialNumber,
+        lastDriedAt: lastDriedAt,
         clears: {
           ...clears,
           for (final e in _clearable.entries)
@@ -589,6 +632,7 @@ class SpoolDraft {
     if (slicerFilamentName != null) 'slicer_filament_name': slicerFilamentName,
     if (note != null) 'note': note,
     if (materialNumber != null) 'material_number': materialNumber,
+    if (lastDriedAt != null) 'last_dried_at': _utcIso(lastDriedAt!),
     // The route stores an explicit null as NULL for every field in [clears]
     // (probed against 1.2.5.7 and the 1.2.6 daily); an empty string would
     // store "" in the text columns and be refused by the numeric ones.
@@ -609,8 +653,13 @@ class SpoolDraft {
     if (costPerKg != null) 'cost_per_kg': costPerKg,
     if (storageLocation != null) 'storage_location': storageLocation,
     if (note != null) 'note': note,
+    if (lastDriedAt != null) 'last_dried_at': _utcIso(lastDriedAt!),
     ..._spoolmanClears,
   };
+
+  /// The instant with its `Z`, as the web sends it (`toISOString()`): both
+  /// routes turn an offset into naive UTC (`schemas/spool.py::naive_utc`).
+  static String _utcIso(DateTime at) => at.toUtc().toIso8601String();
 
   /// What a Spoolman backend takes as "empty this field", as the route answers
   /// it: `subtype` and `note` clear on an empty string and ignore null,
@@ -619,7 +668,8 @@ class SpoolDraft {
   /// clear"), and the rest of [clears] (brand, price, category…) has no way to
   /// be emptied there - an unsupported clear is dropped rather than sent.
   /// [Spool.fromSpoolman] does not read the preset back, so today it only
-  /// reaches [clears] from a hand-built [Spool].
+  /// reaches [clears] from a hand-built [Spool]. `last_dried_at` is the one
+  /// more that clears on null.
   Map<String, dynamic> get _spoolmanClears => {
     if (clears.contains('subtype')) 'subtype': '',
     if (clears.contains('note')) 'note': '',
@@ -627,6 +677,8 @@ class SpoolDraft {
     if (clears.contains('color_name')) 'color_name': null,
     if (clears.contains('slicer_filament')) 'slicer_filament': '',
     if (clears.contains('slicer_filament_name')) 'slicer_filament_name': '',
+    // `model_fields_set` carries it, so an explicit null empties the date.
+    if (clears.contains('last_dried_at')) 'last_dried_at': null,
   };
 }
 

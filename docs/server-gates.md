@@ -470,3 +470,20 @@ The gate says the server *has* the number. Whether it can be *written* is the
 backend: Spoolman maps the filament's `article_number` onto it and keeps it
 read-only, so the form and the bulk edit offer the field to the native backend
 only.
+
+### spoolLastDried — 1.2.6 (server #2863, commit 84f320b8)
+
+When a spool was last dried: `last_dried_at`, `last_dried_temp` and
+`last_dried_hours` on a spool, and `last_dried_at` on its update. Only in 1.2.6
+dailies from 2026-10-06.
+
+`SpoolUpdate` and `SpoolmanInventoryUpdate` forbid no extra fields, so an older
+server takes the date, says nothing and stores nothing — the date field would
+read as saved and be gone on the next load. `SpoolResponse` sends the key on
+every row from the commit on, null or not, and the Spoolman listing unpacks its
+three `bambu_last_dried_*` extras onto the same keys, so
+`InventoryRepository.lastDriedCapability` observes it on the first row of the
+spool listing. An empty inventory says nothing and the version row answers,
+which costs nothing: the date is written only to a spool that exists (neither
+create schema takes it), and that spool's own row has already settled the gate.
+Reading needs no gate: an older server never sends a date to show.

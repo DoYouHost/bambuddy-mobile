@@ -2653,7 +2653,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inventoryMaterialNumberHint =>
-      'Gilt für alle Spulen eines Produkts. Eine neue Spule eines bekannten Produkts erhält sie automatisch.';
+      'Gilt für alle Spulen eines Produkts.';
 
   @override
   String get inventorySpoolmanCannotClear =>
@@ -7968,6 +7968,16 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get inventoryDetailConsumedSinceReset =>
       'Seit Zurücksetzen verbraucht';
+
+  @override
+  String get inventoryLastDried => 'Zuletzt getrocknet';
+
+  @override
+  String get inventoryLastDriedNow => 'Jetzt';
+
+  @override
+  String get inventoryLastDriedHelp =>
+      'Wird nach einer AMS-Trocknung eingetragen. Für eine anderswo getrocknete Spule von Hand setzen.';
 
   @override
   String inventorySupplierArchivedCount(int count) {

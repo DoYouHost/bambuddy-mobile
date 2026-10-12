@@ -2666,7 +2666,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get inventoryMaterialNumberHint =>
-      'Commun à toutes les bobines d’un produit. Une nouvelle bobine d’un produit connu le reçoit automatiquement.';
+      'Commun à toutes les bobines d’un produit.';
 
   @override
   String get inventorySpoolmanCannotClear =>
@@ -8061,6 +8061,16 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get inventoryDetailConsumedSinceReset =>
       'Consommé depuis la réinitialisation';
+
+  @override
+  String get inventoryLastDried => 'Dernier séchage';
+
+  @override
+  String get inventoryLastDriedNow => 'Maintenant';
+
+  @override
+  String get inventoryLastDriedHelp =>
+      'Renseigné après un séchage AMS. Indiquez-le à la main pour une bobine séchée ailleurs.';
 
   @override
   String inventorySupplierArchivedCount(int count) {

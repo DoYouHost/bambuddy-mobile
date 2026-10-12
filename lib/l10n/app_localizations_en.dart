@@ -2621,7 +2621,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryMaterialNumberHint =>
-      'Shared by every spool of a product. A new spool of a known product gets it filled in.';
+      'Shared by every spool of a product.';
 
   @override
   String get inventorySpoolmanCannotClear =>
@@ -7890,6 +7890,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryDetailConsumedSinceReset => 'Consumed since reset';
+
+  @override
+  String get inventoryLastDried => 'Last dried';
+
+  @override
+  String get inventoryLastDriedNow => 'Now';
+
+  @override
+  String get inventoryLastDriedHelp =>
+      'Filled in after an AMS drying. Set it by hand for a spool dried elsewhere.';
 
   @override
   String inventorySupplierArchivedCount(int count) {

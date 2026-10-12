@@ -5,6 +5,7 @@ import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -186,6 +187,18 @@ void main() {
       final shelf = await openForm(tester, existing: _alpha);
       await save(tester);
       expect(shelf.drafts.single.materialNumber, '15');
+    });
+
+    testWidgets('its hint wraps instead of being cut to one line', (
+      tester,
+    ) async {
+      await openForm(tester, existing: _alpha);
+      final hint = find.text(pl.inventoryMaterialNumberHint);
+      await tester.ensureVisible(hint);
+      expect(
+        tester.renderObject<RenderParagraph>(hint).didExceedMaxLines,
+        isFalse,
+      );
     });
 
     testWidgets('a typed number is trimmed and sent', (tester) async {

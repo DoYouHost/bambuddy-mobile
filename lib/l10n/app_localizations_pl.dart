@@ -2660,7 +2660,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryMaterialNumberHint =>
-      'Wspólny dla wszystkich szpul danego produktu. Nowa szpula znanego produktu dostaje go sama.';
+      'Wspólny dla wszystkich szpul tego produktu.';
 
   @override
   String get inventorySpoolmanCannotClear =>
@@ -8016,6 +8016,16 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryDetailConsumedSinceReset => 'Zużyte od resetu';
+
+  @override
+  String get inventoryLastDried => 'Ostatnie suszenie';
+
+  @override
+  String get inventoryLastDriedNow => 'Teraz';
+
+  @override
+  String get inventoryLastDriedHelp =>
+      'Wpisywane po suszeniu w AMS. Ustaw ręcznie dla szpuli suszonej gdzie indziej.';
 
   @override
   String inventorySupplierArchivedCount(int count) {

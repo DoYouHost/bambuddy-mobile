@@ -1600,7 +1600,7 @@
   "inventoryFieldMeasuredWeight": "Measured weight (g)",
   "inventoryFieldCategory": "Category",
   "inventoryFieldMaterialNumber": "Material number",
-  "inventoryMaterialNumberHint": "Shared by every spool of a product. A new spool of a known product gets it filled in.",
+  "inventoryMaterialNumberHint": "Shared by every spool of a product.",
   "inventorySpoolmanCannotClear": "Spoolman can't remove this value. Change it to something else instead.",
   "inventoryFieldExtraColors": "Extra colors",
   "inventoryExtraColorsHint": "2–8 hex stops, comma-separated",
@@ -5158,6 +5158,15 @@
   "inventoryDetailSlot": "Slot",
   "inventoryDetailNotLoaded": "Not loaded",
   "inventoryDetailConsumedSinceReset": "Consumed since reset",
+  "inventoryLastDried": "Last dried",
+  "@inventoryLastDried": {
+    "description": "Label of the spool detail sheet's row with the date of the last drying, followed by the temperature and hours of that run. Also the name of the sort that orders spools by that date."
+  },
+  "inventoryLastDriedNow": "Now",
+  "@inventoryLastDriedNow": {
+    "description": "Button in the spool form that sets the last-dried date to the present moment."
+  },
+  "inventoryLastDriedHelp": "Filled in after an AMS drying. Set it by hand for a spool dried elsewhere.",
   "@inventoryDetailNotLoaded": {
     "description": "Value of the detail sheet's Slot row when the spool is in no AMS slot or external holder. Agrees with 'spool'."
   },
