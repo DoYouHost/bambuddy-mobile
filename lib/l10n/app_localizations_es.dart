@@ -7990,6 +7990,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inventoryDetailConsumedSinceReset => 'Consumido desde el reinicio';
 
   @override
+  String get inventoryLastDried => 'Último secado';
+
+  @override
   String inventorySupplierArchivedCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

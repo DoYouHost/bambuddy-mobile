@@ -8063,6 +8063,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Consommé depuis la réinitialisation';
 
   @override
+  String get inventoryLastDried => 'Dernier séchage';
+
+  @override
   String inventorySupplierArchivedCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

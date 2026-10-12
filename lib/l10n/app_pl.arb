@@ -3321,6 +3321,7 @@
   "inventoryDetailSlot": "Slot",
   "inventoryDetailNotLoaded": "Nie załadowana",
   "inventoryDetailConsumedSinceReset": "Zużyte od resetu",
+  "inventoryLastDried": "Ostatnie suszenie",
   "inventorySupplierArchivedCount": "{count} w archiwum",
   "timeJustNow": "Przed chwilą",
   "timeNow": "Teraz",

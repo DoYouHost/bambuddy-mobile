@@ -4010,6 +4010,7 @@
   "inventoryDetailSlot": "Slot",
   "inventoryDetailNotLoaded": "Nicht geladen",
   "inventoryDetailConsumedSinceReset": "Seit Zurücksetzen verbraucht",
+  "inventoryLastDried": "Zuletzt getrocknet",
   "inventorySupplierArchivedCount": "{count} archiviert",
   "timeJustNow": "Gerade eben",
   "timeNow": "Jetzt",

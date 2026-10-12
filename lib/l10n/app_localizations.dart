@@ -13304,6 +13304,12 @@ abstract class AppLocalizations {
   /// **'Consumed since reset'**
   String get inventoryDetailConsumedSinceReset;
 
+  /// Label of the spool detail sheet's row with the date of the last drying, followed by the temperature and hours of that run.
+  ///
+  /// In en, this message translates to:
+  /// **'Last dried'**
+  String get inventoryLastDried;
+
   /// Link under a supplier to its archived spools; sits next to the active count ('2 spools'), so the noun is left out. Agrees with 'spool'.
   ///
   /// In en, this message translates to:

@@ -5010,6 +5010,9 @@ class DemoBackend {
       'k_profiles': const <Object>[],
       'suppliers': <Map<String, dynamic>>[],
       'material_number': null,
+      'last_dried_at': null,
+      'last_dried_temp': null,
+      'last_dried_hours': null,
     };
 
     final spools = [
@@ -5102,6 +5105,16 @@ class DemoBackend {
     spools[1]['material_number'] = '15';
     spools[2]['material_number'] = '22';
     spools[3]['material_number'] = 'A-104';
+    // The three ways a drying date reaches a spool: an AMS run (date, target
+    // temperature, actual hours), a run the printer did not report back
+    // (hours only), and a date typed in by hand (nothing else, the server drops
+    // the cycle's figures with it). The rest were never dried.
+    spools[0]['last_dried_at'] = _iso(_daysAgo(3));
+    spools[0]['last_dried_temp'] = 55;
+    spools[0]['last_dried_hours'] = 7.5;
+    spools[1]['last_dried_at'] = _iso(_daysAgo(9));
+    spools[1]['last_dried_hours'] = 4.0;
+    spools[2]['last_dried_at'] = _iso(_daysAgo(40));
     _linkSeed(spools[0], [
       (1, 'GFA00-K0', 24.99, true),
       (2, 'BL-PLA-BK-1', 22.90, false),
@@ -6119,6 +6132,13 @@ class DemoBackend {
     };
     _normalizeMaterialNumber(spool);
     spool.putIfAbsent('material_number', () => null);
+    for (final key in const [
+      'last_dried_at',
+      'last_dried_temp',
+      'last_dried_hours',
+    ]) {
+      spool.putIfAbsent(key, () => null);
+    }
     // The number is inherited from the most recently added spool of the same
     // product when the draft names none (`services/material_number.py`).
     if (spool['material_number'] == null) {

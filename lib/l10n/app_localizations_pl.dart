@@ -8018,6 +8018,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryDetailConsumedSinceReset => 'Zużyte od resetu';
 
   @override
+  String get inventoryLastDried => 'Ostatnie suszenie';
+
+  @override
   String inventorySupplierArchivedCount(int count) {
     return '$count w archiwum';
   }

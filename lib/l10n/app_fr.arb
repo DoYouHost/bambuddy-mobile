@@ -4010,6 +4010,7 @@
   "inventoryDetailSlot": "Emplacement",
   "inventoryDetailNotLoaded": "Non chargée",
   "inventoryDetailConsumedSinceReset": "Consommé depuis la réinitialisation",
+  "inventoryLastDried": "Dernier séchage",
   "inventorySupplierArchivedCount": "{count, plural, one{{count} archivée} other{{count} archivées}}",
   "timeJustNow": "À l’instant",
   "timeNow": "Maintenant",

@@ -108,6 +108,18 @@ class _SpoolTile extends StatelessWidget {
           const SizedBox(width: DashSpace.xs),
           Text(number, maxLines: 1, style: t.monoLabel),
         ],
+        // A mark on the row rather than a line of its own, so a spool that was
+        // dried costs the list no height. The run's figures are in the sheet.
+        if (spool.lastDriedAt case final dried?) ...[
+          const SizedBox(width: DashSpace.sm),
+          Icon(Icons.air, size: 12, color: t.textTertiary),
+          const SizedBox(width: DashSpace.xs),
+          Text(
+            DateTimeFormats.of(context).dayNamedMonth(dried),
+            maxLines: 1,
+            style: t.monoLabel,
+          ),
+        ],
         if (assignment != null) ...[
           const SizedBox(width: DashSpace.sm),
           Icon(Icons.print_outlined, size: 12, color: t.textTertiary),
@@ -500,6 +512,15 @@ class _SpoolDetailSheet extends ConsumerWidget {
                     label: l10n.inventoryFieldMaterialNumber,
                     value: number,
                   ),
+                if (spool.lastDriedAt case final dried?)
+                  _InfoRow(
+                    icon: Icons.air,
+                    label: l10n.inventoryLastDried,
+                    value: [
+                      DateTimeFormats.of(context).date(dried),
+                      ?lastDriedRun(spool),
+                    ].join(' · '),
+                  ),
                 if (spool.costPerKg != null)
                   _InfoRow(
                     icon: Icons.payments_outlined,
@@ -778,6 +799,25 @@ class _InfoRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// What the last drying run was, `55 °C · 7.5 h`; null when neither is known,
+/// which is a date set by hand or a run Bambuddy did not start or watch. The
+/// web's `formatLastDriedDetails`: whole hours drop their `.0`.
+@visibleForTesting
+String? lastDriedRun(Spool spool) {
+  String hoursText(double hours) {
+    final rounded = double.parse(hours.toStringAsFixed(1));
+    return rounded == rounded.roundToDouble()
+        ? '${rounded.round()}'
+        : '$rounded';
+  }
+
+  final parts = [
+    if (spool.lastDriedTemp case final temp?) '$temp °C',
+    if (spool.lastDriedHours case final hours?) '${hoursText(hours)} h',
+  ];
+  return parts.isEmpty ? null : parts.join(' · ');
 }
 
 /// Puts a 16 dp icon on the first line of body text next to it.

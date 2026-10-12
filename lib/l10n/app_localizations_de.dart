@@ -7970,6 +7970,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Seit Zurücksetzen verbraucht';
 
   @override
+  String get inventoryLastDried => 'Zuletzt getrocknet';
+
+  @override
   String inventorySupplierArchivedCount(int count) {
     return '$count archiviert';
   }
