@@ -34,14 +34,9 @@ class NotificationAction {
   final bool opensApp;
 }
 
-/// Photo attached to an alert that was already posted — the finish shot the
-/// server takes when a print ends.
-///
-/// Both are paths to files on this device, and both are read on **this** device
-/// at post time: the plugin decodes them and puts the resulting bitmaps inside
-/// the notification. That is what makes the photo survive the trip to a paired
-/// watch, which mirrors the notification but cannot open a file path from the
-/// phone — a `content://`-style image would leave the watch card empty.
+/// Photo attached to an alert that was already posted — the finish shot the server
+/// takes when a print ends. Both are paths to files on this device, read at post
+/// time, so the photo survives the trip to a paired watch (docs/notification-delivery.md).
 class AlertPicture {
   const AlertPicture({required this.photoPath, this.thumbnailPath});
 
@@ -62,19 +57,10 @@ abstract class NotificationService {
   /// Requests notification permission (Android 13+). Returns `true` if granted.
   Future<bool> requestPermission();
 
-  /// Shows/updates ONE ongoing print notification with a progress bar.
-  /// The foreground service from `flutter_foreground_task` (separate isolate)
-  /// handles keeping the process alive; this service just shows the notification.
-  ///
-  /// A null [progress] means the print is running but its position is not known
-  /// — heating, levelling, anything before the first percent — and draws the
-  /// indeterminate bar. It is not the same as [clearOngoing], which is for
-  /// nothing printing at all and leaves no bar.
-  ///
-  /// Unlike [showAlert] this takes no diagnostic arguments: the record is written
-  /// by `PrintMonitor._updateOngoing`, which is the only place that holds the
-  /// printer, percentage, ETA and print count as separate values — here they are
-  /// already baked into [title] and [body], which never enter a log.
+  /// Shows/updates ONE ongoing print notification with a progress bar. A null
+  /// [progress] draws the indeterminate bar (running, position unknown); that is not
+  /// [clearOngoing]. The record is written by `PrintMonitor._updateOngoing`, not here
+  /// (docs/notification-delivery.md, "The alert contract").
   Future<void> showOngoing({
     required String title,
     required String body,
@@ -84,22 +70,13 @@ abstract class NotificationService {
   /// Removes the ongoing notification.
   Future<void> clearOngoing();
 
-  /// One-shot alert (completion/failure) — survives backgrounding because the plugin
-  /// itself wakes the app on tap. Optional [actions] add action buttons
-  /// (handled in background without opening the app).
+  /// One-shot alert — survives backgrounding because the plugin itself wakes the app
+  /// on tap. Optional [actions] add buttons handled in the background.
   ///
   /// [event] and [printerId] exist for the diagnostic log and are required so the
-  /// compiler refuses a new notification without a name — the same reason the
-  /// printer card's shared buttons take a mandatory id. Neither can be recovered
-  /// from the arguments that were already here: [title] and [body] are the user's
-  /// own file and printer names and never enter a log, and [id] is a one-way hash
-  /// for HMS alerts (see `_errorAlertId` in `print_monitor.dart`).
-  ///
-  /// [picture] marks this call as an **update** of an alert already on screen
-  /// (the finish photo lands after the print-finished alert, never with it), so
-  /// it re-posts silently: same [id], no second sound or buzz — on the phone and
-  /// on a paired watch alike. [quiet] says the same for an update that carries
-  /// no picture (the outcome buttons added to a finished alert).
+  /// compiler refuses a new notification without a name. [picture] marks an **update**
+  /// of an alert already on screen and re-posts silently, as does [quiet]
+  /// (docs/notification-delivery.md, "The alert contract").
   Future<void> showAlert({
     required NotifEvent event,
     required int printerId,
@@ -182,14 +159,8 @@ class LocalNotificationService implements NotificationService {
     return null;
   }
 
-  // No-ops: the only production `PrintMonitor` runs in the background
-  // isolate against `FgsNotificationService` (see
-  // `print_monitor_task_handler.dart`), which routes the ongoing
-  // notification through `FlutterForegroundTask.updateService` instead — the
-  // foreground service's own notification is the "ongoing" one, and having a
-  // second, separate `ongoing_print`-channel notification alongside it would
-  // just be a duplicate. Kept here (rather than dropped from the
-  // [NotificationService] interface) only so this class still satisfies it.
+  // No-ops: the only production monitor runs against `FgsNotificationService`, whose
+  // ongoing notification is the foreground service's own (docs/notification-delivery.md, "The alert contract").
   @override
   Future<void> showOngoing({
     required String title,

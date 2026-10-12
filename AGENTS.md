@@ -134,6 +134,10 @@ do not stay silent because it was not part of the task.
   exists, what an older server does without it and what being early costs, and
   how a capability travels from its latch to a screen. **Read it before adding
   a gate**; the enum keeps one line per member.
+- [docs/notification-delivery.md](docs/notification-delivery.md) — what happens to an
+  alert once it exists: the `NotificationService` contract, the finish photo that
+  arrives after it, button taps in a background isolate, and which HMS faults are
+  shown or notified. **Read it before touching `lib/core/notifications/`.**
 - [docs/notification-rules.md](docs/notification-rules.md) — how
   `PrintMonitor` decides to alert: the baseline frame, which frame describes this
   print, the first-layer window, HMS grace and hold, the humidity band, the
