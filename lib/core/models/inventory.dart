@@ -83,6 +83,10 @@ class Spool {
     this.suppliers,
     this.materialNumber,
     this.materialNumberReported = false,
+    this.lastDriedAt,
+    this.lastDriedTemp,
+    this.lastDriedHours,
+    this.lastDriedReported = false,
   });
 
   /// Native `SpoolResponse` from `GET /inventory/spools`.
@@ -124,6 +128,10 @@ class Spool {
     ),
     materialNumber: toStringOrNull(json['material_number']),
     materialNumberReported: json.containsKey('material_number'),
+    lastDriedAt: dateTimeFromJson(json['last_dried_at']),
+    lastDriedTemp: toIntOrNull(json['last_dried_temp']),
+    lastDriedHours: toDoubleOrNull(json['last_dried_hours']),
+    lastDriedReported: json.containsKey('last_dried_at'),
   );
 
   /// Spoolman returns loose object (passthrough) — field names vary, so read
@@ -183,6 +191,12 @@ class Spool {
       // The backend maps the filament's `article_number` onto this key.
       materialNumber: toStringOrNull(json['material_number']),
       materialNumberReported: json.containsKey('material_number'),
+      // The backend unpacks the three `bambu_last_dried_*` extras onto the
+      // native keys (`_spoolman_helpers.py::_map_spoolman_spool`).
+      lastDriedAt: dateTimeFromJson(json['last_dried_at']),
+      lastDriedTemp: toIntOrNull(json['last_dried_temp']),
+      lastDriedHours: toDoubleOrNull(json['last_dried_hours']),
+      lastDriedReported: json.containsKey('last_dried_at'),
     );
   }
 
@@ -264,6 +278,24 @@ class Spool {
   /// sends it on every row from the feature on, null or not, so its presence is
   /// what tells a server with the feature from one that predates it.
   final bool materialNumberReported;
+
+  /// When the spool was last dried (server #2863): stamped when an AMS drying
+  /// run of at least half its length ends, or set by hand. Null for a spool
+  /// never dried and for a server that predates the field.
+  final DateTime? lastDriedAt;
+
+  /// Target temperature [°C] of that run. Null when unknown: a date set by
+  /// hand, or a run Bambuddy did not start (the printer does not report it).
+  final int? lastDriedTemp;
+
+  /// Time the run actually lasted [h]. Null on the same terms as
+  /// [lastDriedTemp].
+  final double? lastDriedHours;
+
+  /// Whether the row carried the `last_dried_at` key at all. `SpoolResponse`
+  /// sends it on every row from the feature on, null or not, so its presence
+  /// is what tells a server with the feature from one that predates it.
+  final bool lastDriedReported;
 
   /// Remaining filament [g] (clamps to 0).
   double get remainingWeight {

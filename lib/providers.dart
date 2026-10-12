@@ -601,6 +601,13 @@ final materialNumberSupportedProvider = capabilityGate(
   (ref) => ref.watch(inventoryRepositoryProvider).materialNumberCapability,
 );
 
+/// Whether this server records when a spool was last dried. Every control that
+/// *writes* the date rests on this: both update schemas drop `last_dried_at`
+/// on an older server and answer 200.
+final lastDriedSupportedProvider = capabilityGate(
+  (ref) => ref.watch(inventoryRepositoryProvider).lastDriedCapability,
+);
+
 final printerLocationsRepositoryProvider = Provider<PrinterLocationsRepository>(
   (ref) => PrinterLocationsRepository(
     ref.watch(apiClientProvider).dio,
