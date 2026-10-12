@@ -138,6 +138,9 @@ do not stay silent because it was not part of the task.
   `test/helpers.dart`: why a mock handler cannot count requests, why a widget
   test needs a server profile, why a tap below the fold silently misses, what a
   round face changes. **Read it before writing a widget or wear test.**
+- [docs/wear-fleet-poll.md](docs/wear-fleet-poll.md) — the watch's poll: why the
+  transport is not `autoDispose`, the epoch/`_alive`/`_paused` trio, what `build`
+  and `refresh` may and may not do. **Read it before touching `wear_providers.dart`.**
 - [docs/wear-geometry.md](docs/wear-geometry.md) — the round-face derivation:
   inscribed rectangle vs scaled curve, what each tunable in `wear_geometry.dart`
   was paid for, and the quadratic behind `roundScaleFor`.
