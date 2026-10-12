@@ -382,7 +382,7 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   );
 });
 
-/// The signed-in account (`GET /auth/me`). Shares authenticated Dio.
+/// The signed-in account (`GET /auth/me`).
 final accountRepositoryProvider = Provider<AccountRepository>(
   (ref) => AccountRepository(ref.watch(apiClientProvider).dio),
 );
@@ -507,17 +507,16 @@ final canUpdatePrintersProvider = Provider<bool>((ref) {
   return ref.watch(permissionProvider(Permissions.printersUpdate));
 });
 
-/// The accounts on the server (`GET /users/`). Shares the authenticated Dio.
+/// The accounts on the server (`GET /users/`).
 final usersRepositoryProvider = Provider<UsersRepository>(
   (ref) => UsersRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// The groups on the server (`GET /groups/`). Shares the authenticated Dio.
+/// The groups on the server (`GET /groups/`).
 final groupsRepositoryProvider = Provider<GroupsRepository>(
   (ref) => GroupsRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// The API keys issued on the server. Shares the authenticated Dio.
 final apiKeysRepositoryProvider = Provider<ApiKeysRepository>(
   (ref) => ApiKeysRepository(
     ref.watch(apiClientProvider).dio,
@@ -547,8 +546,6 @@ final discoveryRepositoryProvider = Provider<DiscoveryRepository>(
   (ref) => DiscoveryRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Printer commands (M4). Shares authenticated Dio with rest — rebuilt on
-/// profile change with [apiClientProvider].
 final skipObjectsRepositoryProvider = Provider<SkipObjectsRepository>(
   (ref) => SkipObjectsRepository(ref.watch(apiClientProvider).dio),
 );
@@ -557,20 +554,18 @@ final printerCommandsRepositoryProvider = Provider<PrinterCommandsRepository>(
   (ref) => PrinterCommandsRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Filament presets and the two slot-configuration commands. Shares the
-/// authenticated Dio.
+/// Filament presets and the two slot-configuration commands.
 final amsSlotConfigRepositoryProvider = Provider<AmsSlotConfigRepository>(
   (ref) => AmsSlotConfigRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// AMS sensor history (temperature + humidity charts). Shares authenticated
-/// Dio.
+/// AMS sensor history (temperature + humidity charts).
 final amsHistoryRepositoryProvider = Provider<AmsHistoryRepository>(
   (ref) => AmsHistoryRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Delayed AMS drying runs. Shares authenticated Dio; the version service
-/// answers whether to offer scheduling until the listing itself has.
+/// Delayed AMS drying runs. The version service answers whether to offer
+/// scheduling until the listing itself has.
 final scheduledDryingRepositoryProvider = Provider<ScheduledDryingRepository>(
   (ref) => ScheduledDryingRepository(
     ref.watch(apiClientProvider).dio,
@@ -578,9 +573,6 @@ final scheduledDryingRepositoryProvider = Provider<ScheduledDryingRepository>(
   ),
 );
 
-/// Home Assistant sensors bound to a storage location — read-only. Shares
-/// authenticated Dio; the version service answers whether the route family is
-/// there until the listing itself has.
 /// Filament suppliers — one route family for both inventory backends.
 final suppliersRepositoryProvider = Provider<SuppliersRepository>(
   (ref) => SuppliersRepository(
@@ -622,6 +614,9 @@ final printerLocationsSupportedProvider = capabilityGate(
   (ref) => ref.watch(printerLocationsRepositoryProvider).capability,
 );
 
+/// Home Assistant sensors bound to a storage location — read-only. The version
+/// service answers whether the route family is there until the listing itself
+/// has.
 final locationSensorsRepositoryProvider = Provider<LocationSensorsRepository>(
   (ref) => LocationSensorsRepository(
     ref.watch(apiClientProvider).dio,
@@ -629,9 +624,8 @@ final locationSensorsRepositoryProvider = Provider<LocationSensorsRepository>(
   ),
 );
 
-/// Printer heater history (nozzle / bed / chamber charts). Shares authenticated
-/// Dio; the version service answers whether to offer the chart until the route
-/// itself has.
+/// Printer heater history (nozzle / bed / chamber charts). The version service
+/// answers whether to offer the chart until the route itself has.
 final heaterHistoryRepositoryProvider = Provider<HeaterHistoryRepository>(
   (ref) => HeaterHistoryRepository(
     ref.watch(apiClientProvider).dio,
@@ -732,7 +726,6 @@ final serverVersionLabelProvider = FutureProvider.autoDispose<String?>((ref) {
   });
 });
 
-/// Print queue (M5). Shares authenticated Dio.
 final queueRepositoryProvider = Provider<QueueRepository>(
   (ref) => QueueRepository(
     ref.watch(apiClientProvider).dio,
@@ -740,7 +733,6 @@ final queueRepositoryProvider = Provider<QueueRepository>(
   ),
 );
 
-/// Print batches and orders. Shares authenticated Dio.
 final batchRepositoryProvider = Provider<BatchRepository>(
   (ref) => BatchRepository(
     ref.watch(apiClientProvider).dio,
@@ -827,7 +819,6 @@ final libraryQueueTargetProvider = capabilityGate(
   (ref) => ref.watch(libraryRepositoryProvider).queueTargetCapability,
 );
 
-/// Archive of prints (M5). Shares authenticated Dio.
 final archiveRepositoryProvider = Provider<ArchiveRepository>(
   (ref) => ArchiveRepository(
     ref.watch(apiClientProvider).dio,
@@ -835,26 +826,23 @@ final archiveRepositoryProvider = Provider<ArchiveRepository>(
   ),
 );
 
-/// Timelapse metadata, filmstrip, server-side re-encode and download. Shares
-/// authenticated Dio.
+/// Timelapse metadata, filmstrip, server-side re-encode and download.
 final timelapseRepositoryProvider = Provider<TimelapseRepository>(
   (ref) => TimelapseRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Projects (group prints toward a goal + BOM/stats/timeline). Shares
-/// authenticated Dio.
+/// Projects (group prints toward a goal + BOM/stats/timeline).
 final projectsRepositoryProvider = Provider<ProjectsRepository>(
   (ref) => ProjectsRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Smart plugs (M7). Shares authenticated Dio.
 final smartPlugsRepositoryProvider = Provider<SmartPlugsRepository>(
   (ref) => SmartPlugsRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// Print log — one row per run, in a table that outlives the archives it
-/// points at. Shares authenticated Dio; the version service gates the
-/// cost/energy columns and the sort control.
+/// points at. The version service gates the cost/energy columns and the sort
+/// control.
 final printLogRepositoryProvider = Provider<PrintLogRepository>(
   (ref) => PrintLogRepository(
     ref.watch(apiClientProvider).dio,
@@ -869,22 +857,19 @@ final printLogCostEnergyProvider = capabilityGate(
   (ref) => ref.watch(printLogRepositoryProvider).costEnergyCapability,
 );
 
-/// Archive statistics. Shares authenticated Dio.
 final statsRepositoryProvider = Provider<StatsRepository>(
   (ref) => StatsRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Printer maintenance (M7). Shares authenticated Dio.
 final maintenanceRepositoryProvider = Provider<MaintenanceRepository>(
   (ref) => MaintenanceRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Printer firmware. Shares authenticated Dio.
 final firmwareRepositoryProvider = Provider<FirmwareRepository>(
   (ref) => FirmwareRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// File manager / library. Shares authenticated Dio.
+/// File manager / library.
 final libraryRepositoryProvider = Provider<LibraryRepository>(
   (ref) => LibraryRepository(
     ref.watch(apiClientProvider).dio,
@@ -892,7 +877,7 @@ final libraryRepositoryProvider = Provider<LibraryRepository>(
   ),
 );
 
-/// Printer on-device storage (file manager). Shares authenticated Dio.
+/// Printer on-device storage (file manager).
 final printerFilesRepositoryProvider = Provider<PrinterFilesRepository>(
   (ref) => PrinterFilesRepository(
     ref.watch(apiClientProvider).dio,
@@ -900,7 +885,7 @@ final printerFilesRepositoryProvider = Provider<PrinterFilesRepository>(
   ),
 );
 
-/// Server-side slicing (sidecar). Shares authenticated Dio.
+/// Server-side slicing (sidecar).
 final slicerRepositoryProvider = Provider<SlicerRepository>(
   (ref) => SlicerRepository(
     ref.watch(apiClientProvider).dio,
@@ -908,8 +893,7 @@ final slicerRepositoryProvider = Provider<SlicerRepository>(
   ),
 );
 
-/// Slicer pipelines — reusable preset bundles and their runs. Shares
-/// authenticated Dio.
+/// Slicer pipelines — reusable preset bundles and their runs.
 ///
 /// Not `autoDispose`: it caches whether the routes are there at all, and
 /// throwing that away between screens would put the entry point back to
@@ -919,7 +903,7 @@ final pipelinesRepositoryProvider = Provider<PipelinesRepository>(
   (ref) => PipelinesRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// The server's shared configuration (`AppSettings`). Shares authenticated Dio.
+/// The server's shared configuration (`AppSettings`).
 ///
 /// Not `autoDispose`: it carries the 403 latch that tells the queue settings
 /// screen a write was refused, and that answer must survive leaving the screen
@@ -1013,32 +997,20 @@ class ServerSettingsNotifier extends AsyncNotifier<Map<String, dynamic>> {
 /// Reading such a flag as `false` while `/settings` is still in flight puts the
 /// user in front of a screen missing a button the server does offer.
 ///
-/// Derived synchronously, and that is the point: a `FutureProvider` reports a
-/// loading frame for every future it is handed, including one that is already
-/// complete — so a gate built on `async` invented the "don't know" it exists to
-/// prevent, once per screen, after the answer had long since arrived. Here the
-/// gate is whatever the settings are right now, so a caller collapsing it with
-/// `.orFalse` blinks nothing out. It also keeps the last answer up while a
-/// refetch is in flight, and hands on an error rather than reading as "off".
-///
-/// A caller outside a build wants [settledGate], not this.
+/// Derived synchronously, because a `FutureProvider` reports a loading frame
+/// even for a future that is already complete. It keeps the last answer up
+/// during a refetch and hands on an error rather than reading as "off". A
+/// caller outside a build wants [settledGate].
 Provider<AsyncValue<T>> serverGate<T>(T Function(Map<String, dynamic>) read) =>
     Provider<AsyncValue<T>>(
       (ref) => ref.watch(serverSettingsProvider).whenData(read),
     );
 
 /// A server capability as a gate a screen can read on its first frame — the
-/// [serverGate] of an [ObservedCapability].
-///
-/// Derived synchronously, in the latch's order: what the server said, then the
-/// version row, then [ObservedCapability.whenUnknown] once nothing more can be
-/// learned. Loading only while the one answer that can still arrive — the
-/// version read or the latch's probe — is in flight, and not even then for a
-/// latch that would rather show its control while unknown: that one shows it
-/// while waiting too, or the control would still appear late.
-///
-/// A probe that went unanswered is sent again once per regained contact; an
-/// observation reaches the gate the moment the latch records it.
+/// [serverGate] of an [ObservedCapability], decided in the latch's order: what
+/// the server said, then the version row, then [ObservedCapability.whenUnknown].
+/// The whole path, and how to read a gate, is in `docs/server-gates.md` ("From
+/// latch to screen").
 Provider<AsyncValue<bool>> capabilityGate(
   ObservedCapability Function(Ref ref) latchOf,
 ) => Provider<AsyncValue<bool>>((ref) {
@@ -1076,11 +1048,8 @@ Provider<AsyncValue<bool>> capabilityGate(
 extension AsyncGate on AsyncValue<bool> {
   /// Both must hold. A settled "no" on either side is final even while the
   /// other is unanswered, and an error is handed on rather than turned into
-  /// loading — [settledGate] would wait on that forever.
-  ///
-  /// Both sides are evaluated: `a.and(ref.watch(b))` watches `b` whatever `a`
-  /// said. A synchronous "no" that has to save a request returns before the
-  /// watch instead.
+  /// loading — [settledGate] would wait on that forever. Both sides are
+  /// evaluated (see "Combining" in `docs/server-gates.md`).
   AsyncValue<bool> and(AsyncValue<bool> other) {
     if (valueOrNull == false || other.valueOrNull == false) {
       return const AsyncData(false);
@@ -1093,11 +1062,9 @@ extension AsyncGate on AsyncValue<bool> {
   }
 }
 
-/// The settled answer of [gate], for a caller running outside a build.
-///
-/// A widget re-reads a gate when the settings land, because it rebuilds. Code
-/// that runs once gets no second look, so it waits here instead — on the gate
-/// rather than on `/settings`, so overriding the gate decides the answer.
+/// The settled answer of [gate], for code running outside a build, which gets
+/// no second look when the settings land. It waits on the gate rather than on
+/// `/settings`, so overriding the gate decides the answer.
 Future<T> settledGate<T>(
   ProviderContainer providers,
   ProviderListenable<AsyncValue<T>> gate,
@@ -1169,12 +1136,12 @@ final gcodeSnippetModelsProvider = serverGate<Set<String>>(
   (settings) => gcodeSnippetModels(settings['gcode_snippets']),
 );
 
-/// MakerWorld integration (model import). Shares authenticated Dio.
+/// MakerWorld integration (model import).
 final makerworldRepositoryProvider = Provider<MakerWorldRepository>(
   (ref) => MakerWorldRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Bambu Cloud login (prerequisite for downloads). Shares authenticated Dio.
+/// Bambu Cloud login (prerequisite for downloads).
 final cloudRepositoryProvider = Provider<CloudRepository>(
   (ref) => CloudRepository(ref.watch(apiClientProvider).dio),
 );
@@ -1196,12 +1163,12 @@ final makerworldRecentImportsProvider =
       (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
     );
 
-/// Announcements from the Bambuddy maintainers. Shares authenticated Dio.
+/// Announcements from the Bambuddy maintainers.
 final announcementsRepositoryProvider = Provider<AnnouncementsRepository>(
   (ref) => AnnouncementsRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Manyfold library (#1471). Shares authenticated Dio.
+/// Manyfold library (#1471).
 final manyfoldRepositoryProvider = Provider<ManyfoldRepository>(
   (ref) => ManyfoldRepository(ref.watch(apiClientProvider).dio),
 );
@@ -1222,8 +1189,8 @@ final inventoryBackendProvider = FutureProvider<InventoryBackend>(
   (ref) => detectInventoryBackend(ref.watch(apiClientProvider).dio),
 );
 
-/// Inventory data source for the backend the server runs. Shares authenticated
-/// Dio; rebuilt on profile or backend change.
+/// Inventory data source for the backend the server runs; rebuilt on profile or
+/// backend change.
 final inventorySourceProvider = FutureProvider<SpoolInventorySource>((
   ref,
 ) async {
