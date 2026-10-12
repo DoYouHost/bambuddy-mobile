@@ -4011,6 +4011,8 @@
   "inventoryDetailNotLoaded": "Non chargée",
   "inventoryDetailConsumedSinceReset": "Consommé depuis la réinitialisation",
   "inventoryLastDried": "Dernier séchage",
+  "inventoryLastDriedNow": "Maintenant",
+  "inventoryLastDriedHelp": "Renseigné à la fin d'un séchage AMS ayant duré au moins la moitié de sa durée. Indiquez-le ici pour une bobine séchée ailleurs.",
   "inventorySupplierArchivedCount": "{count, plural, one{{count} archivée} other{{count} archivées}}",
   "timeJustNow": "À l’instant",
   "timeNow": "Maintenant",

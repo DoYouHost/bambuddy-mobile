@@ -8066,6 +8066,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inventoryLastDried => 'Dernier séchage';
 
   @override
+  String get inventoryLastDriedNow => 'Maintenant';
+
+  @override
+  String get inventoryLastDriedHelp =>
+      'Renseigné à la fin d\'un séchage AMS ayant duré au moins la moitié de sa durée. Indiquez-le ici pour une bobine séchée ailleurs.';
+
+  @override
   String inventorySupplierArchivedCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

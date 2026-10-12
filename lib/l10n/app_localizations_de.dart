@@ -7973,6 +7973,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get inventoryLastDried => 'Zuletzt getrocknet';
 
   @override
+  String get inventoryLastDriedNow => 'Jetzt';
+
+  @override
+  String get inventoryLastDriedHelp =>
+      'Wird eingetragen, wenn ein AMS-Trocknungslauf mindestens zur Hälfte gelaufen ist. Für eine anderswo getrocknete Spule hier setzen.';
+
+  @override
   String inventorySupplierArchivedCount(int count) {
     return '$count archiviert';
   }

@@ -3322,6 +3322,8 @@
   "inventoryDetailNotLoaded": "Nie załadowana",
   "inventoryDetailConsumedSinceReset": "Zużyte od resetu",
   "inventoryLastDried": "Ostatnie suszenie",
+  "inventoryLastDriedNow": "Teraz",
+  "inventoryLastDriedHelp": "Wpisywane, gdy suszenie w AMS trwało co najmniej połowę zaplanowanego czasu. Ustaw tutaj datę dla szpuli wysuszonej gdzie indziej.",
   "inventorySupplierArchivedCount": "{count} w archiwum",
   "timeJustNow": "Przed chwilą",
   "timeNow": "Teraz",

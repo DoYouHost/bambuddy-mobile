@@ -4011,6 +4011,8 @@
   "inventoryDetailNotLoaded": "Nicht geladen",
   "inventoryDetailConsumedSinceReset": "Seit Zurücksetzen verbraucht",
   "inventoryLastDried": "Zuletzt getrocknet",
+  "inventoryLastDriedNow": "Jetzt",
+  "inventoryLastDriedHelp": "Wird eingetragen, wenn ein AMS-Trocknungslauf mindestens zur Hälfte gelaufen ist. Für eine anderswo getrocknete Spule hier setzen.",
   "inventorySupplierArchivedCount": "{count} archiviert",
   "timeJustNow": "Gerade eben",
   "timeNow": "Jetzt",

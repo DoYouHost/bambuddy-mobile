@@ -444,6 +444,7 @@ class SpoolDraft {
     this.slicerFilamentName,
     this.note,
     this.materialNumber,
+    this.lastDriedAt,
     this.clears = const {},
   });
 
@@ -498,6 +499,13 @@ class SpoolDraft {
   /// `null` leaves the number alone and keeps the key off the wire, which is
   /// also what a server that predates the number needs.
   final String? materialNumber;
+
+  /// The drying date typed in by hand (#2863). Null leaves the date alone and
+  /// keeps the key off the wire: unlike the other fields it is *not* in
+  /// [_clearable], because the server stamps it while a form is open and a blank
+  /// draft must not erase that. The form names `last_dried_at` in [clears] only
+  /// when the user emptied the field.
+  final DateTime? lastDriedAt;
 
   /// Native wire keys of the fields the user emptied, see [clearing]. A null
   /// field is "leave it as it is" everywhere else in this class, so a field
@@ -584,6 +592,7 @@ class SpoolDraft {
         slicerFilamentName: slicerFilamentName,
         note: note,
         materialNumber: materialNumber,
+        lastDriedAt: lastDriedAt,
         clears: {
           ...clears,
           for (final e in _clearable.entries)
@@ -621,6 +630,7 @@ class SpoolDraft {
     if (slicerFilamentName != null) 'slicer_filament_name': slicerFilamentName,
     if (note != null) 'note': note,
     if (materialNumber != null) 'material_number': materialNumber,
+    if (lastDriedAt != null) 'last_dried_at': _utcIso(lastDriedAt!),
     // The route stores an explicit null as NULL for every field in [clears]
     // (probed against 1.2.5.7 and the 1.2.6 daily); an empty string would
     // store "" in the text columns and be refused by the numeric ones.
@@ -641,8 +651,13 @@ class SpoolDraft {
     if (costPerKg != null) 'cost_per_kg': costPerKg,
     if (storageLocation != null) 'storage_location': storageLocation,
     if (note != null) 'note': note,
+    if (lastDriedAt != null) 'last_dried_at': _utcIso(lastDriedAt!),
     ..._spoolmanClears,
   };
+
+  /// The instant with its `Z`, as the web sends it (`toISOString()`): both
+  /// routes turn an offset into naive UTC (`schemas/spool.py::naive_utc`).
+  static String _utcIso(DateTime at) => at.toUtc().toIso8601String();
 
   /// What a Spoolman backend takes as "empty this field", as the route answers
   /// it: `subtype` and `note` clear on an empty string and ignore null,
@@ -659,6 +674,8 @@ class SpoolDraft {
     if (clears.contains('color_name')) 'color_name': null,
     if (clears.contains('slicer_filament')) 'slicer_filament': '',
     if (clears.contains('slicer_filament_name')) 'slicer_filament_name': '',
+    // `model_fields_set` carries it, so an explicit null empties the date.
+    if (clears.contains('last_dried_at')) 'last_dried_at': null,
   };
 }
 

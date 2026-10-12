@@ -7993,6 +7993,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inventoryLastDried => 'Último secado';
 
   @override
+  String get inventoryLastDriedNow => 'Ahora';
+
+  @override
+  String get inventoryLastDriedHelp =>
+      'Se rellena cuando termina un secado en el AMS que ha durado al menos la mitad de su duración. Indícalo aquí para una bobina secada en otro sitio.';
+
+  @override
   String inventorySupplierArchivedCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

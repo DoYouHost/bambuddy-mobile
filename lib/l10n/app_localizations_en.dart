@@ -7895,6 +7895,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryLastDried => 'Last dried';
 
   @override
+  String get inventoryLastDriedNow => 'Now';
+
+  @override
+  String get inventoryLastDriedHelp =>
+      'Filled in when an AMS drying run of at least half its length ends. Set it here for a spool dried elsewhere.';
+
+  @override
   String inventorySupplierArchivedCount(int count) {
     return '$count archived';
   }

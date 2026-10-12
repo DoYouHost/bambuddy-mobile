@@ -8021,6 +8021,13 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryLastDried => 'Ostatnie suszenie';
 
   @override
+  String get inventoryLastDriedNow => 'Teraz';
+
+  @override
+  String get inventoryLastDriedHelp =>
+      'Wpisywane, gdy suszenie w AMS trwało co najmniej połowę zaplanowanego czasu. Ustaw tutaj datę dla szpuli wysuszonej gdzie indziej.';
+
+  @override
   String inventorySupplierArchivedCount(int count) {
     return '$count w archiwum';
   }

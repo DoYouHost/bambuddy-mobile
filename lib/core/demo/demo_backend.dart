@@ -5786,6 +5786,12 @@ class DemoBackend {
           if (m == 'GET') return _ok(spool);
           if (m == 'PATCH') {
             _normalizeMaterialNumber(body);
+            // A date typed by hand is not the AMS cycle the temperature and
+            // hours describe, so they go with it (`routes/inventory.py`).
+            if (body.containsKey('last_dried_at')) {
+              spool['last_dried_temp'] = null;
+              spool['last_dried_hours'] = null;
+            }
             body.forEach((k, v) => spool[k] = v);
             return _ok(spool);
           }

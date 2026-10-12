@@ -4011,6 +4011,8 @@
   "inventoryDetailNotLoaded": "No cargada",
   "inventoryDetailConsumedSinceReset": "Consumido desde el reinicio",
   "inventoryLastDried": "Último secado",
+  "inventoryLastDriedNow": "Ahora",
+  "inventoryLastDriedHelp": "Se rellena cuando termina un secado en el AMS que ha durado al menos la mitad de su duración. Indícalo aquí para una bobina secada en otro sitio.",
   "inventorySupplierArchivedCount": "{count, plural, one{{count} archivada} other{{count} archivadas}}",
   "timeJustNow": "Ahora mismo",
   "timeNow": "Ahora",

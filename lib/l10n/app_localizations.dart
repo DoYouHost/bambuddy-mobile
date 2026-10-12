@@ -13310,6 +13310,18 @@ abstract class AppLocalizations {
   /// **'Last dried'**
   String get inventoryLastDried;
 
+  /// Button in the spool form that sets the last-dried date to the present moment.
+  ///
+  /// In en, this message translates to:
+  /// **'Now'**
+  String get inventoryLastDriedNow;
+
+  /// No description provided for @inventoryLastDriedHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Filled in when an AMS drying run of at least half its length ends. Set it here for a spool dried elsewhere.'**
+  String get inventoryLastDriedHelp;
+
   /// Link under a supplier to its archived spools; sits next to the active count ('2 spools'), so the noun is left out. Agrees with 'spool'.
   ///
   /// In en, this message translates to:
