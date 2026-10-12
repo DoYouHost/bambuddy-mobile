@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/format/datetime_format.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/supplier.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
@@ -285,6 +286,12 @@ void main() {
       expect(
         tester.renderObject<RenderParagraph>(hint).didExceedMaxLines,
         isFalse,
+      );
+      // The same 11 pt tertiary line as the field's own helper text, not the
+      // 13 pt body copy it was set in once.
+      expect(
+        tester.widget<Text>(hint).style,
+        DashTokens.of(tester.element(hint)).microSoft,
       );
     });
 

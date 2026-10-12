@@ -510,7 +510,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 l10n.inventoryFieldMaterialNumber,
                 ref.watch(materialNumberOptionsProvider),
               ),
-              Text(l10n.inventoryMaterialNumberHint, style: t.bodySoft),
+              _fieldHint(l10n.inventoryMaterialNumberHint),
             ],
             _field(
               'labelWeight',
@@ -602,9 +602,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             _combo('location', l10n.inventoryFieldLocation, locations),
             if (_showsLastDried(ref)) ...[
               _lastDriedField(l10n),
-              // Under the field, not its `helperText`, which keeps to one line
-              // and cut the sentence off.
-              Text(l10n.inventoryLastDriedHelp, style: t.bodySoft),
+              _fieldHint(l10n.inventoryLastDriedHelp),
             ],
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
 
@@ -1043,6 +1041,15 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     maxLines: maxLines,
     onChanged: onChanged,
     errorText: errorText,
+  );
+
+  /// A sentence under a field, set the way the field's own `helperText` is
+  /// (11 pt, tertiary, inset like the field's text) so every hint on the form
+  /// reads alike. Not `helperText` itself, which keeps to one line and cuts a
+  /// longer sentence off.
+  Widget _fieldHint(String text) => Padding(
+    padding: const EdgeInsets.only(left: DashSpace.md),
+    child: Text(text, style: DashTokens.of(context).microSoft),
   );
 
   /// The drying date and what sets it: tap for the pickers, **Now** for a spool
