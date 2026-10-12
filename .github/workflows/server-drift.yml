@@ -185,6 +185,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY }}
+          show_full_output: true
           # Deliberately thin. claude-code-action refuses to run unless this
           # file is byte-identical to master's copy, so anything that will be
           # reworded lives in the skill, which is read from the checkout and
