@@ -8464,6 +8464,23 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Kostenstellen konnten nicht geladen werden.';
 
   @override
+  String queueEstimatedCost(String amount) {
+    return 'Geschätzte Kosten: $amount';
+  }
+
+  @override
+  String get queueCostNotAvailable => 'k. A.';
+
+  @override
+  String queueEstimatedCostForCopies(String amount) {
+    return 'gesamt: $amount';
+  }
+
+  @override
+  String get queueInsufficientBudget =>
+      'Das Budget dieser Kostenstelle reicht nicht aus.';
+
+  @override
   String get queueBillingEstimateRequired =>
       'Der Server konnte die Kosten dieses Auftrags nicht berechnen, weil die Datei keinen Filamentverbrauch angibt – eine Kostenstelle braucht ihn.';
 

@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/api/api_client.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/ams/job_cost.dart';
 import 'package:bambuddy_mobile/core/models/api_key.dart';
 import 'package:bambuddy_mobile/core/models/cost_center.dart';
 import 'package:bambuddy_mobile/core/models/library_file.dart';
@@ -10,6 +11,7 @@ import 'package:bambuddy_mobile/data/finance_repository.dart';
 import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/data/server_settings_repository.dart';
+import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:bambuddy_mobile/features/queue/queue_removal.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -248,6 +250,47 @@ void main() {
           );
         },
       );
+
+      test('the preview prices a job as the server does', () async {
+        if (!await billingOn()) return;
+        final centerId = await center('Preview', budget: 1000);
+        final requirements = await SlicerRepository(
+          dio,
+        ).filamentRequirements(id: file.id, isArchive: false, fullSlots: false);
+        expect(requirements.any((f) => f.usedGrams != null), isTrue);
+
+        // No spool price in play: every filament goes at the server's default rate.
+        final preview = estimateJobCost(
+          requirements: requirements,
+          mapping: List.filled(requirements.length + 1, 0),
+          costPerKgByTray: const {},
+          defaultCostPerKg:
+              ((await settings.fetch())['default_filament_cost'] as num?)
+                  ?.toDouble() ??
+              25,
+        )!;
+        await queue.addFromLibraryFile(
+          file.id,
+          options: QueueCreateOptions(
+            manualStart: true,
+            costCenterId: centerId,
+          ),
+        );
+        final created =
+            (await dio.get<List<dynamic>>(
+              '/api/v1/queue/',
+              queryParameters: {'status': 'pending'},
+            )).data!.cast<Map<String, dynamic>>().lastWhere(
+              (i) => i['cost_center_id'] == centerId,
+            );
+        addTearDown(() => queue.delete(created['id'] as int));
+
+        // The server rounds to the cent.
+        expect(
+          preview.total,
+          closeTo((created['estimated_cost'] as num).toDouble(), 0.006),
+        );
+      });
 
       test('the ledger and the balance agree, and need the permission', () async {
         if (!await billingOn()) return;

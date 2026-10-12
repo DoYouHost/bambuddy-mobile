@@ -22,6 +22,7 @@ import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/currency_symbol.dart';
 import '../common/dash_input.dart';
 import '../common/dash_stepper.dart';
 import '../common/date_time_picker.dart';
@@ -31,6 +32,7 @@ import '../files/library_thumbnail.dart';
 import '../slicer/slice_providers.dart';
 import '../common/dash_async.dart';
 import '../orders/orders_providers.dart';
+import 'job_cost_providers.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_plate_sheet.dart';
 import 'queue_providers.dart';
@@ -700,7 +702,66 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         ),
         if (selected?.budget == CostCenterBudget.none)
           InlineNote(l10n.queueCostCenterUnlimited, icon: Icons.info_outline),
+        ?_costPreview(l10n, t, selected),
       ],
+    );
+  }
+
+  /// What the job is expected to cost, and a warning where that is more than the
+  /// center has left — the web's mapping panel (`FilamentMapping.tsx`). Only for a
+  /// job aimed at one printer, which is the only job that has a mapping to price.
+  /// The server prices the job itself and refuses it when it does not fit; this
+  /// says so before the form is sent.
+  Widget? _costPreview(
+    AppLocalizations l10n,
+    DashTokens t,
+    CostCenter? selected,
+  ) {
+    final source = _plateSource;
+    final printerId = _printerId;
+    if (_modelMode || source == null || printerId == null) return null;
+    final cost = ref
+        .watch(
+          jobCostProvider((
+            isArchive: source.$1,
+            id: source.$2,
+            plate: _plateId ?? 1,
+            printerId: printerId,
+            mapping: mappingKey(_amsMapping),
+          )),
+        )
+        .valueOrNull;
+    if (cost == null) return null;
+    final currency = ref.watch(currencySymbolProvider);
+    String money(double v) => formatMoney(currency, v.toStringAsFixed(2));
+    final copies = widget._isCreate ? _copies : 1;
+    final priced = cost.total > 0 || cost.anyPrice;
+    final available = selected?.budgetAvailable;
+    return Padding(
+      padding: const EdgeInsets.only(top: DashSpace.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            [
+              l10n.queueEstimatedCost(
+                priced ? money(cost.total) : l10n.queueCostNotAvailable,
+              ),
+              if (copies > 1 && cost.total > 0)
+                l10n.queueEstimatedCostForCopies(money(cost.total * copies)),
+            ].join(' · '),
+            style: t.labelSoft,
+          ),
+          if (available != null && cost.total * copies > available)
+            Padding(
+              padding: const EdgeInsets.only(top: DashSpace.xs),
+              child: Text(
+                l10n.queueInsufficientBudget,
+                style: t.labelSoft.copyWith(color: t.dangerInk),
+              ),
+            ),
+        ],
+      ),
     );
   }
 

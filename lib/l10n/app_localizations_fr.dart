@@ -8561,6 +8561,23 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible de charger vos centres de coûts.';
 
   @override
+  String queueEstimatedCost(String amount) {
+    return 'Coût estimé : $amount';
+  }
+
+  @override
+  String get queueCostNotAvailable => 'n. d.';
+
+  @override
+  String queueEstimatedCostForCopies(String amount) {
+    return 'total : $amount';
+  }
+
+  @override
+  String get queueInsufficientBudget =>
+      'Budget insuffisant pour ce centre de coûts.';
+
+  @override
   String get queueBillingEstimateRequired =>
       'Le serveur n’a pas pu calculer le coût de cette impression, car le fichier n’indique aucune consommation de filament, et un centre de coûts en a besoin.';
 

@@ -14102,6 +14102,30 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load your cost centers.'**
   String get queueCostCenterLoadFailed;
 
+  /// Under the cost center select: what the job is expected to cost.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated cost: {amount}'**
+  String queueEstimatedCost(String amount);
+
+  /// Stands for the estimated cost when no spool or default price covers the job.
+  ///
+  /// In en, this message translates to:
+  /// **'N/A'**
+  String get queueCostNotAvailable;
+
+  /// Beside the estimated cost when several copies are queued: what they cost together.
+  ///
+  /// In en, this message translates to:
+  /// **'total: {amount}'**
+  String queueEstimatedCostForCopies(String amount);
+
+  /// Under the estimated cost when the job costs more than the cost center has left; the web's own sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Insufficient budget for this cost center.'**
+  String get queueInsufficientBudget;
+
   /// The server refused a job because it could not work out a cost for it: the file lists no filament usage (`Estimated cost is required for cost center prints`).
   ///
   /// In en, this message translates to:

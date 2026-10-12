@@ -8381,6 +8381,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queueCostCenterLoadFailed => 'Couldn\'t load your cost centers.';
 
   @override
+  String queueEstimatedCost(String amount) {
+    return 'Estimated cost: $amount';
+  }
+
+  @override
+  String get queueCostNotAvailable => 'N/A';
+
+  @override
+  String queueEstimatedCostForCopies(String amount) {
+    return 'total: $amount';
+  }
+
+  @override
+  String get queueInsufficientBudget =>
+      'Insufficient budget for this cost center.';
+
+  @override
   String get queueBillingEstimateRequired =>
       'The server could not work out what this job costs because the file lists no filament usage, and a cost center needs that.';
 

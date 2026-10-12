@@ -8512,6 +8512,23 @@ class AppLocalizationsPl extends AppLocalizations {
       'Nie udało się wczytać centrów kosztów.';
 
   @override
+  String queueEstimatedCost(String amount) {
+    return 'Szacowany koszt: $amount';
+  }
+
+  @override
+  String get queueCostNotAvailable => 'brak danych';
+
+  @override
+  String queueEstimatedCostForCopies(String amount) {
+    return 'razem: $amount';
+  }
+
+  @override
+  String get queueInsufficientBudget =>
+      'Za mało budżetu w tym centrum kosztów.';
+
+  @override
   String get queueBillingEstimateRequired =>
       'Serwer nie potrafił policzyć kosztu tego zadania, bo plik nie podaje zużycia filamentu, a centrum kosztów tego wymaga.';
 

@@ -1061,6 +1061,12 @@ final currencySymbolProvider = serverValue<String>((settings) {
   return currencySymbol(code is String ? code : null);
 });
 
+/// What a kilogram of filament costs where no spool says otherwise
+/// (`default_filament_cost`, 25 on a fresh server), which prices a job's preview.
+final defaultFilamentCostProvider = serverValue<double>(
+  (settings) => settings.settingDouble('default_filament_cost', 25),
+);
+
 /// Whether the scheduler requires per-printer plate-clear confirmation before
 /// starting queued prints. Gates the plate badge / "clear plate" button and the
 /// pre-start confirmation.

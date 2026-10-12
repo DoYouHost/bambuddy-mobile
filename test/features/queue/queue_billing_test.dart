@@ -1,7 +1,10 @@
 import 'dart:async';
 
+import 'package:bambuddy_mobile/core/ams/job_cost.dart';
 import 'package:bambuddy_mobile/core/models/cost_center.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
+import 'package:bambuddy_mobile/features/orders/orders_providers.dart';
+import 'package:bambuddy_mobile/features/queue/job_cost_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
@@ -229,6 +232,129 @@ void main() {
       await submitQueueForm(tester, edit: true);
 
       expect(capturedBody?['cost_center_id'], 2);
+    });
+  });
+
+  group('the cost preview', () {
+    const tight = CostCenter(
+      id: 2,
+      name: 'Tight',
+      budget: CostCenterBudget.total,
+      budgetLimit: 5,
+      budgetAvailable: 4,
+    );
+
+    Future<void> open(
+      WidgetTester tester, {
+      required JobCost? cost,
+      List<CostCenter> centers = const [tight],
+      QueueItem? draft,
+    }) async {
+      usePhoneWindow(tester, dp: 2400);
+      await tester.pumpWidget(
+        queueFormScreen(
+          draft ?? archiveDraft(),
+          extra: [
+            serverUiFlagsProvider.overrideWith(
+              (ref) async => {'billing_enabled': true},
+            ),
+            printableCostCentersProvider.overrideWith((ref) async => centers),
+            jobCostProvider.overrideWith((ref, key) async => cost),
+            batchListingProvider.overrideWithValue(const AsyncData(true)),
+            serverSettingsOverride(const {'currency': 'USD'}),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('says what the job is expected to cost', (tester) async {
+      await open(tester, cost: (total: 3.5, anyPrice: true));
+
+      expect(find.text(pl.queueEstimatedCost(r'$3.50')), findsOneWidget);
+      expect(find.text(pl.queueInsufficientBudget), findsNothing);
+    });
+
+    testWidgets('and what several copies cost together', (tester) async {
+      await open(tester, cost: (total: 1, anyPrice: true));
+      await tester.ensureVisible(byLogId('queue_edit.copies_up'));
+      await tester.tap(byLogId('queue_edit.copies_up'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(pl.queueEstimatedCostForCopies(r'$2.00')),
+        findsOneWidget,
+        reason: 'two copies at one dollar',
+      );
+    });
+
+    testWidgets('warns when the job costs more than the center has left', (
+      tester,
+    ) async {
+      await open(tester, cost: (total: 4.5, anyPrice: true));
+
+      expect(find.text(pl.queueInsufficientBudget), findsOneWidget);
+    });
+
+    testWidgets('judges all the copies against the budget, not one', (
+      tester,
+    ) async {
+      // 1.5 fits the 4 left; three of them, 4.5, do not.
+      await open(tester, cost: (total: 1.5, anyPrice: true));
+      expect(find.text(pl.queueInsufficientBudget), findsNothing);
+
+      for (var i = 0; i < 2; i++) {
+        await tester.ensureVisible(byLogId('queue_edit.copies_up'));
+        await tester.tap(byLogId('queue_edit.copies_up'));
+        await tester.pumpAndSettle();
+      }
+
+      expect(find.text(pl.queueInsufficientBudget), findsOneWidget);
+    });
+
+    testWidgets('a job for any printer of a model has no mapping to price', (
+      tester,
+    ) async {
+      await open(tester, cost: (total: 3.5, anyPrice: true));
+      expect(find.text(pl.queueEstimatedCost(r'$3.50')), findsOneWidget);
+
+      await tester.ensureVisible(find.text(pl.queueEditAnyModel('X2D')));
+      await tester.tap(find.text(pl.queueEditAnyModel('X2D')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.queueEstimatedCost(r'$3.50')), findsNothing);
+    });
+
+    testWidgets('a job that exactly fits is not warned about', (tester) async {
+      await open(tester, cost: (total: 4, anyPrice: true));
+
+      expect(find.text(pl.queueInsufficientBudget), findsNothing);
+    });
+
+    testWidgets('a center with no budget cannot run out', (tester) async {
+      await open(
+        tester,
+        cost: (total: 9999, anyPrice: true),
+        centers: const [CostCenter(id: 1, name: 'Alice', isPrivate: true)],
+      );
+
+      expect(find.text(pl.queueInsufficientBudget), findsNothing);
+    });
+
+    testWidgets('a job nothing prices reads as not available', (tester) async {
+      await open(tester, cost: (total: 0, anyPrice: false));
+
+      expect(
+        find.text(pl.queueEstimatedCost(pl.queueCostNotAvailable)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('nothing to price against shows no line', (tester) async {
+      await open(tester, cost: null);
+
+      expect(find.textContaining('\$'), findsNothing);
+      expect(find.text(pl.queueInsufficientBudget), findsNothing);
     });
   });
 

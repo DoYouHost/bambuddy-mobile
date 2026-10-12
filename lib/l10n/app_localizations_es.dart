@@ -8488,6 +8488,23 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se pudieron cargar tus centros de costes.';
 
   @override
+  String queueEstimatedCost(String amount) {
+    return 'Coste estimado: $amount';
+  }
+
+  @override
+  String get queueCostNotAvailable => 'N/D';
+
+  @override
+  String queueEstimatedCostForCopies(String amount) {
+    return 'total: $amount';
+  }
+
+  @override
+  String get queueInsufficientBudget =>
+      'Presupuesto insuficiente en este centro de costes.';
+
+  @override
   String get queueBillingEstimateRequired =>
       'El servidor no pudo calcular el coste de este trabajo porque el archivo no indica el consumo de filamento, y un centro de costes lo necesita.';
 

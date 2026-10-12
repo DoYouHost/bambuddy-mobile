@@ -5796,6 +5796,32 @@
   "@queueCostCenterLoadFailed": {
     "description": "Beside the retry button when the list of cost centers could not be read."
   },
+  "queueEstimatedCost": "Estimated cost: {amount}",
+  "@queueEstimatedCost": {
+    "description": "Under the cost center select: what the job is expected to cost.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "queueCostNotAvailable": "N/A",
+  "@queueCostNotAvailable": {
+    "description": "Stands for the estimated cost when no spool or default price covers the job."
+  },
+  "queueEstimatedCostForCopies": "total: {amount}",
+  "@queueEstimatedCostForCopies": {
+    "description": "Beside the estimated cost when several copies are queued: what they cost together.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "queueInsufficientBudget": "Insufficient budget for this cost center.",
+  "@queueInsufficientBudget": {
+    "description": "Under the estimated cost when the job costs more than the cost center has left; the web's own sentence."
+  },
   "queueBillingEstimateRequired": "The server could not work out what this job costs because the file lists no filament usage, and a cost center needs that.",
   "@queueBillingEstimateRequired": {
     "description": "The server refused a job because it could not work out a cost for it: the file lists no filament usage (`Estimated cost is required for cost center prints`)."
