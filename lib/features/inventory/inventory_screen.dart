@@ -54,8 +54,8 @@ import '../slicer/slice_providers.dart';
 import '../stats/stats_common.dart' show fmtGrams;
 import 'inventory_providers.dart';
 import 'spool_scanner_screen.dart';
-import '../../core/diagnostics/log_tag_material.dart';
-import '../../core/format/text_compare.dart';
+import '../../core/diagnostics/filament_material.dart';
+import '../../core/format/text_utils.dart';
 
 part 'inventory_filters.dart';
 part 'inventory_tiles.dart';

@@ -126,10 +126,36 @@ do not stay silent because it was not part of the task.
   feature so a report about it explains anything: naming controls, sampled
   endpoints, action failures, isolates, adding a field. **Read it before adding
   a screen or a notification.**
+- [docs/providers.md](docs/providers.md) — why `lib/providers.dart` is shaped as it
+  is: the three permission gates and when they disagree, the teardown frame, the
+  token refreshers, which repositories must not be `autoDispose`, `serverGate` vs
+  `serverValue`. **Read it before adding a permission check or a provider.**
 - [docs/server-gates.md](docs/server-gates.md) — why each `ServerFeature` row
   exists, what an older server does without it and what being early costs, and
   how a capability travels from its latch to a screen. **Read it before adding
   a gate**; the enum keeps one line per member.
+- [docs/notification-delivery.md](docs/notification-delivery.md) — what happens to an
+  alert once it exists: the `NotificationService` contract, the finish photo that
+  arrives after it, button taps in a background isolate, and which HMS faults are
+  shown or notified. **Read it before touching `lib/core/notifications/`.**
+- [docs/notification-rules.md](docs/notification-rules.md) — how
+  `PrintMonitor` decides to alert: the baseline frame, which frame describes this
+  print, the first-layer window, HMS grace and hold, the humidity band, the
+  ongoing notification. **Read it before changing a rule or adding an event.**
+- [docs/ui-primitives.md](docs/ui-primitives.md) — why the shared fields, selects and
+  async helpers behave as they do: the 40 dp select arrow, the null any-row,
+  "unresolved is off", restoring an optimistically removed row by neighbours.
+  **Read it before building a field, a select or a loading state of your own.**
+- [docs/test-harness.md](docs/test-harness.md) — the traps behind
+  `test/helpers.dart`: why a mock handler cannot count requests, why a widget
+  test needs a server profile, why a tap below the fold silently misses, what a
+  round face changes. **Read it before writing a widget or wear test.**
+- [docs/wear-relay.md](docs/wear-relay.md) — the phone↔watch RPC contract (one
+  Data Layer path, `kind`, retry rules, `WearRpcAck`) and the phone-side handler's
+  claim/listener order. **Read it before changing `lib/core/watch/`.**
+- [docs/wear-fleet-poll.md](docs/wear-fleet-poll.md) — the watch's poll: why the
+  transport is not `autoDispose`, the epoch/`_alive`/`_paused` trio, what `build`
+  and `refresh` may and may not do. **Read it before touching `wear_providers.dart`.**
 - [docs/wear-geometry.md](docs/wear-geometry.md) — the round-face derivation:
   inscribed rectangle vs scaled curve, what each tunable in `wear_geometry.dart`
   was paid for, and the quadratic behind `roundScaleFor`.
@@ -200,6 +226,33 @@ do not stay silent because it was not part of the task.
   a path arrived in, what an API-key session is answered with, why a caller
   probes instead of reading a version number. Cutting those leaves a list of
   strings.
+- **The comment-ratio threshold is a signal, not a target** (`/comment-ratio`,
+  20%). The whole of `lib`, `test` and `tool` was gone through on 2026-10-12:
+  restatement, history ("written out five times before it lived here" is `git
+  log`'s job) and copies of what a doc already says were cut, and reasoning that
+  spans a module moved to `docs/` — [test-harness](docs/test-harness.md),
+  [notification-rules](docs/notification-rules.md),
+  [notification-delivery](docs/notification-delivery.md),
+  [wear-fleet-poll](docs/wear-fleet-poll.md), [wear-relay](docs/wear-relay.md),
+  [providers](docs/providers.md), [ui-primitives](docs/ui-primitives.md). Some
+  240 files still measure over 20%, and that is expected: what remains is the
+  per-declaration contract. **Repositories (`lib/data/`), `lib/providers.dart` and
+  `lib/core/api/` are the same case as models** — the comment says which route,
+  which status, what an older server does, what `null` means — and a short file
+  reaches 40% on one honest paragraph. Judge a comment by "does it say anything
+  the declaration does not", and do not delete or compress one to move a number.
+  When a comment grows past a paragraph, or the reasoning is about several files,
+  it goes to `docs/`, leaving one line and the section name. A comment that
+  states a *condition* ("only when…", "never…", "an older server drops it") owes
+  a test you have watched fail with the guard removed; one that merely restates
+  the code owes nothing and should go.
+- **No file for one to ten lines of code.** A constant, a typedef or a one-line
+  helper goes in the module that uses it, or — where nothing does — in
+  [lib/core/app_context.dart](lib/core/app_context.dart), which holds the demo
+  account, the locale outside the widget tree, the server-version line and the
+  detached-flow handles. Nineteen such files were folded into their users on
+  2026-10-12; `comment-ratio` ranks them first (a 1-line file measures 83%)
+  because a file that small is a structure problem, not a comment problem.
 - **`dart format` is the style, and CI enforces it** (`dart format
   --output=none --set-exit-if-changed lib test tool`). Run `dart format lib
   test tool` before pushing and never hand-tune spacing to fight it. The whole
@@ -243,7 +296,7 @@ do not stay silent because it was not part of the task.
   are a **form or a choice** (text field, colour picker, checkbox that changes the
   outcome) — not for a plain question.
 - **Spacing goes through `DashSpace`**
-  ([lib/core/theme/dash_space.dart](lib/core/theme/dash_space.dart)): the 4 dp
+  ([lib/core/theme/dash_theme.dart](lib/core/theme/dash_theme.dart)): the 4 dp
   scale `xs 4 · sm 8 · md 12 · lg 16 · xl 24 · xxl 32`, plus `gutter` for the
   left/right inset of anything meeting the screen, sheet or drawer edge, and
   `fabClearance` for a list under a FAB. No number typed into an `EdgeInsets`,

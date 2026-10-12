@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
-
 import 'package:app_diagnostics/app_diagnostics.dart';
+
 import '../../core/models/timelapse.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -13,7 +13,6 @@ import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import 'timelapse_format.dart';
 import 'timelapse_providers.dart';
-import 'timelapse_trim.dart';
 import 'timelapse_trim_strip.dart';
 import 'timelapse_url.dart';
 
@@ -488,3 +487,16 @@ class _SectionHeader extends StatelessWidget {
     );
   }
 }
+
+/// Slack past a boundary, in seconds: position updates arrive a frame or two
+/// apart, so an exact comparison can be stepped straight over.
+const timelapseFrameSlack = 0.1;
+
+/// Says nothing about the region's start on purpose: a rule that also pulled an
+/// undershooting seek back up would re-fire on its own undershoot and the
+/// picture would never move. [timelapseNeedsRewind] corrects the start once.
+bool timelapseReachedEnd(double position, double trimEnd) =>
+    position + timelapseFrameSlack >= trimEnd;
+
+bool timelapseNeedsRewind(double position, double trimStart, double trimEnd) =>
+    position < trimStart || timelapseReachedEnd(position, trimEnd);

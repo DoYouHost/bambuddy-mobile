@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
-import '../../l10n/app_locale.dart';
+import '../app_context.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Derived rather than listed, so adding a translation does not leave this

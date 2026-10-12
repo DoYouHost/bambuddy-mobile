@@ -11,7 +11,7 @@ import 'core/notifications/hms_catalog.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/settings/settings_repository.dart';
 import 'core/watch/wear_relay_engine.dart';
-import 'l10n/app_locale.dart';
+import 'core/app_context.dart';
 import 'providers.dart';
 import 'features/bug_report/report_wiring.dart';
 

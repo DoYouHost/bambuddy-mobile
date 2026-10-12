@@ -3,25 +3,12 @@ import 'package:flutter/widgets.dart';
 
 import '../wear_geometry.dart';
 
-/// Shrinks its child as the child approaches the rim of a round face.
-///
-/// The alternative to giving a scrolling screen the rectangle inscribed in the
-/// circle. That rectangle is easy to be sure of — nothing inside it can ever be
-/// off the glass — but it costs 36% of the height of a display that had none to
-/// spare, and it hands every row the width available at the *worst* point of
-/// the viewport, including the rows crossing the middle where the whole diameter
-/// is lit.
-///
-/// Here each item is instead scaled to the chord that is actually lit where it
-/// currently is, which is what Wear OS itself does: `TransformingLazyColumn`
-/// shrinks and fades items toward the edges "because they are more difficult to
-/// see near the top and bottom of a round screen". An item at the middle is
-/// untouched; one on its way out shrinks and leaves rather than being cut.
-///
-/// A scale and not a narrower inset, for a reason worth keeping: an inset
-/// re-lays-out the child, so a printer name would re-wrap and ellipsize
-/// differently on every frame of a scroll. A scale happens at paint time and the
-/// text keeps the metrics it was laid out with.
+/// Shrinks its child as the child approaches the rim of a round face: each item is
+/// scaled to the chord that is actually lit where it currently is, as Wear OS's own
+/// `TransformingLazyColumn` does. A scale, not a narrower inset, because an inset
+/// re-lays-out the child (a printer name would re-wrap on every frame of a scroll)
+/// while a scale happens at paint time. What it replaces, the rectangle inscribed in
+/// the circle, and what each costs is in `docs/wear-geometry.md`.
 class WearFaceCurve extends SingleChildRenderObjectWidget {
   const WearFaceCurve({
     super.key,
@@ -53,13 +40,9 @@ class WearFaceCurve extends SingleChildRenderObjectWidget {
     ..cornerRadius = cornerRadius;
 }
 
-/// The paint-time half of [WearFaceCurve].
-///
-/// Modelled on Flutter's own `RenderTransform`: the same three methods have to
-/// agree about the matrix — [paint], [applyPaintTransform] (which is what
-/// `localToGlobal` and therefore every test assertion reads) and
-/// [hitTestChildren] (which is what decides where a tap lands). Getting one of
-/// them wrong is a button that is drawn in one place and pressed in another.
+/// The paint-time half of [WearFaceCurve], modelled on `RenderTransform`: [paint],
+/// [applyPaintTransform] and [hitTestChildren] must agree about the matrix, or a
+/// button is drawn in one place and pressed in another.
 class RenderWearFaceCurve extends RenderProxyBox {
   // Named parameters may not start with `_`, so the private fields are assigned
   // rather than declared as initializing formals — the same reason
@@ -69,15 +52,9 @@ class RenderWearFaceCurve extends RenderProxyBox {
     : _face = face,
       _cornerRadius = cornerRadius;
 
-  /// Whether the curve can do anything for this item.
-  ///
-  /// An item taller than the radius has a corner past the chord wherever it
-  /// stands — there is no scale that fits it, only one that shrinks it to
-  /// nothing. A fault card with three lines of description and two buttons is
-  /// one of these. Rather than leave it unscaled and free to paint past the
-  /// bezel, it is clipped to the round-safe band, which is precisely what the
-  /// rectangle viewport did for it before the curve existed: for these items
-  /// nothing changes at all.
+  /// Whether the curve can do anything for this item. One taller than the radius has a
+  /// corner past the chord wherever it stands, so no scale fits it: it is clipped to
+  /// the round-safe band instead, as the rectangle viewport did before the curve.
   bool get clipsToFace => size.height >= _face.shortestSide / 2;
 
   double get cornerRadius => _cornerRadius;
@@ -96,14 +73,9 @@ class RenderWearFaceCurve extends RenderProxyBox {
     markNeedsPaint();
   }
 
-  /// Recomputed on every read rather than cached from the last [paint].
-  ///
-  /// A cached one goes stale the moment an item stops being painted, which is
-  /// exactly what happens to the item scrolling off the top — and the transform
-  /// is not only paint: `localToGlobal` reads it through [applyPaintTransform],
-  /// so a stale scale reports an item as sitting somewhere it is no longer
-  /// drawn. The walk it costs is a handful of matrices for the few items on a
-  /// watch face.
+  /// Recomputed on every read, not cached from the last [paint]: a cached one goes
+  /// stale for an item that stopped being painted, and `localToGlobal` reads it too
+  /// through [applyPaintTransform].
   Matrix4 get _effectiveTransform {
     if (clipsToFace) return Matrix4.identity();
 

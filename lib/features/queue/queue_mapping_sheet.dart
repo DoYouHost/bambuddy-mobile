@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/ams/color_names.dart';
 import '../../core/ams/filament_mapping.dart';
 import '../../core/ams/slot_addressing.dart';
-import '../../core/diagnostics/log_tag_material.dart';
+import '../../core/diagnostics/filament_material.dart';
 import '../../core/models/ams_filament_preset.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/filament_requirement.dart';

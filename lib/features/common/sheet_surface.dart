@@ -2,23 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/dash_theme.dart';
 
-/// A draggable sheet standing on a [SheetSurface] — the pair every content
-/// sheet opened with `dashSurfaceSheet` is built from.
+/// A draggable sheet standing on a [SheetSurface] — the pair every content sheet
+/// opened with `dashSurfaceSheet` is built from. One line of it is easy to drop:
+/// without `expand: false` the sheet ignores [initialSize] and opens at full height.
+/// State a size only where the sheet wants a different one.
 ///
-/// It exists because the pair was written out twelve times, always identically
-/// apart from the three sizes, and one of those lines is load-bearing in a way
-/// that is easy to drop: without `expand: false` the sheet ignores
-/// [initialSize] and opens at full height.
-///
-/// The defaults are the sizes most of those twelve settled on. State a size
-/// only where the sheet wants a different one — a filter list that should open
-/// around half the screen, a form that should open nearly full.
-///
-/// Only for a sheet shown with `dashSurfaceSheet`. The three shown with
-/// `dashSheet` — the AMS slot assignment, the maintenance type form and the
-/// slicer's preset picker — stand on Material's own surface and keep a bare
-/// [DraggableScrollableSheet] on purpose: giving them this one would draw a
-/// second surface and a second drag handle inside the first.
+/// Only for a sheet shown with `dashSurfaceSheet`. The three shown with `dashSheet`
+/// (the AMS slot assignment, the maintenance type form, the slicer's preset picker)
+/// stand on Material's own surface and keep a bare [DraggableScrollableSheet]: this
+/// one would draw a second surface and a second drag handle inside the first.
 class DraggableSheetSurface extends StatelessWidget {
   const DraggableSheetSurface({
     super.key,
@@ -114,19 +106,15 @@ class SheetSurface extends StatelessWidget {
   }
 }
 
-/// The surface a sheet that is **as tall as its content** stands on: rounded
-/// top, a hairline, the drag handle, and nothing below it but [child].
+/// The surface a sheet that is **as tall as its content** stands on: rounded top, a
+/// hairline, the drag handle, and nothing below it but [child].
 ///
-/// The other half of [SheetSurface], and deliberately not the same widget. That
-/// one is for a `DraggableScrollableSheet` — it owns its own background colour,
-/// a lifted shadow and the navigation-bar inset, because it can be dragged to
-/// full height. This one sits on `t.overlaySurface` like the card it was opened
-/// from, takes its height from what is in it, and lets a plain `SafeArea` handle
-/// the bottom. Merging them would mean a flag on every one of those differences.
-///
-/// [child] goes straight into the surface's `Column`, so it can be a `Padding`
-/// (the usual case) or a `Flexible` around a scroll view, for content that may
-/// outgrow the screen and must not push its own buttons off it.
+/// The other half of [SheetSurface], and deliberately not the same widget: that one
+/// is for a `DraggableScrollableSheet` and owns its background colour, a lifted
+/// shadow and the navigation-bar inset. This one sits on `t.overlaySurface`, takes
+/// its height from its content and lets a plain `SafeArea` handle the bottom. [child]
+/// goes straight into the surface's `Column`, so it can be a `Padding` or a
+/// `Flexible` around a scroll view for content that may outgrow the screen.
 class FittedSheetSurface extends StatelessWidget {
   const FittedSheetSurface({super.key, required this.child});
 

@@ -3,13 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/theme/dash_theme.dart';
 
-/// The three pieces a settings screen in this app is built from: a card that
-/// groups related rows, a title/subtitle row with a switch, and an integer
-/// slider.
-///
-/// They were written for the notification screen and are the app's settings
-/// look; the server settings screen needs exactly the same three, which is why
-/// they moved here rather than being copied.
+/// The three pieces a settings screen is built from: a card that groups related
+/// rows, a title/subtitle row with a switch, and an integer slider.
 
 /// The words that introduce a group of rows.
 class SettingsSectionHeader extends StatelessWidget {
@@ -147,18 +142,14 @@ class SettingsSwitchRow extends StatelessWidget {
   }
 }
 
-/// Integer slider with the value spelled out in [label] above it, and an
-/// optional [subtitle] under that. Disabled keeps the value on screen — a
-/// threshold whose event is off still says what it would be.
+/// Integer slider with the value spelled out in [label] above it, and an optional
+/// [subtitle] under that. Disabled keeps the value on screen. The subtitle is not
+/// decoration: a slider says "4" where a switch says on/off, and a number is harder
+/// to guess the meaning of, so a slider row needs a sentence saying what it changes.
 ///
-/// The subtitle is not decoration. A slider says "4" where a switch says
-/// on/off, and a number is the harder of the two to guess the meaning of: the
-/// row reading "Files uploaded to 2 printers at once" told nobody what it
-/// changed. Where a switch row has a sentence, a slider row needs one more.
-///
-/// [onChangeEnd] is what a server-backed setting writes on: dragging produces a
-/// value per pixel, and a request per pixel is not a save, it is a flood.
-/// Screens whose value is local pass [onChanged] alone.
+/// [onChangeEnd] is what a server-backed setting writes on: dragging produces a value
+/// per pixel, and a request per pixel is a flood. Screens whose value is local pass
+/// [onChanged] alone.
 class SettingsSlider extends StatelessWidget {
   const SettingsSlider({
     super.key,

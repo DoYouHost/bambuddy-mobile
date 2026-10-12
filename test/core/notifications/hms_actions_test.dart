@@ -1,5 +1,4 @@
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
-import 'package:bambuddy_mobile/core/notifications/server_tag.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_actions.dart';
 import 'package:flutter_test/flutter_test.dart';
 

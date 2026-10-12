@@ -1,4 +1,4 @@
-import 'package:bambuddy_mobile/core/models/user_summary.dart';
+import 'package:bambuddy_mobile/core/models/archive_stats.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

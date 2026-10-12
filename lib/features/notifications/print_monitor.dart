@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:clock/clock.dart';
 
-import '../../core/format/stable_digest.dart';
-import '../../core/notifications/alert_ids.dart';
+import '../../core/format/text_utils.dart';
+import '../../core/notifications/notification_service.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/notif_probe.dart';
 import '../../core/format/datetime_format.dart';
@@ -12,19 +12,17 @@ import '../../core/notifications/background_api.dart';
 import '../../core/notifications/hms_actions.dart';
 import '../../core/notifications/hms_catalog.dart';
 import '../../core/notifications/notification_prefs.dart';
-import '../../core/notifications/notification_service.dart';
 import '../../core/printers/offline_debounce.dart';
-import '../../core/time/timer_factory.dart';
-import '../../l10n/app_locale.dart';
+import '../../core/app_context.dart';
 import '../../l10n/app_localizations.dart';
 
 /// `TimerFactory` is part of this library's surface: the monitor takes one so
 /// tests can control time instead of waiting out a window.
-export '../../core/time/timer_factory.dart' show TimerFactory;
+export '../../core/printers/offline_debounce.dart' show TimerFactory;
 
 /// The band width moved to core so a core isolate can compute its own ids;
 /// re-exported so every caller keeps reading it from here.
-export '../../core/notifications/alert_ids.dart' show alertBandWidth;
+export '../../core/notifications/notification_service.dart' show alertBandWidth;
 
 /// Alert ID base per event type; add `printer_id` so alerts from different
 /// printers (and types) don't overwrite each other. ID
@@ -49,57 +47,31 @@ const List<int> _milestones = [25, 50, 75];
 /// drops whatever follows without a word.
 const int _maxAlertActions = 3;
 
-/// How long an HMS code is remembered after it last appeared. A code that drops
-/// out of `hms_errors` for less than this is treated as the SAME ongoing fault
-/// and won't re-alert when it flickers back — some codes (e.g. chamber-temp
-/// regulation) toggle on/off every few seconds around a threshold. Parity with
-/// bambuddy's `_HMS_CLEAR_GRACE_SECONDS = 30`.
+/// How long an HMS code is remembered after it last appeared: a flicker shorter
+/// than this is the same fault. Parity with bambuddy (docs/notification-rules.md, "HMS faults").
 const Duration _hmsClearGrace = Duration(seconds: 30);
 
-/// How long an HMS fault has to stand before it alerts, counted over the time
-/// the printer actually carries it. Our own rule, not bambuddy's — the server
-/// notifies on first sight. An X2D switched on at the plug reports its AC board
-/// as broken for about five seconds while that board powers up (bug report
-/// #46), and that must not wake anyone. A gap shorter than [_hmsClearGrace]
-/// pauses the count instead of restarting it, so a fault that keeps flickering
-/// through a print still adds up to an alert.
+/// How long an HMS fault has to stand before it alerts. Our own rule, not
+/// bambuddy's (docs/notification-rules.md, "HMS faults").
 const Duration _hmsHold = Duration(seconds: 15);
 
-/// Short HMS codes (`MMMM_EEEE`) the firmware echoes during normal user-cancel
-/// sequences — not faults. bambuddy drops these so they don't surface as alerts
-/// or "X problem" badges. Kept here as a safety net (older servers / the
-/// print_error path may still forward them).
+/// User-cancel echoes, not faults; dropped as bambuddy does, kept here as a safety
+/// net for older servers (docs/notification-rules.md, "HMS faults").
 const Set<String> _hmsUserActionCodes = {
   '0300_400C', // "The task was canceled."
   '0500_400E', // "Printing was cancelled."
 };
 
-/// How far AMS humidity has to fall back below the user's threshold before its
-/// alert re-arms.
-///
-/// bambuddy compares against a bare threshold and needs no band, because it only
-/// looks every five minutes ([AMS_HISTORY_INTERVAL]) and holds the cooldown
-/// below. This monitor sees every frame — roughly one a second — so a reading
-/// resting on the threshold crosses it constantly, and without a band each dip
-/// would re-arm the alert.
+/// How far AMS humidity has to fall back below the threshold before its alert
+/// re-arms (docs/notification-rules.md, "AMS humidity").
 const int _humidityRearmMargin = 3;
 
-/// How soon a unit that has retreated below the band and risen again is worth
-/// another alert. The number is bambuddy's `AMS_ALARM_COOLDOWN_MINUTES = 60`;
-/// the meaning is not. There it is a reminder interval — a unit sitting above
-/// the threshold is announced again every hour. Here a stay is announced once,
-/// and this only rations how often a fresh stay counts as fresh, because every
-/// other event in this monitor alerts on the edge rather than on a timer.
+/// bambuddy's `AMS_ALARM_COOLDOWN_MINUTES = 60`, but rationing fresh stays rather
+/// than reminding (docs/notification-rules.md, "AMS humidity").
 const Duration _humidityAlertCooldown = Duration(hours: 1);
 
-/// Highest `layer_num` still worth announcing as "first layer done", matching
-/// Something that may happen at most once per print.
-///
-/// Four of these were written by hand as bare `bool` fields, and each one has
-/// the same two halves: a latch, and — for the ones that explain a silence —
-/// exactly one record. `docs/logging-guide.md` requires that collapsing ("one
-/// record for a run, not one per frame") and a hand-written latch is where it
-/// gets forgotten: prep lasts minutes at roughly a frame a second.
+/// Something that may happen at most once per print: a latch, plus one record for
+/// the ones that explain a silence (docs/notification-rules.md, "Once per print").
 class OncePerPrint {
   bool _fired = false;
 
@@ -317,12 +289,8 @@ class PrintMonitor {
   /// out of memory.
   DateTime? _lastFrameAt;
 
-  /// Posts [alert], or records the one line that says why it was not posted.
-  ///
-  /// One decision, not two: an alert that never arrives has to leave a trace,
-  /// or a report cannot tell a switched-off preference from a lost event. Ten
-  /// call sites wrote the pair by hand — ten chances to write only the half
-  /// that alerts. [fields] rides on the record only.
+  /// Posts [alert], or records the one line that says why it was not posted
+  /// (docs/notification-rules.md, "Alert or record why not"). [fields] rides on the record only.
   void _alertOrRecordOff(
     int id,
     NotifEvent event,
@@ -358,10 +326,8 @@ class PrintMonitor {
     _latest = Map.of(statuses);
     _carryHmsMemoryOverFeedGap();
     for (final entry in statuses.entries) {
-      // First frame of each printer is only primed, no alerts from it —
-      // else fresh monitor (background isolate restarts on every background entry)
-      // would treat current state as just-happened edges and fire "first layer/25%/HMS error"
-      // for events that happened long ago.
+      // The first frame of each printer is only primed: a monitor is rebuilt on
+      // every background entry and would fire long-past events as fresh edges.
       final isNew = !_memo.containsKey(entry.key);
       final memo = _memo.putIfAbsent(entry.key, () => _PrinterMemo(_timer));
       if (isNew) {
@@ -379,14 +345,8 @@ class PrintMonitor {
     _updateOngoing(statuses);
   }
 
-  /// Holds every remembered HMS code over a break in the feed.
-  ///
-  /// The clear-grace window is wall time, but the only evidence a fault cleared
-  /// is a frame that no longer carries it. When nothing arrives at all — the
-  /// socket dropped, the phone dozed — the window elapses against silence, and
-  /// the first frame back would forget every standing code and alert about all of
-  /// them again. The socket's own idle watchdog is longer than the window, so
-  /// every disconnect it catches lands here.
+  /// Holds every remembered HMS code over a break in the feed longer than the grace
+  /// (docs/notification-rules.md, "HMS faults").
   void _carryHmsMemoryOverFeedGap() {
     final now = clock.now();
     final last = _lastFrameAt;
@@ -397,10 +357,8 @@ class PrintMonitor {
     }
   }
 
-  /// Cancels all pending per-printer timers (offline grace, HMS holds). Call
-  /// when this monitor is being torn down (e.g. `onDestroy` of the background
-  /// isolate) — without it, a timer scheduled just before teardown could still
-  /// fire and touch a notification service that's no longer valid.
+  /// Cancels every pending per-printer timer (offline grace, HMS holds), so none
+  /// fires into a notification service the torn-down isolate no longer has.
   void dispose() {
     for (final memo in _memo.values) {
       memo.dispose();
@@ -419,27 +377,13 @@ class PrintMonitor {
     );
   }
 
-  /// Baseline state from first observed frame — record "what's already here" so
-  /// later frames detect only TRUE edges. Intentionally fire nothing: print in
-  /// progress, first layer complete, existing HMS error, or low filament are not
-  /// events that just happened from our perspective. `awaitingBedCool` stays false
-  /// (cold bed at startup doesn't mean print just finished).
-  /// [id] is the map key, the same identity every alert is keyed by — not
-  /// `status.id`, so a frame filed under a different key can never make the
-  /// priming record disagree with the records that follow it.
+  /// Baseline from the first observed frame: records what is already there so later
+  /// frames detect only true edges, and fires nothing (docs/notification-rules.md, "Baseline").
+  /// [id] is the map key, not `status.id`.
   void _prime(int id, _PrinterMemo memo, PrinterStatus status) {
     memo.printing = status.isPrinting;
-    // Nothing job-scoped can be read off a frame that does not describe the job
-    // ([PrinterStatus.jobUnderway]). Priming off a calibration frame ("60%" at layer 0) would
-    // latch 25 and 50 as already sent and swallow both when the real print
-    // reaches them — the mirror image of the burst the gate in step 4) prevents.
-    // The dispatch race reaches priming too, through an isolate that restarts
-    // while it is on: the pre-print sequence has ticked `layer_num` past 2 while
-    // the name and the percentage are still the finished print's. A latch set
-    // from that frame has no edge left to clear it — priming records the printer
-    // as already printing, so no print-start edge follows and the new print's
-    // first layer would go by in silence. So the frame is recorded as the one to
-    // beat instead, exactly as the print-start edge does with it.
+    // Nothing job-scoped is read off a frame that does not describe the job; it is
+    // recorded as the one to beat instead (docs/notification-rules.md, "Baseline").
     if (!status.jobUnderway) {
       memo.previousJob = _jobFrame(status);
     } else {
@@ -538,11 +482,7 @@ class PrintMonitor {
           _onPrintEnded?.call(id);
         // Other/unknown final state → no false alert.
       }
-      // Recorded for every end, including the states above that alert. A user
-      // cancel lands as neither FINISH nor FAILED, and that branch silently drops
-      // the maintenance reminder as well as the alert — so this one line covers
-      // "my print ended and nothing happened" whatever the reason, and shows a
-      // partial frame faking an end.
+      // Every end is recorded, handled or not (docs/notification-rules.md, "Print end").
       NotifProbe.printEnd(
         id,
         state: state,
@@ -558,21 +498,8 @@ class PrintMonitor {
     final describesThisPrint = _describesThisPrint(id, status, memo);
 
     // 3) First layer DONE (once per print), on bambuddy's own terms — see
-    // [_firstLayerDone].
-    //
-    // The latch is set regardless of the preference, so the decision — an alert
-    // or one suppression record — happens once per edge. With the check inside
-    // the condition it was retaken on every frame for the rest of the print,
-    // which a record would have turned into hundreds of lines. Sound because
-    // `_prefs` is immutable for this monitor's whole life (the service is rebuilt
-    // from scratch on the next background entry); if live preferences ever land,
-    // this silently becomes "enable mid-print, stay quiet until the next one".
-    // `_prime` latches both of these without alerting, when it primes off a
-    // frame that describes the job at all.
-    //
-    // The latch stays clear while a frame is merely unusable, so an alert this
-    // frame could not settle is still owed on the next one. bambuddy holds its
-    // own flag the same way (`_first_layer_notified`).
+    // [_firstLayerDone]. The latch is set whatever the preference says
+    // (docs/notification-rules.md, "First layer").
     if (isPrinting &&
         !memo.once(PrintOnce.firstLayer).fired &&
         describesThisPrint &&
@@ -628,23 +555,10 @@ class PrintMonitor {
     _processBedCooled(id, status, memo);
   }
 
-  /// Whether this frame says the first layer is behind us, on the terms
-  /// bambuddy's own `on_layer_change` uses (server #1837):
-  ///
-  /// * layer **2** is the first layer *done* — layer 1 is it being printed;
-  /// * the window stops at **10**, because a counter far past 2 belongs either
-  ///   to a print we joined halfway or to the job that has just ended, and
-  ///   neither is news. bambuddy's window is the same `[2, 10]`;
-  /// * a printer **in a stage of its own is not laying that layer down**: the
-  ///   firmware ticks `layer_num` through bed levelling and nozzle cleaning,
-  ///   which announced a first layer minutes early and, right after a dispatch,
-  ///   under the previous print's name. bambuddy gates on `mc_print_sub_stage`,
-  ///   which the WebSocket does not carry, so [PrinterStatus.inNamedStage] asks
-  ///   the same question of the field both lanes do.
-  ///
-  /// Records the one frame it turns down per print, because "the first layer
-  /// went by and nothing arrived" is otherwise indistinguishable from the alert
-  /// being switched off.
+  /// Whether this frame says the first layer is behind us, on the terms of bambuddy's
+  /// `on_layer_change` (server #1837): layer 2, a window that stops at 10, and not
+  /// while the printer is in a stage of its own. Records the one frame it turns down
+  /// per print (docs/notification-rules.md, "First layer").
   bool _firstLayerDone(int id, PrinterStatus status) {
     if (!status.firstLayerInWindow) return false;
     if (!status.inNamedStage) return true;
@@ -657,21 +571,9 @@ class PrintMonitor {
     return false;
   }
 
-  /// Whether this frame's job numbers belong to the print that is running now.
-  ///
-  /// bambuddy's state is a rolling merge of the printer's partial MQTT reports,
-  /// so the frame that flips a printer to RUNNING still carries the previous
-  /// print's name, layer and percentage — the printer has not published the new
-  /// job's yet. That frame is why a job sent seconds earlier announced the
-  /// *finished* one's first layer: `layer_num` was still the number the pre-print
-  /// sequence had ticked, and the name still the file that had just come off the
-  /// plate. Nothing job-scoped runs until one of the three moves.
-  ///
-  /// Deliberately not a comparison against the new job's identity: the app
-  /// cannot know it — the name arrives on the wire in its own time, and the
-  /// same file printed twice in a row is a legitimate case that would fail such
-  /// a test. "Something new arrived" is the weakest question that answers this,
-  /// and it opens for the rest of the print the moment it is answered.
+  /// Whether this frame's job numbers belong to the print running now, not to the
+  /// previous one that bambuddy's rolling merge still carries
+  /// (docs/notification-rules.md, "Which frame describes this print").
   bool _describesThisPrint(int id, PrinterStatus status, _PrinterMemo memo) {
     final previous = memo.previousJob;
     if (previous == null) return true;
@@ -751,22 +653,12 @@ class PrintMonitor {
     final errors = status.hmsErrors;
     if (errors == null) return; // Field missing in frame — no change
     final now = clock.now();
-    // An offline printer can't be actively faulting — its `hms_errors` are just
-    // the last-known values carried forward by mergedWith. This is the same rule
-    // `displayableHmsErrors` applies for every screen; it is spelled out again
-    // here because this path needs the carried-forward codes themselves, which
-    // that function drops. Change the meaning of "offline" there and this line
-    // has to move with it.
-    // Never alert while
-    // disconnected, but still REFRESH last-seen for present codes below: that
-    // pauses the clear-grace clock across the outage, so a fault known before
-    // the disconnect doesn't spuriously re-alert on reconnect.
+    // An offline printer cannot be faulting: its `hms_errors` are carried-forward
+    // values. Never alert while disconnected, but still refresh last-seen below
+    // (docs/notification-rules.md, "HMS faults").
     final online = status.connected != false;
-    // Forget codes absent past the grace window — only those can re-alert. Run
-    // before refreshing so codes present this frame (still within grace) survive,
-    // and only while connected: a frame from a disconnected printer carries no
-    // evidence that anything cleared, so the whole memory holds still for the
-    // outage rather than ageing out against a clock nothing is answering.
+    // Forget codes absent past the grace, only while connected: a frame from a
+    // disconnected printer carries no evidence that anything cleared.
     if (online) {
       _pauseAbsentHolds(memo, errors);
       memo.hmsLastSeen.removeWhere((key, seen) {
@@ -782,10 +674,8 @@ class PrintMonitor {
       if (key == null) continue;
       final isNew = !memo.hmsLastSeen.containsKey(key);
       if (isNew && !online) {
-        // Never announced, so latching it would silence it for good: the printer
-        // can come back with this fault still standing, and until then nothing
-        // ages it out — with a second printer streaming frames the grace window
-        // is refreshed faster than it can elapse. Defer the decision instead.
+        // Never announced: latching it would silence it for good if the printer returns
+        // with the fault standing. Defer instead (docs/notification-rules.md, "HMS faults").
         if (memo.hmsDeferredOffline.add(key)) {
           NotifProbe.suppressed(
             NotifSkip.offline,
@@ -802,12 +692,9 @@ class PrintMonitor {
         hold.fault = e;
         if (!hold.running && online) _runHold(id, memo, key);
       }
-      // Only ever the first sighting of a code gets this far, so each of the
-      // records below is one per code per clear-grace window, not one per frame.
-      // A record for the already-known case is deliberately absent: the WebSocket
-      // lane carries `hms_codes` on every frame, so a standing code with no
-      // notification record next to it *is* the dedup, visible on the same
-      // timeline.
+      // Only a code's first sighting gets this far: one record per code per grace
+      // window, and none for the known case, where the standing code is the dedup
+      // (docs/notification-rules.md, "HMS faults").
       if (!isNew) continue;
       final skip = _hmsSkipReason(e);
       if (skip != null) {
@@ -872,15 +759,8 @@ class PrintMonitor {
     );
   }
 
-  /// Why this HMS code produces no alert, or null when it produces one.
-  ///
-  /// Three separate answers where the code used to fold them into one boolean.
-  /// "You turned this off" is not "the firmware sent a code nobody documented" —
-  /// the latter being the single largest silent drop on this path, since one
-  /// physical fault emits several codes and only one of them is a real fault.
-  /// Every answer here settles the code for the life of this isolate; a
-  /// disconnected printer is the one case that does not, so it is deferred by
-  /// the caller rather than answered here.
+  /// Why this HMS code produces no alert, or null when it produces one: off, a
+  /// user-action code, or undocumented (docs/notification-rules.md, "HMS faults").
   NotifSkip? _hmsSkipReason(HmsError e) {
     if (!_on(NotifEvent.printerError)) return _offReason;
     if (_hmsSuppressed(e)) return NotifSkip.userAction;
@@ -1005,12 +885,8 @@ class PrintMonitor {
     }
   }
 
-  /// What goes after "ETA" in the ongoing notification, or null for no ETA at
-  /// all. Branches in the same order as [PrinterStatus.etaRank], so the line
-  /// cannot name a printer the ranking would not have picked.
-  ///
-  /// A concrete finish time (e.g. "21:20"), not "in X", and the date comes
-  /// along when the print runs past midnight.
+  /// What goes after "ETA" in the ongoing notification, or null for none; branches in
+  /// the order of [PrinterStatus.etaRank] (docs/notification-rules.md, "The ongoing notification").
   String? _etaText(PrinterStatus s) {
     final minutes = s.remainingTime;
     if (minutes == null) return null;
@@ -1040,18 +916,8 @@ class PrintMonitor {
 
     final lead = printing.first; // Finishes earliest
     final percent = (lead.progress ?? 0).round().clamp(0, 100);
-    // The mean over every printing machine. Nothing on screen shows it — the
-    // notification belongs to the lead alone — and it is kept for the log,
-    // where it answers "how far along was the rest of the shelf" for a report
-    // about a bar that looked wrong.
-    //
-    // Two kinds of zero, and they are not the same fact. A printer that sends
-    // no `progress` at all has not reported yet and is left out — counting it
-    // would drag the mean down for a job nobody has heard from. A printer that
-    // reports 0 is heating or levelling, and 0 is where it genuinely stands, so
-    // it counts. Each figure is clamped before it is averaged: one machine's
-    // out-of-range frame must not move a mean that is then clamped again and
-    // looks plausible.
+    // The mean over every printing machine, for the log only
+    // (docs/notification-rules.md, "The ongoing notification").
     final reported = [for (final s in printing) ?s.progress?.clamp(0, 100)];
     final overall = reported.isEmpty
         ? percent
@@ -1070,10 +936,8 @@ class PrintMonitor {
     );
     if (key == _lastOngoing) return;
     _lastOngoing = key;
-    // Recorded here rather than in the notification decorator: by the time the
-    // service sees it, all of this is baked into a title and body made of the
-    // user's job name, which never enters a log. The throttle above is what keeps
-    // this to one record per real change instead of one per frame.
+    // Recorded here, not in the notification decorator, whose title and body carry the
+    // job name that never enters a log.
     NotifProbe.ongoing(
       printerId: lead.id,
       percent: percent,
@@ -1092,29 +956,20 @@ class PrintMonitor {
       title = _jobLabel(lead, l);
       body = eta == null ? '$percent%' : l.notifOngoingBody(percent, eta);
     } else {
-      // Several: the headline is how many are running, and the bar, the line
-      // and the ETA all belong to the one that finishes first. One print, one
-      // set of numbers — a second figure for the shelf had nothing to say that
-      // the headline count does not.
+      // Several: the headline is how many run; the bar, the line and the ETA
+      // belong to the one that finishes first.
       title = l.printingCount(printing.length);
       // Not `lead.name ?? …`: a printer named "  " would leave the line with
       // a gap between two separators.
       final name = _printerLabel(lead, l);
-      // Prefixed with the dashboard's own label rather than a second string
-      // saying the same thing: a bare machine name under a "3 printing"
-      // headline does not say why that one is named. The label is built for
-      // this (it ends in its own separator) and the two surfaces then pick the
-      // same printer and call it the same thing.
+      // Prefixed with the dashboard's own label so both surfaces pick the same printer
+      // and call it the same thing.
       final line = eta == null
           ? l.notifOngoingMultiBodyNoEta(name, percent)
           : l.notifOngoingMultiBody(name, percent, eta);
       body = '${l.nextAvailableLabel}$line';
     }
-    // A preparing machine has nothing to draw: the percent is zero because
-    // nothing has been measured yet, and a bar pinned at zero says "nothing is
-    // happening" about one that is heating its bed. Null asks for the
-    // indeterminate bar instead, which says "running, position unknown" — and
-    // the text beside it still carries the ETA when the firmware sent one.
+    // A preparing machine gets the indeterminate bar: its zero percent is not progress.
     _notifications.showOngoing(
       title: title,
       body: body,

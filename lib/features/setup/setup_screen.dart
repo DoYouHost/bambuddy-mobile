@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/auth/two_factor.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart' show bugReportRoute;
-import '../../core/demo/demo_config.dart';
+import '../../core/app_context.dart';
 import '../../providers.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';

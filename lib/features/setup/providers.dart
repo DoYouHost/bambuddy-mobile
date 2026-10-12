@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/auth/two_factor.dart';
-import '../../core/demo/demo_config.dart';
+import '../../core/app_context.dart';
 import '../../core/diagnostics/auth_probe.dart';
 import '../../core/models/current_user.dart';
 import '../../core/settings/server_profile.dart';

@@ -1,4 +1,4 @@
-import 'package:bambuddy_mobile/features/common/server_version_text.dart';
+import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';

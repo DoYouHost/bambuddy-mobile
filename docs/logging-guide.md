@@ -147,6 +147,69 @@ through a channel that swallows a Dart exception and reports success, so a
 recorder that throws leaves a service that says "monitoring" and monitors
 nothing.
 
+### What the notification probe records, and why
+
+`NotifProbe` (`lib/core/diagnostics/notif_probe.dart`) records what the
+notification layer decided and what it decided *not* to do: the useful half is
+usually a decision not to post, which by definition leaves no trace on the
+device. Stateless and static like the other always-on probes, so an idle app pays
+nothing and the fakes in tests stay silent. `title` and `body` never enter a
+record, which is why `postError` logs the exception's *class*: the only strings in
+scope there are the two we may not keep.
+
+- **`finishPhoto`** says what became of the finish photo attached to an archive.
+  It is its own record, not a `NotifSkip`: the alert is already on screen, so this
+  decides only whether a photo reached it, and every way that fails (no alert to
+  update, swiped away, download failed) looks identical from outside.
+- **`primed`** is the baseline a fresh monitor latched from a printer's first
+  frame. The background isolate is rebuilt on every entry into the background and a
+  new monitor fires nothing from the first frame it sees (otherwise a print
+  started an hour ago would announce itself as just begun). That silence is
+  correct, invisible, and the answer to a whole class of "the app swallowed my
+  notification". It is *not* a `suppressed`: at priming no event was evaluated, so
+  calling it a suppression would describe a decision that never took place.
+- **`openSession`** opens the lane with the state that decides everything else:
+  which event types the user disabled, whether alerts are off wholesale, whether
+  the OS permission is granted and how important the alerts channel is. One line
+  instead of a record per suppressed event, and it works even when the recording
+  covers none of the moments an alert was due (prints run for hours; a session is
+  capped at `recordingLimit`). `permission` and `channelImportance` are injected so
+  it is testable, and either may answer null, logged as an absent field rather than
+  a guess. A granted permission with a muted channel is a real configuration and
+  looks identical from `areNotificationsEnabled` alone.
+- **`LoggingNotifications`** wraps the *outer* service in the foreground-service
+  isolate, not the `LocalNotificationService` inside it: that isolate's
+  `showOngoing` rewrites the service notification instead of delegating, so
+  wrapping from underneath would miss it. It is one decorator rather than a log
+  call at each site, so it cannot be forgotten in new code, and it is unused in the
+  UI isolate, where the ongoing methods are no-ops and a record would be a
+  fabrication.
+
+### `startActionRecording` and the watch socket probe
+
+`startActionRecording` is `startBackground` for an isolate woken to do one job and
+gone a second later. Two of the three such paths are already recording, and there
+the records land in the stream they belong to for free; `LogStream.action` is the
+third one's stream, because `fgs` is the service's file for the same session and
+two writers would tear it. It lives here, not in the package, because every
+argument is bambuddy's own (settings repository, keystore, redactor, ceiling). **It
+never throws**: the caller is carrying out the user's tap, and
+`SettingsRepository.opened` alone is a platform read a locked keystore can fail.
+
+`WsProbe` explains "the dashboard says Reconnecting and never stops": a 401
+handshake, a failed token mint, a server that accepts the socket and sends
+nothing, and a Wi-Fi roam leaving a half-open TCP all look identical from the UI,
+and only the last is the app's own fault. It writes through
+`DiagnosticRecorder.active` rather than holding a store, because a probe outlives
+any recording and recordings routinely start mid-connection. `WsSessionListener`
+tells it when a session opens and closes: it reports *changes*, so state left by
+the previous session would make the next one's first frame read as "unchanged",
+and it aggregates repeats, so a session closed without a flush loses the tail of
+the socket's story. `_temperatures` logs every temperature the server sent under
+its own name: the first version picked `nozzle`/`bed`/`chamber` and so logged
+neither the targets (a bed target of zero mid-print explains a whole report on its
+own) nor `nozzle_2`, half of what a dual-head X2D/H2D is doing.
+
 ### The service's lifecycle is one lane, written from two isolates
 
 `LogSource` names the **subsystem, not the writer**, so everything about the

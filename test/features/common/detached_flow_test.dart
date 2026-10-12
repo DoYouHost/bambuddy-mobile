@@ -1,4 +1,4 @@
-import 'package:bambuddy_mobile/features/common/detached_flow.dart';
+import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

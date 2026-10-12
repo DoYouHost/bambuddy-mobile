@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/auth/credentials_store.dart';
 import '../../core/demo/demo_backend.dart';
-import '../../core/demo/demo_config.dart';
+import '../../core/app_context.dart';
 import '../../core/notifications/background_monitor.dart';
 import '../../core/notifications/background_sync.dart';
 import '../../core/notifications/notification_prefs.dart';

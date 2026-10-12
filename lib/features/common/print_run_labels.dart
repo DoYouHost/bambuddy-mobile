@@ -4,20 +4,12 @@ import 'package:flutter/material.dart';
 import '../../core/models/print_run.dart';
 import '../../l10n/app_localizations.dart';
 
-/// The label for a run's failure cause.
-///
-/// The server stores and groups by an i18n **key** (`filamentRunout`) and
-/// leaves the translating to whoever renders it — so this is what stands
-/// between the reader and a screen that says "filamentRunout".
-///
-/// Three inputs it has to survive, all of which turn up in practice:
-///
-/// - null or empty — the run was never classified.
-/// - the literal `Unknown`, which is what `GET /archives/analysis/failures`
-///   names that bucket. It arrives as data, not as a key.
-/// - anything else — shown exactly as it came. Older web builds saved the
-///   *translated label* instead of the key, and the archive-side PATCH that
-///   mirrors this field validates nothing, so free text is a real value.
+/// The label for a run's failure cause. The server stores and groups by an i18n **key**
+/// (`filamentRunout`) and leaves the translating to the renderer. Three inputs it has
+/// to survive: null or empty (never classified); the literal `Unknown`, which
+/// `GET /archives/analysis/failures` names that bucket and which arrives as data, not
+/// a key; and anything else, shown exactly as it came, since older web builds saved
+/// the translated label and the archive PATCH validates nothing.
 String failureReasonLabel(AppLocalizations l10n, String? reason) {
   final key = reason?.trim() ?? '';
   return switch (key) {

@@ -25,7 +25,7 @@ import '../common/sliver_search_bar.dart';
 import '../notifications/finish_photo_providers.dart';
 import '../../core/api/server_reachability.dart';
 import '../../providers.dart';
-import '../common/server_version_text.dart';
+import '../../core/app_context.dart';
 import '../common/dash_search_field.dart';
 import 'card_collapse_providers.dart';
 import 'dashboard_filters.dart';

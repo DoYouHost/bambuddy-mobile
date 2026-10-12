@@ -1,4 +1,4 @@
-import 'package:bambuddy_mobile/core/format/stable_digest.dart';
+import 'package:bambuddy_mobile/core/format/text_utils.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -15,10 +15,16 @@ import '../settings/settings_repository.dart';
 import 'finish_alert_memory.dart';
 import 'hms_actions.dart';
 import 'hms_stop_request.dart';
+import 'launch_relay.dart';
 import 'outcome_alert.dart';
-import 'outcome_prompt.dart';
-import 'server_tag.dart';
 import '../diagnostics/diagnostics_wiring.dart';
+import '../format/text_utils.dart';
+
+/// The server a notification's payload belongs to, as a digest rather than in
+/// the clear. A payload names rows by id — a printer, an archive — and an id
+/// means something only on the server that sent it, while the notification
+/// outlives a switch to another server, where the same id is somebody else's.
+String serverTag(String baseUrl) => stableDigest(baseUrl).toRadixString(16);
 
 /// Action ID for "Mark Done" in maintenance notifications.
 /// The notification payload carries a comma-separated list of item IDs to reset.
@@ -69,11 +75,8 @@ List<int> parseMaintenancePayload(String? payload) {
   return ids;
 }
 
-/// The [AuthService] the isolates without Riverpod build.
-///
-/// A rejection noticed out here happens hours before the user next opens the
-/// app, and the flag left in prefs is the only thing that lets the UI explain
-/// the silence when they do — so both isolates have to leave the same mark.
+/// The [AuthService] the isolates without Riverpod build; both leave the same mark in
+/// prefs when a rejection is noticed (docs/notification-delivery.md, "Button taps").
 AuthService backgroundAuthService(
   SharedPreferences prefs,
   CredentialsStore credentials,
@@ -84,15 +87,10 @@ AuthService backgroundAuthService(
       SettingsRepository(prefs).saveSignInRequired(true, reason: reason),
 );
 
-/// Builds an authenticated [ApiClient] without Riverpod — usable in the
-/// background isolate (foreground service) and notification callback isolate
-/// where providers are unavailable. Mirrors `apiClientProvider` logic.
-/// Returns `null` if no server profile is configured.
-///
-/// A caller that also opens a socket or a token refresher passes its own
-/// [credentials] and [auth]: silent re-login is single-flight per
-/// [AuthService], so a second instance for the REST lane is a second login
-/// racing the first against the server's failed-attempt budget.
+/// Builds an authenticated [ApiClient] without Riverpod, mirroring
+/// `apiClientProvider`; `null` if no server profile is configured. A caller that also
+/// opens a socket or a token refresher passes its own [credentials] and [auth]: silent
+/// re-login is single-flight per [AuthService].
 Future<ApiClient?> buildBackgroundApiClient(
   SharedPreferences prefs, {
   CredentialsStore? credentials,
@@ -135,19 +133,10 @@ Future<void> handleNotificationAction(NotificationResponse response) async {
   await handleOutcomeAction(response);
 }
 
-/// Good or Reject tapped on an outcome question — its own notification or
-/// the print-finished alert it was put on — or the notification itself.
-///
-/// The body opens the app, so it only ever arrives where the app is coming up
-/// — the foreground handler or the launch details — and is handed to the
-/// shell's sheet, where a reject can be given a cause. The two buttons record
-/// the verdict from here, like "Mark Done": a reject without a cause, and
-/// never touching one the print already carries.
-///
-/// The buttons do not dismiss the notification themselves (the server asks
-/// once): it is taken away here once the answer landed, or once no retry can
-/// land it — a refusal, or a question from a server the app has since been
-/// switched away from, whose archive id names some other print here.
+/// Good or Reject tapped on an outcome question, or the notification itself. The
+/// body opens the app; the two buttons record the verdict from here (a reject without
+/// a cause) and take the notification away once the answer landed or no retry can land
+/// it (docs/notification-delivery.md, "Button taps").
 Future<void> handleOutcomeAction(NotificationResponse response) async {
   final target = parseOutcomePayload(response.payload);
   if (target == null) return;
@@ -194,15 +183,10 @@ Future<void> handleOutcomeAction(NotificationResponse response) async {
   );
 }
 
-/// One button tap, run in whichever isolate the plugin delivered it to: the
-/// recording opened first, so everything after it is on the record; the tap
-/// recorded; a client for the saved server, from preferences re-read off disk
-/// (the other isolate may have switched servers since this one opened them);
-/// and every failure recorded rather than thrown — the callback cannot crash,
-/// and a swallowed error is "I pressed it and nothing happened".
-///
-/// [failedItems] is what the failure record says was still pending when the
-/// whole handler broke; null where [run] records its items one by one.
+/// One button tap, run in whichever isolate the plugin delivered it to: recording
+/// first, client from preferences re-read off disk, every failure recorded rather than
+/// thrown. [failedItems] is what the failure record says was still pending; null where
+/// [run] records its items one by one (docs/notification-delivery.md, "Button taps").
 Future<void> _runAction(
   String actionId, {
   required int items,
@@ -291,12 +275,9 @@ class ServerChanged implements Exception {
   const ServerChanged();
 }
 
-/// Runs the remediation action the user tapped on an HMS alert.
-///
-/// Stopping a print is the exception: it never runs from here, because a tap
-/// that abandons hours of printing has to be confirmed and a notification has
-/// nowhere to ask. That button brings the app up instead, and the request is
-/// parked in [hmsStopRequests] for the shell to pick up.
+/// Runs the remediation action the user tapped on an HMS alert. Stopping a print
+/// never runs from here: it brings the app up to confirm, parked in
+/// [hmsStopRequests] (docs/notification-delivery.md, "Button taps").
 Future<void> handleHmsAction(NotificationResponse response) async {
   final actionId = response.actionId;
   if (actionId == null || !actionId.startsWith(hmsActionIdPrefix)) return;
@@ -345,11 +326,9 @@ Future<void> handleHmsAction(NotificationResponse response) async {
   );
 }
 
-/// Handles tapping the "Mark Done" action on a maintenance notification.
-/// Called from the plugin's callback isolate (app may be closed), so it rebuilds
-/// everything from scratch: prefs, API client, repository. Resets the item counter,
-/// removes items from the dedup set (re-arm for future alerts), and dismisses
-/// the notification. All errors are swallowed — the callback must not throw.
+/// Handles tapping "Mark Done" on a maintenance notification, from the plugin's
+/// callback isolate: rebuilds everything, resets the item counter, re-arms the dedup
+/// set, dismisses. Errors are swallowed (docs/notification-delivery.md, "Button taps").
 Future<void> handleMaintenanceAction(NotificationResponse response) async {
   if (response.actionId != maintenancePerformActionId) return;
   final itemIds = parseMaintenancePayload(response.payload);

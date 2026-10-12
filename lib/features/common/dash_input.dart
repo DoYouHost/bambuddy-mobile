@@ -34,15 +34,10 @@ InputDecoration dashDecoration(
 /// ellipsized, which cut a two-sentence hint off mid-word.
 const _helperLines = 3;
 
-/// The same chrome as an [InputDecorationTheme], for [DropdownMenu] — it builds
-/// its own text field internally and takes no [InputDecoration]. Read off
-/// [dashFieldDecoration] rather than restated, which is how the two drifted
-/// apart the last time.
-///
-/// One thing deliberately absent: `suffixIconConstraints`. It exists to box a
-/// select's arrow ([dashCombo] applies it), and this theme is the chrome of a
-/// field — a text field's own suffix icon is a real button whose tap target
-/// nothing here should be shrinking.
+/// The same chrome as an [InputDecorationTheme], for [DropdownMenu], which builds its
+/// own text field. Read off [dashFieldDecoration] rather than restated.
+/// `suffixIconConstraints` is deliberately absent: it boxes a select's arrow
+/// ([dashCombo] applies it) (docs/ui-primitives.md, "Fields and selects").
 InputDecorationTheme dashInputTheme(DashTokens t) {
   final d = dashFieldDecoration(t);
   return InputDecorationTheme(
@@ -62,21 +57,12 @@ InputDecorationTheme dashInputTheme(DashTokens t) {
   );
 }
 
-/// The app's select field: an M3 [DropdownMenu] wearing [dashInputTheme], with
-/// the menu height a phone can actually scroll and the diagnostic name on the
-/// field itself.
-///
-/// Every select belongs here rather than in a `DropdownButtonFormField`, whose
-/// full-screen overlay is the old Material look. There are none of those left;
-/// the last seven — projects, inventory, maintenance — came across on
-/// 2026-09-10.
-///
-/// Rows carry their own ids: the menu opens in a route of its own, so [id]
-/// never reaches them (the trap is written up in docs/logging-guide.md).
-///
-/// [filterable] turns the field into a combo the user may type into, which is
-/// also what makes it take focus — a plain select must not, or the keyboard
-/// covers the list it just opened.
+/// The app's select field: an M3 [DropdownMenu] wearing [dashInputTheme], with the
+/// menu height a phone can scroll and the diagnostic name on the field itself. Every
+/// select belongs here, never in a `DropdownButtonFormField`. Rows carry their own
+/// ids, since the menu opens in a route of its own (docs/logging-guide.md).
+/// [filterable] makes it a combo the user may type into, which is also what makes it
+/// take focus (docs/ui-primitives.md, "Fields and selects").
 Widget dashCombo<T>(
   BuildContext context, {
   required String id,
@@ -116,36 +102,17 @@ Widget dashCombo<T>(
   ).tagged(id);
 }
 
-/// How much room the menu's arrow may claim.
-///
-/// Flutter builds it as a bare [IconButton], which takes the full 48x48 tap
-/// target and pushes the field to 56 — while every text field in the app is a
-/// dense 48. In any form holding both, the select stood 8px taller than the
-/// field beside it. `suffixIconConstraints` is routed straight to that button
-/// (`dropdown_menu.dart`).
-///
-/// 40 is a ceiling rather than a preference: that button is wrapped in a
-/// `Padding(all: 4)` the caller cannot reach, so 40 + 8 is the most a 48-tall
-/// field has room for. It is under the 48dp target an accessibility audit
-/// looks for, and the reason that costs nothing here is that the arrow is a
-/// duplicate affordance — the field's own `onTap` opens the menu whenever the
-/// select is enabled (`dropdown_menu.dart`, the inner `TextField`), filterable
-/// or not, so the real target is the whole 48-tall field.
+/// How much room the menu's arrow may claim. Flutter builds it as an `IconButton`
+/// with a 48x48 target, which pushes the field to 56 while every text field is 48. 40
+/// is a ceiling: the button's own `Padding(all: 4)` leaves 40 + 8 in a 48-tall field.
+/// The whole field is the real target (docs/ui-primitives.md, "Fields and selects").
 const _arrowBox = BoxConstraints.tightFor(width: 40, height: 40);
 
-/// A [dashCombo] whose first row means "no filter" — what every server-side
-/// filter picker needs, and the shape three screens had each written their own
-/// way.
-///
-/// **Null is the any-row**, which is why [T] is bound to a non-null type: the
-/// picker's value type is `T?`, so the two states a filter has need no sentinel
-/// between them. A `DropdownMenu` does hold a null row and names it at
-/// `initialSelection: null` — the stand-in this replaced (`-1`, `''`) existed
-/// on the belief that it could not, and had to be mapped back at every caller.
-///
-/// [options] pairs each value with the label it shows. Labels are names people
-/// gave things, so they stay out of the diagnostic id — the any-row records as
-/// `<id>.any` and **every** value row as `<id>.option`.
+/// A [dashCombo] whose first row means "no filter". **Null is the any-row**, so [T] is
+/// bound to a non-null type and a filter's two states need no sentinel. [options]
+/// pairs each value with its label; labels stay out of the diagnostic id, so the
+/// any-row records as `<id>.any` and every value row as `<id>.option`
+/// (docs/ui-primitives.md, "Fields and selects").
 Widget dashAnyOrOne<T extends Object>(
   BuildContext context, {
   required String id,
@@ -181,26 +148,12 @@ Widget dashAnyOrOne<T extends Object>(
   ],
 );
 
-/// A field that opens a picker instead of taking typed input: the app's field
-/// chrome, the current value (or a placeholder) inside it, and the affordance
-/// on the right.
-///
-/// Written out seven times before it lived here — the spool form's empty-spool,
-/// colour, preset and per-model preset fields, the mass-edit sheet's preset and
-/// colour, and the AMS slot sheet's colour — and by then they had drifted: one
-/// let a long value overflow instead of ellipsizing, one styled its placeholder
-/// like a real value, and the clear button was spelled three different ways.
-///
-/// [value] null or empty means nothing is picked: [placeholder] shows in
-/// tertiary ink, which is the whole of how the two are told apart. A value that
-/// *is* the word "none" is still a value — pass it as [value], not as the
-/// placeholder, or a deliberate "use nothing here" reads as an empty field.
-///
-/// [clear] adds the clear button, and only while something is picked. It is one
-/// record rather than two parameters so a call site cannot give the callback
-/// and forget the id: [id] and the clear button's own id both come from the
-/// call site, because a shared control that tags itself reports every use under
-/// the first one's name (docs/logging-guide.md).
+/// A field that opens a picker instead of taking typed input: the app's field chrome,
+/// the current value (or a placeholder) inside it, and the affordance on the right.
+/// [value] null or empty means nothing is picked and [placeholder] shows in tertiary
+/// ink; a value that *is* the word "none" is still a value. [clear] adds the clear
+/// button while something is picked, as one record so a call site cannot give the
+/// callback and forget the id (docs/ui-primitives.md, "Fields and selects").
 Widget dashPickerField(
   BuildContext context, {
   required String id,

@@ -1,6 +1,6 @@
 import 'package:bambuddy_mobile/core/api/camera_token.dart';
 import 'package:bambuddy_mobile/core/api/media_auth.dart';
-import 'package:bambuddy_mobile/core/api/media_token.dart';
+import 'package:bambuddy_mobile/core/api/cached_token_service.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';

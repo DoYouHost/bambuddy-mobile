@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:clock/clock.dart';
 
 import '../diagnostics/auth_probe.dart';
-import '../time/timer_factory.dart';
+import '../printers/offline_debounce.dart';
 import 'auth_service.dart';
 import 'credentials_store.dart';
 import 'jwt.dart';

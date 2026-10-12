@@ -11,7 +11,7 @@ import '../../providers.dart';
 import '../../core/api/api_exceptions.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
-import '../common/detached_flow.dart';
+import '../../core/app_context.dart';
 import 'outcome_sheet.dart';
 
 /// Whether this server records a user's verdict on a printed part (#1898).
