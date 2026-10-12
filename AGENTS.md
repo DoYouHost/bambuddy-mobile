@@ -226,6 +226,33 @@ do not stay silent because it was not part of the task.
   a path arrived in, what an API-key session is answered with, why a caller
   probes instead of reading a version number. Cutting those leaves a list of
   strings.
+- **The comment-ratio threshold is a signal, not a target** (`/comment-ratio`,
+  20%). The whole of `lib`, `test` and `tool` was gone through on 2026-10-12:
+  restatement, history ("written out five times before it lived here" is `git
+  log`'s job) and copies of what a doc already says were cut, and reasoning that
+  spans a module moved to `docs/` — [test-harness](docs/test-harness.md),
+  [notification-rules](docs/notification-rules.md),
+  [notification-delivery](docs/notification-delivery.md),
+  [wear-fleet-poll](docs/wear-fleet-poll.md), [wear-relay](docs/wear-relay.md),
+  [providers](docs/providers.md), [ui-primitives](docs/ui-primitives.md). Some
+  240 files still measure over 20%, and that is expected: what remains is the
+  per-declaration contract. **Repositories (`lib/data/`), `lib/providers.dart` and
+  `lib/core/api/` are the same case as models** — the comment says which route,
+  which status, what an older server does, what `null` means — and a short file
+  reaches 40% on one honest paragraph. Judge a comment by "does it say anything
+  the declaration does not", and do not delete or compress one to move a number.
+  When a comment grows past a paragraph, or the reasoning is about several files,
+  it goes to `docs/`, leaving one line and the section name. A comment that
+  states a *condition* ("only when…", "never…", "an older server drops it") owes
+  a test you have watched fail with the guard removed; one that merely restates
+  the code owes nothing and should go.
+- **No file for one to ten lines of code.** A constant, a typedef or a one-line
+  helper goes in the module that uses it, or — where nothing does — in
+  [lib/core/app_context.dart](lib/core/app_context.dart), which holds the demo
+  account, the locale outside the widget tree, the server-version line and the
+  detached-flow handles. Nineteen such files were folded into their users on
+  2026-10-12; `comment-ratio` ranks them first (a 1-line file measures 83%)
+  because a file that small is a structure problem, not a comment problem.
 - **`dart format` is the style, and CI enforces it** (`dart format
   --output=none --set-exit-if-changed lib test tool`). Run `dart format lib
   test tool` before pushing and never hand-tune spacing to fight it. The whole
