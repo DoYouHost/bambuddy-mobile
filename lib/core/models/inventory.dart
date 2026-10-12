@@ -286,10 +286,12 @@ class Spool {
 
   /// Target temperature [°C] of that run. Null when unknown: a date set by
   /// hand, or a run Bambuddy did not start (the printer does not report it).
+  /// Independent of [lastDriedHours]: either can be known without the other.
   final int? lastDriedTemp;
 
-  /// Time the run actually lasted [h]. Null on the same terms as
-  /// [lastDriedTemp].
+  /// Time the run actually lasted [h]. Null when unknown: a date set by hand,
+  /// or a run whose start Bambuddy neither watched nor requested, where the
+  /// elapsed share is only a lower bound (`services/spool_drying.py`).
   final double? lastDriedHours;
 
   /// Whether the row carried the `last_dried_at` key at all. `SpoolResponse`

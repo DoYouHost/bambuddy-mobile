@@ -483,7 +483,7 @@ read as saved and be gone on the next load. `SpoolResponse` sends the key on
 every row from the commit on, null or not, and the Spoolman listing unpacks its
 three `bambu_last_dried_*` extras onto the same keys, so
 `InventoryRepository.lastDriedCapability` observes it on the first row of the
-spool listing. An empty inventory says nothing and the version row answers;
-being early costs a 1.2.6b1 daily older than the commit, with no spool yet, one
-silently dropped write. Reading needs no gate: an older server never sends a
-date to show.
+spool listing. An empty inventory says nothing and the version row answers,
+which costs nothing: the date is written only to a spool that exists (neither
+create schema takes it), and that spool's own row has already settled the gate.
+Reading needs no gate: an older server never sends a date to show.

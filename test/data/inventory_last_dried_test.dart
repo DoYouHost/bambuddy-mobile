@@ -133,12 +133,25 @@ void main() {
       expect(repo.lastDriedCapability.observedAnswer, isNull);
     });
 
-    test('the material number latch is not moved by it', () async {
+    test('each latch reads its own key off the same row', () async {
       replyVersion('1.2.5.6');
       repo.observeSpools([
         row(const {'last_dried_at': null}),
       ]);
+      expect(repo.lastDriedCapability.observedAnswer, isTrue);
       expect(repo.materialNumberCapability.observedAnswer, isFalse);
     });
+
+    test(
+      'a row with only the material number does not settle this one',
+      () async {
+        replyVersion('1.2.6b1');
+        repo.observeSpools([
+          row(const {'material_number': null}),
+        ]);
+        expect(repo.materialNumberCapability.observedAnswer, isTrue);
+        expect(repo.lastDriedCapability.observedAnswer, isFalse);
+      },
+    );
   });
 }
