@@ -4547,7 +4547,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventoryMaterialNumberHint.
   ///
   /// In en, this message translates to:
-  /// **'Shared by every spool of a product. A new spool of a known product gets it filled in.'**
+  /// **'Shared by every spool of a product.'**
   String get inventoryMaterialNumberHint;
 
   /// No description provided for @inventorySpoolmanCannotClear.
@@ -13319,7 +13319,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventoryLastDriedHelp.
   ///
   /// In en, this message translates to:
-  /// **'Filled in when an AMS drying run of at least half its length ends. Set it here for a spool dried elsewhere.'**
+  /// **'Filled in after an AMS drying. Set it by hand for a spool dried elsewhere.'**
   String get inventoryLastDriedHelp;
 
   /// Link under a supplier to its archived spools; sits next to the active count ('2 spools'), so the noun is left out. Agrees with 'spool'.

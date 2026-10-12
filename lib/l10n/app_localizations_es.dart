@@ -2644,7 +2644,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get inventoryMaterialNumberHint =>
-      'Común a todas las bobinas de un producto. Una bobina nueva de un producto conocido lo recibe automáticamente.';
+      'Común a todas las bobinas de un producto.';
 
   @override
   String get inventorySpoolmanCannotClear =>
@@ -7997,7 +7997,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get inventoryLastDriedHelp =>
-      'Se rellena cuando termina un secado en el AMS que ha durado al menos la mitad de su duración. Indícalo aquí para una bobina secada en otro sitio.';
+      'Se rellena tras un secado en el AMS. Indícalo a mano para una bobina secada en otro sitio.';
 
   @override
   String inventorySupplierArchivedCount(int count) {
