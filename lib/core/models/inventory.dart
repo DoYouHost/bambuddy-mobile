@@ -668,7 +668,8 @@ class SpoolDraft {
   /// clear"), and the rest of [clears] (brand, price, category…) has no way to
   /// be emptied there - an unsupported clear is dropped rather than sent.
   /// [Spool.fromSpoolman] does not read the preset back, so today it only
-  /// reaches [clears] from a hand-built [Spool].
+  /// reaches [clears] from a hand-built [Spool]. `last_dried_at` is the one
+  /// more that clears on null.
   Map<String, dynamic> get _spoolmanClears => {
     if (clears.contains('subtype')) 'subtype': '',
     if (clears.contains('note')) 'note': '',

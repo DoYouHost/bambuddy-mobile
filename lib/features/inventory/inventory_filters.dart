@@ -104,8 +104,13 @@ class _FilterSheet extends ConsumerWidget {
               children: [
                 for (final sort in InventorySort.values)
                   // A server that does not record a drying has no date to
-                  // order by, and a chip that sorts nothing reads as broken.
-                  if (sort != InventorySort.lastDried || lastDriedSupported)
+                  // order by, and a chip that sorts nothing reads as broken -
+                  // unless it is the sort already chosen (the filters outlive a
+                  // switch to an older server), which has to stay visible to be
+                  // changed.
+                  if (sort != InventorySort.lastDried ||
+                      lastDriedSupported ||
+                      filters.sort == sort)
                     ChoiceChip(
                       label: Text(_sortLabel(l10n, sort)),
                       selected: filters.sort == sort,

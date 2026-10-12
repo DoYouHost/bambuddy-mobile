@@ -143,11 +143,13 @@ void main() {
         return;
       }
       final spool = await create();
-      final local = DateTime.parse('2026-10-06T15:05:30+02:00');
-      final after = await source.updateSpool(
-        spool.id,
-        SpoolDraft(material: material, lastDriedAt: local),
+      // Raw, not through SpoolDraft: the draft converts to UTC before it sends,
+      // and the offset is what the server has to cope with (`naive_utc`).
+      final response = await dio.patch<Map<String, dynamic>>(
+        Endpoints.inventorySpool(spool.id),
+        data: {'last_dried_at': '2026-10-06T15:05:30+02:00'},
       );
+      final after = Spool.fromNative(response.data!);
       expect(after.lastDriedAt!.isAtSameMomentAs(dried), isTrue);
     });
   });

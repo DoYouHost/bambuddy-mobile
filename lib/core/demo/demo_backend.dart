@@ -5105,10 +5105,11 @@ class DemoBackend {
     spools[1]['material_number'] = '15';
     spools[2]['material_number'] = '22';
     spools[3]['material_number'] = 'A-104';
-    // The three ways a drying date reaches a spool: an AMS run (date, target
-    // temperature, actual hours), a run the printer did not report back
-    // (hours only), and a date typed in by hand (nothing else, the server drops
-    // the cycle's figures with it). The rest were never dried.
+    // The three ways a drying date reaches a spool: an AMS run Bambuddy started
+    // (date, target temperature, actual hours), a run started on the printer
+    // (hours only: the printer never echoes the temperature), and a date typed
+    // in by hand (nothing else, the server drops the cycle's figures with it).
+    // The rest were never dried.
     spools[0]['last_dried_at'] = _iso(_daysAgo(3));
     spools[0]['last_dried_temp'] = 55;
     spools[0]['last_dried_hours'] = 7.5;

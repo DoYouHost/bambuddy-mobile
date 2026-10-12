@@ -298,6 +298,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         _lastWritten =
             await notifier.updateSpool(widget.existing!.id, draft) ??
             _lastWritten;
+        // Written: a retry of a failed follow-up must not send the date again,
+        // which would drop the figures of a drying that finished meanwhile.
+        _lastDriedTouched = false;
         spoolId = widget.existing!.id;
         message = l10n.inventorySpoolUpdated;
       } else if (_createdSpoolId case final id?) {

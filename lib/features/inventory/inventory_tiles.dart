@@ -90,7 +90,9 @@ class _SpoolTile extends StatelessWidget {
     // "AMS-A ·…", or no slot at all. Which half gives way is decided here
     // instead, and it is the weight line: it ends in `/ 1000g`, which the
     // progress bar above already shows, while the slot is what the reader
-    // came for.
+    // came for. The material number and the drying date are `Flexible` for the
+    // same reason: unbounded, a long number and a date pushed the slot off the
+    // row.
     final metaLine = Row(
       children: [
         Expanded(
@@ -106,7 +108,14 @@ class _SpoolTile extends StatelessWidget {
           const SizedBox(width: DashSpace.sm),
           Icon(Icons.tag, size: 12, color: t.textTertiary),
           const SizedBox(width: DashSpace.xs),
-          Text(number, maxLines: 1, style: t.monoLabel),
+          Flexible(
+            child: Text(
+              number,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: t.monoLabel,
+            ),
+          ),
         ],
         // A mark on the row rather than a line of its own, so a spool that was
         // dried costs the list no height. The run's figures are in the sheet.
@@ -114,10 +123,13 @@ class _SpoolTile extends StatelessWidget {
           const SizedBox(width: DashSpace.sm),
           Icon(Icons.air, size: 12, color: t.textTertiary),
           const SizedBox(width: DashSpace.xs),
-          Text(
-            DateTimeFormats.of(context).dayNamedMonth(dried),
-            maxLines: 1,
-            style: t.monoLabel,
+          Flexible(
+            child: Text(
+              DateTimeFormats.of(context).dayNamedMonth(dried),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: t.monoLabel,
+            ),
           ),
         ],
         if (assignment != null) ...[

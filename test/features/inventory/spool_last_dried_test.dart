@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/format/datetime_format.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
+import 'package:bambuddy_mobile/core/models/supplier.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
@@ -9,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import 'fake_suppliers.dart';
 
 /// The last drying (#2863) on the shelf: a mark on the tile that costs the
 /// list no height, and the run's figures in the detail sheet.
@@ -21,7 +23,8 @@ class _Shelf extends InventoryNotifier {
   @override
   Future<Spool?> updateSpool(int spoolId, SpoolDraft draft) async {
     drafts.add(draft);
-    return spools.firstWhere((s) => s.id == spoolId);
+    // What the server answers: the spool as this write left it.
+    return Spool(id: spoolId, material: draft.material, suppliers: const []);
   }
 
   @override
@@ -31,7 +34,9 @@ class _Shelf extends InventoryNotifier {
   Future<void> refresh({bool askBackend = false}) async {}
 }
 
-final _dried = DateTime.utc(2026, 10, 6, 12);
+// Local, as the model holds it (`dateTimeFromJson`): a UTC fixture would be
+// formatted as another day in a zone far enough east.
+final _dried = DateTime(2026, 10, 6, 12);
 
 Spool _spool(int id, String brand, {DateTime? at, int? temp, double? hours}) =>
     Spool(
@@ -108,6 +113,23 @@ void main() {
       expect(filters.sort, InventorySort.lastDried);
     });
 
+    testWidgets(
+      'a sort already chosen stays on its chip when the gate closes',
+      (tester) async {
+        await pumpShelf(tester, supported: false);
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(InventoryScreen)),
+        );
+        container.read(inventoryFiltersProvider.notifier).state = container
+            .read(inventoryFiltersProvider)
+            .copyWith(sort: InventorySort.lastDried);
+        await openFilters(tester);
+        final chip = find.widgetWithText(ChoiceChip, pl.inventoryLastDried);
+        expect(chip, findsOneWidget);
+        expect(tester.widget<ChoiceChip>(chip).selected, isTrue);
+      },
+    );
+
     testWidgets('an older server is not offered a sort with nothing to order', (
       tester,
     ) async {
@@ -130,10 +152,7 @@ void main() {
       final formats = DateTimeFormats.of(
         tester.element(find.byType(InventoryScreen)),
       );
-      expect(
-        find.text(formats.dayNamedMonth(_dried.toLocal())),
-        findsOneWidget,
-      );
+      expect(find.text(formats.dayNamedMonth(_dried)), findsOneWidget);
       expect(find.byIcon(Icons.air), findsOneWidget);
     });
 
@@ -146,7 +165,7 @@ void main() {
       );
       expect(find.text(pl.inventoryLastDried), findsOneWidget);
       expect(
-        find.text('${formats.date(_dried.toLocal())} · 55 °C · 7.5 h'),
+        find.text('${formats.date(_dried)} · 55 °C · 7.5 h'),
         findsOneWidget,
       );
     });
@@ -215,6 +234,7 @@ void main() {
       Spool? existing,
       bool supported = true,
       InventoryBackend backend = InventoryBackend.native,
+      FakeSuppliers? suppliers,
     }) async {
       final shelf = _Shelf([dried]);
       await pumpPhone(
@@ -233,6 +253,8 @@ void main() {
           inventoryRepositoryOf(backend),
           inventoryBackendOverride(backend),
           lastDriedSupportedProvider.overrideWithValue(AsyncData(supported)),
+          if (suppliers != null)
+            suppliersRepositoryProvider.overrideWithValue(suppliers),
           presetOverridesSupportedProvider.overrideWithValue(
             const AsyncData(false),
           ),
@@ -282,6 +304,44 @@ void main() {
       expect(shelf.drafts.single.lastDriedAt, isNull);
       expect(shelf.drafts.single.clears.contains('last_dried_at'), isTrue);
     });
+
+    testWidgets(
+      'a retry after a failed follow-up does not send the date again',
+      (tester) async {
+        // An AMS run can finish while the sheet is open; a second PATCH naming
+        // the date would drop that run's figures.
+        final suppliers = FakeSuppliers(
+          suppliers: const [Supplier(id: 5, name: 'Filamentworld')],
+        );
+        final shelf = await openForm(
+          tester,
+          existing: Spool(
+            id: 3,
+            material: 'PLA',
+            suppliers: const [],
+            lastDriedAt: _dried,
+            lastDriedReported: true,
+          ),
+          suppliers: suppliers,
+        );
+        await tester.ensureVisible(find.text(pl.inventoryLastDriedNow));
+        await tester.tap(find.text(pl.inventoryLastDriedNow));
+        await settle(tester);
+        await tester.tap(byLogId('spool_form.supplier_add'));
+        await settle(tester);
+        await tester.tap(find.text('Filamentworld'));
+        await settle(tester);
+
+        suppliers.failNextWrite = conflict;
+        await save(tester);
+        expect(shelf.drafts.single.lastDriedAt, isNotNull);
+
+        await save(tester);
+        expect(shelf.drafts, hasLength(2));
+        expect(shelf.drafts.last.lastDriedAt, isNull);
+        expect(shelf.drafts.last.clears.contains('last_dried_at'), isFalse);
+      },
+    );
 
     testWidgets('a spool never dried has no cross, only Now', (tester) async {
       await openForm(tester, existing: _spool(2, 'Beta'));
