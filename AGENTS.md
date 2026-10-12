@@ -130,6 +130,10 @@ do not stay silent because it was not part of the task.
   exists, what an older server does without it and what being early costs, and
   how a capability travels from its latch to a screen. **Read it before adding
   a gate**; the enum keeps one line per member.
+- [docs/test-harness.md](docs/test-harness.md) — the traps behind
+  `test/helpers.dart`: why a mock handler cannot count requests, why a widget
+  test needs a server profile, why a tap below the fold silently misses, what a
+  round face changes. **Read it before writing a widget or wear test.**
 - [docs/wear-geometry.md](docs/wear-geometry.md) — the round-face derivation:
   inscribed rectangle vs scaled curve, what each tunable in `wear_geometry.dart`
   was paid for, and the quadratic behind `roundScaleFor`.
