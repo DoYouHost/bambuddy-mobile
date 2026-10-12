@@ -60,6 +60,11 @@ Queue and settings store `bed_levelling` / `flow_cali` / `nozzle_offset_cali` as
 booleans is a **422**, so this one is refused rather than dropped.
 `QueueRepository.triStateCapability` reads the real answer off the
 payload and outranks the row.
+The row cannot be trusted alone: bambuddy renumbered the 0.2.5 development cycle
+to 1.2.5 partway through, so `0.2.5b2` is a beta of the very release that
+introduced the options yet sorts below `1.2.5`, and no ordering of those two
+strings says whether that particular beta predates the change. The field's type
+says it outright.
 
 ### chamberTemp65 — 1.2.6 (server commit b04664c6)
 
