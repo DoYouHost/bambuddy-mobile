@@ -1042,8 +1042,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     errorText: errorText,
   );
 
-  /// The drying date and what sets it: tap for the pickers, **Now** for a spool
-  /// just taken out of a dryer, the cross to say it was never dried.
   Widget _lastDriedField(AppLocalizations l10n) {
     final t = DashTokens.of(context);
     final at = _lastDried;

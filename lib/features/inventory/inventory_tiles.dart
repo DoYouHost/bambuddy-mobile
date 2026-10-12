@@ -813,9 +813,8 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-/// What the last drying run was, `55 °C · 7.5 h`; null when neither is known,
-/// which is a date set by hand or a run Bambuddy did not start or watch. The
-/// web's `formatLastDriedDetails`: whole hours drop their `.0`.
+/// The run as `55 °C · 7.5 h`, null when neither figure is known (the web's
+/// `formatLastDriedDetails`); whole hours drop their `.0`.
 @visibleForTesting
 String? lastDriedRun(Spool spool) {
   String hoursText(double hours) {

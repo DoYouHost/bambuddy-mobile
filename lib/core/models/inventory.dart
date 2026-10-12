@@ -286,7 +286,6 @@ class Spool {
 
   /// Target temperature [°C] of that run. Null when unknown: a date set by
   /// hand, or a run Bambuddy did not start (the printer does not report it).
-  /// Independent of [lastDriedHours]: either can be known without the other.
   final int? lastDriedTemp;
 
   /// Time the run actually lasted [h]. Null when unknown: a date set by hand,
@@ -677,7 +676,6 @@ class SpoolDraft {
     if (clears.contains('color_name')) 'color_name': null,
     if (clears.contains('slicer_filament')) 'slicer_filament': '',
     if (clears.contains('slicer_filament_name')) 'slicer_filament_name': '',
-    // `model_fields_set` carries it, so an explicit null empties the date.
     if (clears.contains('last_dried_at')) 'last_dried_at': null,
   };
 }
