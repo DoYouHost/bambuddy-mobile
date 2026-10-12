@@ -260,12 +260,9 @@ final authServiceProvider = Provider<AuthService>(
   ),
 );
 
-/// Silent re-login just before the token expires, so REST and the WS handshake
-/// do not hit a 401 we only retry reactively. `null` for the other two modes: an
-/// API key is static and a no-auth server has nothing to expire.
-///
-/// Does not run itself — the UI keeps it alive and drives it per lifecycle, and
-/// the service isolate takes over in the background.
+/// Silent re-login just before the token expires, so REST and the WS handshake do
+/// not hit a 401 we only retry reactively; `null` for the other two auth modes.
+/// Does not run itself: the UI drives it per lifecycle (docs/providers.md, "Token refreshers").
 final tokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null || profile.authMode != AuthMode.jwt) return null;
@@ -301,11 +298,8 @@ final cameraTokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
 });
 
 /// The same for the media credential behind thumbnails, covers, photos and
-/// timelapses, so a scrolled list doesn't flash a page of broken tiles while
-/// the reactive recovery re-mints. UI-only — the FGS isolate's cover fetch
-/// re-mints reactively. No-op while the credential is a header, which does not
-/// expire: [MediaAuthService.expiresAt] is null there and the refresher then
-/// just ticks on its fallback delay.
+/// timelapses. UI-only, and a no-op while the credential is a header, which does
+/// not expire (docs/providers.md, "Token refreshers").
 final mediaAuthRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null || profile.isDemo) return null;
@@ -347,11 +341,8 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
 }
 
 /// Most recently built client, for the transient frame between "change server"
-/// clearing the profile and the router redirecting to /setup: the non-autoDispose
-/// repositories watching [apiClientProvider] are still mounted under the drawer
-/// and would rebuild into the null-profile throw. Never used for a request — its
-/// consumers are guarded or about to unmount — and replaced with the next
-/// profile.
+/// clearing the profile and the router redirecting to /setup. Never used for a
+/// request (docs/providers.md, "The client and the teardown frame").
 ApiClient? _lastApiClient;
 
 /// API client for active profile. Requires configured profile — routes without
@@ -387,14 +378,10 @@ final accountRepositoryProvider = Provider<AccountRepository>(
   (ref) => AccountRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Who is signed in, and what they are allowed to do. `null` = nobody known:
-/// no profile yet, a server with auth switched off, or a `/auth/me` that
-/// didn't answer.
-///
-/// Login hands its own `user` over through [CurrentUserNotifier.adopt] before
-/// saving the profile, so signing in costs no extra request; a session
-/// restored at startup (profile loaded from settings, no login) is what the
-/// `GET /auth/me` here is for.
+/// Who is signed in, and what they are allowed to do. `null` = nobody known: no
+/// profile yet, auth switched off, or a `/auth/me` that didn't answer. Login hands
+/// its `user` over through [CurrentUserNotifier.adopt] (docs/providers.md, "Identity and
+/// permissions").
 final currentUserProvider =
     AsyncNotifierProvider<CurrentUserNotifier, CurrentUser?>(
       CurrentUserNotifier.new,
@@ -447,20 +434,11 @@ class CurrentUserNotifier extends AsyncNotifier<CurrentUser?> {
   }
 }
 
-/// Whether the current user may do [permission] — see [Permissions] for the
-/// strings.
-///
-/// **Answers `true` whenever the identity is unknown** (no profile, still
-/// loading, auth off server-side, a failed `/auth/me`, a response without a
-/// `permissions` field). The server is the only enforcer, so a permissive
-/// unknown leaves a screen reachable rather than hiding one the user is
-/// entitled to. An empty `permissions` list is *not* unknown — that is a user
-/// whose groups grant nothing, and they are refused.
-///
-/// **Not the gate for anything administrative**: use
-/// [identifiedPermissionProvider], which knows about API-key sessions. A screen
-/// that would rather not flash an entry and take it away should watch
-/// [currentUserProvider] and handle `loading` itself.
+/// Whether the current user may do [permission] — see [Permissions] for the strings.
+/// **Answers `true` whenever the identity is unknown**: the server is the only
+/// enforcer, and an empty `permissions` list is *not* unknown. **Not the gate for
+/// anything administrative**: use [identifiedPermissionProvider] (docs/providers.md, "Identity
+/// and permissions").
 final permissionProvider = Provider.family<bool, String>(
   (ref, permission) =>
       ref.watch(currentUserProvider).valueOrNull?.can(permission) ?? true,
@@ -474,17 +452,10 @@ final isAdminProvider = Provider<bool>(
   (ref) => ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? true,
 );
 
-/// Whether a *known* identity holds [permission] — the gate on the entry
-/// points into administration.
-///
-/// The opposite of [permissionProvider] on an unknown identity: nothing
-/// administrative is offered when nobody can say who is signed in.
-///
-/// An API-key session is refused outright, [CurrentUser.isAdmin] or not — the
-/// server denies a key every administrative permission
-/// (`_check_apikey_permissions`, `core/auth.py`), and what `/auth/me` says about
-/// a key never described that gate. Hence the decision on the auth mode rather
-/// than on the payload.
+/// Whether a *known* identity holds [permission] — the gate on the entry points into
+/// administration. The opposite of [permissionProvider] on an unknown identity, and
+/// an API-key session is refused outright, [CurrentUser.isAdmin] or not
+/// (docs/providers.md, "Identity and permissions").
 final identifiedPermissionProvider = Provider.family<bool, String>((ref, p) {
   if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
     return false;
@@ -493,13 +464,10 @@ final identifiedPermissionProvider = Provider.family<bool, String>((ref, p) {
   return user != null && user.can(p);
 });
 
-/// Whether this session may change a printer — its settings, or the location
-/// it stands in. **An API-key session never may:** `printers:update` is outside
-/// the key scope allowlist, so it is decided on the auth mode rather than on
-/// what `/auth/me` claims, as in [identifiedPermissionProvider].
-///
-/// Unlike that provider an unknown identity answers yes: the server is the
-/// enforcer, and a server without auth has nobody to refuse.
+/// Whether this session may change a printer — its settings, or the location it
+/// stands in. **An API-key session never may** (`printers:update` is outside the key
+/// scope allowlist); an unknown identity answers yes, as in [permissionProvider]
+/// (docs/providers.md, "Identity and permissions").
 final canUpdatePrintersProvider = Provider<bool>((ref) {
   if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
     return false;
@@ -674,41 +642,22 @@ final inventoryChangedProvider = NotifierProvider<Epoch, int>(Epoch.new);
 /// Bumped when the server says its announcements changed.
 final announcementsChangedProvider = NotifierProvider<Epoch, int>(Epoch.new);
 
-/// The connected server's version, for a synchronous reader. Warmed by the
-/// shell at start, and asked again on every regained contact — a read that
-/// failed while the network was down would otherwise wait out the service's
-/// retry window. `null` is "the server did not say".
-///
-/// Re-running costs nothing once the version is known ([ServerVersionService]
-/// caches it) and keeps the previous value up meanwhile, so nothing blinks.
+/// The connected server's version, for a synchronous reader. Warmed by the shell at
+/// start and asked again on every regained contact; `null` is "the server did not
+/// say" (docs/providers.md, "Versions").
 final serverVersionProvider = FutureProvider<ServerVersion?>((ref) {
   final service = ref.watch(serverVersionServiceProvider);
   if (ref.watch(serverContactEpochProvider) > 0) service.forgetFailure();
   return service.current();
 });
 
-/// This app's own build, as `version+buildNumber`.
-///
-/// A provider rather than a future held in each widget's `State`, which is how
-/// three screens did it: `PackageInfo.fromPlatform` hands back a fresh future
-/// on every call, so a `FutureBuilder` given one re-enters `waiting` and
-/// flashes its placeholder — and a `State` only avoids that for as long as the
-/// widget lives, which for the drawer footer is one opening of the drawer.
-/// Cached in the container, the answer is there synchronously from the second
-/// read on and nothing flashes at all.
+/// This app's own build, as `version+buildNumber`. A provider rather than a future
+/// in each widget's `State`, which re-enters `waiting` on every call
+/// (docs/providers.md, "Versions").
 final appVersionProvider = FutureProvider<String>((ref) => readAppVersion());
 
-/// The connected server's version string, for the drawer footer. `null` is
-/// "nobody knows" — too old to serve `/updates/version`, unreachable, or a reply
-/// the parser made nothing of — and with no profile it answers `null` rather
-/// than letting [apiClientProvider] throw.
-///
-/// `autoDispose` **with a link kept on success**, because the two halves answer
-/// two different failures. Kept unconditionally, a drawer opened once in a lift
-/// reads "unknown" until the app is killed; disposed unconditionally, every
-/// reopening starts at [AsyncLoading] — the flash [appVersionProvider] exists to
-/// avoid. An answer cannot go stale without the server restarting, and an
-/// unknown released puts the service's retry within reach of the next opening.
+/// The connected server's version string, for the drawer footer. `null` is "nobody
+/// knows". `autoDispose` **with a link kept on success** (docs/providers.md, "Versions").
 final serverVersionLabelProvider = FutureProvider.autoDispose<String?>((ref) {
   // Synchronous on purpose: with no server configured there is nothing to wait
   // for, and handing back a future would put a loading frame in front of an
@@ -740,14 +689,9 @@ final batchRepositoryProvider = Provider<BatchRepository>(
   ),
 );
 
-/// Whether the server stores the three calibration options as `off`/`on`/`auto`
-/// rather than as booleans. Drives whether the print form offers an `auto`
-/// position — while this is loading, or when nothing knows, the form stays on
-/// two states and no `auto` is ever sent to a server that would reject it.
-///
-/// Asks the queue repository rather than the version service directly: it has
-/// seen the server's own payloads, and that beats reasoning from a version
-/// number (see `QueueRepository.triStateCapability`).
+/// Whether the server stores the three calibration options as `off`/`on`/`auto`.
+/// While loading or unknown the print form stays on two states, so no `auto` reaches
+/// a server that would reject it (docs/providers.md, "Versions").
 final triStateCalibrationProvider = capabilityGate(
   (ref) => ref.watch(queueRepositoryProvider).triStateCapability,
 );
@@ -765,15 +709,9 @@ final defaultConfirmOutcomeProvider = serverGate<bool>(
   (settings) => settings.settingBool('default_confirm_outcome'),
 );
 
-/// Highest chamber target the connected server accepts, in °C — 65 from 1.2.6,
-/// 60 before it and whenever the version is not known yet. A value, not a gate:
-/// the default until known, never a loading state.
-///
-/// One of the two gates with nothing to observe — see
-/// [ServerVersion.chamberMaxTargetC]; [labelStartingPositionProvider] is the
-/// other. Every other capability provider here asks a repository instead,
-/// because a repository has seen the server's own answers and that outranks
-/// reasoning from a version number.
+/// Highest chamber target the connected server accepts, in °C — 65 from 1.2.6, 60
+/// before it and whenever the version is not known yet. A value, not a gate
+/// (docs/providers.md, "Versions").
 final chamberMaxTargetProvider = Provider<int>(
   (ref) =>
       ref.watch(serverVersionProvider).valueOrNull?.chamberMaxTargetC ?? 60,
@@ -893,21 +831,16 @@ final slicerRepositoryProvider = Provider<SlicerRepository>(
   ),
 );
 
-/// Slicer pipelines — reusable preset bundles and their runs.
-///
-/// Not `autoDispose`: it caches whether the routes are there at all, and
-/// throwing that away between screens would put the entry point back to
-/// guessing. Rebuilt with [apiClientProvider], so a new server or new
-/// credentials get a fresh answer.
+/// Slicer pipelines — reusable preset bundles and their runs. Not `autoDispose`: it
+/// caches whether the routes are there at all (docs/providers.md, "Repositories that must not
+/// be autoDispose").
 final pipelinesRepositoryProvider = Provider<PipelinesRepository>(
   (ref) => PipelinesRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// The server's shared configuration (`AppSettings`).
-///
-/// Not `autoDispose`: it carries the 403 latch that tells the queue settings
-/// screen a write was refused, and that answer must survive leaving the screen
-/// to look at what it said.
+/// The server's shared configuration (`AppSettings`). Not `autoDispose`: it carries
+/// the 403 latch the queue settings screen reads (docs/providers.md, "Repositories that must not
+/// be autoDispose").
 final serverSettingsRepositoryProvider = Provider<ServerSettingsRepository>(
   (ref) => ServerSettingsRepository(ref.watch(apiClientProvider).dio),
 );
@@ -967,21 +900,14 @@ class ServerSettingsNotifier extends AsyncNotifier<Map<String, dynamic>> {
   Future<Map<String, dynamic>> build() =>
       ref.watch(serverSettingsRepositoryProvider).fetch();
 
-  /// Takes the map a write answered with, instead of asking for it again.
-  ///
-  /// `PUT /settings/` replies with the whole of `AppSettings`, so a second
-  /// `GET` after every save is a request that can only confirm what is already
-  /// known — and one that can *fail*, which would drop every flag in the app
-  /// back to nothing right after a save had succeeded.
+  /// Takes the map a write answered with, instead of asking for it again: the reply
+  /// to `PUT /settings/` is the whole of `AppSettings`, and a second `GET` could fail
+  /// (docs/providers.md, "Server settings").
   void adopt(Map<String, dynamic> settings) =>
       state = AsyncValue.data(settings);
 
-  /// Re-reads the settings, keeping what is already known if the read fails.
-  ///
-  /// `fetch` degrades a failure to an empty map, and the route answers with the
-  /// full schema whenever it answers at all — so an empty map here can only
-  /// mean the read did not land, and letting it overwrite a good one turns a
-  /// dropped packet into a screen with nothing on it.
+  /// Re-reads the settings, keeping what is known if the read fails: an empty map can
+  /// only mean the read did not land (docs/providers.md, "Server settings").
   Future<void> refresh() async {
     final fresh = await ref.read(serverSettingsRepositoryProvider).fetch();
     if (fresh.isNotEmpty || (state.valueOrNull ?? const {}).isEmpty) {
@@ -990,17 +916,10 @@ class ServerSettingsNotifier extends AsyncNotifier<Map<String, dynamic>> {
   }
 }
 
-/// One value derived from the server's settings, for a caller that must be able
-/// to tell "not answered yet" from "answered, and the answer is no".
-///
-/// Use it for a **gate**: a flag that decides whether a control exists at all.
-/// Reading such a flag as `false` while `/settings` is still in flight puts the
-/// user in front of a screen missing a button the server does offer.
-///
-/// Derived synchronously, because a `FutureProvider` reports a loading frame
-/// even for a future that is already complete. It keeps the last answer up
-/// during a refetch and hands on an error rather than reading as "off". A
-/// caller outside a build wants [settledGate].
+/// One value derived from the server's settings, for a caller that must tell "not
+/// answered yet" from "answered, and the answer is no". For a **gate**: a flag that
+/// decides whether a control exists. Derived synchronously; a caller outside a build
+/// wants [settledGate] (docs/providers.md, "Server settings").
 Provider<AsyncValue<T>> serverGate<T>(T Function(Map<String, dynamic>) read) =>
     Provider<AsyncValue<T>>(
       (ref) => ref.watch(serverSettingsProvider).whenData(read),
@@ -1087,13 +1006,9 @@ Future<T> settledGate<T>(
   return settled.future.whenComplete(subscription.close);
 }
 
-/// One value derived from the server's settings, resolved immediately against
-/// the fallback the server itself would have used.
-///
-/// For a **value**, not a gate: a symbol, a limit, a set of presets. Nothing is
-/// hidden while the settings are in flight — the screen shows the default and
-/// swaps in the real answer — because a spinner in the middle of a price column
-/// is worse than the default it replaces.
+/// One value derived from the server's settings, resolved immediately against the
+/// fallback the server itself would have used. For a **value**, not a gate: nothing
+/// is hidden while the settings are in flight (docs/providers.md, "Server settings").
 Provider<T> serverValue<T>(T Function(Map<String, dynamic>) read) =>
     Provider<T>(
       (ref) => read(ref.watch(serverSettingsProvider).valueOrNull ?? const {}),
@@ -1201,14 +1116,10 @@ final inventorySourceProvider = FutureProvider<SpoolInventorySource>((
   };
 });
 
-/// Filament inventory. Facade over the chosen source, usable before the server
-/// has said which one: its calls wait for the answer.
-///
-/// A failed answer is not kept — the next call asks again, so Retry and
-/// pull-to-refresh recover once the server is back. Only a settled failure:
-/// one still being asked again is awaited, not doubled. Code that needs the
-/// backend itself reads [InventoryRepository.backend] for the same reason,
-/// never [inventoryBackendProvider]'s future.
+/// Filament inventory. Facade over the chosen source, usable before the server has
+/// said which one: its calls wait for the answer. A settled failure is not kept;
+/// read [InventoryRepository.backend], never [inventoryBackendProvider]'s future
+/// (docs/providers.md, "Repositories that must not be autoDispose").
 final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
   void askAgainIfFailed() {
     final asked = ref.read(inventoryBackendProvider);

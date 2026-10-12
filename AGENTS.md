@@ -126,6 +126,10 @@ do not stay silent because it was not part of the task.
   feature so a report about it explains anything: naming controls, sampled
   endpoints, action failures, isolates, adding a field. **Read it before adding
   a screen or a notification.**
+- [docs/providers.md](docs/providers.md) — why `lib/providers.dart` is shaped as it
+  is: the three permission gates and when they disagree, the teardown frame, the
+  token refreshers, which repositories must not be `autoDispose`, `serverGate` vs
+  `serverValue`. **Read it before adding a permission check or a provider.**
 - [docs/server-gates.md](docs/server-gates.md) — why each `ServerFeature` row
   exists, what an older server does without it and what being early costs, and
   how a capability travels from its latch to a screen. **Read it before adding
