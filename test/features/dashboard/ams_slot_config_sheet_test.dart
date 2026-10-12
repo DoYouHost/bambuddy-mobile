@@ -190,10 +190,14 @@ void main() {
       await tester.scrollUntilVisible(
         finder,
         120,
+        // The list, not the search field's own horizontal Scrollable, which is
+        // the first one in the tree.
         scrollable: find
             .descendant(
               of: find.byType(AmsSlotConfigSheet),
-              matching: find.byType(Scrollable),
+              matching: find.byWidgetPredicate(
+                (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+              ),
             )
             .first,
       );
