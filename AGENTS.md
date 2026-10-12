@@ -146,6 +146,9 @@ do not stay silent because it was not part of the task.
   `test/helpers.dart`: why a mock handler cannot count requests, why a widget
   test needs a server profile, why a tap below the fold silently misses, what a
   round face changes. **Read it before writing a widget or wear test.**
+- [docs/wear-relay.md](docs/wear-relay.md) — the phone↔watch RPC contract (one
+  Data Layer path, `kind`, retry rules, `WearRpcAck`) and the phone-side handler's
+  claim/listener order. **Read it before changing `lib/core/watch/`.**
 - [docs/wear-fleet-poll.md](docs/wear-fleet-poll.md) — the watch's poll: why the
   transport is not `autoDispose`, the epoch/`_alive`/`_paused` trio, what `build`
   and `refresh` may and may not do. **Read it before touching `wear_providers.dart`.**

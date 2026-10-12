@@ -1,13 +1,7 @@
-/// Watch↔phone RPC contract over the Wear Data Layer (`MessageClient`).
-///
-/// The watch sends a [WearRpcRequest]; the phone executes it and replies with a
-/// [WearRpcResponse] carrying the raw server JSON, which the watch parses with
-/// the existing model `fromJson`s — no `toJson` anywhere.
-///
-/// `watch_connectivity` hardcodes one MessageClient path for every message, so
-/// requests and responses share a stream and are told apart by `kind` rather
-/// than by Data Layer paths. Correlation is by `id`, and delivery is not
-/// guaranteed — callers pair this with a timeout.
+/// Watch↔phone RPC contract over the Wear Data Layer (`MessageClient`). The watch
+/// sends a [WearRpcRequest]; the phone replies with a [WearRpcResponse] carrying the
+/// raw server JSON. Requests and responses share one stream, told apart by `kind`;
+/// correlation is by `id`, and delivery is not guaranteed (docs/wear-relay.md, "The RPC contract").
 library;
 
 import 'dart:math';
@@ -68,13 +62,9 @@ extension WearRpcActionRetry on WearRpcAction {
     WearRpcAction.startNext => WearRpcRetry.destructive,
   };
 
-  /// Whether the **watch** may serve this over its own REST connection after
-  /// the relay timed out (`HybridWearTransport`).
-  ///
-  /// Only a read, [WearRpcRetry.idempotent] included: a timed-out command may
-  /// have run with the reply lost on the way back, and the watch cannot tell
-  /// that from a phone that never heard it. The user is owed one answer about
-  /// one command, not two attempts at it.
+  /// Whether the **watch** may serve this over its own REST connection after the relay
+  /// timed out. Only a read: a timed-out command may have run with the reply lost on the
+  /// way back (docs/wear-relay.md, "The RPC contract").
   bool get mayRepeatOverRest => retry == WearRpcRetry.read;
 
   /// Whether the **phone** may execute this for a sender that has already
@@ -104,13 +94,9 @@ const _kindRequest = 'req';
 const _kindResponse = 'res';
 const _kindAck = 'ack';
 
-/// Contract version, bumped on incompatible changes. A decoder seeing a newer
-/// one still tries to parse, since fields are additive.
-///
-/// v2 = the sender understands [WearRpcAck] and waits [wearRpcWakeTimeout] once
-/// acked. The phone reads it off a request to decide whether it may execute one
-/// on the cold path at all: a v1 watch has already given up, and its retry would
-/// run the command twice.
+/// Contract version, bumped on incompatible changes; a decoder seeing a newer one
+/// still tries to parse, since fields are additive. v2 = the sender understands
+/// [WearRpcAck] (docs/wear-relay.md, "The RPC contract").
 const wearRpcVersion = 2;
 
 /// First version whose sender waits for a woken phone. Mirrored natively in
@@ -306,14 +292,10 @@ class WearRpcResponse {
   }
 }
 
-/// Phone→watch "hold on": the phone had no relay listening, the message woke
-/// its process, and an answer to [id] is coming later than the watch's normal
-/// deadline.
-///
-/// A separate `kind` rather than a field on [WearRpcResponse], because a watch
-/// built before this existed must not read it as an answer: its decoders match
-/// on the kind and drop everything else, so an ack is silently ignored there
-/// and the request keeps the deadline it always had.
+/// Phone→watch "hold on": the phone had no relay listening, the message woke its
+/// process, and an answer to [id] is coming later than the watch's normal deadline.
+/// A separate `kind`, so a watch built before it existed ignores it
+/// (docs/wear-relay.md, "The RPC contract").
 class WearRpcAck {
   const WearRpcAck(this.id, {this.state = wearRpcAckWaking});
 

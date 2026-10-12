@@ -10,20 +10,13 @@ import 'wear_face_curve.dart';
 import 'wear_scroll_indicator.dart';
 
 /// The one scrolling surface on the watch: a viewport cut down to the rectangle
-/// inscribed in the face, plus the scroll indicator Wear OS expects.
-///
-/// Both of Google Play's layout rejections live here, which is why no screen
-/// builds a [ListView] of its own — a per-screen padding literal is how the
-/// first list row ended up under the bezel, and a per-screen scroll view is how
-/// four of them ended up with no indicator.
+/// inscribed in the face, plus the scroll indicator Wear OS expects. Both of Google
+/// Play's layout rejections live here, so no screen builds a [ListView] of its own.
 ///
 /// **A list curves** ([curved]): the viewport is the whole face and each item is
-/// scaled to the chord lit where it sits. **A panel keeps the rectangle**:
-/// anything with a [footer] or [centerWhenShort] is a fixed layout, and a
-/// confirmation whose buttons are pinned at the bottom of the *face* would pin
-/// them where the circle has no width left. Which costs what, and why the
-/// insets go on the viewport rather than on the content, is in
-/// `docs/wear-geometry.md`.
+/// scaled to the chord lit where it sits. **A panel keeps the rectangle**: anything
+/// with a [footer] or [centerWhenShort] is a fixed layout. Why, and why the insets go
+/// on the viewport rather than on the content, is in `docs/wear-geometry.md`.
 class WearScrollView extends StatefulWidget {
   const WearScrollView({
     super.key,
@@ -49,21 +42,14 @@ class WearScrollView extends StatefulWidget {
   /// better from the top.
   final bool centerWhenShort;
 
-  /// Run the viewport across the whole face and let the items carry the
-  /// geometry, shrinking toward the rim ([WearFaceCurve]).
-  ///
-  /// **Only for a list of short rows.** An item taller than the face's radius
-  /// has a corner past the chord wherever it stands, so a paragraph or a fault
-  /// card cannot be rescued by shrinking — only cut, which is the rejection this
-  /// file exists because of. Those screens keep the rectangle.
+  /// Run the viewport across the whole face and let the items shrink toward the rim
+  /// ([WearFaceCurve]). **Only for a list of short rows**: an item taller than the
+  /// face's radius has a corner past the chord wherever it stands and can only be cut.
   final bool curved;
 
-  /// How round this list's items are, where they are all one shape.
-  ///
-  /// Otherwise the scale is decided by the corner of a box: a 20 dp round row
-  /// shrank to 0.85 for a corner it never paints, and scaled text is
-  /// re-rasterised — same advances, different pixels — so it reads as different
-  /// letter spacing. Left at nothing unless the items really are all that round.
+  /// How round this list's items are, where they are all one shape. Otherwise the scale
+  /// is decided by a box's corner, and a 20 dp round row shrank for a corner it never
+  /// paints. Left at nothing unless the items really are that round.
   final double itemCornerRadius;
 
   /// How much of the face this screen's content actually needs, if less than all
@@ -131,12 +117,9 @@ class _WearScrollViewState extends State<WearScrollView>
     super.dispose();
   }
 
-  /// Bring the indicator up and start the countdown that takes it away again.
-  ///
-  /// `forward()` only when it is not already on its way up: called again mid
-  /// fade-in it restarts the animation from where it is, and the events that
-  /// land here arrive several times per frame — the indicator sat at zero
-  /// opacity for the whole of a scroll, permanently one frame from appearing.
+  /// Bring the indicator up and start the countdown that takes it away. `forward()`
+  /// only when not already on its way up: the events arrive several times per frame,
+  /// and restarting the fade each time left it at zero opacity for a whole scroll.
   void _reveal() {
     if (!mounted) return;
     if (!_fade.isForwardOrCompleted) _fade.forward();
@@ -163,12 +146,9 @@ class _WearScrollViewState extends State<WearScrollView>
   /// position has no previous metrics to compare the first layout against).
   bool _scrolls = false;
 
-  /// Content grew or shrank without anyone scrolling — a list that has just
-  /// become scrollable (the fleet landed, a fault appeared) is worth saying so.
-  /// Only on a real change: this fires on frames where nothing moved.
-  ///
-  /// Dispatched from a microtask after layout, never during it, so the rebuild
-  /// below is a legal `setState` rather than a mid-layout one.
+  /// Content grew or shrank without anyone scrolling, e.g. a list that just became
+  /// scrollable. Only on a real change; dispatched from a microtask after layout, so
+  /// the `setState` is legal.
   bool _onMetrics(ScrollMetricsNotification notification) {
     final extent = notification.metrics.maxScrollExtent;
     if (extent > 0 && extent != _scrollableExtent) _reveal();
@@ -290,14 +270,9 @@ class _WearScrollViewState extends State<WearScrollView>
     ),
   );
 
-  /// Softens the viewport's own edge, where a row scrolling out would otherwise
-  /// be cut across in the middle of the black face.
-  ///
-  /// Only where something can actually cross that edge. Content that fits never
-  /// reaches it — at rest the first and last rows sit exactly where the gradient
-  /// is already opaque ([_leadIn]) — so on a screen that does not scroll the
-  /// mask buys an offscreen compositing pass per frame for a gradient nobody
-  /// can see, on the flavour that exists because of the battery.
+  /// Softens the viewport's own edge, where a row scrolling out would otherwise be cut
+  /// across. Only where something can cross it: content that fits never reaches it, so
+  /// the mask would buy an offscreen pass per frame for a gradient nobody can see.
   Widget _faded(Widget child) => LayoutBuilder(
     builder: (context, constraints) {
       final height = constraints.maxHeight;
