@@ -28,7 +28,11 @@ InputDecoration dashDecoration(
   suffixText: suffixText,
   suffixIcon: suffixIcon,
   prefixIcon: prefixIcon,
-);
+).copyWith(helperMaxLines: _helperLines);
+
+/// How many lines a field's `helperText` may take. Flutter's default is one,
+/// ellipsized, which cut a two-sentence hint off mid-word.
+const _helperLines = 3;
 
 /// The same chrome as an [InputDecorationTheme], for [DropdownMenu] — it builds
 /// its own text field internally and takes no [InputDecoration]. Read off
@@ -49,6 +53,7 @@ InputDecorationTheme dashInputTheme(DashTokens t) {
     floatingLabelStyle: d.floatingLabelStyle,
     hintStyle: d.hintStyle,
     helperStyle: d.helperStyle,
+    helperMaxLines: _helperLines,
     border: d.border,
     enabledBorder: d.enabledBorder,
     focusedBorder: d.focusedBorder,

@@ -509,8 +509,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 'materialNumber',
                 l10n.inventoryFieldMaterialNumber,
                 ref.watch(materialNumberOptionsProvider),
+                helperText: l10n.inventoryMaterialNumberHint,
               ),
-              _fieldHint(l10n.inventoryMaterialNumberHint),
             ],
             _field(
               'labelWeight',
@@ -600,10 +600,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               hint: l10n.inventoryLowStockHint,
             ),
             _combo('location', l10n.inventoryFieldLocation, locations),
-            if (_showsLastDried(ref)) ...[
-              _lastDriedField(l10n),
-              _fieldHint(l10n.inventoryLastDriedHelp),
-            ],
+            if (_showsLastDried(ref)) _lastDriedField(l10n),
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
 
             if (showOverrides) ..._presetOverridesSection(l10n, stored, models),
@@ -645,6 +642,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     List<String> options, {
     bool required = false,
     String? errorText,
+    String? helperText,
   }) => _spoolCombo(
     context,
     _c,
@@ -653,6 +651,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     options,
     required: required,
     errorText: errorText,
+    helperText: helperText,
     onSelected: (v) {
       if (required && v != null && v.isNotEmpty) {
         setState(() => _materialMissing = false);
@@ -1043,15 +1042,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     errorText: errorText,
   );
 
-  /// A sentence under a field, set the way the field's own `helperText` is
-  /// (11 pt, tertiary, inset like the field's text) so every hint on the form
-  /// reads alike. Not `helperText` itself, which keeps to one line and cuts a
-  /// longer sentence off.
-  Widget _fieldHint(String text) => Padding(
-    padding: const EdgeInsets.only(left: DashSpace.md),
-    child: Text(text, style: DashTokens.of(context).microSoft),
-  );
-
   /// The drying date and what sets it: tap for the pickers, **Now** for a spool
   /// just taken out of a dryer, the cross to say it was never dried.
   Widget _lastDriedField(AppLocalizations l10n) {
@@ -1074,6 +1064,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           decoration: dashDecoration(
             t,
             labelText: l10n.inventoryLastDried,
+            helperText: l10n.inventoryLastDriedHelp,
             suffixIcon: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1199,6 +1190,7 @@ Widget _spoolCombo(
   String area = 'spool_form',
   bool required = false,
   String? errorText,
+  String? helperText,
   ValueChanged<String?>? onSelected,
 }) {
   final tag = _fieldTag(key, area: area);
@@ -1210,6 +1202,7 @@ Widget _spoolCombo(
       controller: controllers[key],
       label: Text(required ? '$label *' : label),
       errorText: errorText,
+      helperText: helperText,
       filterable: true,
       textStyle: DashTokens.of(context).body,
       onSelected: onSelected,
