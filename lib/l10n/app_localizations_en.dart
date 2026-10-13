@@ -8178,6 +8178,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get financeAddCharge => 'Add charge';
 
   @override
+  String get financeButtonNewCenter => 'New center';
+
+  @override
+  String get financeButtonWallet => 'Wallet';
+
+  @override
+  String get financeButtonManualPrint => 'Manual print';
+
+  @override
   String get financeAddManualPrint => 'Add manual print';
 
   @override

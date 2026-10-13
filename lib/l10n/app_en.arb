@@ -5533,6 +5533,18 @@
   "@financeAddCharge": {
     "description": "Button that books a manual print charge."
   },
+  "financeButtonNewCenter": "New center",
+  "@financeButtonNewCenter": {
+    "description": "Short label of the button that opens the new cost center form."
+  },
+  "financeButtonWallet": "Wallet",
+  "@financeButtonWallet": {
+    "description": "Short label of the button that opens the wallet adjustment form."
+  },
+  "financeButtonManualPrint": "Manual print",
+  "@financeButtonManualPrint": {
+    "description": "Short label of the button that opens the manual print charge form."
+  },
   "financeAddManualPrint": "Add manual print",
   "@financeAddManualPrint": {
     "description": "Button and title: charge a print the server never saw."

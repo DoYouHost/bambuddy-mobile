@@ -8282,6 +8282,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get financeAddCharge => 'Añadir cargo';
 
   @override
+  String get financeButtonNewCenter => 'Nuevo centro';
+
+  @override
+  String get financeButtonWallet => 'Monedero';
+
+  @override
+  String get financeButtonManualPrint => 'Impresión manual';
+
+  @override
   String get financeAddManualPrint => 'Añadir impresión manual';
 
   @override

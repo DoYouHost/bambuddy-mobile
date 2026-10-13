@@ -117,37 +117,31 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   const SizedBox(height: DashSpace.lg),
                 ],
                 if (admin) ...[
-                  Column(
+                  Row(
                     spacing: DashSpace.sm,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (canCreate)
-                        logTag(
-                          'finance.create_center',
-                          FilledButton.tonalIcon(
-                            onPressed: () => openCostCenterForm(context),
-                            icon: const Icon(Icons.add),
-                            label: Text(l10n.financeCreateCostCenter),
-                          ),
+                        _AdminAction(
+                          id: 'finance.create_center',
+                          icon: Icons.add,
+                          label: l10n.financeButtonNewCenter,
+                          onPressed: () => openCostCenterForm(context),
                         ),
-                      if (canModify && canPickUsers)
-                        logTag(
-                          'finance.adjust_wallet',
-                          FilledButton.tonalIcon(
-                            onPressed: () => openWalletAdjust(context),
-                            icon: const Icon(Icons.swap_vert),
-                            label: Text(l10n.financeAdjustWallet),
-                          ),
+                      if (canModify && canPickUsers) ...[
+                        _AdminAction(
+                          id: 'finance.adjust_wallet',
+                          icon: Icons.swap_vert,
+                          label: l10n.financeButtonWallet,
+                          onPressed: () => openWalletAdjust(context),
                         ),
-                      if (canModify && canPickUsers)
-                        logTag(
-                          'finance.manual_print',
-                          FilledButton.tonalIcon(
-                            onPressed: () => openManualPrint(context),
-                            icon: const Icon(Icons.receipt_long_outlined),
-                            label: Text(l10n.financeAddManualPrint),
-                          ),
+                        _AdminAction(
+                          id: 'finance.manual_print',
+                          icon: Icons.receipt_long_outlined,
+                          label: l10n.financeButtonManualPrint,
+                          onPressed: () => openManualPrint(context),
                         ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: DashSpace.lg),
@@ -301,6 +295,46 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
       ],
     );
   }
+}
+
+/// One of the administrator's shortcuts: a quiet button with the icon over a short
+/// label, so three of them share a row instead of taking three.
+class _AdminAction extends StatelessWidget {
+  const _AdminAction({
+    required this.id,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String id;
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: logTag(
+      id,
+      OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(
+            horizontal: DashSpace.xs,
+            vertical: DashSpace.md,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          spacing: DashSpace.xs,
+          children: [
+            Icon(icon, size: 20),
+            Text(label, textAlign: TextAlign.center, maxLines: 2),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _SectionHeader extends StatelessWidget {

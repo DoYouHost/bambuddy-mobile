@@ -8355,6 +8355,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get financeAddCharge => 'Ajouter le débit';
 
   @override
+  String get financeButtonNewCenter => 'Nouveau centre';
+
+  @override
+  String get financeButtonWallet => 'Portefeuille';
+
+  @override
+  String get financeButtonManualPrint => 'Impression manuelle';
+
+  @override
   String get financeAddManualPrint => 'Ajouter une impression manuelle';
 
   @override

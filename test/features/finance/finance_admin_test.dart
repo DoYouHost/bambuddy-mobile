@@ -247,7 +247,7 @@ void main() {
       });
     }
 
-    testWidgets('the buttons stand in one column, as wide as each other', (
+    testWidgets('the buttons share one row, as wide as each other', (
       tester,
     ) async {
       await pump(tester, _Server());
@@ -261,10 +261,10 @@ void main() {
           tester.getRect(byLogId(id)),
       ];
 
-      expect({for (final b in boxes) b.width}, hasLength(1));
-      expect({for (final b in boxes) b.left}, hasLength(1));
-      expect(boxes[1].top, greaterThan(boxes[0].bottom));
-      expect(boxes[2].top, greaterThan(boxes[1].bottom));
+      expect({for (final b in boxes) b.top}, hasLength(1));
+      expect({for (final b in boxes) b.width.round()}, hasLength(1));
+      expect(boxes[1].left, greaterThan(boxes[0].right));
+      expect(boxes[2].left, greaterThan(boxes[1].right));
     });
 
     testWidgets('create alone offers a new center and nothing else', (

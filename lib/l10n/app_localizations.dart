@@ -13730,6 +13730,24 @@ abstract class AppLocalizations {
   /// **'Add charge'**
   String get financeAddCharge;
 
+  /// Short label of the button that opens the new cost center form.
+  ///
+  /// In en, this message translates to:
+  /// **'New center'**
+  String get financeButtonNewCenter;
+
+  /// Short label of the button that opens the wallet adjustment form.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet'**
+  String get financeButtonWallet;
+
+  /// Short label of the button that opens the manual print charge form.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual print'**
+  String get financeButtonManualPrint;
+
   /// Button and title: charge a print the server never saw.
   ///
   /// In en, this message translates to:

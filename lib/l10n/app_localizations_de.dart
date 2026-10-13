@@ -8258,6 +8258,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get financeAddCharge => 'Belastung hinzufügen';
 
   @override
+  String get financeButtonNewCenter => 'Neue Kostenstelle';
+
+  @override
+  String get financeButtonWallet => 'Guthaben';
+
+  @override
+  String get financeButtonManualPrint => 'Manueller Druck';
+
+  @override
   String get financeAddManualPrint => 'Manuellen Druck hinzufügen';
 
   @override

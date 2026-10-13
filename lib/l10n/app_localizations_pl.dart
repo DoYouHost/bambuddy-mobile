@@ -8307,6 +8307,15 @@ class AppLocalizationsPl extends AppLocalizations {
   String get financeAddCharge => 'Dodaj obciążenie';
 
   @override
+  String get financeButtonNewCenter => 'Nowe centrum';
+
+  @override
+  String get financeButtonWallet => 'Portfel';
+
+  @override
+  String get financeButtonManualPrint => 'Ręczny wydruk';
+
+  @override
   String get financeAddManualPrint => 'Dodaj ręczny wydruk';
 
   @override
