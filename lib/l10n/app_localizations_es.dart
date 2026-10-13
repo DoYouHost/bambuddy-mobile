@@ -8194,18 +8194,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get financeTitle => 'Finanzas';
 
   @override
-  String get financeBudgetPolicyHint =>
-      'Los saldos de las cuentas registran los costes. Imprimir solo está limitado por el presupuesto del centro de costes elegido; sin presupuesto, imprimir es ilimitado.';
-
-  @override
   String get financeBalance => 'Saldo de la cuenta personal';
 
   @override
   String get financeMyCostCenters => 'Mis centros de costes';
-
-  @override
-  String get financeCostCentersHint =>
-      'Revisa los límites de presupuesto y mantén los costes bajo control';
 
   @override
   String get financeNoCostCenters => 'No se encontraron centros de costes.';
@@ -8229,9 +8221,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get financeRecentTransactions => 'Transacciones recientes';
-
-  @override
-  String get financeTransactionsHint => 'Filtra por tipo y centro de costes';
 
   @override
   String get financeType => 'Tipo';

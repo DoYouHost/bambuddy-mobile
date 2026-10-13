@@ -117,9 +117,9 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   const SizedBox(height: DashSpace.lg),
                 ],
                 if (admin) ...[
-                  Wrap(
+                  Column(
                     spacing: DashSpace.sm,
-                    runSpacing: DashSpace.sm,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (canCreate)
                         logTag(
@@ -152,15 +152,12 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   ),
                   const SizedBox(height: DashSpace.lg),
                 ],
-                Text(l10n.financeBudgetPolicyHint, style: t.labelSoft),
-                const SizedBox(height: DashSpace.lg),
                 const _BalanceCard(),
                 const SizedBox(height: DashSpace.xl),
                 _SectionHeader(
                   title: admin
                       ? l10n.financeCostCenters
                       : l10n.financeMyCostCenters,
-                  hint: l10n.financeCostCentersHint,
                 ),
                 dashAsyncStrip(
                   context,
@@ -191,7 +188,6 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   title: allLedger
                       ? l10n.financeTransactions
                       : l10n.financeRecentTransactions,
-                  hint: l10n.financeTransactionsHint,
                 ),
                 _filters(l10n, centers.valueOrNull ?? const []),
                 const SizedBox(height: DashSpace.md),
@@ -308,26 +304,15 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.hint});
+  const _SectionHeader({required this.title});
 
   final String title;
-  final String hint;
 
   @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: DashSpace.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: t.titleMd),
-          const SizedBox(height: DashSpace.xs),
-          Text(hint, style: t.labelSoft),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: DashSpace.md),
+    child: Text(title, style: DashTokens.of(context).titleMd),
+  );
 }
 
 /// `-$1.50`: the sign leads, the symbol follows it, two decimals.

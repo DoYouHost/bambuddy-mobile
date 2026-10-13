@@ -13568,12 +13568,6 @@ abstract class AppLocalizations {
   /// **'Finance'**
   String get financeTitle;
 
-  /// Explains at the top of the finance screen what the account balance does and does not limit; the web's own sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Account balances track costs. Printing is limited only by the selected cost center budget; without a budget, printing is unlimited.'**
-  String get financeBudgetPolicyHint;
-
   /// Label above the user's account balance.
   ///
   /// In en, this message translates to:
@@ -13585,12 +13579,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'My cost centers'**
   String get financeMyCostCenters;
-
-  /// Under the cost centers heading.
-  ///
-  /// In en, this message translates to:
-  /// **'Review budget limits and keep costs under control'**
-  String get financeCostCentersHint;
 
   /// Shown when the user has no cost centers.
   ///
@@ -13633,12 +13621,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recent transactions'**
   String get financeRecentTransactions;
-
-  /// Under the ledger heading.
-  ///
-  /// In en, this message translates to:
-  /// **'Filter by type and cost center'**
-  String get financeTransactionsHint;
 
   /// Label of the ledger's type filter.
   ///

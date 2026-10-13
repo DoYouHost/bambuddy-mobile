@@ -8219,18 +8219,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get financeTitle => 'Finanse';
 
   @override
-  String get financeBudgetPolicyHint =>
-      'Salda kont śledzą koszty. Drukowanie ogranicza tylko budżet wybranego centrum kosztów; bez budżetu drukowanie jest bez limitu.';
-
-  @override
   String get financeBalance => 'Saldo konta osobistego';
 
   @override
   String get financeMyCostCenters => 'Moje centra kosztów';
-
-  @override
-  String get financeCostCentersHint =>
-      'Sprawdzaj limity budżetu i miej koszty pod kontrolą';
 
   @override
   String get financeNoCostCenters => 'Nie znaleziono centrów kosztów.';
@@ -8254,9 +8246,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get financeRecentTransactions => 'Ostatnie transakcje';
-
-  @override
-  String get financeTransactionsHint => 'Filtruj według typu i centrum kosztów';
 
   @override
   String get financeType => 'Typ';

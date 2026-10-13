@@ -8267,18 +8267,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get financeTitle => 'Finances';
 
   @override
-  String get financeBudgetPolicyHint =>
-      'Les soldes des comptes suivent les coûts. L’impression n’est limitée que par le budget du centre de coûts choisi ; sans budget, elle est illimitée.';
-
-  @override
   String get financeBalance => 'Solde du compte personnel';
 
   @override
   String get financeMyCostCenters => 'Mes centres de coûts';
-
-  @override
-  String get financeCostCentersHint =>
-      'Consultez les limites de budget et gardez les coûts sous contrôle';
 
   @override
   String get financeNoCostCenters => 'Aucun centre de coûts trouvé.';
@@ -8302,9 +8294,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get financeRecentTransactions => 'Transactions récentes';
-
-  @override
-  String get financeTransactionsHint => 'Filtrer par type et centre de coûts';
 
   @override
   String get financeType => 'Type';

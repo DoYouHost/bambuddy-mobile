@@ -5407,10 +5407,6 @@
   "@financeTitle": {
     "description": "Title of the finance screen."
   },
-  "financeBudgetPolicyHint": "Account balances track costs. Printing is limited only by the selected cost center budget; without a budget, printing is unlimited.",
-  "@financeBudgetPolicyHint": {
-    "description": "Explains at the top of the finance screen what the account balance does and does not limit; the web's own sentence."
-  },
   "financeBalance": "Personal account balance",
   "@financeBalance": {
     "description": "Label above the user's account balance."
@@ -5418,10 +5414,6 @@
   "financeMyCostCenters": "My cost centers",
   "@financeMyCostCenters": {
     "description": "Heading of the list of the user's cost centers."
-  },
-  "financeCostCentersHint": "Review budget limits and keep costs under control",
-  "@financeCostCentersHint": {
-    "description": "Under the cost centers heading."
   },
   "financeNoCostCenters": "No cost centers found.",
   "@financeNoCostCenters": {
@@ -5455,10 +5447,6 @@
   "financeRecentTransactions": "Recent transactions",
   "@financeRecentTransactions": {
     "description": "Heading of the ledger."
-  },
-  "financeTransactionsHint": "Filter by type and cost center",
-  "@financeTransactionsHint": {
-    "description": "Under the ledger heading."
   },
   "financeType": "Type",
   "@financeType": {

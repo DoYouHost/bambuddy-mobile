@@ -8090,18 +8090,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get financeTitle => 'Finance';
 
   @override
-  String get financeBudgetPolicyHint =>
-      'Account balances track costs. Printing is limited only by the selected cost center budget; without a budget, printing is unlimited.';
-
-  @override
   String get financeBalance => 'Personal account balance';
 
   @override
   String get financeMyCostCenters => 'My cost centers';
-
-  @override
-  String get financeCostCentersHint =>
-      'Review budget limits and keep costs under control';
 
   @override
   String get financeNoCostCenters => 'No cost centers found.';
@@ -8125,9 +8117,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get financeRecentTransactions => 'Recent transactions';
-
-  @override
-  String get financeTransactionsHint => 'Filter by type and cost center';
 
   @override
   String get financeType => 'Type';

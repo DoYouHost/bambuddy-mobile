@@ -247,6 +247,26 @@ void main() {
       });
     }
 
+    testWidgets('the buttons stand in one column, as wide as each other', (
+      tester,
+    ) async {
+      await pump(tester, _Server());
+
+      final boxes = [
+        for (final id in [
+          'finance.create_center',
+          'finance.adjust_wallet',
+          'finance.manual_print',
+        ])
+          tester.getRect(byLogId(id)),
+      ];
+
+      expect({for (final b in boxes) b.width}, hasLength(1));
+      expect({for (final b in boxes) b.left}, hasLength(1));
+      expect(boxes[1].top, greaterThan(boxes[0].bottom));
+      expect(boxes[2].top, greaterThan(boxes[1].bottom));
+    });
+
     testWidgets('create alone offers a new center and nothing else', (
       tester,
     ) async {

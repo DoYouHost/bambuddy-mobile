@@ -8169,18 +8169,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get financeTitle => 'Finanzen';
 
   @override
-  String get financeBudgetPolicyHint =>
-      'Kontostände erfassen Kosten. Das Drucken wird nur durch das Budget der gewählten Kostenstelle begrenzt; ohne Budget ist es unbegrenzt.';
-
-  @override
   String get financeBalance => 'Persönlicher Kontostand';
 
   @override
   String get financeMyCostCenters => 'Meine Kostenstellen';
-
-  @override
-  String get financeCostCentersHint =>
-      'Budgetgrenzen prüfen und Kosten im Griff behalten';
 
   @override
   String get financeNoCostCenters => 'Keine Kostenstellen gefunden.';
@@ -8204,9 +8196,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get financeRecentTransactions => 'Letzte Transaktionen';
-
-  @override
-  String get financeTransactionsHint => 'Nach Typ und Kostenstelle filtern';
 
   @override
   String get financeType => 'Typ';
