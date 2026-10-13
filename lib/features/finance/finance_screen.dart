@@ -118,7 +118,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                 ],
                 if (admin) ...[
                   Row(
-                    spacing: DashSpace.sm,
+                    spacing: DashSpace.md,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (canCreate)
@@ -144,7 +144,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       ],
                     ],
                   ),
-                  const SizedBox(height: DashSpace.lg),
+                  const SizedBox(height: DashSpace.xl),
                 ],
                 const _BalanceCard(),
                 const SizedBox(height: DashSpace.xl),
@@ -320,13 +320,13 @@ class _AdminAction extends StatelessWidget {
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(
-            horizontal: DashSpace.xs,
-            vertical: DashSpace.md,
+            horizontal: DashSpace.sm,
+            vertical: DashSpace.lg,
           ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          spacing: DashSpace.xs,
+          spacing: DashSpace.sm,
           children: [
             Icon(icon, size: 20),
             Text(label, textAlign: TextAlign.center, maxLines: 2),
