@@ -1505,19 +1505,13 @@ abstract class AppLocalizations {
   /// Banner over the queue: a printer's jobs were skipped because a print before them failed
   ///
   /// In en, this message translates to:
-  /// **'{printer} is held up by a failed print. {count, plural, =1{1 job was skipped.} other{{count} jobs were skipped.}}'**
+  /// **'{printer}: {count, plural, =1{1 job skipped} other{{count} jobs skipped}} after a failed print'**
   String queueResumeBanner(String printer, int count);
-
-  /// Second line of the resume banner
-  ///
-  /// In en, this message translates to:
-  /// **'Fix the printer, then resume to bring the skipped jobs back and lift the hold.'**
-  String get queueResumeHint;
 
   /// Button on the resume banner
   ///
   /// In en, this message translates to:
-  /// **'Resume after failure'**
+  /// **'Resume'**
   String get queueResumeButton;
 
   /// Confirm dialog title before resuming a printer's queue
@@ -1529,13 +1523,13 @@ abstract class AppLocalizations {
   /// Confirm dialog body before resuming a printer's queue
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{This puts 1 skipped job} other{This puts {count} skipped jobs}} on {printer} back to waiting and lifts the hold left by the failed print. Make sure the printer is ready first.'**
+  /// **'{count, plural, =1{1 skipped job goes} other{{count} skipped jobs go}} back into the queue of {printer}. Is the printer ready?'**
   String queueResumeConfirmBody(int count, String printer);
 
   /// Toast after a queue was resumed; count is how many skipped jobs are waiting again
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0{Queue resumed} =1{Queue resumed: 1 job is waiting again} other{Queue resumed: {count} jobs are waiting again}}'**
+  /// **'{count, plural, =0{Queue resumed} =1{1 job back in the queue} other{{count} jobs back in the queue}}'**
   String queueResumed(int count);
 
   /// Queue app bar while items are selected
@@ -1565,7 +1559,7 @@ abstract class AppLocalizations {
   /// Line under the bulk edit title
   ///
   /// In en, this message translates to:
-  /// **'Only the settings you change are applied to the selected items. Tap a choice to set it, and tap it again to leave that setting as it is.'**
+  /// **'Only what you pick changes. Tap a choice again to undo it.'**
   String get queueBulkIntro;
 
   /// First row of a bulk edit select and the neutral segment of a bulk edit switch: leave this setting as it is on every selected item
@@ -1598,12 +1592,6 @@ abstract class AppLocalizations {
   /// **'Use AMS'**
   String get queueOptUseAms;
 
-  /// Subtitle of the use-AMS option
-  ///
-  /// In en, this message translates to:
-  /// **'Take filament from the AMS instead of the external spool'**
-  String get queueOptUseAmsDesc;
-
   /// Toast after a bulk edit: items changed
   ///
   /// In en, this message translates to:
@@ -1613,13 +1601,13 @@ abstract class AppLocalizations {
   /// Toast after a bulk edit that changed no item
   ///
   /// In en, this message translates to:
-  /// **'Nothing was changed'**
+  /// **'Nothing changed'**
   String get queueBulkNothingUpdated;
 
   /// Toast after a bulk edit: items the server left alone
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 item skipped: it is no longer waiting, or you may not change it} other{{count} items skipped: they are no longer waiting, or you may not change them}}'**
+  /// **'{count, plural, =1{1 skipped} other{{count} skipped}}'**
   String queueBulkSkipped(int count);
 
   /// No description provided for @queueNoFreePrinters.
@@ -12536,28 +12524,22 @@ abstract class AppLocalizations {
   /// **'{amount} so far'**
   String ordersCostSoFar(String amount);
 
-  /// No description provided for @ordersCostToGo.
-  ///
-  /// In en, this message translates to:
-  /// **'{amount} to go'**
-  String ordersCostToGo(String amount);
-
   /// No description provided for @ordersStrandedNotice.
   ///
   /// In en, this message translates to:
-  /// **'Cannot queue {runs} of the {owed} runs still owed: their plate has no queued or finished run left to copy settings from. Queue that plate once from the file, or cancel the order.'**
+  /// **'{runs} of {owed} owed runs cannot be queued: queue their plate once from the file.'**
   String ordersStrandedNotice(int runs, int owed);
 
   /// No description provided for @ordersStrandedPlate.
   ///
   /// In en, this message translates to:
-  /// **'Nothing left to copy settings from'**
+  /// **'Queue this plate once from the file'**
   String get ordersStrandedPlate;
 
   /// No description provided for @ordersPlateProgress.
   ///
   /// In en, this message translates to:
-  /// **'{completed} of {target} done'**
+  /// **'{completed} of {target}'**
   String ordersPlateProgress(int completed, int target);
 
   /// No description provided for @ordersWholeFile.
@@ -12569,7 +12551,7 @@ abstract class AppLocalizations {
   /// No description provided for @ordersDispatchRemaining.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{Queue 1 remaining run} other{Queue {count} remaining runs}}'**
+  /// **'Queue owed ({count})'**
   String ordersDispatchRemaining(int count);
 
   /// No description provided for @ordersDispatchPlate.

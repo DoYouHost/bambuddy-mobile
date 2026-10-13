@@ -802,18 +802,14 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count jobs were skipped.',
-      one: '1 job was skipped.',
+      other: '$count jobs skipped',
+      one: '1 job skipped',
     );
-    return '$printer is held up by a failed print. $_temp0';
+    return '$printer: $_temp0 after a failed print';
   }
 
   @override
-  String get queueResumeHint =>
-      'Fix the printer, then resume to bring the skipped jobs back and lift the hold.';
-
-  @override
-  String get queueResumeButton => 'Resume after failure';
+  String get queueResumeButton => 'Resume';
 
   @override
   String get queueResumeConfirmTitle => 'Resume the queue after a failure?';
@@ -823,10 +819,10 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'This puts $count skipped jobs',
-      one: 'This puts 1 skipped job',
+      other: '$count skipped jobs go',
+      one: '1 skipped job goes',
     );
-    return '$_temp0 on $printer back to waiting and lifts the hold left by the failed print. Make sure the printer is ready first.';
+    return '$_temp0 back into the queue of $printer. Is the printer ready?';
   }
 
   @override
@@ -834,8 +830,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Queue resumed: $count jobs are waiting again',
-      one: 'Queue resumed: 1 job is waiting again',
+      other: '$count jobs back in the queue',
+      one: '1 job back in the queue',
       zero: 'Queue resumed',
     );
     return '$_temp0';
@@ -871,7 +867,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueBulkIntro =>
-      'Only the settings you change are applied to the selected items. Tap a choice to set it, and tap it again to leave that setting as it is.';
+      'Only what you pick changes. Tap a choice again to undo it.';
 
   @override
   String get queueBulkNoChange => 'No change';
@@ -889,10 +885,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queueOptUseAms => 'Use AMS';
 
   @override
-  String get queueOptUseAmsDesc =>
-      'Take filament from the AMS instead of the external spool';
-
-  @override
   String queueBulkUpdated(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -904,16 +896,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get queueBulkNothingUpdated => 'Nothing was changed';
+  String get queueBulkNothingUpdated => 'Nothing changed';
 
   @override
   String queueBulkSkipped(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          '$count items skipped: they are no longer waiting, or you may not change them',
-      one: '1 item skipped: it is no longer waiting, or you may not change it',
+      other: '$count skipped',
+      one: '1 skipped',
     );
     return '$_temp0';
   }
@@ -7472,21 +7463,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String ordersCostToGo(String amount) {
-    return '$amount to go';
-  }
-
-  @override
   String ordersStrandedNotice(int runs, int owed) {
-    return 'Cannot queue $runs of the $owed runs still owed: their plate has no queued or finished run left to copy settings from. Queue that plate once from the file, or cancel the order.';
+    return '$runs of $owed owed runs cannot be queued: queue their plate once from the file.';
   }
 
   @override
-  String get ordersStrandedPlate => 'Nothing left to copy settings from';
+  String get ordersStrandedPlate => 'Queue this plate once from the file';
 
   @override
   String ordersPlateProgress(int completed, int target) {
-    return '$completed of $target done';
+    return '$completed of $target';
   }
 
   @override
@@ -7494,13 +7480,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String ordersDispatchRemaining(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Queue $count remaining runs',
-      one: 'Queue 1 remaining run',
-    );
-    return '$_temp0';
+    return 'Queue owed ($count)';
   }
 
   @override

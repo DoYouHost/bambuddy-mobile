@@ -55,49 +55,38 @@ class _ResumeBanner extends StatelessWidget {
       child: logTag(
         'queue.resume_banner',
         Container(
-          padding: const EdgeInsets.all(DashSpace.lg),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.md,
+            DashSpace.xs,
+            DashSpace.xs,
+            DashSpace.xs,
+          ),
           decoration: BoxDecoration(
             color: t.accentOrange.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: t.accentOrange.withValues(alpha: 0.35)),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          // One line and one word on the button: what happened and what to do
+          // about it. The confirmation says the rest.
+          child: Row(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 20,
-                    color: t.accentOrangeInk,
-                  ),
-                  const SizedBox(width: DashSpace.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.queueResumeBanner(printer.name, printer.skipped),
-                          style: t.bodyStrong,
-                        ),
-                        const SizedBox(height: DashSpace.xs),
-                        Text(l10n.queueResumeHint, style: t.labelSoft),
-                      ],
-                    ),
-                  ),
-                ],
+              Icon(
+                Icons.warning_amber_rounded,
+                size: 20,
+                color: t.accentOrangeInk,
               ),
-              const SizedBox(height: DashSpace.md),
-              Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton.icon(
-                  style: dashPrimaryButtonStyle(t),
-                  onPressed: () => _resume(context),
-                  icon: const Icon(Icons.play_circle_outline),
-                  label: Text(l10n.queueResumeButton),
-                ).tagged('queue.resume'),
+              const SizedBox(width: DashSpace.sm),
+              Expanded(
+                child: Text(
+                  l10n.queueResumeBanner(printer.name, printer.skipped),
+                  style: t.bodySoft,
+                ),
               ),
+              TextButton(
+                onPressed: () => _resume(context),
+                style: TextButton.styleFrom(foregroundColor: t.accentOrangeInk),
+                child: Text(l10n.queueResumeButton),
+              ).tagged('queue.resume'),
             ],
           ),
         ),

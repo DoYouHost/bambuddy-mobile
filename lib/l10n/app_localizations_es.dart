@@ -817,18 +817,14 @@ class AppLocalizationsEs extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Se omitieron $count trabajos.',
-      one: 'Se omitió 1 trabajo.',
+      other: '$count trabajos omitidos',
+      one: '1 trabajo omitido',
     );
-    return '$printer está bloqueada por una impresión fallida. $_temp0';
+    return '$printer: $_temp0 tras una impresión fallida';
   }
 
   @override
-  String get queueResumeHint =>
-      'Arregla la impresora y reanuda para recuperar los trabajos omitidos y quitar el bloqueo.';
-
-  @override
-  String get queueResumeButton => 'Reanudar tras el fallo';
+  String get queueResumeButton => 'Reanudar';
 
   @override
   String get queueResumeConfirmTitle => '¿Reanudar la cola tras un fallo?';
@@ -838,10 +834,10 @@ class AppLocalizationsEs extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Esto devuelve $count trabajos omitidos',
-      one: 'Esto devuelve 1 trabajo omitido',
+      other: '$count trabajos omitidos vuelven',
+      one: '1 trabajo omitido vuelve',
     );
-    return '$_temp0 de $printer a «En espera» y quita el bloqueo que dejó la impresión fallida. Antes, asegúrate de que la impresora esté lista.';
+    return '$_temp0 a la cola de $printer. ¿Está lista la impresora?';
   }
 
   @override
@@ -849,8 +845,8 @@ class AppLocalizationsEs extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Cola reanudada: $count trabajos vuelven a estar en espera',
-      one: 'Cola reanudada: 1 trabajo vuelve a estar en espera',
+      other: '$count trabajos de vuelta en la cola',
+      one: '1 trabajo de vuelta en la cola',
       zero: 'Cola reanudada',
     );
     return '$_temp0';
@@ -886,7 +882,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get queueBulkIntro =>
-      'Solo se aplican a los elementos seleccionados los ajustes que cambies. Toca una opción para fijarla y vuelve a tocarla para dejar ese ajuste como está.';
+      'Solo cambia lo que elijas. Vuelve a tocar una opción para deshacerla.';
 
   @override
   String get queueBulkNoChange => 'Sin cambios';
@@ -904,10 +900,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get queueOptUseAms => 'Usar AMS';
 
   @override
-  String get queueOptUseAmsDesc =>
-      'Tomar el filamento del AMS en lugar de la bobina externa';
-
-  @override
   String queueBulkUpdated(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -919,16 +911,15 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get queueBulkNothingUpdated => 'No se cambió nada';
+  String get queueBulkNothingUpdated => 'No cambió nada';
 
   @override
   String queueBulkSkipped(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          '$count elementos omitidos: ya no están en espera o no puedes cambiarlos',
-      one: '1 elemento omitido: ya no está en espera o no puedes cambiarlo',
+      other: '$count omitidos',
+      one: '1 omitido',
     );
     return '$_temp0';
   }
@@ -7566,22 +7557,17 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String ordersCostToGo(String amount) {
-    return 'Faltan $amount';
-  }
-
-  @override
   String ordersStrandedNotice(int runs, int owed) {
-    return 'No se pueden encolar $runs de las $owed impresiones pendientes: su placa ya no tiene ninguna impresión en cola ni terminada de la que copiar los ajustes. Encola esa placa una vez desde el archivo o cancela el pedido.';
+    return 'No se pueden encolar $runs de $owed impresiones pendientes: encola su placa una vez desde el archivo.';
   }
 
   @override
   String get ordersStrandedPlate =>
-      'No queda nada de lo que copiar los ajustes';
+      'Encola esta placa una vez desde el archivo';
 
   @override
   String ordersPlateProgress(int completed, int target) {
-    return '$completed de $target hechos';
+    return '$completed de $target';
   }
 
   @override
@@ -7589,13 +7575,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String ordersDispatchRemaining(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Encolar $count impresiones pendientes',
-      one: 'Encolar 1 impresión pendiente',
-    );
-    return '$_temp0';
+    return 'Encolar pendientes ($count)';
   }
 
   @override

@@ -109,11 +109,30 @@ void main() {
     expect(find.text('Rings'), findsOneWidget);
     // A plate without a stored name is named by its number.
     expect(find.text(l.archivePlate(3)), findsOneWidget);
-    expect(find.text(l.ordersStrandedNotice(2, 4)), findsOneWidget);
+    // Said once, on the plate it applies to, not again over the card.
     expect(find.text(l.ordersStrandedPlate), findsOneWidget);
+    expect(find.text(l.ordersStrandedNotice(2, 4)), findsNothing);
     expect(find.text(l.ordersDispatchRemaining(2)), findsOneWidget);
-    // Only the plate that owes runs and can be cloned offers them.
-    expect(byLogId('orders.dispatch_plate'), findsOneWidget);
+    // One plate to queue: the button below is the same request, so its row
+    // offers no second one.
+    expect(byLogId('orders.dispatch_plate'), findsNothing);
+    // Failed and owed are on the plate rows, not repeated on the numbers line.
+    expect(find.textContaining(l.ordersOwed(4)), findsNothing);
+    expect(
+      find.textContaining(l.ordersFailed(1)),
+      findsOneWidget,
+      reason: 'on the Rings row only',
+    );
+  });
+
+  testWidgets('an order without plate rows says what is stuck over the card', (
+    tester,
+  ) async {
+    final bare = PrintBatch.fromJson({..._shopOrderJson, 'plates': <Object>[]});
+    await pumpOrders(tester, [bare]);
+
+    expect(find.text(pl.ordersStrandedNotice(2, 4)), findsOneWidget);
+    expect(find.textContaining(pl.ordersOwed(4)), findsOneWidget);
   });
 
   testWidgets('a grouping owes nothing, so it offers nothing to queue', (
@@ -172,14 +191,26 @@ void main() {
   testWidgets('one plate is dispatched by its id, and says which', (
     tester,
   ) async {
-    final adapter = await pumpOrders(tester, [_shopOrder()]);
+    // Two plates that can be queued, so each row offers its own.
+    final twoPlates = PrintBatch.fromJson({
+      ..._shopOrderJson,
+      'plates': [
+        for (final p in _shopOrderJson['plates'] as List)
+          {
+            ...p as Map<String, dynamic>,
+            if (p['plate_id'] == 3) 'can_dispatch': true,
+          },
+      ],
+    });
+    final adapter = await pumpOrders(tester, [twoPlates]);
     adapter.onPost(
       '$_path/2/dispatch',
       data: {'plate_id': 2, 'only_plate': true},
       (s) => s.reply(200, _batchJson),
     );
 
-    await tester.tap(byLogId('orders.dispatch_plate'));
+    expect(byLogId('orders.dispatch_plate'), findsNWidgets(2));
+    await tester.tap(byLogId('orders.dispatch_plate').first);
     await tester.pumpAndSettle();
     expect(sent.last.data, {'plate_id': 2, 'only_plate': true});
 

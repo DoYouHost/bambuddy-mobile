@@ -817,18 +817,14 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count Aufträge wurden übersprungen.',
-      one: '1 Auftrag wurde übersprungen.',
+      other: '$count Aufträge übersprungen',
+      one: '1 Auftrag übersprungen',
     );
-    return '$printer wird durch einen fehlgeschlagenen Druck blockiert. $_temp0';
+    return '$printer: $_temp0 nach fehlgeschlagenem Druck';
   }
 
   @override
-  String get queueResumeHint =>
-      'Behebe das Problem am Drucker und setze dann fort, um die übersprungenen Aufträge zurückzuholen und die Sperre aufzuheben.';
-
-  @override
-  String get queueResumeButton => 'Nach Fehler fortsetzen';
+  String get queueResumeButton => 'Fortsetzen';
 
   @override
   String get queueResumeConfirmTitle =>
@@ -839,10 +835,10 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Damit werden $count übersprungene Aufträge',
-      one: 'Damit wird 1 übersprungener Auftrag',
+      other: '$count übersprungene Aufträge kommen',
+      one: '1 übersprungener Auftrag kommt',
     );
-    return '$_temp0 für $printer wieder auf „Wartend“ gesetzt und die Sperre durch den fehlgeschlagenen Druck aufgehoben. Stelle vorher sicher, dass der Drucker bereit ist.';
+    return '$_temp0 zurück in die Warteschlange von $printer. Ist der Drucker bereit?';
   }
 
   @override
@@ -850,8 +846,8 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Warteschlange fortgesetzt: $count Aufträge warten wieder',
-      one: 'Warteschlange fortgesetzt: 1 Auftrag wartet wieder',
+      other: '$count Aufträge wieder in der Warteschlange',
+      one: '1 Auftrag wieder in der Warteschlange',
       zero: 'Warteschlange fortgesetzt',
     );
     return '$_temp0';
@@ -887,7 +883,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueBulkIntro =>
-      'Nur die Einstellungen, die du änderst, gelten für die ausgewählten Einträge. Tippe auf eine Auswahl, um sie zu setzen, und noch einmal, um die Einstellung unverändert zu lassen.';
+      'Nur deine Auswahl wird geändert. Tippe erneut darauf, um sie aufzuheben.';
 
   @override
   String get queueBulkNoChange => 'Keine Änderung';
@@ -905,10 +901,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get queueOptUseAms => 'AMS verwenden';
 
   @override
-  String get queueOptUseAmsDesc =>
-      'Filament aus dem AMS statt von der externen Spule nehmen';
-
-  @override
   String queueBulkUpdated(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -920,17 +912,15 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get queueBulkNothingUpdated => 'Es wurde nichts geändert';
+  String get queueBulkNothingUpdated => 'Nichts geändert';
 
   @override
   String queueBulkSkipped(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          '$count Einträge übersprungen: Sie warten nicht mehr oder du darfst sie nicht ändern',
-      one:
-          '1 Eintrag übersprungen: Er wartet nicht mehr oder du darfst ihn nicht ändern',
+      other: '$count übersprungen',
+      one: '1 übersprungen',
     );
     return '$_temp0';
   }
@@ -7547,22 +7537,16 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String ordersCostToGo(String amount) {
-    return 'Noch $amount';
-  }
-
-  @override
   String ordersStrandedNotice(int runs, int owed) {
-    return '$runs der $owed offenen Drucke können nicht eingereiht werden: Für ihre Platte gibt es keinen eingereihten oder fertigen Druck mehr, von dem die Einstellungen übernommen werden können. Reihe die Platte einmal aus der Datei ein oder storniere den Auftrag.';
+    return '$runs von $owed offenen Drucken lassen sich nicht einreihen: Reihe ihre Platte einmal aus der Datei ein.';
   }
 
   @override
-  String get ordersStrandedPlate =>
-      'Nichts mehr, von dem Einstellungen übernommen werden können';
+  String get ordersStrandedPlate => 'Platte einmal aus der Datei einreihen';
 
   @override
   String ordersPlateProgress(int completed, int target) {
-    return '$completed von $target fertig';
+    return '$completed von $target';
   }
 
   @override
@@ -7570,13 +7554,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String ordersDispatchRemaining(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count offene Drucke einreihen',
-      one: '1 offenen Druck einreihen',
-    );
-    return '$_temp0';
+    return 'Offene einreihen ($count)';
   }
 
   @override

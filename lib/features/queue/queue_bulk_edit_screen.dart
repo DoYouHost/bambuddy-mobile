@@ -244,7 +244,6 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
           _CalibrationChoice(
             id: 'queue_bulk.bed_levelling',
             title: l10n.queueOptBedLevelling,
-            subtitle: l10n.queueOptBedLevellingDesc,
             value: _bedLevelling,
             triState: triState,
             onChanged: (v) => setState(() => _bedLevelling = v),
@@ -252,7 +251,6 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
           _CalibrationChoice(
             id: 'queue_bulk.flow_cali',
             title: l10n.queueOptFlowCali,
-            subtitle: l10n.queueOptFlowCaliDesc,
             value: _flowCali,
             triState: triState,
             onChanged: (v) => setState(() => _flowCali = v),
@@ -260,28 +258,24 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
           _SwitchChoice(
             id: 'queue_bulk.vibration_cali',
             title: l10n.queueOptVibrationCali,
-            subtitle: l10n.queueOptVibrationCaliDesc,
             value: _vibrationCali,
             onChanged: (v) => setState(() => _vibrationCali = v),
           ),
           _SwitchChoice(
             id: 'queue_bulk.layer_inspect',
             title: l10n.queueOptLayerInspect,
-            subtitle: l10n.queueOptLayerInspectDesc,
             value: _layerInspect,
             onChanged: (v) => setState(() => _layerInspect = v),
           ),
           _SwitchChoice(
             id: 'queue_bulk.timelapse',
             title: l10n.queueOptTimelapse,
-            subtitle: l10n.queueOptTimelapseDesc,
             value: _timelapse,
             onChanged: (v) => setState(() => _timelapse = v),
           ),
           _SwitchChoice(
             id: 'queue_bulk.use_ams',
             title: l10n.queueOptUseAms,
-            subtitle: l10n.queueOptUseAmsDesc,
             value: _useAms,
             onChanged: (v) => setState(() => _useAms = v),
           ),
@@ -291,7 +285,6 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
             _SwitchChoice(
               id: 'queue_bulk.confirm_outcome',
               title: l10n.queueOptConfirmOutcome,
-              subtitle: l10n.queueOptConfirmOutcomeDesc,
               value: _confirmOutcome,
               onChanged: (v) => setState(() => _confirmOutcome = v),
             ),
@@ -299,7 +292,6 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
             _CalibrationChoice(
               id: 'queue_bulk.nozzle_offset_cali',
               title: l10n.queueOptNozzleOffset,
-              subtitle: l10n.queueOptNozzleOffsetDesc,
               value: _nozzleOffsetCali,
               triState: triState,
               onChanged: (v) => setState(() => _nozzleOffsetCali = v),
@@ -310,8 +302,7 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
   }
 }
 
-/// One setting of the bulk edit: a title, what it does, and the values it can be
-/// set to. No value picked is "leave it": tapping the picked one again puts it
+/// One setting of the bulk edit: its name and the values it can be set to. No value picked is "leave it": tapping the picked one again puts it
 /// back, so there is no segment for "no change" that would have to fit a phone's
 /// width in four languages.
 class _Choice<T extends Object> extends StatelessWidget {
@@ -321,13 +312,11 @@ class _Choice<T extends Object> extends StatelessWidget {
     required this.value,
     required this.segments,
     required this.onChanged,
-    this.subtitle,
     this.enabled = true,
   });
 
   final String id;
   final String title;
-  final String? subtitle;
   final T? value;
   final List<QueueSegment<T?>> segments;
   final ValueChanged<T?> onChanged;
@@ -342,10 +331,6 @@ class _Choice<T extends Object> extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(title, style: t.titleSm),
-          if (subtitle != null) ...[
-            const SizedBox(height: DashSpace.xs),
-            Text(subtitle!, style: t.labelSoft),
-          ],
           const SizedBox(height: DashSpace.sm),
           QueueSegToggle<T?>(
             id: id,
@@ -368,13 +353,11 @@ class _SwitchChoice extends StatelessWidget {
     required this.title,
     required this.value,
     required this.onChanged,
-    this.subtitle,
     this.enabled = true,
   });
 
   final String id;
   final String title;
-  final String? subtitle;
   final bool? value;
   final ValueChanged<bool?> onChanged;
   final bool enabled;
@@ -385,7 +368,6 @@ class _SwitchChoice extends StatelessWidget {
     return _Choice<bool>(
       id: id,
       title: title,
-      subtitle: subtitle,
       value: value,
       enabled: enabled,
       onChanged: onChanged,
@@ -401,7 +383,6 @@ class _CalibrationChoice extends StatelessWidget {
   const _CalibrationChoice({
     required this.id,
     required this.title,
-    required this.subtitle,
     required this.value,
     required this.triState,
     required this.onChanged,
@@ -409,7 +390,6 @@ class _CalibrationChoice extends StatelessWidget {
 
   final String id;
   final String title;
-  final String subtitle;
   final CalibrationOption? value;
 
   /// Whether the server stores `auto`. Without it the row has no such segment: a
@@ -424,7 +404,6 @@ class _CalibrationChoice extends StatelessWidget {
     return _Choice<CalibrationOption>(
       id: id,
       title: title,
-      subtitle: subtitle,
       value: value,
       onChanged: onChanged,
       // The single edit's order, so the same setting reads the same on both.

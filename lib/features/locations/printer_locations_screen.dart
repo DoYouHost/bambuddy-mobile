@@ -225,6 +225,8 @@ class _PrinterLocationsScreenState
         ),
         floatingActionButton: canEdit && bar == null && !_selecting
             ? FloatingActionButton.extended(
+                backgroundColor: DashTokens.of(context).accentGreen,
+                foregroundColor: DashTokens.of(context).onAccent,
                 onPressed: _busy
                     ? null
                     : () => openPrinterLocationForm(context),
