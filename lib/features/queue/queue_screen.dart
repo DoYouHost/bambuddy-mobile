@@ -365,36 +365,39 @@ class _QueueList extends ConsumerWidget {
     ];
     final offset = pinned.length;
 
-    return Column(
-      children: [
-        for (final it in pinned) _QueueCard(item: it, pinned: true),
-        Expanded(
-          child: ReorderableListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-            physics: const AlwaysScrollableScrollPhysics(),
-            // No default long-press drag — reorder only via explicit handle on left
-            // side of tile.
-            buildDefaultDragHandles: false,
-            itemCount: reorderable.length,
-            onReorderItem: (oldIndex, newIndex) async {
-              ref.read(tourBeaconProvider)?.signal('queue.reorder');
-              final messenger = ScaffoldMessenger.of(context);
-              final result = await ref
-                  .read(queueProvider.notifier)
-                  .reorder(oldIndex + offset, newIndex + offset);
-              _snackFailure(messenger, l10n, result);
-            },
-            itemBuilder: (context, i) => _QueueCard(
-              key: ValueKey(reorderable[i].id),
-              item: reorderable[i],
-              dragIndex: i,
-              // First item in the reorderable list is the one "start next"
-              // would launch — highlighted the same as the pinned/printing card.
-              nextUp: i == 0,
+    // The top inset goes above the pinned cards, not into the list: inside the
+    // list it also sat between the printing card and the next one, which made
+    // that one gap twice the others.
+    return Padding(
+      padding: const EdgeInsets.only(top: DashSpace.sm),
+      child: Column(
+        children: [
+          for (final it in pinned) _QueueCard(item: it, pinned: true),
+          Expanded(
+            child: ReorderableListView.builder(
+              padding: const EdgeInsets.only(bottom: DashSpace.sm),
+              physics: const AlwaysScrollableScrollPhysics(),
+              // No default long-press drag — reorder only via explicit handle on left
+              // side of tile.
+              buildDefaultDragHandles: false,
+              itemCount: reorderable.length,
+              onReorderItem: (oldIndex, newIndex) async {
+                ref.read(tourBeaconProvider)?.signal('queue.reorder');
+                final messenger = ScaffoldMessenger.of(context);
+                final result = await ref
+                    .read(queueProvider.notifier)
+                    .reorder(oldIndex + offset, newIndex + offset);
+                _snackFailure(messenger, l10n, result);
+              },
+              itemBuilder: (context, i) => _QueueCard(
+                key: ValueKey(reorderable[i].id),
+                item: reorderable[i],
+                dragIndex: i,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -405,7 +408,6 @@ class _QueueCard extends ConsumerWidget {
     required this.item,
     this.pinned = false,
     this.dragIndex,
-    this.nextUp = false,
   });
 
   final QueueItem item;
@@ -417,10 +419,6 @@ class _QueueCard extends ConsumerWidget {
   /// Index in reorderable list; when provided, show explicit drag handle on left
   /// (`ReorderableDragStartListener`). Null for pinned items.
   final int? dragIndex;
-
-  /// First (top) item of the reorderable queue — the one "start next" would
-  /// launch. Highlighted the same way as the pinned/printing card.
-  final bool nextUp;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -438,7 +436,6 @@ class _QueueCard extends ConsumerWidget {
     // Outside selection mode the card has no tap, as before.
     final selectionNotifier = ref.read(queueSelectionProvider.notifier);
     final mayPick = selectable && ref.watch(mayBulkEditQueueProvider);
-    final highlighted = pinned || nextUp || selected;
 
     final card = logTag(
       'queue.card',
@@ -459,11 +456,11 @@ class _QueueCard extends ConsumerWidget {
             gradient: selected ? null : t.cardGradient,
             color: selected ? t.accentGreen.withValues(alpha: 0.14) : null,
             borderRadius: BorderRadius.circular(22),
-            // Printing/next-up distinguished by a green-tinted border, not a fill.
+            // The printing card wears a green-tinted border; only a pick is filled.
             border: Border.all(
               color: selected
                   ? t.accentGreen.withValues(alpha: 0.5)
-                  : highlighted
+                  : pinned
                   ? t.accentGreen.withValues(alpha: 0.3)
                   : t.cardBorder,
             ),
