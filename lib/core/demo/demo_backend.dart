@@ -7,6 +7,7 @@ import 'package:app_util/app_util.dart';
 import '../models/json_utils.dart';
 import '../models/pipeline_run.dart';
 import '../models/print_run.dart';
+import '../models/queue_item.dart' show kPreviousFailureGate;
 import '../models/spool_label.dart';
 import '../app_context.dart';
 import 'demo_labels.dart';
@@ -563,7 +564,7 @@ class DemoBackend {
         if (s.length >= 2 && s[1] == 'batches') {
           return _batchRoute(m, s, q, body);
         }
-        return _queueRoute(m, s, body);
+        return _queueRoute(m, s, q, body);
 
       case 'archives':
         return _archivesRoute(m, s, q, body);
@@ -2450,6 +2451,54 @@ class DemoBackend {
       slicedForModel: 'A1 mini',
       libraryFileId: 1,
     ),
+    // A failed print on the P1S, and the two jobs behind it that wanted it to
+    // succeed: the scheduler skipped them with its gate message, which is what
+    // puts the "Resume after failure" banner over the queue.
+    _queueItem(
+      id: 104,
+      printerId: 2,
+      position: 4,
+      name: 'Cable clip',
+      status: 'failed',
+      timeSec: 1380,
+      grams: 6.1,
+      type: 'PLA',
+      color: '#2D7FF9',
+      createdDaysAgo: 1,
+      libraryFileId: 3,
+      slicedForModel: 'P1S',
+      errorMessage: 'Filament ran out',
+    ),
+    _queueItem(
+      id: 105,
+      printerId: 2,
+      position: 5,
+      name: 'Cable clip ×2',
+      status: 'skipped',
+      timeSec: 2760,
+      grams: 12.2,
+      type: 'PLA',
+      color: '#2D7FF9',
+      createdDaysAgo: 1,
+      libraryFileId: 3,
+      slicedForModel: 'P1S',
+      errorMessage: kPreviousFailureGate,
+    ),
+    _queueItem(
+      id: 106,
+      printerId: 2,
+      position: 6,
+      name: 'Hook plate',
+      status: 'skipped',
+      timeSec: 3300,
+      grams: 15.8,
+      type: 'PETG',
+      color: '#FFFFFF',
+      createdDaysAgo: 1,
+      libraryFileId: 4,
+      slicedForModel: 'P1S',
+      errorMessage: kPreviousFailureGate,
+    ),
   ];
 
   /// Demo filaments "loaded on other printers of the model" — options for the
@@ -2508,8 +2557,10 @@ class DemoBackend {
     // name and thumbnail in place of the archive's.
     int? libraryFileId,
     int? costCenterId = 1,
+    String? errorMessage,
   }) => {
     'id': id,
+    'error_message': errorMessage,
     'cost_center_id': costCenterId,
     'batch_id': batchId,
     'batch_name': batchName,
@@ -2655,9 +2706,22 @@ class DemoBackend {
     return batch;
   }
 
-  DemoResult? _queueRoute(String m, List<String> s, Map<String, dynamic> body) {
+  DemoResult? _queueRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+    Map<String, dynamic> body,
+  ) {
     if (s.length == 1) {
-      if (m == 'GET') return _ok(_queue);
+      if (m == 'GET') {
+        // One status per request, as the server filters. The queue screen asks
+        // for `pending` and `printing`, the history for the other four.
+        final status = q['status'];
+        return _ok([
+          for (final item in _queue)
+            if (status == null || item['status'] == status) item,
+        ]);
+      }
       if (m == 'POST') {
         // A cross-model job names itself after its first candidate and carries
         // the rest; anything else is an "add from archive" (reprint).
@@ -2701,6 +2765,9 @@ class DemoBackend {
         // The server answers with the first copy.
         return _ok(_queue[first]);
       }
+    }
+    if (s.length == 4 && s[1] == 'printer' && s[3] == 'resume' && m == 'POST') {
+      return _resumeAfterFailure(int.tryParse(s[2]));
     }
     if (s.length >= 2 && s[1] == 'reorder') {
       final items = body['items'];
@@ -2764,6 +2831,31 @@ class DemoBackend {
   }
 
   int _nextQueueId = 200;
+
+  /// `POST /queue/printer/{id}/resume`: the failed prints behind the gate stop
+  /// holding it, and what it skipped goes back to `pending` — the two things
+  /// `resume_queue_after_failure` does, counted as it counts them.
+  DemoResult _resumeAfterFailure(int? printerId) {
+    if (_printers.every((p) => p['id'] != printerId)) return _notFound();
+    var acknowledged = 0;
+    var restored = 0;
+    for (final item in _queue) {
+      if (item['printer_id'] != printerId) continue;
+      final status = item['status'];
+      if ((status == 'failed' || status == 'aborted') &&
+          item['gate_acknowledged'] != true) {
+        item['gate_acknowledged'] = true;
+        acknowledged++;
+      } else if (status == 'skipped' &&
+          item['error_message'] == kPreviousFailureGate) {
+        item['status'] = 'pending';
+        item['error_message'] = null;
+        item['completed_at'] = null;
+        restored++;
+      }
+    }
+    return _ok({'acknowledged': acknowledged, 'restored': restored});
+  }
 
   // --- Batches and orders (#342) ---
 

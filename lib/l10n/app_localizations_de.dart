@@ -813,6 +813,51 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Eintrag befindet sich nicht mehr im angezeigten Status. Aktualisiere die Warteschlange und versuche es erneut.';
 
   @override
+  String queueResumeBanner(String printer, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Aufträge wurden übersprungen.',
+      one: '1 Auftrag wurde übersprungen.',
+    );
+    return '$printer wird durch einen fehlgeschlagenen Druck blockiert. $_temp0';
+  }
+
+  @override
+  String get queueResumeHint =>
+      'Behebe das Problem am Drucker und setze dann fort, um die übersprungenen Aufträge zurückzuholen und die Sperre aufzuheben.';
+
+  @override
+  String get queueResumeButton => 'Nach Fehler fortsetzen';
+
+  @override
+  String get queueResumeConfirmTitle =>
+      'Warteschlange nach einem Fehler fortsetzen?';
+
+  @override
+  String queueResumeConfirmBody(int count, String printer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Damit werden $count übersprungene Aufträge',
+      one: 'Damit wird 1 übersprungener Auftrag',
+    );
+    return '$_temp0 für $printer wieder auf „Wartend“ gesetzt und die Sperre durch den fehlgeschlagenen Druck aufgehoben. Stelle vorher sicher, dass der Drucker bereit ist.';
+  }
+
+  @override
+  String queueResumed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Warteschlange fortgesetzt: $count Aufträge warten wieder',
+      one: 'Warteschlange fortgesetzt: 1 Auftrag wartet wieder',
+      zero: 'Warteschlange fortgesetzt',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get queueNoFreePrinters => 'Derzeit keine freien Drucker verfügbar';
 
   @override

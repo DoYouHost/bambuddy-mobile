@@ -824,6 +824,51 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cet élément n\'est plus dans l\'état affiché. Actualisez la file d\'attente et réessayez.';
 
   @override
+  String queueResumeBanner(String printer, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tâches ont été ignorées.',
+      one: '1 tâche a été ignorée.',
+    );
+    return '$printer est bloquée par une impression ayant échoué. $_temp0';
+  }
+
+  @override
+  String get queueResumeHint =>
+      'Réglez le problème sur l\'imprimante, puis reprenez pour récupérer les tâches ignorées et lever le blocage.';
+
+  @override
+  String get queueResumeButton => 'Reprendre après l\'échec';
+
+  @override
+  String get queueResumeConfirmTitle => 'Reprendre la file après un échec ?';
+
+  @override
+  String queueResumeConfirmBody(int count, String printer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Cela remet $count tâches ignorées',
+      one: 'Cela remet 1 tâche ignorée',
+    );
+    return '$_temp0 de $printer en attente et lève le blocage laissé par l\'impression ayant échoué. Assurez-vous d\'abord que l\'imprimante est prête.';
+  }
+
+  @override
+  String queueResumed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'File d\'attente reprise : $count tâches sont de nouveau en attente',
+      one: 'File d\'attente reprise : 1 tâche est de nouveau en attente',
+      zero: 'File d\'attente reprise',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get queueNoFreePrinters =>
       'Aucune imprimante disponible pour le moment';
 

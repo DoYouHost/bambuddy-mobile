@@ -485,6 +485,51 @@
   "queueStopped": "Print stopped",
   "queueRemoved": "Removed from queue",
   "queueRemovalStatusChanged": "This item is no longer in the state shown. Refresh the queue and try again.",
+  "queueResumeBanner": "{printer} is held up by a failed print. {count, plural, =1{1 job was skipped.} other{{count} jobs were skipped.}}",
+  "@queueResumeBanner": {
+    "description": "Banner over the queue: a printer's jobs were skipped because a print before them failed",
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueResumeHint": "Fix the printer, then resume to bring the skipped jobs back and lift the hold.",
+  "@queueResumeHint": {
+    "description": "Second line of the resume banner"
+  },
+  "queueResumeButton": "Resume after failure",
+  "@queueResumeButton": {
+    "description": "Button on the resume banner"
+  },
+  "queueResumeConfirmTitle": "Resume the queue after a failure?",
+  "@queueResumeConfirmTitle": {
+    "description": "Confirm dialog title before resuming a printer's queue"
+  },
+  "queueResumeConfirmBody": "{count, plural, =1{This puts 1 skipped job} other{This puts {count} skipped jobs}} on {printer} back to waiting and lifts the hold left by the failed print. Make sure the printer is ready first.",
+  "@queueResumeConfirmBody": {
+    "description": "Confirm dialog body before resuming a printer's queue",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
+  "queueResumed": "{count, plural, =0{Queue resumed} =1{Queue resumed: 1 job is waiting again} other{Queue resumed: {count} jobs are waiting again}}",
+  "@queueResumed": {
+    "description": "Toast after a queue was resumed; count is how many skipped jobs are waiting again",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "queueNoFreePrinters": "No free printers right now",
   "queuePrintStarted": "Print started",
   "queueStatusPending": "Waiting",

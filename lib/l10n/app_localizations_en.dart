@@ -798,6 +798,50 @@ class AppLocalizationsEn extends AppLocalizations {
       'This item is no longer in the state shown. Refresh the queue and try again.';
 
   @override
+  String queueResumeBanner(String printer, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jobs were skipped.',
+      one: '1 job was skipped.',
+    );
+    return '$printer is held up by a failed print. $_temp0';
+  }
+
+  @override
+  String get queueResumeHint =>
+      'Fix the printer, then resume to bring the skipped jobs back and lift the hold.';
+
+  @override
+  String get queueResumeButton => 'Resume after failure';
+
+  @override
+  String get queueResumeConfirmTitle => 'Resume the queue after a failure?';
+
+  @override
+  String queueResumeConfirmBody(int count, String printer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'This puts $count skipped jobs',
+      one: 'This puts 1 skipped job',
+    );
+    return '$_temp0 on $printer back to waiting and lifts the hold left by the failed print. Make sure the printer is ready first.';
+  }
+
+  @override
+  String queueResumed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Queue resumed: $count jobs are waiting again',
+      one: 'Queue resumed: 1 job is waiting again',
+      zero: 'Queue resumed',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get queueNoFreePrinters => 'No free printers right now';
 
   @override

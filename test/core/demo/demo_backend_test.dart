@@ -115,6 +115,56 @@ void main() {
       expect(items.first.statusKind, QueueItemStatusKind.pending);
     });
 
+    test('the queue filters by status, as the server does', () async {
+      final repo = QueueRepository(dio);
+      final pending = await repo.fetch(status: 'pending');
+      final skipped = await repo.fetch(status: 'skipped');
+
+      expect(pending.map((i) => i.statusKind).toSet(), {
+        QueueItemStatusKind.pending,
+      });
+      expect(skipped, hasLength(2));
+      expect(skipped.map((i) => i.errorMessage).toSet(), {
+        kPreviousFailureGate,
+      });
+    });
+
+    test('a failed print holds a printer, and resume releases it', () async {
+      // A demo of its own: resuming moves the skipped jobs back to pending.
+      final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        );
+      final repo = QueueRepository(own);
+      final held = gateBlockedPrinters(
+        await repo.fetch(status: 'skipped'),
+        fallbackName: (id) => '$id',
+      );
+      expect(held.map((p) => (p.name, p.skipped)), [('P1S', 2)]);
+
+      final first = await repo.resumeAfterFailure(held.single.printerId);
+      expect(first, (acknowledged: 1, restored: 2));
+      expect(
+        gateBlockedPrinters(
+          await repo.fetch(status: 'skipped'),
+          fallbackName: (id) => '$id',
+        ),
+        isEmpty,
+      );
+      expect(
+        (await repo.fetch(
+          status: 'pending',
+        )).where((i) => i.printerId == held.single.printerId),
+        hasLength(2),
+      );
+      expect(
+        await repo.resumeAfterFailure(held.single.printerId),
+        (acknowledged: 0, restored: 0),
+        reason: 'a second resume has nothing left to clear',
+      );
+    });
+
     test(
       'batches: an order, a shop order with a stranded plate, a grouping',
       () async {

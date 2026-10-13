@@ -809,6 +809,56 @@ class AppLocalizationsPl extends AppLocalizations {
       'Ten element ma już inny status niż pokazany. Odśwież kolejkę i spróbuj ponownie.';
 
   @override
+  String queueResumeBanner(String printer, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Pominięto $count zadania.',
+      many: 'Pominięto $count zadań.',
+      few: 'Pominięto $count zadania.',
+      one: 'Pominięto 1 zadanie.',
+    );
+    return 'Drukarka $printer jest zablokowana przez nieudany druk. $_temp0';
+  }
+
+  @override
+  String get queueResumeHint =>
+      'Napraw drukarkę, a potem wznów kolejkę, żeby przywrócić pominięte zadania i zdjąć blokadę.';
+
+  @override
+  String get queueResumeButton => 'Wznów po awarii';
+
+  @override
+  String get queueResumeConfirmTitle => 'Wznowić kolejkę po awarii?';
+
+  @override
+  String queueResumeConfirmBody(int count, String printer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'To przywróci $count pominiętego zadania',
+      many: 'To przywróci $count pominiętych zadań',
+      few: 'To przywróci $count pominięte zadania',
+      one: 'To przywróci 1 pominięte zadanie',
+    );
+    return '$_temp0 do kolejki drukarki $printer i zdejmie blokadę po nieudanym druku. Najpierw upewnij się, że drukarka jest gotowa.';
+  }
+
+  @override
+  String queueResumed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Kolejka wznowiona: $count zadania znów czekają',
+      many: 'Kolejka wznowiona: $count zadań znów czeka',
+      few: 'Kolejka wznowiona: $count zadania znów czekają',
+      one: 'Kolejka wznowiona: 1 zadanie znów czeka',
+      zero: 'Kolejka wznowiona',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get queueNoFreePrinters => 'Brak wolnych drukarek';
 
   @override

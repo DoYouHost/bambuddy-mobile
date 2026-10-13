@@ -28,6 +28,7 @@ import 'queue_history.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_providers.dart';
 import 'queue_removal.dart';
+import 'queue_resume_banner.dart';
 import '../tour/tour_beacon.dart';
 
 /// Print queue screen (M5): drag-to-reorder, swipe-to-delete with confirmation,
@@ -213,19 +214,27 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
           child: TabBarView(
             controller: _tabs,
             children: [
-              dashAsync(
-                context,
-                async,
-                onRetry: () => ref.read(queueProvider.notifier).refresh(),
-                data: (items) => RefreshIndicator(
-                  onRefresh: () => ref.read(queueProvider.notifier).refresh(),
-                  child: items.isEmpty
-                      ? EmptyStateView(
-                          message: l10n.queueEmpty,
-                          icon: Icons.playlist_add_check,
-                        )
-                      : _QueueList(items: items),
-                ),
+              Column(
+                children: [
+                  const QueueResumeBanners(),
+                  Expanded(
+                    child: dashAsync(
+                      context,
+                      async,
+                      onRetry: () => ref.read(queueProvider.notifier).refresh(),
+                      data: (items) => RefreshIndicator(
+                        onRefresh: () =>
+                            ref.read(queueProvider.notifier).refresh(),
+                        child: items.isEmpty
+                            ? EmptyStateView(
+                                message: l10n.queueEmpty,
+                                icon: Icons.playlist_add_check,
+                              )
+                            : _QueueList(items: items),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const QueueHistoryView(),
             ],

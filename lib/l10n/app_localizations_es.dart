@@ -813,6 +813,50 @@ class AppLocalizationsEs extends AppLocalizations {
       'Este elemento ya no se encuentra en el estado mostrado. Actualiza la cola e inténtalo de nuevo.';
 
   @override
+  String queueResumeBanner(String printer, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Se omitieron $count trabajos.',
+      one: 'Se omitió 1 trabajo.',
+    );
+    return '$printer está bloqueada por una impresión fallida. $_temp0';
+  }
+
+  @override
+  String get queueResumeHint =>
+      'Arregla la impresora y reanuda para recuperar los trabajos omitidos y quitar el bloqueo.';
+
+  @override
+  String get queueResumeButton => 'Reanudar tras el fallo';
+
+  @override
+  String get queueResumeConfirmTitle => '¿Reanudar la cola tras un fallo?';
+
+  @override
+  String queueResumeConfirmBody(int count, String printer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Esto devuelve $count trabajos omitidos',
+      one: 'Esto devuelve 1 trabajo omitido',
+    );
+    return '$_temp0 de $printer a «En espera» y quita el bloqueo que dejó la impresión fallida. Antes, asegúrate de que la impresora esté lista.';
+  }
+
+  @override
+  String queueResumed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Cola reanudada: $count trabajos vuelven a estar en espera',
+      one: 'Cola reanudada: 1 trabajo vuelve a estar en espera',
+      zero: 'Cola reanudada',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get queueNoFreePrinters => 'No hay impresoras libres en este momento';
 
   @override

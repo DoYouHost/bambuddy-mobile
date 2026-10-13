@@ -1502,6 +1502,42 @@ abstract class AppLocalizations {
   /// **'This item is no longer in the state shown. Refresh the queue and try again.'**
   String get queueRemovalStatusChanged;
 
+  /// Banner over the queue: a printer's jobs were skipped because a print before them failed
+  ///
+  /// In en, this message translates to:
+  /// **'{printer} is held up by a failed print. {count, plural, =1{1 job was skipped.} other{{count} jobs were skipped.}}'**
+  String queueResumeBanner(String printer, int count);
+
+  /// Second line of the resume banner
+  ///
+  /// In en, this message translates to:
+  /// **'Fix the printer, then resume to bring the skipped jobs back and lift the hold.'**
+  String get queueResumeHint;
+
+  /// Button on the resume banner
+  ///
+  /// In en, this message translates to:
+  /// **'Resume after failure'**
+  String get queueResumeButton;
+
+  /// Confirm dialog title before resuming a printer's queue
+  ///
+  /// In en, this message translates to:
+  /// **'Resume the queue after a failure?'**
+  String get queueResumeConfirmTitle;
+
+  /// Confirm dialog body before resuming a printer's queue
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{This puts 1 skipped job} other{This puts {count} skipped jobs}} on {printer} back to waiting and lifts the hold left by the failed print. Make sure the printer is ready first.'**
+  String queueResumeConfirmBody(int count, String printer);
+
+  /// Toast after a queue was resumed; count is how many skipped jobs are waiting again
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Queue resumed} =1{Queue resumed: 1 job is waiting again} other{Queue resumed: {count} jobs are waiting again}}'**
+  String queueResumed(int count);
+
   /// No description provided for @queueNoFreePrinters.
   ///
   /// In en, this message translates to:
