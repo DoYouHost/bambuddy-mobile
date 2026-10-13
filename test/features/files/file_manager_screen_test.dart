@@ -382,6 +382,7 @@ void main() {
 
       await tester.tap(byLogId('files.add_to_queue'));
       await tester.pumpAndSettle();
+      await openQueueFormPrinterSelect(tester);
       await tester.tap(byLogId('queue_edit.printer').first);
       await tester.pumpAndSettle();
       await submitQueueForm(tester);

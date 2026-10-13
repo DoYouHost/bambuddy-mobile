@@ -6111,6 +6111,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get queueEditSpecificPrinter => 'Konkretna drukarka';
 
   @override
+  String get queueEditPrinter => 'Drukarka';
+
+  @override
   String queueEditAnyModel(String model) {
     return 'Dowolna $model';
   }
@@ -7653,9 +7656,6 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get queueEditCopiesLabel => 'Ile razy wydrukować';
-
-  @override
   String get queueEditCopies => 'Kopie';
 
   @override
@@ -8524,7 +8524,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueInsufficientBudget =>
-      'Za mało budżetu w tym centrum kosztów.';
+      'Budżet tego centrum kosztów został przekroczony.';
 
   @override
   String get queueBillingEstimateRequired =>

@@ -3,9 +3,10 @@ import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers.dart';
 import 'queue_form_harness.dart';
 
 /// The filament mapping the edit form sends: matched again on save against
@@ -63,8 +64,13 @@ void main() {
   testWidgets('another printer is matched on its own', (tester) async {
     await tester.pumpWidget(form());
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('P1S-Garage'));
-    await tester.tap(find.text('P1S-Garage'));
+    await openQueueFormPrinterSelect(tester);
+    await tester.tap(
+      find.descendant(
+        of: byLogId('queue_edit.printer'),
+        matching: find.text('P1S-Garage'),
+      ),
+    );
     await tester.pumpAndSettle();
     await submitQueueForm(tester, edit: true);
 

@@ -788,6 +788,11 @@ class _ArchiveCard extends StatelessWidget {
                               child: ArchiveVerdictMark(archive: archive),
                             ),
                             Positioned(
+                              left: -4,
+                              bottom: -4,
+                              child: _PlateBadge(archive: archive),
+                            ),
+                            Positioned(
                               right: -4,
                               bottom: -4,
                               child: _MediaBadges(archive: archive),
@@ -837,6 +842,44 @@ class _ArchiveCard extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The plate a run printed, on the thumbnail's lower-left corner: a mark, not a
+/// line of text, so the row keeps its height. Only a run that printed a chosen
+/// plate of a multi-plate file carries one, which is exactly when the name alone
+/// cannot tell two rows apart; 0 is what the slicer's own API means by "every
+/// plate", not a plate.
+class _PlateBadge extends StatelessWidget {
+  const _PlateBadge({required this.archive});
+
+  final Archive archive;
+
+  @override
+  Widget build(BuildContext context) {
+    final plate = archive.plateId ?? 0;
+    if (plate <= 0) return const SizedBox.shrink();
+    final t = DashTokens.of(context);
+    return Semantics(
+      label: AppLocalizations.of(context).archivePlate(plate),
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.all(DashSpace.xs),
+        decoration: BoxDecoration(
+          color: t.subCard,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: t.subCardBorder),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.grid_view_outlined, size: 12, color: t.textSecondary),
+            const SizedBox(width: DashSpace.xs),
+            Text('$plate', style: t.monoMicro.copyWith(color: t.textSecondary)),
+          ],
         ),
       ),
     );

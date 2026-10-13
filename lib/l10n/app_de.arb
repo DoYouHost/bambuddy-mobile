@@ -3240,6 +3240,7 @@
   "queueEditPrintJob": "Druckauftrag",
   "queueEditTarget": "Ziel",
   "queueEditSpecificPrinter": "Bestimmter Drucker",
+  "queueEditPrinter": "Drucker",
   "queueEditAnyModel": "Beliebiger {model}",
   "@queueEditAnyModel": {
     "placeholders": {
@@ -3908,7 +3909,6 @@
   "ordersGroupConfirm": "Gruppieren",
   "ordersGrouped": "{count, plural, =1{1 Auftrag als {name} gruppiert} other{{count} Aufträge als {name} gruppiert}}",
   "ordersPlateDispatched": "Offene Drucke von {plate} eingereiht ({name})",
-  "queueEditCopiesLabel": "Wie oft drucken",
   "queueEditCopies": "Kopien",
   "queueEditCopiesHint": "Die Kopien werden als eine Gruppe eingereiht.",
   "queueEditCopiesOrder": "Daraus wird ein Sammelauftrag: Eine fehlgeschlagene Kopie lässt sich unter Sammelaufträge erneut einreihen.",
@@ -4146,7 +4146,7 @@
   "queueEstimatedCost": "Geschätzte Kosten: {amount}",
   "queueCostNotAvailable": "k. A.",
   "queueEstimatedCostForCopies": "gesamt: {amount}",
-  "queueInsufficientBudget": "Das Budget dieser Kostenstelle reicht nicht aus.",
+  "queueInsufficientBudget": "Das Budget dieser Kostenstelle ist überschritten.",
   "queueBillingEstimateRequired": "Der Server konnte die Kosten dieses Auftrags nicht berechnen, weil die Datei keinen Filamentverbrauch angibt – eine Kostenstelle braucht ihn.",
   "queueBillingCostCenterInactive": "Diese Kostenstelle ist nicht mehr aktiv. Wähle eine andere.",
   "queueBillingCostCenterNoAccess": "Du darfst mit dieser Kostenstelle nicht drucken. Wähle eine andere.",

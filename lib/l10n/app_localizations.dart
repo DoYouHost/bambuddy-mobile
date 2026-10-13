@@ -10226,6 +10226,12 @@ abstract class AppLocalizations {
   /// **'Specific Printer'**
   String get queueEditSpecificPrinter;
 
+  /// Label of the printer select in the print form's Target section.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get queueEditPrinter;
+
   /// No description provided for @queueEditAnyModel.
   ///
   /// In en, this message translates to:
@@ -12692,12 +12698,6 @@ abstract class AppLocalizations {
   /// **'Queued the owed runs of {plate} ({name})'**
   String ordersPlateDispatched(String plate, String name);
 
-  /// No description provided for @queueEditCopiesLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'How many times to print it'**
-  String get queueEditCopiesLabel;
-
   /// No description provided for @queueEditCopies.
   ///
   /// In en, this message translates to:
@@ -14120,10 +14120,10 @@ abstract class AppLocalizations {
   /// **'total: {amount}'**
   String queueEstimatedCostForCopies(String amount);
 
-  /// Under the estimated cost when the job costs more than the cost center has left; the web's own sentence.
+  /// Under the estimated cost when the job costs more than the cost center has left. Deliberately not the web's "Insufficient budget": the budget is exceeded, not too small.
   ///
   /// In en, this message translates to:
-  /// **'Insufficient budget for this cost center.'**
+  /// **'Budget exceeded for this cost center.'**
   String get queueInsufficientBudget;
 
   /// The server refused a job because it could not work out a cost for it: the file lists no filament usage (`Estimated cost is required for cost center prints`).

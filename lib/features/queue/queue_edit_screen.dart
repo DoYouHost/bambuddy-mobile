@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
 import 'package:app_util/app_util.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
@@ -164,6 +167,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   // Preheat & heat soak
   late String _preheatOverride; // inherit | on | off
+
+  /// Collapsible sections the user has opened; the cards themselves hold no state.
+  final _openSections = <String>{};
   late final TextEditingController _chamberTarget;
 
   // When to print
@@ -434,6 +440,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               : l10n.queueEditAnyModelGeneric);
 
     return _SectionCard(
+      tone: _SectionTone.target,
       title: l10n.queueEditTarget,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -472,33 +479,56 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     );
   }
 
-  Widget _printerList(AppLocalizations l10n, DashTokens t, List printers) {
+  String _printerDetail(Printer p) => [
+    if (p.model != null) p.model!,
+    if (p.ipAddress != null) p.ipAddress!,
+  ].join(' • ');
+
+  Widget _printerList(
+    AppLocalizations l10n,
+    DashTokens t,
+    List<Printer> printers,
+  ) {
     if (printers.isEmpty) {
       return Text(
         l10n.queueNoFreePrinters,
         style: t.bodyPlain.copyWith(color: t.textTertiary),
       );
     }
-    return Column(
-      children: [
+    // A select, not a tile per printer: a farm of twenty would be twenty tiles
+    // between the toggle and the rest of the form. Typing narrows it by name.
+    return dashCombo<int>(
+      context,
+      id: 'queue_edit.printer_select',
+      label: Text(l10n.queueEditPrinter),
+      filterable: true,
+      initialSelection: _printerId,
+      onSelected: (id) => setState(() {
+        if (id == null || id == _printerId) return;
+        _nozzleRackChoice.clear();
+        // A slot id names another spool on another printer; the web drops its
+        // picks on a switch too (`PrintModal/index.tsx`).
+        _amsMapping = null;
+        _printerId = id;
+      }),
+      entries: [
         for (final p in printers)
-          _SelectableTile(
-            selected: _printerId == p.id,
-            title: p.name,
-            subtitle: [
-              if (p.model != null) p.model!,
-              if (p.ipAddress != null) p.ipAddress!,
-            ].join(' • '),
-            onTap: () => setState(() {
-              if (_printerId != p.id) {
-                _nozzleRackChoice.clear();
-                // A slot id names another spool on another printer; the web
-                // drops its picks on a switch too (`PrintModal/index.tsx`).
-                _amsMapping = null;
-              }
-              _printerId = p.id;
-            }),
-          ).tagged('queue_edit.printer'),
+          DropdownMenuEntry(
+            value: p.id,
+            label: p.name,
+            labelWidget: logTag(
+              'queue_edit.printer',
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(p.name, style: t.titleSm),
+                  if (_printerDetail(p) case final detail
+                      when detail.isNotEmpty)
+                    Text(detail, style: t.monoMicro),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -515,28 +545,40 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         if (!modelFixed && models.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: DashSpace.md),
-            child: _Dropdown<String?>(
-              label: l10n.queueEditTargetModel,
-              value: models.contains(_targetModel) ? _targetModel : null,
-              placeholder: '—',
-              items: [
-                for (final m in models) (value: m, label: m, swatch: null),
-              ],
-              onChanged: (v) => setState(() {
+            child: dashCombo<String>(
+              context,
+              id: 'queue_edit.target_model',
+              label: Text(l10n.queueEditTargetModel),
+              initialSelection: models.contains(_targetModel)
+                  ? _targetModel
+                  : null,
+              onSelected: (v) => setState(() {
                 _targetModel = v;
                 _dropOverridesOnRetarget(plateChanged: false);
               }),
+              entries: [
+                for (final m in models)
+                  DropdownMenuEntry(
+                    value: m,
+                    label: m,
+                    labelWidget: logTag(
+                      'queue_edit.target_model.option',
+                      Text(m),
+                    ),
+                  ),
+              ],
             ),
           ),
-        _Dropdown<String?>(
-          label: l10n.queueEditTargetLocation,
-          value: locations.contains(_targetLocation) ? _targetLocation : null,
-          placeholder: l10n.queueEditAnyLocation,
-          items: [
-            (value: null, label: l10n.queueEditAnyLocation, swatch: null),
-            for (final loc in locations) (value: loc, label: loc, swatch: null),
-          ],
-          onChanged: (v) => setState(() => _targetLocation = v),
+        dashAnyOrOne<String>(
+          context,
+          id: 'queue_edit.target_location',
+          label: Text(l10n.queueEditTargetLocation),
+          anyLabel: l10n.queueEditAnyLocation,
+          selected: locations.contains(_targetLocation)
+              ? _targetLocation
+              : null,
+          options: [for (final loc in locations) (loc, loc)],
+          onPick: (v) => setState(() => _targetLocation = v),
         ),
       ],
     );
@@ -642,6 +684,15 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     }, urgent: true);
   }
 
+  /// Folds a section that is rarely touched, closed until the user opens it.
+  _SectionCollapse _collapse(String id) => (
+    id: id,
+    open: _openSections.contains(id),
+    onToggle: () => setState(() {
+      if (!_openSections.remove(id)) _openSections.add(id);
+    }),
+  );
+
   /// The web's cost-center select (`PrintModal/CostCenterSelect.tsx`): shown
   /// while billing is on and there is something to choose from.
   Widget? _costCenterSection(AppLocalizations l10n, DashTokens t) {
@@ -667,7 +718,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     };
     return body == null
         ? null
-        : _SectionCard(title: l10n.queueCostCenterTitle, child: body);
+        : _SectionCard(
+            tone: _SectionTone.cost,
+            title: l10n.queueCostCenterTitle,
+            child: body,
+          );
   }
 
   Widget _costCenterPicker(
@@ -790,15 +845,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return Column(
       children: [
         _SectionCard(
-          title: l10n.queueEditCopies,
+          tone: _SectionTone.copies,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Expanded(
-                    child: Text(l10n.queueEditCopiesLabel, style: t.body),
-                  ),
+                  Expanded(child: Text(l10n.queueEditCopies, style: t.body)),
                   DashStepper(
                     value: _copies,
                     min: 1,
@@ -888,6 +941,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return Column(
       children: [
         _SectionCard(
+          tone: _SectionTone.plate,
           title: l10n.queueEditPlate,
           child: widget._isCreate
               ? InkWell(
@@ -929,6 +983,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final mapped = _amsMapping?.where((v) => v >= 0).length ?? 0;
     final printerId = _printerId;
     return _SectionCard(
+      tone: _SectionTone.filament,
       title: l10n.queueFilamentMapping,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -1109,6 +1164,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               const <AvailableFilament>[]);
     final reqs = _requirements();
     return _SectionCard(
+      tone: _SectionTone.filament,
       title: l10n.queueEditFilamentOverride,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1287,7 +1343,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     // would promise something we cannot deliver.
     final triState = ref.watch(triStateCalibrationProvider).orFalse;
     return _SectionCard(
+      tone: _SectionTone.options,
       title: l10n.queueEditPrintOptions,
+      collapse: _collapse('queue_edit.print_options_section'),
       child: Column(
         children: [
           _CalibrationRow(
@@ -1358,7 +1416,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   // --- Preheat & heat soak ---
   Widget _preheatSection(AppLocalizations l10n, DashTokens t) {
     return _SectionCard(
+      tone: _SectionTone.preheat,
       title: l10n.queueEditPreheat,
+      collapse: _collapse('queue_edit.preheat_section'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1400,6 +1460,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   // --- When to print ---
   Widget _scheduleSection(AppLocalizations l10n, DashTokens t) {
     return _SectionCard(
+      tone: _SectionTone.schedule,
       title: l10n.queueEditWhenToPrint,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1995,32 +2056,200 @@ Future<bool> openQueueCreate(
 // Local building blocks
 // ---------------------------------------------------------------------------
 
-/// Titled card wrapper matching the app's grouped-section look.
+/// How a [_SectionCard] folds: [id] is the header's diagnostic id.
+typedef _SectionCollapse = ({String id, bool open, VoidCallback onToggle});
+
+/// A section's edge stripe, so a section is found by where it was last seen.
+/// Filament shares one tone between its two forms, which are never on screen
+/// together. The colours are the theme's own series, one per member.
+enum _SectionTone {
+  target,
+  plate,
+  copies,
+  filament,
+  options,
+  preheat,
+  cost,
+  schedule;
+
+  Color of(DashTokens t) => t.accentSeries(values.length)[index];
+}
+
+/// The stripe down a section's left edge: [_toneSolid] of the colour, then
+/// [_toneFade] fading out to the card.
+const _toneSolid = 1.0;
+const _toneFade = 3.0;
+
+/// Corner radius of a [_SectionCard]; the stripe follows it round the corners.
+const _sectionRadius = 18.0;
+
+/// Titled card wrapper matching the app's grouped-section look. With [collapse]
+/// the title is a button that shows or hides [child].
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.child});
-  final String title;
+  const _SectionCard({
+    required this.tone,
+    this.title,
+    required this.child,
+    this.collapse,
+  });
+
+  final _SectionTone tone;
+
+  /// Absent for a card that is one row and needs no heading.
+  final String? title;
   final Widget child;
+  final _SectionCollapse? collapse;
 
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    final fold = collapse;
+    final heading = title == null
+        ? null
+        : Text(title!, style: t.bodyBold.copyWith(letterSpacing: 0.2));
+    final open = fold?.open ?? true;
+    // The gap under the title belongs to an open card only.
+    EdgeInsets headerPadding({required bool open}) => EdgeInsets.fromLTRB(
+      DashSpace.lg,
+      DashSpace.lg,
+      DashSpace.lg,
+      open ? DashSpace.md : DashSpace.lg,
+    );
     return Container(
-      padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(_sectionRadius),
         border: Border.all(color: t.subCardBorder),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
         children: [
-          Text(title, style: t.bodyBold.copyWith(letterSpacing: 0.2)),
-          const SizedBox(height: DashSpace.md),
-          child,
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                // The colour is the key, so a test can read what a card wears.
+                key: ValueKey(tone.of(t)),
+                painter: _ToneEdgePainter(tone.of(t)),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (heading != null && fold == null)
+                Padding(padding: headerPadding(open: true), child: heading)
+              else if (heading != null && fold != null)
+                InkWell(
+                  onTap: fold.onToggle,
+                  child: Padding(
+                    padding: headerPadding(open: open),
+                    child: Row(
+                      children: [
+                        Expanded(child: heading),
+                        Icon(
+                          open ? Icons.expand_less : Icons.expand_more,
+                          color: t.textTertiary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ).tagged(fold.id, expanded: open),
+              if (open)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    DashSpace.lg,
+                    heading == null ? DashSpace.lg : 0,
+                    DashSpace.lg,
+                    DashSpace.lg,
+                  ),
+                  child: child,
+                ),
+            ],
+          ),
         ],
       ),
     );
   }
+}
+
+/// A section's colour along the left edge of its card: [_toneSolid] of full
+/// colour that fades over the next [_toneFade] towards the inside. Round each of
+/// the two left corners the stripe follows the card's arc and narrows to nothing
+/// — 4, 3, 2, 1 dp — so it is gone where the arc meets the top or bottom side.
+///
+/// A mesh with a colour on each vertex: three rows across the stripe (solid,
+/// end of solid, transparent) at every step along the edge, the rows squeezing
+/// together on the arcs. A stroke cannot narrow, and a gradient painted across
+/// the edge cannot bend with a corner.
+class _ToneEdgePainter extends CustomPainter {
+  const _ToneEdgePainter(this.color);
+
+  final Color color;
+
+  /// The card's border is 1 dp and the painted area sits inside it.
+  static const _border = 1.0;
+
+  /// Steps round one corner.
+  static const _arcSteps = 24;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const radius = _sectionRadius - _border;
+    const width = _toneSolid + _toneFade;
+    final rows = [color, color, color.withValues(alpha: 0)];
+    // Along the edge from the top end of the top arc to the bottom end of the
+    // bottom arc; `reach` is how far round the arc a station is, 0 on the
+    // straight part and 1 at the point it meets a side.
+    final stations = <({Offset at, Offset inward, double reach})>[];
+    void arc(Offset centre, double from, double to, {required bool top}) {
+      for (var i = 0; i <= _arcSteps; i++) {
+        final along = i / _arcSteps;
+        final angle = from + (to - from) * along;
+        final out = Offset(math.cos(angle), math.sin(angle));
+        stations.add((
+          at: centre + out * radius,
+          inward: -out,
+          reach: top ? 1 - along : along,
+        ));
+      }
+    }
+
+    arc(const Offset(radius, radius), 3 * math.pi / 2, math.pi, top: true);
+    arc(Offset(radius, size.height - radius), math.pi, math.pi / 2, top: false);
+
+    // Three points across each station: the edge, where the solid part ends,
+    // and where the fade ends — closer together the nearer the end of the arc.
+    final positions = <Offset>[];
+    final colors = <Color>[];
+    for (final st in stations) {
+      final w = width * (1 - st.reach);
+      for (final (i, depth) in [0.0, w * _toneSolid / width, w].indexed) {
+        positions.add(st.at + st.inward * depth);
+        colors.add(rows[i]);
+      }
+    }
+    final triangles = <int>[];
+    for (var k = 0; k < stations.length - 1; k++) {
+      for (var row = 0; row < 2; row++) {
+        final a = k * 3 + row;
+        final b = (k + 1) * 3 + row;
+        triangles.addAll([a, a + 1, b, a + 1, b + 1, b]);
+      }
+    }
+    canvas.drawVertices(
+      ui.Vertices(
+        ui.VertexMode.triangles,
+        positions,
+        colors: colors,
+        indices: triangles,
+      ),
+      BlendMode.src,
+      Paint(),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ToneEdgePainter old) => old.color != color;
 }
 
 /// A segment for [_SegToggle].
@@ -2464,72 +2693,6 @@ class _SwatchDot extends StatelessWidget {
         border: Border.all(
           color: ring ?? t.hairline,
           width: ring != null ? 2 : 1,
-        ),
-      ),
-    );
-  }
-}
-
-/// Selectable printer tile (specific-printer mode).
-class _SelectableTile extends StatelessWidget {
-  const _SelectableTile({
-    required this.selected,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final bool selected;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: DashSpace.sm),
-      child: Material(
-        color: selected ? t.accentGreen.withValues(alpha: 0.14) : t.groupCard,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: DashSpace.lg,
-              vertical: DashSpace.md,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: selected
-                    ? t.accentGreen.withValues(alpha: 0.5)
-                    : t.groupCardBorder,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.print_outlined,
-                  size: 20,
-                  color: selected ? t.accentGreenInk : t.textSecondary,
-                ),
-                const SizedBox(width: DashSpace.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: t.titleSm),
-                      if (subtitle.isNotEmpty)
-                        Text(subtitle, style: t.monoMicro),
-                    ],
-                  ),
-                ),
-                if (selected) Icon(Icons.check_circle, color: t.accentGreenInk),
-              ],
-            ),
-          ),
         ),
       ),
     );

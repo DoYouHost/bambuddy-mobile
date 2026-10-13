@@ -263,3 +263,23 @@ Future<void> submitQueueForm(WidgetTester tester, {bool edit = false}) async {
   );
   await tester.pumpAndSettle();
 }
+
+/// Opens a folded section of the form by its header's diagnostic id; the print
+/// options and preheat start closed.
+Future<void> openQueueFormSection(WidgetTester tester, String id) async {
+  await tester.ensureVisible(byLogId(id));
+  await tester.tap(byLogId(id));
+  await tester.pumpAndSettle();
+}
+
+/// Opens the printer select of the Target section by its arrow: the field is
+/// filterable, so a tap on the text only focuses it.
+Future<void> openQueueFormPrinterSelect(WidgetTester tester) async {
+  final arrow = find.descendant(
+    of: byLogId('queue_edit.printer_select'),
+    matching: find.byIcon(Icons.arrow_drop_down),
+  );
+  await tester.ensureVisible(arrow);
+  await tester.tap(arrow);
+  await tester.pumpAndSettle();
+}

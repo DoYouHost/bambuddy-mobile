@@ -3980,6 +3980,10 @@
   "queueEditPrintJob": "Print Job",
   "queueEditTarget": "Target",
   "queueEditSpecificPrinter": "Specific Printer",
+  "queueEditPrinter": "Printer",
+  "@queueEditPrinter": {
+    "description": "Label of the printer select in the print form's Target section."
+  },
   "queueEditAnyModel": "Any {model}",
   "@queueEditAnyModel": {
     "placeholders": {
@@ -4812,7 +4816,6 @@
       }
     }
   },
-  "queueEditCopiesLabel": "How many times to print it",
   "queueEditCopies": "Copies",
   "queueEditCopiesHint": "The copies are queued as one batch.",
   "queueEditCopiesOrder": "This becomes an order: a failed copy can be queued again from Batch orders.",
@@ -5818,9 +5821,9 @@
       }
     }
   },
-  "queueInsufficientBudget": "Insufficient budget for this cost center.",
+  "queueInsufficientBudget": "Budget exceeded for this cost center.",
   "@queueInsufficientBudget": {
-    "description": "Under the estimated cost when the job costs more than the cost center has left; the web's own sentence."
+    "description": "Under the estimated cost when the job costs more than the cost center has left. Deliberately not the web's \"Insufficient budget\": the budget is exceeded, not too small."
   },
   "queueBillingEstimateRequired": "The server could not work out what this job costs because the file lists no filament usage, and a cost center needs that.",
   "@queueBillingEstimateRequired": {

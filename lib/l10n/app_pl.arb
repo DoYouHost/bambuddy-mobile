@@ -2582,6 +2582,7 @@
   "queueEditPrintJob": "Zadanie druku",
   "queueEditTarget": "Cel",
   "queueEditSpecificPrinter": "Konkretna drukarka",
+  "queueEditPrinter": "Drukarka",
   "queueEditAnyModel": "Dowolna {model}",
   "@queueEditAnyModel": {
     "placeholders": {
@@ -3219,7 +3220,6 @@
   "ordersGroupConfirm": "Grupuj",
   "ordersGrouped": "{count, plural, =1{Zgrupowano 1 zadanie jako {name}} few{Zgrupowano {count} zadania jako {name}} many{Zgrupowano {count} zadań jako {name}} other{Zgrupowano {count} zadania jako {name}}}",
   "ordersPlateDispatched": "Dodano do kolejki brakujące wydruki płyty {plate} ({name})",
-  "queueEditCopiesLabel": "Ile razy wydrukować",
   "queueEditCopies": "Kopie",
   "queueEditCopiesHint": "Kopie trafią do kolejki jako jedna partia.",
   "queueEditCopiesOrder": "Powstanie zamówienie: nieudaną kopię dodasz ponownie w Zamówieniach.",
@@ -3457,7 +3457,7 @@
   "queueEstimatedCost": "Szacowany koszt: {amount}",
   "queueCostNotAvailable": "brak danych",
   "queueEstimatedCostForCopies": "razem: {amount}",
-  "queueInsufficientBudget": "Za mało budżetu w tym centrum kosztów.",
+  "queueInsufficientBudget": "Budżet tego centrum kosztów został przekroczony.",
   "queueBillingEstimateRequired": "Serwer nie potrafił policzyć kosztu tego zadania, bo plik nie podaje zużycia filamentu, a centrum kosztów tego wymaga.",
   "queueBillingCostCenterInactive": "To centrum kosztów nie jest już aktywne. Wybierz inne.",
   "queueBillingCostCenterNoAccess": "Nie masz uprawnień do drukowania z tego centrum kosztów. Wybierz inne.",

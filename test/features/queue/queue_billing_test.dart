@@ -18,6 +18,12 @@ import 'queue_form_harness.dart';
 /// center (maziggy/bambuddy #3256): the form offers the user's own to pick from,
 /// and where there are none says so up front instead of sending what will be
 /// refused.
+/// The cost center select; the printer select beside it is a `DropdownMenu<int>` too.
+final _costCenterField = find.descendant(
+  of: byLogId('queue_edit.cost_center'),
+  matching: find.byType(DropdownMenu<int>),
+);
+
 void main() {
   setUp(setUpQueueForm);
 
@@ -147,8 +153,8 @@ void main() {
   );
 
   Future<void> pick(WidgetTester tester, String name) async {
-    await tester.ensureVisible(find.byType(DropdownMenu<int>));
-    await tester.tap(find.byType(DropdownMenu<int>));
+    await tester.ensureVisible(_costCenterField);
+    await tester.tap(_costCenterField);
     await tester.pumpAndSettle();
     await tester.tap(find.text(name).last);
     await tester.pumpAndSettle();
@@ -160,7 +166,7 @@ void main() {
     ) async {
       await pump(tester, centers: () => [alice, workshop]);
 
-      expect(find.byType(DropdownMenu<int>), findsOneWidget);
+      expect(_costCenterField, findsOneWidget);
       expect(find.text(pl.queueCostCenterPersonal('Alice')), findsOneWidget);
 
       await submitQueueForm(tester);
@@ -201,7 +207,7 @@ void main() {
     ) async {
       await pump(tester, billing: false);
 
-      expect(find.byType(DropdownMenu<int>), findsNothing);
+      expect(_costCenterField, findsNothing);
       expect(find.text(pl.queueCostCenterTitle), findsNothing);
 
       await submitQueueForm(tester);
@@ -365,7 +371,7 @@ void main() {
       await pump(tester, centers: () => null);
 
       expect(find.text(pl.queueBillingCostCentersRefused), findsOneWidget);
-      expect(find.byType(DropdownMenu<int>), findsNothing);
+      expect(_costCenterField, findsNothing);
       expect(submit(tester, 'queue_create.save').onPressed, isNull);
     });
 
@@ -414,7 +420,7 @@ void main() {
       await tester.tap(byLogId('queue_edit.cost_center_retry'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(DropdownMenu<int>), findsOneWidget);
+      expect(_costCenterField, findsOneWidget);
       expect(submit(tester, 'queue_create.save').onPressed, isNotNull);
     });
   });
@@ -470,7 +476,7 @@ void main() {
     settings.complete({'billing_enabled': true});
     await tester.pumpAndSettle();
 
-    expect(find.byType(DropdownMenu<int>), findsOneWidget);
+    expect(_costCenterField, findsOneWidget);
     expect(submit(tester, 'queue_create.save').onPressed, isNotNull);
   });
 

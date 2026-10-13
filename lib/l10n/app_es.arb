@@ -3240,6 +3240,7 @@
   "queueEditPrintJob": "Trabajo de impresión",
   "queueEditTarget": "Destino",
   "queueEditSpecificPrinter": "Impresora específica",
+  "queueEditPrinter": "Impresora",
   "queueEditAnyModel": "Cualquier {model}",
   "@queueEditAnyModel": {
     "placeholders": {
@@ -3908,7 +3909,6 @@
   "ordersGroupConfirm": "Agrupar",
   "ordersGrouped": "{count, plural, =1{1 trabajo agrupado como {name}} other{{count} trabajos agrupados como {name}}}",
   "ordersPlateDispatched": "Se encolaron las impresiones pendientes de {plate} ({name})",
-  "queueEditCopiesLabel": "Cuántas veces imprimir",
   "queueEditCopies": "Copias",
   "queueEditCopiesHint": "Las copias se encolan como un solo lote.",
   "queueEditCopiesOrder": "Se crea un pedido: una copia fallida puede volver a encolarse desde Pedidos por lotes.",
@@ -4146,7 +4146,7 @@
   "queueEstimatedCost": "Coste estimado: {amount}",
   "queueCostNotAvailable": "N/D",
   "queueEstimatedCostForCopies": "total: {amount}",
-  "queueInsufficientBudget": "Presupuesto insuficiente en este centro de costes.",
+  "queueInsufficientBudget": "Presupuesto superado en este centro de costes.",
   "queueBillingEstimateRequired": "El servidor no pudo calcular el coste de este trabajo porque el archivo no indica el consumo de filamento, y un centro de costes lo necesita.",
   "queueBillingCostCenterInactive": "Ese centro de costes ya no está activo. Elige otro.",
   "queueBillingCostCenterNoAccess": "No puedes imprimir con ese centro de costes. Elige otro.",
