@@ -110,9 +110,36 @@ void main() {
     });
 
     test('queue has pending items', () async {
-      final items = await QueueRepository(dio).fetch();
+      final items = await QueueRepository(dio).fetch(status: 'pending');
       expect(items.length, greaterThanOrEqualTo(2));
-      expect(items.first.statusKind, QueueItemStatusKind.pending);
+    });
+
+    test('the print on the X1 is the printing row of the queue', () async {
+      // The Printers tab and the queue describe one demo, so the job the
+      // simulation runs is the one the queue pins on top.
+      final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        );
+      final queue = QueueRepository(own);
+      final status = await PrintersRepository(own).fetchStatus(1);
+
+      final printing = await queue.fetch(status: 'printing');
+      expect(status!.isPrinting, isTrue);
+      expect(printing.single.printerId, 1);
+      expect(printing.single.displayName, 'Bag dispenser');
+
+      await queue.stop(printing.single.id);
+      expect(
+        await queue.fetch(status: 'printing'),
+        isEmpty,
+        reason: 'stopping it from the queue stops the simulated print',
+      );
+      expect(
+        (await PrintersRepository(own).fetchStatus(1))!.isPrinting,
+        isFalse,
+      );
     });
 
     test('the queue filters by status, as the server does', () async {

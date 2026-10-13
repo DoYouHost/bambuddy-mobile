@@ -2458,10 +2458,10 @@ class DemoBackend {
       id: 104,
       printerId: 2,
       position: 4,
-      name: 'Cable clip',
+      name: 'Server rack – plate 14',
       status: 'failed',
-      timeSec: 1380,
-      grams: 6.1,
+      timeSec: 5340,
+      grams: 21.4,
       type: 'PLA',
       color: '#2D7FF9',
       createdDaysAgo: 1,
@@ -2473,10 +2473,10 @@ class DemoBackend {
       id: 105,
       printerId: 2,
       position: 5,
-      name: 'Cable clip ×2',
+      name: 'Server rack – plate 14',
       status: 'skipped',
-      timeSec: 2760,
-      grams: 12.2,
+      timeSec: 5340,
+      grams: 21.4,
       type: 'PLA',
       color: '#2D7FF9',
       createdDaysAgo: 1,
@@ -2488,10 +2488,10 @@ class DemoBackend {
       id: 106,
       printerId: 2,
       position: 6,
-      name: 'Hook plate',
+      name: 'Bag dispenser',
       status: 'skipped',
-      timeSec: 3300,
-      grams: 15.8,
+      timeSec: 5400,
+      grams: 96.2,
       type: 'PETG',
       color: '#FFFFFF',
       createdDaysAgo: 1,
@@ -2718,7 +2718,7 @@ class DemoBackend {
         // for `pending` and `printing`, the history for the other four.
         final status = q['status'];
         return _ok([
-          for (final item in _queue)
+          for (final item in [?_printingRow, ..._queue])
             if (status == null || item['status'] == status) item,
         ]);
       }
@@ -2787,6 +2787,20 @@ class DemoBackend {
     }
     final itemId = int.tryParse(s[1]);
     if (itemId == null) return _notFound();
+    if (itemId == _printingRowId && s.length >= 3 && s[2] == 'stop') {
+      if (_printingRow == null) {
+        return (
+          status: 400,
+          body: {
+            'detail':
+                "Can only stop items that are printing, current status: "
+                "'completed'",
+          },
+        );
+      }
+      _stopPrint();
+      return _ok(const {'message': 'Print stopped'});
+    }
     final item = _queue.where((e) => e['id'] == itemId).firstOrNull;
     if (item == null) return _notFound();
     if (m == 'DELETE') {
@@ -2834,6 +2848,32 @@ class DemoBackend {
   }
 
   int _nextQueueId = 200;
+
+  /// The job printer 1 is running, as the queue lists it while it runs: the
+  /// card on the Printers tab and the top of the queue are the same print. Built
+  /// on every read from the print simulation, so a stop or the idle gap after
+  /// one takes it off the queue as the server would.
+  static const _printingRowId = 100;
+  Map<String, dynamic>? get _printingRow => _stopped || !_printsNow(1)
+      ? null
+      : {
+          ..._queueItem(
+            id: _printingRowId,
+            printerId: 1,
+            position: 0,
+            name: 'Bag dispenser',
+            status: 'printing',
+            timeSec: _printCycleSec,
+            grams: 96.2,
+            type: 'PETG',
+            color: '#7B2FF7',
+            createdDaysAgo: 0,
+            libraryFileId: 4,
+          ),
+          'started_at': _iso(
+            DateTime.now().subtract(Duration(seconds: _elapsedSec)),
+          ),
+        };
 
   /// `PATCH /queue/bulk` (`bulk_update_queue_items`): the same keys on every
   /// pending item named, the others only counted. A calibration sent as a
