@@ -77,3 +77,21 @@ Rules the screen follows because the server does:
 `DemoFinance` (`lib/core/demo/demo_finance.dart`) serves all of it as state, and
 `test/contract/ws_billing_contract_test.dart` runs the same flows against a real server
 (the stack is in `tool/ci/`; run it on `daily` **and** `latest`).
+
+## What the server tells you while a print runs
+
+Two frames on the live socket, both only from a server with billing on, both sent to
+every connected client (`main.py`):
+
+- `kill_switch_triggered` — the kill switch stopped a print nobody was authorised to
+  start (`printer_id`, `printer_name`, `filename`).
+- `billing_charge_failed` — a finished or stopped print could not be charged and its
+  budget reservation was kept (the same, plus `archive_id`).
+
+Both parse into one `WsBillingAlert` and are posted by the foreground service as one
+notification event, `NotifEvent.billingAlert` (`core/notifications/billing_alert.dart`).
+The web shows each as a toast; the app has no toast host that outlives a screen, and
+the service is the one place that hears the socket with the app closed. The switch is on
+by default: a stopped print and a missing charge both happened without anyone asking.
+A tap opens the printer. No contract test: neither frame can be provoked without a
+printer, so the shape is read from the server source.

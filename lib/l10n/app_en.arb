@@ -4961,6 +4961,50 @@
   "@notifEvtOutcomeDesc": {
     "description": "Explains the outcome-question notification switch"
   },
+  "notifEvtBilling": "Billing problems",
+  "@notifEvtBilling": {
+    "description": "Notification settings switch: billing went wrong on a printer"
+  },
+  "notifEvtBillingDesc": "When the server stops an unauthorized print or cannot charge a finished one",
+  "@notifEvtBillingDesc": {
+    "description": "Explains the billing-problems notification switch"
+  },
+  "notifBillingKillTitle": "Unauthorized print stopped",
+  "@notifBillingKillTitle": {
+    "description": "Title of the notification for a print the billing kill switch stopped"
+  },
+  "notifBillingKillBody": "The billing kill switch stopped an unauthorized print on {printer}: {filename}",
+  "@notifBillingKillBody": {
+    "description": "Body of that notification; {printer} is the printer's name, {filename} what it was printing",
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "notifBillingChargeTitle": "Billing failed",
+  "@notifBillingChargeTitle": {
+    "description": "Title of the notification for a print the server could not charge"
+  },
+  "notifBillingChargeBody": "Billing failed for {filename} on {printer}. The budget reservation was kept; check the server logs.",
+  "@notifBillingChargeBody": {
+    "description": "Body of that notification; {printer} is the printer's name, {filename} what it printed",
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "notifBillingUnknownFile": "unknown file",
+  "@notifBillingUnknownFile": {
+    "description": "Stands in for the file name when the server did not send one; sits mid-sentence, lower case"
+  },
   "outcomeNotifTitle": "How did {name} come out?",
   "@outcomeNotifTitle": {
     "description": "Title of the notification asking how a finished print came out; {name} is the print's name",

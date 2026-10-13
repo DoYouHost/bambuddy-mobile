@@ -196,6 +196,11 @@ class NotificationSettingsScreen extends ConsumerWidget {
       l.notifEvtOutcome,
       l.notifEvtOutcomeDesc,
     ),
+    _EventRow(
+      NotifEvent.billingAlert,
+      l.notifEvtBilling,
+      l.notifEvtBillingDesc,
+    ),
   ];
 }
 

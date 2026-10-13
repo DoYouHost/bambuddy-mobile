@@ -23,6 +23,11 @@ enum NotifEvent {
   /// A completed print asks how it came out (#1898). Source: the server's
   /// `print_confirm_request` frame, sent only for a print that opted in.
   outcomeRequest,
+
+  /// The server stopped an unauthorised print or could not charge a finished
+  /// one. Source: the `kill_switch_triggered` and `billing_charge_failed`
+  /// frames, which only a server with billing on sends.
+  billingAlert,
 }
 
 /// User's notification preferences: which events trigger notifications and with what thresholds.
@@ -79,6 +84,8 @@ class NotificationPrefs {
     NotifEvent.maintenanceDue,
     // On: it only fires for a print somebody asked to be asked about.
     NotifEvent.outcomeRequest,
+    // On: both mean money or a print went wrong without anybody asking.
+    NotifEvent.billingAlert,
   };
 
   static const NotificationPrefs defaults = NotificationPrefs(

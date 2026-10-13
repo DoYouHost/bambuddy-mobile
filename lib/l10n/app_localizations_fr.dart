@@ -7842,6 +7842,32 @@ class AppLocalizationsFr extends AppLocalizations {
       'Quand une impression qui demande son résultat se termine : répondre « Bonne » ou « Rebut » depuis la notification';
 
   @override
+  String get notifEvtBilling => 'Problèmes de facturation';
+
+  @override
+  String get notifEvtBillingDesc =>
+      'Quand le serveur arrête une impression non autorisée ou ne peut pas facturer une impression terminée';
+
+  @override
+  String get notifBillingKillTitle => 'Impression non autorisée arrêtée';
+
+  @override
+  String notifBillingKillBody(String printer, String filename) {
+    return 'Le coupe-circuit de facturation a arrêté une impression non autorisée sur $printer : $filename';
+  }
+
+  @override
+  String get notifBillingChargeTitle => 'Échec de la facturation';
+
+  @override
+  String notifBillingChargeBody(String printer, String filename) {
+    return 'La facturation de $filename sur $printer a échoué. La réserve de budget a été conservée ; consultez les journaux du serveur.';
+  }
+
+  @override
+  String get notifBillingUnknownFile => 'fichier inconnu';
+
+  @override
   String outcomeNotifTitle(String name) {
     return 'Comment est sortie l\'impression $name ?';
   }

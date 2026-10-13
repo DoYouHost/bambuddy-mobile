@@ -296,6 +296,8 @@ class WsProbe {
     // localized sentence that can carry the printer's name.
     WsPlateNotEmpty(printerId: final id) => {'printer_id': id},
     WsPrintEvent(printerId: final id) => {'printer_id': id},
+    // The file name is the user's own and stays out.
+    WsBillingAlert(printerId: final id) => {'printer_id': id},
     _ => const {},
   };
 
@@ -389,6 +391,10 @@ class WsProbe {
     WsArchiveUpdated() => 'archive_updated',
     WsPipelineRunUpdated() => 'pipeline_run_updated',
     WsPrintConfirmRequest() => 'print_confirm_request',
+    WsBillingAlert(kind: final kind) => switch (kind) {
+      BillingAlertKind.killSwitch => 'kill_switch_triggered',
+      BillingAlertKind.chargeFailed => 'billing_charge_failed',
+    },
     // Both frames the parser folds into one; the log keeps the distinction
     // out of it for the same reason the parser does.
     WsInventoryChanged() => 'inventory_changed',

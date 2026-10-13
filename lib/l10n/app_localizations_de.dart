@@ -7749,6 +7749,32 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wenn ein Druck mit Ergebnisabfrage fertig ist — „Gut“ oder „Ausschuss“ direkt aus der Benachrichtigung';
 
   @override
+  String get notifEvtBilling => 'Abrechnungsprobleme';
+
+  @override
+  String get notifEvtBillingDesc =>
+      'Wenn der Server einen nicht autorisierten Druck stoppt oder einen beendeten Druck nicht abrechnen kann';
+
+  @override
+  String get notifBillingKillTitle => 'Nicht autorisierter Druck gestoppt';
+
+  @override
+  String notifBillingKillBody(String printer, String filename) {
+    return 'Der Abrechnungs-Notschalter hat einen nicht autorisierten Druck auf $printer gestoppt: $filename';
+  }
+
+  @override
+  String get notifBillingChargeTitle => 'Abrechnung fehlgeschlagen';
+
+  @override
+  String notifBillingChargeBody(String printer, String filename) {
+    return 'Die Abrechnung von $filename auf $printer ist fehlgeschlagen. Die Budgetreservierung wurde beibehalten – bitte die Server-Logs prüfen.';
+  }
+
+  @override
+  String get notifBillingUnknownFile => 'unbekannte Datei';
+
+  @override
   String outcomeNotifTitle(String name) {
     return 'Wie ist $name geworden?';
   }

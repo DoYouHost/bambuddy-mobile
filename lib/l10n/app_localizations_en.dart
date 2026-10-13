@@ -7674,6 +7674,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'When a print that asks for its outcome completes — answer Good or Reject from the notification';
 
   @override
+  String get notifEvtBilling => 'Billing problems';
+
+  @override
+  String get notifEvtBillingDesc =>
+      'When the server stops an unauthorized print or cannot charge a finished one';
+
+  @override
+  String get notifBillingKillTitle => 'Unauthorized print stopped';
+
+  @override
+  String notifBillingKillBody(String printer, String filename) {
+    return 'The billing kill switch stopped an unauthorized print on $printer: $filename';
+  }
+
+  @override
+  String get notifBillingChargeTitle => 'Billing failed';
+
+  @override
+  String notifBillingChargeBody(String printer, String filename) {
+    return 'Billing failed for $filename on $printer. The budget reservation was kept; check the server logs.';
+  }
+
+  @override
+  String get notifBillingUnknownFile => 'unknown file';
+
+  @override
   String outcomeNotifTitle(String name) {
     return 'How did $name come out?';
   }

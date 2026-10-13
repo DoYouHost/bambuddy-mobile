@@ -12956,6 +12956,48 @@ abstract class AppLocalizations {
   /// **'When a print that asks for its outcome completes — answer Good or Reject from the notification'**
   String get notifEvtOutcomeDesc;
 
+  /// Notification settings switch: billing went wrong on a printer
+  ///
+  /// In en, this message translates to:
+  /// **'Billing problems'**
+  String get notifEvtBilling;
+
+  /// Explains the billing-problems notification switch
+  ///
+  /// In en, this message translates to:
+  /// **'When the server stops an unauthorized print or cannot charge a finished one'**
+  String get notifEvtBillingDesc;
+
+  /// Title of the notification for a print the billing kill switch stopped
+  ///
+  /// In en, this message translates to:
+  /// **'Unauthorized print stopped'**
+  String get notifBillingKillTitle;
+
+  /// Body of that notification; {printer} is the printer's name, {filename} what it was printing
+  ///
+  /// In en, this message translates to:
+  /// **'The billing kill switch stopped an unauthorized print on {printer}: {filename}'**
+  String notifBillingKillBody(String printer, String filename);
+
+  /// Title of the notification for a print the server could not charge
+  ///
+  /// In en, this message translates to:
+  /// **'Billing failed'**
+  String get notifBillingChargeTitle;
+
+  /// Body of that notification; {printer} is the printer's name, {filename} what it printed
+  ///
+  /// In en, this message translates to:
+  /// **'Billing failed for {filename} on {printer}. The budget reservation was kept; check the server logs.'**
+  String notifBillingChargeBody(String printer, String filename);
+
+  /// Stands in for the file name when the server did not send one; sits mid-sentence, lower case
+  ///
+  /// In en, this message translates to:
+  /// **'unknown file'**
+  String get notifBillingUnknownFile;
+
   /// Title of the notification asking how a finished print came out; {name} is the print's name
   ///
   /// In en, this message translates to:

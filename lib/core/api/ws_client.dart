@@ -154,6 +154,7 @@ class WsClient {
       StreamController<WsAnnouncementsChanged>.broadcast();
   final _confirmController =
       StreamController<WsPrintConfirmRequest>.broadcast();
+  final _billingController = StreamController<WsBillingAlert>.broadcast();
 
   WsConnection? _conn;
   StreamSubscription<dynamic>? _sub;
@@ -205,6 +206,9 @@ class WsClient {
   Stream<WsPrintConfirmRequest> get confirmRequests =>
       _confirmController.stream;
 
+  /// A print the kill switch stopped, or one that could not be charged.
+  Stream<WsBillingAlert> get billingAlerts => _billingController.stream;
+
   /// Idempotent. After [suspend] the way back is [resume].
   void start() {
     if (_disposed || _running) return;
@@ -248,6 +252,7 @@ class WsClient {
     await _archiveController.close();
     await _pipelineRunController.close();
     await _confirmController.close();
+    await _billingController.close();
   }
 
   Future<void> _openConnection() async {
@@ -356,6 +361,8 @@ class WsClient {
       _announcementsController.add(msg);
     } else if (msg is WsPrintConfirmRequest && !_confirmController.isClosed) {
       _confirmController.add(msg);
+    } else if (msg is WsBillingAlert && !_billingController.isClosed) {
+      _billingController.add(msg);
     }
     // A pong, an unknown type or unparseable text needs nothing beyond the
     // watchdog reset above.

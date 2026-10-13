@@ -7798,6 +7798,32 @@ class AppLocalizationsPl extends AppLocalizations {
       'Gdy skończy się wydruk, który pyta o wynik — odpowiedź „Udany” lub „Odrzucony” prosto z powiadomienia';
 
   @override
+  String get notifEvtBilling => 'Problemy z rozliczeniem';
+
+  @override
+  String get notifEvtBillingDesc =>
+      'Gdy serwer zatrzyma nieautoryzowany wydruk albo nie zdoła rozliczyć zakończonego';
+
+  @override
+  String get notifBillingKillTitle => 'Zatrzymano nieautoryzowany wydruk';
+
+  @override
+  String notifBillingKillBody(String printer, String filename) {
+    return 'Wyłącznik bezpieczeństwa zatrzymał nieautoryzowany wydruk na $printer: $filename';
+  }
+
+  @override
+  String get notifBillingChargeTitle => 'Nie rozliczono wydruku';
+
+  @override
+  String notifBillingChargeBody(String printer, String filename) {
+    return 'Nie udało się rozliczyć $filename na $printer. Rezerwacja budżetu została zachowana – sprawdź logi serwera.';
+  }
+
+  @override
+  String get notifBillingUnknownFile => 'nieznany plik';
+
+  @override
   String outcomeNotifTitle(String name) {
     return 'Jak wyszedł wydruk $name?';
   }
