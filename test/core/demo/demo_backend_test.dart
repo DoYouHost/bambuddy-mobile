@@ -129,6 +129,55 @@ void main() {
       });
     });
 
+    test('a bulk edit changes the pending items and counts the rest', () async {
+      final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        );
+      final repo = QueueRepository(own);
+
+      // 101 and 102 wait; 105 was skipped and is not the route's to change.
+      final result = await repo.bulkUpdate(
+        [101, 102, 105],
+        const QueueBulkChanges(
+          printerId: null,
+          timelapse: true,
+          bedLevelling: CalibrationOption.on,
+        ),
+      );
+
+      expect(result, (updated: 2, skipped: 1));
+      final items = {for (final i in await repo.fetch()) i.id: i};
+      expect(items[101]!.printerId, isNull);
+      expect(items[102]!.timelapse, isTrue);
+      expect(
+        items[101]!.bedLevelling,
+        CalibrationOption.on,
+        reason: 'a boolean is stored as the tri-state the server keeps',
+      );
+      expect(items[105]!.timelapse, isFalse);
+      expect(items[103]!.timelapse, isFalse, reason: 'not named, not touched');
+    });
+
+    test(
+      'a bulk edit with nothing in it is refused, as on the server',
+      () async {
+        final repo = QueueRepository(dio);
+
+        await expectLater(
+          repo.bulkUpdate([101], const QueueBulkChanges()),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.detail,
+              'detail',
+              'No fields to update',
+            ),
+          ),
+        );
+      },
+    );
+
     test('a failed print holds a printer, and resume releases it', () async {
       // A demo of its own: resuming moves the skipped jobs back to pending.
       final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))

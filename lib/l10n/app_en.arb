@@ -530,6 +530,82 @@
       }
     }
   },
+  "queueSelectedCount": "{count, plural, =1{1 selected} other{{count} selected}}",
+  "@queueSelectedCount": {
+    "description": "Queue app bar while items are selected",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueSelectAll": "Select all waiting",
+  "@queueSelectAll": {
+    "description": "Tooltip: select every waiting item of the queue"
+  },
+  "queueBulkEdit": "Edit selected",
+  "@queueBulkEdit": {
+    "description": "Tooltip: edit the selected queue items together"
+  },
+  "queueBulkTitle": "{count, plural, =1{Edit 1 item} other{Edit {count} items}}",
+  "@queueBulkTitle": {
+    "description": "Title of the screen that edits several queue items at once",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueBulkIntro": "Only the settings you change are applied to the selected items. Tap a choice to set it, and tap it again to leave that setting as it is.",
+  "@queueBulkIntro": {
+    "description": "Line under the bulk edit title"
+  },
+  "queueBulkNoChange": "No change",
+  "@queueBulkNoChange": {
+    "description": "First row of a bulk edit select and the neutral segment of a bulk edit switch: leave this setting as it is on every selected item"
+  },
+  "queueBulkUnassigned": "No printer (unassigned)",
+  "@queueBulkUnassigned": {
+    "description": "Bulk edit printer select: take the selected items off their printers"
+  },
+  "queueBulkQueueOptions": "Queue options",
+  "@queueBulkQueueOptions": {
+    "description": "Bulk edit section title: the queue flags"
+  },
+  "queueBulkApply": "Apply changes",
+  "@queueBulkApply": {
+    "description": "Bulk edit button"
+  },
+  "queueOptUseAms": "Use AMS",
+  "@queueOptUseAms": {
+    "description": "Print option: take filament from the AMS"
+  },
+  "queueOptUseAmsDesc": "Take filament from the AMS instead of the external spool",
+  "@queueOptUseAmsDesc": {
+    "description": "Subtitle of the use-AMS option"
+  },
+  "queueBulkUpdated": "{count, plural, =1{1 item updated} other{{count} items updated}}",
+  "@queueBulkUpdated": {
+    "description": "Toast after a bulk edit: items changed",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueBulkNothingUpdated": "Nothing was changed",
+  "@queueBulkNothingUpdated": {
+    "description": "Toast after a bulk edit that changed no item"
+  },
+  "queueBulkSkipped": "{count, plural, =1{1 item skipped: it is no longer waiting, or you may not change it} other{{count} items skipped: they are no longer waiting, or you may not change them}}",
+  "@queueBulkSkipped": {
+    "description": "Toast after a bulk edit: items the server left alone",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "queueNoFreePrinters": "No free printers right now",
   "queuePrintStarted": "Print started",
   "queueStatusPending": "Waiting",

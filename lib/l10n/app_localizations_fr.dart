@@ -869,6 +869,84 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String queueSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sélectionnés',
+      one: '1 sélectionné',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueSelectAll => 'Sélectionner toutes les tâches en attente';
+
+  @override
+  String get queueBulkEdit => 'Modifier la sélection';
+
+  @override
+  String queueBulkTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Modifier $count éléments',
+      one: 'Modifier 1 élément',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkIntro =>
+      'Seuls les réglages que vous modifiez sont appliqués aux éléments sélectionnés. Touchez un choix pour le définir, puis touchez-le à nouveau pour laisser ce réglage inchangé.';
+
+  @override
+  String get queueBulkNoChange => 'Aucun changement';
+
+  @override
+  String get queueBulkUnassigned => 'Aucune imprimante (non assigné)';
+
+  @override
+  String get queueBulkQueueOptions => 'Options de la file';
+
+  @override
+  String get queueBulkApply => 'Appliquer les changements';
+
+  @override
+  String get queueOptUseAms => 'Utiliser l\'AMS';
+
+  @override
+  String get queueOptUseAmsDesc =>
+      'Prendre le filament dans l\'AMS plutôt que sur la bobine externe';
+
+  @override
+  String queueBulkUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count éléments modifiés',
+      one: '1 élément modifié',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkNothingUpdated => 'Rien n\'a été modifié';
+
+  @override
+  String queueBulkSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count éléments ignorés : ils ne sont plus en attente, ou vous ne pouvez pas les modifier',
+      one:
+          '1 élément ignoré : il n\'est plus en attente, ou vous ne pouvez pas le modifier',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get queueNoFreePrinters =>
       'Aucune imprimante disponible pour le moment';
 

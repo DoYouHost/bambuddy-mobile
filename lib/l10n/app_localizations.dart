@@ -1538,6 +1538,90 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Queue resumed} =1{Queue resumed: 1 job is waiting again} other{Queue resumed: {count} jobs are waiting again}}'**
   String queueResumed(int count);
 
+  /// Queue app bar while items are selected
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 selected} other{{count} selected}}'**
+  String queueSelectedCount(int count);
+
+  /// Tooltip: select every waiting item of the queue
+  ///
+  /// In en, this message translates to:
+  /// **'Select all waiting'**
+  String get queueSelectAll;
+
+  /// Tooltip: edit the selected queue items together
+  ///
+  /// In en, this message translates to:
+  /// **'Edit selected'**
+  String get queueBulkEdit;
+
+  /// Title of the screen that edits several queue items at once
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Edit 1 item} other{Edit {count} items}}'**
+  String queueBulkTitle(int count);
+
+  /// Line under the bulk edit title
+  ///
+  /// In en, this message translates to:
+  /// **'Only the settings you change are applied to the selected items. Tap a choice to set it, and tap it again to leave that setting as it is.'**
+  String get queueBulkIntro;
+
+  /// First row of a bulk edit select and the neutral segment of a bulk edit switch: leave this setting as it is on every selected item
+  ///
+  /// In en, this message translates to:
+  /// **'No change'**
+  String get queueBulkNoChange;
+
+  /// Bulk edit printer select: take the selected items off their printers
+  ///
+  /// In en, this message translates to:
+  /// **'No printer (unassigned)'**
+  String get queueBulkUnassigned;
+
+  /// Bulk edit section title: the queue flags
+  ///
+  /// In en, this message translates to:
+  /// **'Queue options'**
+  String get queueBulkQueueOptions;
+
+  /// Bulk edit button
+  ///
+  /// In en, this message translates to:
+  /// **'Apply changes'**
+  String get queueBulkApply;
+
+  /// Print option: take filament from the AMS
+  ///
+  /// In en, this message translates to:
+  /// **'Use AMS'**
+  String get queueOptUseAms;
+
+  /// Subtitle of the use-AMS option
+  ///
+  /// In en, this message translates to:
+  /// **'Take filament from the AMS instead of the external spool'**
+  String get queueOptUseAmsDesc;
+
+  /// Toast after a bulk edit: items changed
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item updated} other{{count} items updated}}'**
+  String queueBulkUpdated(int count);
+
+  /// Toast after a bulk edit that changed no item
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was changed'**
+  String get queueBulkNothingUpdated;
+
+  /// Toast after a bulk edit: items the server left alone
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item skipped: it is no longer waiting, or you may not change it} other{{count} items skipped: they are no longer waiting, or you may not change them}}'**
+  String queueBulkSkipped(int count);
+
   /// No description provided for @queueNoFreePrinters.
   ///
   /// In en, this message translates to:

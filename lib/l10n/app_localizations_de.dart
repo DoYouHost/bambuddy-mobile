@@ -858,6 +858,84 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String queueSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ausgewählt',
+      one: '1 ausgewählt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueSelectAll => 'Alle wartenden auswählen';
+
+  @override
+  String get queueBulkEdit => 'Auswahl bearbeiten';
+
+  @override
+  String queueBulkTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge bearbeiten',
+      one: '1 Eintrag bearbeiten',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkIntro =>
+      'Nur die Einstellungen, die du änderst, gelten für die ausgewählten Einträge. Tippe auf eine Auswahl, um sie zu setzen, und noch einmal, um die Einstellung unverändert zu lassen.';
+
+  @override
+  String get queueBulkNoChange => 'Keine Änderung';
+
+  @override
+  String get queueBulkUnassigned => 'Kein Drucker (nicht zugewiesen)';
+
+  @override
+  String get queueBulkQueueOptions => 'Warteschlangenoptionen';
+
+  @override
+  String get queueBulkApply => 'Änderungen anwenden';
+
+  @override
+  String get queueOptUseAms => 'AMS verwenden';
+
+  @override
+  String get queueOptUseAmsDesc =>
+      'Filament aus dem AMS statt von der externen Spule nehmen';
+
+  @override
+  String queueBulkUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge geändert',
+      one: '1 Eintrag geändert',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkNothingUpdated => 'Es wurde nichts geändert';
+
+  @override
+  String queueBulkSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Einträge übersprungen: Sie warten nicht mehr oder du darfst sie nicht ändern',
+      one:
+          '1 Eintrag übersprungen: Er wartet nicht mehr oder du darfst ihn nicht ändern',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get queueNoFreePrinters => 'Derzeit keine freien Drucker verfügbar';
 
   @override

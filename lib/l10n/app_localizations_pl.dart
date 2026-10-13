@@ -859,6 +859,93 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String queueSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zaznaczono $count',
+      many: 'Zaznaczono $count',
+      few: 'Zaznaczono $count',
+      one: 'Zaznaczono 1',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueSelectAll => 'Zaznacz wszystkie oczekujące';
+
+  @override
+  String get queueBulkEdit => 'Edytuj zaznaczone';
+
+  @override
+  String queueBulkTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Edycja $count elementu',
+      many: 'Edycja $count elementów',
+      few: 'Edycja $count elementów',
+      one: 'Edycja 1 elementu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkIntro =>
+      'Do zaznaczonych elementów trafią tylko ustawienia, które zmienisz. Dotknij wyboru, żeby go ustawić, i dotknij ponownie, żeby zostawić to ustawienie bez zmian.';
+
+  @override
+  String get queueBulkNoChange => 'Bez zmian';
+
+  @override
+  String get queueBulkUnassigned => 'Bez drukarki (nieprzypisane)';
+
+  @override
+  String get queueBulkQueueOptions => 'Opcje kolejki';
+
+  @override
+  String get queueBulkApply => 'Zastosuj zmiany';
+
+  @override
+  String get queueOptUseAms => 'Użyj AMS';
+
+  @override
+  String get queueOptUseAmsDesc =>
+      'Filament z AMS zamiast ze szpuli zewnętrznej';
+
+  @override
+  String queueBulkUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zmieniono $count elementu',
+      many: 'Zmieniono $count elementów',
+      few: 'Zmieniono $count elementy',
+      one: 'Zmieniono 1 element',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkNothingUpdated => 'Nic nie zostało zmienione';
+
+  @override
+  String queueBulkSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Pominięto $count elementu: już nie oczekują albo nie możesz ich zmieniać',
+      many:
+          'Pominięto $count elementów: już nie oczekują albo nie możesz ich zmieniać',
+      few:
+          'Pominięto $count elementy: już nie oczekują albo nie możesz ich zmieniać',
+      one: 'Pominięto 1 element: już nie oczekuje albo nie możesz go zmieniać',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get queueNoFreePrinters => 'Brak wolnych drukarek';
 
   @override

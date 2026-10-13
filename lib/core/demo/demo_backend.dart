@@ -2766,6 +2766,9 @@ class DemoBackend {
         return _ok(_queue[first]);
       }
     }
+    if (s.length == 2 && s[1] == 'bulk' && m == 'PATCH') {
+      return _bulkUpdate(body);
+    }
     if (s.length == 4 && s[1] == 'printer' && s[3] == 'resume' && m == 'POST') {
       return _resumeAfterFailure(int.tryParse(s[2]));
     }
@@ -2831,6 +2834,49 @@ class DemoBackend {
   }
 
   int _nextQueueId = 200;
+
+  /// `PATCH /queue/bulk` (`bulk_update_queue_items`): the same keys on every
+  /// pending item named, the others only counted. A calibration sent as a
+  /// boolean is stored as the string it maps to, as the server's validator does.
+  DemoResult _bulkUpdate(Map<String, dynamic> body) {
+    final ids = (body['item_ids'] as List?)?.whereType<int>().toList() ?? [];
+    if (ids.isEmpty) {
+      return (status: 400, body: {'detail': 'No item IDs provided'});
+    }
+    final changes = {...body}..remove('item_ids');
+    if (changes.isEmpty) {
+      return (status: 400, body: {'detail': 'No fields to update'});
+    }
+    final printerId = changes['printer_id'];
+    final printer = _printers.where((p) => p['id'] == printerId).firstOrNull;
+    if (printerId != null && printer == null) {
+      return (status: 400, body: {'detail': 'Printer not found'});
+    }
+    Object? stored(String key, Object? value) =>
+        const {'bed_levelling', 'flow_cali', 'nozzle_offset_cali'}.contains(key)
+        ? (value is bool ? (value ? 'on' : 'off') : value)
+        : value;
+    var updated = 0;
+    var skipped = 0;
+    for (final item in _queue.where((e) => ids.contains(e['id']))) {
+      if (item['status'] != 'pending') {
+        skipped++;
+        continue;
+      }
+      for (final e in changes.entries) {
+        item[e.key] = stored(e.key, e.value);
+      }
+      if (changes.containsKey('printer_id')) {
+        item['printer_name'] = printer?['name'];
+      }
+      updated++;
+    }
+    return _ok({
+      'updated_count': updated,
+      'skipped_count': skipped,
+      'message': 'Updated $updated items',
+    });
+  }
 
   /// `POST /queue/printer/{id}/resume`: the failed prints behind the gate stop
   /// holding it, and what it skipped goes back to `pending` — the two things

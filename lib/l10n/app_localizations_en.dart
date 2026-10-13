@@ -842,6 +842,83 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String queueSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count selected',
+      one: '1 selected',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueSelectAll => 'Select all waiting';
+
+  @override
+  String get queueBulkEdit => 'Edit selected';
+
+  @override
+  String queueBulkTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Edit $count items',
+      one: 'Edit 1 item',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkIntro =>
+      'Only the settings you change are applied to the selected items. Tap a choice to set it, and tap it again to leave that setting as it is.';
+
+  @override
+  String get queueBulkNoChange => 'No change';
+
+  @override
+  String get queueBulkUnassigned => 'No printer (unassigned)';
+
+  @override
+  String get queueBulkQueueOptions => 'Queue options';
+
+  @override
+  String get queueBulkApply => 'Apply changes';
+
+  @override
+  String get queueOptUseAms => 'Use AMS';
+
+  @override
+  String get queueOptUseAmsDesc =>
+      'Take filament from the AMS instead of the external spool';
+
+  @override
+  String queueBulkUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items updated',
+      one: '1 item updated',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkNothingUpdated => 'Nothing was changed';
+
+  @override
+  String queueBulkSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count items skipped: they are no longer waiting, or you may not change them',
+      one: '1 item skipped: it is no longer waiting, or you may not change it',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get queueNoFreePrinters => 'No free printers right now';
 
   @override

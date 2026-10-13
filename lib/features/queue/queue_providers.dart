@@ -198,6 +198,26 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     'queue.stop',
   );
 
+  /// The same [changes] on every item of [itemIds]
+  /// (`PATCH /queue/bulk`). A success is not "all done": [result] says how many
+  /// the server left alone. The list is reloaded on success.
+  Future<({ActionOutcome outcome, QueueBulkResult? result})> bulkUpdate(
+    List<int> itemIds,
+    QueueBulkChanges changes,
+  ) async {
+    QueueBulkResult? result;
+    final outcome = await runAction(
+      () async {
+        result = await ref
+            .read(queueRepositoryProvider)
+            .bulkUpdate(itemIds, changes);
+      },
+      logId: 'queue_bulk.apply',
+      onSuccess: refresh,
+    );
+    return (outcome: outcome, result: result);
+  }
+
   /// Clear the previous-print gate on [printerId] and restore the jobs it
   /// skipped (`POST /queue/printer/{id}/resume`). [restored] is how many came
   /// back, for the sentence the caller shows; both lists are reloaded on success.

@@ -857,6 +857,83 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String queueSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count seleccionados',
+      one: '1 seleccionado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueSelectAll => 'Seleccionar todos los que esperan';
+
+  @override
+  String get queueBulkEdit => 'Editar selección';
+
+  @override
+  String queueBulkTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Editar $count elementos',
+      one: 'Editar 1 elemento',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkIntro =>
+      'Solo se aplican a los elementos seleccionados los ajustes que cambies. Toca una opción para fijarla y vuelve a tocarla para dejar ese ajuste como está.';
+
+  @override
+  String get queueBulkNoChange => 'Sin cambios';
+
+  @override
+  String get queueBulkUnassigned => 'Sin impresora (sin asignar)';
+
+  @override
+  String get queueBulkQueueOptions => 'Opciones de la cola';
+
+  @override
+  String get queueBulkApply => 'Aplicar cambios';
+
+  @override
+  String get queueOptUseAms => 'Usar AMS';
+
+  @override
+  String get queueOptUseAmsDesc =>
+      'Tomar el filamento del AMS en lugar de la bobina externa';
+
+  @override
+  String queueBulkUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count elementos actualizados',
+      one: '1 elemento actualizado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkNothingUpdated => 'No se cambió nada';
+
+  @override
+  String queueBulkSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count elementos omitidos: ya no están en espera o no puedes cambiarlos',
+      one: '1 elemento omitido: ya no está en espera o no puedes cambiarlo',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get queueNoFreePrinters => 'No hay impresoras libres en este momento';
 
   @override
