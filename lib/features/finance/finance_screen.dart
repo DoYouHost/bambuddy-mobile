@@ -117,32 +117,53 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   const SizedBox(height: DashSpace.lg),
                 ],
                 if (admin) ...[
-                  Row(
-                    spacing: DashSpace.md,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (canCreate)
-                        _AdminAction(
-                          id: 'finance.create_center',
-                          icon: Icons.add,
-                          label: l10n.financeButtonNewCenter,
-                          onPressed: () => openCostCenterForm(context),
-                        ),
-                      if (canModify && canPickUsers) ...[
-                        _AdminAction(
-                          id: 'finance.adjust_wallet',
-                          icon: Icons.swap_vert,
-                          label: l10n.financeButtonWallet,
-                          onPressed: () => openWalletAdjust(context),
-                        ),
-                        _AdminAction(
-                          id: 'finance.manual_print',
-                          icon: Icons.receipt_long_outlined,
-                          label: l10n.financeButtonManualPrint,
-                          onPressed: () => openManualPrint(context),
-                        ),
-                      ],
-                    ],
+                  // A grid, so the edges line up: two across on a phone, three on
+                  // anything wider. With an odd number the first button takes the
+                  // whole first row, which leaves no gap beside the last. A label
+                  // longer than its cell wraps.
+                  LayoutBuilder(
+                    builder: (context, box) {
+                      final columns = box.maxWidth >= 560 ? 3 : 2;
+                      final cell =
+                          (box.maxWidth - (columns - 1) * DashSpace.sm) /
+                          columns;
+                      final count =
+                          (canCreate ? 1 : 0) +
+                          (canModify && canPickUsers ? 2 : 0);
+                      final firstWidth = columns == 2 && count.isOdd
+                          ? box.maxWidth
+                          : cell;
+                      return Wrap(
+                        spacing: DashSpace.sm,
+                        runSpacing: DashSpace.sm,
+                        children: [
+                          if (canCreate)
+                            _AdminAction(
+                              width: firstWidth,
+                              id: 'finance.create_center',
+                              icon: Icons.add,
+                              label: l10n.financeButtonNewCenter,
+                              onPressed: () => openCostCenterForm(context),
+                            ),
+                          if (canModify && canPickUsers) ...[
+                            _AdminAction(
+                              width: cell,
+                              id: 'finance.adjust_wallet',
+                              icon: Icons.swap_vert,
+                              label: l10n.financeButtonWallet,
+                              onPressed: () => openWalletAdjust(context),
+                            ),
+                            _AdminAction(
+                              width: cell,
+                              id: 'finance.manual_print',
+                              icon: Icons.receipt_long_outlined,
+                              label: l10n.financeButtonManualPrint,
+                              onPressed: () => openManualPrint(context),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: DashSpace.xl),
                 ],
@@ -297,41 +318,32 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
   }
 }
 
-/// One of the administrator's shortcuts: a quiet button with the icon over a short
-/// label, so three of them share a row instead of taking three.
+/// One of the administrator's shortcuts: a quiet button in the button text size,
+/// given the width of a grid cell.
 class _AdminAction extends StatelessWidget {
   const _AdminAction({
+    required this.width,
     required this.id,
     required this.icon,
     required this.label,
     required this.onPressed,
   });
 
+  final double width;
   final String id;
   final IconData icon;
   final String label;
   final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context) => Expanded(
+  Widget build(BuildContext context) => SizedBox(
+    width: width,
     child: logTag(
       id,
-      OutlinedButton(
+      OutlinedButton.icon(
         onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(
-            horizontal: DashSpace.sm,
-            vertical: DashSpace.lg,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          spacing: DashSpace.sm,
-          children: [
-            Icon(icon, size: 20),
-            Text(label, textAlign: TextAlign.center, maxLines: 2),
-          ],
-        ),
+        icon: Icon(icon),
+        label: Text(label),
       ),
     ),
   );

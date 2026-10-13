@@ -247,24 +247,50 @@ void main() {
       });
     }
 
-    testWidgets('the buttons share one row, as wide as each other', (
-      tester,
-    ) async {
-      await pump(tester, _Server());
+    testWidgets(
+      'three buttons: the first takes the row, the others share the next',
+      (tester) async {
+        await pump(tester, _Server());
 
-      final boxes = [
-        for (final id in [
-          'finance.create_center',
-          'finance.adjust_wallet',
-          'finance.manual_print',
-        ])
-          tester.getRect(byLogId(id)),
-      ];
+        final create = tester.getRect(byLogId('finance.create_center'));
+        final wallet = tester.getRect(byLogId('finance.adjust_wallet'));
+        final manual = tester.getRect(byLogId('finance.manual_print'));
 
-      expect({for (final b in boxes) b.top}, hasLength(1));
-      expect({for (final b in boxes) b.width.round()}, hasLength(1));
-      expect(boxes[1].left, greaterThan(boxes[0].right));
-      expect(boxes[2].left, greaterThan(boxes[1].right));
+        expect(tester.takeException(), isNull);
+        expect(create.width, greaterThan(wallet.width));
+        expect(create.left, wallet.left);
+        expect(create.right, manual.right, reason: 'the edges line up');
+        expect(wallet.top, manual.top);
+        expect(wallet.width.round(), manual.width.round());
+        expect(wallet.top, greaterThan(create.bottom));
+        expect(manual.right, lessThanOrEqualTo(360));
+        // No style of its own: the label takes what the button gives it.
+        final label = tester.widget<Text>(
+          find.descendant(
+            of: byLogId('finance.create_center'),
+            matching: find.text(pl.financeButtonNewCenter),
+          ),
+        );
+        expect(label.style, isNull);
+      },
+    );
+
+    testWidgets('two buttons split the row', (tester) async {
+      await pump(tester, _Server(), permissions: {'cost_centers:modify'});
+      final wallet = tester.getRect(byLogId('finance.adjust_wallet'));
+      final manual = tester.getRect(byLogId('finance.manual_print'));
+
+      expect(wallet.top, manual.top);
+      expect(wallet.width.round(), manual.width.round());
+    });
+
+    testWidgets('one button takes the whole row', (tester) async {
+      await pump(tester, _Server(), permissions: {'cost_centers:create'});
+
+      expect(
+        tester.getRect(byLogId('finance.create_center')).width,
+        greaterThan(300),
+      );
     });
 
     testWidgets('create alone offers a new center and nothing else', (
