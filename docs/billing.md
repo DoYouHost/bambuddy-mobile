@@ -39,15 +39,26 @@ A job that already has a center is never blocked by any of this: the server keep
 stored center on a PATCH that omits it. `_costCenterRequired` is "a new job, or one
 queued before billing".
 
-## Where a job cannot get a center
+## Where a job gets its center without the form
 
-- **The library's bulk "Add to queue" and "queue as alternatives"** call routes that
-  take no center (`AddToQueueRequest`, `variants`), so on a billing server they stop
-  with `queueBillingNoBulk`. One file opens the print form instead.
+- **The library's bulk "Add to queue"** (`POST /library/files/add-to-queue`) takes no
+  center and checks no budget, so on a billing server the file manager does not call it:
+  it asks which center (`showQueueCostCenterSheet`, from `printableCostCentersProvider`)
+  and sends one `POST /queue/` per file with `cost_center_id`, no printer unless the
+  target sheet picked one. The server prices each file itself; a file it refuses (no
+  filament figure, budget gone) is counted and the rest go on, and the snack says how
+  many went in and why the first did not. One file still opens the print form. A session
+  that may not list its centers, or may print to none, is told so and nothing is sent.
+- **"Queue as alternatives"** is one `POST /queue/` with `variants`, so it takes the same
+  sheet and a single `cost_center_id`.
+
+## Where a job still cannot get one
+
 - **Dispatching more runs of an order** (`POST /queue/batches/{id}/dispatch`) clones
   the source item without `cost_center_id` — `CLONED_SETTING_COLUMNS` in
   `services/print_batch.py` leaves it out — so on a billing server the new runs fail at
-  the scheduler. Measured on a `daily` image; a server defect, not worked around here.
+  the scheduler. Reproduced on `latest` and `daily`, reported as maziggy/bambuddy#3315;
+  a server defect, not worked around here.
 
 ## The Finance screen
 
@@ -71,6 +82,10 @@ Rules the screen follows because the server does:
   deleted**; both refusals are worded in `finance_forms.dart`.
 - A ledger edit sends only what changed (the server stamps any description it is sent
   as an admin edit) and cannot take a row off its center — the web cannot either.
+- **Rebuild wallet ledger** (`POST /finance/rebuild-balance-ledger`, `modify`) is the
+  web's Settings button for repairing historical `balance_after` values. Here it sits in
+  the admin view's app-bar menu behind a confirmation, and it answers once the work is
+  done. The web has no per-user balance view, so the app has none either.
 - Filters narrow the loaded rows; the endpoint filters on neither, so an empty result
   is not proof that nothing matches further down.
 

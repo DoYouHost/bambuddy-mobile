@@ -2293,6 +2293,15 @@
       }
     }
   },
+  "fmQueueCostCenterTitle": "{count, plural, =1{Which cost center should this job be charged to?} other{Which cost center should these {count} jobs be charged to?}}",
+  "@fmQueueCostCenterTitle": {
+    "description": "Title of the sheet asking which cost center a bulk add to the queue is charged to; {count} is how many jobs",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmQueueTargetAuto": "Model from the file",
   "fmQueueTargetAutoHint": "Each file waits for a printer of the model it was sliced for",
   "fmAddedToQueuePartial": "Added {added} of {total} files to the queue. {reason}",
@@ -5442,10 +5451,6 @@
   "@queueBillingUseWeb": {
     "description": "In place of the server refusal on a start, or a bulk add, of a job without a cost center, and where the app cannot choose one."
   },
-  "queueBillingNoBulk": "Billing is on for this server, so every print job needs a cost center, which this action cannot set. Queue the files one at a time, or use Bambuddy in a browser.",
-  "@queueBillingNoBulk": {
-    "description": "Shown instead of a bulk \"Add to queue\" or a queue-as-alternatives of library files when billing is on: those routes take no cost center, so every job would be refused or could never start."
-  },
   "financeMenu": "Finance",
   "@financeMenu": {
     "description": "Drawer entry for the finance screen."
@@ -5700,6 +5705,22 @@
   "financeDeleteTransactionConfirm": "Delete this transaction? Balances will be recalculated automatically.",
   "@financeDeleteTransactionConfirm": {
     "description": "Question before a ledger row is deleted; the web's own sentence."
+  },
+  "financeRebuildLedger": "Rebuild wallet ledger",
+  "@financeRebuildLedger": {
+    "description": "Menu entry and dialog title for the administrator's repair of the wallet ledger's running balances (the web's Settings button)"
+  },
+  "financeRebuildLedgerConfirm": "This rebuilds the running balances of the wallet ledger to repair historical values. Run it only if you know what you are doing.",
+  "@financeRebuildLedgerConfirm": {
+    "description": "Question before the ledger rebuild; the web's own warning"
+  },
+  "financeRebuildLedgerRun": "Run",
+  "@financeRebuildLedgerRun": {
+    "description": "Confirm button of the ledger rebuild dialog"
+  },
+  "financeLedgerRebuilt": "Wallet ledger rebuilt",
+  "@financeLedgerRebuilt": {
+    "description": "Shown once the server has rebuilt the ledger"
   },
   "financeDepositDone": "Deposit successful",
   "@financeDepositDone": {

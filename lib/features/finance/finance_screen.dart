@@ -78,7 +78,30 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: dashAppBar(context, title: l10n.financeTitle),
+        appBar: dashAppBar(
+          context,
+          title: l10n.financeTitle,
+          actions: [
+            // A repair, not a daily action: out of the way, as in the web's
+            // Settings, and only for whoever may change the ledger.
+            if (admin && canModify)
+              logTag(
+                'finance.more_menu',
+                PopupMenuButton<String>(
+                  onSelected: (_) => openRebuildLedger(context),
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'rebuild',
+                      child: logTag(
+                        'finance.more_menu.rebuild_ledger',
+                        Text(l10n.financeRebuildLedger),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
         body: RefreshIndicator(
           onRefresh: () => _refresh(ledger),
           child: NotificationListener<ScrollNotification>(

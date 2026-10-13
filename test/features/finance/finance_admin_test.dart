@@ -149,6 +149,12 @@ class _Server extends FinanceRepository {
 
   @override
   Future<void> deleteTransaction(int id) => _write('deltx:$id');
+
+  @override
+  Future<int> rebuildLedger() async {
+    await _write('rebuild');
+    return 7;
+  }
 }
 
 const _users = [
@@ -453,6 +459,88 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(server.calls, contains('deltx:10'));
+    });
+  });
+
+  group('rebuilding the ledger', () {
+    Future<void> openMenu(WidgetTester tester) async {
+      await tester.tap(byLogId('finance.more_menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('finance.more_menu.rebuild_ledger'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('is offered to whoever may modify, in the admin view only', (
+      tester,
+    ) async {
+      await pump(tester, _Server(), admin: false);
+      expect(byLogId('finance.more_menu'), findsNothing);
+
+      await tester.tap(find.text(pl.financeAdminView));
+      await tester.pumpAndSettle();
+      expect(byLogId('finance.more_menu'), findsOneWidget);
+
+      await tester.tap(find.text(pl.financePersonalView));
+      await tester.pumpAndSettle();
+      expect(byLogId('finance.more_menu'), findsNothing);
+    });
+
+    testWidgets('is not offered to a reader', (tester) async {
+      await pump(
+        tester,
+        _Server(),
+        permissions: const {'cost_centers:read_all'},
+      );
+
+      expect(byLogId('finance.more_menu'), findsNothing);
+    });
+
+    testWidgets('asks first, then rebuilds and reads the ledger again', (
+      tester,
+    ) async {
+      final server = _Server();
+      await pump(tester, server);
+
+      await openMenu(tester);
+      expect(find.text(pl.financeRebuildLedgerConfirm), findsOneWidget);
+      expect(_writes(server), isEmpty);
+
+      final readsBefore = server.calls.where((c) => c == 'read:all').length;
+      await tester.tap(byLogId('finance.rebuild_ledger.confirm'));
+      await tester.pumpAndSettle();
+
+      expect(_writes(server), ['rebuild']);
+      expect(find.text(pl.financeLedgerRebuilt), findsOneWidget);
+      expect(
+        server.calls.where((c) => c == 'read:all').length,
+        greaterThan(readsBefore),
+      );
+    });
+
+    testWidgets('declining rebuilds nothing', (tester) async {
+      final server = _Server();
+      await pump(tester, server);
+
+      await openMenu(tester);
+      await tester.tap(byLogId('finance.rebuild_ledger.cancel'));
+      await tester.pumpAndSettle();
+
+      expect(_writes(server), isEmpty);
+      expect(find.text(pl.financeLedgerRebuilt), findsNothing);
+    });
+
+    testWidgets('a refusal is shown and nothing is claimed done', (
+      tester,
+    ) async {
+      final server = _Server()
+        ..refuse = const ApiException(AppErrorCode.forbidden, statusCode: 403);
+      await pump(tester, server);
+
+      await openMenu(tester);
+      await tester.tap(byLogId('finance.rebuild_ledger.confirm'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.financeLedgerRebuilt), findsNothing);
     });
   });
 

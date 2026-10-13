@@ -3780,6 +3780,19 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String fmQueueCostCenterTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Na które centrum kosztów zapisać tego $count zadania?',
+      many: 'Na które centrum kosztów zapisać tych $count zadań?',
+      few: 'Na które centrum kosztów zapisać te $count zadania?',
+      one: 'Na które centrum kosztów zapisać to zadanie?',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get fmQueueTargetAuto => 'Model zapisany w pliku';
 
   @override
@@ -8235,10 +8248,6 @@ class AppLocalizationsPl extends AppLocalizations {
       'Na tym serwerze jest włączony billing, więc każde zadanie wymaga centrum kosztów, a ta akcja go nie ustawia. Otwórz zadanie w aplikacji, żeby je wybrać, albo użyj Bambuddy w przeglądarce.';
 
   @override
-  String get queueBillingNoBulk =>
-      'Na tym serwerze jest włączony billing, więc każde zadanie wymaga centrum kosztów, którego ta akcja nie ustawia. Dodawaj pliki pojedynczo albo użyj Bambuddy w przeglądarce.';
-
-  @override
   String get financeMenu => 'Finanse';
 
   @override
@@ -8424,6 +8433,19 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get financeDeleteTransactionConfirm =>
       'Usunąć tę transakcję? Salda zostaną przeliczone automatycznie.';
+
+  @override
+  String get financeRebuildLedger => 'Przebuduj księgę sald portfela';
+
+  @override
+  String get financeRebuildLedgerConfirm =>
+      'To przebuduje bieżące salda w księdze portfela, żeby naprawić wartości historyczne. Uruchom to tylko wtedy, gdy wiesz, co robisz.';
+
+  @override
+  String get financeRebuildLedgerRun => 'Uruchom';
+
+  @override
+  String get financeLedgerRebuilt => 'Księga sald portfela przebudowana';
 
   @override
   String get financeDepositDone => 'Wpłata zaksięgowana';

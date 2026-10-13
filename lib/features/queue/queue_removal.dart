@@ -66,9 +66,10 @@ final _rules = <RefusalRule>[
   ])
     ([phrase], (l10n) => l10n.queueRemovalStatusChanged),
   // Billing on: every create, edit and start is checked by
-  // `finance_budget.py::validate_print_budget`. The form picks a cost center,
-  // so what still reaches here is a start or a bulk add of a job without one,
-  // and a center that changed under the user.
+  // `finance_budget.py::validate_print_budget`. The form and the bulk add pick a
+  // cost center, so what still reaches here is a start of a job queued without
+  // one (before billing, or by a dispatch of an order), and a center that
+  // changed under the user.
   (
     ['cost center is required when billing is enabled'],
     (l10n) => l10n.queueBillingUseWeb,

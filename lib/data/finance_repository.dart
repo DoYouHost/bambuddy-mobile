@@ -129,6 +129,16 @@ class FinanceRepository {
     return WalletTransactionPage.fromJson(res.data ?? const {});
   });
 
+  /// POST /finance/rebuild-balance-ledger — recomputes the running balance of
+  /// every ledger row, to repair values an old bug left wrong. It answers after the
+  /// work, with the number of rows rebuilt.
+  Future<int> rebuildLedger() => guardKeepingDetail(() async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.financeRebuildLedger,
+    );
+    return toIntOrNull(res.data?['transactions_rebuilt']) ?? 0;
+  });
+
   /// POST …/deposit or …/withdraw: [amount] is positive either way, and the
   /// kind of adjustment is the route.
   Future<void> adjustWallet(

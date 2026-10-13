@@ -175,6 +175,47 @@ void main() {
       repo = FinanceRepository(dio);
     });
 
+    test('rebuilding the ledger answers how many rows it rebuilt', () async {
+      server.onPost(
+        '/api/v1/finance/rebuild-balance-ledger',
+        (s) => s.reply(200, {
+          'status': 'success',
+          'transactions_rebuilt': 12,
+          'message': 'Rebuilt 12 wallet ledger values',
+        }),
+      );
+
+      expect(await repo.rebuildLedger(), 12);
+      expect(log.calls, ['POST /api/v1/finance/rebuild-balance-ledger']);
+    });
+
+    test('an answer without a count reads as none, not as a failure', () async {
+      server.onPost(
+        '/api/v1/finance/rebuild-balance-ledger',
+        (s) => s.reply(200, {'status': 'success'}),
+      );
+
+      expect(await repo.rebuildLedger(), 0);
+    });
+
+    test('a refusal keeps the server\'s words', () async {
+      server.onPost(
+        '/api/v1/finance/rebuild-balance-ledger',
+        (s) => s.reply(403, {'detail': 'Permission denied'}),
+      );
+
+      await expectLater(
+        repo.rebuildLedger(),
+        throwsA(
+          isA<AppApiException>().having(
+            (e) => e.detail,
+            'detail',
+            'Permission denied',
+          ),
+        ),
+      );
+    });
+
     test(
       'lists every center, closed ones included, and reads one with its members',
       () async {

@@ -308,6 +308,14 @@ class DemoFinance {
         return ok(_page(query, userId: userId));
       }
     }
+    if (head == 'rebuild-balance-ledger' && method == 'POST') {
+      _rebuild(_ledger);
+      return ok({
+        'status': 'success',
+        'transactions_rebuilt': _ledger.length,
+        'message': 'Rebuilt ${_ledger.length} wallet ledger values',
+      });
+    }
     if (head == 'transactions') return _transactions(method, s, query, body);
     if (head == 'users' && s.length == 3 && method == 'POST') {
       return _adjust(idAt(1), deposit: s[2] == 'deposit', body: body);

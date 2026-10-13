@@ -231,6 +231,37 @@ void main() {
         },
       );
 
+      // What a bulk add does on a billing server: one create per file, with no
+      // printer and no target, charged to the center picked.
+      test('a file added with no target is charged and priced', () async {
+        if (!await billingOn()) return;
+        final id = await center('Bulk', budget: 1000);
+
+        final known = {for (final i in await queue.fetch()) i.id};
+        await queue.addFromLibraryFile(
+          file.id,
+          options: QueueCreateOptions(costCenterId: id),
+        );
+        final added = (await queue.fetch()).firstWhere(
+          (i) => !known.contains(i.id),
+        );
+        addTearDown(() => queue.delete(added.id));
+
+        expect(added.costCenterId, id);
+        expect(added.printerId, isNull);
+        // Priced by the server, not by the app: the model carries no estimate.
+        final raw = (await dio.get<List<dynamic>>('/api/v1/queue/')).data!
+            .cast<Map<String, dynamic>>()
+            .firstWhere((i) => i['id'] == added.id);
+        expect(raw['estimated_cost'] as num, greaterThan(0));
+      });
+
+      test('the ledger can be rebuilt, and answers with a count', () async {
+        if (!await billingOn()) return;
+
+        expect(await finance.rebuildLedger(), greaterThanOrEqualTo(0));
+      });
+
       test(
         'a job the budget cannot cover, or a closed center, is worded',
         () async {

@@ -3770,6 +3770,17 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String fmQueueCostCenterTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '¿A qué centro de costes se cargan estos $count trabajos?',
+      one: '¿A qué centro de costes se carga este trabajo?',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get fmQueueTargetAuto => 'Modelo del archivo';
 
   @override
@@ -8210,10 +8221,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'Este servidor tiene la facturación activada, así que cada trabajo necesita un centro de costes que esta acción no puede asignar. Abre el trabajo en la app para elegir uno, o usa Bambuddy en el navegador.';
 
   @override
-  String get queueBillingNoBulk =>
-      'Este servidor tiene la facturación activada, así que cada trabajo necesita un centro de costes que esta acción no puede asignar. Encola los archivos de uno en uno o usa Bambuddy en el navegador.';
-
-  @override
   String get financeMenu => 'Finanzas';
 
   @override
@@ -8399,6 +8406,19 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get financeDeleteTransactionConfirm =>
       '¿Eliminar esta transacción? Los saldos se recalcularán automáticamente.';
+
+  @override
+  String get financeRebuildLedger => 'Reconstruir el libro de saldos';
+
+  @override
+  String get financeRebuildLedgerConfirm =>
+      'Esto reconstruye los saldos acumulados del libro del monedero para reparar valores históricos. Ejecútalo solo si sabes lo que haces.';
+
+  @override
+  String get financeRebuildLedgerRun => 'Ejecutar';
+
+  @override
+  String get financeLedgerRebuilt => 'Libro de saldos reconstruido';
 
   @override
   String get financeDepositDone => 'Ingreso realizado';

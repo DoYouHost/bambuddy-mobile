@@ -328,6 +328,12 @@ void main() {
           contains('cannot be deactivated or renamed'),
         );
 
+        // A rebuild repairs nothing here, but it answers with the rows it went over
+        // and leaves the balance where it was.
+        final settled = (await finance.balance()).balance;
+        expect(await finance.rebuildLedger(), greaterThan(0));
+        expect((await finance.balance()).balance, closeTo(settled, 1e-9));
+
         // The ledger. A deposit to the user's wallet raises the balance; one booked
         // to a shared center raises the center's own, and leaves the wallet alone.
         final before = (await finance.balance()).balance;

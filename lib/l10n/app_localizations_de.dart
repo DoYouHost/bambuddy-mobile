@@ -3759,6 +3759,18 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String fmQueueCostCenterTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Auf welche Kostenstelle sollen diese $count Aufträge gebucht werden?',
+      one: 'Auf welche Kostenstelle soll dieser Auftrag gebucht werden?',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get fmQueueTargetAuto => 'Modell aus der Datei';
 
   @override
@@ -8185,10 +8197,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, die diese Aktion nicht setzen kann. Öffne den Auftrag in der App, um eine auszuwählen, oder nutze Bambuddy im Browser.';
 
   @override
-  String get queueBillingNoBulk =>
-      'Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, die diese Aktion nicht setzen kann. Reihe die Dateien einzeln ein oder nutze Bambuddy im Browser.';
-
-  @override
   String get financeMenu => 'Finanzen';
 
   @override
@@ -8375,6 +8383,19 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get financeDeleteTransactionConfirm =>
       'Diese Transaktion löschen? Die Salden werden automatisch neu berechnet.';
+
+  @override
+  String get financeRebuildLedger => 'Wallet-Kontobuch neu aufbauen';
+
+  @override
+  String get financeRebuildLedgerConfirm =>
+      'Dadurch werden die laufenden Salden im Wallet-Kontobuch neu berechnet, um historische Werte zu reparieren. Führe das nur aus, wenn du weißt, was du tust.';
+
+  @override
+  String get financeRebuildLedgerRun => 'Ausführen';
+
+  @override
+  String get financeLedgerRebuilt => 'Wallet-Kontobuch neu aufgebaut';
 
   @override
   String get financeDepositDone => 'Einzahlung erfolgreich';

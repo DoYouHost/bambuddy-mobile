@@ -70,6 +70,28 @@ Future<bool> runFinanceWrite(
   }
 }
 
+/// The administrator's repair of the ledger's running balances, which the web
+/// keeps behind a button in Settings. Asks first: it rewrites every row's balance.
+Future<void> openRebuildLedger(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
+  final confirmed = await confirmDialog(
+    context,
+    title: l10n.financeRebuildLedger,
+    message: l10n.financeRebuildLedgerConfirm,
+    confirmLabel: l10n.financeRebuildLedgerRun,
+    id: 'finance.rebuild_ledger',
+  );
+  if (!confirmed || !context.mounted) return;
+  await runFinanceWrite(
+    context,
+    action: 'finance.rebuild_ledger',
+    done: l10n.financeLedgerRebuilt,
+    write: (repo) async {
+      await repo.rebuildLedger();
+    },
+  );
+}
+
 /// A sheet holding one form, scrolled with the keyboard in mind.
 Widget _formSheet({
   required String id,

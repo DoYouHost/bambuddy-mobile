@@ -3782,6 +3782,17 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String fmQueueCostCenterTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sur quel centre de coûts imputer ces $count impressions ?',
+      one: 'Sur quel centre de coûts imputer cette impression ?',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get fmQueueTargetAuto => 'Modèle indiqué dans le fichier';
 
   @override
@@ -8283,10 +8294,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'La facturation est activée sur ce serveur : chaque impression nécessite un centre de coûts que cette action ne peut pas définir. Ouvrez l’impression dans l’application pour en choisir un, ou utilisez Bambuddy dans un navigateur.';
 
   @override
-  String get queueBillingNoBulk =>
-      'La facturation est activée sur ce serveur : chaque impression nécessite un centre de coûts que cette action ne peut pas définir. Mettez les fichiers en file un par un, ou utilisez Bambuddy dans un navigateur.';
-
-  @override
   String get financeMenu => 'Finances';
 
   @override
@@ -8472,6 +8479,20 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get financeDeleteTransactionConfirm =>
       'Supprimer cette transaction ? Les soldes seront recalculés automatiquement.';
+
+  @override
+  String get financeRebuildLedger =>
+      'Reconstruire le grand livre du portefeuille';
+
+  @override
+  String get financeRebuildLedgerConfirm =>
+      'Cela reconstruit les soldes cumulés du grand livre du portefeuille pour réparer les valeurs historiques. À n’exécuter que si vous savez ce que vous faites.';
+
+  @override
+  String get financeRebuildLedgerRun => 'Exécuter';
+
+  @override
+  String get financeLedgerRebuilt => 'Grand livre reconstruit';
 
   @override
   String get financeDepositDone => 'Dépôt effectué';

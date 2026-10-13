@@ -3,7 +3,9 @@ import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_folder.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
 import 'package:bambuddy_mobile/core/models/library_tag.dart';
+import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/data/library_repository.dart';
+import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_screen.dart';
@@ -15,6 +17,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../../helpers.dart';
 import '../queue/queue_form_harness.dart';
@@ -249,6 +252,7 @@ void main() {
       bool billing = false,
       List<Override> extra = const [],
       LibraryFile? grouped,
+      QueueRepository? queue,
     }) async {
       final file =
           grouped ?? _file(filename: 'thing.gcode.3mf', fileType: 'gcode');
@@ -259,6 +263,7 @@ void main() {
           noServerProfileOverride,
           libraryRepositoryProvider.overrideWithValue(LibraryRepository(dio)),
           printersRepositoryProvider.overrideWithValue(PrintersRepository(dio)),
+          if (queue != null) queueRepositoryProvider.overrideWithValue(queue),
           libraryQueueTargetProvider.overrideWithValue(AsyncData(canTarget)),
           fileManagerProvider.overrideWith(
             () => _FakeNotifier(
@@ -286,35 +291,255 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('on a billing server several files cannot be added at once', (
+    // The bulk route takes no cost center, so on a billing server each file is
+    // its own `POST /queue/`, charged to the center asked for.
+    const lab = CostCenter(id: 5, name: 'Lab');
+    const mine = CostCenter(id: 3, name: 'demo', isPrivate: true);
+    final centersOverride = printableCostCentersProvider.overrideWith(
+      (ref) async => const [mine, lab],
+    );
+
+    /// A queue repository over [dio] that answers every create with 200.
+    ({QueueRepository repo, RequestLog log}) queueOn(Dio dio) {
+      final log = captureRequests(dio);
+      mockServer(dio)
+        ..onGet(
+          '/api/v1/updates/version',
+          (s) =>
+              s.reply(200, {'version': '0.2.4.9', 'repo': 'maziggy/bambuddy'}),
+        )
+        ..onPost(
+          '/api/v1/queue/',
+          (s) => s.reply(200, null),
+          data: Matchers.any,
+        );
+      return (repo: QueueRepository(dio, ServerVersionService(dio)), log: log);
+    }
+
+    /// Every write that left, whichever route it took.
+    List<String> writes(RequestLog log) => [
+      for (final r in log.requests)
+        if (r.method != 'GET') '${r.method} ${r.path}',
+    ];
+
+    List<Map<String, dynamic>> creates(RequestLog log) => [
+      for (final r in log.requests)
+        if (r.method == 'POST' && r.path == '/api/v1/queue/')
+          r.data as Map<String, dynamic>,
+    ];
+
+    testWidgets(
+      'on a billing server each file is charged to the center picked',
+      (tester) async {
+        final dio = testDio();
+        final (:repo, :log) = queueOn(dio);
+        await pumpQueueing(
+          tester,
+          dio: dio,
+          canTarget: false,
+          billing: true,
+          selected: const {1, 2},
+          queue: repo,
+          extra: [centersOverride],
+        );
+
+        await tester.tap(byLogId('files.add_to_queue'));
+        await tester.pumpAndSettle();
+        expect(find.text(pl.fmQueueCostCenterTitle(2)), findsOneWidget);
+        expect(find.text(pl.queueCostCenterPersonal('demo')), findsOneWidget);
+
+        await tester.tap(find.text('Lab'));
+        await tester.pumpAndSettle();
+
+        final bodies = creates(log);
+        expect([for (final b in bodies) b['library_file_id']], [1, 2]);
+        expect([for (final b in bodies) b['cost_center_id']], [5, 5]);
+        expect(find.text(pl.fmAddedToQueue), findsOneWidget);
+      },
+    );
+
+    testWidgets('backing out of the center sheet queues nothing', (
       tester,
     ) async {
-      // This route checks no budget and takes no cost center: the jobs would
-      // be queued without one and could never start. Nothing is mocked, so a
-      // request fails.
       final dio = testDio();
-      mockServer(dio);
+      final (:repo, :log) = queueOn(dio);
       await pumpQueueing(
         tester,
         dio: dio,
         canTarget: false,
         billing: true,
         selected: const {1, 2},
+        queue: repo,
+        extra: [centersOverride],
+      );
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('sheet.queue_cost_center'), findsNothing);
+      expect(writes(log), isEmpty);
+      expect(find.text(pl.fmAddedToQueue), findsNothing);
+    });
+
+    testWidgets('a session that cannot list its centers is told so', (
+      tester,
+    ) async {
+      final dio = testDio();
+      final (:repo, :log) = queueOn(dio);
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        selected: const {1, 2},
+        queue: repo,
+        extra: [printableCostCentersProvider.overrideWith((ref) async => null)],
       );
 
       await tester.tap(byLogId('files.add_to_queue'));
       await tester.pumpAndSettle();
 
-      expect(find.text(pl.queueBillingNoBulk), findsOneWidget);
+      expect(find.text(pl.queueBillingCostCentersRefused), findsOneWidget);
+      expect(byLogId('sheet.queue_cost_center'), findsNothing);
+      expect(writes(log), isEmpty);
     });
 
-    testWidgets('on a billing server a group is not queued as alternatives', (
+    testWidgets('a user with no center to print on is told so', (tester) async {
+      final dio = testDio();
+      final (:repo, :log) = queueOn(dio);
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        selected: const {1, 2},
+        queue: repo,
+        extra: [
+          printableCostCentersProvider.overrideWith((ref) async => const []),
+        ],
+      );
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.queueBillingNoCostCenter), findsOneWidget);
+      expect(writes(log), isEmpty);
+    });
+
+    testWidgets('a file the server refuses does not stop the others', (
       tester,
     ) async {
-      // `POST /queue/` with variants needs a cost center this screen has no
-      // form to pick. Nothing is mocked, so reading the group would fail.
       final dio = testDio();
-      mockServer(dio);
+      final log = captureRequests(dio);
+      mockServer(dio)
+        ..onGet(
+          '/api/v1/updates/version',
+          (s) =>
+              s.reply(200, {'version': '0.2.4.9', 'repo': 'maziggy/bambuddy'}),
+        )
+        ..onPost(
+          '/api/v1/queue/',
+          (s) => s.reply(200, null),
+          data: {'library_file_id': 1, 'quantity': 1, 'cost_center_id': 5},
+        )
+        ..onPost(
+          '/api/v1/queue/',
+          (s) => s.reply(400, {
+            'detail': 'Estimated cost is required for cost center prints',
+          }),
+          data: {'library_file_id': 2, 'quantity': 1, 'cost_center_id': 5},
+        )
+        ..onPost(
+          '/api/v1/queue/',
+          (s) => s.reply(200, null),
+          data: {'library_file_id': 3, 'quantity': 1, 'cost_center_id': 5},
+        );
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        selected: const {1, 2, 3},
+        queue: QueueRepository(dio, ServerVersionService(dio)),
+        extra: [centersOverride],
+      );
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lab'));
+      await tester.pumpAndSettle();
+
+      expect(creates(log), hasLength(3));
+      expect(
+        find.text(
+          pl.fmAddedToQueuePartial(2, 3, pl.queueBillingEstimateRequired),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('files that all fail say why, in the user\'s words', (
+      tester,
+    ) async {
+      final dio = testDio();
+      mockServer(dio)
+        ..onGet(
+          '/api/v1/updates/version',
+          (s) =>
+              s.reply(200, {'version': '0.2.4.9', 'repo': 'maziggy/bambuddy'}),
+        )
+        ..onPost(
+          '/api/v1/queue/',
+          (s) => s.reply(400, {'detail': 'Cost center is inactive'}),
+          data: Matchers.any,
+        );
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        selected: const {1, 2},
+        queue: QueueRepository(dio, ServerVersionService(dio)),
+        extra: [centersOverride],
+      );
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lab'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.queueBillingCostCenterInactive), findsOneWidget);
+      expect(find.text(pl.fmAddedToQueue), findsNothing);
+    });
+
+    testWidgets('on a billing server a group is queued on the center picked', (
+      tester,
+    ) async {
+      final dio = testDio();
+      final (:repo, :log) = queueOn(dio);
+      mockServer(dio).onGet(
+        '/api/v1/library/variant-groups/by-file/1',
+        (s) => s.reply(200, {
+          'id': 9,
+          'name': 'Benchy',
+          'members': [
+            {
+              'library_file_id': 1,
+              'target_model': 'X1C',
+              'filename': 'a.3mf',
+              'position': 0,
+            },
+            {
+              'library_file_id': 2,
+              'target_model': 'P1S',
+              'filename': 'b.3mf',
+              'position': 1,
+            },
+          ],
+        }),
+      );
       final file = _file(variantCount: 2);
       await pumpQueueing(
         tester,
@@ -322,14 +547,21 @@ void main() {
         canTarget: false,
         billing: true,
         grouped: file,
+        queue: repo,
+        extra: [centersOverride],
       );
 
       await tester.tap(find.text(file.displayName));
       await tester.pumpAndSettle();
       await tester.tap(byLogId('file_actions.queue_variants'));
       await tester.pumpAndSettle();
+      expect(find.text(pl.fmQueueCostCenterTitle(1)), findsOneWidget);
+      await tester.tap(find.text('Lab'));
+      await tester.pumpAndSettle();
 
-      expect(find.text(pl.queueBillingNoBulk), findsOneWidget);
+      final body = creates(log).single;
+      expect(body['cost_center_id'], 5);
+      expect(body['variants'], hasLength(2));
     });
 
     testWidgets('on a billing server the file sheet opens the print form', (
@@ -417,7 +649,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(QueueEditScreen), findsOneWidget);
-      expect(find.text(pl.queueBillingNoBulk), findsNothing);
+      expect(byLogId('sheet.queue_cost_center'), findsNothing);
     });
 
     testWidgets('asks where, offering only active printers and their models', (

@@ -3720,6 +3720,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String fmQueueCostCenterTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Which cost center should these $count jobs be charged to?',
+      one: 'Which cost center should this job be charged to?',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get fmQueueTargetAuto => 'Model from the file';
 
   @override
@@ -8106,10 +8117,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Billing is on for this server, so every print job needs a cost center, which this action cannot set. Open the job in the app to choose one, or use Bambuddy in a browser.';
 
   @override
-  String get queueBillingNoBulk =>
-      'Billing is on for this server, so every print job needs a cost center, which this action cannot set. Queue the files one at a time, or use Bambuddy in a browser.';
-
-  @override
   String get financeMenu => 'Finance';
 
   @override
@@ -8294,6 +8301,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get financeDeleteTransactionConfirm =>
       'Delete this transaction? Balances will be recalculated automatically.';
+
+  @override
+  String get financeRebuildLedger => 'Rebuild wallet ledger';
+
+  @override
+  String get financeRebuildLedgerConfirm =>
+      'This rebuilds the running balances of the wallet ledger to repair historical values. Run it only if you know what you are doing.';
+
+  @override
+  String get financeRebuildLedgerRun => 'Run';
+
+  @override
+  String get financeLedgerRebuilt => 'Wallet ledger rebuilt';
 
   @override
   String get financeDepositDone => 'Deposit successful';

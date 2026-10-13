@@ -6278,6 +6278,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Where should this file print?} other{Where should {count} files print?}}'**
   String fmQueueTargetTitle(int count);
 
+  /// Title of the sheet asking which cost center a bulk add to the queue is charged to; {count} is how many jobs
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Which cost center should this job be charged to?} other{Which cost center should these {count} jobs be charged to?}}'**
+  String fmQueueCostCenterTitle(int count);
+
   /// No description provided for @fmQueueTargetAuto.
   ///
   /// In en, this message translates to:
@@ -13592,12 +13598,6 @@ abstract class AppLocalizations {
   /// **'Billing is on for this server, so every print job needs a cost center, which this action cannot set. Open the job in the app to choose one, or use Bambuddy in a browser.'**
   String get queueBillingUseWeb;
 
-  /// Shown instead of a bulk "Add to queue" or a queue-as-alternatives of library files when billing is on: those routes take no cost center, so every job would be refused or could never start.
-  ///
-  /// In en, this message translates to:
-  /// **'Billing is on for this server, so every print job needs a cost center, which this action cannot set. Queue the files one at a time, or use Bambuddy in a browser.'**
-  String get queueBillingNoBulk;
-
   /// Drawer entry for the finance screen.
   ///
   /// In en, this message translates to:
@@ -13945,6 +13945,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete this transaction? Balances will be recalculated automatically.'**
   String get financeDeleteTransactionConfirm;
+
+  /// Menu entry and dialog title for the administrator's repair of the wallet ledger's running balances (the web's Settings button)
+  ///
+  /// In en, this message translates to:
+  /// **'Rebuild wallet ledger'**
+  String get financeRebuildLedger;
+
+  /// Question before the ledger rebuild; the web's own warning
+  ///
+  /// In en, this message translates to:
+  /// **'This rebuilds the running balances of the wallet ledger to repair historical values. Run it only if you know what you are doing.'**
+  String get financeRebuildLedgerConfirm;
+
+  /// Confirm button of the ledger rebuild dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Run'**
+  String get financeRebuildLedgerRun;
+
+  /// Shown once the server has rebuilt the ledger
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet ledger rebuilt'**
+  String get financeLedgerRebuilt;
 
   /// Snack after a deposit.
   ///

@@ -529,6 +529,11 @@ abstract final class Endpoints {
   static const financeTransactionsManual =
       '$apiPrefix/finance/transactions/manual';
 
+  /// POST — recompute `balance_after` on every ledger row (`cost_centers:modify`).
+  /// Answers once it is done: `{status, transactions_rebuilt, message}`.
+  static const financeRebuildLedger =
+      '$apiPrefix/finance/rebuild-balance-ledger';
+
   /// `POST` money onto a user's wallet / off it; the amount is always positive.
   static String financeUserDeposit(int userId) =>
       '$apiPrefix/finance/users/$userId/deposit';
