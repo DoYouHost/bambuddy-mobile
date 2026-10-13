@@ -1,6 +1,7 @@
 import 'package:app_util/app_util.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+import '../format/text_utils.dart';
 import 'calibration_option.dart';
 import 'json_utils.dart';
 import 'variant_group.dart';
@@ -376,3 +377,41 @@ List<PrintVariant> _variantsFromJson(dynamic value) =>
 /// `{"2": 1}` → `{2: 1}`: the group ids JSON had to stringify, back to ints.
 Map<int, int>? _toRackChoiceOrNull(dynamic value) =>
     parseJsonMapByIdOrNull(value, toIntOrNull);
+
+/// What the scheduler writes into `error_message` of a job it skips behind a
+/// failed print (`print_scheduler.py`). The exact string is the only thing that
+/// tells this skip from the other reasons a job gets skipped, and the resume
+/// route restores by the same comparison (`print_queue.py`).
+const kPreviousFailureGate = 'Previous print failed or was aborted';
+
+/// A printer whose queue is held by a failed print: how many jobs the gate
+/// skipped on it.
+typedef GateBlockedPrinter = ({int printerId, String name, int skipped});
+
+/// The printers [items] show as held by [kPreviousFailureGate], by name — the
+/// web's `gateBlockedPrinters` (`QueuePage.tsx`). A skipped job with no printer
+/// has no queue to resume, and any other skip reason keeps its own handling.
+/// [fallbackName] names a printer the row gives no name for.
+List<GateBlockedPrinter> gateBlockedPrinters(
+  Iterable<QueueItem> items, {
+  required String Function(int printerId) fallbackName,
+}) {
+  final byPrinter = <int, ({String name, int count})>{};
+  for (final item in items) {
+    final printerId = item.printerId;
+    if (printerId == null ||
+        item.statusKind != QueueItemStatusKind.skipped ||
+        item.errorMessage != kPreviousFailureGate) {
+      continue;
+    }
+    final seen = byPrinter[printerId];
+    byPrinter[printerId] = (
+      name: seen?.name ?? item.printerName ?? fallbackName(printerId),
+      count: (seen?.count ?? 0) + 1,
+    );
+  }
+  return [
+    for (final e in byPrinter.entries)
+      (printerId: e.key, name: e.value.name, skipped: e.value.count),
+  ]..sort((a, b) => compareIgnoringCase(a.name, b.name));
+}

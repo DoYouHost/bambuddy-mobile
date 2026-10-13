@@ -139,6 +139,82 @@ class QueueCreateOptions {
   };
 }
 
+/// One change for many queue items — the body of `PATCH /queue/bulk`
+/// (`PrintQueueBulkUpdate`) without the ids. Every field null means "leave it":
+/// the server applies only the keys that are present, so a field the user did
+/// not touch is never sent. The web's modal offers exactly these thirteen and no
+/// more, and so does the app.
+///
+/// [printerId] has three states instead of two, which is why it is an `Object?`
+/// as in [QueueRepository.updateItem]: [kQueueUpdateUnset] leaves the printer,
+/// `null` takes the item off its printer, an `int` puts it on that one. The
+/// route has no `target_model`, so an "any X" item given a printer here keeps its
+/// model, where the single-item edit clears it.
+class QueueBulkChanges {
+  const QueueBulkChanges({
+    this.printerId = kQueueUpdateUnset,
+    this.manualStart,
+    this.autoOffAfter,
+    this.requirePreviousSuccess,
+    this.gcodeInjection,
+    this.bedLevelling,
+    this.flowCali,
+    this.vibrationCali,
+    this.layerInspect,
+    this.timelapse,
+    this.useAms,
+    this.confirmOutcome,
+    this.nozzleOffsetCali,
+  });
+
+  final Object? printerId;
+  final bool? manualStart;
+  final bool? autoOffAfter;
+  final bool? requirePreviousSuccess;
+  final bool? gcodeInjection;
+  final CalibrationOption? bedLevelling;
+  final CalibrationOption? flowCali;
+  final bool? vibrationCali;
+  final bool? layerInspect;
+  final bool? timelapse;
+  final bool? useAms;
+  final bool? confirmOutcome;
+  final CalibrationOption? nozzleOffsetCali;
+
+  /// Nothing to send: the server answers such a body with 400 ("No fields to
+  /// update"), so the form keeps its Apply button off while this holds.
+  bool get isEmpty => toJson(triState: true).isEmpty;
+
+  /// The calibration options go through [CalibrationOption.toWire], as on a
+  /// single edit: an `auto` a pre-1.2.5 server cannot store drops out rather
+  /// than being rewritten as a boolean over a value the user never saw.
+  Map<String, dynamic> toJson({required bool triState}) => <String, dynamic>{
+    if (printerId != kQueueUpdateUnset) 'printer_id': printerId,
+    'manual_start': ?manualStart,
+    'auto_off_after': ?autoOffAfter,
+    'require_previous_success': ?requirePreviousSuccess,
+    'gcode_injection': ?gcodeInjection,
+    'bed_levelling': ?bedLevelling?.toWire(triState: triState),
+    'flow_cali': ?flowCali?.toWire(triState: triState),
+    'vibration_cali': ?vibrationCali,
+    'layer_inspect': ?layerInspect,
+    'timelapse': ?timelapse,
+    'use_ams': ?useAms,
+    'confirm_outcome': ?confirmOutcome,
+    'nozzle_offset_cali': ?nozzleOffsetCali?.toWire(triState: triState),
+  };
+}
+
+/// What `PATCH /queue/bulk` did: [updated] items changed, [skipped] left alone
+/// because they were not `pending`, were being dispatched, were not the
+/// caller's, or needed a start right the caller lacks.
+typedef QueueBulkResult = ({int updated, int skipped});
+
+/// What `POST /queue/printer/{id}/resume` did: [acknowledged] failed prints no
+/// longer hold the printer's gate, and [restored] skipped jobs are `pending`
+/// again. Both zero means there was nothing to clear.
+typedef QueueResumeResult = ({int acknowledged, int restored});
+
 /// REST data source for print queue (M5).
 ///
 /// Auth adds [AuthInterceptor] to the shared Dio.
@@ -369,6 +445,47 @@ class QueueRepository {
       () => _dio.patch<dynamic>(Endpoints.queueItem(itemId), data: body),
     );
   }
+
+  /// PATCH /queue/bulk — the same [changes] on every item of [itemIds]. Keeps the
+  /// detail like [updateItem]: a missing printer and a refused permission are
+  /// told apart only by the 400/403 text. A 200 is not "all done": read
+  /// [QueueBulkResult.skipped].
+  Future<QueueBulkResult> bulkUpdate(
+    List<int> itemIds,
+    QueueBulkChanges changes,
+  ) async {
+    final triState = await triStateCapability.supported;
+    final body = <String, dynamic>{
+      'item_ids': itemIds,
+      ...changes.toJson(triState: triState),
+    };
+    return guardKeepingDetail(() async {
+      final res = await _dio.patch<dynamic>(Endpoints.queueBulk, data: body);
+      final data = res.data;
+      return (
+        updated: data is Map ? toIntOrNull(data['updated_count']) ?? 0 : 0,
+        skipped: data is Map ? toIntOrNull(data['skipped_count']) ?? 0 : 0,
+      );
+    });
+  }
+
+  /// POST /queue/printer/{id}/resume — clear the previous-print gate on
+  /// [printerId] and restore the jobs it skipped. One atomic route on the server
+  /// (#1818); calling it again right after is a harmless no-op with zero counts.
+  /// No detail kept: the route has no 400, and its 404 and 403 are plain
+  /// statuses.
+  Future<QueueResumeResult> resumeAfterFailure(int printerId) => guard(
+    () async {
+      final res = await _dio.post<dynamic>(
+        Endpoints.queuePrinterResume(printerId),
+      );
+      final data = res.data;
+      return (
+        acknowledged: data is Map ? toIntOrNull(data['acknowledged']) ?? 0 : 0,
+        restored: data is Map ? toIntOrNull(data['restored']) ?? 0 : 0,
+      );
+    },
+  );
 
   /// POST /queue/{id}/start — manually start item.
   ///

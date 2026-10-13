@@ -434,6 +434,22 @@ abstract final class Endpoints {
   static String queueItemCancel(int itemId) =>
       '$apiPrefix/queue/$itemId/cancel';
 
+  /// `PATCH` — one change for many `pending` items at once
+  /// (`print_queue.py::bulk_update_queue_items`), the web's "Edit selected". It
+  /// answers 200 with counts even when it changed nothing: the rows it skips
+  /// (not pending, claimed by a dispatch, not the caller's) are only counted.
+  /// Present since server v0.1.2.
+  static const queueBulk = '$apiPrefix/queue/bulk';
+
+  /// `POST` — acknowledge the failed prints behind a printer's
+  /// `require_previous_success` gate and put the jobs it skipped back to
+  /// `pending` (`print_queue.py::resume_queue_after_failure`, #1818). A printer
+  /// with nothing to clear answers 200 with zeros. Since server v0.2.4.8; an
+  /// older one answers 404, which the caller only reaches from a banner that
+  /// needs a skipped row the gate wrote.
+  static String queuePrinterResume(int printerId) =>
+      '$apiPrefix/queue/printer/$printerId/resume';
+
   /// The only route a `printing` item accepts: `/cancel` takes `pending` alone
   /// and `DELETE` refuses anything currently printing, so without this a row
   /// the server holds as printing has no way out of the queue at all
