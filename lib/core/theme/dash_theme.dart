@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:dash_kit/dash_kit.dart';
 import 'package:flutter/material.dart';
 export 'package:dash_kit/dash_kit.dart';
@@ -28,6 +30,41 @@ const seriesPalette = [
 extension BambuddyAccent on DashTokens {
   Color get accentGreen => accent;
   Color get accentGreenInk => accentInk;
+
+  /// [count] colours that belong to this theme, to tell [count] things apart.
+  /// The first is [accent] itself. The rest take hues the web app uses for its
+  /// accents — green, teal, blue, indigo, purple, orange and amber, with red left
+  /// to [danger], and pink as the eighth, which it uses rarely — at the accent's
+  /// own saturation and lightness, so
+  /// every one reads as the same family at the same weight in either brightness.
+  /// Blue, orange and amber are the theme's own ([accentBlue], [accentOrange],
+  /// [warning]) so they match the rest of the app. Fewer than eight are spread
+  /// over the eight; past eight the hues repeat.
+  List<Color> accentSeries(int count) {
+    if (count <= 0) return const [];
+    final base = HSLColor.fromColor(accent);
+    double hueOf(Color c) => HSLColor.fromColor(c).hue;
+    final hues = [
+      base.hue,
+      173.0,
+      hueOf(accentBlue),
+      240.0,
+      271.0,
+      330.0,
+      hueOf(accentOrange),
+      hueOf(warning),
+    ];
+    return [
+      accent,
+      for (var i = 1; i < count; i++)
+        base
+            .withHue(
+              hues[(i * hues.length ~/ math.min(count, hues.length)) %
+                  hues.length],
+            )
+            .toColor(),
+    ];
+  }
 
   /// The card every screen in this app is built out of: gradient fill, 22 px
   /// corners, hairline border. Seventeen screens spelled it out before it had

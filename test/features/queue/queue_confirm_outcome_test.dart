@@ -26,7 +26,11 @@ void main() {
     defaultConfirmOutcomeProvider.overrideWithValue(AsyncData(serverDefault)),
   ];
 
+  Future<void> openOptions(WidgetTester tester) =>
+      openQueueFormSection(tester, 'queue_edit.print_options_section');
+
   Future<void> tapSwitch(WidgetTester tester) async {
+    await openOptions(tester);
     await tester.ensureVisible(find.text(label));
     await tester.pumpAndSettle();
     // The title is not a tap target; the switch beside it is.
@@ -49,6 +53,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await openOptions(tester);
     expect(find.text(label), findsNothing);
     await submitQueueForm(tester);
     expect(capturedBody?.containsKey('confirm_outcome'), isFalse);
@@ -149,6 +154,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await openOptions(tester);
     expect(find.text(pl.queueOptConfirmOutcomeSticky), findsOneWidget);
     await submitQueueForm(tester);
     expect(capturedBody?['confirm_outcome'], true);

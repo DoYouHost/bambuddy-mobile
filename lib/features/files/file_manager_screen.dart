@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/models/cost_center.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
@@ -15,6 +16,7 @@ import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/server_refusal.dart';
+import '../../data/library_repository.dart' show AddToQueueOutcome;
 import '../../data/queue_repository.dart' show QueueCreateOptions;
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
@@ -34,6 +36,7 @@ import '../slicer/slice_screen.dart';
 import 'file_manager_providers.dart';
 import 'file_details_screen.dart';
 import 'library_thumbnail.dart';
+import 'queue_cost_center_sheet.dart';
 import 'queue_target_sheet.dart';
 import 'tag_sheets.dart';
 import '../../core/format/text_utils.dart';
@@ -780,24 +783,17 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         _snack(_l10n.fmVariantsGone);
         return;
       }
-      // No form here to show the switch, so the job asks exactly when the
-      // server's own default says to — what the server does itself on its
-      // other paths without a dialog (`confirm_outcome_for_new_queue_item`).
-      // Waited for: `POST /queue/` reads no default, so an answer still on
-      // its way would go out as `false`.
-      final supported = await settledGate(
-        providers,
-        queueOutcomeProvider,
-      ).catchError((Object _) => false);
-      final confirmOutcome = supported
-          ? await settledGate(
-              providers,
-              defaultConfirmOutcomeProvider,
-            ).catchError((Object _) => false)
-          : null;
-      await providers.read(queueRepositoryProvider).addCrossModel([
-        for (final m in group.members) m.libraryFileId,
-      ], options: QueueCreateOptions(confirmOutcome: confirmOutcome));
+      // Billing refuses a job without a cost center, and no form here sets one.
+      final billing = await settledBillingEnabled(providers);
+      final centerId = billing ? await _askCostCenter(1) : null;
+      if (billing && centerId == null) return;
+      await providers.read(queueRepositoryProvider).addCrossModel(
+        [for (final m in group.members) m.libraryFileId],
+        options: QueueCreateOptions(
+          confirmOutcome: await _confirmOutcomeDefault(providers),
+          costCenterId: centerId,
+        ),
+      );
       if (!mounted) return;
       _snack(_l10n.fmAddedToQueue);
     } on AppApiException catch (e) {
@@ -827,27 +823,137 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }
 
   Future<void> _addSelectedToQueue(FileManagerState s) async {
+    final only = s.selected.length == 1
+        ? s.files.where((f) => f.id == s.selected.single).firstOrNull
+        : null;
+    if (only != null && await _billingOn()) {
+      final added = await _printFile(only, schedule: QueueScheduleType.queue);
+      if (added && mounted) {
+        ref.read(fileManagerProvider.notifier).clearSelection();
+      }
+      return;
+    }
     final added = await _queueFiles(s.selected.toList(), 'files.add_to_queue');
     if (added && mounted) {
       ref.read(fileManagerProvider.notifier).clearSelection();
     }
   }
 
-  Future<void> _addToQueue(LibraryFile file) =>
-      _queueFiles([file.id], 'file_actions.add_to_queue');
+  /// On a billing server the job needs a cost center, which only the print form
+  /// can set: one file opens it, lined up rather than started.
+  Future<void> _addToQueue(LibraryFile file) async {
+    if (await _billingOn()) {
+      await _printFile(file, schedule: QueueScheduleType.queue);
+      return;
+    }
+    await _queueFiles([file.id], 'file_actions.add_to_queue');
+  }
+
+  Future<bool> _billingOn() =>
+      settledBillingEnabled(ProviderScope.containerOf(context, listen: false));
+
+  /// The cost center a bulk add is charged to, asked of the user. Null — after
+  /// saying why — when there is nothing to ask: the session may not list its
+  /// centers, may print to none, or the list did not load; or the user backed
+  /// out.
+  Future<int?> _askCostCenter(int jobCount) async {
+    final List<CostCenter>? centers;
+    try {
+      centers = await ref.read(printableCostCentersProvider.future);
+    } on AppApiException catch (e) {
+      if (mounted) _failed(e, 'files.cost_centers');
+      return null;
+    }
+    if (!mounted) return null;
+    if (centers == null) {
+      _snack(_l10n.queueBillingCostCentersRefused);
+      return null;
+    }
+    if (centers.isEmpty) {
+      _snack(_l10n.queueBillingNoCostCenter);
+      return null;
+    }
+    return showQueueCostCenterSheet(
+      context,
+      jobCount: jobCount,
+      centers: centers,
+    );
+  }
+
+  /// No form here to show the "ask how it came out" switch, so a job asks
+  /// exactly when the server's own default says to — what the server does
+  /// itself on its other paths without a dialog
+  /// (`confirm_outcome_for_new_queue_item`). Waited for: `POST /queue/` reads no
+  /// default, so an answer still on its way would go out as `false`.
+  Future<bool?> _confirmOutcomeDefault(ProviderContainer providers) async {
+    final supported = await settledGate(
+      providers,
+      queueOutcomeProvider,
+    ).catchError((Object _) => false);
+    return supported
+        ? await settledGate(
+            providers,
+            defaultConfirmOutcomeProvider,
+          ).catchError((Object _) => false)
+        : null;
+  }
+
+  /// What to tell the user about a file the server refused: the reasons a bulk
+  /// add meets, then the queue's own (billing among them), else its words.
+  String _refusal(AppApiException e) {
+    final detail = e.detail;
+    return (detail == null
+            ? null
+            : knownRefusal(_l10n, detail, _queueRefusals)) ??
+        queueRefusal(_l10n, e);
+  }
+
+  /// One `POST /queue/` per file, each charged to [centerId] — the bulk route
+  /// cannot carry one. A file the server refuses is counted and the rest go on;
+  /// only a refusal is caught here, so anything unexpected still surfaces.
+  /// Throws, like the bulk route, when nothing was queued.
+  Future<AddToQueueOutcome> _addEach(
+    List<int> ids,
+    QueueTarget target,
+    int centerId,
+  ) async {
+    final providers = ProviderScope.containerOf(context, listen: false);
+    final repo = ref.read(queueRepositoryProvider);
+    final confirmOutcome = await _confirmOutcomeDefault(providers);
+    var added = 0;
+    final reasons = <String>[];
+    AppApiException? first;
+    for (final id in ids) {
+      try {
+        await repo.addFromLibraryFile(
+          id,
+          printerId: target.printerId,
+          options: QueueCreateOptions(
+            targetModel: target.model,
+            confirmOutcome: confirmOutcome,
+            costCenterId: centerId,
+          ),
+        );
+        added++;
+      } on AppApiException catch (e) {
+        first ??= e;
+        reasons.add(_refusal(e));
+      }
+    }
+    if (added == 0 && first != null) throw first;
+    return (added: added, rejections: reasons);
+  }
 
   /// Queues [ids], first asking where when the server can be told (#3112).
   /// Returns whether anything was queued.
   Future<bool> _queueFiles(List<int> ids, String action) async {
     final repo = ref.read(libraryRepositoryProvider);
-    // This route checks no budget, so on a billing server it would queue a job
-    // without a cost center that can then never start.
-    if (await settledBillingEnabled(
-      ProviderScope.containerOf(context, listen: false),
-    )) {
-      if (mounted) _snack(_l10n.queueBillingUseWeb);
-      return false;
-    }
+    // The bulk route checks no budget and takes no cost center, so on a billing
+    // server it would queue jobs that can then never start: each file goes in
+    // on its own request instead, charged to the center asked for here.
+    final billing = await _billingOn();
+    final centerId = billing ? await _askCostCenter(ids.length) : null;
+    if (billing && centerId == null) return false;
     if (!mounted) return false;
     try {
       QueueTarget target = (printerId: null, model: null);
@@ -873,11 +979,13 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
           target = picked;
         }
       }
-      final outcome = await repo.addToQueue(
-        ids,
-        printerId: target.printerId,
-        targetModel: target.model,
-      );
+      final outcome = centerId == null
+          ? await repo.addToQueue(
+              ids,
+              printerId: target.printerId,
+              targetModel: target.model,
+            )
+          : await _addEach(ids, target, centerId);
       if (!mounted) return true;
       final l10n = _l10n;
       _snack(
@@ -898,7 +1006,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
           e,
           _l10n,
           action: action,
-          message: serverRefusal(_l10n, e, _queueRefusals),
+          message: _refusal(e),
         );
       } else {
         _failed(e, action);
@@ -909,8 +1017,11 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   /// Print: the full print form, opened on ASAP. The job is configured before
   /// the queue item exists, so nothing can dispatch it mid-setup.
-  Future<void> _printFile(LibraryFile file) async {
-    await openQueueCreate(
+  Future<bool> _printFile(
+    LibraryFile file, {
+    QueueScheduleType schedule = QueueScheduleType.asap,
+  }) {
+    return openQueueCreate(
       context,
       draft: QueueItem.draft(
         libraryFileId: file.id,
@@ -918,7 +1029,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         thumbnail: file.thumbnailPath,
         slicedForModel: file.slicedForModel,
       ),
-      schedule: QueueScheduleType.asap,
+      schedule: schedule,
     );
   }
 

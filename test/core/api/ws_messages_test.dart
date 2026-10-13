@@ -173,6 +173,50 @@ void main() {
       }
     });
 
+    // The frames `main.py` broadcasts when billing goes wrong on a printer.
+    test('kill_switch_triggered names the printer and the file', () {
+      final msg = parseWsMessage(
+        jsonEncode({
+          'type': 'kill_switch_triggered',
+          'printer_id': 2,
+          'printer_name': 'P1S',
+          'filename': 'Benchy.3mf',
+          'reason': 'unauthorized_print',
+        }),
+      );
+      final alert = msg! as WsBillingAlert;
+      expect(alert.kind, BillingAlertKind.killSwitch);
+      expect(alert.printerId, 2);
+      expect(alert.printerName, 'P1S');
+      expect(alert.filename, 'Benchy.3mf');
+      expect(alert.archiveId, isNull);
+    });
+
+    test('billing_charge_failed also carries the archive', () {
+      final msg = parseWsMessage(
+        jsonEncode({
+          'type': 'billing_charge_failed',
+          'printer_id': 2,
+          'printer_name': 'P1S',
+          'filename': 'Benchy.3mf',
+          'archive_id': 91,
+        }),
+      );
+      final alert = msg! as WsBillingAlert;
+      expect(alert.kind, BillingAlertKind.chargeFailed);
+      expect(alert.archiveId, 91);
+    });
+
+    test('a billing frame without a printer is WsUnknown', () {
+      for (final type in ['kill_switch_triggered', 'billing_charge_failed']) {
+        expect(
+          parseWsMessage(jsonEncode({'type': type, 'filename': 'a.3mf'})),
+          isA<WsUnknown>(),
+          reason: type,
+        );
+      }
+    });
+
     test('archive_updated with no id inside data is WsUnknown', () {
       final msg = parseWsMessage('{"type":"archive_updated","data":{"x":1}}');
       expect(msg, isA<WsUnknown>());

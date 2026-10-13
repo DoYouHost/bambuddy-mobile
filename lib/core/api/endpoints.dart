@@ -462,6 +462,84 @@ abstract final class Endpoints {
   static String queueBatchUngroup(int batchId) =>
       '$apiPrefix/queue/batches/$batchId/ungroup';
 
+  // --- Finance ---
+
+  /// The cost centers the session may book prints to — its own private one plus
+  /// those it is a member of (`CostCenterSummaryResponse[]`,
+  /// `finance.py::get_my_cost_centers`). Read when `billing_enabled`, since
+  /// every queue create, edit and start then needs one.
+  ///
+  /// Open to any signed-in user, and to an API key that may queue **from the
+  /// server commit for #3256 on** (the owner's centers; an ownerless key gets
+  /// `[]`). Before it a key is answered 401 — `finance.py`'s permission checks
+  /// hand it no user — so a refusal here is "this session cannot list them",
+  /// never "there are none". No such route before billing (1.2.5.3).
+  static const financeCostCentersMine = '$apiPrefix/finance/cost-centers/mine';
+
+  /// The signed-in user's wallet balance (`WalletBalanceResponse`), gated on
+  /// `cost_centers:read_own` — which no API key can hold, so a key is refused
+  /// (`core/auth.py::_APIKEY_SCOPE_BY_PERMISSION` has no entry).
+  static const financeMeBalance = '$apiPrefix/finance/me/balance';
+
+  /// The user's own ledger, newest first, voided rows left out
+  /// (`WalletTransactionListResponse`, `?limit=1..500&offset=`). Same gate as
+  /// [financeMeBalance].
+  static const financeMeTransactions = '$apiPrefix/finance/me/transactions';
+
+  // The administrator's half of `finance.py`. Reads are `cost_centers:read_all`;
+  // every write is `cost_centers:modify` (creating a center is
+  // `cost_centers:create`). No API key can hold any of them, and a private center
+  // answers 400 to a rename, a deactivation, a delete and any membership change
+  // — only its budget moves.
+
+  /// `GET` every center (`?include_inactive=`), `POST` a shared one. The listing
+  /// answers anyone holding any of the three permissions; a plain member's
+  /// `get_cost_center` is the same 403.
+  static const financeCostCenters = '$apiPrefix/finance/cost-centers';
+
+  /// `GET` one with its members (`CostCenterDetailResponse`), `PATCH` its name
+  /// and active flag, `DELETE` it — refused while a ledger row or an active
+  /// budget hold still points at it.
+  static String financeCostCenter(int id) =>
+      '$apiPrefix/finance/cost-centers/$id';
+
+  /// `PATCH` the budget: a monthly figure wins over a total, and a body naming
+  /// neither removes the budget altogether (`update_cost_center_budgets`).
+  static String financeCostCenterBudgets(int id) =>
+      '$apiPrefix/finance/cost-centers/$id/budgets';
+
+  /// `POST` adds a member or changes its `can_print`.
+  static String financeCostCenterMembers(int id) =>
+      '$apiPrefix/finance/cost-centers/$id/members';
+
+  /// `DELETE` takes a member off.
+  static String financeCostCenterMember(int id, int userId) =>
+      '$apiPrefix/finance/cost-centers/$id/members/$userId';
+
+  /// Every user's ledger, newest first (`?limit=1..500&offset=&user_id=`).
+  static const financeTransactions = '$apiPrefix/finance/transactions';
+
+  /// `PATCH` (user, center, amount, description — the server appends
+  /// "(Admin edit)" and rebuilds the ledger) and `DELETE` (voids the row).
+  static String financeTransaction(int id) =>
+      '$apiPrefix/finance/transactions/$id';
+
+  /// A manual print charge. The amount sent is positive (`gt=0`, else 422) and
+  /// is stored as a charge, negative.
+  static const financeTransactionsManual =
+      '$apiPrefix/finance/transactions/manual';
+
+  /// POST — recompute `balance_after` on every ledger row (`cost_centers:modify`).
+  /// Answers once it is done: `{status, transactions_rebuilt, message}`.
+  static const financeRebuildLedger =
+      '$apiPrefix/finance/rebuild-balance-ledger';
+
+  /// `POST` money onto a user's wallet / off it; the amount is always positive.
+  static String financeUserDeposit(int userId) =>
+      '$apiPrefix/finance/users/$userId/deposit';
+  static String financeUserWithdraw(int userId) =>
+      '$apiPrefix/finance/users/$userId/withdraw';
+
   // Trailing slash required: similar to `/queue/`.
   static const archives = '$apiPrefix/archives/';
   static const archivesSearch = '$apiPrefix/archives/search';

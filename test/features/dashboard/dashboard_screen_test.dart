@@ -444,6 +444,8 @@ void main() {
               PipelinesRepository(dio),
             ),
             serverSettingsOverride(const {}),
+            // The drawer reads the billing flag for its Finance entry.
+            serverUiFlagsProvider.overrideWith((ref) async => const {}),
             serverVersionProvider.overrideWith((ref) => null),
             serverVersionLabelProvider.overrideWith((ref) => null),
           ],
@@ -461,6 +463,52 @@ void main() {
       expect(byLogId('drawer.pipelines'), findsOneWidget);
     },
   );
+
+  group('the drawer\'s Finance entry', () {
+    Future<void> open(
+      WidgetTester tester, {
+      required bool billing,
+      required bool mayRead,
+    }) async {
+      await tester.pumpWidget(
+        _app(
+          const DashboardState(),
+          extra: [
+            serverVersionLabelProvider.overrideWith((ref) => null),
+            billingEnabledProvider.overrideWithValue(billing),
+            identifiedPermissionProvider.overrideWith(
+              (ref, p) => mayRead && p == 'cost_centers:read_own',
+            ),
+          ],
+        ),
+      );
+      tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+      await settle(tester);
+    }
+
+    testWidgets('is there where billing is on and the account has a ledger', (
+      tester,
+    ) async {
+      await open(tester, billing: true, mayRead: true);
+
+      expect(byLogId('drawer.finance'), findsOneWidget);
+    });
+
+    testWidgets('is absent without billing', (tester) async {
+      await open(tester, billing: false, mayRead: true);
+
+      expect(byLogId('drawer.finance'), findsNothing);
+    });
+
+    testWidgets('is absent for an account that cannot read a ledger', (
+      tester,
+    ) async {
+      // Every API key, and any user without `cost_centers:read_own`.
+      await open(tester, billing: true, mayRead: false);
+
+      expect(byLogId('drawer.finance'), findsNothing);
+    });
+  });
 
   testWidgets('the drawer leads to app settings, not to notifications', (
     tester,

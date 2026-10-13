@@ -3780,6 +3780,19 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String fmQueueCostCenterTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Na które centrum kosztów zapisać tego $count zadania?',
+      many: 'Na które centrum kosztów zapisać tych $count zadań?',
+      few: 'Na które centrum kosztów zapisać te $count zadania?',
+      one: 'Na które centrum kosztów zapisać to zadanie?',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get fmQueueTargetAuto => 'Model zapisany w pliku';
 
   @override
@@ -6111,6 +6124,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get queueEditSpecificPrinter => 'Konkretna drukarka';
 
   @override
+  String get queueEditPrinter => 'Drukarka';
+
+  @override
   String queueEditAnyModel(String model) {
     return 'Dowolna $model';
   }
@@ -7653,9 +7669,6 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get queueEditCopiesLabel => 'Ile razy wydrukować';
-
-  @override
   String get queueEditCopies => 'Kopie';
 
   @override
@@ -7796,6 +7809,32 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get notifEvtOutcomeDesc =>
       'Gdy skończy się wydruk, który pyta o wynik — odpowiedź „Udany” lub „Odrzucony” prosto z powiadomienia';
+
+  @override
+  String get notifEvtBilling => 'Problemy z rozliczeniem';
+
+  @override
+  String get notifEvtBillingDesc =>
+      'Gdy serwer zatrzyma nieautoryzowany wydruk albo nie zdoła rozliczyć zakończonego';
+
+  @override
+  String get notifBillingKillTitle => 'Zatrzymano nieautoryzowany wydruk';
+
+  @override
+  String notifBillingKillBody(String printer, String filename) {
+    return 'Wyłącznik bezpieczeństwa zatrzymał nieautoryzowany wydruk na $printer: $filename';
+  }
+
+  @override
+  String get notifBillingChargeTitle => 'Nie rozliczono wydruku';
+
+  @override
+  String notifBillingChargeBody(String printer, String filename) {
+    return 'Nie udało się rozliczyć $filename na $printer. Rezerwacja budżetu została zachowana – sprawdź logi serwera.';
+  }
+
+  @override
+  String get notifBillingUnknownFile => 'nieznany plik';
 
   @override
   String outcomeNotifTitle(String name) {
@@ -8206,7 +8245,350 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueBillingUseWeb =>
-      'Na tym serwerze jest włączony billing, więc każde zadanie wymaga centrum kosztów, a aplikacja jeszcze go nie ustawia. Dodaj, edytuj i uruchom to zadanie w Bambuddy w przeglądarce.';
+      'Na tym serwerze jest włączony billing, więc każde zadanie wymaga centrum kosztów, a ta akcja go nie ustawia. Otwórz zadanie w aplikacji, żeby je wybrać, albo użyj Bambuddy w przeglądarce.';
+
+  @override
+  String get financeMenu => 'Finanse';
+
+  @override
+  String get financeTitle => 'Finanse';
+
+  @override
+  String get financeBalance => 'Saldo konta osobistego';
+
+  @override
+  String get financeMyCostCenters => 'Moje centra kosztów';
+
+  @override
+  String get financeNoCostCenters => 'Nie znaleziono centrów kosztów.';
+
+  @override
+  String financeAccountBalance(String amount) {
+    return 'Saldo konta: $amount';
+  }
+
+  @override
+  String get financeUnlimited => 'Bez limitu';
+
+  @override
+  String get financeBudgetMonthly => 'Budżet miesięczny';
+
+  @override
+  String get financeBudgetTotal => 'Budżet łączny';
+
+  @override
+  String get financeBudgetNone => 'Brak budżetu';
+
+  @override
+  String get financeRecentTransactions => 'Ostatnie transakcje';
+
+  @override
+  String get financeType => 'Typ';
+
+  @override
+  String get financeAllTypes => 'Wszystkie typy';
+
+  @override
+  String get financeCostCenter => 'Centrum kosztów';
+
+  @override
+  String get financeAllCostCenters => 'Wszystkie centra kosztów';
+
+  @override
+  String get financeTypePrintCharge => 'Opłata za wydruk';
+
+  @override
+  String get financeTypeDeposit => 'Wpłata';
+
+  @override
+  String get financeTypeWithdraw => 'Wypłata';
+
+  @override
+  String get financeTypeAdjustment => 'Korekta';
+
+  @override
+  String get financeNoTransactions => 'Brak transakcji.';
+
+  @override
+  String get financeNoTransactionsForFilter =>
+      'Żadna transakcja nie pasuje do wybranych filtrów.';
+
+  @override
+  String financeBalanceAfter(String amount) {
+    return 'Saldo po: $amount';
+  }
+
+  @override
+  String get financePartialAborted => 'Przerwany';
+
+  @override
+  String get financePartialFailed => 'Nieudany';
+
+  @override
+  String get financePartialCancelled => 'Anulowany';
+
+  @override
+  String get financeLoadMore => 'Wczytaj więcej';
+
+  @override
+  String financeShowing(int shown, int total) {
+    return '$shown z $total';
+  }
+
+  @override
+  String get financeLoadFailed => 'Nie udało się wczytać finansów.';
+
+  @override
+  String get financeAddCharge => 'Dodaj obciążenie';
+
+  @override
+  String get financeButtonNewCenter => 'Nowe centrum';
+
+  @override
+  String get financeButtonWallet => 'Portfel';
+
+  @override
+  String get financeButtonManualPrint => 'Ręczny wydruk';
+
+  @override
+  String get financeAddManualPrint => 'Dodaj ręczny wydruk';
+
+  @override
+  String get financeAddMember => 'Dodaj członka';
+
+  @override
+  String get financeAdjustWallet => 'Koryguj portfel';
+
+  @override
+  String get financeAdminView => 'Widok administratora';
+
+  @override
+  String get financeAmount => 'Kwota';
+
+  @override
+  String get financeAmountInvalid => 'Kwota musi być poprawną liczbą';
+
+  @override
+  String get financeAmountPositive => 'Kwota musi być większa od zera';
+
+  @override
+  String get financeApplyAdjustment => 'Zastosuj korektę';
+
+  @override
+  String get financeBudgetType => 'Rodzaj budżetu';
+
+  @override
+  String get financeCanPrint => 'Może drukować';
+
+  @override
+  String financeConfirmDeleteCostCenter(String name) {
+    return 'Usunąć centrum kosztów „$name”?';
+  }
+
+  @override
+  String get financeCostCenterCreated => 'Utworzono centrum kosztów';
+
+  @override
+  String get financeCostCenterDeleted => 'Usunięto centrum kosztów';
+
+  @override
+  String get financeCostCenterName => 'Nazwa';
+
+  @override
+  String get financeCostCenterNameRequired =>
+      'Nazwa centrum kosztów jest wymagana';
+
+  @override
+  String get financeCostCenterRequired => 'Wybierz centrum kosztów';
+
+  @override
+  String get financeCostCenters => 'Centra kosztów';
+
+  @override
+  String get financeCostCenterUpdated => 'Zaktualizowano centrum kosztów';
+
+  @override
+  String get financeCreate => 'Utwórz';
+
+  @override
+  String get financeCreateCostCenter => 'Utwórz centrum kosztów';
+
+  @override
+  String get financeDelete => 'Usuń';
+
+  @override
+  String get financeDeleteBlockedReservations =>
+      'Tego centrum kosztów nie można usunąć, dopóki zadania w kolejce zajmują część jego budżetu.';
+
+  @override
+  String get financeDeleteBlockedTransactions =>
+      'Tego centrum kosztów nie można usunąć, dopóki odwołują się do niego transakcje.';
+
+  @override
+  String get financeDeleteCostCenter => 'Usuń centrum kosztów';
+
+  @override
+  String get financeDeleteTransaction => 'Usuń transakcję';
+
+  @override
+  String get financeDeleteTransactionConfirm =>
+      'Usunąć tę transakcję? Salda zostaną przeliczone automatycznie.';
+
+  @override
+  String get financeRebuildLedger => 'Przebuduj księgę sald portfela';
+
+  @override
+  String get financeRebuildLedgerConfirm =>
+      'To przebuduje bieżące salda w księdze portfela, żeby naprawić wartości historyczne. Uruchom to tylko wtedy, gdy wiesz, co robisz.';
+
+  @override
+  String get financeRebuildLedgerRun => 'Uruchom';
+
+  @override
+  String get financeLedgerRebuilt => 'Księga sald portfela przebudowana';
+
+  @override
+  String get financeDepositDone => 'Wpłata zaksięgowana';
+
+  @override
+  String get financeDescription => 'Opis (opcjonalnie)';
+
+  @override
+  String get financeEdit => 'Edytuj';
+
+  @override
+  String get financeEditCostCenter => 'Edytuj centrum kosztów';
+
+  @override
+  String get financeEditTransaction => 'Edytuj transakcję';
+
+  @override
+  String get financeManageMembers => 'Zarządzaj członkami centrum kosztów';
+
+  @override
+  String get financeManualPrintDone =>
+      'Dodano ręczne obciążenie za wydruk, księga przeliczona';
+
+  @override
+  String get financeMemberCanPrint => 'Członek może drukować';
+
+  @override
+  String get financeMemberCanPrintHint =>
+      'Bez tego członek widzi centrum kosztów, ale nie może na nie księgować wydruków.';
+
+  @override
+  String get financeMemberRemoved => 'Usunięto członka';
+
+  @override
+  String get financeMembers => 'Członkowie';
+
+  @override
+  String get financeMemberSaved => 'Zapisano członka';
+
+  @override
+  String get financeNoCostCenter => 'Brak centrum kosztów';
+
+  @override
+  String get financeNoEligibleUsers => 'Brak użytkowników do dodania';
+
+  @override
+  String get financeNoMembers => 'Brak przypisanych członków.';
+
+  @override
+  String get financePersonalView => 'Widok osobisty';
+
+  @override
+  String get financePrivateBudgetOnly =>
+      'Osobiste centrum kosztów zachowuje nazwę; zmienić można tylko jego budżet. Ustaw 0, żeby zablokować drukowanie.';
+
+  @override
+  String get financeRemoveMember => 'Usuń członka';
+
+  @override
+  String get financeSave => 'Zapisz';
+
+  @override
+  String get financeShared => 'Wspólne';
+
+  @override
+  String get financeTransactionDeleted => 'Usunięto transakcję';
+
+  @override
+  String get financeTransactionEdited =>
+      'Zaktualizowano transakcję, księga przeliczona';
+
+  @override
+  String get financeTransactions => 'Transakcje';
+
+  @override
+  String get financeUser => 'Użytkownik';
+
+  @override
+  String get financeUserRequired => 'Wybierz użytkownika';
+
+  @override
+  String financeUserWithId(int id) {
+    return 'Użytkownik nr $id';
+  }
+
+  @override
+  String get financeWithdrawDone => 'Wypłata zaksięgowana';
+
+  @override
+  String get queueBillingCostCentersRefused =>
+      'Na tym serwerze jest włączony billing, więc każde zadanie wymaga centrum kosztów, ale to konto nie może w aplikacji wyświetlić swoich centrów kosztów. Dodaj, edytuj i uruchom to zadanie w Bambuddy w przeglądarce.';
+
+  @override
+  String get queueBillingNoCostCenter =>
+      'Żadne aktywne centrum kosztów nie jest dostępne do drukowania. Poproś administratora o przyznanie dostępu do druku.';
+
+  @override
+  String get queueCostCenterTitle => 'Centrum kosztów';
+
+  @override
+  String queueCostCenterPersonal(String name) {
+    return '$name (osobiste)';
+  }
+
+  @override
+  String get queueCostCenterUnlimited => 'Bez limitu – nie ustawiono budżetu.';
+
+  @override
+  String get queueCostCenterLoadFailed =>
+      'Nie udało się wczytać centrów kosztów.';
+
+  @override
+  String queueEstimatedCost(String amount) {
+    return 'Szacowany koszt: $amount';
+  }
+
+  @override
+  String get queueCostNotAvailable => 'brak danych';
+
+  @override
+  String queueEstimatedCostForCopies(String amount) {
+    return 'razem: $amount';
+  }
+
+  @override
+  String get queueInsufficientBudget =>
+      'Budżet tego centrum kosztów został przekroczony.';
+
+  @override
+  String get queueBillingEstimateRequired =>
+      'Serwer nie potrafił policzyć kosztu tego zadania, bo plik nie podaje zużycia filamentu, a centrum kosztów tego wymaga.';
+
+  @override
+  String get queueBillingCostCenterInactive =>
+      'To centrum kosztów nie jest już aktywne. Wybierz inne.';
+
+  @override
+  String get queueBillingCostCenterNoAccess =>
+      'Nie masz uprawnień do drukowania z tego centrum kosztów. Wybierz inne.';
+
+  @override
+  String get queueBillingBudgetExceeded =>
+      'To zadanie kosztuje więcej, niż zostało w budżecie tego centrum kosztów.';
 
   @override
   String get labelPrinterTitle => 'Drukarka etykiet';

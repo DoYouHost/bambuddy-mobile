@@ -73,9 +73,10 @@ class FilamentDot extends StatelessWidget {
   }
 }
 
-/// The list row's two lines under the title, each held to one line: where and
-/// when it printed, then what it printed with. A long material list is the
-/// one part that gives way; the weight after it stays.
+/// The list row under the title: where and when it printed, then what it printed
+/// with. The first line breaks only between its facts, never inside one, and
+/// takes a second line before it gives anything up. A long material list is the
+/// one part of the second that gives way; the weight after it stays.
 class ArchiveRowMeta extends ConsumerWidget {
   const ArchiveRowMeta({super.key, required this.archive});
 
@@ -91,10 +92,6 @@ class ArchiveRowMeta extends ConsumerWidget {
     );
     final seconds = archive.shownTimeSeconds;
     final where = <String>[
-      // Only a run that printed a chosen plate of a multi-plate file carries
-      // one, which is exactly when the name alone cannot tell two rows apart.
-      // 0 is what the slicer's own API means by "every plate", not a plate.
-      if ((archive.plateId ?? 0) > 0) l10n.archivePlate(archive.plateId!),
       ?printer,
       if (seconds != null && seconds > 0) formatSeconds(l10n, seconds),
       if (archive.createdAt != null)
@@ -115,8 +112,9 @@ class ArchiveRowMeta extends ConsumerWidget {
       children: [
         if (where.isNotEmpty)
           Text(
-            where.join(' · '),
-            maxLines: 1,
+            // A no-break space inside each fact, so a wrap lands on a separator.
+            where.map((f) => f.replaceAll(' ', '\u00A0')).join(' · '),
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: style,
           ),

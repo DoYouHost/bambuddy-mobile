@@ -7,6 +7,7 @@ import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/print_outcome.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -58,7 +59,7 @@ void main() {
       await _pump(tester, const ArchiveRowMeta(archive: _part));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Workshop X2D'), findsOneWidget);
+      expect(find.textContaining('Workshop\u00A0X2D'), findsOneWidget);
       expect(find.textContaining(' · 21'), findsOneWidget);
       expect(find.text('PETG'), findsOneWidget);
       expect(find.text(' · 6.7 g'), findsOneWidget);
@@ -95,6 +96,39 @@ void main() {
 
       expect(find.textContaining('g'), findsNothing);
       expect(find.text(''), findsNothing);
+    });
+
+    testWidgets('a narrow row wraps between the facts and loses none', (
+      tester,
+    ) async {
+      final archive = _part.copyWith(
+        printTimeSeconds: 5700,
+        actualTimeSeconds: 5700,
+        createdAt: DateTime(2026, 10, 13),
+      );
+      final facts = find.byWidgetPredicate(
+        (w) => w is Text && (w.data ?? '').contains('Workshop'),
+      );
+      Future<RenderParagraph> factsAt(double width) async {
+        await _pump(
+          tester,
+          SizedBox(
+            width: width,
+            child: ArchiveRowMeta(archive: archive),
+          ),
+        );
+        await tester.pumpAndSettle();
+        return tester.renderObject<RenderParagraph>(facts);
+      }
+
+      final oneLine = (await factsAt(1000)).size.height;
+      final narrow = await factsAt(330);
+
+      expect(narrow.size.height, greaterThan(oneLine * 1.5));
+      expect(narrow.didExceedMaxLines, isFalse);
+      final text = tester.widget<Text>(facts).data!;
+      expect(text, contains('Workshop\u00A0X2D'));
+      expect(text, contains('1h\u00A035min'));
     });
 
     testWidgets('a long material list does not wrap the row', (tester) async {

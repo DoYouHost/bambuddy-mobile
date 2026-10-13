@@ -4,6 +4,7 @@ import 'dart:io' show WebSocketException;
 
 import 'package:bambuddy_mobile/core/api/ws_backoff.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
+import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/ws_probe.dart';
 import 'package:fake_async/fake_async.dart';
@@ -94,6 +95,32 @@ void main() {
       async.flushMicrotasks();
 
       expect(heard, 2);
+
+      client.dispose();
+      async.flushMicrotasks();
+    });
+  });
+
+  test('both billing frames reach the stream of billing alerts', () {
+    fakeAsync((async) {
+      final (:client, :conns) = build();
+      final heard = <BillingAlertKind>[];
+      client.billingAlerts.listen((a) => heard.add(a.kind));
+
+      client.start();
+      async.flushMicrotasks();
+      conns[0].connectOk();
+      async.flushMicrotasks();
+
+      conns[0].push('{"type":"kill_switch_triggered","printer_id":2}');
+      conns[0].push('{"type":"billing_charge_failed","printer_id":2}');
+      conns[0].push('{"type":"billing_charge_failed"}');
+      async.flushMicrotasks();
+
+      expect(heard, [
+        BillingAlertKind.killSwitch,
+        BillingAlertKind.chargeFailed,
+      ]);
 
       client.dispose();
       async.flushMicrotasks();

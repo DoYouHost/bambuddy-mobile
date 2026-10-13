@@ -3720,6 +3720,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String fmQueueCostCenterTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Which cost center should these $count jobs be charged to?',
+      one: 'Which cost center should this job be charged to?',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get fmQueueTargetAuto => 'Model from the file';
 
   @override
@@ -6020,6 +6031,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queueEditSpecificPrinter => 'Specific Printer';
 
   @override
+  String get queueEditPrinter => 'Printer';
+
+  @override
   String queueEditAnyModel(String model) {
     return 'Any $model';
   }
@@ -7531,9 +7545,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get queueEditCopiesLabel => 'How many times to print it';
-
-  @override
   String get queueEditCopies => 'Copies';
 
   @override
@@ -7672,6 +7683,32 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notifEvtOutcomeDesc =>
       'When a print that asks for its outcome completes — answer Good or Reject from the notification';
+
+  @override
+  String get notifEvtBilling => 'Billing problems';
+
+  @override
+  String get notifEvtBillingDesc =>
+      'When the server stops an unauthorized print or cannot charge a finished one';
+
+  @override
+  String get notifBillingKillTitle => 'Unauthorized print stopped';
+
+  @override
+  String notifBillingKillBody(String printer, String filename) {
+    return 'The billing kill switch stopped an unauthorized print on $printer: $filename';
+  }
+
+  @override
+  String get notifBillingChargeTitle => 'Billing failed';
+
+  @override
+  String notifBillingChargeBody(String printer, String filename) {
+    return 'Billing failed for $filename on $printer. The budget reservation was kept; check the server logs.';
+  }
+
+  @override
+  String get notifBillingUnknownFile => 'unknown file';
 
   @override
   String outcomeNotifTitle(String name) {
@@ -8077,7 +8114,347 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueBillingUseWeb =>
-      'Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.';
+      'Billing is on for this server, so every print job needs a cost center, which this action cannot set. Open the job in the app to choose one, or use Bambuddy in a browser.';
+
+  @override
+  String get financeMenu => 'Finance';
+
+  @override
+  String get financeTitle => 'Finance';
+
+  @override
+  String get financeBalance => 'Personal account balance';
+
+  @override
+  String get financeMyCostCenters => 'My cost centers';
+
+  @override
+  String get financeNoCostCenters => 'No cost centers found.';
+
+  @override
+  String financeAccountBalance(String amount) {
+    return 'Account balance: $amount';
+  }
+
+  @override
+  String get financeUnlimited => 'Unlimited';
+
+  @override
+  String get financeBudgetMonthly => 'Monthly budget';
+
+  @override
+  String get financeBudgetTotal => 'Total budget';
+
+  @override
+  String get financeBudgetNone => 'No budget';
+
+  @override
+  String get financeRecentTransactions => 'Recent transactions';
+
+  @override
+  String get financeType => 'Type';
+
+  @override
+  String get financeAllTypes => 'All types';
+
+  @override
+  String get financeCostCenter => 'Cost center';
+
+  @override
+  String get financeAllCostCenters => 'All cost centers';
+
+  @override
+  String get financeTypePrintCharge => 'Print charge';
+
+  @override
+  String get financeTypeDeposit => 'Deposit';
+
+  @override
+  String get financeTypeWithdraw => 'Withdrawal';
+
+  @override
+  String get financeTypeAdjustment => 'Adjustment';
+
+  @override
+  String get financeNoTransactions => 'No transactions available.';
+
+  @override
+  String get financeNoTransactionsForFilter =>
+      'No transactions match the selected filters.';
+
+  @override
+  String financeBalanceAfter(String amount) {
+    return 'Balance after: $amount';
+  }
+
+  @override
+  String get financePartialAborted => 'Aborted';
+
+  @override
+  String get financePartialFailed => 'Failed';
+
+  @override
+  String get financePartialCancelled => 'Cancelled';
+
+  @override
+  String get financeLoadMore => 'Load more';
+
+  @override
+  String financeShowing(int shown, int total) {
+    return '$shown of $total';
+  }
+
+  @override
+  String get financeLoadFailed => 'Could not load your finances.';
+
+  @override
+  String get financeAddCharge => 'Add charge';
+
+  @override
+  String get financeButtonNewCenter => 'New center';
+
+  @override
+  String get financeButtonWallet => 'Wallet';
+
+  @override
+  String get financeButtonManualPrint => 'Manual print';
+
+  @override
+  String get financeAddManualPrint => 'Add manual print';
+
+  @override
+  String get financeAddMember => 'Add member';
+
+  @override
+  String get financeAdjustWallet => 'Adjust wallet';
+
+  @override
+  String get financeAdminView => 'Admin view';
+
+  @override
+  String get financeAmount => 'Amount';
+
+  @override
+  String get financeAmountInvalid => 'Amount must be a valid number';
+
+  @override
+  String get financeAmountPositive => 'Amount must be greater than zero';
+
+  @override
+  String get financeApplyAdjustment => 'Apply adjustment';
+
+  @override
+  String get financeBudgetType => 'Budget type';
+
+  @override
+  String get financeCanPrint => 'Can print';
+
+  @override
+  String financeConfirmDeleteCostCenter(String name) {
+    return 'Delete cost center “$name”?';
+  }
+
+  @override
+  String get financeCostCenterCreated => 'Cost center created';
+
+  @override
+  String get financeCostCenterDeleted => 'Cost center deleted';
+
+  @override
+  String get financeCostCenterName => 'Name';
+
+  @override
+  String get financeCostCenterNameRequired => 'Cost center name is required';
+
+  @override
+  String get financeCostCenterRequired => 'Please select a cost center';
+
+  @override
+  String get financeCostCenters => 'Cost centers';
+
+  @override
+  String get financeCostCenterUpdated => 'Cost center updated';
+
+  @override
+  String get financeCreate => 'Create';
+
+  @override
+  String get financeCreateCostCenter => 'Create cost center';
+
+  @override
+  String get financeDelete => 'Delete';
+
+  @override
+  String get financeDeleteBlockedReservations =>
+      'This cost center cannot be deleted while queued jobs still hold part of its budget.';
+
+  @override
+  String get financeDeleteBlockedTransactions =>
+      'This cost center cannot be deleted while transactions refer to it.';
+
+  @override
+  String get financeDeleteCostCenter => 'Delete cost center';
+
+  @override
+  String get financeDeleteTransaction => 'Delete transaction';
+
+  @override
+  String get financeDeleteTransactionConfirm =>
+      'Delete this transaction? Balances will be recalculated automatically.';
+
+  @override
+  String get financeRebuildLedger => 'Rebuild wallet ledger';
+
+  @override
+  String get financeRebuildLedgerConfirm =>
+      'This rebuilds the running balances of the wallet ledger to repair historical values. Run it only if you know what you are doing.';
+
+  @override
+  String get financeRebuildLedgerRun => 'Run';
+
+  @override
+  String get financeLedgerRebuilt => 'Wallet ledger rebuilt';
+
+  @override
+  String get financeDepositDone => 'Deposit successful';
+
+  @override
+  String get financeDescription => 'Description (optional)';
+
+  @override
+  String get financeEdit => 'Edit';
+
+  @override
+  String get financeEditCostCenter => 'Edit cost center';
+
+  @override
+  String get financeEditTransaction => 'Edit transaction';
+
+  @override
+  String get financeManageMembers => 'Manage cost center members';
+
+  @override
+  String get financeManualPrintDone =>
+      'Manual print charge added and ledger recalculated';
+
+  @override
+  String get financeMemberCanPrint => 'Member can print';
+
+  @override
+  String get financeMemberCanPrintHint =>
+      'Without it the member sees the cost center but cannot book prints to it.';
+
+  @override
+  String get financeMemberRemoved => 'Member removed';
+
+  @override
+  String get financeMembers => 'Members';
+
+  @override
+  String get financeMemberSaved => 'Member saved';
+
+  @override
+  String get financeNoCostCenter => 'No cost center';
+
+  @override
+  String get financeNoEligibleUsers => 'No eligible users available';
+
+  @override
+  String get financeNoMembers => 'No members assigned.';
+
+  @override
+  String get financePersonalView => 'Personal view';
+
+  @override
+  String get financePrivateBudgetOnly =>
+      'A personal cost center keeps its name; only its budget can change. Set it to 0 to stop it printing.';
+
+  @override
+  String get financeRemoveMember => 'Remove member';
+
+  @override
+  String get financeSave => 'Save';
+
+  @override
+  String get financeShared => 'Shared';
+
+  @override
+  String get financeTransactionDeleted => 'Transaction deleted';
+
+  @override
+  String get financeTransactionEdited =>
+      'Transaction updated and ledger recalculated';
+
+  @override
+  String get financeTransactions => 'Transactions';
+
+  @override
+  String get financeUser => 'User';
+
+  @override
+  String get financeUserRequired => 'Please select a user';
+
+  @override
+  String financeUserWithId(int id) {
+    return 'User #$id';
+  }
+
+  @override
+  String get financeWithdrawDone => 'Withdrawal successful';
+
+  @override
+  String get queueBillingCostCentersRefused =>
+      'Billing is on for this server, so every print job needs a cost center, but this account cannot list its cost centers in the app. Queue, edit and start this job in Bambuddy in a browser.';
+
+  @override
+  String get queueBillingNoCostCenter =>
+      'No active cost center is available for printing. Ask an administrator to grant you print access.';
+
+  @override
+  String get queueCostCenterTitle => 'Cost center';
+
+  @override
+  String queueCostCenterPersonal(String name) {
+    return '$name (personal)';
+  }
+
+  @override
+  String get queueCostCenterUnlimited => 'Unlimited – no budget limit is set.';
+
+  @override
+  String get queueCostCenterLoadFailed => 'Couldn\'t load your cost centers.';
+
+  @override
+  String queueEstimatedCost(String amount) {
+    return 'Estimated cost: $amount';
+  }
+
+  @override
+  String get queueCostNotAvailable => 'N/A';
+
+  @override
+  String queueEstimatedCostForCopies(String amount) {
+    return 'total: $amount';
+  }
+
+  @override
+  String get queueInsufficientBudget => 'Budget exceeded for this cost center.';
+
+  @override
+  String get queueBillingEstimateRequired =>
+      'The server could not work out what this job costs because the file lists no filament usage, and a cost center needs that.';
+
+  @override
+  String get queueBillingCostCenterInactive =>
+      'That cost center is no longer active. Pick another one.';
+
+  @override
+  String get queueBillingCostCenterNoAccess =>
+      'You are not allowed to print with that cost center. Pick another one.';
+
+  @override
+  String get queueBillingBudgetExceeded =>
+      'This job costs more than the budget left in that cost center.';
 
   @override
   String get labelPrinterTitle => 'Label printer';

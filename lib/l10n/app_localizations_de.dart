@@ -3759,6 +3759,18 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String fmQueueCostCenterTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Auf welche Kostenstelle sollen diese $count Aufträge gebucht werden?',
+      one: 'Auf welche Kostenstelle soll dieser Auftrag gebucht werden?',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get fmQueueTargetAuto => 'Modell aus der Datei';
 
   @override
@@ -6081,6 +6093,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get queueEditSpecificPrinter => 'Bestimmter Drucker';
 
   @override
+  String get queueEditPrinter => 'Drucker';
+
+  @override
   String queueEditAnyModel(String model) {
     return 'Beliebiger $model';
   }
@@ -7604,9 +7619,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get queueEditCopiesLabel => 'Wie oft drucken';
-
-  @override
   String get queueEditCopies => 'Kopien';
 
   @override
@@ -7747,6 +7759,32 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get notifEvtOutcomeDesc =>
       'Wenn ein Druck mit Ergebnisabfrage fertig ist — „Gut“ oder „Ausschuss“ direkt aus der Benachrichtigung';
+
+  @override
+  String get notifEvtBilling => 'Abrechnungsprobleme';
+
+  @override
+  String get notifEvtBillingDesc =>
+      'Wenn der Server einen nicht autorisierten Druck stoppt oder einen beendeten Druck nicht abrechnen kann';
+
+  @override
+  String get notifBillingKillTitle => 'Nicht autorisierter Druck gestoppt';
+
+  @override
+  String notifBillingKillBody(String printer, String filename) {
+    return 'Der Abrechnungs-Notschalter hat einen nicht autorisierten Druck auf $printer gestoppt: $filename';
+  }
+
+  @override
+  String get notifBillingChargeTitle => 'Abrechnung fehlgeschlagen';
+
+  @override
+  String notifBillingChargeBody(String printer, String filename) {
+    return 'Die Abrechnung von $filename auf $printer ist fehlgeschlagen. Die Budgetreservierung wurde beibehalten – bitte die Server-Logs prüfen.';
+  }
+
+  @override
+  String get notifBillingUnknownFile => 'unbekannte Datei';
 
   @override
   String outcomeNotifTitle(String name) {
@@ -8156,7 +8194,352 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueBillingUseWeb =>
-      'Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, die die App noch nicht setzen kann. Reihe diesen Auftrag in Bambuddy im Browser ein, bearbeite und starte ihn dort.';
+      'Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, die diese Aktion nicht setzen kann. Öffne den Auftrag in der App, um eine auszuwählen, oder nutze Bambuddy im Browser.';
+
+  @override
+  String get financeMenu => 'Finanzen';
+
+  @override
+  String get financeTitle => 'Finanzen';
+
+  @override
+  String get financeBalance => 'Persönlicher Kontostand';
+
+  @override
+  String get financeMyCostCenters => 'Meine Kostenstellen';
+
+  @override
+  String get financeNoCostCenters => 'Keine Kostenstellen gefunden.';
+
+  @override
+  String financeAccountBalance(String amount) {
+    return 'Kontostand: $amount';
+  }
+
+  @override
+  String get financeUnlimited => 'Unbegrenzt';
+
+  @override
+  String get financeBudgetMonthly => 'Monatsbudget';
+
+  @override
+  String get financeBudgetTotal => 'Gesamtbudget';
+
+  @override
+  String get financeBudgetNone => 'Kein Budget';
+
+  @override
+  String get financeRecentTransactions => 'Letzte Transaktionen';
+
+  @override
+  String get financeType => 'Typ';
+
+  @override
+  String get financeAllTypes => 'Alle Typen';
+
+  @override
+  String get financeCostCenter => 'Kostenstelle';
+
+  @override
+  String get financeAllCostCenters => 'Alle Kostenstellen';
+
+  @override
+  String get financeTypePrintCharge => 'Druckkosten';
+
+  @override
+  String get financeTypeDeposit => 'Einzahlung';
+
+  @override
+  String get financeTypeWithdraw => 'Auszahlung';
+
+  @override
+  String get financeTypeAdjustment => 'Korrektur';
+
+  @override
+  String get financeNoTransactions => 'Keine Transaktionen vorhanden.';
+
+  @override
+  String get financeNoTransactionsForFilter =>
+      'Keine Transaktion entspricht den gewählten Filtern.';
+
+  @override
+  String financeBalanceAfter(String amount) {
+    return 'Saldo danach: $amount';
+  }
+
+  @override
+  String get financePartialAborted => 'Abgebrochen';
+
+  @override
+  String get financePartialFailed => 'Fehlgeschlagen';
+
+  @override
+  String get financePartialCancelled => 'Storniert';
+
+  @override
+  String get financeLoadMore => 'Mehr laden';
+
+  @override
+  String financeShowing(int shown, int total) {
+    return '$shown von $total';
+  }
+
+  @override
+  String get financeLoadFailed =>
+      'Die Finanzdaten konnten nicht geladen werden.';
+
+  @override
+  String get financeAddCharge => 'Belastung hinzufügen';
+
+  @override
+  String get financeButtonNewCenter => 'Neue Kostenstelle';
+
+  @override
+  String get financeButtonWallet => 'Guthaben';
+
+  @override
+  String get financeButtonManualPrint => 'Manueller Druck';
+
+  @override
+  String get financeAddManualPrint => 'Manuellen Druck hinzufügen';
+
+  @override
+  String get financeAddMember => 'Mitglied hinzufügen';
+
+  @override
+  String get financeAdjustWallet => 'Guthaben anpassen';
+
+  @override
+  String get financeAdminView => 'Admin-Ansicht';
+
+  @override
+  String get financeAmount => 'Betrag';
+
+  @override
+  String get financeAmountInvalid => 'Der Betrag muss eine gültige Zahl sein';
+
+  @override
+  String get financeAmountPositive => 'Der Betrag muss größer als null sein';
+
+  @override
+  String get financeApplyAdjustment => 'Anpassung anwenden';
+
+  @override
+  String get financeBudgetType => 'Budgetart';
+
+  @override
+  String get financeCanPrint => 'Darf drucken';
+
+  @override
+  String financeConfirmDeleteCostCenter(String name) {
+    return 'Kostenstelle „$name“ löschen?';
+  }
+
+  @override
+  String get financeCostCenterCreated => 'Kostenstelle erstellt';
+
+  @override
+  String get financeCostCenterDeleted => 'Kostenstelle gelöscht';
+
+  @override
+  String get financeCostCenterName => 'Name';
+
+  @override
+  String get financeCostCenterNameRequired =>
+      'Der Name der Kostenstelle ist erforderlich';
+
+  @override
+  String get financeCostCenterRequired => 'Bitte eine Kostenstelle auswählen';
+
+  @override
+  String get financeCostCenters => 'Kostenstellen';
+
+  @override
+  String get financeCostCenterUpdated => 'Kostenstelle aktualisiert';
+
+  @override
+  String get financeCreate => 'Erstellen';
+
+  @override
+  String get financeCreateCostCenter => 'Kostenstelle erstellen';
+
+  @override
+  String get financeDelete => 'Löschen';
+
+  @override
+  String get financeDeleteBlockedReservations =>
+      'Diese Kostenstelle kann nicht gelöscht werden, solange Aufträge in der Warteschlange einen Teil ihres Budgets reservieren.';
+
+  @override
+  String get financeDeleteBlockedTransactions =>
+      'Diese Kostenstelle kann nicht gelöscht werden, solange Transaktionen darauf verweisen.';
+
+  @override
+  String get financeDeleteCostCenter => 'Kostenstelle löschen';
+
+  @override
+  String get financeDeleteTransaction => 'Transaktion löschen';
+
+  @override
+  String get financeDeleteTransactionConfirm =>
+      'Diese Transaktion löschen? Die Salden werden automatisch neu berechnet.';
+
+  @override
+  String get financeRebuildLedger => 'Wallet-Kontobuch neu aufbauen';
+
+  @override
+  String get financeRebuildLedgerConfirm =>
+      'Dadurch werden die laufenden Salden im Wallet-Kontobuch neu berechnet, um historische Werte zu reparieren. Führe das nur aus, wenn du weißt, was du tust.';
+
+  @override
+  String get financeRebuildLedgerRun => 'Ausführen';
+
+  @override
+  String get financeLedgerRebuilt => 'Wallet-Kontobuch neu aufgebaut';
+
+  @override
+  String get financeDepositDone => 'Einzahlung erfolgreich';
+
+  @override
+  String get financeDescription => 'Beschreibung (optional)';
+
+  @override
+  String get financeEdit => 'Bearbeiten';
+
+  @override
+  String get financeEditCostCenter => 'Kostenstelle bearbeiten';
+
+  @override
+  String get financeEditTransaction => 'Transaktion bearbeiten';
+
+  @override
+  String get financeManageMembers => 'Mitglieder der Kostenstelle verwalten';
+
+  @override
+  String get financeManualPrintDone =>
+      'Manuelle Druckbelastung hinzugefügt und Buch neu berechnet';
+
+  @override
+  String get financeMemberCanPrint => 'Mitglied darf drucken';
+
+  @override
+  String get financeMemberCanPrintHint =>
+      'Ohne das sieht das Mitglied die Kostenstelle, kann aber keine Drucke darauf buchen.';
+
+  @override
+  String get financeMemberRemoved => 'Mitglied entfernt';
+
+  @override
+  String get financeMembers => 'Mitglieder';
+
+  @override
+  String get financeMemberSaved => 'Mitglied gespeichert';
+
+  @override
+  String get financeNoCostCenter => 'Keine Kostenstelle';
+
+  @override
+  String get financeNoEligibleUsers => 'Keine geeigneten Benutzer verfügbar';
+
+  @override
+  String get financeNoMembers => 'Keine Mitglieder zugewiesen.';
+
+  @override
+  String get financePersonalView => 'Persönliche Ansicht';
+
+  @override
+  String get financePrivateBudgetOnly =>
+      'Eine persönliche Kostenstelle behält ihren Namen; nur das Budget lässt sich ändern. Mit 0 wird das Drucken gesperrt.';
+
+  @override
+  String get financeRemoveMember => 'Mitglied entfernen';
+
+  @override
+  String get financeSave => 'Speichern';
+
+  @override
+  String get financeShared => 'Geteilt';
+
+  @override
+  String get financeTransactionDeleted => 'Transaktion gelöscht';
+
+  @override
+  String get financeTransactionEdited =>
+      'Transaktion aktualisiert und Buch neu berechnet';
+
+  @override
+  String get financeTransactions => 'Transaktionen';
+
+  @override
+  String get financeUser => 'Benutzer';
+
+  @override
+  String get financeUserRequired => 'Bitte einen Benutzer auswählen';
+
+  @override
+  String financeUserWithId(int id) {
+    return 'Benutzer Nr. $id';
+  }
+
+  @override
+  String get financeWithdrawDone => 'Auszahlung erfolgreich';
+
+  @override
+  String get queueBillingCostCentersRefused =>
+      'Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, doch dieses Konto kann seine Kostenstellen in der App nicht abrufen. Reihe diesen Auftrag in Bambuddy im Browser ein, bearbeite und starte ihn dort.';
+
+  @override
+  String get queueBillingNoCostCenter =>
+      'Keine aktive Kostenstelle steht zum Drucken zur Verfügung. Bitte einen Administrator, dir Druckzugriff zu geben.';
+
+  @override
+  String get queueCostCenterTitle => 'Kostenstelle';
+
+  @override
+  String queueCostCenterPersonal(String name) {
+    return '$name (persönlich)';
+  }
+
+  @override
+  String get queueCostCenterUnlimited =>
+      'Unbegrenzt – es ist kein Budget festgelegt.';
+
+  @override
+  String get queueCostCenterLoadFailed =>
+      'Die Kostenstellen konnten nicht geladen werden.';
+
+  @override
+  String queueEstimatedCost(String amount) {
+    return 'Geschätzte Kosten: $amount';
+  }
+
+  @override
+  String get queueCostNotAvailable => 'k. A.';
+
+  @override
+  String queueEstimatedCostForCopies(String amount) {
+    return 'gesamt: $amount';
+  }
+
+  @override
+  String get queueInsufficientBudget =>
+      'Das Budget dieser Kostenstelle ist überschritten.';
+
+  @override
+  String get queueBillingEstimateRequired =>
+      'Der Server konnte die Kosten dieses Auftrags nicht berechnen, weil die Datei keinen Filamentverbrauch angibt – eine Kostenstelle braucht ihn.';
+
+  @override
+  String get queueBillingCostCenterInactive =>
+      'Diese Kostenstelle ist nicht mehr aktiv. Wähle eine andere.';
+
+  @override
+  String get queueBillingCostCenterNoAccess =>
+      'Du darfst mit dieser Kostenstelle nicht drucken. Wähle eine andere.';
+
+  @override
+  String get queueBillingBudgetExceeded =>
+      'Dieser Auftrag kostet mehr als das verbleibende Budget dieser Kostenstelle.';
 
   @override
   String get labelPrinterTitle => 'Etikettendrucker';

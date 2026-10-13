@@ -65,11 +65,27 @@ final _rules = <RefusalRule>[
     'can only start pending items',
   ])
     ([phrase], (l10n) => l10n.queueRemovalStatusChanged),
-  // Billing on: every create, edit and start needs a cost center
-  // (`finance_budget.py::validate_print_budget`), which the app cannot pick.
+  // Billing on: every create, edit and start is checked by
+  // `finance_budget.py::validate_print_budget`. The form and the bulk add pick a
+  // cost center, so what still reaches here is a start of a job queued without
+  // one (before billing, or by a dispatch of an order), and a center that
+  // changed under the user.
   (
     ['cost center is required when billing is enabled'],
     (l10n) => l10n.queueBillingUseWeb,
+  ),
+  (
+    ['estimated cost is required for cost center prints'],
+    (l10n) => l10n.queueBillingEstimateRequired,
+  ),
+  (['cost center is inactive'], (l10n) => l10n.queueBillingCostCenterInactive),
+  (
+    ['cannot print with this', 'cost center'],
+    (l10n) => l10n.queueBillingCostCenterNoAccess,
+  ),
+  (
+    ['exceeds available cost center budget'],
+    (l10n) => l10n.queueBillingBudgetExceeded,
   ),
   // Start, or an edit clearing `manual_start`, by a user held for review
   // (#1620) — reached only where `awaitingReviewProvider` could not tell.

@@ -113,6 +113,17 @@ class CurrentUser {
 /// screen here needs are mirrored, so the two don't have to be kept in step
 /// wholesale.
 abstract final class Permissions {
+  /// The personal view of the billing screens: own balance and ledger. No API key
+  /// can hold it (`core/auth.py::_APIKEY_SCOPE_BY_PERMISSION` lists none).
+  static const costCentersReadOwn = 'cost_centers:read_own';
+
+  /// Every center and every user's ledger.
+  static const costCentersReadAll = 'cost_centers:read_all';
+
+  /// Every write on a center or a ledger row except creating a center.
+  static const costCentersModify = 'cost_centers:modify';
+  static const costCentersCreate = 'cost_centers:create';
+
   /// `backend/app/core/permissions.py::Permission`
   static const usersRead = 'users:read';
 
