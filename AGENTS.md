@@ -180,6 +180,13 @@ do not stay silent because it was not part of the task.
 - [docs/scheduled-workflows.md](docs/scheduled-workflows.md) — why
   `server-drift` and `contract-tests` are dispatched by Dagu on `lxc-dagu`
   instead of a `schedule:` trigger, and where to change their times.
+- [docs/play-compliance.md](docs/play-compliance.md) — every Google requirement
+  that applies (Wear `WO-*`, core app quality, Play policy, target API) and what
+  checks each one. **Go through it before every Play upload** — `ship`,
+  `ship-dev`, `play-internal` — and add a row (and a test where a source file
+  can answer it) for any new permission, service, screen type or store asset.
+  The Wear build was rejected once (WO-V4) for a rule that was on the page all
+  along.
 - [docs/play-store-listing.md](docs/play-store-listing.md),
   [docs/privacy-policy.md](docs/privacy-policy.md), `docs/store-assets/` — what
   Google Play shows.
