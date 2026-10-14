@@ -110,9 +110,135 @@ void main() {
     });
 
     test('queue has pending items', () async {
-      final items = await QueueRepository(dio).fetch();
+      final items = await QueueRepository(dio).fetch(status: 'pending');
       expect(items.length, greaterThanOrEqualTo(2));
-      expect(items.first.statusKind, QueueItemStatusKind.pending);
+    });
+
+    test('the print on the X1 is the printing row of the queue', () async {
+      // The Printers tab and the queue describe one demo, so the job the
+      // simulation runs is the one the queue pins on top.
+      final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        );
+      final queue = QueueRepository(own);
+      final status = await PrintersRepository(own).fetchStatus(1);
+
+      final printing = await queue.fetch(status: 'printing');
+      expect(status!.isPrinting, isTrue);
+      expect(printing.single.printerId, 1);
+      expect(printing.single.displayName, 'Bag dispenser');
+
+      await queue.stop(printing.single.id);
+      expect(
+        await queue.fetch(status: 'printing'),
+        isEmpty,
+        reason: 'stopping it from the queue stops the simulated print',
+      );
+      expect(
+        (await PrintersRepository(own).fetchStatus(1))!.isPrinting,
+        isFalse,
+      );
+    });
+
+    test('the queue filters by status, as the server does', () async {
+      final repo = QueueRepository(dio);
+      final pending = await repo.fetch(status: 'pending');
+      final skipped = await repo.fetch(status: 'skipped');
+
+      expect(pending.map((i) => i.statusKind).toSet(), {
+        QueueItemStatusKind.pending,
+      });
+      expect(skipped, hasLength(2));
+      expect(skipped.map((i) => i.errorMessage).toSet(), {
+        kPreviousFailureGate,
+      });
+    });
+
+    test('a bulk edit changes the pending items and counts the rest', () async {
+      final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        );
+      final repo = QueueRepository(own);
+
+      // 101 and 102 wait; 105 was skipped and is not the route's to change.
+      final result = await repo.bulkUpdate(
+        [101, 102, 105],
+        const QueueBulkChanges(
+          printerId: null,
+          timelapse: true,
+          bedLevelling: CalibrationOption.on,
+        ),
+      );
+
+      expect(result, (updated: 2, skipped: 1));
+      final items = {for (final i in await repo.fetch()) i.id: i};
+      expect(items[101]!.printerId, isNull);
+      expect(items[102]!.timelapse, isTrue);
+      expect(
+        items[101]!.bedLevelling,
+        CalibrationOption.on,
+        reason: 'a boolean is stored as the tri-state the server keeps',
+      );
+      expect(items[105]!.timelapse, isFalse);
+      expect(items[103]!.timelapse, isFalse, reason: 'not named, not touched');
+    });
+
+    test(
+      'a bulk edit with nothing in it is refused, as on the server',
+      () async {
+        final repo = QueueRepository(dio);
+
+        await expectLater(
+          repo.bulkUpdate([101], const QueueBulkChanges()),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.detail,
+              'detail',
+              'No fields to update',
+            ),
+          ),
+        );
+      },
+    );
+
+    test('a failed print holds a printer, and resume releases it', () async {
+      // A demo of its own: resuming moves the skipped jobs back to pending.
+      final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        );
+      final repo = QueueRepository(own);
+      final held = gateBlockedPrinters(
+        await repo.fetch(status: 'skipped'),
+        fallbackName: (id) => '$id',
+      );
+      expect(held.map((p) => (p.name, p.skipped)), [('P1S', 2)]);
+
+      final first = await repo.resumeAfterFailure(held.single.printerId);
+      expect(first, (acknowledged: 1, restored: 2));
+      expect(
+        gateBlockedPrinters(
+          await repo.fetch(status: 'skipped'),
+          fallbackName: (id) => '$id',
+        ),
+        isEmpty,
+      );
+      expect(
+        (await repo.fetch(
+          status: 'pending',
+        )).where((i) => i.printerId == held.single.printerId),
+        hasLength(2),
+      );
+      expect(
+        await repo.resumeAfterFailure(held.single.printerId),
+        (acknowledged: 0, restored: 0),
+        reason: 'a second resume has nothing left to clear',
+      );
     });
 
     test(

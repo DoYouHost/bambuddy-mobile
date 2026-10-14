@@ -813,6 +813,118 @@ class AppLocalizationsEs extends AppLocalizations {
       'Este elemento ya no se encuentra en el estado mostrado. Actualiza la cola e inténtalo de nuevo.';
 
   @override
+  String queueResumeBanner(String printer, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count trabajos omitidos',
+      one: '1 trabajo omitido',
+    );
+    return '$printer: $_temp0 tras una impresión fallida';
+  }
+
+  @override
+  String get queueResumeButton => 'Reanudar';
+
+  @override
+  String get queueResumeConfirmTitle => '¿Reanudar la cola tras un fallo?';
+
+  @override
+  String queueResumeConfirmBody(int count, String printer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count trabajos omitidos vuelven',
+      one: '1 trabajo omitido vuelve',
+    );
+    return '$_temp0 a la cola de $printer. ¿Está lista la impresora?';
+  }
+
+  @override
+  String queueResumed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count trabajos de vuelta en la cola',
+      one: '1 trabajo de vuelta en la cola',
+      zero: 'Cola reanudada',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count seleccionados',
+      one: '1 seleccionado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueSelectAll => 'Seleccionar todos los que esperan';
+
+  @override
+  String get queueBulkEdit => 'Editar selección';
+
+  @override
+  String queueBulkTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Editar $count elementos',
+      one: 'Editar 1 elemento',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkIntro =>
+      'Solo cambia lo que elijas. Vuelve a tocar una opción para deshacerla.';
+
+  @override
+  String get queueBulkNoChange => 'Sin cambios';
+
+  @override
+  String get queueBulkUnassigned => 'Sin impresora (sin asignar)';
+
+  @override
+  String get queueBulkQueueOptions => 'Opciones de la cola';
+
+  @override
+  String get queueBulkApply => 'Aplicar cambios';
+
+  @override
+  String get queueOptUseAms => 'Usar AMS';
+
+  @override
+  String queueBulkUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count elementos actualizados',
+      one: '1 elemento actualizado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkNothingUpdated => 'No cambió nada';
+
+  @override
+  String queueBulkSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count omitidos',
+      one: '1 omitido',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get queueNoFreePrinters => 'No hay impresoras libres en este momento';
 
   @override
@@ -7445,22 +7557,17 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String ordersCostToGo(String amount) {
-    return 'Faltan $amount';
-  }
-
-  @override
   String ordersStrandedNotice(int runs, int owed) {
-    return 'No se pueden encolar $runs de las $owed impresiones pendientes: su placa ya no tiene ninguna impresión en cola ni terminada de la que copiar los ajustes. Encola esa placa una vez desde el archivo o cancela el pedido.';
+    return 'No se pueden encolar $runs de $owed impresiones pendientes: encola su placa una vez desde el archivo.';
   }
 
   @override
   String get ordersStrandedPlate =>
-      'No queda nada de lo que copiar los ajustes';
+      'Encola esta placa una vez desde el archivo';
 
   @override
   String ordersPlateProgress(int completed, int target) {
-    return '$completed de $target hechos';
+    return '$completed de $target';
   }
 
   @override
@@ -7468,13 +7575,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String ordersDispatchRemaining(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Encolar $count impresiones pendientes',
-      one: 'Encolar 1 impresión pendiente',
-    );
-    return '$_temp0';
+    return 'Encolar pendientes ($count)';
   }
 
   @override

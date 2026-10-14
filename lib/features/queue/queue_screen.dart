@@ -23,11 +23,14 @@ import '../common/print_thumbnail.dart';
 import '../dashboard/ws_providers.dart';
 import '../files/library_thumbnail.dart';
 import '../orders/orders_providers.dart';
+import 'queue_bulk_edit_screen.dart';
 import 'queue_edit_screen.dart';
 import 'queue_history.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_providers.dart';
 import 'queue_removal.dart';
+import 'queue_resume_banner.dart';
+import 'queue_selection.dart';
 import '../tour/tour_beacon.dart';
 
 /// Print queue screen (M5): drag-to-reorder, swipe-to-delete with confirmation,
@@ -150,13 +153,28 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
         if (i.statusKind != QueueItemStatusKind.printing) i,
     ];
     final firstQueued = queued.isEmpty ? null : queued.first;
+    final selection = ref.watch(queueSelectionProvider);
+    // The selection belongs to the queue tab: the history has nothing to pick.
+    final selecting = selection.isNotEmpty && !_onHistory;
 
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(
           context,
-          title: l10n.navQueue,
+          title: selecting
+              ? l10n.queueSelectedCount(selection.length)
+              : l10n.navQueue,
+          leading: selecting
+              ? logTag(
+                  'queue.selection_clear',
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    tooltip: l10n.cancel,
+                    onPressed: ref.read(queueSelectionProvider.notifier).clear,
+                  ),
+                )
+              : null,
           bottom: TabBar(
             controller: _tabs,
             tabs: [
@@ -169,13 +187,34 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
             ],
           ),
           actions: [
-            if (ref.watch(batchListingProvider).orFalse)
+            if (selecting) ...[
+              logTag(
+                'queue.select_all',
+                IconButton(
+                  icon: const Icon(Icons.select_all),
+                  tooltip: l10n.queueSelectAll,
+                  onPressed: () =>
+                      ref.read(queueSelectionProvider.notifier).selectAll([
+                        for (final i in items)
+                          if (queueItemSelectable(i)) i.id,
+                      ]),
+                ),
+              ),
+              logTag(
+                'queue.bulk_edit',
+                IconButton(
+                  icon: const Icon(Icons.edit_note),
+                  tooltip: l10n.queueBulkEdit,
+                  onPressed: () => _bulkEdit(selection),
+                ),
+              ),
+            ] else if (ref.watch(batchListingProvider).orFalse)
               IconButton(
                 tooltip: l10n.ordersTitle,
                 icon: const Icon(Icons.inventory_2_outlined),
                 onPressed: () => context.push('/orders'),
               ).tagged('queue.orders'),
-            if (queued.isNotEmpty && !_onHistory)
+            if (queued.isNotEmpty && !_onHistory && !selecting)
               Padding(
                 padding: const EdgeInsets.only(right: DashSpace.lg),
                 child: Center(
@@ -191,6 +230,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
         floatingActionButton:
             firstQueued == null ||
                 _onHistory ||
+                selecting ||
                 !ref.watch(
                   mayStartQueueItemProvider((
                     createdById: firstQueued.createdById,
@@ -213,19 +253,27 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
           child: TabBarView(
             controller: _tabs,
             children: [
-              dashAsync(
-                context,
-                async,
-                onRetry: () => ref.read(queueProvider.notifier).refresh(),
-                data: (items) => RefreshIndicator(
-                  onRefresh: () => ref.read(queueProvider.notifier).refresh(),
-                  child: items.isEmpty
-                      ? EmptyStateView(
-                          message: l10n.queueEmpty,
-                          icon: Icons.playlist_add_check,
-                        )
-                      : _QueueList(items: items),
-                ),
+              Column(
+                children: [
+                  const QueueResumeBanners(),
+                  Expanded(
+                    child: dashAsync(
+                      context,
+                      async,
+                      onRetry: () => ref.read(queueProvider.notifier).refresh(),
+                      data: (items) => RefreshIndicator(
+                        onRefresh: () =>
+                            ref.read(queueProvider.notifier).refresh(),
+                        child: items.isEmpty
+                            ? EmptyStateView(
+                                message: l10n.queueEmpty,
+                                icon: Icons.playlist_add_check,
+                              )
+                            : _QueueList(items: items),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const QueueHistoryView(),
             ],
@@ -233,6 +281,20 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
         ),
       ),
     );
+  }
+
+  /// Opens the bulk edit for what is picked, in the queue's order. The picks
+  /// are dropped only once something was applied: a refused edit keeps them, so
+  /// the user can change one setting and send it again.
+  Future<void> _bulkEdit(Set<int> picked) async {
+    final items = ref.read(queueProvider).valueOrNull ?? const <QueueItem>[];
+    final ids = [
+      for (final i in items)
+        if (picked.contains(i.id)) i.id,
+    ];
+    if (ids.isEmpty) return;
+    final applied = await openQueueBulkEdit(context, ids);
+    if (applied && mounted) ref.read(queueSelectionProvider.notifier).clear();
   }
 
   /// FAB "start next" — delegates to the shared start flow (assign a printer if
@@ -303,36 +365,39 @@ class _QueueList extends ConsumerWidget {
     ];
     final offset = pinned.length;
 
-    return Column(
-      children: [
-        for (final it in pinned) _QueueCard(item: it, pinned: true),
-        Expanded(
-          child: ReorderableListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-            physics: const AlwaysScrollableScrollPhysics(),
-            // No default long-press drag — reorder only via explicit handle on left
-            // side of tile.
-            buildDefaultDragHandles: false,
-            itemCount: reorderable.length,
-            onReorderItem: (oldIndex, newIndex) async {
-              ref.read(tourBeaconProvider)?.signal('queue.reorder');
-              final messenger = ScaffoldMessenger.of(context);
-              final result = await ref
-                  .read(queueProvider.notifier)
-                  .reorder(oldIndex + offset, newIndex + offset);
-              _snackFailure(messenger, l10n, result);
-            },
-            itemBuilder: (context, i) => _QueueCard(
-              key: ValueKey(reorderable[i].id),
-              item: reorderable[i],
-              dragIndex: i,
-              // First item in the reorderable list is the one "start next"
-              // would launch — highlighted the same as the pinned/printing card.
-              nextUp: i == 0,
+    // The top inset goes above the pinned cards, not into the list: inside the
+    // list it also sat between the printing card and the next one, which made
+    // that one gap twice the others.
+    return Padding(
+      padding: const EdgeInsets.only(top: DashSpace.sm),
+      child: Column(
+        children: [
+          for (final it in pinned) _QueueCard(item: it, pinned: true),
+          Expanded(
+            child: ReorderableListView.builder(
+              padding: const EdgeInsets.only(bottom: DashSpace.sm),
+              physics: const AlwaysScrollableScrollPhysics(),
+              // No default long-press drag — reorder only via explicit handle on left
+              // side of tile.
+              buildDefaultDragHandles: false,
+              itemCount: reorderable.length,
+              onReorderItem: (oldIndex, newIndex) async {
+                ref.read(tourBeaconProvider)?.signal('queue.reorder');
+                final messenger = ScaffoldMessenger.of(context);
+                final result = await ref
+                    .read(queueProvider.notifier)
+                    .reorder(oldIndex + offset, newIndex + offset);
+                _snackFailure(messenger, l10n, result);
+              },
+              itemBuilder: (context, i) => _QueueCard(
+                key: ValueKey(reorderable[i].id),
+                item: reorderable[i],
+                dragIndex: i,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -343,7 +408,6 @@ class _QueueCard extends ConsumerWidget {
     required this.item,
     this.pinned = false,
     this.dragIndex,
-    this.nextUp = false,
   });
 
   final QueueItem item;
@@ -356,79 +420,113 @@ class _QueueCard extends ConsumerWidget {
   /// (`ReorderableDragStartListener`). Null for pinned items.
   final int? dragIndex;
 
-  /// First (top) item of the reorderable queue — the one "start next" would
-  /// launch. Highlighted the same way as the pinned/printing card.
-  final bool nextUp;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final idx = dragIndex;
-    final highlighted = pinned || nextUp;
+    final selectable = queueItemSelectable(item);
+    final selected = ref.watch(
+      queueSelectionProvider.select((s) => s.contains(item.id)),
+    );
+    final selecting = ref.watch(
+      queueSelectionProvider.select((s) => s.isNotEmpty),
+    );
+    // Long press starts a selection (the archive's gesture), a tap extends it.
+    // Outside selection mode the card has no tap, as before.
+    final selectionNotifier = ref.read(queueSelectionProvider.notifier);
+    final mayPick = selectable && ref.watch(mayBulkEditQueueProvider);
 
     final card = logTag(
       'queue.card',
-      Container(
-        margin: const EdgeInsets.symmetric(
-          horizontal: DashSpace.gutter,
-          vertical: DashSpace.xs,
-        ),
-        padding: const EdgeInsets.all(DashSpace.lg),
-        decoration: BoxDecoration(
-          gradient: t.cardGradient,
-          borderRadius: BorderRadius.circular(22),
-          // Printing/next-up distinguished by a green-tinted border, not a fill.
-          border: Border.all(
-            color: highlighted
-                ? t.accentGreen.withValues(alpha: 0.3)
-                : t.cardBorder,
+      GestureDetector(
+        onLongPress: mayPick && !selecting
+            ? () => selectionNotifier.toggle(item.id)
+            : null,
+        onTap: mayPick && selecting
+            ? () => selectionNotifier.toggle(item.id)
+            : null,
+        child: Container(
+          margin: const EdgeInsets.symmetric(
+            horizontal: DashSpace.gutter,
+            vertical: DashSpace.xs,
+          ),
+          padding: const EdgeInsets.all(DashSpace.lg),
+          decoration: BoxDecoration(
+            gradient: selected ? null : t.cardGradient,
+            color: selected ? t.accentGreen.withValues(alpha: 0.14) : null,
+            borderRadius: BorderRadius.circular(22),
+            // The printing card wears a green-tinted border; only a pick is filled.
+            border: Border.all(
+              color: selected
+                  ? t.accentGreen.withValues(alpha: 0.5)
+                  : pinned
+                  ? t.accentGreen.withValues(alpha: 0.3)
+                  : t.cardBorder,
+            ),
+          ),
+          child: Row(
+            children: [
+              if (idx != null && !selecting)
+                logTag(
+                  'queue.reorder',
+                  ReorderableDragStartListener(
+                    index: idx,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: DashSpace.md),
+                      child: Icon(Icons.drag_indicator, color: t.textTertiary),
+                    ),
+                  ).tourTarget('queue.reorder.${item.id}'),
+                ),
+              // A tick in place of the picture, as the archive marks a pick.
+              if (selected)
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: t.accentGreen.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(Icons.check, color: t.accentGreenInk),
+                )
+              else
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: item.archiveId == null && item.libraryFileId != null
+                      ? LibraryThumbnail(
+                          fileId: item.libraryFileId!,
+                          hasThumbnail: item.libraryFileThumbnail != null,
+                          size: 56,
+                        )
+                      : PrintThumbnail(archiveId: item.archiveId, size: 56),
+                ),
+              const SizedBox(width: DashSpace.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      item.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.titleMd,
+                    ),
+                    const SizedBox(height: DashSpace.sm),
+                    _Subtitle(item: item),
+                  ],
+                ),
+              ),
+              // The menu's removal and the swipe both act on one item, and a
+              // selection is about several: they wait until it is over.
+              if (!selecting) _QueueActions(item: item),
+            ],
           ),
         ),
-        child: Row(
-          children: [
-            if (idx != null)
-              logTag(
-                'queue.reorder',
-                ReorderableDragStartListener(
-                  index: idx,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: DashSpace.md),
-                    child: Icon(Icons.drag_indicator, color: t.textTertiary),
-                  ),
-                ).tourTarget('queue.reorder.${item.id}'),
-              ),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: item.archiveId == null && item.libraryFileId != null
-                  ? LibraryThumbnail(
-                      fileId: item.libraryFileId!,
-                      hasThumbnail: item.libraryFileThumbnail != null,
-                      size: 56,
-                    )
-                  : PrintThumbnail(archiveId: item.archiveId, size: 56),
-            ),
-            const SizedBox(width: DashSpace.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: t.titleMd,
-                  ),
-                  const SizedBox(height: DashSpace.sm),
-                  _Subtitle(item: item),
-                ],
-              ),
-            ),
-            _QueueActions(item: item),
-          ],
-        ),
       ),
+      // Said only where a pick is possible, so a reader does not announce every
+      // other card as "not selected".
+      selected: selecting && mayPick ? selected : null,
     );
 
     // Printing: no Dismissible — can't swipe-delete (and outside ReorderableListView,
@@ -437,7 +535,11 @@ class _QueueCard extends ConsumerWidget {
 
     return Dismissible(
       key: ValueKey('dismiss_${item.id}'),
-      direction: DismissDirection.endToStart,
+      // No swipe while picking: it would delete one of several. Switched off
+      // rather than unwrapped, so entering a selection does not rebuild the card.
+      direction: selecting
+          ? DismissDirection.none
+          : DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: DashSpace.xl),

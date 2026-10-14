@@ -798,6 +798,118 @@ class AppLocalizationsEn extends AppLocalizations {
       'This item is no longer in the state shown. Refresh the queue and try again.';
 
   @override
+  String queueResumeBanner(String printer, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jobs skipped',
+      one: '1 job skipped',
+    );
+    return '$printer: $_temp0 after a failed print';
+  }
+
+  @override
+  String get queueResumeButton => 'Resume';
+
+  @override
+  String get queueResumeConfirmTitle => 'Resume the queue after a failure?';
+
+  @override
+  String queueResumeConfirmBody(int count, String printer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count skipped jobs go',
+      one: '1 skipped job goes',
+    );
+    return '$_temp0 back into the queue of $printer. Is the printer ready?';
+  }
+
+  @override
+  String queueResumed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jobs back in the queue',
+      one: '1 job back in the queue',
+      zero: 'Queue resumed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count selected',
+      one: '1 selected',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueSelectAll => 'Select all waiting';
+
+  @override
+  String get queueBulkEdit => 'Edit selected';
+
+  @override
+  String queueBulkTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Edit $count items',
+      one: 'Edit 1 item',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkIntro =>
+      'Only what you pick changes. Tap a choice again to undo it.';
+
+  @override
+  String get queueBulkNoChange => 'No change';
+
+  @override
+  String get queueBulkUnassigned => 'No printer (unassigned)';
+
+  @override
+  String get queueBulkQueueOptions => 'Queue options';
+
+  @override
+  String get queueBulkApply => 'Apply changes';
+
+  @override
+  String get queueOptUseAms => 'Use AMS';
+
+  @override
+  String queueBulkUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items updated',
+      one: '1 item updated',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkNothingUpdated => 'Nothing changed';
+
+  @override
+  String queueBulkSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count skipped',
+      one: '1 skipped',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get queueNoFreePrinters => 'No free printers right now';
 
   @override
@@ -7351,21 +7463,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String ordersCostToGo(String amount) {
-    return '$amount to go';
-  }
-
-  @override
   String ordersStrandedNotice(int runs, int owed) {
-    return 'Cannot queue $runs of the $owed runs still owed: their plate has no queued or finished run left to copy settings from. Queue that plate once from the file, or cancel the order.';
+    return '$runs of $owed owed runs cannot be queued: queue their plate once from the file.';
   }
 
   @override
-  String get ordersStrandedPlate => 'Nothing left to copy settings from';
+  String get ordersStrandedPlate => 'Queue this plate once from the file';
 
   @override
   String ordersPlateProgress(int completed, int target) {
-    return '$completed of $target done';
+    return '$completed of $target';
   }
 
   @override
@@ -7373,13 +7480,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String ordersDispatchRemaining(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Queue $count remaining runs',
-      one: 'Queue 1 remaining run',
-    );
-    return '$_temp0';
+    return 'Queue owed ($count)';
   }
 
   @override

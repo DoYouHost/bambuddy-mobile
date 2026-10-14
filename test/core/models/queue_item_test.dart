@@ -121,4 +121,75 @@ void main() {
       expect(active('weird_new_status'), isFalse);
     });
   });
+
+  group('gateBlockedPrinters', () {
+    QueueItem row(
+      int id, {
+      String status = 'skipped',
+      String? error = kPreviousFailureGate,
+      int? printerId = 1,
+      String? printerName = 'X1C',
+    }) => QueueItem.fromJson({
+      'id': id,
+      'position': 1,
+      'status': status,
+      'error_message': error,
+      'printer_id': printerId,
+      'printer_name': printerName,
+    });
+
+    String named(int id) => 'Printer #$id';
+
+    test('counts the skipped jobs behind the gate, per printer', () {
+      final blocked = gateBlockedPrinters([
+        row(1),
+        row(2),
+        row(3, printerId: 2, printerName: 'A1'),
+      ], fallbackName: named);
+
+      expect(blocked, [
+        (printerId: 2, name: 'A1', skipped: 1),
+        (printerId: 1, name: 'X1C', skipped: 2),
+      ], reason: 'by name, as the web sorts them');
+    });
+
+    test('another skip reason is not this gate', () {
+      expect(
+        gateBlockedPrinters([
+          row(1, error: 'Filament deficit'),
+          row(2, error: null),
+        ], fallbackName: named),
+        isEmpty,
+        reason: 'the resume route restores by the exact gate string only',
+      );
+    });
+
+    test('only a skipped job counts, whatever it says', () {
+      expect(
+        gateBlockedPrinters([
+          row(1, status: 'pending'),
+          row(2, status: 'failed'),
+        ], fallbackName: named),
+        isEmpty,
+      );
+    });
+
+    test('a skipped job with no printer has no queue to resume', () {
+      expect(
+        gateBlockedPrinters([
+          row(1, printerId: null, printerName: null),
+        ], fallbackName: named),
+        isEmpty,
+      );
+    });
+
+    test('a printer the row does not name gets the fallback', () {
+      expect(
+        gateBlockedPrinters([
+          row(1, printerId: 5, printerName: null),
+        ], fallbackName: named).single.name,
+        'Printer #5',
+      );
+    });
+  });
 }

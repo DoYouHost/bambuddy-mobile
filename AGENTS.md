@@ -146,6 +146,10 @@ do not stay silent because it was not part of the task.
   `PrintMonitor` decides to alert: the baseline frame, which frame describes this
   print, the first-layer window, HMS grace and hold, the humidity band, the
   ongoing notification. **Read it before changing a rule or adding an event.**
+- [docs/queue-bulk-and-resume.md](docs/queue-bulk-and-resume.md) — bulk edit and the
+  resume-after-failure banner: what the 200 from `/queue/bulk` hides, why the banner
+  has a request of its own, and where the app follows the print form instead of the
+  web. **Read it before touching the queue's selection mode or `queue_resume_banner.dart`.**
 - [docs/ui-primitives.md](docs/ui-primitives.md) — why the shared fields, selects and
   async helpers behave as they do: the 40 dp select arrow, the null any-row,
   "unresolved is off", restoring an optimistically removed row by neighbours.

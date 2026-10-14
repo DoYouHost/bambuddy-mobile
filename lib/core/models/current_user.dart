@@ -160,6 +160,12 @@ abstract final class Permissions {
   /// whatever `/auth/me` says.
   static const printersUpdate = 'printers:update';
 
+  /// Driving a printer: pause, stop, smart plugs. The bulk queue edit greys its
+  /// "power off when done" row without it, as the web does — the route itself
+  /// does not ask (`print_queue.py::bulk_update_queue_items`), so this is a
+  /// courtesy to the user, not the server's rule.
+  static const printersControl = 'printers:control';
+
   /// Writing the server's shared configuration (`PUT /settings/`). Reading it
   /// needs `settings:read`, which every session already has — it rides on an
   /// API key's `can_read_status` scope — so only the write is ever gated.

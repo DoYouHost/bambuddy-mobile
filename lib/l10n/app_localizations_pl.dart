@@ -809,6 +809,132 @@ class AppLocalizationsPl extends AppLocalizations {
       'Ten element ma już inny status niż pokazany. Odśwież kolejkę i spróbuj ponownie.';
 
   @override
+  String queueResumeBanner(String printer, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count zadania pominiętego',
+      many: '$count zadań pominiętych',
+      few: '$count zadania pominięte',
+      one: '1 zadanie pominięte',
+    );
+    return '$printer: $_temp0 po nieudanym druku';
+  }
+
+  @override
+  String get queueResumeButton => 'Wznów';
+
+  @override
+  String get queueResumeConfirmTitle => 'Wznowić kolejkę po awarii?';
+
+  @override
+  String queueResumeConfirmBody(int count, String printer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pominiętego zadania wróci',
+      many: '$count pominiętych zadań wróci',
+      few: '$count pominięte zadania wrócą',
+      one: '1 pominięte zadanie wróci',
+    );
+    return '$_temp0 do kolejki drukarki $printer. Czy drukarka jest gotowa?';
+  }
+
+  @override
+  String queueResumed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count zadania wróciło do kolejki',
+      many: '$count zadań wróciło do kolejki',
+      few: '$count zadania wróciły do kolejki',
+      one: '1 zadanie wróciło do kolejki',
+      zero: 'Kolejka wznowiona',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zaznaczono $count',
+      many: 'Zaznaczono $count',
+      few: 'Zaznaczono $count',
+      one: 'Zaznaczono 1',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueSelectAll => 'Zaznacz wszystkie oczekujące';
+
+  @override
+  String get queueBulkEdit => 'Edytuj zaznaczone';
+
+  @override
+  String queueBulkTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Edycja $count elementu',
+      many: 'Edycja $count elementów',
+      few: 'Edycja $count elementów',
+      one: 'Edycja 1 elementu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkIntro =>
+      'Zmieni się tylko to, co wybierzesz. Dotknij wyboru ponownie, żeby go cofnąć.';
+
+  @override
+  String get queueBulkNoChange => 'Bez zmian';
+
+  @override
+  String get queueBulkUnassigned => 'Bez drukarki (nieprzypisane)';
+
+  @override
+  String get queueBulkQueueOptions => 'Opcje kolejki';
+
+  @override
+  String get queueBulkApply => 'Zastosuj zmiany';
+
+  @override
+  String get queueOptUseAms => 'Użyj AMS';
+
+  @override
+  String queueBulkUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zmieniono $count elementu',
+      many: 'Zmieniono $count elementów',
+      few: 'Zmieniono $count elementy',
+      one: 'Zmieniono 1 element',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkNothingUpdated => 'Nic nie zmieniono';
+
+  @override
+  String queueBulkSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'pominięto $count',
+      many: 'pominięto $count',
+      few: 'pominięto $count',
+      one: 'pominięto 1',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get queueNoFreePrinters => 'Brak wolnych drukarek';
 
   @override
@@ -7468,22 +7594,16 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String ordersCostToGo(String amount) {
-    return 'Pozostały koszt: $amount';
-  }
-
-  @override
   String ordersStrandedNotice(int runs, int owed) {
-    return 'Nie da się dodać do kolejki $runs z $owed wydruków do zrobienia: ich płyta nie ma już zadania w kolejce ani ukończonego wydruku, z którego można skopiować ustawienia. Dodaj tę płytę raz z pliku albo anuluj zamówienie.';
+    return '$runs z $owed wydruków nie da się dodać: dodaj ich płytę raz z pliku.';
   }
 
   @override
-  String get ordersStrandedPlate =>
-      'Brak zadania, z którego można skopiować ustawienia';
+  String get ordersStrandedPlate => 'Dodaj tę płytę raz z pliku';
 
   @override
   String ordersPlateProgress(int completed, int target) {
-    return 'Gotowe: $completed z $target';
+    return '$completed z $target';
   }
 
   @override
@@ -7491,15 +7611,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String ordersDispatchRemaining(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Dodaj do kolejki $count brakującego wydruku',
-      many: 'Dodaj do kolejki $count brakujących wydruków',
-      few: 'Dodaj do kolejki $count brakujące wydruki',
-      one: 'Dodaj do kolejki 1 brakujący wydruk',
-    );
-    return '$_temp0';
+    return 'Dodaj brakujące ($count)';
   }
 
   @override

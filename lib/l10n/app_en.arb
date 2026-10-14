@@ -485,6 +485,119 @@
   "queueStopped": "Print stopped",
   "queueRemoved": "Removed from queue",
   "queueRemovalStatusChanged": "This item is no longer in the state shown. Refresh the queue and try again.",
+  "queueResumeBanner": "{printer}: {count, plural, =1{1 job skipped} other{{count} jobs skipped}} after a failed print",
+  "@queueResumeBanner": {
+    "description": "Banner over the queue: a printer's jobs were skipped because a print before them failed",
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueResumeButton": "Resume",
+  "@queueResumeButton": {
+    "description": "Button on the resume banner"
+  },
+  "queueResumeConfirmTitle": "Resume the queue after a failure?",
+  "@queueResumeConfirmTitle": {
+    "description": "Confirm dialog title before resuming a printer's queue"
+  },
+  "queueResumeConfirmBody": "{count, plural, =1{1 skipped job goes} other{{count} skipped jobs go}} back into the queue of {printer}. Is the printer ready?",
+  "@queueResumeConfirmBody": {
+    "description": "Confirm dialog body before resuming a printer's queue",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
+  "queueResumed": "{count, plural, =0{Queue resumed} =1{1 job back in the queue} other{{count} jobs back in the queue}}",
+  "@queueResumed": {
+    "description": "Toast after a queue was resumed; count is how many skipped jobs are waiting again",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueSelectedCount": "{count, plural, =1{1 selected} other{{count} selected}}",
+  "@queueSelectedCount": {
+    "description": "Queue app bar while items are selected",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueSelectAll": "Select all waiting",
+  "@queueSelectAll": {
+    "description": "Tooltip: select every waiting item of the queue"
+  },
+  "queueBulkEdit": "Edit selected",
+  "@queueBulkEdit": {
+    "description": "Tooltip: edit the selected queue items together"
+  },
+  "queueBulkTitle": "{count, plural, =1{Edit 1 item} other{Edit {count} items}}",
+  "@queueBulkTitle": {
+    "description": "Title of the screen that edits several queue items at once",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueBulkIntro": "Only what you pick changes. Tap a choice again to undo it.",
+  "@queueBulkIntro": {
+    "description": "Line under the bulk edit title"
+  },
+  "queueBulkNoChange": "No change",
+  "@queueBulkNoChange": {
+    "description": "First row of a bulk edit select and the neutral segment of a bulk edit switch: leave this setting as it is on every selected item"
+  },
+  "queueBulkUnassigned": "No printer (unassigned)",
+  "@queueBulkUnassigned": {
+    "description": "Bulk edit printer select: take the selected items off their printers"
+  },
+  "queueBulkQueueOptions": "Queue options",
+  "@queueBulkQueueOptions": {
+    "description": "Bulk edit section title: the queue flags"
+  },
+  "queueBulkApply": "Apply changes",
+  "@queueBulkApply": {
+    "description": "Bulk edit button"
+  },
+  "queueOptUseAms": "Use AMS",
+  "@queueOptUseAms": {
+    "description": "Print option: take filament from the AMS"
+  },
+  "queueBulkUpdated": "{count, plural, =1{1 item updated} other{{count} items updated}}",
+  "@queueBulkUpdated": {
+    "description": "Toast after a bulk edit: items changed",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueBulkNothingUpdated": "Nothing changed",
+  "@queueBulkNothingUpdated": {
+    "description": "Toast after a bulk edit that changed no item"
+  },
+  "queueBulkSkipped": "{count, plural, =1{1 skipped} other{{count} skipped}}",
+  "@queueBulkSkipped": {
+    "description": "Toast after a bulk edit: items the server left alone",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "queueNoFreePrinters": "No free printers right now",
   "queuePrintStarted": "Print started",
   "queueStatusPending": "Waiting",
@@ -4688,15 +4801,7 @@
       }
     }
   },
-  "ordersCostToGo": "{amount} to go",
-  "@ordersCostToGo": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
-  "ordersStrandedNotice": "Cannot queue {runs} of the {owed} runs still owed: their plate has no queued or finished run left to copy settings from. Queue that plate once from the file, or cancel the order.",
+  "ordersStrandedNotice": "{runs} of {owed} owed runs cannot be queued: queue their plate once from the file.",
   "@ordersStrandedNotice": {
     "placeholders": {
       "runs": {
@@ -4707,8 +4812,8 @@
       }
     }
   },
-  "ordersStrandedPlate": "Nothing left to copy settings from",
-  "ordersPlateProgress": "{completed} of {target} done",
+  "ordersStrandedPlate": "Queue this plate once from the file",
+  "ordersPlateProgress": "{completed} of {target}",
   "@ordersPlateProgress": {
     "placeholders": {
       "completed": {
@@ -4720,7 +4825,7 @@
     }
   },
   "ordersWholeFile": "Whole file",
-  "ordersDispatchRemaining": "{count, plural, =1{Queue 1 remaining run} other{Queue {count} remaining runs}}",
+  "ordersDispatchRemaining": "Queue owed ({count})",
   "@ordersDispatchRemaining": {
     "placeholders": {
       "count": {
