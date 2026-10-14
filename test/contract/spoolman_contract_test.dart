@@ -258,7 +258,7 @@ void main() {
         within: const Duration(seconds: 10),
         every: const Duration(milliseconds: 100),
       );
-      final keyed = Dio(BaseOptions(baseUrl: contractBaseUrl))
+      final keyed = commitLagged(Dio(BaseOptions(baseUrl: contractBaseUrl)))
         ..options.headers['X-API-Key'] = created.key;
       final spool = await newSpool();
 
