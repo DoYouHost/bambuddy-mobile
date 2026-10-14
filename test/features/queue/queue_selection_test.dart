@@ -137,6 +137,21 @@ void main() {
     expect(find.byIcon(Icons.more_vert), findsNothing);
   });
 
+  testWidgets('while picking, a swipe deletes nothing', (tester) async {
+    await open(tester, screen(_Queue([item(1), item(2)])));
+    Dismissible swipe() =>
+        tester.widget<Dismissible>(find.byKey(const ValueKey('dismiss_2')));
+    expect(swipe().direction, DismissDirection.endToStart);
+
+    await pick(tester, 1);
+
+    expect(
+      swipe().direction,
+      DismissDirection.none,
+      reason: 'a swipe would delete one item out of a selection of several',
+    );
+  });
+
   testWidgets('a user who may not edit items cannot start picking', (
     tester,
   ) async {

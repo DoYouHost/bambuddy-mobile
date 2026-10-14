@@ -200,6 +200,38 @@ void main() {
       expect(calls, ['GET /api/v1/queue/']);
     });
 
+    test('a queue refresh asks nothing while no banner is shown', () async {
+      // Reading the notifier of an unwatched provider builds it: one request,
+      // plus the refresh's own, both for nobody.
+      final dio = testDio();
+      final adapter = mockServer(dio);
+      for (final status in ['pending', 'printing', 'skipped']) {
+        adapter.onGet(
+          '/api/v1/queue/',
+          (server) => server.reply(200, <Object>[]),
+          queryParameters: {'status': status},
+        );
+      }
+      final sent = captureRequests(dio);
+      final container = ProviderContainer(
+        overrides: [
+          fakeServerProfileOverride(),
+          currentUserOverride(user({Permissions.queueUpdateAll})),
+          queueRepositoryProvider.overrideWithValue(QueueRepository(dio)),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(queueProvider, (_, _) {});
+      await container.read(queueProvider.future);
+      sent.requests.clear();
+
+      await container.read(queueProvider.notifier).refresh();
+
+      expect([
+        for (final r in sent.requests) r.queryParameters['status'],
+      ], unorderedEquals(['pending', 'printing']));
+    });
+
     test(
       'asks nothing of a user who may not: the route would refuse',
       () async {

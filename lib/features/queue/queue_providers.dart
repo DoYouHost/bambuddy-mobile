@@ -54,13 +54,17 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   /// Pull-to-refresh / refresh after mutation. Keeps previous list underneath
   /// (AsyncLoading with previous) so UI doesn't flicker with spinner.
   ///
-  /// Also reloads [queueSkippedProvider]: a resume banner has to follow the list
-  /// it sits over, and no caller refreshes one without the other.
+  /// Also reloads [queueSkippedProvider] while something shows it: a resume
+  /// banner has to follow the list it sits over. Only then — reading the
+  /// notifier of an unwatched provider builds it, which is one request, and the
+  /// refresh is a second, both thrown away a moment later.
   Future<void> refresh() async {
     // No profile (mid server-change) → nothing to fetch; mirrors [build].
     if (ref.read(serverProfileProvider) == null) return;
     state = const AsyncValue<List<QueueItem>>.loading().copyWithPrevious(state);
-    final skipped = ref.read(queueSkippedProvider.notifier).refresh();
+    final skipped = ref.exists(queueSkippedProvider)
+        ? ref.read(queueSkippedProvider.notifier).refresh()
+        : Future<void>.value();
     state = await AsyncValue.guard(
       () async =>
           _activeSorted(await ref.read(queueRepositoryProvider).fetchActive()),

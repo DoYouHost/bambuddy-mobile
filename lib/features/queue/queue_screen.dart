@@ -530,12 +530,16 @@ class _QueueCard extends ConsumerWidget {
     );
 
     // Printing: no Dismissible — can't swipe-delete (and outside ReorderableListView,
-    // so non-reorderable). Nor while picking: a swipe would delete one of several.
-    if (pinned || selecting) return card;
+    // so non-reorderable).
+    if (pinned) return card;
 
     return Dismissible(
       key: ValueKey('dismiss_${item.id}'),
-      direction: DismissDirection.endToStart,
+      // No swipe while picking: it would delete one of several. Switched off
+      // rather than unwrapped, so entering a selection does not rebuild the card.
+      direction: selecting
+          ? DismissDirection.none
+          : DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: DashSpace.xl),
