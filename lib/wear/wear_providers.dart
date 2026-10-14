@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/notifications/ongoing_text.dart';
 import '../core/watch/watch_config_sync.dart';
 import '../providers.dart';
 import 'wear_fleet_cache.dart';
+import 'wear_ongoing.dart';
 import 'wear_status.dart';
 import 'wear_transport.dart';
 
@@ -63,6 +65,9 @@ final wearTransportProvider = Provider<HybridWearTransport>((ref) {
   );
 });
 
+/// The watch's Ongoing Activity host. A provider so a test can answer for it.
+final wearOngoingProvider = Provider<WearOngoing>((_) => const WearOngoing());
+
 /// The connected server's version, for the settings footer. `autoDispose`: only that
 /// screen asks. Never fails: every failure is one answer, `null`, because a footer
 /// is not the place to explain which it was.
@@ -84,8 +89,9 @@ final wearFleetCacheProvider = Provider<WearFleetCache>(
 );
 
 /// Fleet of printers with status, polled through [wearTransportProvider].
-/// No WebSocket or background service on the watch (deliberate — battery);
-/// the poll runs only while a screen watching it is mounted (autoDispose).
+/// No WebSocket on the watch (deliberate — battery); the poll runs only while
+/// a screen watching it is mounted (autoDispose), and behind a dark screen only
+/// to feed the Ongoing Activity.
 final wearFleetProvider =
     AsyncNotifierProvider.autoDispose<WearFleetNotifier, WearFleet>(
       WearFleetNotifier.new,
@@ -105,6 +111,12 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
   /// Checked in [_scheduleNext], so a fetch in flight cannot re-arm the timer.
   bool _paused = false;
 
+  /// Set while the app is in the background with a print running: the Ongoing
+  /// Activity needs the fleet, at [backgroundInterval] (docs/wear-fleet-poll.md, "Background").
+  bool _background = false;
+
+  static const backgroundInterval = Duration(minutes: 5);
+
   /// Whether [epoch] is still the run this notifier is doing.
   bool _current(int epoch) => _alive && epoch == _epoch;
 
@@ -123,12 +135,21 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
     if (cached != null) {
       // Painted at once, refreshed underneath through a zero-length timer, since the
       // poll may only start once `build` has returned. Not while paused: the resume
-      // hook starts it (docs/wear-fleet-poll.md, "build").
+      // hook starts it. In the background poll it does run, once, since the server may
+      // have changed (docs/wear-fleet-poll.md, "build").
       if (!_paused) _timer = Timer(Duration.zero, refresh);
       return cached;
     }
     // Fetched even while paused: `build` owes its caller a fleet (docs/wear-fleet-poll.md, "build").
-    final fleet = await _fetch(epoch);
+    final WearFleet fleet;
+    try {
+      fleet = await _fetch(epoch);
+    } catch (_) {
+      // The foreground leaves a failed build to the retry button; behind a dark
+      // screen nobody taps it.
+      if (_current(epoch) && _background) _scheduleNext(null);
+      rethrow;
+    }
     // Superseded: arming a timer here would cancel the current run's.
     if (_current(epoch)) _scheduleNext(fleet);
     return fleet;
@@ -151,6 +172,11 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
   /// active print) keeps the familiar 5 s.
   void _scheduleNext(WearFleet? fleet, {bool afterFailure = false}) {
     if (!_alive || _paused) return;
+    if (_background) {
+      _timer?.cancel();
+      _timer = Timer(_backgroundDelay(fleet), refresh);
+      return;
+    }
     final relaying =
         ref.read(wearTransportProvider).lastMode == WearTransportMode.relay;
     final active =
@@ -174,7 +200,33 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
   /// coming back to the foreground does.
   void stopPolling() {
     _paused = true;
+    _background = false;
     _timer?.cancel();
+  }
+
+  /// Keeps polling behind a dark screen, slowly, for the Ongoing Activity.
+  void pollInBackground() {
+    _paused = false;
+    _background = true;
+    _scheduleNext(state.valueOrNull);
+  }
+
+  /// Back to the foreground cadence from the next [refresh] on.
+  void leaveBackground() => _background = false;
+
+  /// The interval, or less when the lead print is due sooner: past its ETA the
+  /// watch face would show a finished print until the next poll.
+  Duration _backgroundDelay(WearFleet? fleet) {
+    final statuses = fleet?.printers.map((p) => p.status).nonNulls ?? const [];
+    final lead = runningByEta(statuses).firstOrNull;
+    final minutes = lead?.remainingTime;
+    // Zero on a preparing machine is "not measured yet"; otherwise it is the
+    // last minute ([PrinterStatus.etaRank]).
+    if (lead == null || minutes == null || (minutes <= 0 && lead.isPreparing)) {
+      return backgroundInterval;
+    }
+    final untilDone = Duration(minutes: minutes < 0 ? 0 : minutes, seconds: 30);
+    return untilDone < backgroundInterval ? untilDone : backgroundInterval;
   }
 
   /// Re-fetch in the background; keeps the last good data visible on transient
@@ -182,7 +234,8 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
   ///
   /// Also the way out of [stopPolling]: every caller — the resume hook, pull to
   /// refresh, the tick after a command — means the screen is being watched
-  /// again.
+  /// again. The one exception is the background tick ([pollInBackground]),
+  /// which keeps its own cadence.
   Future<void> refresh() async {
     if (!_alive) return;
     // Nothing may outrun a build: what this wrote would be replaced by the build's own
@@ -207,8 +260,12 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
 
     // Everything else goes through as an error, the never-confirmed frame included.
     state = next;
-    // After an error, the retry's rebuild starts the poll again.
-    if (next.hasError) return;
+    // After an error, the retry's rebuild starts the poll again — but nobody
+    // taps a retry behind a dark screen.
+    if (next.hasError) {
+      if (_background) _scheduleNext(null);
+      return;
+    }
     _scheduleNext(next.valueOrNull);
   }
 }

@@ -12,6 +12,7 @@ import '../../core/notifications/background_api.dart';
 import '../../core/notifications/hms_actions.dart';
 import '../../core/notifications/hms_catalog.dart';
 import '../../core/notifications/notification_prefs.dart';
+import '../../core/notifications/ongoing_text.dart';
 import '../../core/printers/offline_debounce.dart';
 import '../../core/app_context.dart';
 import '../../l10n/app_localizations.dart';
@@ -885,25 +886,9 @@ class PrintMonitor {
     }
   }
 
-  /// What goes after "ETA" in the ongoing notification, or null for none; branches in
-  /// the order of [PrinterStatus.etaRank] (docs/notification-rules.md, "The ongoing notification").
-  String? _etaText(PrinterStatus s) {
-    final minutes = s.remainingTime;
-    if (minutes == null) return null;
-    if (minutes > 0) {
-      final now = clock.now();
-      return _formats().clockOnDay(
-        now.add(Duration(minutes: minutes)),
-        now: now,
-      );
-    }
-    return s.isPreparing ? null : _l10n().notifEtaSoon;
-  }
-
   /// Ongoing notification for currently printing (one, for earliest ETA).
   void _updateOngoing(Map<int, PrinterStatus> statuses) {
-    final printing = statuses.values.where((s) => s.isPrinting).toList()
-      ..sort((a, b) => a.etaRank.compareTo(b.etaRank));
+    final printing = runningByEta(statuses.values);
 
     if (printing.isEmpty) {
       if (_lastOngoing != null) {
@@ -946,34 +931,11 @@ class PrintMonitor {
       overall: overall,
     );
 
-    final l = _l10n();
-    final eta = _etaText(lead);
-    final String title;
-    final String body;
-    if (printing.length == 1) {
-      // One printer: the job is what the user is waiting for, and the machine
-      // it runs on needs no saying.
-      title = _jobLabel(lead, l);
-      body = eta == null ? '$percent%' : l.notifOngoingBody(percent, eta);
-    } else {
-      // Several: the headline is how many run; the bar, the line and the ETA
-      // belong to the one that finishes first.
-      title = l.printingCount(printing.length);
-      // Not `lead.name ?? …`: a printer named "  " would leave the line with
-      // a gap between two separators.
-      final name = _printerLabel(lead, l);
-      // Prefixed with the dashboard's own label so both surfaces pick the same printer
-      // and call it the same thing.
-      final line = eta == null
-          ? l.notifOngoingMultiBodyNoEta(name, percent)
-          : l.notifOngoingMultiBody(name, percent, eta);
-      body = '${l.nextAvailableLabel}$line';
-    }
-    // A preparing machine gets the indeterminate bar: its zero percent is not progress.
+    final text = ongoingText(printing, _l10n(), _formats(), clock.now())!;
     _notifications.showOngoing(
-      title: title,
-      body: body,
-      progress: lead.isPreparing ? null : percent,
+      title: text.title,
+      body: text.body,
+      progress: text.progress,
     );
   }
 
@@ -984,7 +946,7 @@ class PrintMonitor {
       printerId: id,
       id: _startedAlertBase + id,
       title: l.notifStartedTitle,
-      body: l.notifStartedBody(_jobLabel(status, l)),
+      body: l.notifStartedBody(jobLabel(status, l)),
       payload: 'printer:$id',
     );
   }
@@ -996,7 +958,7 @@ class PrintMonitor {
       printerId: id,
       id: _finishedAlertBase + id,
       title: l.printFinishedTitle,
-      body: l.printFinishedBody(_jobLabel(status, l)),
+      body: l.printFinishedBody(jobLabel(status, l)),
       payload: 'printer:$id',
     );
   }
@@ -1008,7 +970,7 @@ class PrintMonitor {
       printerId: id,
       id: _failedAlertBase + id,
       title: l.printFailedTitle,
-      body: l.printFailedBody(_jobLabel(status, l)),
+      body: l.printFailedBody(jobLabel(status, l)),
       payload: 'printer:$id',
     );
   }
@@ -1020,7 +982,7 @@ class PrintMonitor {
       printerId: id,
       id: _firstLayerAlertBase + id,
       title: l.notifFirstLayerTitle,
-      body: l.notifFirstLayerBody(_jobLabel(status, l)),
+      body: l.notifFirstLayerBody(jobLabel(status, l)),
       payload: 'printer:$id',
     );
   }
@@ -1032,7 +994,7 @@ class PrintMonitor {
       printerId: id,
       id: _milestoneAlertBase + id,
       title: l.notifMilestoneTitle(percent),
-      body: l.notifMilestoneBody(_jobLabel(status, l), percent),
+      body: l.notifMilestoneBody(jobLabel(status, l), percent),
       payload: 'printer:$id',
     );
   }
@@ -1059,7 +1021,7 @@ class PrintMonitor {
       printerId: id,
       id: _offlineAlertBase + id,
       title: l.notifOfflineTitle,
-      body: l.notifOfflineBody(_printerLabel(status, l)),
+      body: l.notifOfflineBody(printerLabel(status, l)),
       payload: 'printer:$id',
     );
   }
@@ -1073,7 +1035,7 @@ class PrintMonitor {
       printerId: id,
       id: _errorAlertId(id, err),
       title: l.notifErrorTitle,
-      body: l.notifErrorBody(_printerLabel(status, l), detail),
+      body: l.notifErrorBody(printerLabel(status, l), detail),
       payload: fullCode == null
           ? 'printer:$id'
           : hmsPayload(
@@ -1120,7 +1082,7 @@ class PrintMonitor {
       printerId: id,
       id: _lowFilamentAlertBase + id,
       title: l.notifLowFilamentTitle,
-      body: l.notifLowFilamentBody(_printerLabel(status, l), remain),
+      body: l.notifLowFilamentBody(printerLabel(status, l), remain),
       payload: 'printer:$id',
     );
   }
@@ -1132,7 +1094,7 @@ class PrintMonitor {
       printerId: id,
       id: _humidityAlertBase + id,
       title: isHt ? l.notifHumidityHtTitle : l.notifHumidityTitle,
-      body: l.notifHumidityBody(_printerLabel(status, l), humidity),
+      body: l.notifHumidityBody(printerLabel(status, l), humidity),
       payload: 'printer:$id',
     );
   }
@@ -1144,25 +1106,9 @@ class PrintMonitor {
       printerId: id,
       id: _bedCooledAlertBase + id,
       title: l.notifBedCooledTitle,
-      body: l.notifBedCooledBody(_printerLabel(status, l), temp),
+      body: l.notifBedCooledBody(printerLabel(status, l), temp),
       payload: 'printer:$id',
     );
-  }
-
-  /// Print label (filename) with fallback to printer name.
-  String _jobLabel(PrinterStatus s, AppLocalizations l) =>
-      _jobName(s) ?? s.name ?? l.printersTitle;
-
-  /// Printer label (name) with fallback to list title.
-  String _printerLabel(PrinterStatus s, AppLocalizations l) =>
-      (s.name?.trim().isNotEmpty ?? false) ? s.name! : l.printersTitle;
-
-  String? _jobName(PrinterStatus s) {
-    for (final candidate in [s.currentPrint, s.gcodeFile]) {
-      final v = candidate?.trim();
-      if (v != null && v.isNotEmpty) return v;
-    }
-    return null;
   }
 
   /// Maps filament trays (AMS + external spools) to remaining amount (%).

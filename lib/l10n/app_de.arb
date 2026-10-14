@@ -1298,6 +1298,7 @@
   "notificationsBlocked": "Benachrichtigungen sind deaktiviert — aktiviere sie in den Systemeinstellungen",
   "bgServiceTitle": "Bambuddy",
   "bgServiceText": "Drucker werden überwacht",
+  "wearOngoingChannel": "Druckfortschritt",
   "bgMonitoringToggle": "Hintergrundüberwachung",
   "bgMonitoringSubtitle": "Drucke weiter überwachen, während die App geschlossen ist. Zeigt eine dauerhafte Benachrichtigung an.",
   "bgMonitoringOn": "Hintergrundüberwachung an",

@@ -7,9 +7,9 @@ import '../core/app_context.dart';
 import '../providers.dart';
 import 'wear_app.dart';
 
-/// Entry point for the Wear OS build: no foreground service, no WebSocket, no
-/// notifications, no home widget — a thin on-demand REST client over `core/` and
-/// `data/`. Run with `--target lib/wear/main_wear.dart`.
+/// Entry point for the Wear OS build: no WebSocket, no alerts of its own, no
+/// home widget — a thin on-demand REST client over `core/` and `data/`. Its one
+/// notification is the Ongoing Activity (`wear_ongoing.dart`). Run with `--target lib/wear/main_wear.dart`.
 ///
 /// **Never call `SystemChrome.setPreferredOrientations` here.** Orientation is
 /// locked by `android:screenOrientation="nosensor"` in the wear manifest, and

@@ -111,6 +111,10 @@ dev_dependencies:
   # read off a socket, which is exactly what the camera stream is.
   integration_test:
     sdk: flutter
+  # On-device tests that reach outside the app (patrol_test/): the home button,
+  # the system swipe, permission dialogs, notifications. Dart, so the same tests
+  # can later run on the phone and on iOS.
+  patrol: ^4.10.0
   build_runner: ^2.4.13
   flutter_lints: ^6.0.0
   http_mock_adapter: ^0.6.1
@@ -206,3 +210,8 @@ flutter_launcher_icons:
   # full mark: only the alpha silhouette is used, and the spool, leaves and
   # hotend turn into noise at that size. design/logo/export_icons.py renders it.
   adaptive_icon_monochrome: "assets/icon/icon_monochrome.png"
+
+patrol:
+  app_name: Bambuddy
+  android:
+    package_name: page.codeberg.morganmlgman.bambuddy_mobile

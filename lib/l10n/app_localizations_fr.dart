@@ -2468,6 +2468,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get bgServiceText => 'Surveillance des imprimantes';
 
   @override
+  String get wearOngoingChannel => 'Progression de l\'impression';
+
+  @override
   String get bgMonitoringToggle => 'Surveillance en arrière-plan';
 
   @override

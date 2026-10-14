@@ -65,6 +65,15 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Patrol's on-device tests (patrol_test/). Each Dart test is its own
+        // instrumentation run on a cleared app, so the setup screen is what
+        // every test starts on.
+        testInstrumentationRunner = "pl.leancode.patrol.PatrolJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
+    }
+
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 
     // Phone and watch ship as one Google Play listing (same applicationId),
@@ -198,4 +207,8 @@ dependencies {
     // launch theme, and — as with wear-input above — both flavors compile
     // `src/main`, so the call sits in each flavor's own BrandedLaunch.kt.
     "wearImplementation"("androidx.core:core-splashscreen:1.2.0")
+    // Play's WO-V4: the watch face icon and Recents entry for a print followed from the
+    // watch (WearOngoing.kt in the wear source set).
+    "wearImplementation"("androidx.wear:wear-ongoing:1.1.0")
+    androidTestUtil("androidx.test:orchestrator:1.5.1")
 }

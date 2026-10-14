@@ -107,20 +107,41 @@ void main() {
     );
   });
 
-  test('the watch APK asks for none of the service permissions', () {
-    // Play reviews a foreground service declaration, and the watch entry point
-    // starts no service — an APK that asks for the permission anyway is being
-    // put through that review for nothing. The wear manifest strips them one by
-    // one, so a permission added to the phone silently leaks onto the watch.
-    final granted = permissionsIn(manifest, removed: false);
+  test('the watch keeps what its own service needs', () {
+    // The watch's Ongoing Activity (Play's WO-V4) runs in WearOngoingService,
+    // which WearOngoing.kt starts as connectedDevice. The wear manifest strips
+    // phone permissions one by one, so stripping one of these would fail the
+    // same way the phone's pair does: at start, on a wrist.
     final stripped = permissionsIn(wearManifest, removed: true);
-    final serviceOnly = {
-      ...granted.where((p) => p.startsWith('FOREGROUND_SERVICE')),
-      ...granted.intersection(connectedDeviceQualifiers),
-    };
+    final service = RegExp(
+      r'<service\b[^>]*WearOngoingService[^>]*>',
+    ).firstMatch(wearManifest)?.group(0);
+    final kotlin = File(
+      'android/app/src/wear/kotlin/page/codeberg/morganmlgman/'
+      'bambuddy_mobile/WearOngoing.kt',
+    ).readAsStringSync();
 
-    expect(serviceOnly, isNotEmpty);
-    expect(serviceOnly.difference(stripped), isEmpty);
+    expect(
+      service,
+      contains('android:foregroundServiceType="connectedDevice"'),
+    );
+    expect(kotlin, contains('FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE'));
+    expect(
+      stripped.intersection({
+        'FOREGROUND_SERVICE',
+        'FOREGROUND_SERVICE_CONNECTED_DEVICE',
+        'POST_NOTIFICATIONS',
+      }),
+      isEmpty,
+    );
+    expect(
+      permissionsIn(
+        manifest,
+        removed: false,
+      ).intersection(connectedDeviceQualifiers).difference(stripped),
+      isNotEmpty,
+      reason: 'connectedDevice needs one of $connectedDeviceQualifiers',
+    );
   });
 
   test('every service configuration turns the wake lock off by name', () {

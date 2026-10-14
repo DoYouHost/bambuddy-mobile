@@ -4118,6 +4118,12 @@ abstract class AppLocalizations {
   /// **'Monitoring printers'**
   String get bgServiceText;
 
+  /// Watch: name of the notification channel for the ongoing print notification, shown in the watch's notification settings
+  ///
+  /// In en, this message translates to:
+  /// **'Print progress'**
+  String get wearOngoingChannel;
+
   /// No description provided for @bgMonitoringToggle.
   ///
   /// In en, this message translates to:
