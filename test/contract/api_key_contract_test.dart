@@ -45,9 +45,10 @@ void main() {
 
     /// A client that authenticates the way a key-configured app does: the
     /// `X-API-Key` header and no bearer token at all.
-    Dio clientFor(String key) => Dio(BaseOptions(baseUrl: contractBaseUrl))
-      ..options.headers['X-API-Key'] = key
-      ..options.validateStatus = (_) => true;
+    Dio clientFor(String key) =>
+        commitLagged(Dio(BaseOptions(baseUrl: contractBaseUrl)))
+          ..options.headers['X-API-Key'] = key
+          ..options.validateStatus = (_) => true;
 
     setUpAll(() async {
       dio = await authenticatedDio();

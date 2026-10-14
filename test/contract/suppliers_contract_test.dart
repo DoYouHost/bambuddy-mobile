@@ -235,7 +235,7 @@ void main() {
           within: const Duration(seconds: 10),
           every: const Duration(milliseconds: 100),
         );
-        return Dio(BaseOptions(baseUrl: contractBaseUrl))
+        return commitLagged(Dio(BaseOptions(baseUrl: contractBaseUrl)))
           ..options.headers['X-API-Key'] = created.key
           ..options.validateStatus = (_) => true;
       }

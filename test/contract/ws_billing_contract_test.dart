@@ -551,7 +551,7 @@ void main() {
           ),
         );
         addTearDown(() => ApiKeysRepository(user.dio).delete(minted.apiKey.id));
-        final keyDio = createBareDio()
+        final keyDio = commitLagged(createBareDio())
           ..options.baseUrl = contractBaseUrl
           ..options.headers['X-API-Key'] = minted.key;
         await pollUntil(

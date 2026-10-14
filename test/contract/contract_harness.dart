@@ -90,13 +90,38 @@ Future<Map<String, dynamic>> rawLogin() async {
   return res.data ?? const {};
 }
 
+/// Holds back a successful write's answer for a moment before the test sees it.
+///
+/// Bambuddy commits in `get_db` after the response has been sent (FastAPI's
+/// request-scoped `yield` dependency), so a read issued straight after a write
+/// can miss it: a new row is a 404, an edited one reads its old value. Measured
+/// at about 1 in 300 on 1.2.5, latest and daily; CI hit it in the wear-cost
+/// project test. Reported upstream as maziggy/bambuddy#3320.
+// ponytail: a fixed lag narrows the window and does not close it; a read that
+// must not miss still polls (pollUntil).
+class _CommitLag extends Interceptor {
+  @override
+  Future<void> onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) async {
+    if (response.requestOptions.method != 'GET') {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    handler.next(response);
+  }
+}
+
+/// [dio] with [_CommitLag], for every client a contract test writes through.
+Dio commitLagged(Dio dio) => dio..interceptors.add(_CommitLag());
+
 /// A Dio carrying a freshly minted JWT.
 ///
 /// Deliberately built on [createBareDio] — the same timeouts and the same
 /// `HttpProbe` the app ships with — so a contract failure is a failure of the
 /// client the user actually runs, not of a test-only substitute.
 Future<Dio> authenticatedDio() async {
-  final dio = createBareDio()..options.baseUrl = contractBaseUrl;
+  final dio = commitLagged(createBareDio()..options.baseUrl = contractBaseUrl);
 
   final res = await dio.post<Map<String, dynamic>>(
     Endpoints.authLogin,
@@ -149,7 +174,7 @@ Future<({Dio dio, CurrentUser me})> contractUser(
       ),
     ),
   );
-  final dio = createBareDio()..options.baseUrl = contractBaseUrl;
+  final dio = commitLagged(createBareDio()..options.baseUrl = contractBaseUrl);
   final login = await dio.post<Map<String, dynamic>>(
     Endpoints.authLogin,
     data: {'username': user.username, 'password': password},
