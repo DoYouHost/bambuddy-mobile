@@ -165,9 +165,21 @@ void main() {
       )).data!;
       final id = created['id'] as int;
       addTearDown(() => dio.delete<dynamic>(Endpoints.project(id)));
-      final raw = (await dio.get<Map<String, dynamic>>(
-        Endpoints.project(id),
-      )).data!;
+      // The server commits in `get_db` after the response is sent, so a GET
+      // right behind the POST can be a 404 for a row that is still landing;
+      // CI hit it on `daily`, straight after the print run above.
+      final raw = await pollUntil(
+        'project $id to be readable',
+        () async {
+          final res = await dio.get<Map<String, dynamic>>(
+            Endpoints.project(id),
+            options: Options(validateStatus: (s) => s == 200 || s == 404),
+          );
+          return res.statusCode == 200 ? res.data : null;
+        },
+        within: const Duration(seconds: 5),
+        every: const Duration(milliseconds: 200),
+      );
       final stats = raw['stats'] as Map<String, dynamic>;
       expect(stats.containsKey('total_wear_cost'), served);
       expect(ProjectStats.fromJson(stats).totalWearCost, 0);
