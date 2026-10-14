@@ -21,8 +21,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_diagnostics"
-      ref: "v0.11.0"
-      resolved-ref: "33501487b0ef5aba742a74fe3612470ee47365f0"
+      ref: "v0.12.1"
+      resolved-ref: "95749ce1f52859f6a2af9a9c64df112e0c731461"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.3.1"
@@ -30,8 +30,8 @@ packages:
     dependency: "direct dev"
     description:
       path: "packages/app_guards"
-      ref: "v0.12.0"
-      resolved-ref: "00f86b22ce1667333d8b07d47c76f33464eaf106"
+      ref: "v0.12.1"
+      resolved-ref: "95749ce1f52859f6a2af9a9c64df112e0c731461"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.1.0"
@@ -48,8 +48,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_report_ui"
-      ref: "v0.12.0"
-      resolved-ref: "00f86b22ce1667333d8b07d47c76f33464eaf106"
+      ref: "v0.12.1"
+      resolved-ref: "95749ce1f52859f6a2af9a9c64df112e0c731461"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.1.5"
@@ -57,8 +57,8 @@ packages:
     dependency: "direct dev"
     description:
       path: "packages/app_test_kit"
-      ref: "v0.12.0"
-      resolved-ref: "00f86b22ce1667333d8b07d47c76f33464eaf106"
+      ref: "v0.12.1"
+      resolved-ref: "95749ce1f52859f6a2af9a9c64df112e0c731461"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.1.0"
@@ -66,8 +66,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_util"
-      ref: "v0.12.0"
-      resolved-ref: "00f86b22ce1667333d8b07d47c76f33464eaf106"
+      ref: "v0.12.1"
+      resolved-ref: "95749ce1f52859f6a2af9a9c64df112e0c731461"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.2.4"
@@ -263,6 +263,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.2"
+  cupertino_ui:
+    dependency: transitive
+    description:
+      name: cupertino_ui
+      sha256: ea0b8170b40a86262b2fc21ac0625303f52df209dbf6fccc2b98b27eff44f6ce
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.2"
   dart_style:
     dependency: transitive
     description:
@@ -275,8 +283,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/dash_kit"
-      ref: "v0.12.0"
-      resolved-ref: "00f86b22ce1667333d8b07d47c76f33464eaf106"
+      ref: "v0.12.1"
+      resolved-ref: "95749ce1f52859f6a2af9a9c64df112e0c731461"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.1.4"
@@ -284,8 +292,8 @@ packages:
     dependency: transitive
     description:
       path: "packages/dash_ui"
-      ref: "v0.12.0"
-      resolved-ref: "00f86b22ce1667333d8b07d47c76f33464eaf106"
+      ref: "v0.12.1"
+      resolved-ref: "95749ce1f52859f6a2af9a9c64df112e0c731461"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.3.2"
@@ -619,10 +627,10 @@ packages:
     dependency: "direct main"
     description:
       name: go_router
-      sha256: d7a3576cb312649eaa51f2356450aed686085fb58fcdebda5b359aa951eef7ea
+      sha256: "530dcbb298dc7c319aea9e3b7c580a61effb2abee2c93825d2dd8d5af0e230f1"
       url: "https://pub.dev"
     source: hosted
-    version: "17.5.0"
+    version: "18.0.2"
   graphs:
     dependency: transitive
     description:
@@ -884,6 +892,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.13.0"
+  material_ui:
+    dependency: transitive
+    description:
+      name: material_ui
+      sha256: "98ab9eda579ecae623e4b376c603035c5def78ce706f735f30bd632af5814695"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.6.0"
   meta:
     dependency: transitive
     description:
@@ -1666,5 +1682,5 @@ packages:
     source: hosted
     version: "3.1.4"
 sdks:
-  dart: ">=3.12.2 <4.0.0"
-  flutter: ">=3.44.0"
+  dart: ">=3.13.0 <4.0.0"
+  flutter: ">=3.47.0"

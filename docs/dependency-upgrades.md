@@ -35,13 +35,6 @@ while secure_storage sits at 10. They move as one block, after 11. (Windows is
 not a target of this app — the constraint still binds, because pub resolves the
 whole dependency graph regardless of platform.)
 
-## go_router stops at 17
-
-18 moved onto the `material_ui` / `cupertino_ui` packages, which annotate with
-`@awaitNotRequired` — absent from the `meta` bundled with Flutter 3.44.8, so the
-tests failed to compile. Flutter 3.47.7 bundles `meta` 1.19.0, which has it, so
-the bump is unblocked but not yet tried.
-
 ## file_picker stops at 10
 
 11 replaced `FilePicker.platform.x()` with static methods and 13 dropped

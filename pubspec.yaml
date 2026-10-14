@@ -29,14 +29,14 @@ dependencies:
   app_diagnostics:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.11.0
+      ref: v0.12.1
       path: packages/app_diagnostics
   # The report screens — the guided flow, the recording bar and the review —
   # shared with lubelogger-mobile.
   app_report_ui:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.12.0
+      ref: v0.12.1
       path: packages/app_report_ui
   # The design system and the widgets that name themselves in the diagnostic
   # log, shared with lubelogger-mobile. `dash_kit` re-exports `dash_ui`, so this
@@ -45,21 +45,21 @@ dependencies:
   dash_kit:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.12.0
+      ref: v0.12.1
       path: packages/dash_kit
   # JSON coercion, user-typed numbers, the demo adapter, the server address and
   # the request-failure classification, shared with lubelogger-mobile.
   app_util:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.12.0
+      ref: v0.12.1
       path: packages/app_util
   clock: ^1.1.2
   collection: ^1.19.0
   dio: ^5.7.0
   flutter_riverpod: ^2.6.1
   flutter_secure_storage: ^10.3.4
-  go_router: ^17.5.0
+  go_router: ^18.0.2
   intl: ^0.20.2
   json_annotation: ^4.12.0
   # Annotations only; the generator behind them is a dev dependency. Both models
@@ -98,14 +98,14 @@ dev_dependencies:
   app_guards:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.12.0
+      ref: v0.12.1
       path: packages/app_guards
   # The harness pieces test/helpers.dart re-exports: the request log, the
   # exact-body mock server, the scripted adapter, the clock and timer fakes.
   app_test_kit:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.12.0
+      ref: v0.12.1
       path: packages/app_test_kit
   # On-device tests (`just test-device`). A mocked adapter never performs a real
   # read off a socket, which is exactly what the camera stream is.

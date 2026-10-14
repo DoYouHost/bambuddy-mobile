@@ -1334,7 +1334,9 @@ void main() {
 
     /// The card behind a router, for the one action that leaves the dashboard.
     /// The real [rootNavigatorKey] is handed to it, because that is the key
-    /// `openSpoolInInventory` reaches the root navigator through.
+    /// `openSpoolInInventory` reaches the root navigator through. Both screens
+    /// are tabs of one shell, as in the app: with two root pages instead,
+    /// go_router 18 replaces the page after the card is pushed and buries it.
     Widget routedCard() {
       final item = realItem();
       // Idle, like [openSlotSheet]: a printing card animates its progress bar
@@ -1350,15 +1352,30 @@ void main() {
       final router = GoRouter(
         navigatorKey: rootNavigatorKey,
         routes: [
-          GoRoute(
-            path: '/',
-            builder: (_, _) => Scaffold(
-              body: SingleChildScrollView(child: PrinterCard(item: idle)),
-            ),
-          ),
-          GoRoute(
-            path: '/inventory',
-            builder: (_, _) => const Scaffold(body: Text('FILAMENTY')),
+          StatefulShellRoute.indexedStack(
+            builder: (_, _, shell) => shell,
+            branches: [
+              StatefulShellBranch(
+                routes: [
+                  GoRoute(
+                    path: '/',
+                    builder: (_, _) => Scaffold(
+                      body: SingleChildScrollView(
+                        child: PrinterCard(item: idle),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              StatefulShellBranch(
+                routes: [
+                  GoRoute(
+                    path: '/inventory',
+                    builder: (_, _) => const Scaffold(body: Text('FILAMENTY')),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       );
