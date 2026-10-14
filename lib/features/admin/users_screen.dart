@@ -13,7 +13,6 @@ import 'user_delete_dialog.dart';
 import 'user_form_screen.dart';
 import 'user_messages.dart';
 import 'users_providers.dart';
-import '../common/tappable_card.dart';
 
 /// The accounts on the server (full screen, pushed from the dashboard drawer).
 ///

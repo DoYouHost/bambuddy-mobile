@@ -1,9 +1,10 @@
 # The shared UI primitives and why they behave as they do
 
-`lib/features/common/dash_input.dart` and `dash_async.dart`. The code keeps the
-contract; the reasons behind the non-obvious rules are here.
+The form fields (`dash_input.dart` in the `dash_kit` package, not this repo) and
+`lib/features/common/dash_async.dart`. The code keeps the contract; the reasons
+behind the non-obvious rules are here.
 
-## Fields and selects (`dash_input.dart`)
+## Fields and selects (`dash_kit`'s `dash_input.dart`)
 
 - **One chrome.** `dashDecoration` is a rounded `subCard` fill with a hairline
   border, turning the accent on focus. A field built with Material's own

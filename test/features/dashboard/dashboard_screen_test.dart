@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:app_util/app_util.dart';
 import 'dart:async';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
@@ -24,7 +25,6 @@ import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/data/pipelines_repository.dart';
 import 'package:bambuddy_mobile/features/shell/root_scaffold.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:bambuddy_mobile/core/api/server_reachability.dart';
 import 'package:dash_kit/dash_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

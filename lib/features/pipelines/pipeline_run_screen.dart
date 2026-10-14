@@ -10,7 +10,6 @@ import '../../data/pipelines_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/dash_stepper.dart';
 import 'pipeline_eligibility_view.dart';
 import 'pipeline_picker_sheet.dart';
 import 'pipeline_run_status_labels.dart';

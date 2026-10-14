@@ -674,11 +674,10 @@ void main() {
 
       expect(find.text(pl.sliceAsDesigned), findsOneWidget);
       final body = await slice(tester);
-      expect(
-        body['printer_preset'],
-        {'source': 'local', 'id': '1'},
-        reason: 'the design\'s printer, not the first in the list',
-      );
+      expect(body['printer_preset'], {
+        'source': 'local',
+        'id': '1',
+      }, reason: 'the design\'s printer, not the first in the list');
     });
 
     testWidgets('sends the field, and nothing the file overrules', (

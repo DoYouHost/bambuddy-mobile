@@ -1,7 +1,6 @@
 import 'package:app_util/app_util.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-import '../format/text_utils.dart';
 import 'calibration_option.dart';
 import 'json_utils.dart';
 import 'variant_group.dart';

@@ -11,7 +11,6 @@ import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
 import '../common/web_link.dart';
 import 'announcements_providers.dart';
-import '../common/tappable_card.dart';
 
 /// The web's announcements panel as a screen: newest first, an unread one
 /// marked until it is opened — opening is what marks it read — and expired

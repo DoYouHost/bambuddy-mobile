@@ -9,7 +9,6 @@ import '../../core/printers/offline_debounce.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
 import '../camera/camera_view.dart';
-import '../common/dash_progress_bar.dart';
 import 'wall_camera.dart';
 import '../../l10n/app_localizations.dart';
 

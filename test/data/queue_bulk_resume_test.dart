@@ -49,11 +49,9 @@ void main() {
         isNot(contains('printer_id')),
         reason: 'a printer key that is present moves every selected item',
       );
-      expect(
-        const QueueBulkChanges(printerId: null).toJson(triState: true),
-        {'printer_id': null},
-        reason: 'null is how the route takes an item off its printer',
-      );
+      expect(const QueueBulkChanges(printerId: null).toJson(triState: true), {
+        'printer_id': null,
+      }, reason: 'null is how the route takes an item off its printer');
       expect(const QueueBulkChanges(printerId: 7).toJson(triState: true), {
         'printer_id': 7,
       });

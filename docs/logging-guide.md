@@ -71,7 +71,7 @@ through. When several tiles of one kind exist (nozzle / nozzle 2 / bed, three
 fans), the **server's own key** goes into the id: `printer.temperature_nozzle_2`,
 `printer.fan_aux` — the same vocabulary as the WS frame.
 
-Target state: `python3 .claude/skills/log-coverage/log_coverage.py` (or
+Target state: `dart run app_guards:log_coverage` (or
 `/log-coverage`) reports **zero** unnamed controls. More than before your change
 is a regression.
 

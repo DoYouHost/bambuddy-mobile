@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:app_util/app_util.dart';
 import 'dart:convert';
 import 'dart:io' show WebSocketException;
 
@@ -8,7 +9,6 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../diagnostics/auth_probe.dart';
 import '../diagnostics/ws_probe.dart';
 import '../models/printer_status.dart';
-import 'ws_backoff.dart';
 import 'ws_messages.dart';
 
 /// `suspended` is separate from `disconnected` because it is deliberate — the
@@ -65,7 +65,7 @@ WsConnection _defaultConnect(Uri url, Map<String, String> headers) =>
     _IoWsConnection(IOWebSocketChannel.connect(url, headers: headers));
 
 /// One multiplexing connection to `/api/v1/ws`, streaming every printer's
-/// frames. Resilience is three things: jittered backoff ([WsBackoff]), a
+/// frames. Resilience is three things: jittered backoff ([JitterBackoff]), a
 /// heartbeat ping with an idle watchdog behind it, and explicit
 /// [suspend]/[resume] tied to the app's lifecycle.
 ///
@@ -76,7 +76,7 @@ class WsClient {
     required Uri url,
     required Future<Map<String, String>> Function() authHeaders,
     WsConnector connect = _defaultConnect,
-    WsBackoff? backoff,
+    JitterBackoff? backoff,
     Future<bool> Function()? refreshAuth,
     Future<String?> Function()? queryToken,
     void Function()? invalidateQueryToken,
@@ -101,12 +101,12 @@ class WsClient {
        _invalidateQueryToken = invalidateQueryToken,
        _isAuthError = isAuthError ?? _defaultIsAuthError,
        _probe = probe ?? WsProbe(),
-       _backoff = backoff ?? WsBackoff();
+       _backoff = backoff ?? JitterBackoff();
 
   final Uri _url;
   final Future<Map<String, String>> Function() _authHeaders;
   final WsConnector _connect;
-  final WsBackoff _backoff;
+  final JitterBackoff _backoff;
 
   /// Silent unless a bug-report recording is running.
   final WsProbe _probe;

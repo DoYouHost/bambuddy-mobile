@@ -9,8 +9,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/dash_input.dart';
-import '../common/sheet_surface.dart';
 import 'printer_location_icons.dart';
 import 'printer_locations_providers.dart';
 

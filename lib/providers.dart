@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:app_util/app_util.dart';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -73,7 +74,6 @@ import 'data/smart_plugs_repository.dart';
 import 'data/stats_repository.dart';
 import 'data/timelapse_repository.dart';
 import 'data/users_repository.dart';
-import 'features/common/currency_symbol.dart';
 
 /// Overridden in main() after SharedPreferences.getInstance().
 final sharedPreferencesProvider = Provider<SharedPreferences>(

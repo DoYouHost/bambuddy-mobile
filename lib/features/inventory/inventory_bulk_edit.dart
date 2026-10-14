@@ -358,6 +358,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
       },
       clear: (
         id: 'bulk_edit.preset.clear',
+        tooltip: l10n.clear,
         onPressed: () => setState(() {
           _slicerFilament = null;
           _slicerFilamentName = null;
@@ -384,6 +385,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
       onTap: _pickColor,
       clear: (
         id: 'bulk_edit.color.clear',
+        tooltip: l10n.clear,
         onPressed: () => _c['rgba']!.clear(),
       ),
     );

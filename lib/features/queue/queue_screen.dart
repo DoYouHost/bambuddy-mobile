@@ -15,7 +15,6 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
-import '../common/refresh_when_shown.dart';
 import '../../core/app_context.dart';
 import '../common/plate_clear.dart';
 import '../gcode/gcode_viewer_route.dart';

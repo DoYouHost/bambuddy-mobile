@@ -9,7 +9,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/dash_input.dart';
 import 'pipelines_providers.dart';
 
 /// Name, description and — the reason this screen exists — the target a run

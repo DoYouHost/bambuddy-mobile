@@ -524,11 +524,10 @@ void main() {
         hasLength(1),
         reason: 'the number is dropped, not read',
       );
-      expect(
-        page.runs.single.jobs.map((j) => j.id),
-        [1, 2],
-        reason: 'the string between them costs only itself',
-      );
+      expect(page.runs.single.jobs.map((j) => j.id), [
+        1,
+        2,
+      ], reason: 'the string between them costs only itself');
     });
 
     test(

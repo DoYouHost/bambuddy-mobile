@@ -14,7 +14,6 @@ import '../../core/models/inventory.dart' show StockStats;
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress_bar.dart';
 import '../common/print_run_labels.dart';
 import 'stats_common.dart';
 import 'stats_computed.dart';

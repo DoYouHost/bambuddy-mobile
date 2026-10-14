@@ -812,6 +812,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       onTap: () => _openSlicerPresetPicker(l10n),
       clear: (
         id: 'spool_form.preset.clear',
+        tooltip: l10n.clear,
         onPressed: () => setState(() {
           _slicerFilament = null;
           _slicerFilamentName = null;
@@ -947,6 +948,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       onTap: () => _pickOverridePreset(l10n, row),
       clear: (
         id: 'spool_form.model_preset.clear',
+        tooltip: l10n.clear,
         onPressed: () => setState(() {
           _overrides?.remove(row.key);
           _overridesDirty = true;

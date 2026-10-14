@@ -4,12 +4,12 @@ import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/core/slicer/filament_slot_options.dart';
 import 'package:bambuddy_mobile/core/slicer/process_schema_catalog.dart';
 import 'package:bambuddy_mobile/features/slicer/process_settings_screen.dart';
-import 'package:bambuddy_mobile/features/common/dash_search_field.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 
 /// A small stand-in for the 348-option catalog. Built through the loader's own
 /// asset reader, so the real parsing path runs and the tests do not depend on

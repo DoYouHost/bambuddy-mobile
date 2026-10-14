@@ -14,7 +14,6 @@ import 'api_key_form_screen.dart';
 import 'api_key_labels.dart';
 import 'api_keys_providers.dart';
 import 'user_messages.dart';
-import '../common/tappable_card.dart';
 
 /// The API keys issued on this server (full screen, pushed from the drawer).
 ///

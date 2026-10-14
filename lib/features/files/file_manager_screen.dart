@@ -1,4 +1,3 @@
-import '../common/dash_icon_tile.dart';
 import 'dart:async';
 
 import 'package:app_util/app_util.dart';
@@ -23,9 +22,6 @@ import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../gcode/gcode_viewer_route.dart';
 import '../common/device_files.dart';
-import '../common/prompt_name_dialog.dart';
-import '../common/dash_search_field.dart';
-import '../common/sliver_search_bar.dart';
 import '../queue/queue_edit_screen.dart';
 import '../queue/queue_removal.dart';
 import '../slicer/slice_providers.dart';
@@ -39,7 +35,6 @@ import 'library_thumbnail.dart';
 import 'queue_cost_center_sheet.dart';
 import 'queue_target_sheet.dart';
 import 'tag_sheets.dart';
-import '../../core/format/text_utils.dart';
 
 /// File manager (library): folder navigation, thumbnails, file actions (print, queue,
 /// rename, move, delete), folder CRUD, upload, and trash. UI pattern consistent with archive screen.

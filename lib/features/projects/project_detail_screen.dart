@@ -12,7 +12,6 @@ import '../../l10n/error_messages.dart';
 import '../common/api_failure_snack.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress_bar.dart';
 import '../common/device_files.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';

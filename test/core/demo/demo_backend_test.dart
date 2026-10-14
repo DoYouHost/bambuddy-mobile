@@ -234,11 +234,10 @@ void main() {
         )).where((i) => i.printerId == held.single.printerId),
         hasLength(2),
       );
-      expect(
-        await repo.resumeAfterFailure(held.single.printerId),
-        (acknowledged: 0, restored: 0),
-        reason: 'a second resume has nothing left to clear',
-      );
+      expect(await repo.resumeAfterFailure(held.single.printerId), (
+        acknowledged: 0,
+        restored: 0,
+      ), reason: 'a second resume has nothing left to clear');
     });
 
     test(

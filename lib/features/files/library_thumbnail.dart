@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
 import '../common/media_image.dart';
-import '../common/thumbnail_box.dart';
+import '../../core/theme/dash_theme.dart';
 
 /// Library file thumbnail. Authenticated with the media credential — the
 /// Bearer header does NOT work for this resource, same as archive thumbnail

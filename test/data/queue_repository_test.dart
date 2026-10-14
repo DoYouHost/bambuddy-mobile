@@ -104,15 +104,11 @@ void main() {
     final items = await repo.fetch();
 
     expect(items.where((i) => i.isActive), isEmpty);
-    expect(
-      items.map((i) => i.statusKind).toSet(),
-      {
-        QueueItemStatusKind.completed,
-        QueueItemStatusKind.cancelled,
-        QueueItemStatusKind.failed,
-      },
-      reason: 'no status from this response may land in unknown',
-    );
+    expect(items.map((i) => i.statusKind).toSet(), {
+      QueueItemStatusKind.completed,
+      QueueItemStatusKind.cancelled,
+      QueueItemStatusKind.failed,
+    }, reason: 'no status from this response may land in unknown');
   });
 
   group('fetchActive', () {

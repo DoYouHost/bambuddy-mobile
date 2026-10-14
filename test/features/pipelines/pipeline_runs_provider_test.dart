@@ -349,11 +349,9 @@ void main() {
           .replace(const PipelineRunFilter(status: 'failed'));
 
       final view = await container.read(pipelineRunsProvider.future);
-      expect(
-        view.runs.map((r) => r.id),
-        [4],
-        reason: 'offsets and total both describe one filtered set',
-      );
+      expect(view.runs.map((r) => r.id), [
+        4,
+      ], reason: 'offsets and total both describe one filtered set');
       expect(view.total, 1);
     });
 

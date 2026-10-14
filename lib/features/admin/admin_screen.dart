@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/settings_entry_tile.dart';
 import 'api_keys_providers.dart';
 import 'groups_providers.dart';
 import 'users_providers.dart';

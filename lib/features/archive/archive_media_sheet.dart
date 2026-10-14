@@ -18,7 +18,6 @@ import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../common/device_files.dart';
 import '../common/file_export.dart';
-import '../common/inline_note.dart';
 import '../files/printer_download_job.dart';
 import '../files/printer_selection_download.dart';
 import '../../data/streamed_download.dart';

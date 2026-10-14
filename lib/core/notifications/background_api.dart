@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:app_util/app_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/archive_repository.dart';
@@ -18,7 +19,6 @@ import 'hms_stop_request.dart';
 import 'launch_relay.dart';
 import 'outcome_alert.dart';
 import '../diagnostics/diagnostics_wiring.dart';
-import '../format/text_utils.dart';
 
 /// The server a notification's payload belongs to, as a digest rather than in
 /// the clear. A payload names rows by id — a printer, an archive — and an id

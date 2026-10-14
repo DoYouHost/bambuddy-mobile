@@ -9,9 +9,6 @@ import '../../core/network/label_printer_discovery.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/label_printer_repository.dart';
 import '../../l10n/app_localizations.dart';
-import '../common/inline_note.dart';
-import '../common/settings_entry_tile.dart';
-import '../common/settings_rows.dart';
 import 'label_printer_providers.dart';
 
 /// Where spool labels are printed: the user's own label print server, found on

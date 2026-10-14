@@ -9,13 +9,11 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress_bar.dart';
 import '../common/device_files.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
 import 'project_form_screen.dart';
 import 'projects_providers.dart';
-import '../common/tappable_card.dart';
 
 /// Projects list (full-screen, pushed from the dashboard drawer). Status filter,
 /// pull-to-refresh, cards with cover/progress/counts. FAB → create form.

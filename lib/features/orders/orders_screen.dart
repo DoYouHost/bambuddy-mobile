@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:app_util/app_util.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
@@ -16,10 +17,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/server_refusal.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/currency_symbol.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress_bar.dart';
-import '../common/refresh_when_shown.dart';
 import '../queue/queue_providers.dart';
 import '../stats/stats_common.dart' show fmtNum;
 import 'orders_group_sheet.dart';

@@ -92,7 +92,7 @@ hooks:
 [doc('spell-check the .arb strings this branch changed')]
 [group('1-develop')]
 l10n-check base='dev':
-    python3 tool/check_l10n_language.py --base {{base}}
+    dart run app_guards:l10n_language --base {{base}}
 
 # What ships in the watch APK is decided by Gradle and the manifest merger, so
 # no Dart test can see it: the per-flavor asset prune and the stripped startup
@@ -111,20 +111,20 @@ check-wear-apk wear='build/app/outputs/flutter-apk/app-wear-debug.apk' mobile=''
 [doc('glue one-letter words to the next word in every .arb, then gen-l10n')]
 [group('1-develop')]
 l10n-glue:
-    python3 tool/glue_short_words.py
+    dart run app_guards:glue_short_words
     flutter gen-l10n
 
 [doc('spell-check every .arb string, not only this branch')]
 [group('1-develop')]
 l10n-check-all:
-    python3 tool/check_l10n_language.py --all
+    dart run app_guards:l10n_language --all
 
 # Compare .arb files against the English template: find missing, outdated or mismatched keys.
 # usage: just l10n-status [*ARGS]
 [doc('check translation status and missing keys against app_en.arb')]
 [group('1-develop')]
 l10n-status *args:
-    python3 tool/check_l10n_sync.py {{args}}
+    dart run app_guards:l10n_sync {{args}}
 
 # Boots the AVD first if needed, then builds, installs and runs with hot reload.
 # This is the primary pre-commit verify loop.
@@ -302,13 +302,13 @@ build-wear-aab name='' code='': (_build "appbundle" "wear" name code)
 [doc('print the versions baked into the built Play bundles')]
 [group('3-build')]
 aab-show *paths:
-    @python3 tool/aab_versions.py {{paths}}
+    @dart run app_guards:aab_versions {{paths}}
 
-# Read-only. Needs uv and the service-account key (tool/play_internal.py says where).
+# Read-only. Needs uv and the service-account key (tool/play.toml says where).
 [doc('list the Google Play tracks and the releases on them')]
 [group('3-build')]
 play-tracks:
-    @uv run --quiet tool/play_internal.py tracks
+    @dart run app_guards:play tracks
 
 [doc('delete local build outputs')]
 [group('3-build')]
@@ -435,7 +435,7 @@ _play-only tag name:
     grep -q '^app-wear-.*\.apk$' <<<"$assets"
     for f in {{aab}} {{wear_aab}}; do
         [ -f "$f" ]
-        grep -qF " {{name}} " <<<"$(python3 tool/aab_versions.py "$f")"
+        grep -qF " {{name}} " <<<"$(dart run app_guards:aab_versions "$f")"
     done
 
 # Produces everything a stable version needs: APKs for the GitHub release (and
@@ -649,12 +649,12 @@ release-publish ver:
 
 # Releases the two Play bundles in build/dist to internal testing, phone and
 # watch in one edit. Safe to re-run: what is already on its track is skipped.
-# Needs uv and the service-account key (tool/play_internal.py says where).
+# Needs uv and the service-account key (tool/play.toml says where).
 # usage: just play-internal [--dry-run]
 [doc('release the built Play bundles to internal testing')]
 [group('4-release')]
 play-internal *flags:
-    uv run --quiet tool/play_internal.py internal {{flags}} {{aab}} {{wear_aab}}
+    dart run app_guards:play internal {{flags}} {{aab}} {{wear_aab}}
 
 # ---- 5-danger — deletes what cannot be restored ----
 #

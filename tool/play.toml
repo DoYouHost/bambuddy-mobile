@@ -1,0 +1,19 @@
+# bambuddy's half of `dart run app_guards:play` (`just play-tracks`,
+# `just play-internal`).
+
+# The frozen applicationId — the Play listing's identity, see
+# android/app/build.gradle.kts.
+package = "page.codeberg.morganmlgman.bambuddy_mobile"
+
+# The service-account key, outside the repo; PLAY_SA_KEY overrides it.
+key = "~/.config/bambuddy/play-sa.json"
+
+# Which track a bundle goes to, by its versionCode (the table in the justfile):
+# the watch band starts a billion up.
+[[bands]]
+from = 0
+track = "internal"
+
+[[bands]]
+from = 1_000_000_000
+track = "wear:internal"

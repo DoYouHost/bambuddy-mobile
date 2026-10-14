@@ -209,92 +209,6 @@ class _ToneEdgePainter extends CustomPainter {
   bool shouldRepaint(_ToneEdgePainter old) => old.color != color;
 }
 
-/// A segment for [QueueSegToggle].
-typedef QueueSegment<T> = ({T value, String label, IconData? icon});
-
-/// Horizontal pill toggle (Specific/Any, Inherit/On/Off, ASAP/Queue/Schedule).
-/// Selected segment is green-filled; the rest are neutral.
-class QueueSegToggle<T> extends StatelessWidget {
-  const QueueSegToggle({
-    super.key,
-    required this.id,
-    required this.selected,
-    required this.segments,
-    required this.onChanged,
-  });
-
-  /// Log identifier, required from the call site — see [_CheckRow.id]. Six of
-  /// these are rendered on this screen and they set six different things, so a
-  /// tag written into `build` made a report say only that "a segment in the
-  /// queue form" was pressed.
-  final String id;
-
-  final T selected;
-  final List<QueueSegment<T>> segments;
-  final ValueChanged<T> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Row(
-      children: [
-        for (var i = 0; i < segments.length; i++) ...[
-          if (i > 0) const SizedBox(width: DashSpace.sm),
-          Expanded(child: _segButton(t, segments[i])),
-        ],
-      ],
-    );
-  }
-
-  Widget _segButton(DashTokens t, QueueSegment<T> seg) {
-    final isSel = seg.value == selected;
-    return Material(
-      color: isSel ? t.accentGreen : t.groupCard,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => onChanged(seg.value),
-        child: Container(
-          height: 44,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSel ? Colors.transparent : t.groupCardBorder,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (seg.icon != null) ...[
-                Icon(
-                  seg.icon,
-                  size: 16,
-                  color: isSel ? t.onAccent : t.textSecondary,
-                ),
-                const SizedBox(width: DashSpace.sm),
-              ],
-              Flexible(
-                child: Text(
-                  seg.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: t.bodyBold.copyWith(
-                    color: isSel ? t.onAccent : t.textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        // The fill is the only thing that says which segment is on.
-      ).tagged(id, selected: isSel),
-    );
-  }
-}
-
 /// Title + subtitle row with a trailing [Switch] (print options).
 /// One tri-state calibration option.
 ///
@@ -354,7 +268,7 @@ class QueueCalibrationRow extends StatelessWidget {
           const SizedBox(height: DashSpace.xs),
           Text(subtitle, style: t.labelSoft),
           const SizedBox(height: DashSpace.sm),
-          QueueSegToggle<CalibrationOption>(
+          DashSegToggle<CalibrationOption>(
             id: id,
             selected: value,
             segments: [

@@ -24,7 +24,6 @@ import '../../core/slicer/preset_compatibility.dart';
 import '../../core/slicer/process_settings_codec.dart';
 import '../../core/theme/dash_theme.dart';
 import '../common/dash_async.dart';
-import '../common/inline_note.dart';
 import '../dashboard/ams_slot_config_providers.dart'
     show printerModelRegistryProvider;
 import '../../core/models/slicer_pipeline.dart';

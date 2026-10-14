@@ -82,11 +82,9 @@ void main() {
     test('a resume is not sent', () async {
       await handleHmsAction(_tap('RESUME_PRINTING', payload: foreign()));
 
-      expect(
-        await failures(),
-        ['ServerChanged'],
-        reason: 'a request would have failed with a network error instead',
-      );
+      expect(await failures(), [
+        'ServerChanged',
+      ], reason: 'a request would have failed with a network error instead');
     });
   });
 

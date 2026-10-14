@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/endpoints.dart';
 import '../../providers.dart';
 import 'media_image.dart';
-import 'thumbnail_box.dart';
+import '../../core/theme/dash_theme.dart';
 
 /// Print thumbnail from archive (queue + archive). Auth via the media
 /// credential — the Bearer header does NOT work for this resource,

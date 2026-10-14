@@ -726,11 +726,10 @@ void main() {
 
         expect(find.text('DASHBOARD'), findsOneWidget);
         expect(orientations.last, isEmpty);
-        expect(
-          overlays.last,
-          ['SystemUiOverlay.top', 'SystemUiOverlay.bottom'],
-          reason: 'both bars back, the flags the activity starts with',
-        );
+        expect(overlays.last, [
+          'SystemUiOverlay.top',
+          'SystemUiOverlay.bottom',
+        ], reason: 'both bars back, the flags the activity starts with');
         expect(awake.last, isFalse);
       },
     );

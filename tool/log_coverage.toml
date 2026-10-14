@@ -1,0 +1,18 @@
+# bambuddy's half of `dart run app_guards:log_coverage` (the `/log-coverage`
+# skill): what names a control in this app's diagnostic log.
+
+# Calls that tag the widget they wrap: `logTag(id, child)`, and the variant that
+# also records the filament material as its own field.
+tag_functions = ["logTag", "logTagMaterial"]
+
+# Extension methods that tag the widget they hang off: `widget.tagged(id)`.
+tag_methods = ["tagged", "taggedMaterial"]
+
+# Left out unless `--all-dirs`: the watch app has no recorder, the bug-report
+# log is a phone feature.
+skip_dirs = ["lib/wear"]
+
+# Functions that tag whatever they are handed, so their arguments inherit the
+# name. `dashAppBar` names the whole bar, back button and actions included.
+[wrappers]
+dashAppBar = "chrome.appbar"

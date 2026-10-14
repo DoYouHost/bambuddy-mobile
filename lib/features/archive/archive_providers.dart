@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:app_util/app_util.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
@@ -9,7 +10,6 @@ import '../../core/models/print_run.dart';
 import '../../core/models/printer.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../../core/format/text_utils.dart';
 
 /// Upper bound on how many archives we load in one shot. Filtering/sorting runs
 /// client-side over the full set (matching bambuddy), so we fetch everything

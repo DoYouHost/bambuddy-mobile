@@ -17,7 +17,6 @@ import '../common/dash_async.dart';
 import '../common/device_files.dart';
 import '../common/media_image.dart';
 import '../common/photo_pager.dart';
-import '../common/prompt_name_dialog.dart';
 import '../common/web_link.dart';
 import 'file_manager_providers.dart';
 

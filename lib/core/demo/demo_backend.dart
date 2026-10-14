@@ -13,7 +13,6 @@ import '../app_context.dart';
 import 'demo_labels.dart';
 import 'demo_finance.dart';
 import 'demo_manyfold.dart';
-import '../format/text_utils.dart';
 
 /// In-process fake bambuddy server for demo mode (see [DemoConfig]).
 ///

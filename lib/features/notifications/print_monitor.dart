@@ -1,8 +1,8 @@
 import 'dart:async';
+import 'package:app_util/app_util.dart';
 
 import 'package:clock/clock.dart';
 
-import '../../core/format/text_utils.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/notif_probe.dart';

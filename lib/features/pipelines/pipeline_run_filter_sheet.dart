@@ -6,7 +6,6 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/pipeline_run.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../common/dash_input.dart';
 import 'pipeline_run_status_labels.dart';
 import 'pipelines_providers.dart';
 

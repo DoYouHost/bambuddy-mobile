@@ -10,7 +10,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/dash_search_field.dart';
 import 'manyfold_connection.dart';
 import 'manyfold_model_screen.dart';
 import 'manyfold_providers.dart';

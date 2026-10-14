@@ -36,7 +36,7 @@ dependencies:
   app_report_ui:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.11.1
+      ref: v0.12.0
       path: packages/app_report_ui
   # The design system and the widgets that name themselves in the diagnostic
   # log, shared with lubelogger-mobile. `dash_kit` re-exports `dash_ui`, so this
@@ -45,14 +45,14 @@ dependencies:
   dash_kit:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.11.0
+      ref: v0.12.0
       path: packages/dash_kit
   # JSON coercion, user-typed numbers, the demo adapter, the server address and
   # the request-failure classification, shared with lubelogger-mobile.
   app_util:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.11.0
+      ref: v0.12.0
       path: packages/app_util
   clock: ^1.1.2
   collection: ^1.19.0
@@ -92,6 +92,21 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # The source scans behind the spacing, wrap, short-word and finder tests, and
+  # the `glue_short_words` tool `just l10n-glue` runs. Shared with
+  # lubelogger-mobile, pinned like the packages above.
+  app_guards:
+    git:
+      url: https://github.com/DoYouHost/app-shared.git
+      ref: v0.12.0
+      path: packages/app_guards
+  # The harness pieces test/helpers.dart re-exports: the request log, the
+  # exact-body mock server, the scripted adapter, the clock and timer fakes.
+  app_test_kit:
+    git:
+      url: https://github.com/DoYouHost/app-shared.git
+      ref: v0.12.0
+      path: packages/app_test_kit
   # On-device tests (`just test-device`). A mocked adapter never performs a real
   # read off a socket, which is exactly what the camera stream is.
   integration_test:

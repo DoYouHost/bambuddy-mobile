@@ -3,7 +3,6 @@ import 'package:bambuddy_mobile/l10n/error_messages.dart';
 import 'package:bambuddy_mobile/core/models/cost_center.dart';
 import 'package:bambuddy_mobile/core/models/wallet.dart';
 import 'package:bambuddy_mobile/data/finance_repository.dart';
-import 'package:bambuddy_mobile/features/common/dash_progress_bar.dart';
 import 'package:bambuddy_mobile/features/finance/finance_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
@@ -11,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 
 /// A finance repository that answers from memory and remembers what it was
 /// asked, so a test reads the paging off `asked` instead of off a mock handler.

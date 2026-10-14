@@ -300,8 +300,8 @@ The Ambient Mode page adds that automatic playback and animations must not set
 - `justfile`: `build-tv`, `build-tv-aab`, `run-tv` (TV emulator AVD), `ship`
   and `ship-dev` build and publish the TV artifacts too; `_upload-assets` takes
   a third file (`app-tv-<name>.apk` for Obtainium/Fire TV).
-- `tool/play_internal.py`: route by band — TV codes to the TV track (name per
-  §4); `tool/aab_versions.py`: learn the TV band.
+- `tool/play.toml` (`app_guards`' Play tool): route by band — TV codes to the TV track (name per
+  §4); `aab_versions.py` (in `app_guards`, run as `dart run app_guards:aab_versions`): learn the TV band.
 - CI (`ci.yml`): compile check for `tv`, plus `tool/check_tv_apk.py` (pruned
   assets, stripped components/permissions, leanback + banner present).
 - Play: opt in to Android TV, banner and TV screenshots, "Android TV" in the

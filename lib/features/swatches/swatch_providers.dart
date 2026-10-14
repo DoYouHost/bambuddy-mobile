@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app_util/app_util.dart';
 
 import '../../core/models/swatch_code.dart';
 import '../../providers.dart';
 import '../inventory/inventory_providers.dart';
-import '../../core/format/text_utils.dart';
 
 /// Swatch codes registry (local data). Loaded from SharedPreferences on first
 /// access; each mutation persists entire list (small list, rare writes).

@@ -18,8 +18,6 @@ import '../../../core/models/k_profile.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../../core/theme/dash_theme.dart';
-import '../../common/dash_input.dart';
-import '../../common/dash_search_field.dart';
 import '../../../l10n/error_messages.dart';
 import '../../inventory/inventory_providers.dart' show colorCatalogProvider;
 import '../../inventory/inventory_screen.dart'

@@ -1,4 +1,5 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,10 +10,7 @@ import '../../core/models/wallet.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/currency_symbol.dart';
 import '../common/dash_async.dart';
-import '../common/dash_input.dart';
-import '../common/dash_progress_bar.dart';
 import '../stats/stats_providers.dart' show statsUsersProvider;
 import 'finance_forms.dart';
 import 'finance_providers.dart';

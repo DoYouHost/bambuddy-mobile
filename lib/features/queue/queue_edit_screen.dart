@@ -22,11 +22,6 @@ import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/currency_symbol.dart';
-import '../common/dash_input.dart';
-import '../common/dash_stepper.dart';
-import '../common/date_time_picker.dart';
-import '../common/inline_note.dart';
 import '../common/print_thumbnail.dart';
 import '../files/library_thumbnail.dart';
 import '../slicer/slice_providers.dart';
@@ -443,7 +438,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          QueueSegToggle<bool>(
+          DashSegToggle<bool>(
             id: 'queue_edit.target_mode',
             selected: _modelMode,
             segments: [
@@ -1395,7 +1390,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         children: [
           Text(l10n.queueEditPreheatDesc, style: t.labelSoft),
           const SizedBox(height: DashSpace.md),
-          QueueSegToggle<String>(
+          DashSegToggle<String>(
             id: 'queue_edit.preheat_override',
             selected: _preheatOverride,
             segments: [
@@ -1436,7 +1431,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          QueueSegToggle<QueueScheduleType>(
+          DashSegToggle<QueueScheduleType>(
             id: 'queue_edit.schedule_type',
             selected: _scheduleType,
             segments: [

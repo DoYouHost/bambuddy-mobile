@@ -184,11 +184,9 @@ void main() {
 
       await publishSystemClock(true, settings: settings, monitor: monitor);
 
-      expect(
-        monitor.pings,
-        [(BackgroundSync.clock, true)],
-        reason: 'the new value was already on disk when the ping went out',
-      );
+      expect(monitor.pings, [
+        (BackgroundSync.clock, true),
+      ], reason: 'the new value was already on disk when the ping went out');
     });
 
     test('a service that is not running is not pinged', () async {

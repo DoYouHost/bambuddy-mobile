@@ -112,7 +112,8 @@ do not stay silent because it was not part of the task.
   `app_localizations*.dart` (committed). User-visible strings go through
   `AppLocalizations`, never hardcoded, and every string you add or change goes
   through `just l10n-check` before you hand the change over (see Conventions).
-- `test/` — mirrors `lib/`; `test/helpers.dart` holds the shared harness.
+- `test/` — mirrors `lib/`; `test/helpers.dart` holds the shared harness and
+  re-exports `app_test_kit`, the app-independent half of it.
 - `justfile` — `just test`, `just l10n-check`, `just build` / `build-wear` /
   `build-aab`, `just ship X.Y.Z`, `just ship-dev`, emulator recipes. **`just
   hooks` once per clone** points git at `.githooks/`, which refuses a commit
@@ -202,11 +203,13 @@ do not stay silent because it was not part of the task.
   identifier — `logTag('area.thing', …)` / `.tagged('area.thing')`. Ids are wire
   values and carry no user data; the grammar and the traps are in
   [docs/logging-guide.md](docs/logging-guide.md). The `log-coverage` scan
-  (`python3 .claude/skills/log-coverage/log_coverage.py`) must stay at zero
+  (`dart run app_guards:log_coverage`) must stay at zero
   unnamed controls.
 - **Copy you add gets spell-checked, and that is not the whole check.**
   `just l10n-check` runs the strings this branch changed through LanguageTool
-  (`tool/check_l10n_language.py`); `LANGUAGETOOL_URL` points it at a self-hosted
+  (`app_guards`' checker, configured by `tool/l10n_language.toml`: the files,
+  the rules this copy overrules, the words no dictionary has);
+  `LANGUAGETOOL_URL` points it at a self-hosted
   instance instead of the rate-limited public API, and `just l10n-check-all`
   sweeps every locale file (en, pl, de, fr, es). It finds spelling, agreement and punctuation. It does not
   find a phrase that parses and means nothing ("Wysyłek jednocześnie"), a
@@ -281,8 +284,8 @@ do not stay silent because it was not part of the task.
   answer it already has and never asks again once the server is reachable;
   `capability_gate_shape_test.dart` refuses one. The path and the "adding a
   gate" checklist are in [docs/server-gates.md](docs/server-gates.md).
-- **Select fields go through `dashCombo`**
-  ([lib/features/common/dash_input.dart](lib/features/common/dash_input.dart)):
+- **Select fields go through `dashCombo`** (in the `dash_kit` package, not this
+  repo):
   an M3 `DropdownMenu<T>` with `expandedInsets: EdgeInsets.zero`, `menuHeight:
   320` and `dashInputTheme` (the `InputDecorationTheme` twin of
   `dashFieldDecoration` — `DropdownMenu` builds its own inner `TextField`, so it
@@ -303,8 +306,8 @@ do not stay silent because it was not part of the task.
   `<id>.confirm`) and records the answer as a `confirm` record. A hand-built `AlertDialog` is for bodies that
   are a **form or a choice** (text field, colour picker, checkbox that changes the
   outcome) — not for a plain question.
-- **Spacing goes through `DashSpace`**
-  ([lib/core/theme/dash_theme.dart](lib/core/theme/dash_theme.dart)): the 4 dp
+- **Spacing goes through `DashSpace`** (in the `dash_ui` package, not this
+  repo): the 4 dp
   scale `xs 4 · sm 8 · md 12 · lg 16 · xl 24 · xxl 32`, plus `gutter` for the
   left/right inset of anything meeting the screen, sheet or drawer edge, and
   `fabClearance` for a list under a FAB. No number typed into an `EdgeInsets`,

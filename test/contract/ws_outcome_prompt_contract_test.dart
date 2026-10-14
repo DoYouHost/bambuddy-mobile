@@ -40,58 +40,51 @@ void main() {
       serial = (printers.first as Map)['serial_number'] as String;
     });
 
-    test(
-      'a print that asked sends the question, naming its archive',
-      () async {
-        if (!served) return markTestSkipped('the server predates #1898');
-        await dio.put<dynamic>(
-          Endpoints.appSettingsUpdate,
-          data: {'confirm_outcome_external_prints': true},
-        );
+    test('a print that asked sends the question, naming its archive', () async {
+      if (!served) return markTestSkipped('the server predates #1898');
+      await dio.put<dynamic>(
+        Endpoints.appSettingsUpdate,
+        data: {'confirm_outcome_external_prints': true},
+      );
 
-        final frames = await _socket(dio);
-        addTearDown(frames.close);
-        final asked = frames.stream
-            .map(parseWsMessage)
-            .where((m) => m is WsPrintConfirmRequest)
-            .cast<WsPrintConfirmRequest>()
-            .first
-            .timeout(const Duration(minutes: 3));
+      final frames = await _socket(dio);
+      addTearDown(frames.close);
+      final asked = frames.stream
+          .map(parseWsMessage)
+          .where((m) => m is WsPrintConfirmRequest)
+          .cast<WsPrintConfirmRequest>()
+          .first
+          .timeout(const Duration(minutes: 3));
 
-        // Off the seeded job first: a print only starts from a printer that
-        // is not already running one.
-        await publishReport(serial, {
-          'gcode_state': 'FINISH',
-          'mc_percent': 100,
-        });
-        await Future<void>.delayed(const Duration(seconds: 3));
-        await publishReport(serial, {
-          'gcode_state': 'RUNNING',
-          'mc_percent': 5,
-          'subtask_name': 'outcome-probe.3mf',
-          'gcode_file': 'outcome-probe.3mf',
-        });
-        // The server makes the archive while it handles the start — after
-        // trying the printer's FTP for the 3MF, which the stand-in does not
-        // serve — and a finish before that finds no archive to ask about.
-        final started = await _archiveAsking(dio);
-        await publishReport(serial, {
-          'gcode_state': 'FINISH',
-          'mc_percent': 100,
-          'subtask_name': 'outcome-probe.3mf',
-          'gcode_file': 'outcome-probe.3mf',
-        });
+      // Off the seeded job first: a print only starts from a printer that
+      // is not already running one.
+      await publishReport(serial, {'gcode_state': 'FINISH', 'mc_percent': 100});
+      await Future<void>.delayed(const Duration(seconds: 3));
+      await publishReport(serial, {
+        'gcode_state': 'RUNNING',
+        'mc_percent': 5,
+        'subtask_name': 'outcome-probe.3mf',
+        'gcode_file': 'outcome-probe.3mf',
+      });
+      // The server makes the archive while it handles the start — after
+      // trying the printer's FTP for the 3MF, which the stand-in does not
+      // serve — and a finish before that finds no archive to ask about.
+      final started = await _archiveAsking(dio);
+      await publishReport(serial, {
+        'gcode_state': 'FINISH',
+        'mc_percent': 100,
+        'subtask_name': 'outcome-probe.3mf',
+        'gcode_file': 'outcome-probe.3mf',
+      });
 
-        final request = await asked;
-        expect(request.archiveId, started);
-        final archive = await ArchiveRepository(dio).byId(request.archiveId);
-        expect(archive.confirmRequested, isTrue);
-        expect(archive.awaitsVerdict, isTrue);
-        expect(archive.printerId, request.printerId);
-        expect(request.printName, isNotEmpty);
-      },
-      timeout: const Timeout(Duration(minutes: 4)),
-    );
+      final request = await asked;
+      expect(request.archiveId, started);
+      final archive = await ArchiveRepository(dio).byId(request.archiveId);
+      expect(archive.confirmRequested, isTrue);
+      expect(archive.awaitsVerdict, isTrue);
+      expect(archive.printerId, request.printerId);
+      expect(request.printName, isNotEmpty);
+    }, timeout: const Timeout(Duration(minutes: 4)));
   });
 }
 

@@ -126,16 +126,13 @@ void main() {
 
 /// Waits until the server holds an MQTT session to the new printer — a jog
 /// before that is a 400 "Printer not connected".
-Future<void> _connected(Dio dio, int id) => pollUntil(
-  'printer $id to connect to the stand-in broker',
-  () async {
-    final status = await dio.get<Map<String, dynamic>>(
-      '${Endpoints.printers}$id/status',
-    );
-    return status.data?['connected'] == true ? true : null;
-  },
-  within: const Duration(seconds: 30),
-);
+Future<void> _connected(Dio dio, int id) =>
+    pollUntil('printer $id to connect to the stand-in broker', () async {
+      final status = await dio.get<Map<String, dynamic>>(
+        '${Endpoints.printers}$id/status',
+      );
+      return status.data?['connected'] == true ? true : null;
+    }, within: const Duration(seconds: 30));
 
 /// The `param` of the first `gcode_line` the server publishes to [serial]
 /// while [send] runs. The server publishes other requests on the same topic

@@ -1,10 +1,10 @@
 import 'package:dash_kit/dash_kit.dart';
+import 'package:app_util/app_util.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/features/common/dash_async.dart';
 import 'package:bambuddy_mobile/l10n/error_messages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bambuddy_mobile/core/api/server_reachability.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';

@@ -9,7 +9,6 @@ import '../../core/models/archive.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/currency_symbol.dart';
 import '../common/web_link.dart';
 import 'archive_providers.dart';
 

@@ -7,7 +7,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/dash_input.dart';
 import '../common/dash_async.dart';
 import 'queue_form_parts.dart';
 import 'queue_providers.dart';
@@ -318,7 +317,7 @@ class _Choice<T extends Object> extends StatelessWidget {
   final String id;
   final String title;
   final T? value;
-  final List<QueueSegment<T?>> segments;
+  final List<DashSegment<T?>> segments;
   final ValueChanged<T?> onChanged;
   final bool enabled;
 
@@ -332,7 +331,7 @@ class _Choice<T extends Object> extends StatelessWidget {
         children: [
           Text(title, style: t.titleSm),
           const SizedBox(height: DashSpace.sm),
-          QueueSegToggle<T?>(
+          DashSegToggle<T?>(
             id: id,
             selected: value,
             segments: segments,

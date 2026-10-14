@@ -1,5 +1,5 @@
 import '../announcements/announcements_widgets.dart';
-import '../common/dash_icon_tile.dart';
+import 'package:app_util/app_util.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -21,13 +21,9 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../common/dash_async.dart';
-import '../common/filter_controls.dart';
-import '../common/sliver_search_bar.dart';
 import '../notifications/finish_photo_providers.dart';
-import '../../core/api/server_reachability.dart';
 import '../../providers.dart';
 import '../../core/app_context.dart';
-import '../common/dash_search_field.dart';
 import 'card_collapse_providers.dart';
 import 'dashboard_filters.dart';
 import 'dashboard_sort.dart';

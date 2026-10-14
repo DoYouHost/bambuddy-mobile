@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/settings_rows.dart';
 import '../../core/models/queue_item.dart';
 import '../dashboard/ws_providers.dart';
 import '../queue/queue_providers.dart';

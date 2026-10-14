@@ -4,7 +4,6 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/server_settings_repository.dart';
-import 'package:bambuddy_mobile/features/common/settings_rows.dart';
 import 'package:bambuddy_mobile/features/settings/queue_settings_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
@@ -13,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 
 /// The screen answers two questions the wire cannot: which rows this server
 /// has, and whether this session may write them. Both are gates that fail

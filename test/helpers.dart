@@ -1,13 +1,12 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_test_kit/app_test_kit.dart';
 import 'package:app_report_ui/app_report_ui.dart';
 import 'package:bambuddy_mobile/core/models/announcement.dart';
 import 'package:bambuddy_mobile/features/announcements/announcements_providers.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:clock/clock.dart';
 import 'package:bambuddy_mobile/core/api/media_auth.dart';
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
@@ -35,29 +34,16 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/wear_shape.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:dio/dio.dart';
-import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
+export 'package:app_test_kit/app_test_kit.dart';
 export 'package:bambuddy_mobile/core/auth/credentials_store.dart'
     show InMemoryCredentialsStore;
-
-/// A temporary directory the test owns, so whatever a download leaves in the
-/// cache can be listed afterwards. Assign it to `PathProviderPlatform.instance`
-/// in `setUp` and delete the directory in `tearDown`.
-class TempDirProvider extends PathProviderPlatform {
-  TempDirProvider(this.path);
-
-  final String path;
-
-  @override
-  Future<String?> getTemporaryPath() async => path;
-}
 
 /// Printer firmware kept off the network: the card reads it while it renders. See
 /// "The inert overrides" in docs/test-harness.md.
@@ -124,45 +110,6 @@ final _plDelegates = [
   ...AppLocalizations.localizationsDelegates,
   ReportLocalizations.delegate,
 ];
-
-/// A clock the test moves by hand, handed to the body of [testWithClock].
-class TestClock {
-  TestClock(this.now);
-
-  DateTime now;
-
-  void tick(Duration by) => now = now.add(by);
-}
-
-/// A test whose body runs on a clock it controls, starting at [start]; move it
-/// with [TestClock.tick]. See docs/test-harness.md.
-void testWithClock(
-  String description,
-  DateTime start,
-  dynamic Function(TestClock time) body,
-) => test(description, () {
-  final time = TestClock(start);
-  return withClock(Clock(() => time.now), () => body(time));
-});
-
-/// Every diagnostic identifier (`logTag` / `.tagged`) in the pumped tree.
-Iterable<String> identifiersIn(WidgetTester tester) => tester
-    .widgetList<Semantics>(find.byType(Semantics))
-    .map((s) => s.properties.identifier)
-    .whereType<String>();
-
-/// The node carrying one diagnostic identifier.
-Finder byLogId(String id) => find.byWidgetPredicate(
-  (w) => w is Semantics && w.properties.identifier == id,
-);
-
-/// Three 350 ms frames in place of `pumpAndSettle`, for screens it can never
-/// finish on (a blinking cursor). See docs/test-harness.md.
-Future<void> settle(WidgetTester tester) async {
-  for (var i = 0; i < 3; i++) {
-    await tester.pump(const Duration(milliseconds: 350));
-  }
-}
 
 /// Pumps a phone widget inside a `ProviderScope` and [plApp]. Almost every caller
 /// wants [noServerProfileOverride] in [overrides].
@@ -291,14 +238,6 @@ Future<void> tapOnWatch(WidgetTester tester, Finder finder) async {
   await tester.pump();
 }
 
-/// Loads a fixture from test/fixtures/ — the path is relative to the package
-/// root, which is where `flutter test` runs from.
-dynamic readFixture(String name) => jsonDecode(readFixtureString(name));
-
-/// A fixture's raw contents, for the parsers that take text (WS frames, say).
-String readFixtureString(String name) =>
-    File('test/fixtures/$name').readAsStringSync();
-
 /// The phone→watch handoff, faked: what the Data Layer has latched, what it
 /// pushes live, and whether persisting the result works.
 class FakeWatchConfigSync extends WatchConfigSync {
@@ -344,72 +283,6 @@ class FakeWatchConfigSync extends WatchConfigSync {
   }
 }
 
-/// Every request that really left the app, oldest first — what to assert on
-/// instead of a mock handler, which runs once at declaration (see docs/test-harness.md).
-class RequestLog {
-  final List<RequestOptions> requests = [];
-
-  /// The status of each answer in the order they came back; `null` where the
-  /// failure carried no response (an unmatched route). Lines up with [calls] only
-  /// when the requests were awaited one at a time.
-  final List<int?> statuses = [];
-
-  /// `METHOD /path`. Assert the whole list, not a `contains`.
-  List<String> get calls => [for (final r in requests) '${r.method} ${r.path}'];
-
-  /// The most recent request — its `data` is the body a write test asserts on,
-  /// its `queryParameters` the query a read test does.
-  RequestOptions get last => requests.last;
-
-  /// Just the paths, for a test about which endpoints were reached and in what
-  /// order rather than what they carried.
-  List<String> get paths => [for (final r in requests) r.path];
-
-  /// Waits until [count] requests have *finished*, for calls started with
-  /// `unawaited`. Returns on its deadline rather than throwing.
-  Future<void> untilCount(int count, {int turns = 100}) async {
-    for (var i = 0; i < turns && statuses.length < count; i++) {
-      await Future<void>.delayed(Duration.zero);
-    }
-  }
-}
-
-/// Logs every request [dio] makes into the returned [RequestLog]: add it before
-/// the act, assert after.
-RequestLog captureRequests(Dio dio) {
-  final log = RequestLog();
-  dio.interceptors.add(
-    InterceptorsWrapper(
-      onRequest: (options, handler) {
-        log.requests.add(options);
-        handler.next(options);
-      },
-      onResponse: (response, handler) {
-        log.statuses.add(response.statusCode);
-        handler.next(response);
-      },
-      onError: (error, handler) {
-        log.statuses.add(error.response?.statusCode);
-        handler.next(error);
-      },
-    ),
-  );
-  return log;
-}
-
-/// The host every test that needs a server talks to.
-const fakeServerBaseUrl = 'http://s.local:8000';
-
-/// A Dio pointed at [fakeServerBaseUrl], for a `DioAdapter` to hang off.
-Dio testDio() => Dio(BaseOptions(baseUrl: fakeServerBaseUrl));
-
-/// The mock server a test hangs off a Dio, matching the request body exactly
-/// rather than by subset (see docs/test-harness.md).
-DioAdapter mockServer(Dio dio) => DioAdapter(
-  dio: dio,
-  matcher: const FullHttpRequestMatcher(needsExactBody: true),
-);
-
 /// `inventoryBackendProvider` fixed to [backend]; the real one asks the
 /// server's `/spoolman/status`, which a test would otherwise have to mock.
 Override inventoryBackendOverride([
@@ -426,15 +299,6 @@ Override inventoryRepositoryOf(InventoryBackend backend) =>
         InventoryBackend.spoolman => SpoolmanInventorySource(Dio()),
       }),
     );
-
-/// Drags the topmost list up [times] times: what sits below the fold of a lazy
-/// list is not built, and a finder cannot tap it.
-Future<void> scrollSheetDown(WidgetTester tester, {int times = 8}) async {
-  for (var i = 0; i < times; i++) {
-    await tester.drag(find.byType(ListView).last, const Offset(0, -300));
-    await tester.pump();
-  }
-}
 
 /// `serverProfileProvider` answering with [profile], or "nothing configured yet"
 /// when it is null.
@@ -688,66 +552,6 @@ class _FixedUsersList extends UsersListNotifier {
   Future<List<CurrentUser>> build() async => _users;
 }
 
-/// A Dio adapter that answers from a script instead of a socket. A step returns a
-/// `ResponseBody` or a `DioException`, which is thrown.
-class ScriptedAdapter implements HttpClientAdapter {
-  ScriptedAdapter(Object Function(RequestOptions options) reply)
-    : _steps = [reply];
-
-  /// One step per request, in order. The **last step stands for every request
-  /// past the end of the script**, so a retry that fires more often than the
-  /// test spelled out is answered rather than crashing on a range error.
-  ScriptedAdapter.script(this._steps) : assert(_steps.isNotEmpty);
-
-  final List<Object Function(RequestOptions options)> _steps;
-
-  /// Every request that reached the adapter, oldest first — the retry and
-  /// refresh tests are about how many there were and what they carried.
-  final requests = <RequestOptions>[];
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) async {
-    requests.add(options);
-    final step = _steps[(requests.length - 1).clamp(0, _steps.length - 1)];
-    final answer = step(options);
-    if (answer is DioException) throw answer;
-    return answer as ResponseBody;
-  }
-
-  @override
-  void close({bool force = false}) {}
-}
-
-/// A [Timer] the test fires by hand, keeping the [duration] it was asked for.
-class FakeTimer implements Timer {
-  FakeTimer(this.duration, this._callback);
-
-  /// What the code under test asked to wait — assert on it rather than on the
-  /// wall clock.
-  final Duration duration;
-  final void Function() _callback;
-
-  bool cancelled = false;
-
-  /// Runs the callback, unless the code cancelled the timer first.
-  void fire() {
-    if (!cancelled) _callback();
-  }
-
-  @override
-  void cancel() => cancelled = true;
-
-  @override
-  bool get isActive => !cancelled;
-
-  @override
-  int get tick => 0;
-}
-
 /// Printer statuses that never arrive: the dashboard renders from the printer
 /// list alone and no WebSocket or poll is started.
 final inertStatusesOverride = printerStatusesProvider.overrideWith(
@@ -818,27 +622,6 @@ DiagnosticRecorder testRecorder({
   sessionBytes: recordingSizeLimit,
   resolveDirectory: directory ?? () async => null,
 );
-
-/// The session id in memory. The real one is `SettingsSessionStore` over
-/// SharedPreferences; nothing in a test needs it to survive the process.
-class MemorySessionStore implements DiagnosticsSessionStore {
-  String? _session;
-
-  @override
-  String? loadSession() => _session;
-
-  @override
-  Future<void> saveSession(String? session) async => _session = session;
-}
-
-/// A phone-shaped window instead of the default 800×600; [dp] is the logical
-/// height. A tap below 1200 dp of content silently misses (see docs/test-harness.md).
-void usePhoneWindow(WidgetTester tester, {double dp = 800}) {
-  const ratio = 3.0;
-  tester.view.physicalSize = Size(360 * ratio, dp * ratio);
-  tester.view.devicePixelRatio = ratio;
-  addTearDown(tester.view.reset);
-}
 
 /// A [PrinterCommandsRepository] that records every call as `kind:args`
 /// (`pause:1`, `amsLoad:1:3:-`) and succeeds, unless told otherwise: [gate]

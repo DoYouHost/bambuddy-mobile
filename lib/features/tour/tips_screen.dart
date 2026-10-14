@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../common/settings_rows.dart';
 import 'tour_screen.dart';
 
 /// Every gesture the app hides, in one place, and the way back into the tour.

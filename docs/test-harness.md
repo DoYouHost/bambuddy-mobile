@@ -1,6 +1,10 @@
 # Test harness — the traps behind `test/helpers.dart`
 
-`test/helpers.dart` holds the shared fakes and pumping helpers. Each one exists
+`test/helpers.dart` holds the shared fakes and pumping helpers; the pieces that
+are not about this app — `RequestLog`, `mockServer`, `ScriptedAdapter`,
+`FakeTimer`, `testWithClock`, `byLogId`, `settle`, `usePhoneWindow` — live in
+the `app_test_kit` package (shared with lubelogger) and `helpers.dart`
+re-exports them. Each one exists
 because a test went green for the wrong reason, or red with an error that hid
 the real one. This file keeps the reasons; the code keeps one line each.
 

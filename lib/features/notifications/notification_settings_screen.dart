@@ -7,7 +7,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/settings_rows.dart';
 
 /// Whether the system is currently swallowing every alert, which the switches
 /// below cannot show on their own: they keep reading "on" while nothing is

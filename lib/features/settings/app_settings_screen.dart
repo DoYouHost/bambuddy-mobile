@@ -5,8 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/demo/demo_backend.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../common/settings_entry_tile.dart';
-import '../common/settings_rows.dart';
 import '../../providers.dart';
 import '../dashboard/card_collapse_providers.dart';
 import '../tour/tour_beacon.dart';
