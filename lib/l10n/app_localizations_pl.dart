@@ -2479,6 +2479,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bgServiceText => 'Monitoruję drukarki';
 
   @override
+  String get wearOngoingChannel => 'Postęp druku';
+
+  @override
   String get bgMonitoringToggle => 'Monitorowanie w tle';
 
   @override

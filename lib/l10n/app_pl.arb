@@ -938,6 +938,7 @@
   "notificationsBlocked": "Powiadomienia są wyłączone — włącz je w ustawieniach systemu",
   "bgServiceTitle": "Bambuddy",
   "bgServiceText": "Monitoruję drukarki",
+  "wearOngoingChannel": "Postęp druku",
   "bgMonitoringToggle": "Monitorowanie w tle",
   "bgMonitoringSubtitle": "Śledź wydruki, gdy aplikacja jest zamknięta. Pokazuje stałe powiadomienie.",
   "bgMonitoringOn": "Monitorowanie w tle włączone",

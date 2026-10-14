@@ -12,15 +12,12 @@
     <uses-permission android:name="android.permission.CAMERA" tools:node="remove" />
     <!-- The watch has no gallery screen and starts at API 30 anyway. -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" tools:node="remove" />
-    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" tools:node="remove" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" tools:node="remove" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" tools:node="remove" />
-    <!-- The watch never posts its own notifications (Wear OS bridges the
-         phone's), so neither the runtime permission nor the reboot
-         rescheduling hook (flutter_local_notifications) applies here. -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:node="remove" />
+    <!-- FOREGROUND_SERVICE, its connectedDevice type, CHANGE_NETWORK_STATE (the
+         type's qualifying permission) and POST_NOTIFICATIONS stay: they carry
+         the Ongoing Activity in WearOngoing.kt. Promotion and the reboot hook
+         (flutter_local_notifications) do not apply here. -->
     <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" tools:node="remove" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" tools:node="remove" />
 
@@ -79,6 +76,14 @@
         <receiver android:name=".BambuddyWidgetProvider" tools:node="remove" />
         <receiver android:name=".BambuddyMultiWidgetProvider" tools:node="remove" />
         <service android:name=".wear.WearRelayListenerService" tools:node="remove" />
+
+        <!-- Play's WO-V4 (WearOngoing.kt). connectedDevice for the same reason as
+             the phone's service: dataSync stops after 6 h a day, and a print
+             runs longer. -->
+        <service
+            android:name=".WearOngoingService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
         <service
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             tools:node="remove" />

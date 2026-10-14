@@ -2451,6 +2451,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get bgServiceText => 'Supervisando impresoras';
 
   @override
+  String get wearOngoingChannel => 'Progreso de impresión';
+
+  @override
   String get bgMonitoringToggle => 'Supervisión en segundo plano';
 
   @override

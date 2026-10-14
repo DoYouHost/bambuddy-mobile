@@ -33,6 +33,9 @@ avd := "pixel35"
 # on `run`: it is a different flavor AND a different entry point, and pointing
 # the phone build at a watch installs an app whose UI does not fit the screen.
 wear_avd := "wear_round"
+# The newer watch the on-device tests also run on: dumpsys output and the system
+# back gesture differ between Wear OS 5 and 6.
+wear6_avd := "wear6_round"
 
 [doc('show available commands')]
 default:
@@ -40,10 +43,27 @@ default:
 
 # ---- 1-develop — runs the app and the tests, publishes nothing ----
 
-[doc('run unit and widget tests')]
+# Host tests, then — where this machine has adb and the emulator — the
+# on-device ones: the phone's integration_test/ and the watch's patrol_test/ on
+# both watch AVDs. A machine without them (CI, the Claude GitHub Action) runs
+# the host half and says the rest was skipped; it never passes silently.
+[doc('run unit and widget tests, plus on-device tests when an emulator is available')]
 [group('1-develop')]
 test:
+    #!/usr/bin/env bash
+    set -euo pipefail
     flutter test
+    if ! command -v adb >/dev/null || [ ! -x "{{emulator_bin}}" ]; then
+        echo "On-device tests SKIPPED: no adb or Android emulator on this machine." >&2
+        exit 0
+    fi
+    patrol=$(command -v patrol || echo "$HOME/.pub-cache/bin/patrol")
+    [ -x "$patrol" ] || { echo "patrol CLI missing: dart pub global activate patrol_cli" >&2; exit 1; }
+    just test-device
+    for wear in {{wear_avd}} {{wear6_avd}}; do
+        just emu-boot "$wear"
+        "$patrol" test -t patrol_test/wear_app_test.dart --flavor wear -d "$(just _emu-serial "$wear")"
+    done
 
 # The tests a host `flutter test` cannot run. Its binding replaces the HTTP
 # client, so nothing there ever reads a byte off a socket — which is how a

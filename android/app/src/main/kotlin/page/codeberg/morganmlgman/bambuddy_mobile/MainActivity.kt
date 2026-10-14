@@ -58,8 +58,28 @@ class MainActivity : FlutterActivity() {
         super.onCreate(savedInstanceState)
     }
 
+    // Null in the phone flavor, which keeps an engine per activity — see WearOngoing.kt in each
+    // flavor source set.
+    override fun provideFlutterEngine(context: Context): FlutterEngine? = wearEngine()
+
+    /**
+     * The watch's engine outlives this activity, so nothing it can still call may lead back
+     * here: these handlers would act on a destroyed window, and keep it from being collected.
+     * The next activity registers its own in [configureFlutterEngine]. A pending text request
+     * is answered as cancelled, or the Dart side would wait on it forever.
+     */
+    override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
+        for (channel in listOf(BATTERY_CHANNEL, WEAR_INPUT_CHANNEL, CLOCK_CHANNEL, WEAR_SHAPE_CHANNEL, WINDOW_CHANNEL)) {
+            MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channel).setMethodCallHandler(null)
+        }
+        pendingWearText?.success(null)
+        pendingWearText = null
+        super.cleanUpFlutterEngine(flutterEngine)
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        flutterEngine.serveWearOngoing(this)
         flutterEngine.serve(
             BATTERY_CHANNEL,
             mapOf<String, MethodHandler>(

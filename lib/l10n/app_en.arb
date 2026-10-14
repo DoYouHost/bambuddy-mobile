@@ -1533,6 +1533,10 @@
   "notificationsBlocked": "Notifications are off — enable them in system settings",
   "bgServiceTitle": "Bambuddy",
   "bgServiceText": "Monitoring printers",
+  "wearOngoingChannel": "Print progress",
+  "@wearOngoingChannel": {
+    "description": "Watch: name of the notification channel for the ongoing print notification, shown in the watch's notification settings"
+  },
   "bgMonitoringToggle": "Background monitoring",
   "bgMonitoringSubtitle": "Keep watching prints while the app is closed. Shows a persistent notification.",
   "bgMonitoringOn": "Background monitoring on",

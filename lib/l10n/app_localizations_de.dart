@@ -2460,6 +2460,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get bgServiceText => 'Drucker werden überwacht';
 
   @override
+  String get wearOngoingChannel => 'Druckfortschritt';
+
+  @override
   String get bgMonitoringToggle => 'Hintergrundüberwachung';
 
   @override

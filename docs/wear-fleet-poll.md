@@ -1,8 +1,9 @@
 # The watch's fleet poll
 
-`lib/wear/wear_providers.dart`. The watch has no WebSocket and no background
-service (deliberate: battery); its view of the printers is a poll that runs only
-while a screen watching `wearFleetProvider` is mounted. The code keeps one line
+`lib/wear/wear_providers.dart`. The watch has no WebSocket (deliberate:
+battery); its view of the printers is a poll that runs only while a screen
+watching `wearFleetProvider` is mounted, and in the background only while a
+print is on the watch face (see "Background"). The code keeps one line
 per rule; the reasons are here. Tests: `test/wear/`.
 
 ## Transport (`wearTransportProvider`)
@@ -67,7 +68,9 @@ secret needs no invalidate: `authHeaders` reads the store on each request.
   already the field `onDispose` cancels, so a screen left before the first poll
   takes it along. Not while paused: a rebuild reaches here in the background too
   (the phone pushes its config on every launch) and would restart the poll behind
-  a dark screen; the resume hook starts it instead.
+  a dark screen; the resume hook starts it instead. The background poll for the
+  Ongoing Activity is not paused, and takes that one immediate poll on purpose:
+  the server may have changed (see "Background").
 - **No cache: fetch even while paused.** `build` owes its caller a fleet, and the
   alternatives are worse than the one poll it costs: an empty frame says "no
   printers", and waiting for the resume hook hangs the screen on a spinner if it
@@ -138,3 +141,40 @@ would draw last run's printers under a dead bridge. An error is therefore always
 the answer, never the old frame: the notifier only sets one where the data on
 screen has not been confirmed, and a `build` that fails after a server switch
 must not leave the previous server's printers up either.
+
+## Background
+
+Play rejected the watch build under WO-V4: a print followed from the watch is an
+ongoing activity, so once the app leaves the screen it has to stay on the watch
+face as an `OngoingActivity` (`WearOngoing.kt`, `lib/wear/wear_ongoing.dart`).
+
+- `WearApp` decides on `paused`: nothing running is `stopPolling` as before; a
+  running print starts `WearOngoingService` and `pollInBackground`. `resumed`
+  stops the service and goes back to the foreground cadence. The notification's
+  content is `ongoingText`, the phone's own, so both name the same printer.
+- The service only keeps the process up. The poll runs in the Dart isolate,
+  and on the watch that isolate belongs to one engine per process
+  (`wearEngine`, handed to `MainActivity` through `provideFlutterEngine`), not
+  to the activity. The reason is the swipe off the root screen: Wear OS treats
+  it as its own back-to-home and finishes the activity without asking Flutter
+  (`popSystemNavigator` is never called), so an engine owned by the activity
+  died with it and left the watch face counting down a print nobody was
+  polling. A provided engine is not destroyed with its host, and the next
+  activity attaches to it. Checked on a device by `patrol_test/wear_app_test.dart`.
+- **Five minutes**, or sooner when the lead print is due: past its ETA the face
+  would show a finished print until the next poll. The countdown in between
+  is drawn by the system (`Status.TimerPart`), so nothing has to poll for it to
+  move. Every relay poll wakes the phone, which is the reason for the interval.
+- A failed poll does not end it, nor does a failed `build` after a server
+  switch: the foreground leaves an error to the retry button, and nobody taps
+  one behind a dark screen.
+- A lead at zero minutes that is not preparing is in its last minute and gets
+  the next poll in 30 s; zero on a preparing machine is "not measured yet".
+- The service is started on `AppLifecycleState.paused`, which Flutter sends
+  from `onStop` (`onPause` is `inactive`), still inside the grace period the
+  system gives an activity that just left the screen (passes on API 34 and 36);
+  later updates go through `NotificationManager.notify` under the same id,
+  never through a second start, which the background could refuse.
+- `POST_NOTIFICATIONS` is asked once per process, on the screen with a running
+  print (`WearHome`): in the background nothing can ask, and without it the
+  service runs with nothing on the face.

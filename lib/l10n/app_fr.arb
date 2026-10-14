@@ -1298,6 +1298,7 @@
   "notificationsBlocked": "Les notifications sont désactivées — activez-les dans les paramètres système",
   "bgServiceTitle": "Bambuddy",
   "bgServiceText": "Surveillance des imprimantes",
+  "wearOngoingChannel": "Progression de l'impression",
   "bgMonitoringToggle": "Surveillance en arrière-plan",
   "bgMonitoringSubtitle": "Continuez à surveiller les impressions lorsque l'application est fermée. Affiche une notification permanente.",
   "bgMonitoringOn": "Surveillance en arrière-plan activée",
