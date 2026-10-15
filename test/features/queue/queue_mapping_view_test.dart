@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/ams/color_names.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
@@ -19,13 +21,20 @@ import '../../helpers.dart';
 /// catalogue name with its nozzle and grams, each slot as
 /// `A1: <spool or variant> (<colour>)`, and why a pick is not a match.
 class _Printers extends PrintersRepository {
-  _Printers(this._status, [this._spools = const {}]) : super(Dio());
+  _Printers(this._status, [this._spools = const {}, this._answer])
+    : super(Dio());
 
   final PrinterStatus _status;
   final Map<int, SlotSpool> _spools;
 
+  /// Holds the status back until completed, to look at the sheet meanwhile.
+  final Completer<void>? _answer;
+
   @override
-  Future<PrinterStatus?> fetchStatus(int printerId) async => _status;
+  Future<PrinterStatus?> fetchStatus(int printerId) async {
+    await _answer?.future;
+    return _status;
+  }
 
   @override
   Future<SlotInventory> fetchInventoryRemain(int printerId) async =>
@@ -46,13 +55,15 @@ void main() {
     ColorCatalog catalog = ColorCatalog.empty,
     Map<String, String> names = const {},
     List<int>? stored,
+    Completer<void>? answer,
+    bool settle = true,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           fakeServerProfileOverride(),
           printersRepositoryProvider.overrideWithValue(
-            _Printers(status, spools),
+            _Printers(status, spools, answer),
           ),
           inventoryBackendOverride(),
           inventoryProvider.overrideWith(
@@ -88,7 +99,11 @@ void main() {
       ),
     );
     await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump(const Duration(milliseconds: 400));
+    }
   }
 
   PrinterStatus amsOf(List<AmsTray> trays, {Map<int, String>? inlets}) =>
@@ -100,6 +115,31 @@ void main() {
             ? null
             : const FilaSwitch(installed: true, ready: true),
       );
+
+  testWidgets(
+    'waiting for the printer, the sheet is no taller than its spinner',
+    (tester) async {
+      usePhoneWindow(tester);
+      final answer = Completer<void>();
+      await open(
+        tester,
+        status: amsOf([_tray(0, 'PLA', 'FF0000FF')]),
+        answer: answer,
+        settle: false,
+      );
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(BottomSheet)).height,
+        lessThan(
+          tester.view.physicalSize.height / tester.view.devicePixelRatio / 2,
+        ),
+        reason: 'a Center spinner takes the whole height a sheet offers',
+      );
+      answer.complete();
+      await tester.pumpAndSettle();
+    },
+  );
 
   testWidgets('a match reads ready, with the slot and its colour', (
     tester,
