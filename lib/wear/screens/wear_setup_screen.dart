@@ -24,6 +24,10 @@ const _phoneApp = PlatformQuery(
   MethodChannel('page.codeberg.morganmlgman.bambuddy/wear_phone_app'),
 );
 
+/// Without Play services a Data Layer call never answers at all — the same
+/// bound [_WearSetupScreenState._checkPhone] puts on its own.
+const _phoneTimeout = Duration(seconds: 5);
+
 /// Watch setup: the server and the credentials come from the phone, or the demo
 /// starts with one tap. Nothing is typed here — Play's WO-P6 forbids a username
 /// and password entered on the watch, and an API key or a URL is the same chore.
@@ -69,14 +73,18 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
   }
 
   Future<void> _askPhoneApp() async {
+    // Unbounded on purpose: no answer leaves null, which offers nothing and
+    // holds nothing up — unlike [_installOnPhone], which keeps the spinner.
     final installed = await _phoneApp.ask<bool?>('installed', fallback: null);
     if (mounted) setState(() => _phoneHasApp = installed);
   }
 
-  /// [below] is the button's context: the toast lives in the [WearScreen] this
-  /// state builds, so its own context is above it.
-  Future<void> _installOnPhone(BuildContext below) async {
-    final opened = await _phoneApp.ask<bool>('openStore', fallback: false);
+  /// [below] is a context under the [WearScreen] this state builds, which is
+  /// where the toast lives.
+  Future<void> _installOnPhone(BuildContext below) => run(() async {
+    final opened = await _phoneApp
+        .ask<bool>('openStore', fallback: false)
+        .timeout(_phoneTimeout, onTimeout: () => false);
     if (!below.mounted) return;
     final l10n = AppLocalizations.of(below);
     wearToast(
@@ -84,7 +92,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       opened ? l10n.wearPhoneAppOpened : l10n.wearPhoneAppOpenFailed,
       tone: opened ? WearToastTone.success : WearToastTone.failure,
     );
-  }
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -92,19 +100,21 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
     final offer = ref.watch(pendingWatchConfigProvider);
 
     return WearScreen(
-      child: WearScrollView(
-        curved: true,
-        // Every branch below is a step of its own; naming it here is what
-        // brings the scroll back to the top when the screen swaps.
-        resetKey: offer != null ? 'offer' : 'handoff',
-        children: [
-          const WearHeader('Bambuddy'),
-          const SizedBox(height: DashSpace.md),
-          if (offer case final offer?)
-            ..._offerSection(l10n, offer)
-          else
-            ..._phoneHandoffSection(l10n),
-        ],
+      child: Builder(
+        builder: (below) => WearScrollView(
+          curved: true,
+          // Every branch below is a step of its own; naming it here is what
+          // brings the scroll back to the top when the screen swaps.
+          resetKey: offer != null ? 'offer' : 'handoff',
+          children: [
+            const WearHeader('Bambuddy'),
+            const SizedBox(height: DashSpace.md),
+            if (offer case final offer?)
+              ..._offerSection(l10n, offer)
+            else
+              ..._phoneHandoffSection(l10n, below),
+          ],
+        ),
       ),
     );
   }
@@ -171,7 +181,10 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
 
   /// The path almost everybody should take: the phone already knows the server
   /// and the credentials, and pushes both over the Data Layer.
-  List<Widget> _phoneHandoffSection(AppLocalizations l10n) => [
+  List<Widget> _phoneHandoffSection(
+    AppLocalizations l10n,
+    BuildContext below,
+  ) => [
     Text(
       l10n.wearSetupPhoneTitle,
       textAlign: TextAlign.center,
@@ -210,11 +223,9 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         style: WearText.body,
       ),
       const SizedBox(height: DashSpace.xs),
-      Builder(
-        builder: (below) => FilledButton(
-          onPressed: () => _installOnPhone(below),
-          child: Text(l10n.wearPhoneAppInstall),
-        ),
+      FilledButton(
+        onPressed: busy ? null : () => _installOnPhone(below),
+        child: Text(l10n.wearPhoneAppInstall),
       ),
     ],
     TextButton(

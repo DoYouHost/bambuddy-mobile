@@ -34,7 +34,7 @@ fun FlutterEngine.serveWearPhoneApp(context: Context) {
                         return@addOnSuccessListener
                     }
                     Wearable.getCapabilityClient(app)
-                        .getCapability(PHONE_APP_CAPABILITY, CapabilityClient.FILTER_ALL)
+                        .getCapability(PHONE_APP_CAPABILITY, CapabilityClient.FILTER_REACHABLE)
                         .addOnSuccessListener { result.success(it.nodes.isNotEmpty()) }
                         .addOnFailureListener { result.success(null) }
                 }

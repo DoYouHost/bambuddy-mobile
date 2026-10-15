@@ -31,17 +31,20 @@ void main() {
   final phoneCalls = <String>[];
   bool? phoneHasApp;
   var storeOpens = true;
+  // Never answers, the way a Data Layer call does without Play services.
+  Completer<bool>? storeHangs;
 
   setUp(() {
     phoneCalls.clear();
     phoneHasApp = null;
     storeOpens = true;
+    storeHangs = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(phoneAppChannel, (call) async {
           phoneCalls.add(call.method);
           return switch (call.method) {
             'installed' => phoneHasApp,
-            'openStore' => storeOpens,
+            'openStore' => storeHangs?.future ?? storeOpens,
             _ => null,
           };
         });
@@ -142,6 +145,40 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(pl.wearPhoneAppOpenFailed), findsOneWidget);
+    });
+
+    testWidgets('one tap opens the store once', (tester) async {
+      phoneHasApp = false;
+      storeHangs = Completer<bool>();
+      await pumpSetup(tester);
+      await tester.pumpAndSettle();
+
+      await tapOnWatch(tester, find.text(pl.wearPhoneAppInstall));
+      await tester.tap(
+        find.text(pl.wearPhoneAppInstall, skipOffstage: false),
+        warnIfMissed: false,
+      );
+      await tester.pump();
+      storeHangs!.complete(true);
+      await tester.pumpAndSettle();
+
+      expect(phoneCalls.where((c) => c == 'openStore'), hasLength(1));
+    });
+
+    testWidgets('a phone that never answers gives the screen back', (
+      tester,
+    ) async {
+      phoneHasApp = false;
+      storeHangs = Completer<bool>();
+      await pumpSetup(tester);
+      await tester.pumpAndSettle();
+
+      await tapOnWatch(tester, find.text(pl.wearPhoneAppInstall));
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.wearPhoneAppOpenFailed), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
     testWidgets('asks again on every check, so the answer can change', (
