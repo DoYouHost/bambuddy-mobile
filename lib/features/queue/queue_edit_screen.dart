@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/ams/color_names.dart';
+import '../../core/ams/job_cost.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/filament_colour.dart';
@@ -723,25 +724,19 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         ),
         if (selected?.budget == CostCenterBudget.none)
           InlineNote(l10n.queueCostCenterUnlimited, icon: Icons.info_outline),
-        ?_costPreview(l10n, t, selected),
+        ?_budgetWarning(t, selected),
       ],
     );
   }
 
-  /// What the job is expected to cost, and a warning where that is more than the
-  /// center has left — the web's mapping panel (`FilamentMapping.tsx`). Only for a
-  /// job aimed at one printer, which is the only job that has a mapping to price.
-  /// The server prices the job itself and refuses it when it does not fit; this
-  /// says so before the form is sent.
-  Widget? _costPreview(
-    AppLocalizations l10n,
-    DashTokens t,
-    CostCenter? selected,
-  ) {
+  /// The job's cost preview (`FilamentMapping.tsx::totalCost`), or null where
+  /// there is nothing to price: a job aimed at "any printer of a model" has no
+  /// mapping, and a mapping needs the printer's loaded slots.
+  JobCost? _jobCost() {
     final source = _plateSource;
     final printerId = _printerId;
     if (_modelMode || source == null || printerId == null) return null;
-    final cost = ref
+    return ref
         .watch(
           jobCostProvider((
             isArchive: source.$1,
@@ -752,36 +747,49 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           )),
         )
         .valueOrNull;
+  }
+
+  int get _costCopies => widget._isCreate ? _copies : 1;
+
+  /// What the job is expected to cost, under the mapping it is priced from.
+  /// Shown with or without billing, as the web's mapping panel does: the budget
+  /// is the billing half, see [_budgetWarning]. The server prices the job itself;
+  /// this says so before the form is sent.
+  Widget? _costEstimate(AppLocalizations l10n, DashTokens t) {
+    final cost = _jobCost();
     if (cost == null) return null;
     final currency = ref.watch(currencySymbolProvider);
     String money(double v) => formatMoney(currency, v.toStringAsFixed(2));
-    final copies = widget._isCreate ? _copies : 1;
+    final copies = _costCopies;
     final priced = cost.total > 0 || cost.anyPrice;
+    return Padding(
+      padding: const EdgeInsets.only(top: DashSpace.xs),
+      child: Text(
+        [
+          l10n.queueEstimatedCost(
+            priced ? money(cost.total) : l10n.queueCostNotAvailable,
+          ),
+          if (copies > 1 && cost.total > 0)
+            l10n.queueEstimatedCostForCopies(money(cost.total * copies)),
+        ].join(' · '),
+        style: t.labelSoft,
+      ),
+    );
+  }
+
+  /// A warning where the job, all its copies, is more than the center has left.
+  /// The server refuses it when it does not fit; this says so before the form
+  /// is sent.
+  Widget? _budgetWarning(DashTokens t, CostCenter? selected) {
+    final cost = _jobCost();
     final available = selected?.budgetAvailable;
+    if (cost == null || available == null) return null;
+    if (cost.total * _costCopies <= available) return null;
     return Padding(
       padding: const EdgeInsets.only(top: DashSpace.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            [
-              l10n.queueEstimatedCost(
-                priced ? money(cost.total) : l10n.queueCostNotAvailable,
-              ),
-              if (copies > 1 && cost.total > 0)
-                l10n.queueEstimatedCostForCopies(money(cost.total * copies)),
-            ].join(' · '),
-            style: t.labelSoft,
-          ),
-          if (available != null && cost.total * copies > available)
-            Padding(
-              padding: const EdgeInsets.only(top: DashSpace.xs),
-              child: Text(
-                l10n.queueInsufficientBudget,
-                style: t.labelSoft.copyWith(color: t.dangerInk),
-              ),
-            ),
-        ],
+      child: Text(
+        AppLocalizations.of(context).queueInsufficientBudget,
+        style: t.labelSoft.copyWith(color: t.dangerInk),
       ),
     );
   }
@@ -951,75 +959,81 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return QueueSectionCard(
       tone: QueueSectionTone.filament,
       title: l10n.queueFilamentMapping,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: printerId == null
-            ? null
-            : () async {
-                // The rows write these back as they change; a sheet dismissed
-                // without saving takes them back, as it does its slot picks.
-                final rackBefore = {..._nozzleRackChoice};
-                final forceBefore = {..._forceColorMatch};
-                final mapping = await showQueueMappingSheet(
-                  context,
-                  item: widget.item,
-                  printerId: printerId,
-                  printerName: _selectedPrinterName(printerId),
-                  confirmLabel: l10n.fmSave,
-                  plateId: _plateId,
-                  startFrom: _amsMapping ?? const [],
-                  forceColorMatch: _forceColorMatch,
-                  onForceColorMatch: (slotId, value) => setState(() {
-                    if (value) {
-                      _forceColorMatch[slotId] = true;
-                    } else {
-                      _forceColorMatch.remove(slotId);
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: printerId == null
+                ? null
+                : () async {
+                    // The rows write these back as they change; a sheet dismissed
+                    // without saving takes them back, as it does its slot picks.
+                    final rackBefore = {..._nozzleRackChoice};
+                    final forceBefore = {..._forceColorMatch};
+                    final mapping = await showQueueMappingSheet(
+                      context,
+                      item: widget.item,
+                      printerId: printerId,
+                      printerName: _selectedPrinterName(printerId),
+                      confirmLabel: l10n.fmSave,
+                      plateId: _plateId,
+                      startFrom: _amsMapping ?? const [],
+                      forceColorMatch: _forceColorMatch,
+                      onForceColorMatch: (slotId, value) => setState(() {
+                        if (value) {
+                          _forceColorMatch[slotId] = true;
+                        } else {
+                          _forceColorMatch.remove(slotId);
+                        }
+                      }),
+                      rackChoice: _nozzleRackChoice,
+                      onRackChoice: (choice) => setState(
+                        () => _nozzleRackChoice
+                          ..clear()
+                          ..addAll(choice),
+                      ),
+                    );
+                    // Empty: the printer reported nothing to map to, and the web
+                    // sends no mapping then — keep the stored one.
+                    if (mapping == null) {
+                      setState(() {
+                        _nozzleRackChoice
+                          ..clear()
+                          ..addAll(rackBefore);
+                        _forceColorMatch
+                          ..clear()
+                          ..addAll(forceBefore);
+                      });
+                    } else if (mapping.isNotEmpty) {
+                      setState(() => _amsMapping = mapping);
                     }
-                  }),
-                  rackChoice: _nozzleRackChoice,
-                  onRackChoice: (choice) => setState(
-                    () => _nozzleRackChoice
-                      ..clear()
-                      ..addAll(choice),
+                  },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+              child: Row(
+                children: [
+                  Icon(Icons.bento_outlined, color: t.textSecondary, size: 20),
+                  const SizedBox(width: DashSpace.md),
+                  Expanded(
+                    child: Text(
+                      printerId == null
+                          ? l10n.queueEditMappingNeedsPrinter
+                          : (mapped > 0
+                                ? l10n.queueEditMappingSummary(mapped)
+                                : l10n.queueEditMappingAuto),
+                      style: t.body,
+                    ),
                   ),
-                );
-                // Empty: the printer reported nothing to map to, and the web
-                // sends no mapping then — keep the stored one.
-                if (mapping == null) {
-                  setState(() {
-                    _nozzleRackChoice
-                      ..clear()
-                      ..addAll(rackBefore);
-                    _forceColorMatch
-                      ..clear()
-                      ..addAll(forceBefore);
-                  });
-                } else if (mapping.isNotEmpty) {
-                  setState(() => _amsMapping = mapping);
-                }
-              },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-          child: Row(
-            children: [
-              Icon(Icons.bento_outlined, color: t.textSecondary, size: 20),
-              const SizedBox(width: DashSpace.md),
-              Expanded(
-                child: Text(
-                  printerId == null
-                      ? l10n.queueEditMappingNeedsPrinter
-                      : (mapped > 0
-                            ? l10n.queueEditMappingSummary(mapped)
-                            : l10n.queueEditMappingAuto),
-                  style: t.body,
-                ),
+                  if (printerId != null)
+                    Icon(Icons.chevron_right, color: t.textTertiary),
+                ],
               ),
-              if (printerId != null)
-                Icon(Icons.chevron_right, color: t.textTertiary),
-            ],
-          ),
-        ),
-      ).tagged('queue_edit.mapping'),
+            ),
+          ).tagged('queue_edit.mapping'),
+          ?_costEstimate(l10n, t),
+        ],
+      ),
     );
   }
 
