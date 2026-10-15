@@ -159,7 +159,7 @@ class WearToast extends StatelessWidget {
                 // so that waiting out the three seconds looks like a choice.
                 Text(
                   l10n.wearOk,
-                  style: WearText.small.copyWith(color: wearMuted),
+                  style: WearText.body.copyWith(color: wearMuted),
                 ),
               ],
             ),

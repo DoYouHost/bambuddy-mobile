@@ -193,7 +193,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
     Text(
       l10n.wearSetupPhoneBody,
       textAlign: TextAlign.center,
-      style: WearText.small,
+      style: WearText.body,
     ),
     if (_phoneEmpty || _phoneError != null) ...[
       const SizedBox(height: DashSpace.sm),
