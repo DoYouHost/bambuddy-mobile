@@ -27,9 +27,9 @@ answered 401 (the permission checks hand a key no user), and so is a server with
 authentication off; the words differ because the remedies do. A password login's 401 is
 a lost session and stays an error.
 
-Under the select the form previews the job's cost and warns when it is more than the
-center has left (`jobCostProvider`, `estimateJobCost`), as the web's mapping panel does:
-each filament's grams at the price of the spool on the tray it is mapped to, else at
+Under the filament mapping the form previews the job's cost, billing or not
+(`jobCostProvider`, `estimateJobCost`), as the web's mapping panel does, and under the
+cost-center select it warns when that is more than the center has left: each filament's grams at the price of the spool on the tray it is mapped to, else at
 `default_filament_cost`, times the copies. It needs a mapping, so a job for "any printer of
 a model" has no preview, and with Spoolman every job is priced at the default, which is
 all the server uses there. It is only a preview — the server prices the job itself and
