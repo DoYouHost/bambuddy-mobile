@@ -360,8 +360,9 @@ do not stay silent because it was not part of the task.
   how a paragraph got sliced mid-word and a Pause button lost its ends. A
   viewport that is the inscribed rectangle cannot paint outside the glass at any
   offset; its own edge is softened by a fade the length of the content's lead-in.
-  Content that does not need the full width (the confirm dialog) says so with
-  `contentWidthFraction` and is given a taller viewport in exchange. A watch row
+  A confirmation is Wear Material 3's `AlertDialog`
+  (`wear_confirm_dialog.dart`): a scrolling list, its buttons the last item,
+  every size from the compose-material3 source. A watch row
   also needs a corner radius of ~16 or more and a label that can ellipsize; wear
   widget tests run on a real watch face (`pumpWear`), which is what makes an
   overflow show up at all — the 384x384 `wearFaceSmall` by default, with the

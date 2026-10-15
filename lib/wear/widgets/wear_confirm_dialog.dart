@@ -2,9 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../wear_geometry.dart';
 import '../wear_theme.dart';
 import 'wear_scroll_view.dart';
 
@@ -32,9 +30,10 @@ Future<bool> wearConfirm(
     ) ??
     false;
 
-/// Full-screen confirmation in the Wear OS idiom: an icon, the question and
-/// two round ✕/✓ buttons. A phone-style [AlertDialog] gets clipped by round
-/// watch faces and its text buttons are poor tap targets there.
+/// Full-screen confirmation laid out as Wear Material 3's `AlertDialog` with
+/// confirm and dismiss buttons (compose-material3 1.7.1): one scrolling
+/// `ScalingLazyColumn` of icon, title, message and the two buttons, centred when
+/// it fits. Every number below is from that source.
 ///
 /// Pops `true` on confirm, `false` on cancel (back-swipe pops `null`). Prefer
 /// [wearConfirm] over showing this by hand.
@@ -56,52 +55,84 @@ class WearConfirmDialog extends StatelessWidget {
   /// Accent for the icon and the confirm button — red for destructive actions.
   final Color confirmColor;
 
+  /// `confirmDismissWithIconContentPadding()`: 1.2% of the screen height on
+  /// top, `verticalContentPadding()` (10%) below.
+  static const _topFraction = 0.012;
+  static const _bottomFraction = 0.10;
+
+  /// `TitlePaddingFraction`, `TextPaddingFraction`: side insets of the title
+  /// and the message, as fractions of the screen width.
+  static const _titleSideFraction = 0.12;
+  static const _textSideFraction = 0.0416;
+
+  /// `AlertTitleMaxLines`.
+  static const _titleMaxLines = 3;
+
+  /// Between the items (`AlertDialogDefaults.VerticalArrangement`) plus the
+  /// spacing each slot carries: `AlertIconBottomSpacing`,
+  /// `AlertTextMessageTopSpacing`, `ConfirmDismissButtonsTopSpacing`.
+  static const _gap = 4.0;
+  static const _iconToTitle = _gap + 4;
+  static const _titleToText = _gap + 4;
+  static const _textToButtons = _gap + 12;
+
+  /// `ConfirmDismissButtonsBottomSpacingFraction`.
+  static const _belowButtonsFraction = 0.045;
+
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
     return Dialog.fullscreen(
       backgroundColor: Colors.black,
-      child: SafeArea(
-        // Centred while it fits, scrolling when it doesn't: a long question with
-        // a printer name under it is taller than the round-safe band on a small
-        // face, and a confirmation nobody can reach the buttons of is worse than
-        // an ugly one.
-        child: WearScrollView(
-          centerWhenShort: true,
-          // An icon, a question and two round buttons: narrow, and taller than
-          // the rectangle a full-width screen is allowed. Trading the width it
-          // does not use for the height it does buys most of what is needed.
-          contentWidthFraction: wearNarrowWidthFraction,
-          // The rest is bought by pinning the answer: on a 192 dp face the
-          // question alone fills the viewport, and a confirmation whose buttons
-          // are a scroll away is one nobody can refuse in a hurry.
-          footer: _Answer(
+      child: WearScrollView(
+        curved: true,
+        contentPadding: (
+          top: size.height * _topFraction,
+          bottom: size.height * _bottomFraction,
+        ),
+        children: [
+          Icon(icon, color: confirmColor, size: _AnswerButton.iconSize),
+          const SizedBox(height: _iconToTitle),
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: size.width * _titleSideFraction,
+            ),
+            child: Text(
+              title,
+              maxLines: _titleMaxLines,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: WearText.hero,
+            ),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: _titleToText),
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: size.width * _textSideFraction,
+              ),
+              child: Text(
+                subtitle!,
+                textAlign: TextAlign.center,
+                style: WearText.message.copyWith(color: wearMuted),
+              ),
+            ),
+          ],
+          const SizedBox(height: _textToButtons),
+          _Answer(
             confirmColor: confirmColor,
             onCancel: () => Navigator.pop(context, false),
             onConfirm: () => Navigator.pop(context, true),
           ),
-          children: [
-            Icon(icon, color: confirmColor, size: 28),
-            const SizedBox(height: DashSpace.sm),
-            Text(title, textAlign: TextAlign.center, style: WearText.hero),
-            if (subtitle != null) ...[
-              const SizedBox(height: DashSpace.xs),
-              Text(
-                subtitle!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: WearText.body.copyWith(color: wearMuted),
-              ),
-            ],
-          ],
-        ),
+          SizedBox(height: size.height * _belowButtonsFraction),
+        ],
       ),
     );
   }
 }
 
-/// The two round buttons, held at the bottom of the face by [WearScrollView]'s
-/// footer slot.
+/// `ConfirmDismissButtons`: 6 dp, the dismiss button, 3% of the screen width,
+/// the confirm button, 2 dp.
 class _Answer extends StatelessWidget {
   const _Answer({
     required this.confirmColor,
@@ -113,85 +144,85 @@ class _Answer extends StatelessWidget {
   final VoidCallback onCancel;
   final VoidCallback onConfirm;
 
-  /// What each button gets where the face can afford it. Below this the pair
-  /// shrinks together rather than running off the glass: a face too small to
-  /// hold two 48 dp targets side by side loses the tap-target guarantee before
-  /// it loses the buttons, which is the better of two bad trades.
-  static const _diameter = 52.0;
-  static const _gap = 16.0;
+  static const _leading = 6.0;
+  static const _trailing = 2.0;
+  static const _betweenFraction = 0.03;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: DashSpace.md),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // Sized from the width the round-safe geometry left, never from a
-          // number that fit one watch: those insets are fractions of the
-          // display, so a 192 dp face (384 px at density 2 — what Wear
-          // emulators and the smaller watches use) hands this row 113 dp where
-          // a 225 dp face hands it 133. A fixed pair of 52 dp buttons
-          // overflowed the small one by 11.
-          final diameter = math.min(
-            _diameter,
-            (constraints.maxWidth - _gap) / 2,
-          );
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _CircleButton(
-                diameter: diameter,
-                icon: Icons.close_rounded,
-                background: wearSurfaceHigh,
-                tooltip: l10n.cancel,
-                onTap: onCancel,
-              ),
-              const SizedBox(width: _gap),
-              _CircleButton(
-                diameter: diameter,
-                icon: Icons.check_rounded,
-                background: confirmColor,
-                tooltip: l10n.wearConfirm,
-                onTap: onConfirm,
-              ),
-            ],
-          );
-        },
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(width: _leading),
+        _AnswerButton.dismiss(tooltip: l10n.cancel, onTap: onCancel),
+        SizedBox(width: MediaQuery.sizeOf(context).width * _betweenFraction),
+        _AnswerButton.confirm(
+          color: confirmColor,
+          tooltip: l10n.wearConfirm,
+          onTap: onConfirm,
+        ),
+        const SizedBox(width: _trailing),
+      ],
     );
   }
 }
 
-class _CircleButton extends StatelessWidget {
-  const _CircleButton({
-    required this.diameter,
-    required this.icon,
-    required this.background,
+/// `AlertDialogDefaults.DismissButton` — a 60 dp tonal square with the
+/// `medium` (18 dp) corners — and `ConfirmButton` — a 63 x 54 dp filled
+/// capsule turned 45° counter-clockwise, its icon turned back upright.
+class _AnswerButton extends StatelessWidget {
+  const _AnswerButton.dismiss({required this.tooltip, required this.onTap})
+    : color = wearSurfaceHigh,
+      icon = Icons.close_rounded,
+      size = const Size.square(60),
+      shape = const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(18)),
+      ),
+      turn = 0;
+
+  const _AnswerButton.confirm({
+    required this.color,
     required this.tooltip,
     required this.onTap,
-  });
+  }) : icon = Icons.check_rounded,
+       size = const Size(63, 54),
+       shape = const StadiumBorder(),
+       turn = -math.pi / 4;
 
-  final double diameter;
+  /// `ConfirmIcon` / `DismissIcon`.
+  static const iconSize = 28.0;
+
+  final Color color;
   final IconData icon;
-  final Color background;
+  final Size size;
+  final ShapeBorder shape;
+  final double turn;
   final String tooltip;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onTap,
-      tooltip: tooltip,
-      style: IconButton.styleFrom(
-        backgroundColor: background,
-        foregroundColor: Colors.white,
-        fixedSize: Size.square(diameter),
-        // The laid-out box is exactly the circle: with the padded default,
-        // Material's minimum target adds width this row has already spent.
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  Widget build(BuildContext context) => Transform.rotate(
+    angle: turn,
+    child: Tooltip(
+      message: tooltip,
+      child: Material(
+        color: color,
+        shape: shape,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox.fromSize(
+            size: size,
+            child: Center(
+              child: Transform.rotate(
+                angle: -turn,
+                child: Icon(icon, size: iconSize, color: Colors.white),
+              ),
+            ),
+          ),
+        ),
       ),
-      icon: Icon(icon, size: diameter / 2),
-    );
-  }
+    ),
+  );
 }

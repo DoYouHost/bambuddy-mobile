@@ -29,9 +29,10 @@ row the width available at the *worst* point of the viewport — including the
 rows crossing the middle, where the whole diameter is lit. Measured on a 225 dp
 face it leaves **144 dp of viewport, 1.8 rows of a printer list**.
 
-`WearScrollView` is where the choice is made: a screen with a footer, or one
-holding still with `centerWhenShort`, is a fixed layout and keeps the rectangle;
-`curved: true` is the list.
+`WearScrollView` is where the choice is made: a screen holding still with
+`centerWhenShort` is a fixed layout and keeps the rectangle; `curved: true` is
+the list, and a confirmation is the same list laid out as Wear Material 3's
+`AlertDialog` (`contentPadding`, centred when it fits).
 
 ### The insets go on the viewport, not on the content
 
@@ -55,7 +56,7 @@ so the moment it worked was the moment it was seen to be wrong.
 
 ## The tunables
 
-Everything else follows from the circle. These four are the decisions.
+Everything else follows from the circle. These two are the decisions.
 
 ### `roundEdgeFraction = 0.18`
 
@@ -75,14 +76,6 @@ inside the circle rather than exactly tangent to it. Two reasons: the corners of
 a rounded row cross the circle before its flat edge does, and a real bezel eats
 a pixel or two more than the display metrics admit to. Solved exactly, the
 arithmetic lands the corners a rounding error *outside* the circle.
-
-### `wearNarrowWidthFraction = 0.62`
-
-`roundEdgeFraction` read from the other end: content that does not need the full
-chord can reach further up and down before the circle catches it. The
-confirmation dialog is the case — icon, question and button row are taller than
-the rectangle a full-width screen gets, and a confirm nobody can reach without
-scrolling is worse than one that gives up some width.
 
 ## The scaling list
 

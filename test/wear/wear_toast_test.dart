@@ -262,8 +262,7 @@ void main() {
     // Counted frames from here on, never `pumpAndSettle`. Pressing the button
     // raises the busy veil and holds it up for as long as the confirmation is
     // on screen — this whole path runs inside `_run` — and the veil's spinner
-    // never stops, so settling never returns. The confirm sits in the dialog's
-    // pinned footer, which needs no scrolling to reach.
+    // never stops, so settling never returns.
     Future<void> frames() async {
       for (var i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 100));

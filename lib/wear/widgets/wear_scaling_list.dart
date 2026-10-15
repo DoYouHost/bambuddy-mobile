@@ -106,7 +106,14 @@ class WearScalingSliverList extends SliverList {
     required this.gapIndices,
     required this.visible,
     required this.onAutoCentering,
+    this.contentPadding,
   });
+
+  /// `autoCentering = null` with this `contentPadding`, the way an
+  /// `AlertDialog` lays out its `ScalingLazyColumn`: the space above and below
+  /// the items is the padding, and a list shorter than the viewport is centred
+  /// in it (`Arrangement.spacedBy(…, Alignment.CenterVertically)`).
+  final ({double top, double bottom})? contentPadding;
 
   /// `AutoCenteringParams.itemIndex`, as a child index of this sliver.
   final int centerFromIndex;
@@ -129,6 +136,7 @@ class WearScalingSliverList extends SliverList {
         gapIndices: gapIndices,
         visible: visible,
         onAutoCentering: onAutoCentering,
+        contentPadding: contentPadding,
       );
 
   @override
@@ -139,7 +147,8 @@ class WearScalingSliverList extends SliverList {
     ..centerFromIndex = centerFromIndex
     ..gapIndices = gapIndices
     ..visible = visible
-    ..onAutoCentering = onAutoCentering;
+    ..onAutoCentering = onAutoCentering
+    ..contentPadding = contentPadding;
 }
 
 class RenderWearScalingSliverList extends RenderSliverList {
@@ -151,7 +160,9 @@ class RenderWearScalingSliverList extends RenderSliverList {
     required Set<int> gapIndices,
     required bool visible,
     required this.onAutoCentering,
-  }) : _centerFromIndex = centerFromIndex,
+    ({double top, double bottom})? contentPadding,
+  }) : _contentPadding = contentPadding,
+       _centerFromIndex = centerFromIndex,
        _gapIndices = gapIndices,
        _visible = visible;
 
@@ -180,6 +191,14 @@ class RenderWearScalingSliverList extends RenderSliverList {
   }
 
   ValueChanged<WearAutoCentering> onAutoCentering;
+
+  ({double top, double bottom})? get contentPadding => _contentPadding;
+  ({double top, double bottom})? _contentPadding;
+  set contentPadding(({double top, double bottom})? value) {
+    if (_contentPadding == value) return;
+    _contentPadding = value;
+    markNeedsLayout();
+  }
 
   final _transforms = <RenderBox, _ItemTransform>{};
 
@@ -258,6 +277,9 @@ class RenderWearScalingSliverList extends RenderSliverList {
   /// for the `ItemCenter` anchor: the room [centerFromIndex] needs above it, and
   /// the last item below it, to reach the centre line.
   void _reportAutoCentering(double viewportHeight, double origin) {
+    if (_contentPadding case final padding?) {
+      return _reportPadding(viewportHeight, padding);
+    }
     final centerLine = (viewportHeight / 2).floorToDouble();
     double? top;
     double? bottom;
@@ -279,6 +301,36 @@ class RenderWearScalingSliverList extends RenderSliverList {
     if (top == null && bottom == null) return;
     final measured = (top: top, bottom: bottom);
     // Reported after layout: the owner sizes the spacers in a later frame.
+    SchedulerBinding.instance.addPostFrameCallback(
+      (_) => onAutoCentering(measured),
+    );
+  }
+
+  /// The padding, plus half of whatever the viewport has left once every item
+  /// is laid out — known only when the first and the last one are.
+  void _reportPadding(
+    double viewportHeight,
+    ({double top, double bottom}) padding,
+  ) {
+    final last = childManager.childCount - 2;
+    var content = 0.0;
+    var seenFirst = false;
+    var seenLast = false;
+    for (var child = firstChild; child != null; child = childAfter(child)) {
+      final index = indexOf(child);
+      if (index == 0 || index > last) continue;
+      seenFirst |= index == 1;
+      seenLast |= index == last;
+      content += child.size.height;
+    }
+    final extra = seenFirst && seenLast
+        ? math.max(
+                0.0,
+                viewportHeight - padding.top - padding.bottom - content,
+              ) /
+              2
+        : 0.0;
+    final measured = (top: padding.top + extra, bottom: padding.bottom + extra);
     SchedulerBinding.instance.addPostFrameCallback(
       (_) => onAutoCentering(measured),
     );

@@ -3,7 +3,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../wear_geometry.dart';
 import '../wear_shape.dart';
 import 'wear_face.dart';
 import 'wear_scaling_list.dart';
@@ -16,7 +15,7 @@ import 'wear_scroll_indicator.dart';
 /// **A list scales** ([curved]): the viewport is the whole face and the items
 /// shrink and fade toward its top and bottom the way Wear OS's `ScalingLazyColumn`
 /// does ([WearScalingSliverList]). **A panel keeps the rectangle**: anything with a
-/// [footer] or [centerWhenShort] is a fixed layout. Why, and why the insets go on
+/// [centerWhenShort] is a fixed layout. Why, and why the insets go on
 /// the viewport rather than on the content, is in `docs/wear-geometry.md`.
 class WearScrollView extends StatefulWidget {
   const WearScrollView({
@@ -25,9 +24,8 @@ class WearScrollView extends StatefulWidget {
     this.onRefresh,
     this.centerWhenShort = false,
     this.curved = false,
-    this.contentWidthFraction,
+    this.contentPadding,
     this.resetKey,
-    this.footer,
   });
 
   final List<Widget> children;
@@ -47,16 +45,10 @@ class WearScrollView extends StatefulWidget {
   /// second item and every later one able to reach the middle.
   final bool curved;
 
-  /// How much of the face this screen's content actually needs, if less than all
-  /// of it — see [wearNarrowWidthFraction]. Narrower content is allowed a taller
-  /// viewport, because the circle takes its width back nearer the edges.
-  final double? contentWidthFraction;
-
-  /// Held at the bottom of the viewport, inside the same insets, while
-  /// [children] scroll above it. For the one thing a screen cannot afford to
-  /// put below the fold: a confirmation's two buttons, which on a 192 dp face
-  /// needed a scroll before they were pinned here.
-  final Widget? footer;
+  /// For a [curved] list laid out as Wear OS lays out a dialog: no
+  /// auto-centering, this space above and below the items, and the items
+  /// centred when they fit ([WearScalingSliverList.contentPadding]).
+  final ({double top, double bottom})? contentPadding;
 
   /// Changing this scrolls back to the top. For a screen that swaps its content
   /// under the user — the setup flow moves between handoff, offer and manual
@@ -163,12 +155,9 @@ class _WearScrollViewState extends State<WearScrollView>
     final shape = wearShapeOf(context);
     final face = MediaQuery.sizeOf(context);
     // A square face keeps its corners and has nothing to curve away from; a
-    // panel (a footer to pin, or content held still) is not a list.
+    // panel held still is not a list.
     final curved =
-        widget.curved &&
-        shape == WearShape.round &&
-        widget.footer == null &&
-        !widget.centerWhenShort;
+        widget.curved && shape == WearShape.round && !widget.centerWhenShort;
 
     Widget content = NotificationListener<ScrollMetricsNotification>(
       onNotification: _onMetrics,
@@ -185,14 +174,6 @@ class _WearScrollViewState extends State<WearScrollView>
     if (widget.onRefresh != null) {
       content = RefreshIndicator(onRefresh: widget.onRefresh!, child: content);
     }
-    if (widget.footer case final footer?) {
-      content = Column(
-        children: [
-          Expanded(child: content),
-          footer,
-        ],
-      );
-    }
 
     return Stack(
       children: [
@@ -204,7 +185,7 @@ class _WearScrollViewState extends State<WearScrollView>
             child: content,
           )
         else
-          WearFace(widthFraction: widget.contentWidthFraction, child: content),
+          WearFace(child: content),
         // Outside the insets: the indicator belongs on the glass the content
         // just gave up, hugging the bezel where nothing else may go.
         Positioned.fill(
@@ -269,6 +250,7 @@ class _WearScrollViewState extends State<WearScrollView>
             for (var i = 0; i < children.length; i++)
               if (isGap(children[i])) i + 1,
           },
+          contentPadding: widget.contentPadding,
           visible: _centerTop != null,
           onAutoCentering: (centering) {
             bool moved(double? old, double? now) =>

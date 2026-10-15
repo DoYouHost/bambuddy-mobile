@@ -65,9 +65,12 @@ const _tintBorder = 0.6;
 /// component theme can carry are not here at all: a button and an input label
 /// get theirs from [wearTheme].
 class WearText {
-  /// The question on a full-screen confirm — alone on the face, so the
-  /// largest thing in the app.
-  static const hero = TextStyle(fontSize: 16, fontWeight: FontWeight.bold);
+  /// The question on a full-screen confirm: Wear Material 3's `titleMedium`,
+  /// 16 sp at weight 550 — Flutter takes weights in hundreds, so 600.
+  static const hero = TextStyle(fontSize: 16, fontWeight: FontWeight.w600);
+
+  /// The line under that question: `bodyMedium`, 14 sp at 450, so 400.
+  static const message = TextStyle(fontSize: 14);
 
   /// The header line at the top of a screen's scroll.
   static const title = TextStyle(fontSize: 14, fontWeight: FontWeight.bold);

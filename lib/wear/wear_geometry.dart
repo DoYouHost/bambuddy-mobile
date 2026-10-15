@@ -21,11 +21,6 @@ const roundEdgeFraction = 0.18;
 /// exactly tangent to it, as a fraction of the diameter.
 const roundSideSlack = 0.015;
 
-/// Share of the face a centred, narrow layout needs — a question with two round
-/// buttons under it, rather than rows spanning the screen. Narrow content buys
-/// height, which is what the confirmation dialog needs.
-const wearNarrowWidthFraction = 0.62;
-
 /// Insets on a square face. No geometry to satisfy — this is plain chrome, and
 /// close to what the screens used before.
 const _squareSideFraction = 0.06;
@@ -56,11 +51,8 @@ double roundSideInsetFraction({
 }
 
 /// Insets that turn the display into a rectangle a watch screen may paint in.
-/// Square faces keep their corners and only get chrome. [widthFraction] states
-/// how much of the face the content actually needs, and the height then follows
-/// from the circle; left out, the rectangle is sized for content that spans it
-/// — every screen but the confirmation dialog.
-EdgeInsets wearFaceInsets(WearShape shape, Size size, {double? widthFraction}) {
+/// Square faces keep their corners and only get chrome.
+EdgeInsets wearFaceInsets(WearShape shape, Size size) {
   if (shape == WearShape.square) {
     return EdgeInsets.symmetric(
       horizontal: size.width * _squareSideFraction,
@@ -70,19 +62,9 @@ EdgeInsets wearFaceInsets(WearShape shape, Size size, {double? widthFraction}) {
   // The circle is inscribed in the square the display reports; on a face that is
   // not exactly square the shorter side is the one that limits it.
   final diameter = size.shortestSide;
-  if (widthFraction == null) {
-    return EdgeInsets.symmetric(
-      horizontal: diameter * roundSideInsetFraction(),
-      vertical: diameter * roundEdgeFraction,
-    );
-  }
-  final halfWidth = widthFraction.clamp(0.0, 1.0) / 2;
-  // A circle does not care which axis it is asked about: the half-chord at a
-  // given horizontal offset is the half-height the rectangle may have.
-  final halfHeight = roundHalfChord(1, halfWidth);
   return EdgeInsets.symmetric(
-    horizontal: diameter * (0.5 - halfWidth + roundSideSlack),
-    vertical: diameter * (0.5 - halfHeight + roundSideSlack),
+    horizontal: diameter * roundSideInsetFraction(),
+    vertical: diameter * roundEdgeFraction,
   );
 }
 
