@@ -5,15 +5,21 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.content.ContextCompat
 import androidx.wear.remote.interactions.RemoteActivityHelper
+import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.Wearable
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.TimeUnit
 
 private const val WEAR_PHONE_APP_CHANNEL = "page.codeberg.morganmlgman.bambuddy/wear_phone_app"
 
 // Advertised by the phone flavor in res/values/wear.xml.
 private const val PHONE_APP_CAPABILITY = "bambuddy_phone_app"
+
+// Without Play services a Data Layer call never answers at all; bounded here rather than
+// in Dart, so the answer is null instead of the last one the screen had.
+private const val DATA_LAYER_TIMEOUT_SECONDS = 5L
 
 /**
  * Whether the paired phone has the app, and a way to install it from the watch: the watch
@@ -27,14 +33,18 @@ fun FlutterEngine.serveWearPhoneApp(context: Context) {
         when (call.method) {
             // Null rather than false without a connected phone: there is nothing to install
             // on, and an install button that can only fail is worse than none.
-            "installed" -> Wearable.getNodeClient(app).connectedNodes
+            "installed" -> Tasks.withTimeout(Wearable.getNodeClient(app).connectedNodes, DATA_LAYER_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .addOnSuccessListener { nodes ->
                     if (nodes.isEmpty()) {
                         result.success(null)
                         return@addOnSuccessListener
                     }
-                    Wearable.getCapabilityClient(app)
-                        .getCapability(PHONE_APP_CAPABILITY, CapabilityClient.FILTER_REACHABLE)
+                    Tasks.withTimeout(
+                        Wearable.getCapabilityClient(app)
+                            .getCapability(PHONE_APP_CAPABILITY, CapabilityClient.FILTER_REACHABLE),
+                        DATA_LAYER_TIMEOUT_SECONDS,
+                        TimeUnit.SECONDS,
+                    )
                         .addOnSuccessListener { result.success(it.nodes.isNotEmpty()) }
                         .addOnFailureListener { result.success(null) }
                 }

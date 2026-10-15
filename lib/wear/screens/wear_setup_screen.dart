@@ -24,8 +24,7 @@ const _phoneApp = PlatformQuery(
   MethodChannel('page.codeberg.morganmlgman.bambuddy/wear_phone_app'),
 );
 
-/// Without Play services a Data Layer call never answers at all — the same
-/// bound [_WearSetupScreenState._checkPhone] puts on its own.
+/// Without Play services a Data Layer call never answers at all.
 const _phoneTimeout = Duration(seconds: 5);
 
 /// Watch setup: the server and the credentials come from the phone, or the demo
@@ -73,8 +72,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
   }
 
   Future<void> _askPhoneApp() async {
-    // Unbounded on purpose: no answer leaves null, which offers nothing and
-    // holds nothing up — unlike [_installOnPhone], which keeps the spinner.
+    // Bounded on the native side (`WearPhoneApp.kt`), which answers null.
     final installed = await _phoneApp.ask<bool?>('installed', fallback: null);
     if (mounted) setState(() => _phoneHasApp = installed);
   }
@@ -268,7 +266,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       final found = await ref
           .read(watchConfigSyncProvider)
           .latestPending()
-          .timeout(const Duration(seconds: 5), onTimeout: () => null);
+          .timeout(_phoneTimeout, onTimeout: () => null);
       if (!mounted) return;
       // Empty is an outcome, not a failure — hence a field of its own rather
       // than an error.
