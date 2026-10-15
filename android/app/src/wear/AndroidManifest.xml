@@ -61,11 +61,12 @@
                 tools:replace="android:resource" />
         </activity>
 
-        <!-- Required by Play for Wear OS distribution: the watch app is fully
-             usable without the phone app installed (direct REST fallback). -->
+        <!-- Not standalone: the server and its credentials only arrive from the phone
+             app, since nothing may be typed on the watch (Play's WO-P6). The setup
+             screen offers to install the phone app when the phone lacks it. -->
         <meta-data
             android:name="com.google.android.wearable.standalone"
-            android:value="true" />
+            android:value="false" />
 
         <!-- Phone-only components: home-screen widget, the FGS host for the
              background monitor, the notification-action receiver, and the

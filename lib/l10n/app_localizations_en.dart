@@ -6046,19 +6046,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wearConfirm => 'Confirm';
 
   @override
-  String get wearServerUrl => 'Server URL';
-
-  @override
-  String get wearConnect => 'Connect';
-
-  @override
   String get wearAuthKey => 'Key';
 
   @override
   String get wearAuthLogin => 'Login';
-
-  @override
-  String get wearUsername => 'Username';
 
   @override
   String get wearSetupPhoneTitle => 'Set up from your phone';
@@ -6074,13 +6065,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wearSetupPhoneEmpty => 'Nothing from the phone yet.';
 
   @override
-  String get wearSetupManual => 'Enter manually';
+  String get wearPhoneAppMissing => 'Not on your phone yet?';
+
+  @override
+  String get wearPhoneAppInstall => 'Install on phone';
+
+  @override
+  String get wearPhoneAppOpened => 'Continue on your phone';
+
+  @override
+  String get wearPhoneAppOpenFailed => 'Couldn\'t reach the phone.';
 
   @override
   String get wearSetupDemo => 'Demo';
-
-  @override
-  String get wearSetupTapToType => 'Tap to type';
 
   @override
   String get wearSettingsTitle => 'Settings';

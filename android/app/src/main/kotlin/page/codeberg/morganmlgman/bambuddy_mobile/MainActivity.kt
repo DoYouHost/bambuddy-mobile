@@ -1,9 +1,7 @@
 package page.codeberg.morganmlgman.bambuddy_mobile
 
-import android.app.RemoteInput
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.PowerManager
@@ -15,22 +13,16 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 
-/**
- * What one channel method does. It answers [MethodChannel.Result] itself rather than
- * returning a value, because one of them (`requestText`) only answers once an activity
- * comes back.
- */
+/** What one channel method does; it answers [MethodChannel.Result] itself. */
 private typealias MethodHandler = (MethodCall, MethodChannel.Result) -> Unit
 
 /**
- * Native side of five platform channels.
+ * Native side of four platform channels.
  *
  * `battery` is a bridge to the battery-optimization state: the Dart side asks whether the app
  * is exempt and, at the user's request, fires the system prompt — that exemption is what
  * unblocks starting a foreground service from the background on Android 12+ and saves the
  * process from an OEM killer (critical on Samsung).
- *
- * `wear_input` is text entry on the watch — see [requestWearText].
  *
  * `clock` answers whether the user reads a 24-hour clock. Flutter learns that once, when
  * the view attaches, and never again — so an app that was running while the switch was flipped
@@ -47,9 +39,6 @@ private typealias MethodHandler = (MethodCall, MethodChannel.Result) -> Unit
  */
 class MainActivity : FlutterActivity() {
 
-    /** The Dart caller waiting for the watch input activity to come back. */
-    private var pendingWearText: MethodChannel.Result? = null
-
     // Before super: FlutterActivity swaps the window to NormalTheme in its own onCreate,
     // and the splash has to be installed while the launch theme is still the one applied.
     // Does nothing in the phone flavor — see BrandedLaunch.kt in each flavor source set.
@@ -65,21 +54,19 @@ class MainActivity : FlutterActivity() {
     /**
      * The watch's engine outlives this activity, so nothing it can still call may lead back
      * here: these handlers would act on a destroyed window, and keep it from being collected.
-     * The next activity registers its own in [configureFlutterEngine]. A pending text request
-     * is answered as cancelled, or the Dart side would wait on it forever.
+     * The next activity registers its own in [configureFlutterEngine].
      */
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
-        for (channel in listOf(BATTERY_CHANNEL, WEAR_INPUT_CHANNEL, CLOCK_CHANNEL, WEAR_SHAPE_CHANNEL, WINDOW_CHANNEL)) {
+        for (channel in listOf(BATTERY_CHANNEL, CLOCK_CHANNEL, WEAR_SHAPE_CHANNEL, WINDOW_CHANNEL)) {
             MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channel).setMethodCallHandler(null)
         }
-        pendingWearText?.success(null)
-        pendingWearText = null
         super.cleanUpFlutterEngine(flutterEngine)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         flutterEngine.serveWearOngoing(this)
+        flutterEngine.serveWearPhoneApp(this)
         flutterEngine.serve(
             BATTERY_CHANNEL,
             mapOf<String, MethodHandler>(
@@ -89,21 +76,6 @@ class MainActivity : FlutterActivity() {
                 "requestIgnoreBatteryOptimizations" to { _, result ->
                     requestIgnoreBatteryOptimizations()
                     result.success(null)
-                }
-            )
-        )
-        flutterEngine.serve(
-            WEAR_INPUT_CHANNEL,
-            mapOf<String, MethodHandler>(
-                // Answered from the device feature, not by resolving the intent:
-                // Android 11 package visibility filters a query for an activity we
-                // are still allowed to launch, so resolveActivity would report a
-                // false negative here.
-                "isSupported" to { _, result ->
-                    result.success(packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH))
-                },
-                "requestText" to { call, result ->
-                    requestWearText(call.argument<String>("label"), result)
                 }
             )
         )
@@ -161,53 +133,6 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    /**
-     * Hand text entry over to the watch's own input activity (keyboard, handwriting, dictation).
-     *
-     * A Flutter `TextField` has no working soft-keyboard path on Wear OS: the engine stamps
-     * `IME_FLAG_NO_FULLSCREEN` on every EditorInfo while the watch IME is a fullscreen window of
-     * its own, and the app is never even handed a bottom inset to scroll the field clear of it
-     * (measured on a Wear AVD: the IME reports `onShown`, `viewInsets.bottom` stays 0). On a
-     * Pixel Watch 3 it does not appear at all. RemoteInput is the entry path Wear apps are
-     * expected to use, and it is not subject to any of the above.
-     */
-    private fun requestWearText(label: String?, result: MethodChannel.Result) {
-        if (pendingWearText != null) {
-            result.error("busy", "A text request is already open", null)
-            return
-        }
-        val remoteInput = RemoteInput.Builder(WEAR_TEXT_KEY).setLabel(label.orEmpty()).build()
-        val intent = Intent(ACTION_REMOTE_INPUT)
-            .putExtra(EXTRA_REMOTE_INPUTS, arrayOf(remoteInput))
-        if (!label.isNullOrEmpty()) intent.putExtra(EXTRA_TITLE, label)
-        pendingWearText = result
-        try {
-            startActivityForResult(intent, REQUEST_WEAR_TEXT)
-        } catch (e: Exception) {
-            // Deliberately broad. Beyond a missing activity, a skin that keeps its input
-            // activity behind a permission answers with SecurityException — and a crash
-            // there would take away the field the Dart side falls back to.
-            pendingWearText = null
-            result.error("unavailable", "Cannot open the remote input activity: $e", null)
-        }
-    }
-
-    // Should the activity be recreated while the input screen is up, the reply is dropped and the
-    // Dart future never completes — the field keeps its old value and the next tap starts over.
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == REQUEST_WEAR_TEXT) {
-            val pending = pendingWearText
-            pendingWearText = null
-            val text = data
-                ?.let { RemoteInput.getResultsFromIntent(it) }
-                ?.getCharSequence(WEAR_TEXT_KEY)
-                ?.toString()
-            pending?.success(if (resultCode == RESULT_OK) text else null)
-            return
-        }
-        super.onActivityResult(requestCode, resultCode, data)
-    }
-
     private fun isIgnoringBatteryOptimizations(): Boolean {
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
         return pm.isIgnoringBatteryOptimizations(packageName)
@@ -232,20 +157,8 @@ class MainActivity : FlutterActivity() {
 
     private companion object {
         const val BATTERY_CHANNEL = "page.codeberg.morganmlgman.bambuddy/battery"
-        const val WEAR_INPUT_CHANNEL = "page.codeberg.morganmlgman.bambuddy/wear_input"
         const val WEAR_SHAPE_CHANNEL = "page.codeberg.morganmlgman.bambuddy/wear_shape"
         const val CLOCK_CHANNEL = "page.codeberg.morganmlgman.bambuddy/clock"
         const val WINDOW_CHANNEL = "page.codeberg.morganmlgman.bambuddy/window"
-
-        const val WEAR_TEXT_KEY = "bambuddy_wear_text"
-        const val REQUEST_WEAR_TEXT = 0x7EA1
-
-        // Copied from androidx.wear.input.RemoteInputIntentHelper, which keeps them private.
-        // Inlining them keeps androidx.wear:wear-input out of the phone flavor: both flavors
-        // compile this one source set, so a wear-only dependency would break the phone build.
-        // The extra carries platform android.app.RemoteInput parcelables, not the AndroidX ones.
-        const val ACTION_REMOTE_INPUT = "android.support.wearable.input.action.REMOTE_INPUT"
-        const val EXTRA_REMOTE_INPUTS = "android.support.wearable.input.extra.REMOTE_INPUTS"
-        const val EXTRA_TITLE = "android.support.wearable.input.extra.TITLE"
     }
 }

@@ -6108,19 +6108,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get wearConfirm => 'Bestätigen';
 
   @override
-  String get wearServerUrl => 'Server-URL';
-
-  @override
-  String get wearConnect => 'Verbinden';
-
-  @override
   String get wearAuthKey => 'Schlüssel';
 
   @override
   String get wearAuthLogin => 'Anmelden';
-
-  @override
-  String get wearUsername => 'Benutzername';
 
   @override
   String get wearSetupPhoneTitle => 'Vom Smartphone einrichten';
@@ -6136,13 +6127,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String get wearSetupPhoneEmpty => 'Noch nichts vom Smartphone.';
 
   @override
-  String get wearSetupManual => 'Manuell eingeben';
+  String get wearPhoneAppMissing => 'Noch nicht auf dem Smartphone?';
+
+  @override
+  String get wearPhoneAppInstall => 'Auf dem Smartphone installieren';
+
+  @override
+  String get wearPhoneAppOpened => 'Weiter auf dem Smartphone';
+
+  @override
+  String get wearPhoneAppOpenFailed => 'Smartphone nicht erreichbar.';
 
   @override
   String get wearSetupDemo => 'Demo';
-
-  @override
-  String get wearSetupTapToType => 'Tippen zur Eingabe';
 
   @override
   String get wearSettingsTitle => 'Einstellungen';

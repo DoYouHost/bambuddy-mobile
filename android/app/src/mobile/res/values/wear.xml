@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the watch asks for to tell whether this phone has the app (WearPhoneApp.kt in
+     src/wear). Kept through a release build by res/raw/keep.xml. -->
+<resources>
+    <string-array name="android_wear_capabilities">
+        <item>bambuddy_phone_app</item>
+    </string-array>
+</resources>

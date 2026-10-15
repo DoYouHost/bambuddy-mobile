@@ -6153,19 +6153,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wearConfirm => 'Potwierdź';
 
   @override
-  String get wearServerUrl => 'Adres serwera';
-
-  @override
-  String get wearConnect => 'Połącz';
-
-  @override
   String get wearAuthKey => 'Klucz';
 
   @override
   String get wearAuthLogin => 'Logowanie';
-
-  @override
-  String get wearUsername => 'Użytkownik';
 
   @override
   String get wearSetupPhoneTitle => 'Ustaw z telefonu';
@@ -6181,13 +6172,19 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wearSetupPhoneEmpty => 'Telefon jeszcze nic nie przysłał.';
 
   @override
-  String get wearSetupManual => 'Wpisz ręcznie';
+  String get wearPhoneAppMissing => 'Nie masz Bambuddy na telefonie?';
+
+  @override
+  String get wearPhoneAppInstall => 'Zainstaluj na telefonie';
+
+  @override
+  String get wearPhoneAppOpened => 'Dokończ na telefonie';
+
+  @override
+  String get wearPhoneAppOpenFailed => 'Nie udało się połączyć z telefonem.';
 
   @override
   String get wearSetupDemo => 'Demo';
-
-  @override
-  String get wearSetupTapToType => 'Dotknij, aby wpisać';
 
   @override
   String get wearSettingsTitle => 'Ustawienia';

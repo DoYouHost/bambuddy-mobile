@@ -137,6 +137,30 @@ void main() {
     );
   });
 
+  test('the watch app needs the phone app, and the phone says it has it', () {
+    // No typing on the watch (WO-P6) means setup only comes from the phone.
+    expect(
+      read(wearManifest),
+      matches(
+        RegExp(
+          r'android:name="com\.google\.android\.wearable\.standalone"\s*'
+          r'android:value="false"',
+        ),
+      ),
+    );
+    // The watch asks for this capability before offering an install; nothing
+    // in the code reads the array, so only the keep rule saves it from the
+    // release shrinker.
+    expect(
+      read('android/app/src/mobile/res/values/wear.xml'),
+      contains('<item>bambuddy_phone_app</item>'),
+    );
+    expect(
+      read('android/app/src/mobile/res/raw/keep.xml'),
+      contains('@array/android_wear_capabilities'),
+    );
+  });
+
   group('the Play listing (WO-G2)', () {
     final listing = read('docs/play-store-listing.md');
 

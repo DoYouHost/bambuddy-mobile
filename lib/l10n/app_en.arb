@@ -4067,21 +4067,32 @@
   "wearPhoneUnreachable": "Phone unreachable",
   "wearPhoneNoResponse": "Phone did not respond",
   "wearConfirm": "Confirm",
-  "wearServerUrl": "Server URL",
-  "wearConnect": "Connect",
   "wearAuthKey": "Key",
   "wearAuthLogin": "Login",
-  "wearUsername": "Username",
   "wearSetupPhoneTitle": "Set up from your phone",
   "wearSetupPhoneBody": "Open Bambuddy on your paired phone — the watch takes the server and sign-in from it.",
   "wearSetupPhoneCheck": "Check again",
   "wearSetupPhoneEmpty": "Nothing from the phone yet.",
-  "wearSetupManual": "Enter manually",
+  "wearPhoneAppMissing": "Not on your phone yet?",
+  "@wearPhoneAppMissing": {
+    "description": "Watch setup: shown when the paired phone has no Bambuddy app, above the install button."
+  },
+  "wearPhoneAppInstall": "Install on phone",
+  "@wearPhoneAppInstall": {
+    "description": "Watch setup: opens the Play Store listing on the paired phone."
+  },
+  "wearPhoneAppOpened": "Continue on your phone",
+  "@wearPhoneAppOpened": {
+    "description": "Watch toast after the Play Store opened on the phone."
+  },
+  "wearPhoneAppOpenFailed": "Couldn't reach the phone.",
+  "@wearPhoneAppOpenFailed": {
+    "description": "Watch toast when the Play Store could not be opened on the phone."
+  },
   "wearSetupDemo": "Demo",
   "@wearSetupDemo": {
     "description": "Watch setup: one tap into demo mode, no typing. Short by necessity — the phone's 'Try the demo' does not fit a line on a watch."
   },
-  "wearSetupTapToType": "Tap to type",
   "wearSettingsTitle": "Settings",
   "wearFromPhone": "From your phone",
   "wearFromPhoneUse": "Use this server",
