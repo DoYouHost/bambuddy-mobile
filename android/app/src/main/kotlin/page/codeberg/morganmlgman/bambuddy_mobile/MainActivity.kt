@@ -66,6 +66,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         flutterEngine.serveWearOngoing(this)
+        flutterEngine.serveWearPhoneApp(this)
         flutterEngine.serve(
             BATTERY_CHANNEL,
             mapOf<String, MethodHandler>(

@@ -6141,6 +6141,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get wearSetupPhoneEmpty => 'Aún no se ha recibido nada del teléfono.';
 
   @override
+  String get wearPhoneAppMissing => '¿Aún no está en tu teléfono?';
+
+  @override
+  String get wearPhoneAppInstall => 'Instalar en el teléfono';
+
+  @override
+  String get wearPhoneAppOpened => 'Continúa en tu teléfono';
+
+  @override
+  String get wearPhoneAppOpenFailed => 'No se pudo conectar con el teléfono.';
+
+  @override
   String get wearSetupDemo => 'Demo';
 
   @override

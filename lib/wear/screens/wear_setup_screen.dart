@@ -1,4 +1,6 @@
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/dash_theme.dart';
@@ -15,6 +17,12 @@ import '../widgets/wear_header.dart';
 import '../widgets/wear_screen.dart';
 import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_spinner.dart';
+import '../widgets/wear_toast.dart';
+
+/// The phone half of setup, through `WearPhoneApp.kt` in the wear source set.
+const _phoneApp = PlatformQuery(
+  MethodChannel('page.codeberg.morganmlgman.bambuddy/wear_phone_app'),
+);
 
 /// Watch setup: the server and the credentials come from the phone, or the demo
 /// starts with one tap. Nothing is typed here — Play's WO-P6 forbids a username
@@ -27,13 +35,56 @@ class WearSetupScreen extends ConsumerStatefulWidget {
 }
 
 class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
-    with WearAction {
+    with WearAction, WidgetsBindingObserver {
   /// The last check found nothing latched — worth saying out loud, or the button
   /// looks broken.
   bool _phoneEmpty = false;
 
   /// The last check failed outright, as opposed to coming back empty.
   Object? _phoneError;
+
+  /// Whether the paired phone has the app; null where no phone is connected or
+  /// the watch cannot tell, which offers nothing to install. Asked again on every
+  /// check and on coming back, since the answer is what the user goes off to
+  /// change — and an older phone app advertises nothing, so a false here may be
+  /// wrong, which is why the prompt is a question.
+  bool? _phoneHasApp;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _askPhoneApp();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _askPhoneApp();
+  }
+
+  Future<void> _askPhoneApp() async {
+    final installed = await _phoneApp.ask<bool?>('installed', fallback: null);
+    if (mounted) setState(() => _phoneHasApp = installed);
+  }
+
+  /// [below] is the button's context: the toast lives in the [WearScreen] this
+  /// state builds, so its own context is above it.
+  Future<void> _installOnPhone(BuildContext below) async {
+    final opened = await _phoneApp.ask<bool>('openStore', fallback: false);
+    if (!below.mounted) return;
+    final l10n = AppLocalizations.of(below);
+    wearToast(
+      below,
+      opened ? l10n.wearPhoneAppOpened : l10n.wearPhoneAppOpenFailed,
+      tone: opened ? WearToastTone.success : WearToastTone.failure,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -149,6 +200,21 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         onPressed: _checkPhone,
         child: Text(l10n.wearSetupPhoneCheck),
       ),
+    if (_phoneHasApp == false) ...[
+      const SizedBox(height: DashSpace.sm),
+      Text(
+        l10n.wearPhoneAppMissing,
+        textAlign: TextAlign.center,
+        style: WearText.body,
+      ),
+      const SizedBox(height: DashSpace.xs),
+      Builder(
+        builder: (below) => FilledButton(
+          onPressed: () => _installOnPhone(below),
+          child: Text(l10n.wearPhoneAppInstall),
+        ),
+      ),
+    ],
     TextButton(
       onPressed: busy ? null : _startDemo,
       child: Text(l10n.wearSetupDemo),
@@ -179,6 +245,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
   /// while the watch app was closed, and for the user who wants to see
   /// something happen.
   Future<void> _checkPhone() {
+    _askPhoneApp();
     setState(() {
       _phoneEmpty = false;
       _phoneError = null;

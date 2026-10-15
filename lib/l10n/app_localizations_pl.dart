@@ -6172,6 +6172,18 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wearSetupPhoneEmpty => 'Telefon jeszcze nic nie przysłał.';
 
   @override
+  String get wearPhoneAppMissing => 'Nie masz Bambuddy na telefonie?';
+
+  @override
+  String get wearPhoneAppInstall => 'Zainstaluj na telefonie';
+
+  @override
+  String get wearPhoneAppOpened => 'Dokończ na telefonie';
+
+  @override
+  String get wearPhoneAppOpenFailed => 'Nie udało się połączyć z telefonem.';
+
+  @override
   String get wearSetupDemo => 'Demo';
 
   @override

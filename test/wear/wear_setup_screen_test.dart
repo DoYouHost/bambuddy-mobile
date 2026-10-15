@@ -4,6 +4,7 @@ import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/screens/wear_setup_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -22,6 +23,33 @@ final _offered = WatchConfig(
 );
 
 void main() {
+  const phoneAppChannel = MethodChannel(
+    'page.codeberg.morganmlgman.bambuddy/wear_phone_app',
+  );
+  final phoneCalls = <String>[];
+  bool? phoneHasApp;
+  var storeOpens = true;
+
+  setUp(() {
+    phoneCalls.clear();
+    phoneHasApp = null;
+    storeOpens = true;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(phoneAppChannel, (call) async {
+          phoneCalls.add(call.method);
+          return switch (call.method) {
+            'installed' => phoneHasApp,
+            'openStore' => storeOpens,
+            _ => null,
+          };
+        });
+  });
+
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(phoneAppChannel, null);
+  });
+
   Future<ProviderContainer> pumpSetup(
     WidgetTester tester, {
     List<Override> overrides = const [],
@@ -65,6 +93,75 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(TextField), findsNothing, reason: 'after "$label"');
     }
+  });
+
+  group('a phone without the app', () {
+    for (final (answer, offered) in [
+      (false, true),
+      (true, false),
+      (null, false),
+    ]) {
+      testWidgets('installed=$answer ${offered ? 'offers' : 'does not offer'} '
+          'to install it', (tester) async {
+        phoneHasApp = answer;
+        await pumpSetup(tester);
+        await tester.pumpAndSettle();
+
+        // Unknown is no phone connected, or no Play services: an install
+        // button there could only fail.
+        expect(
+          find.text(pl.wearPhoneAppInstall, skipOffstage: false),
+          offered ? findsOneWidget : findsNothing,
+        );
+      });
+    }
+
+    testWidgets('install opens the store on the phone and says where to look', (
+      tester,
+    ) async {
+      phoneHasApp = false;
+      await pumpSetup(tester);
+      await tester.pumpAndSettle();
+
+      await tapOnWatch(tester, find.text(pl.wearPhoneAppInstall));
+      await tester.pumpAndSettle();
+
+      expect(phoneCalls, contains('openStore'));
+      expect(find.text(pl.wearPhoneAppOpened), findsOneWidget);
+    });
+
+    testWidgets('says so when the phone cannot be reached', (tester) async {
+      phoneHasApp = false;
+      storeOpens = false;
+      await pumpSetup(tester);
+      await tester.pumpAndSettle();
+
+      await tapOnWatch(tester, find.text(pl.wearPhoneAppInstall));
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.wearPhoneAppOpenFailed), findsOneWidget);
+    });
+
+    testWidgets('asks again on every check, so the answer can change', (
+      tester,
+    ) async {
+      phoneHasApp = true;
+      await pumpSetup(tester);
+      await tester.pumpAndSettle();
+      expect(
+        find.text(pl.wearPhoneAppInstall, skipOffstage: false),
+        findsNothing,
+      );
+
+      phoneHasApp = false;
+      await tapOnWatch(tester, find.text(pl.wearSetupPhoneCheck));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(pl.wearPhoneAppInstall, skipOffstage: false),
+        findsOneWidget,
+      );
+    });
   });
 
   testWidgets('says so when the phone has pushed nothing', (tester) async {

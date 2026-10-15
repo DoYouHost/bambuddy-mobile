@@ -10184,6 +10184,30 @@ abstract class AppLocalizations {
   /// **'Nothing from the phone yet.'**
   String get wearSetupPhoneEmpty;
 
+  /// Watch setup: shown when the paired phone has no Bambuddy app, above the install button.
+  ///
+  /// In en, this message translates to:
+  /// **'Not on your phone yet?'**
+  String get wearPhoneAppMissing;
+
+  /// Watch setup: opens the Play Store listing on the paired phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Install on phone'**
+  String get wearPhoneAppInstall;
+
+  /// Watch toast after the Play Store opened on the phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue on your phone'**
+  String get wearPhoneAppOpened;
+
+  /// Watch toast when the Play Store could not be opened on the phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the phone.'**
+  String get wearPhoneAppOpenFailed;
+
   /// Watch setup: one tap into demo mode, no typing. Short by necessity — the phone's 'Try the demo' does not fit a line on a watch.
   ///
   /// In en, this message translates to:

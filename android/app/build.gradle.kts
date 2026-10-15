@@ -210,5 +210,8 @@ dependencies {
     // Play's WO-V4: the watch face icon and Recents entry for a print followed from the
     // watch (WearOngoing.kt in the wear source set).
     "wearImplementation"("androidx.wear:wear-ongoing:1.1.0")
+    // The install-on-phone prompt of a watch app that needs its phone app (WearPhoneApp.kt in
+    // the wear source set).
+    "wearImplementation"("androidx.wear:wear-remote-interactions:1.2.0")
     androidTestUtil("androidx.test:orchestrator:1.5.1")
 }

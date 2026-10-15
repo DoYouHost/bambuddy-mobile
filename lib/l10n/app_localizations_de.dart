@@ -6127,6 +6127,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String get wearSetupPhoneEmpty => 'Noch nichts vom Smartphone.';
 
   @override
+  String get wearPhoneAppMissing => 'Noch nicht auf dem Smartphone?';
+
+  @override
+  String get wearPhoneAppInstall => 'Auf dem Smartphone installieren';
+
+  @override
+  String get wearPhoneAppOpened => 'Weiter auf dem Smartphone';
+
+  @override
+  String get wearPhoneAppOpenFailed => 'Smartphone nicht erreichbar.';
+
+  @override
   String get wearSetupDemo => 'Demo';
 
   @override
