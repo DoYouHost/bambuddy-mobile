@@ -27,10 +27,8 @@ class WearPrinterListBody extends ConsumerWidget {
         curved: true,
         onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
         children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: DashSpace.sm),
-            child: WearHeader(AppLocalizations.of(context).printersTitle),
-          ),
+          WearHeader(AppLocalizations.of(context).printersTitle),
+          const SizedBox(height: WearSpace.titleToContent),
           // Same sentence the control screen carries, for the same reason: a
           // dimmed list with nothing to explain it reads as a rendering fault.
           // Rows stay tappable — this screen only navigates, and the control
@@ -43,24 +41,23 @@ class WearPrinterListBody extends ConsumerWidget {
             ),
             const SizedBox(height: DashSpace.sm),
           ],
-          for (final p in printers)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
-              child: _PrinterRow(
-                name: p.printer.name,
-                stateLabel: wearStateOf(
-                  p.status,
-                ).label(AppLocalizations.of(context)),
-                stateColor: wearStateOf(p.status).color,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) =>
-                        WearPrinterControlScreen(printerId: p.printer.id),
-                  ),
+          for (final (i, p) in printers.indexed) ...[
+            if (i > 0) const SizedBox(height: WearSpace.inGroup),
+            _PrinterRow(
+              name: p.printer.name,
+              stateLabel: wearStateOf(
+                p.status,
+              ).label(AppLocalizations.of(context)),
+              stateColor: wearStateOf(p.status).color,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      WearPrinterControlScreen(printerId: p.printer.id),
                 ),
               ),
             ),
-          const SizedBox(height: DashSpace.xs),
+          ],
+          const SizedBox(height: WearSpace.betweenGroups),
           const WearSettingsEntry(),
         ],
       ),
@@ -92,48 +89,52 @@ class _PrinterRow extends StatelessWidget {
       // used to drift into.
       borderRadius: BorderRadius.circular(wearRadiusRow),
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: DashSpace.lg,
-          vertical: DashSpace.md,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: stateColor,
-                shape: BoxShape.circle,
+      // A Wear Material 3 tonal button with a second line: its height, inset
+      // and the two label styles.
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: wearButtonHeight),
+        child: Padding(
+          padding: wearButtonPadding,
+          child: Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: stateColor,
+                  shape: BoxShape.circle,
+                ),
               ),
-            ),
-            const SizedBox(width: DashSpace.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: WearText.strong,
-                  ),
-                  // One line, like the name above it. Without this the
-                  // row grows a second line for any state whose label does
-                  // not fit — "Oczekiwanie na płytę" is 20 characters in a
-                  // ~100 dp column — and 16 dp of a 75 dp row is a lot to
-                  // spend on a wrapped word nobody needs to read twice.
-                  Text(
-                    stateLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: WearText.small.copyWith(color: stateColor),
-                  ),
-                ],
+              const SizedBox(width: DashSpace.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: wearButtonLabel,
+                    ),
+                    // One line, like the name above it. Without this the
+                    // row grows a second line for any state whose label does
+                    // not fit — "Oczekiwanie na płytę" is 20 characters in a
+                    // ~100 dp column — and 16 dp of a 75 dp row is a lot to
+                    // spend on a wrapped word nobody needs to read twice.
+                    Text(
+                      stateLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: wearButtonSecondaryLabel.copyWith(
+                        color: stateColor,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Icon(Icons.chevron_right, size: 18),
-          ],
+              const Icon(Icons.chevron_right, size: 18),
+            ],
+          ),
         ),
       ),
     ),

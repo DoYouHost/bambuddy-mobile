@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/dash_theme.dart';
+
 /// Design tokens and the app theme for the watch, the counterpart of the phone's
 /// `DashTokens`/`dashAppTheme`. Its own scale on purpose: this is read at arm's
 /// length on a 1.4" screen, and the phone's layered translucent cards mean
@@ -40,9 +42,9 @@ const wearScrim = Color(0x99000000);
 /// which is why the fault card came up from the 14 it was written with.
 const wearRadiusCard = 16.0;
 
-/// Corner radius of a row you tap. Rounder than a card on purpose: it is the
-/// only thing on the watch that answers a touch, and the shape is what says so.
-const wearRadiusRow = 20.0;
+/// Corner radius of a row you tap: Wear Material 3's `CornerLarge`, the
+/// radius of every button.
+const wearRadiusRow = 26.0;
 
 /// A surface tinted with the colour of whatever it is reporting: a low-alpha
 /// fill, a border of the same colour at a strength that survives the OLED black,
@@ -60,8 +62,8 @@ const _tintBorder = 0.6;
 
 /// The watch type scale, by role rather than by size. A site needing a colour
 /// does a `copyWith` on the role, so the size stays decided here — and sizes a
-/// component theme can carry are not here at all: a text button and an input
-/// label get theirs from [wearTheme].
+/// component theme can carry are not here at all: a button and an input label
+/// get theirs from [wearTheme].
 class WearText {
   /// The question on a full-screen confirm — alone on the face, so the
   /// largest thing in the app.
@@ -89,9 +91,28 @@ class WearText {
   static const fine = TextStyle(fontSize: 10, color: wearMuted);
 }
 
-/// Dark, black-background theme (OLED-friendly) with larger tap targets. Text
-/// buttons, filled buttons and input labels take their type from here so the
-/// screens stop repeating it. No snackbar theme: a bar pinned to the bottom of a
+/// Wear Material 3's `ButtonDefaults` (compose-material3 1.7.1): every button
+/// variant is 52 dp tall, fully rounded (26 dp on 52), its content inset by
+/// [WearSpace]'s button values, its icon 26 dp (24 on an outlined one, which
+/// also adds a 1 dp `Outline` border).
+const wearButtonHeight = 52.0;
+const wearButtonPadding = EdgeInsets.symmetric(
+  horizontal: WearSpace.buttonHorizontal,
+  vertical: WearSpace.buttonVertical,
+);
+
+/// The label of every button: Wear Material 3's `LabelMedium`, 15 sp at 500.
+const wearButtonLabel = TextStyle(fontSize: 15, fontWeight: FontWeight.w500);
+
+/// A button's second line: Wear Material 3's `LabelSmall`, 13 sp at 500.
+const wearButtonSecondaryLabel = TextStyle(
+  fontSize: 13,
+  fontWeight: FontWeight.w500,
+);
+
+/// Dark, black-background theme (OLED-friendly) with larger tap targets.
+/// Buttons and input labels take their type from here so the screens stop
+/// repeating it. No snackbar theme: a bar pinned to the bottom of a
 /// round face is mostly off the glass, and the watch uses `WearToast`.
 ThemeData wearTheme() {
   final scheme = ColorScheme.fromSeed(
@@ -104,13 +125,25 @@ ThemeData wearTheme() {
     useMaterial3: true,
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(44),
+        minimumSize: const Size.fromHeight(wearButtonHeight),
+        padding: wearButtonPadding,
         shape: const StadiumBorder(),
-        textStyle: WearText.strong,
+        textStyle: wearButtonLabel,
+        iconSize: 26,
       ),
     ),
-    textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(textStyle: WearText.body),
+    // The secondary action in a list: a full-width outlined button, not the
+    // phone's bare `TextButton` — Wear OS has no such list action.
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(wearButtonHeight),
+        padding: wearButtonPadding,
+        shape: const StadiumBorder(),
+        textStyle: wearButtonLabel,
+        foregroundColor: scheme.onSurface,
+        side: BorderSide(color: scheme.outline),
+        iconSize: 24,
+      ),
     ),
     inputDecorationTheme: const InputDecorationTheme(
       labelStyle: WearText.body,

@@ -318,8 +318,10 @@ do not stay silent because it was not part of the task.
   `<id>.confirm`) and records the answer as a `confirm` record. A hand-built `AlertDialog` is for bodies that
   are a **form or a choice** (text field, colour picker, checkbox that changes the
   outcome) — not for a plain question.
-- **Spacing goes through `DashSpace`** (in the `dash_ui` package, not this
-  repo): the 4 dp
+- **Spacing goes through `DashSpace`** — and, on the watch, through
+  `WearSpace` for the roles Wear Material 3 names (a button's 14/6 inset, the
+  list gaps: in a group, between groups, title to content, between sections)
+  — both in the `dash_ui` package, not this repo. `DashSpace` is the 4 dp
   scale `xs 4 · sm 8 · md 12 · lg 16 · xl 24 · xxl 32`, plus `gutter` for the
   left/right inset of anything meeting the screen, sheet or drawer edge, and
   `fabClearance` for a list under a FAB. No number typed into an `EdgeInsets`,

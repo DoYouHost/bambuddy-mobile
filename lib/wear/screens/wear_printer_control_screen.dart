@@ -121,7 +121,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
             onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
             children: [
               WearHeader(item.printer.name),
-              const SizedBox(height: DashSpace.sm),
+              const SizedBox(height: WearSpace.titleToContent),
               Center(child: WearStatusChip(state: state)),
               // Why the screen is dim and why nothing can be pressed. Without
               // it a cached frame is a control screen whose every button is
@@ -365,7 +365,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
     return [
       for (final b in buttons)
         Padding(
-          padding: const EdgeInsets.only(bottom: DashSpace.sm),
+          padding: const EdgeInsets.only(bottom: WearSpace.inGroup),
           child: b,
         ),
     ];
