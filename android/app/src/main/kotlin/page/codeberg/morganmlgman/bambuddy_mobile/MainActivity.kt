@@ -20,7 +20,7 @@ private typealias MethodHandler = (MethodCall, MethodChannel.Result) -> Unit
  * Native side of four platform channels.
  *
  * `battery` is a bridge to the battery-optimization state: the Dart side asks whether the app
- * is exempt and, at the user's request, fires the system prompt — that exemption is what
+ * is exempt and, at the user's request, opens the app's settings page — that exemption is what
  * unblocks starting a foreground service from the background on Android 12+ and saves the
  * process from an OEM killer (critical on Samsung).
  *
@@ -73,8 +73,8 @@ class MainActivity : FlutterActivity() {
                 "isIgnoringBatteryOptimizations" to { _, result ->
                     result.success(isIgnoringBatteryOptimizations())
                 },
-                "requestIgnoreBatteryOptimizations" to { _, result ->
-                    requestIgnoreBatteryOptimizations()
+                "openBatterySettings" to { _, result ->
+                    openBatterySettings()
                     result.success(null)
                 }
             )
@@ -138,20 +138,17 @@ class MainActivity : FlutterActivity() {
         return pm.isIgnoringBatteryOptimizations(packageName)
     }
 
-    private fun requestIgnoreBatteryOptimizations() {
-        // Ask for this one app directly (system dialog). Should a manufacturer have blocked or
-        // hidden that screen, fall back to the full list.
-        val direct = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+    private fun openBatterySettings() {
+        // This app's own settings page, one tap from its battery setting. The direct
+        // exemption dialog would need REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, which Play
+        // refuses for a print monitor.
+        val appPage = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = Uri.parse("package:$packageName")
         }
         try {
-            startActivity(direct)
-        } catch (e: Exception) {
-            try {
-                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-            } catch (_: Exception) {
-                // No such screen on this device — nothing more we can do.
-            }
+            startActivity(appPage)
+        } catch (_: Exception) {
+            // No settings app on this device — nothing more we can do.
         }
     }
 

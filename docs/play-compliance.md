@@ -46,7 +46,6 @@ plugin manifests and are compared by hand (step 2 above).
 | `FOREGROUND_SERVICE_CONNECTED_DEVICE` | manifest | yes | yes | The service type; declared in Play Console. |
 | `CHANGE_NETWORK_STATE` | manifest | yes | yes | Qualifies the `connectedDevice` type. |
 | `CHANGE_WIFI_MULTICAST_STATE` | manifest | yes | no | mDNS discovery of the server on the LAN. |
-| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | manifest | yes | no | See "Battery optimisation exemption" — **open**. |
 | `CAMERA` | manifest | yes | no | QR / spool scanner, print photos. |
 | `WAKE_LOCK` | plugin | yes | yes | flutter_local_notifications, WorkManager. |
 | `RECEIVE_BOOT_COMPLETED` | plugin | yes | no | Rescheduling notifications after a reboot. |
@@ -114,11 +113,7 @@ asset rows are n/a.
 | Policy | Status | Notes |
 |---|---|---|
 | Foreground service declaration | manual | Play Console declares `connectedDevice` with a video; the watch now runs one too (WO-V4) — the video may need the watch. |
-| Battery optimisation exemption | **open** | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` is allowed only where Doze breaks the core function and the app is one of: messaging without FCM, safety, task automation, peripheral companion keeping a device online. A print monitor fits loosely at best; Play has accepted it so far. |
+| Battery optimisation exemption | test | Not requested (#53). `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` is allowed only for messaging without FCM, safety, task automation or a peripheral companion keeping a device online — a print monitor is none of them. The app opens its own settings page and the user sets battery use to unrestricted; an exemption granted before stays across the update. `compliance_test.dart` refuses the permission in the manifest. |
 | Data safety form | manual | `docs/privacy-policy.md`; the bug report sends a log only on the user's tap. |
 | Account deletion | n/a | the app creates no accounts; they live on the user's own server. |
 | Target API deadline | test | see above |
-
-## Open — decisions pending
-
-- **Battery optimisation exemption** on the phone, above (#53).

@@ -21,9 +21,11 @@ class BatteryOptimization {
     return _platform.ask('isIgnoringBatteryOptimizations', fallback: false);
   }
 
-  /// Opens the system request dialog for battery optimization exemption.
-  Future<void> request() async {
+  /// Opens the app's own settings page, where the user sets battery use to
+  /// unrestricted. Not the one-tap exemption dialog: that needs a permission
+  /// Play refuses for this kind of app (docs/play-compliance.md).
+  Future<void> openSettings() async {
     if (!Platform.isAndroid) return;
-    await _platform.tell('requestIgnoreBatteryOptimizations');
+    await _platform.tell('openBatterySettings');
   }
 }
