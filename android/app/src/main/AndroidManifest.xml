@@ -41,10 +41,10 @@
     <!-- No WAKE_LOCK of ours any more (see `allowWakeLock` in lib/main.dart).
          flutter_foreground_task declares the permission in its own manifest, so
          it still merges into the APK — nothing in this app acquires a lock. -->
-    <!-- Battery optimization exemption request: critical for background survival
-         on Samsung, and it unblocks starting a foreground service from the
-         background. -->
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <!-- No REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: Play allows the direct exemption
+         dialog only for a few app categories, and a print monitor is not one.
+         The app opens its own settings page instead (MainActivity), which needs
+         no permission. -->
     <!-- Spool QR scanner (mobile_scanner) — camera on demand only, runtime
          permission requested when the scanner opens. -->
     <uses-permission android:name="android.permission.CAMERA"/>

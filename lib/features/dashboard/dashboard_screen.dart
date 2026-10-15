@@ -379,7 +379,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       cancelLabel: l10n.batteryOptLater,
       id: 'battery_opt',
     );
-    if (open) await battery.request();
+    if (open) await battery.openSettings();
     return true;
   }
 

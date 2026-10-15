@@ -54,6 +54,10 @@ void main() {
       );
     });
 
+    test('no battery-optimisation exemption request (Play policy, #53)', () {
+      expect(declared, isNot(contains('REQUEST_IGNORE_BATTERY_OPTIMIZATIONS')));
+    });
+
     test('the watch column is what the watch manifest leaves in', () {
       for (final name in declared) {
         expect(

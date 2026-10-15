@@ -7,13 +7,12 @@
 
     <!-- Strip phone-only permissions the wear Dart entry point never uses.
          Play gates several of them behind extra review (foreground service
-         declaration + video, battery-optimization exemption), so declaring
+         declaration + video), so declaring
          them in an APK that can't exercise them only invites rejection. -->
     <uses-permission android:name="android.permission.CAMERA" tools:node="remove" />
     <!-- The watch has no gallery screen and starts at API 30 anyway. -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" tools:node="remove" />
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" tools:node="remove" />
     <!-- FOREGROUND_SERVICE, its connectedDevice type, CHANGE_NETWORK_STATE (the
          type's qualifying permission) and POST_NOTIFICATIONS stay: they carry
          the Ongoing Activity in WearOngoing.kt. Promotion and the reboot hook
