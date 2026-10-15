@@ -338,7 +338,14 @@ void main() {
 
     await tester.tap(byLogId('queue_history.sort'));
     await tester.pumpAndSettle();
-    await tester.tap(byLogId('queue_history.sort.name'));
+    // The tag sits on the label, which the checked item puts under an
+    // IgnorePointer; the item itself takes the tap.
+    await tester.tap(
+      find.ancestor(
+        of: byLogId('queue_history.sort.name'),
+        matching: find.byType(CheckedPopupMenuItem<String>),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(prefs.getString('queue.history_sort_by'), 'name');

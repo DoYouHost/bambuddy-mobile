@@ -615,7 +615,14 @@ void main() {
       await tester.tap(byLogId('files.add_to_queue'));
       await tester.pumpAndSettle();
       await openQueueFormPrinterSelect(tester);
-      await tester.tap(byLogId('queue_edit.printer').first);
+      // The name, not the tag: the tagged column's centre is the empty space
+      // beside a short name, which takes no tap.
+      await tester.tap(
+        find.descendant(
+          of: byLogId('queue_edit.printer'),
+          matching: find.text(printerX2D.name),
+        ),
+      );
       await tester.pumpAndSettle();
       await submitQueueForm(tester);
 

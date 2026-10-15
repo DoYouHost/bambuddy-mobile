@@ -52,7 +52,9 @@ default:
 test:
     #!/usr/bin/env bash
     set -euo pipefail
-    flutter test
+    # Piped (ship, ship-dev, an agent) the default reporter prints a line per
+    # test — ~5000 lines; this one prints failures and the summary.
+    flutter test -r failures-only
     if ! command -v adb >/dev/null || [ ! -x "{{emulator_bin}}" ]; then
         echo "On-device tests SKIPPED: no adb or Android emulator on this machine." >&2
         exit 0

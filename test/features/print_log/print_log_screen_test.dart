@@ -279,7 +279,10 @@ void main() {
     expect(checked(pl.printLogSortDescending), isTrue);
     expect(checked(pl.printLogSortAscending), isFalse);
 
-    final ascending = find.text(pl.printLogSortAscending);
+    final ascending = find.widgetWithText(
+      CheckedPopupMenuItem<String>,
+      pl.printLogSortAscending,
+    );
     await tester.ensureVisible(ascending);
     await tester.pump();
     await tester.tap(ascending);
