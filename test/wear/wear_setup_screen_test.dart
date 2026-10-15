@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
@@ -222,6 +224,37 @@ void main() {
     expect(find.text(pl.wearSetupPhoneTitle), findsOneWidget);
     await revealOnWatch(tester, find.text(pl.wearSetupPhoneCheck));
     expect(find.text(pl.wearSetupPhoneCheck), findsOneWidget);
+  });
+
+  testWidgets('"not now" waits while the offer is being applied', (
+    tester,
+  ) async {
+    final gate = Completer<void>();
+    await pumpSetup(
+      tester,
+      overrides: [
+        watchConfigSyncProvider.overrideWithValue(
+          FakeWatchConfigSync(pending: _offered, applyGate: gate),
+        ),
+      ],
+    );
+    await tapOnWatch(tester, find.text(pl.wearSetupPhoneCheck));
+    await tester.pumpAndSettle();
+    await tapOnWatch(tester, find.text(pl.wearFromPhoneUse));
+    await tester.pump();
+
+    // Dismissing mid-write would hide the offer while it is still being saved,
+    // and drop the failure, if there is one, onto a screen that no longer
+    // mentions it.
+    final later = tester.widget<TextButton>(
+      find.ancestor(
+        of: find.text(pl.wearFromPhoneLater, skipOffstage: false),
+        matching: find.byType(TextButton, skipOffstage: false),
+      ),
+    );
+    expect(later.onPressed, isNull);
+    gate.complete();
+    await tester.pumpAndSettle();
   });
 
   testWidgets('a failed adopt gives the spinner back, not a dead screen', (

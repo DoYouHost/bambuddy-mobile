@@ -329,11 +329,10 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
   /// Demo mode in one call: the magic address, then its credentials.
   ///
   /// Here rather than in a screen because two of them want it and they want
-  /// different amounts: the watch goes all the way, since typing
-  /// `demo`/`demo1234` there means three trips through the system input
-  /// activity, while the phone fills its fields first and leaves the last tap
-  /// to a reviewer who is following written steps — so what the phone shows on
-  /// screen still matches what Play Console told them to type.
+  /// different amounts: the watch goes all the way, since nothing is typed
+  /// there (Play's WO-P6), while the phone fills its fields first and leaves
+  /// the last tap to a reviewer who is following written steps — so what the
+  /// phone shows on screen still matches what Play Console told them to type.
   ///
   /// Failures land in [state] like any other sign-in; nothing here can reach
   /// the network, since [DemoConfig] is recognized before any request is made.

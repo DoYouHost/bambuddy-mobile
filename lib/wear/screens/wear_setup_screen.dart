@@ -151,7 +151,9 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         child: Text(l10n.wearFromPhoneUse),
       ),
     TextButton(
-      onPressed: () => ref.read(pendingWatchConfigProvider.notifier).dismiss(),
+      onPressed: busy
+          ? null
+          : () => ref.read(pendingWatchConfigProvider.notifier).dismiss(),
       child: Text(l10n.wearFromPhoneLater),
     ),
   ];
@@ -224,20 +226,17 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
   /// Straight into demo mode.
   ///
   /// The sequence itself belongs to the shared controller (`enterDemo`), so the
-  /// watch knows neither the address nor the credentials. Two ways it can go
-  /// wrong and both have to reach the screen: the controller *reports* a
-  /// rejection in its own error field, while the profile write underneath it
-  /// *throws* — the same secure-storage failure [_useOffer] already shows. On a
-  /// screen whose only other route needs the phone, a demo button that just puts
-  /// itself back is a dead end with no explanation.
+  /// watch knows neither the address nor the credentials. The one way it fails
+  /// is the profile write throwing — the same secure-storage failure
+  /// [_useOffer] already shows. On a screen whose only other route needs the
+  /// phone, a demo button that just puts itself back is a dead end with no
+  /// explanation.
   Future<void> _startDemo() {
     setState(() => _phoneError = null);
-    return run(() async {
-      await ref.read(setupControllerProvider.notifier).enterDemo();
-      if (!mounted) return;
-      final error = ref.read(setupControllerProvider).error;
-      if (error != null) setState(() => _phoneError = error);
-    }, onError: (error) => setState(() => _phoneError = error));
+    return run(
+      () => ref.read(setupControllerProvider.notifier).enterDemo(),
+      onError: (error) => setState(() => _phoneError = error),
+    );
   }
 
   /// Look for what the phone last latched and *offer* it. A live push is picked
