@@ -28,6 +28,17 @@ subprojects {
                 if (current == null || current < 36) {
                     compileSdkVersion(36)
                 }
+                // home_widget, patrol, printing and watch_connectivity still
+                // compile as Java 8, which javac 21 warns is obsolete. Set, not
+                // compared: AGP 9 refuses to read the value this early, and no
+                // plugin asks for more than the app's 17.
+                if (project.name != "app") {
+                    compileOptions.sourceCompatibility = JavaVersion.VERSION_17
+                    compileOptions.targetCompatibility = JavaVersion.VERSION_17
+                    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+                        compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+                    }
+                }
             }
         }
     }
