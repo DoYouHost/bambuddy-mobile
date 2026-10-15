@@ -10148,18 +10148,6 @@ abstract class AppLocalizations {
   /// **'Confirm'**
   String get wearConfirm;
 
-  /// No description provided for @wearServerUrl.
-  ///
-  /// In en, this message translates to:
-  /// **'Server URL'**
-  String get wearServerUrl;
-
-  /// No description provided for @wearConnect.
-  ///
-  /// In en, this message translates to:
-  /// **'Connect'**
-  String get wearConnect;
-
   /// No description provided for @wearAuthKey.
   ///
   /// In en, this message translates to:
@@ -10171,12 +10159,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Login'**
   String get wearAuthLogin;
-
-  /// No description provided for @wearUsername.
-  ///
-  /// In en, this message translates to:
-  /// **'Username'**
-  String get wearUsername;
 
   /// No description provided for @wearSetupPhoneTitle.
   ///
@@ -10202,23 +10184,11 @@ abstract class AppLocalizations {
   /// **'Nothing from the phone yet.'**
   String get wearSetupPhoneEmpty;
 
-  /// No description provided for @wearSetupManual.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter manually'**
-  String get wearSetupManual;
-
   /// Watch setup: one tap into demo mode, no typing. Short by necessity — the phone's 'Try the demo' does not fit a line on a watch.
   ///
   /// In en, this message translates to:
   /// **'Demo'**
   String get wearSetupDemo;
-
-  /// No description provided for @wearSetupTapToType.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap to type'**
-  String get wearSetupTapToType;
 
   /// No description provided for @wearSettingsTitle.
   ///

@@ -4,18 +4,13 @@ import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/screens/wear_setup_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
 
-/// What a fresh watch offers. Issue #25: the server-URL field was the first
-/// thing on this screen and the watch keyboard never opened for it, which left
-/// the app unusable to anyone who did not already have it running on a phone.
-/// So two things are asserted here — that the phone handoff leads, and that the
-/// manual path types through the watch's own input activity rather than a
-/// keyboard that is not coming.
+/// What a fresh watch offers: the phone handoff and the demo, and nothing to
+/// type (Play's WO-P6).
 
 final _offered = WatchConfig(
   profile: const ServerProfile(
@@ -27,38 +22,6 @@ final _offered = WatchConfig(
 );
 
 void main() {
-  const inputChannel = MethodChannel(
-    'page.codeberg.morganmlgman.bambuddy/wear_input',
-  );
-
-  final calls = <MethodCall>[];
-  String? entered;
-  bool isWatch = true;
-
-  void mockWatchInput() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(inputChannel, (call) async {
-          calls.add(call);
-          return switch (call.method) {
-            'isSupported' => isWatch,
-            'requestText' => entered,
-            _ => null,
-          };
-        });
-  }
-
-  setUp(() async {
-    calls.clear();
-    entered = null;
-    isWatch = true;
-    mockWatchInput();
-  });
-
-  tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(inputChannel, null);
-  });
-
   Future<ProviderContainer> pumpSetup(
     WidgetTester tester, {
     List<Override> overrides = const [],
@@ -75,6 +38,33 @@ void main() {
     await revealOnWatch(tester, find.text(pl.wearSetupPhoneCheck));
     expect(find.text(pl.wearSetupPhoneCheck), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
+  });
+
+  testWidgets('no button on the setup screen leads to typing on the watch '
+      '(WO-P6)', (tester) async {
+    // Play's WO-P6 forbids a username and password typed on the watch, and an
+    // API key is the same string to type. Everything comes from the phone; the
+    // demo is the one way in without it, and it needs no typing either.
+    await pumpSetup(tester);
+    final labels = [
+      for (final button
+          in find
+              .byWidgetPredicate(
+                (w) => w is ButtonStyleButton,
+                skipOffstage: false,
+              )
+              .evaluate())
+        for (final e in collectAllElementsFrom(button, skipOffstage: false))
+          if (e.widget case Text(:final data?)) data,
+    ]..remove(pl.wearSetupDemo);
+    expect(labels, isNotEmpty);
+
+    for (final label in labels) {
+      await pumpSetup(tester);
+      await tapOnWatch(tester, find.text(label));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsNothing, reason: 'after "$label"');
+    }
   });
 
   testWidgets('says so when the phone has pushed nothing', (tester) async {
@@ -133,8 +123,8 @@ void main() {
 
     expect(find.text(pl.wearFromPhoneUse), findsNothing);
     expect(find.text(pl.wearSetupPhoneTitle), findsOneWidget);
-    await revealOnWatch(tester, find.text(pl.wearSetupManual));
-    expect(find.text(pl.wearSetupManual), findsOneWidget);
+    await revealOnWatch(tester, find.text(pl.wearSetupPhoneCheck));
+    expect(find.text(pl.wearSetupPhoneCheck), findsOneWidget);
   });
 
   testWidgets('a failed adopt gives the spinner back, not a dead screen', (
@@ -162,10 +152,9 @@ void main() {
   });
 
   testWidgets('demo needs one tap and no keyboard at all', (tester) async {
-    // The watch has no usable keyboard of its own (see WearTextInput), so the
-    // reviewer's "type demo / demo / demo1234" is three trips through the input
-    // activity. This button is the whole flow, and it goes through the shared
-    // setup controller rather than writing a profile of its own.
+    // Nothing is typed on the watch, so the reviewer's "demo / demo / demo1234"
+    // is this button. It goes through the shared setup controller rather than
+    // writing a profile of its own.
     final container = await pumpSetup(tester);
 
     await tapOnWatch(tester, find.text(pl.wearSetupDemo));
@@ -205,72 +194,6 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.textContaining('prefs are gone'), findsOneWidget);
-  });
-
-  testWidgets('manual entry reveals the URL field', (tester) async {
-    await pumpSetup(tester);
-
-    await tapOnWatch(tester, find.text(pl.wearSetupManual));
-    await tester.pumpAndSettle();
-
-    expect(find.widgetWithText(TextField, pl.wearServerUrl), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, pl.wearConnect), findsOneWidget);
-  });
-
-  testWidgets('the URL field takes no focus and types through the watch', (
-    tester,
-  ) async {
-    entered = 'http://printer.local:8000';
-    await pumpSetup(tester);
-    await tapOnWatch(tester, find.text(pl.wearSetupManual));
-    await tester.pumpAndSettle();
-
-    final field = tester.widget<TextField>(
-      find.widgetWithText(TextField, pl.wearServerUrl),
-    );
-    expect(field.readOnly, isTrue);
-    expect(field.canRequestFocus, isFalse);
-
-    await tapOnWatch(tester, find.widgetWithText(TextField, pl.wearServerUrl));
-    await tester.pumpAndSettle();
-
-    expect(
-      calls.map((c) => c.method),
-      containsAllInOrder(<String>['isSupported', 'requestText']),
-    );
-    expect(calls.last.arguments, {'label': 'Adres serwera'});
-    expect(find.text('http://printer.local:8000'), findsOneWidget);
-  });
-
-  testWidgets('backing out of the watch input keeps the old value', (
-    tester,
-  ) async {
-    entered = null;
-    await pumpSetup(tester);
-    await tapOnWatch(tester, find.text(pl.wearSetupManual));
-    await tester.pumpAndSettle();
-    await tapOnWatch(tester, find.widgetWithText(TextField, pl.wearServerUrl));
-    await tester.pumpAndSettle();
-
-    final field = tester.widget<TextField>(
-      find.widgetWithText(TextField, pl.wearServerUrl),
-    );
-    expect(field.controller!.text, isEmpty);
-  });
-
-  testWidgets('falls back to an editable field where there is no watch input', (
-    tester,
-  ) async {
-    isWatch = false;
-    await pumpSetup(tester);
-    await tapOnWatch(tester, find.text(pl.wearSetupManual));
-    await tester.pumpAndSettle();
-
-    final field = tester.widget<TextField>(
-      find.widgetWithText(TextField, pl.wearServerUrl),
-    );
-    expect(field.readOnly, isFalse);
-    expect(calls.map((c) => c.method), isNot(contains('requestText')));
   });
 }
 

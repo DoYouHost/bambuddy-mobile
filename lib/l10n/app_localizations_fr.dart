@@ -6180,19 +6180,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get wearConfirm => 'Confirmer';
 
   @override
-  String get wearServerUrl => 'URL du serveur';
-
-  @override
-  String get wearConnect => 'Se connecter';
-
-  @override
   String get wearAuthKey => 'Clé';
 
   @override
   String get wearAuthLogin => 'Compte';
-
-  @override
-  String get wearUsername => 'Nom d\'utilisateur';
 
   @override
   String get wearSetupPhoneTitle => 'Configurer depuis le téléphone';
@@ -6208,13 +6199,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get wearSetupPhoneEmpty => 'Rien reçu du téléphone pour l\'instant.';
 
   @override
-  String get wearSetupManual => 'Saisir manuellement';
-
-  @override
   String get wearSetupDemo => 'Démo';
-
-  @override
-  String get wearSetupTapToType => 'Appuyer pour saisir';
 
   @override
   String get wearSettingsTitle => 'Paramètres';
