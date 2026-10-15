@@ -21,8 +21,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_diagnostics"
-      ref: "v0.12.2"
-      resolved-ref: "5e864fb3ebf1423b4d22c51b966893ee7ed4e922"
+      ref: "v0.13.0"
+      resolved-ref: "183f4330dba45631cd3200603647998cef0c7ea3"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.3.1"
@@ -30,11 +30,11 @@ packages:
     dependency: "direct dev"
     description:
       path: "packages/app_guards"
-      ref: "v0.12.2"
-      resolved-ref: "5e864fb3ebf1423b4d22c51b966893ee7ed4e922"
+      ref: "v0.13.0"
+      resolved-ref: "183f4330dba45631cd3200603647998cef0c7ea3"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.1.0"
+    version: "0.1.1"
   app_report_client:
     dependency: "direct main"
     description:
@@ -48,8 +48,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_report_ui"
-      ref: "v0.12.2"
-      resolved-ref: "5e864fb3ebf1423b4d22c51b966893ee7ed4e922"
+      ref: "v0.13.0"
+      resolved-ref: "183f4330dba45631cd3200603647998cef0c7ea3"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.1.5"
@@ -57,8 +57,8 @@ packages:
     dependency: "direct dev"
     description:
       path: "packages/app_test_kit"
-      ref: "v0.12.2"
-      resolved-ref: "5e864fb3ebf1423b4d22c51b966893ee7ed4e922"
+      ref: "v0.13.0"
+      resolved-ref: "183f4330dba45631cd3200603647998cef0c7ea3"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.1.0"
@@ -66,8 +66,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_util"
-      ref: "v0.12.2"
-      resolved-ref: "5e864fb3ebf1423b4d22c51b966893ee7ed4e922"
+      ref: "v0.13.0"
+      resolved-ref: "183f4330dba45631cd3200603647998cef0c7ea3"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.2.4"
@@ -283,8 +283,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/dash_kit"
-      ref: "v0.12.2"
-      resolved-ref: "5e864fb3ebf1423b4d22c51b966893ee7ed4e922"
+      ref: "v0.13.0"
+      resolved-ref: "183f4330dba45631cd3200603647998cef0c7ea3"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.1.4"
@@ -292,11 +292,11 @@ packages:
     dependency: transitive
     description:
       path: "packages/dash_ui"
-      ref: "v0.12.2"
-      resolved-ref: "5e864fb3ebf1423b4d22c51b966893ee7ed4e922"
+      ref: "v0.13.0"
+      resolved-ref: "183f4330dba45631cd3200603647998cef0c7ea3"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.3.2"
+    version: "0.4.0"
   dbus:
     dependency: transitive
     description:
@@ -893,7 +893,7 @@ packages:
     source: hosted
     version: "0.12.20"
   material_color_utilities:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: material_color_utilities
       sha256: "9c337007e82b1889149c82ed242ed1cb24a66044e30979c44912381e9be4c48b"

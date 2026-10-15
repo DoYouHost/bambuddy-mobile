@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'package:material_color_utilities/material_color_utilities.dart';
+
+import '../core/theme/dash_theme.dart';
+
 /// Design tokens and the app theme for the watch, the counterpart of the phone's
 /// `DashTokens`/`dashAppTheme`. Its own scale on purpose: this is read at arm's
 /// length on a 1.4" screen, and the phone's layered translucent cards mean
@@ -40,9 +44,9 @@ const wearScrim = Color(0x99000000);
 /// which is why the fault card came up from the 14 it was written with.
 const wearRadiusCard = 16.0;
 
-/// Corner radius of a row you tap. Rounder than a card on purpose: it is the
-/// only thing on the watch that answers a touch, and the shape is what says so.
-const wearRadiusRow = 20.0;
+/// Corner radius of a row you tap: Wear Material 3's `CornerLarge`, the
+/// radius of every button.
+const wearRadiusRow = 26.0;
 
 /// A surface tinted with the colour of whatever it is reporting: a low-alpha
 /// fill, a border of the same colour at a strength that survives the OLED black,
@@ -60,12 +64,15 @@ const _tintBorder = 0.6;
 
 /// The watch type scale, by role rather than by size. A site needing a colour
 /// does a `copyWith` on the role, so the size stays decided here — and sizes a
-/// component theme can carry are not here at all: a text button and an input
-/// label get theirs from [wearTheme].
+/// component theme can carry are not here at all: a button and an input label
+/// get theirs from [wearTheme].
 class WearText {
-  /// The question on a full-screen confirm — alone on the face, so the
-  /// largest thing in the app.
-  static const hero = TextStyle(fontSize: 16, fontWeight: FontWeight.bold);
+  /// The question on a full-screen confirm: Wear Material 3's `titleMedium`,
+  /// 16 sp at weight 550 — Flutter takes weights in hundreds, so 600.
+  static const hero = TextStyle(fontSize: 16, fontWeight: FontWeight.w600);
+
+  /// The line under that question: `bodyMedium`, 14 sp at 450, so 400.
+  static const message = TextStyle(fontSize: 14);
 
   /// The header line at the top of a screen's scroll.
   static const title = TextStyle(fontSize: 14, fontWeight: FontWeight.bold);
@@ -89,28 +96,56 @@ class WearText {
   static const fine = TextStyle(fontSize: 10, color: wearMuted);
 }
 
-/// Dark, black-background theme (OLED-friendly) with larger tap targets. Text
-/// buttons, filled buttons and input labels take their type from here so the
-/// screens stop repeating it. No snackbar theme: a bar pinned to the bottom of a
+/// Wear Material 3's `ButtonDefaults` (compose-material3 1.7.1): every button
+/// variant is 52 dp tall, fully rounded (26 dp on 52), its content inset by
+/// [WearSpace]'s button values, its icon 26 dp (24 on an outlined one, which
+/// also adds a 1 dp `Outline` border).
+const wearButtonHeight = 52.0;
+const wearButtonPadding = EdgeInsets.symmetric(
+  horizontal: WearSpace.buttonHorizontal,
+  vertical: WearSpace.buttonVertical,
+);
+
+/// The label of every button: Wear Material 3's `LabelMedium`, 15 sp at 500.
+const wearButtonLabel = TextStyle(fontSize: 15, fontWeight: FontWeight.w500);
+
+/// A button's second line: Wear Material 3's `LabelSmall`, 13 sp at 500.
+const wearButtonSecondaryLabel = TextStyle(
+  fontSize: 13,
+  fontWeight: FontWeight.w500,
+);
+
+/// Dark, black-background theme (OLED-friendly) with larger tap targets.
+/// Buttons and input labels take their type from here so the screens stop
+/// repeating it. No snackbar theme: a bar pinned to the bottom of a
 /// round face is mostly off the glass, and the watch uses `WearToast`.
 ThemeData wearTheme() {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: Colors.green,
-    brightness: Brightness.dark,
-  ).copyWith(surface: Colors.black);
+  final scheme = _wearColorScheme(Colors.green);
   return ThemeData(
     colorScheme: scheme,
     scaffoldBackgroundColor: Colors.black,
     useMaterial3: true,
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(44),
+        minimumSize: const Size.fromHeight(wearButtonHeight),
+        padding: wearButtonPadding,
         shape: const StadiumBorder(),
-        textStyle: WearText.strong,
+        textStyle: wearButtonLabel,
+        iconSize: 26,
       ),
     ),
-    textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(textStyle: WearText.body),
+    // The secondary action in a list: a full-width outlined button, not the
+    // phone's bare `TextButton` — Wear OS has no such list action.
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(wearButtonHeight),
+        padding: wearButtonPadding,
+        shape: const StadiumBorder(),
+        textStyle: wearButtonLabel,
+        foregroundColor: scheme.onSurface,
+        side: BorderSide(color: scheme.outline),
+        iconSize: 24,
+      ),
     ),
     inputDecorationTheme: const InputDecorationTheme(
       labelStyle: WearText.body,
@@ -133,3 +168,45 @@ TextStyle wearErrorStyle(BuildContext context) =>
 
 String wearShortText(String text, {required int max}) =>
     text.length > max ? '${text.substring(0, max)}…' : text;
+
+/// Wear Material 3's dark colour roles (compose-material3 1.7.1 `ColorTokens`)
+/// on the tonal palettes of [seed]. The phone's `ColorScheme.fromSeed` puts the
+/// roles on other tones — a filled button's label on tone 20 rather than 10,
+/// which on the watch read as green text instead of a dark one.
+ColorScheme _wearColorScheme(Color seed) {
+  // The palettes `ColorScheme.fromSeed` draws from; only the tones differ.
+  final scheme = SchemeTonalSpot(
+    sourceColorHct: Hct.fromInt(seed.toARGB32()),
+    isDark: true,
+    contrastLevel: 0,
+  );
+  Color tone(TonalPalette p, int t) => Color(p.get(t));
+  return ColorScheme(
+    brightness: Brightness.dark,
+    primary: tone(scheme.primaryPalette, 90),
+    onPrimary: tone(scheme.primaryPalette, 10),
+    primaryContainer: tone(scheme.primaryPalette, 30),
+    onPrimaryContainer: tone(scheme.primaryPalette, 95),
+    secondary: tone(scheme.secondaryPalette, 90),
+    onSecondary: tone(scheme.secondaryPalette, 10),
+    secondaryContainer: tone(scheme.secondaryPalette, 30),
+    onSecondaryContainer: tone(scheme.secondaryPalette, 95),
+    tertiary: tone(scheme.tertiaryPalette, 90),
+    onTertiary: tone(scheme.tertiaryPalette, 10),
+    tertiaryContainer: tone(scheme.tertiaryPalette, 30),
+    onTertiaryContainer: tone(scheme.tertiaryPalette, 95),
+    error: tone(scheme.errorPalette, 80),
+    onError: tone(scheme.errorPalette, 10),
+    errorContainer: tone(scheme.errorPalette, 30),
+    onErrorContainer: tone(scheme.errorPalette, 95),
+    // `Background` is Neutral0: the watch draws on black.
+    surface: Colors.black,
+    onSurface: tone(scheme.neutralPalette, 95),
+    onSurfaceVariant: tone(scheme.neutralVariantPalette, 80),
+    outline: tone(scheme.neutralVariantPalette, 60),
+    outlineVariant: tone(scheme.neutralVariantPalette, 40),
+    surfaceContainerLow: tone(scheme.neutralPalette, 15),
+    surfaceContainer: tone(scheme.neutralPalette, 20),
+    surfaceContainerHigh: tone(scheme.neutralPalette, 30),
+  );
+}

@@ -117,15 +117,11 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
         wearDimIfStale(
           stale: fleet?.stale ?? false,
           child: WearScrollView(
-            // Short items all the way down — a title, a chip, a readout, buttons
-            // — which is what the curve is for. The one exception carries itself:
-            // a fault card is taller than the radius, so `WearFaceCurve` clips it
-            // to the round-safe band exactly as the rectangle viewport used to.
             curved: true,
             onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
             children: [
               WearHeader(item.printer.name),
-              const SizedBox(height: DashSpace.sm),
+              const SizedBox(height: WearSpace.titleToContent),
               Center(child: WearStatusChip(state: state)),
               // Why the screen is dim and why nothing can be pressed. Without
               // it a cached frame is a control screen whose every button is
@@ -369,7 +365,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
     return [
       for (final b in buttons)
         Padding(
-          padding: const EdgeInsets.only(bottom: DashSpace.sm),
+          padding: const EdgeInsets.only(bottom: WearSpace.inGroup),
           child: b,
         ),
     ];

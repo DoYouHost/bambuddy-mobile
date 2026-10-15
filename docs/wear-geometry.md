@@ -19,7 +19,7 @@ There are two answers, and a screen uses one or the other:
 | | shape | when |
 |---|---|---|
 | **Inscribed rectangle** | the largest rectangle that fits in the circle | paragraphs, forms, anything taller than the face's radius |
-| **Scaled curve** | the full face, each item scaled to the chord lit where it sits | lists of short rows |
+| **Scaling list** | the full face, items shrinking and fading toward its top and bottom — Wear OS's `ScalingLazyColumn` | lists |
 
 ### Why the rectangle is not the answer for both
 
@@ -29,9 +29,10 @@ row the width available at the *worst* point of the viewport — including the
 rows crossing the middle, where the whole diameter is lit. Measured on a 225 dp
 face it leaves **144 dp of viewport, 1.8 rows of a printer list**.
 
-`WearScrollView` is where the choice is made: a screen with a footer, or one
-holding still with `centerWhenShort`, is a fixed layout and keeps the rectangle;
-`curved: true` is the list.
+`WearScrollView` is where the choice is made: a screen holding still with
+`centerWhenShort` is a fixed layout and keeps the rectangle; `curved: true` is
+the list, and a confirmation is the same list laid out as Wear Material 3's
+`AlertDialog` (`contentPadding`, centred when it fits).
 
 ### The insets go on the viewport, not on the content
 
@@ -42,21 +43,20 @@ screen scrolls. That is how a paragraph ended up sliced mid-word and a Pause
 button lost both its ends. A viewport that **is** the inscribed rectangle cannot
 paint outside it at any scroll offset. `WearScrollView` owns that.
 
-### Why a scale and not a narrower inset
+### The list is Google's, not ours
 
-An inset re-lays-out the item, so a printer name would re-wrap and ellipsize
-differently on every frame of a scroll. A scale is a paint-time transform and
-the text keeps its metrics all the way out. Wear OS's own transforming list
-shrinks items toward the edges for the same reason — they are hard to read
-there anyway.
-
-Only for short rows. An item taller than the face's *radius* has a corner past
-the chord wherever it stands, so a paragraph or a fault card keeps the
-rectangle, where the viewport clips it safely.
+`curved: true` is a port of Wear Compose's `ScalingLazyColumn`
+(compose-foundation 1.7.1), the list Google's Wear OS list guidance prescribes —
+[`wear_scaling_list.dart`](../lib/wear/widgets/wear_scaling_list.dart), with
+function names kept from the Kotlin so the two read side by side. It replaced a
+curve of our own that scaled each row down until it fitted the chord where it
+stood: rows near the rim went microscopic and still looked tappable. That curve
+never painted its scale until 2026-10-15 (`getMaxScaleOnAxis` counts the z axis),
+so the moment it worked was the moment it was seen to be wrong.
 
 ## The tunables
 
-Everything else follows from the circle. These four are the decisions.
+Everything else follows from the circle. These two are the decisions.
 
 ### `roundEdgeFraction = 0.18`
 
@@ -77,81 +77,52 @@ a rounded row cross the circle before its flat edge does, and a real bezel eats
 a pixel or two more than the display metrics admit to. Solved exactly, the
 arithmetic lands the corners a rounding error *outside* the circle.
 
-### `wearNarrowWidthFraction = 0.62`
+## The scaling list
 
-`roundEdgeFraction` read from the other end: content that does not need the full
-chord can reach further up and down before the circle catches it. The
-confirmation dialog is the case — icon, question and button row are taller than
-the rectangle a full-width screen gets, and a confirm nobody can reach without
-scrolling is worse than one that gives up some width.
+Everything below is `ScalingLazyColumn` with its defaults; a number here is
+Google's, and changing one is a deviation from the guidance.
 
-### `roundCurveEndFraction = 0.10`, `roundCurveTailFraction = 0.19`
+- **Scale and alpha** — `calculateScaleAndAlpha` with
+  `ScalingLazyColumnDefaults.scalingParams()`: an item eases from full size to
+  `edgeScale` 0.7 and from full opacity to `edgeAlpha` 0.5 as it crosses a
+  transition line 35–55% of the viewport from the edge (further in for taller
+  items: `minElementHeight` 0.2, `maxElementHeight` 0.6), along
+  `CubicBezier(0.3, 0, 0.7, 1)`. Nothing is ever drawn below 70%; what does not
+  fit on the glass is cut by the bezel, as on every system list.
+- **Packing** — the layout pass of `ScalingLazyListState`: the item at the centre
+  line keeps its place, and every other one is set against the scaled edge of
+  its neighbour nearer the middle (`translationY`), so shrinking opens no gaps.
+  An item above the centre line shrinks toward its bottom edge, one below toward
+  its top. This needs every item's position at once, which is why it is a sliver
+  (`RenderWearScalingSliverList`) and not a wrapper around each child.
+- **`AutoCenteringParams()`** — space before the first and after the last item
+  lets item 1 and every later one reach the centre line, and the list starts with
+  item 1 there. The space depends on measured sizes, so it lands a frame after
+  the first layout; until then the items are drawn transparent, as the Compose
+  list does before it is initialised. The space after the last item is measured
+  once that item is laid out (the cache extent builds it before the end is
+  reached), as Compose leaves it at 0 until its last item is visible.
+- **Gaps** — Compose spaces items with `verticalArrangement`, not with items. Our
+  screens space with empty `SizedBox` children, so those are read as that
+  spacing: fixed size, never scaled, never the item that gets centred.
+- **Side margins** — from the list guidance and Horologist's
+  `ScalingLazyColumnDefaults`: 5.2% of the screen width for every item, another
+  5.2% for a text item (`listTextPadding()`; `WearScrollView` adds it to any
+  `Text` child), and another 7.3% for a title, "to ensure titles don't clip"
+  (`WearHeader`). Leaving the text at 5.2% is how a paragraph ran into the bezel
+  mid-word.
 
-The curved list's counterpart to `roundEdgeFraction`: **not** a margin content
-may never enter, but where the first and last item come to rest. The band above
-and below is scrolled *through* rather than left black, which is the difference
-the curve buys.
-
-The tail is deeper because of Play's WO-V2: a target has to be 48 dp where it is
-pressed, and the last item — the control screen's "Stop", a full-width button —
-can come no closer to the middle than this. At 0.10 it rested at a scale of 0.87
-(41.9 dp); 0.185 left it at 47.99 dp. The extra room also lets the button above
-it reach the middle. `expectTapTargetsWhereTheyRest` (`test/wear/`) measures
-this on both test faces and, in `patrol_test/`, on the emulators.
-
-## The curve
-
-### Anchoring: the inner edge, not the centre
-
-`roundCurveAnchor` holds an item by whichever part of it is nearest the middle
-of the face, so the item compresses *towards* the middle rather than retreating
-past the rim.
-
-Holding it by its own centre is the obvious choice and the one this shipped
-with. As that centre passes the edge the whole item walks off the glass: the
-demo fleet's third printer was scaled to nothing with 15 dp of its row still
-over the display, so a list of four showed two and a black gap.
-
-### The scale is solved, not approximated
-
-Shrinking an item pulls its far corner in as well as narrowing it, so the scale
-that fits is not a ratio of chords. With the anchor at distance `d` from the
-middle, an item of width `w` reaching `reach` from its anchor, a corner radius
-`r` and an effective radius `R`, the scale `s` has to satisfy
-
-```
-(s·(w/2 − r))² + (d + s·(reach − r))² ≤ (R − s·r)²
-```
-
-— a quadratic in `s`, and the larger root is the biggest scale that still fits
-(`c` is negative wherever the anchor is on the glass, so the discriminant is
-positive). An item lying across the middle anchors at zero and simply takes the
-largest scale the chord allows.
-
-The scale reaches zero only once the **anchor itself** — the nearest part of the
-item — has left the face, which is the point where there is genuinely nothing
-left to show.
-
-### `cornerRadius`
-
-How round the caller's items actually are. A rounded item has nothing at the
-corner of its box, so requiring that corner to fit shrinks it to protect a pixel
-it never paints: measured against the square box, a row 20 dp round was being
-held at 0.85. What has to fit is the corner *arc* — its centre, `cornerRadius`
-in from both edges, plus that radius.
-
-It defaults to nothing because the watch's items are not uniform — a progress
-bar is 6 dp round, an input 4, a button a stadium — so only a screen whose rows
-are all one shape may claim it. Corners that would eat the whole item leave the
-quadratic without a usable root, and the code falls back to the plain box, which
-only ever asks for less.
+Touch targets (Play's WO-V2) follow from auto-centering: every item can be
+brought to the middle, where it is full size.
 
 ## Checking a change
 
-`test/wear/wear_geometry_test.dart` holds the geometry to itself: that a
-returned scale actually fits, that nothing with glass under it is scaled away,
-that degenerate sizes stay finite. `rowFitsRoundFace` is the same check the
-insets are built to pass, exposed so a test can hold them to it.
+`test/wear/wear_geometry_test.dart` holds the rectangle to itself;
+`rowFitsRoundFace` is the same check the insets are built to pass, exposed so a
+test can hold them to it. `wear_scroll_view_test.dart` holds the scaling list to
+Google's numbers: the reference points of `calculateScaleAndAlpha`, nothing
+below 70%, no gaps at any offset, item 1 and the last item centred, and paint,
+hit test and semantics agreeing on the size an item shrank to.
 
 A widget test only catches this on a large face — `pumpWear` defaults to
 384x384, and `wearFaceLarge` (450x450) is the roomier one to check against.

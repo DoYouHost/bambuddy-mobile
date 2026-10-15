@@ -179,6 +179,8 @@ void main() {
     final header = find.byType(WearHeader);
     final line = find.descendant(of: header, matching: find.byType(Text));
     expect(tester.widget<Text>(line).maxLines, 1);
-    expectOnGlass(tester, header);
+    // The line, not the header's box: the box includes the title's 7.3% side
+    // margin, which is there so the line inside it stays on the glass.
+    expectOnGlass(tester, line);
   });
 }

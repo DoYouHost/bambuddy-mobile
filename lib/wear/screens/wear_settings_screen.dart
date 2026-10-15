@@ -50,7 +50,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
         curved: true,
         children: [
           WearHeader(l10n.wearSettingsTitle),
-          const SizedBox(height: DashSpace.md),
+          const SizedBox(height: WearSpace.titleToContent),
           if (profile != null) ...[
             Text(
               l10n.wearCurrentServer,
@@ -82,7 +82,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
                 onPressed: () => _switchTo(offered),
                 child: Text(l10n.wearFromPhoneUse),
               ),
-              const SizedBox(height: DashSpace.sm),
+              const SizedBox(height: WearSpace.inGroup),
             ],
             FilledButton(
               onPressed: () => _forgetServer(l10n, profile),

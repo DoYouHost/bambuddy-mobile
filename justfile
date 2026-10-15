@@ -63,10 +63,14 @@ test:
     for wear in {{wear_avd}} {{wear6_avd}}; do
         just emu-boot "$wear"
         serial=$(just _emu-serial "$wear")
-        # Patrol drives the app from inside, so the watch sees no user and dozes
-        # into ambient, where a tap only wakes it: the permission dialog stayed,
-        # Wear OS moved it away after 60 s and the run hung waiting for a frame.
-        adb -s "$serial" shell settings put global ambient_enabled 0
+        # Patrol drives the app from inside, so the watch sees no user: it went
+        # to sleep (ungaze, ambient) and froze the test services' process, and
+        # sent a waiting permission dialog to the watch face after 60 s. An
+        # emulator has no wrist and no battery to save, so all three go.
+        for setting in ambient_enabled=0 ungaze_sleep_enabled=0 wear_activity_auto_resume_timeout_ms=2147483647; do
+            adb -s "$serial" shell settings put global "${setting%%=*}" "${setting#*=}"
+        done
+        adb -s "$serial" shell input keyevent KEYCODE_WAKEUP
         "$patrol" test -t patrol_test/wear_app_test.dart --flavor wear -d "$serial"
     done
 

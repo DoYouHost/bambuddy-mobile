@@ -170,8 +170,9 @@ do not stay silent because it was not part of the task.
   transport is not `autoDispose`, the epoch/`_alive`/`_paused` trio, what `build`
   and `refresh` may and may not do. **Read it before touching `wear_providers.dart`.**
 - [docs/wear-geometry.md](docs/wear-geometry.md) — the round-face derivation:
-  inscribed rectangle vs scaled curve, what each tunable in `wear_geometry.dart`
-  was paid for, and the quadratic behind `roundScaleFor`.
+  inscribed rectangle vs the scaling list (a port of Wear OS's
+  `ScalingLazyColumn`), and what each tunable in `wear_geometry.dart` was paid
+  for.
 - [docs/dependency-upgrades.md](docs/dependency-upgrades.md) — the pubspec
   entries a `pub upgrade` cannot move on its own, and what unblocks each.
   **`flutter_secure_storage` 11 is pending and order-sensitive**: it drops the
@@ -317,8 +318,10 @@ do not stay silent because it was not part of the task.
   `<id>.confirm`) and records the answer as a `confirm` record. A hand-built `AlertDialog` is for bodies that
   are a **form or a choice** (text field, colour picker, checkbox that changes the
   outcome) — not for a plain question.
-- **Spacing goes through `DashSpace`** (in the `dash_ui` package, not this
-  repo): the 4 dp
+- **Spacing goes through `DashSpace`** — and, on the watch, through
+  `WearSpace` for the roles Wear Material 3 names (a button's 14/6 inset, the
+  list gaps: in a group, between groups, title to content, between sections)
+  — both in the `dash_ui` package, not this repo. `DashSpace` is the 4 dp
   scale `xs 4 · sm 8 · md 12 · lg 16 · xl 24 · xxl 32`, plus `gutter` for the
   left/right inset of anything meeting the screen, sheet or drawer edge, and
   `fabClearance` for a list under a FAB. No number typed into an `EdgeInsets`,
@@ -357,20 +360,20 @@ do not stay silent because it was not part of the task.
   how a paragraph got sliced mid-word and a Pause button lost its ends. A
   viewport that is the inscribed rectangle cannot paint outside the glass at any
   offset; its own edge is softened by a fade the length of the content's lead-in.
-  Content that does not need the full width (the confirm dialog) says so with
-  `contentWidthFraction` and is given a taller viewport in exchange. A watch row
+  A confirmation is Wear Material 3's `AlertDialog`
+  (`wear_confirm_dialog.dart`): a scrolling list, its buttons the last item,
+  every size from the compose-material3 source. A watch row
   also needs a corner radius of ~16 or more and a label that can ellipsize; wear
   widget tests run on a real watch face (`pumpWear`), which is what makes an
   overflow show up at all — the 384x384 `wearFaceSmall` by default, with the
   450x450 `wearFaceLarge` as the roomier one to check against.
-  **A list of short rows says `curved: true` instead**, which is the other half
-  of the same idea and the one Wear OS itself uses: the viewport runs across the
-  whole face and each item is scaled to the chord that is lit where it currently
-  sits (`wear_face_curve.dart`, `roundScaleFor`), so the band the rectangle
-  reserved is scrolled through rather than left black. Only for short rows — an
-  item taller than the face's *radius* has a corner past the chord wherever it
-  stands, so a paragraph or a fault card keeps the rectangle, where the viewport
-  clips it safely.
+  **A list says `curved: true` instead**: Wear OS's own `ScalingLazyColumn`,
+  ported 1:1 (`wear_scaling_list.dart`) — the viewport runs across the whole
+  face, items shrink to no less than 70% and fade toward its top and bottom, and
+  auto-centering lets every item reach the middle. Its numbers are Google's;
+  a list that looks wrong is fixed to match the guidance, not with a curve of
+  our own (one that scaled rows to the chord shipped once and drew them
+  microscopic).
 
 - **A watch never shows a `SnackBar`.** A bar is laid out against the square the
   display reports and pinned to the bottom of it — where a round face has almost

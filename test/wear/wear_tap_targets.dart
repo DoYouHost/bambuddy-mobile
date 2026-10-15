@@ -3,10 +3,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Play's WO-V2 (touch targets ≥ 48 dp) read the way Wear OS's own scaling lists
-/// meet it: a curved list shrinks a row near the rim on purpose, so each target
-/// is checked where it is pressed — scrolled as close to the middle of the face
-/// as its list lets it come. The last row gets only as far as the list's end
-/// padding (`roundCurveTailFraction`), which is what this holds to account.
+/// meet it: the list shrinks a row near the edge on purpose, so each target is
+/// checked where it is pressed — scrolled to the middle of the face, which
+/// auto-centering lets every item reach.
 ///
 /// The measuring is Flutter's own `androidTapTargetGuideline`, narrowed to the
 /// one target in the middle. Shared with `patrol_test/`; both need

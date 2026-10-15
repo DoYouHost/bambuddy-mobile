@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../wear_theme.dart';
+import 'wear_scaling_list.dart';
 
 /// The line at the top of a watch screen.
 ///
@@ -15,13 +16,18 @@ class WearHeader extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      textAlign: TextAlign.center,
-      style: WearText.title,
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.symmetric(
+      horizontal: MediaQuery.sizeOf(context).width * wearListTitleMargin,
+    ),
+    child: Center(
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: WearText.title,
+      ),
     ),
   );
 }

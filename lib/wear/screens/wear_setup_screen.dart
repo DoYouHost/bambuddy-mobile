@@ -95,7 +95,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         resetKey: _manual ? 'manual' : (offer != null ? 'offer' : 'handoff'),
         children: [
           const WearHeader('Bambuddy'),
-          const SizedBox(height: DashSpace.md),
+          const SizedBox(height: WearSpace.titleToContent),
           if (offer case final offer? when !_manual)
             ..._offerSection(l10n, offer)
           else if (!_manual)
@@ -148,7 +148,8 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         onPressed: () => _useOffer(offer),
         child: Text(l10n.wearFromPhoneUse),
       ),
-    TextButton(
+    const SizedBox(height: WearSpace.inGroup),
+    OutlinedButton(
       onPressed: () => ref.read(pendingWatchConfigProvider.notifier).dismiss(),
       child: Text(l10n.wearFromPhoneLater),
     ),
@@ -198,11 +199,13 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         onPressed: _checkPhone,
         child: Text(l10n.wearSetupPhoneCheck),
       ),
-    TextButton(
+    const SizedBox(height: WearSpace.inGroup),
+    OutlinedButton(
       onPressed: () => setState(() => _manual = true),
       child: Text(l10n.wearSetupManual),
     ),
-    TextButton(
+    const SizedBox(height: WearSpace.inGroup),
+    OutlinedButton(
       onPressed: busy ? null : _startDemo,
       child: Text(l10n.wearSetupDemo),
     ),
@@ -287,13 +290,15 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       ..._twoFactorSection(controller, l10n, challenge, state)
     else if (state.needsAuth && !state.busy)
       ..._authSection(controller, l10n)
-    else if (!state.busy)
+    else if (!state.busy) ...[
       // Only offered before the server answers: once we are past the probe,
       // dropping back to the handoff would throw that progress away.
-      TextButton(
+      const SizedBox(height: WearSpace.inGroup),
+      OutlinedButton(
         onPressed: () => setState(() => _manual = false),
         child: Text(l10n.wearSetupPhoneTitle),
       ),
+    ],
   ];
 
   List<Widget> _authSection(
@@ -365,8 +370,8 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         enabled: !state.busy,
       ),
       const SizedBox(height: DashSpace.sm),
-      if (method == TwoFactorMethod.email)
-        TextButton(
+      if (method == TwoFactorMethod.email) ...[
+        OutlinedButton(
           onPressed: state.busy ? null : controller.sendTwoFactorEmailCode,
           child: Text(
             state.emailCodeSent
@@ -374,6 +379,8 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
                 : l10n.twoFactorSendEmail,
           ),
         ),
+        const SizedBox(height: WearSpace.inGroup),
+      ],
       FilledButton(
         onPressed: state.busy
             ? null
@@ -381,7 +388,8 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
                   controller.verifyTwoFactor(method: method, code: _code.text),
         child: Text(l10n.twoFactorVerify),
       ),
-      TextButton(
+      const SizedBox(height: WearSpace.inGroup),
+      OutlinedButton(
         onPressed: state.busy
             ? null
             : () {
