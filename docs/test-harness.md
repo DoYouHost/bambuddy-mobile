@@ -97,15 +97,16 @@ the real one. This file keeps the reasons; the code keeps one line each.
   `wear_shape` channel the way the platform answers it.
 - **`revealOnWatch`** scrolls a control the way a user does: most of a wear screen
   starts below the fold and a `ListView` builds nothing off-screen. It aligns to
-  the *middle* of the face, not merely into the viewport — a curved list runs to
-  the rim, where an item scaled almost to nothing is on screen but neither
-  readable nor hittable.
+  the *middle* of the face, not merely into the viewport — a scaling list runs
+  to the rim, where an item is drawn at 70% and half faded, and a tap aimed at
+  its unscaled box misses.
 - **`expectOnGlass`** fails unless every corner of a box is on the circle. A
   widget test is happy while nothing overflows the *square* the display reports,
   and the watch lights only the inscribed circle; a bar pinned to the square's
   bottom is not an overflow, just mostly invisible on the device. Use it for
-  anything the layout places itself; what goes through `WearScrollView` is
-  inside the glass by construction.
+  anything the layout places itself. A scaling list (`curved: true`) is the
+  exception on purpose: like Wear OS's own, it lets the bezel cut an item at the
+  edge.
 - **`tapOnWatch`** settles the scroll but pumps one frame after the tap: what a
   tap starts is the test's business, and an action that puts up a spinner would
   hang `pumpAndSettle` forever.

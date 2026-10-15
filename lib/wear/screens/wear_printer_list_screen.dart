@@ -24,12 +24,7 @@ class WearPrinterListBody extends ConsumerWidget {
     return wearDimIfStale(
       stale: fleet?.stale ?? false,
       child: WearScrollView(
-        // Uniform short rows, which is exactly what curving is for: the picker
-        // was handing 36% of the face to a margin nothing could ever enter.
         curved: true,
-        // Every row here is the same rounded card, so the curve may stop
-        // shrinking them to protect a square corner none of them has.
-        itemCornerRadius: wearRadiusRow,
         onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
         children: [
           Padding(

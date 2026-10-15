@@ -170,8 +170,9 @@ do not stay silent because it was not part of the task.
   transport is not `autoDispose`, the epoch/`_alive`/`_paused` trio, what `build`
   and `refresh` may and may not do. **Read it before touching `wear_providers.dart`.**
 - [docs/wear-geometry.md](docs/wear-geometry.md) — the round-face derivation:
-  inscribed rectangle vs scaled curve, what each tunable in `wear_geometry.dart`
-  was paid for, and the quadratic behind `roundScaleFor`.
+  inscribed rectangle vs the scaling list (a port of Wear OS's
+  `ScalingLazyColumn`), and what each tunable in `wear_geometry.dart` was paid
+  for.
 - [docs/dependency-upgrades.md](docs/dependency-upgrades.md) — the pubspec
   entries a `pub upgrade` cannot move on its own, and what unblocks each.
   **`flutter_secure_storage` 11 is pending and order-sensitive**: it drops the
@@ -363,14 +364,13 @@ do not stay silent because it was not part of the task.
   widget tests run on a real watch face (`pumpWear`), which is what makes an
   overflow show up at all — the 384x384 `wearFaceSmall` by default, with the
   450x450 `wearFaceLarge` as the roomier one to check against.
-  **A list of short rows says `curved: true` instead**, which is the other half
-  of the same idea and the one Wear OS itself uses: the viewport runs across the
-  whole face and each item is scaled to the chord that is lit where it currently
-  sits (`wear_face_curve.dart`, `roundScaleFor`), so the band the rectangle
-  reserved is scrolled through rather than left black. Only for short rows — an
-  item taller than the face's *radius* has a corner past the chord wherever it
-  stands, so a paragraph or a fault card keeps the rectangle, where the viewport
-  clips it safely.
+  **A list says `curved: true` instead**: Wear OS's own `ScalingLazyColumn`,
+  ported 1:1 (`wear_scaling_list.dart`) — the viewport runs across the whole
+  face, items shrink to no less than 70% and fade toward its top and bottom, and
+  auto-centering lets every item reach the middle. Its numbers are Google's;
+  a list that looks wrong is fixed to match the guidance, not with a curve of
+  our own (one that scaled rows to the chord shipped once and drew them
+  microscopic).
 
 - **A watch never shows a `SnackBar`.** A bar is laid out against the square the
   display reports and pinned to the bottom of it — where a round face has almost
