@@ -79,10 +79,6 @@ class _WearScrollViewState extends State<WearScrollView>
   double? _centerTop;
   double? _centerBottom;
 
-  /// Side margin of a list, as a fraction of the screen width — the 5.2% of
-  /// Google's Wear OS list guidance.
-  static const _listSideMargin = 0.052;
-
   /// How long the indicator stays up after the last scroll event.
   static const _linger = Duration(milliseconds: 1200);
 
@@ -183,7 +179,7 @@ class _WearScrollViewState extends State<WearScrollView>
         // fades its own items.
         child: widget.centerWhenShort
             ? _faded(_centered())
-            : (curved ? _scalingList() : _faded(_list())),
+            : (curved ? _scalingList(face) : _faded(_list())),
       ),
     );
     if (widget.onRefresh != null) {
@@ -203,7 +199,7 @@ class _WearScrollViewState extends State<WearScrollView>
         if (curved)
           Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: face.width * _listSideMargin,
+              horizontal: face.width * wearListSideMargin,
             ),
             child: content,
           )
@@ -235,8 +231,20 @@ class _WearScrollViewState extends State<WearScrollView>
   /// are its `verticalArrangement` spacing: they keep their size and are not
   /// counted as items, so `AutoCenteringParams()` — item 1 — is the second
   /// real item, as on a Compose list whose gaps are not items at all.
-  Widget _scalingList() {
-    final children = widget.children;
+  Widget _scalingList(Size face) {
+    // A text item gets `listTextPadding()` on top of the list's own margin.
+    final children = [
+      for (final child in widget.children)
+        if (child is Text)
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: face.width * wearListTextMargin,
+            ),
+            child: child,
+          )
+        else
+          child,
+    ];
     bool isGap(Widget child) => child is SizedBox && child.child == null;
     final items = [
       for (var i = 0; i < children.length; i++)

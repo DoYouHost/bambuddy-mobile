@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/wear/wear_shape.dart';
+import 'package:bambuddy_mobile/wear/widgets/wear_header.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_scaling_list.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_scroll_indicator.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_scroll_view.dart';
@@ -328,6 +329,46 @@ void main() {
       expect(
         tester.getCenter(find.byKey(const ValueKey('row-1'))).dy,
         moreOrLessEquals(225.0 / 2, epsilon: 1),
+      );
+    });
+
+    testWidgets('a row, a text and a title keep their own side margins', (
+      tester,
+    ) async {
+      // Horologist's ScalingLazyColumnDefaults: 5.2% for every item, another
+      // 5.2% for text (`listTextPadding()`), another 7.3% for a title.
+      await _pumpFace(
+        tester,
+        WearScrollView(
+          curved: true,
+          children: [
+            const WearHeader('Title'),
+            const Text('Body', key: ValueKey('body')),
+            _row(1),
+            ...[for (var i = 2; i < 8; i++) _row(i)],
+          ],
+        ),
+      );
+      const width = 225.0;
+      Rect boxOf(Finder f) => tester.getRect(f);
+      final row = boxOf(find.byKey(const ValueKey('row-1')));
+      expect(row.left, moreOrLessEquals(width * 0.052, epsilon: 0.5));
+      expect(row.right, moreOrLessEquals(width * (1 - 0.052), epsilon: 0.5));
+      // Item 1 is auto-centred, so the text is drawn at full size here.
+      final text = tester.getRect(find.byKey(const ValueKey('body')));
+      expect(text.left, moreOrLessEquals(width * 0.104, epsilon: 0.5));
+      expect(
+        tester
+            .widget<Padding>(
+              find
+                  .descendant(
+                    of: find.byType(WearHeader),
+                    matching: find.byType(Padding),
+                  )
+                  .first,
+            )
+            .padding,
+        const EdgeInsets.symmetric(horizontal: width * 0.073),
       );
     });
 

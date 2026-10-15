@@ -200,7 +200,7 @@ void main() {
 
     // A printing X1C: Pause and Stop are both on offer, and both act on a job
     // this frame only remembers.
-    expect(find.byType(FilledButton), findsWidgets);
+    expect(find.byType(FilledButton, skipOffstage: false), findsWidgets);
     expect(
       _enabledButtons(tester),
       isEmpty,
@@ -473,8 +473,9 @@ const plWearWaitingForState = 'Oczekiwanie na aktualny stan';
 /// Every command button that would actually fire if tapped. `FilledButton` is
 /// what every action on this screen is built from — the disabled placeholders
 /// among them are exactly the ones this counts as off.
+/// Offstage included: a button below the fold is still one the user can reach.
 Iterable<FilledButton> _enabledButtons(WidgetTester tester) => tester
-    .widgetList<FilledButton>(find.byType(FilledButton))
+    .widgetList<FilledButton>(find.byType(FilledButton, skipOffstage: false))
     .where((b) => b.onPressed != null);
 
 /// The opacity `wearDimIfStale` applied, or null when it applied none. Read off

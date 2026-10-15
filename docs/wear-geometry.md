@@ -112,7 +112,12 @@ Google's, and changing one is a deviation from the guidance.
 - **Gaps** — Compose spaces items with `verticalArrangement`, not with items. Our
   screens space with empty `SizedBox` children, so those are read as that
   spacing: fixed size, never scaled, never the item that gets centred.
-- **Side margin** — 5.2% of the screen width, from the list guidance.
+- **Side margins** — from the list guidance and Horologist's
+  `ScalingLazyColumnDefaults`: 5.2% of the screen width for every item, another
+  5.2% for a text item (`listTextPadding()`; `WearScrollView` adds it to any
+  `Text` child), and another 7.3% for a title, "to ensure titles don't clip"
+  (`WearHeader`). Leaving the text at 5.2% is how a paragraph ran into the bezel
+  mid-word.
 
 Touch targets (Play's WO-V2) follow from auto-centering: every item can be
 brought to the middle, where it is full size.

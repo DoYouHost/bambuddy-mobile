@@ -11,6 +11,15 @@ import 'package:flutter/widgets.dart';
 /// middle. Function and parameter names follow the Kotlin source so the two
 /// can be read side by side; `docs/wear-geometry.md` says where each piece is.
 
+/// Side margins of a list, as fractions of the screen width (Google's Wear OS
+/// list guidance; Horologist's `ScalingLazyColumnDefaults`): every item sits
+/// [wearListSideMargin] in, a text item a further [wearListTextMargin]
+/// (`listTextPadding()`), and a title a further [wearListTitleMargin], "to
+/// ensure titles don't clip".
+const wearListSideMargin = 0.052;
+const wearListTextMargin = 0.052;
+const wearListTitleMargin = 0.073;
+
 /// `ScalingLazyColumnDefaults.scalingParams()`.
 const wearEdgeScale = 0.7;
 const wearEdgeAlpha = 0.5;
