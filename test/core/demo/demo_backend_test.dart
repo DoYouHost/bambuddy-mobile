@@ -1941,6 +1941,18 @@ void main() {
       expect(second.where((s) => s.usedInPlate).map((s) => s.slotId), [3, 4]);
     });
 
+    test('sliced output reports its grams, an un-sliced source none', () async {
+      final sliced = await slicer.filamentRequirements(id: 5, isArchive: false);
+      expect(sliced.single.usedGrams, closeTo(42.3, 1e-9));
+
+      final source = await slicer.filamentRequirements(
+        id: twoTone,
+        isArchive: false,
+        plateId: 1,
+      );
+      expect(source.map((s) => s.usedGrams), everyElement(0));
+    });
+
     test(
       'a source with no filament table falls back to one generic slot',
       () async {
