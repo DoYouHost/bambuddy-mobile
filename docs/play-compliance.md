@@ -75,7 +75,8 @@ plugin manifests and are compared by hand (step 2 above).
 | WO-P1 | Play's target API level | test | `compliance_test.dart` |
 | WO-P2 | Installs, launches, completes tasks without crashing | device | `patrol_test/wear_app_test.dart` |
 | WO-P5 | Companion app connects | manual | the phone → watch handoff |
-| WO-P6 | No username or password typed on the watch | **open** | the manual setup has a login form — see below |
+| WO-P6 | No username or password typed on the watch | test | `wear_setup_screen_test.dart`: nothing on the setup screen leads to a field — an API key or URL is not typed either; the phone hands both over |
+| standalone | `com.google.android.wearable.standalone` says whether the watch app works without the phone app | test | `compliance_test.dart`: `false`, since setup needs the phone; the watch offers to install the phone app (`WearPhoneApp.kt`), and the phone's capability survives a release build (`res/raw/keep.xml`) |
 | WO-P3, P7, P8, P10, G4, G6, G9–G12 | Watch faces | n/a | |
 | WO-G1 | Play policies | manual | the Play policy section below |
 | WO-G2 | Listing: main features, no "Android Wear", localised in every app language | test | `compliance_test.dart` |
@@ -120,10 +121,6 @@ asset rows are n/a.
 
 ## Open — decisions pending
 
-- **WO-P6** (#50): the watch's manual setup offers username + password
-  (`lib/wear/screens/wear_setup_screen.dart`, `_manualSection`). Google: "must
-  not ask the user to input a username or password directly on the Wear OS
-  device". The phone handoff and the API key already cover sign-in.
 - **WO-V14** (#52): `WearText.small` (11 sp) carries essential text — the printer
   state on the list, error lines, the setup body. Essential text needs 12 sp.
 - **Battery optimisation exemption** on the phone, above (#53).

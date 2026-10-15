@@ -1,7 +1,7 @@
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/wear/main_wear.dart' as wear;
 import 'package:bambuddy_mobile/wear/wear_ongoing.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
 
@@ -63,6 +63,24 @@ Future<void> _comeBack(PatrolIntegrationTester $, String how) async {
 }
 
 void main() {
+  patrolTest(
+    'setup types nothing, and offers no install without a phone (WO-P6)',
+    config: _config,
+    ($) async {
+      await wear.main();
+      await $(en.wearSetupDemo).scrollTo();
+      // The phone-app check answers asynchronously; give it time to land.
+      await Future<void>.delayed(const Duration(seconds: 3));
+      await $.pump();
+      expect(find.byType(TextField, skipOffstage: false), findsNothing);
+      // No paired phone on the emulator: nothing to install on.
+      expect(
+        find.text(en.wearPhoneAppInstall, skipOffstage: false),
+        findsNothing,
+      );
+    },
+  );
+
   patrolTest('demo from a fresh install shows the fleet', config: _config, (
     $,
   ) async {
