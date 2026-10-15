@@ -12,6 +12,10 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  # The tonal palettes behind the watch's Wear Material 3 colour roles
+  # (`wearTheme`). Already in the tree through Flutter, which pins it; `any`
+  # leaves that pin in charge.
+  material_color_utilities: any
   # Report transport, outbox and redaction, shared with lubelogger-mobile.
   # Pinned to a tag, the way the OpenTofu modules are: a moving ref would let a
   # change over there reach a release from here without a commit in this repo.

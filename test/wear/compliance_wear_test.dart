@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/wear/wear_providers.dart';
 import 'package:bambuddy_mobile/wear/wear_theme.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:flutter/material.dart';
+import 'package:material_color_utilities/material_color_utilities.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
@@ -71,6 +72,23 @@ void main() {
       });
     }
   }
+
+  test("the watch's colour roles sit on Wear Material 3's tones", () {
+    // ColorTokens (compose-material3 1.7.1): a filled button is Primary90 with
+    // its label on Primary10, text on Neutral95, an outline on NeutralVariant60.
+    final scheme = wearTheme().colorScheme;
+    final palettes = SchemeTonalSpot(
+      sourceColorHct: Hct.fromInt(Colors.green.toARGB32()),
+      isDark: true,
+      contrastLevel: 0,
+    );
+    Color tone(TonalPalette p, int t) => Color(p.get(t));
+    expect(scheme.primary, tone(palettes.primaryPalette, 90));
+    expect(scheme.onPrimary, tone(palettes.primaryPalette, 10));
+    expect(scheme.onSurface, tone(palettes.neutralPalette, 95));
+    expect(scheme.outline, tone(palettes.neutralVariantPalette, 60));
+    expect(scheme.surfaceContainer, tone(palettes.neutralPalette, 20));
+  });
 
   test('the watch draws on black (WO-V13)', () {
     final theme = wearTheme();

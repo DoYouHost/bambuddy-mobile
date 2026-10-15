@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:material_color_utilities/material_color_utilities.dart';
+
 import '../core/theme/dash_theme.dart';
 
 /// Design tokens and the app theme for the watch, the counterpart of the phone's
@@ -118,10 +120,7 @@ const wearButtonSecondaryLabel = TextStyle(
 /// repeating it. No snackbar theme: a bar pinned to the bottom of a
 /// round face is mostly off the glass, and the watch uses `WearToast`.
 ThemeData wearTheme() {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: Colors.green,
-    brightness: Brightness.dark,
-  ).copyWith(surface: Colors.black);
+  final scheme = _wearColorScheme(Colors.green);
   return ThemeData(
     colorScheme: scheme,
     scaffoldBackgroundColor: Colors.black,
@@ -169,3 +168,45 @@ TextStyle wearErrorStyle(BuildContext context) =>
 
 String wearShortText(String text, {required int max}) =>
     text.length > max ? '${text.substring(0, max)}…' : text;
+
+/// Wear Material 3's dark colour roles (compose-material3 1.7.1 `ColorTokens`)
+/// on the tonal palettes of [seed]. The phone's `ColorScheme.fromSeed` puts the
+/// roles on other tones — a filled button's label on tone 20 rather than 10,
+/// which on the watch read as green text instead of a dark one.
+ColorScheme _wearColorScheme(Color seed) {
+  // The palettes `ColorScheme.fromSeed` draws from; only the tones differ.
+  final scheme = SchemeTonalSpot(
+    sourceColorHct: Hct.fromInt(seed.toARGB32()),
+    isDark: true,
+    contrastLevel: 0,
+  );
+  Color tone(TonalPalette p, int t) => Color(p.get(t));
+  return ColorScheme(
+    brightness: Brightness.dark,
+    primary: tone(scheme.primaryPalette, 90),
+    onPrimary: tone(scheme.primaryPalette, 10),
+    primaryContainer: tone(scheme.primaryPalette, 30),
+    onPrimaryContainer: tone(scheme.primaryPalette, 95),
+    secondary: tone(scheme.secondaryPalette, 90),
+    onSecondary: tone(scheme.secondaryPalette, 10),
+    secondaryContainer: tone(scheme.secondaryPalette, 30),
+    onSecondaryContainer: tone(scheme.secondaryPalette, 95),
+    tertiary: tone(scheme.tertiaryPalette, 90),
+    onTertiary: tone(scheme.tertiaryPalette, 10),
+    tertiaryContainer: tone(scheme.tertiaryPalette, 30),
+    onTertiaryContainer: tone(scheme.tertiaryPalette, 95),
+    error: tone(scheme.errorPalette, 80),
+    onError: tone(scheme.errorPalette, 10),
+    errorContainer: tone(scheme.errorPalette, 30),
+    onErrorContainer: tone(scheme.errorPalette, 95),
+    // `Background` is Neutral0: the watch draws on black.
+    surface: Colors.black,
+    onSurface: tone(scheme.neutralPalette, 95),
+    onSurfaceVariant: tone(scheme.neutralVariantPalette, 80),
+    outline: tone(scheme.neutralVariantPalette, 60),
+    outlineVariant: tone(scheme.neutralVariantPalette, 40),
+    surfaceContainerLow: tone(scheme.neutralPalette, 15),
+    surfaceContainer: tone(scheme.neutralPalette, 20),
+    surfaceContainerHigh: tone(scheme.neutralPalette, 30),
+  );
+}
