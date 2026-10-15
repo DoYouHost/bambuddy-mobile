@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
+import 'wear_tap_targets.dart';
 
 /// Wear OS app quality rows a widget test can check (docs/play-compliance.md).
 
@@ -49,25 +50,26 @@ void main() {
   };
 
   for (final MapEntry(key: name, value: screen) in screens.entries) {
-    testWidgets('$name: every touch target is at least 48 dp (WO-V2)', (
-      tester,
-    ) async {
-      final handle = tester.ensureSemantics();
-      await pumpWear(
-        tester,
-        screen,
-        face: wearFaceLarge,
-        overrides: [
-          noServerProfileOverride,
-          wearTransportProvider.overrideWith(
-            (ref) => HybridWearTransport(relay: _Transport()),
-          ),
-        ],
-      );
-      await tester.pumpAndSettle();
-      await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
-      handle.dispose();
-    });
+    for (final face in [wearFaceSmall, wearFaceLarge]) {
+      testWidgets('$name on $face: every touch target is at least 48 dp '
+          'where it rests (WO-V2)', (tester) async {
+        final handle = tester.ensureSemantics();
+        await pumpWear(
+          tester,
+          screen,
+          face: face,
+          overrides: [
+            noServerProfileOverride,
+            wearTransportProvider.overrideWith(
+              (ref) => HybridWearTransport(relay: _Transport()),
+            ),
+          ],
+        );
+        await tester.pumpAndSettle();
+        await expectTapTargetsWhereTheyRest(tester);
+        handle.dispose();
+      });
+    }
   }
 
   test('the watch draws on black (WO-V13)', () {

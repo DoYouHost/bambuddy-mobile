@@ -228,15 +228,16 @@ class _WearScrollViewState extends State<WearScrollView>
 
   /// [face] non-null means the curved mode: the items carry the geometry, so
   /// the list runs the whole height and only holds the first and last back far
-  /// enough to come to rest near full size.
+  /// enough to come to rest at (near) full size.
   Widget _list({Size? face}) => ListView(
     controller: _controller,
     physics: _physics,
-    padding: EdgeInsets.symmetric(
-      vertical: face == null
-          ? _leadIn
-          : face.shortestSide * roundCurveEndFraction,
-    ),
+    padding: face == null
+        ? const EdgeInsets.symmetric(vertical: _leadIn)
+        : EdgeInsets.only(
+            top: face.shortestSide * roundCurveEndFraction,
+            bottom: face.shortestSide * roundCurveTailFraction,
+          ),
     children: [
       for (final child in widget.children)
         if (face == null)
@@ -245,6 +246,7 @@ class _WearScrollViewState extends State<WearScrollView>
           WearFaceCurve(
             face: face,
             cornerRadius: widget.itemCornerRadius,
+            scroll: _controller,
             child: child,
           ),
     ],

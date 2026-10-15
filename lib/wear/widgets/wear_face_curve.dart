@@ -15,6 +15,7 @@ class WearFaceCurve extends SingleChildRenderObjectWidget {
     required this.face,
     required super.child,
     this.cornerRadius = 0,
+    this.scroll,
   });
 
   /// The whole display, not the viewport: the curve is a fact about the glass,
@@ -27,9 +28,19 @@ class WearFaceCurve extends SingleChildRenderObjectWidget {
   /// past the chord.
   final double cornerRadius;
 
+  /// What moves the item across the face. The scale depends on where the item
+  /// sits, and a list wraps every item in a repaint boundary, so a scroll would
+  /// otherwise leave it painted — and described to accessibility — at the scale
+  /// it had where it was first drawn. `CustomPaint.repaint` is the same idea.
+  final Listenable? scroll;
+
   @override
   RenderWearFaceCurve createRenderObject(BuildContext context) =>
-      RenderWearFaceCurve(face: face, cornerRadius: cornerRadius);
+      RenderWearFaceCurve(
+        face: face,
+        cornerRadius: cornerRadius,
+        scroll: scroll,
+      );
 
   @override
   void updateRenderObject(
@@ -37,7 +48,8 @@ class WearFaceCurve extends SingleChildRenderObjectWidget {
     RenderWearFaceCurve renderObject,
   ) => renderObject
     ..face = face
-    ..cornerRadius = cornerRadius;
+    ..cornerRadius = cornerRadius
+    ..scroll = scroll;
 }
 
 /// The paint-time half of [WearFaceCurve], modelled on `RenderTransform`: [paint],
@@ -48,9 +60,39 @@ class RenderWearFaceCurve extends RenderProxyBox {
   // rather than declared as initializing formals — the same reason
   // `wear_transport.dart` waives this lint.
   // ignore_for_file: prefer_initializing_formals
-  RenderWearFaceCurve({required Size face, required double cornerRadius})
-    : _face = face,
-      _cornerRadius = cornerRadius;
+  RenderWearFaceCurve({
+    required Size face,
+    required double cornerRadius,
+    Listenable? scroll,
+  }) : _face = face,
+       _cornerRadius = cornerRadius,
+       _scroll = scroll;
+
+  Listenable? get scroll => _scroll;
+  Listenable? _scroll;
+  set scroll(Listenable? value) {
+    if (_scroll == value) return;
+    if (attached) _scroll?.removeListener(_moved);
+    _scroll = value;
+    if (attached) _scroll?.addListener(_moved);
+  }
+
+  void _moved() {
+    markNeedsPaint();
+    markNeedsSemanticsUpdate();
+  }
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _scroll?.addListener(_moved);
+  }
+
+  @override
+  void detach() {
+    _scroll?.removeListener(_moved);
+    super.detach();
+  }
 
   /// Whether the curve can do anything for this item. One taller than the radius has a
   /// corner past the chord wherever it stands, so no scale fits it: it is clipped to
@@ -76,18 +118,30 @@ class RenderWearFaceCurve extends RenderProxyBox {
   /// Recomputed on every read, not cached from the last [paint]: a cached one goes
   /// stale for an item that stopped being painted, and `localToGlobal` reads it too
   /// through [applyPaintTransform].
-  Matrix4 get _effectiveTransform {
-    if (clipsToFace) return Matrix4.identity();
+  Matrix4 get _effectiveTransform => _transformFor(_scale);
 
+  /// Where the item spans, measured from the middle of the face.
+  (double, double) get _span {
     final top = localToGlobal(Offset.zero).dy - _face.height / 2;
-    final bottom = top + size.height;
-    final scale = roundScaleFor(
+    return (top, top + size.height);
+  }
+
+  /// 1 for an item [clipsToFace] keeps whole.
+  double get _scale {
+    if (clipsToFace) return 1;
+    final (top, bottom) = _span;
+    return roundScaleFor(
       diameter: _face.shortestSide,
       itemWidth: size.width,
       top: top,
       bottom: bottom,
       cornerRadius: _cornerRadius,
     );
+  }
+
+  Matrix4 _transformFor(double scale) {
+    if (clipsToFace) return Matrix4.identity();
+    final (top, bottom) = _span;
     // Held by the edge facing the middle of the face, so the item gives way
     // outwards and keeps peeking in from the rim; centred horizontally, because
     // sideways there is nowhere to give way to.
@@ -101,8 +155,9 @@ class RenderWearFaceCurve extends RenderProxyBox {
   @override
   void paint(PaintingContext context, Offset offset) {
     if (clipsToFace) return _paintClipped(context, offset);
-    final transform = _effectiveTransform;
-    final scale = transform.getMaxScaleOnAxis();
+    // Read straight, not back out of the matrix: `getMaxScaleOnAxis` counts the
+    // untouched z axis, so it never reported less than 1 and nothing shrank.
+    final scale = _scale;
     // Past the rim there is no glass to draw on and no scale that would help.
     if (scale <= 0) {
       layer = null;
@@ -115,7 +170,7 @@ class RenderWearFaceCurve extends RenderProxyBox {
     layer = context.pushTransform(
       needsCompositing,
       offset,
-      transform,
+      _transformFor(scale),
       super.paint,
       oldLayer: layer is TransformLayer ? layer! as TransformLayer : null,
     );

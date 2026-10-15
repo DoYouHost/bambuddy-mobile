@@ -62,7 +62,12 @@ test:
     just test-device
     for wear in {{wear_avd}} {{wear6_avd}}; do
         just emu-boot "$wear"
-        "$patrol" test -t patrol_test/wear_app_test.dart --flavor wear -d "$(just _emu-serial "$wear")"
+        serial=$(just _emu-serial "$wear")
+        # Patrol drives the app from inside, so the watch sees no user and dozes
+        # into ambient, where a tap only wakes it: the permission dialog stayed,
+        # Wear OS moved it away after 60 s and the run hung waiting for a frame.
+        adb -s "$serial" shell settings put global ambient_enabled 0
+        "$patrol" test -t patrol_test/wear_app_test.dart --flavor wear -d "$serial"
     done
 
 # The tests a host `flutter test` cannot run. Its binding replaces the HTTP

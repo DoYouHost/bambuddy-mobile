@@ -1,10 +1,11 @@
-import 'dart:ui';
-
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/wear/main_wear.dart' as wear;
 import 'package:bambuddy_mobile/wear/wear_ongoing.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
+
+import '../test/wear/wear_tap_targets.dart';
 
 /// The watch app on a real Wear OS, end to end: what a widget test cannot reach
 /// — the system's own back-to-home swipe, the home button, the permission
@@ -100,6 +101,27 @@ void main() {
     await $(find.byTooltip(en.wearConfirm)).tap();
     await $(en.wearSetupDemo).scrollTo();
   });
+
+  patrolTest(
+    'every touch target is at least 48 dp where it rests (WO-V2)',
+    config: _config,
+    ($) async {
+      final semantics = $.tester.ensureSemantics();
+      await _startDemo($);
+      await expectTapTargetsWhereTheyRest($.tester);
+
+      // The check leaves the list at its last row.
+      await $(_printing).scrollTo(scrollDirection: AxisDirection.up).tap();
+      await $(en.ctrlPause).scrollTo();
+      await expectTapTargetsWhereTheyRest($.tester);
+
+      await $.platform.android.pressBack();
+      await $(en.wearSettingsTitle).scrollTo().tap();
+      await $(en.wearCurrentServer).waitUntilVisible();
+      await expectTapTargetsWhereTheyRest($.tester);
+      semantics.dispose();
+    },
+  );
 
   patrolTest(
     'leaving mid-print keeps the print on the watch face',

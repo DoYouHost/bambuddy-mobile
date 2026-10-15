@@ -86,9 +86,14 @@ EdgeInsets wearFaceInsets(WearShape shape, Size size, {double? widthFraction}) {
   );
 }
 
-/// Where the first and last item of a curved list come to rest, as a fraction
-/// of the diameter — not a margin content may never enter.
+/// Where the first item of a curved list comes to rest, as a fraction of the
+/// diameter — not a margin content may never enter.
 const roundCurveEndFraction = 0.10;
+
+/// Where the last item comes to rest. Further in than the first: the last item
+/// is a full-width button more often than not, and it has to rest at full size
+/// to stay a 48 dp target (Play's WO-V2). 0.185 left "Stop" at 47.99 dp.
+const roundCurveTailFraction = 0.19;
 
 /// Where an item spanning [top]..[bottom] is held while it shrinks: whichever
 /// part of it is nearest the middle of the face, so it compresses towards the

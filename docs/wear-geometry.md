@@ -85,12 +85,19 @@ confirmation dialog is the case — icon, question and button row are taller tha
 the rectangle a full-width screen gets, and a confirm nobody can reach without
 scrolling is worse than one that gives up some width.
 
-### `roundCurveEndFraction = 0.10`
+### `roundCurveEndFraction = 0.10`, `roundCurveTailFraction = 0.19`
 
 The curved list's counterpart to `roundEdgeFraction`: **not** a margin content
 may never enter, but where the first and last item come to rest. The band above
 and below is scrolled *through* rather than left black, which is the difference
 the curve buys.
+
+The tail is deeper because of Play's WO-V2: a target has to be 48 dp where it is
+pressed, and the last item — the control screen's "Stop", a full-width button —
+can come no closer to the middle than this. At 0.10 it rested at a scale of 0.87
+(41.9 dp); 0.185 left it at 47.99 dp. The extra room also lets the button above
+it reach the middle. `expectTapTargetsWhereTheyRest` (`test/wear/`) measures
+this on both test faces and, in `patrol_test/`, on the emulators.
 
 ## The curve
 

@@ -3,6 +3,7 @@ import 'package:bambuddy_mobile/wear/widgets/wear_face_curve.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_scroll_indicator.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_scroll_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
@@ -298,6 +299,70 @@ void main() {
         greaterThanOrEqualTo(4),
         reason: 'a 192 dp face has room for more than the two it used to show',
       );
+    });
+
+    testWidgets('paints, hit-tests and describes the same size, after a '
+        'scroll too', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pumpFace(
+        tester,
+        WearScrollView(
+          curved: true,
+          children: [
+            for (var i = 0; i < 12; i++)
+              Semantics(
+                container: true,
+                label: 'row $i',
+                // Composited, so the curve's transform is a layer this test
+                // can read rather than a canvas call it cannot.
+                child: RepaintBoundary(child: _row(i)),
+              ),
+          ],
+        ),
+      );
+      // The scale follows the row's place on the face, so a scroll changes it
+      // while nothing else about the row does. It once painted every row at
+      // full size while hit testing shrank them, and kept accessibility at the
+      // scale of the first frame.
+      await tester.drag(find.byType(WearScrollView), const Offset(0, -60));
+      await tester.pumpAndSettle();
+
+      var shrunk = 0;
+      for (var i = 0; i < 12; i++) {
+        final row = find.byKey(ValueKey('row-$i'));
+        if (row.evaluate().isEmpty) continue;
+        final touched = tester.getRect(row);
+        if (touched.isEmpty) continue;
+        final curve = tester.renderObject<RenderWearFaceCurve>(
+          find.ancestor(of: row, matching: find.byType(WearFaceCurve)).first,
+        );
+        final layer = curve.debugLayer;
+        final painted = layer is TransformLayer
+            ? layer.transform!.storage[0]
+            : 1.0;
+        final full = curve.size.width;
+        expect(
+          painted * full,
+          moreOrLessEquals(touched.width, epsilon: 0.5),
+          reason: 'row $i painted',
+        );
+
+        final node = tester.getSemantics(row);
+        var described = node.rect;
+        for (SemanticsNode? n = node; n != null; n = n.parent) {
+          if (n.transform case final transform?) {
+            described = MatrixUtils.transformRect(transform, described);
+          }
+        }
+        expect(
+          described.width / tester.view.devicePixelRatio,
+          moreOrLessEquals(touched.width, epsilon: 0.5),
+          reason: 'row $i described',
+        );
+        if (touched.width < full - 1) shrunk++;
+      }
+      expect(shrunk, greaterThan(1), reason: 'a sweep with no curve in it');
+      handle.dispose();
     });
 
     testWidgets('shrinks a row on its way out instead of cutting it', (

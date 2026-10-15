@@ -61,7 +61,7 @@ plugin manifests and are compared by hand (step 2 above).
 | target SDK | API 34+ for Wear | test | `compliance_test.dart` |
 | 64-bit | Support 64-bit devices (from 2026-09-15) | test | `compliance_test.dart` (no ABI filter); the AAB ships `arm64-v8a` |
 | WO-V1 | Follow the user's font size; nothing overlaps or is cut off | manual | widget tests use the default scale only |
-| WO-V2 | Touch targets ≥ 48×48 dp | **open** | `compliance_wear_test.dart` fails on the list and the control screen — see below |
+| WO-V2 | Touch targets ≥ 48×48 dp where they are pressed (a curved list shrinks rows near the rim, as Wear OS's own lists do) | test + device | `compliance_wear_test.dart`, `patrol_test/wear_app_test.dart` |
 | WO-V3 | Swipe to close from almost every screen | device | `patrol_test/wear_app_test.dart` (root and inner screen) |
 | WO-V4 | Long-running operation → Ongoing Activity | device | `patrol_test/wear_app_test.dart` (home, back, swipe) |
 | WO-V5 | Preserve state when leaving and coming back | device | `patrol_test/wear_app_test.dart` (same screen after `openApp`) |
@@ -126,8 +126,4 @@ asset rows are n/a.
   device". The phone handoff and the API key already cover sign-in.
 - **WO-V14** (#52): `WearText.small` (11 sp) carries essential text — the printer
   state on the list, error lines, the setup body. Essential text needs 12 sp.
-- **WO-V2** (#51): the curved list (`WearScrollView(curved: true)`) scales each row
-  to the chord it sits on, so a 48 dp button measures 45.7 dp just off the
-  centre and ~21 dp at the edge of the face (`compliance_wear_test.dart`, the
-  list and the control screen). The settings screen passes.
 - **Battery optimisation exemption** on the phone, above (#53).
