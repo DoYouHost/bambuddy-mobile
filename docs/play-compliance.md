@@ -69,7 +69,7 @@ plugin manifests and are compared by hand (step 2 above).
 | WO-V8 | Scroll bar while scrolling | test | `wear_scroll_view_test.dart` |
 | WO-V9, V10 | Tiles | n/a | the app has no tile |
 | WO-V13 | Black background | test | `compliance_wear_test.dart` |
-| WO-V14 | ≥ 12 sp essential text, ≥ 10 sp the rest | **open** | `WearText.small` is 11 sp and carries essential text — see below |
+| WO-V14 | ≥ 12 sp essential text, ≥ 10 sp the rest | test + manual | `wear_type_scale_test.dart` (every size in `wear_theme.dart`; no screen sets its own); whether a `WearText.fine` call site is really non-essential is read by a person |
 | WO-V15 | 48 dp icon on black at startup, same as the launcher icon | test | `compliance_test.dart` (the splash theme) |
 | WO-V16 | Fits the round face, nothing overlaps or is cut off | test | `wear_scroll_view_test.dart`, `expectOnGlass` in the wear tests |
 | WO-P1 | Play's target API level | test | `compliance_test.dart` |
@@ -121,6 +121,4 @@ asset rows are n/a.
 
 ## Open — decisions pending
 
-- **WO-V14** (#52): `WearText.small` (11 sp) carries essential text — the printer
-  state on the list, error lines, the setup body. Essential text needs 12 sp.
 - **Battery optimisation exemption** on the phone, above (#53).

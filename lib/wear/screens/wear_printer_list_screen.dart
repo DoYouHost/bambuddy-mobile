@@ -37,7 +37,7 @@ class WearPrinterListBody extends ConsumerWidget {
             Text(
               AppLocalizations.of(context).wearWaitingForState,
               textAlign: TextAlign.center,
-              style: WearText.small.copyWith(color: wearInert),
+              style: WearText.body.copyWith(color: wearInert),
             ),
             const SizedBox(height: DashSpace.sm),
           ],

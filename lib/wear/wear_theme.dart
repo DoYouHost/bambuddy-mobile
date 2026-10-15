@@ -86,13 +86,13 @@ class WearText {
   /// A value the user typed or is about to.
   static const value = TextStyle(fontSize: 13);
 
-  /// Ordinary prose: the sentence under a heading, a readout, a toast.
+  /// Ordinary prose: the sentence under a heading, a readout, a toast, a row's
+  /// second line, an error. 12 sp is Play's floor for essential text (WO-V14),
+  /// so a quieter line is quieter by colour, never by size.
   static const body = TextStyle(fontSize: 12);
 
-  /// The quieter line — a row's second line, an error under a button.
-  static const small = TextStyle(fontSize: 11);
-
-  /// Fine print: a label above a value, a field's hint, a consequence warning.
+  /// Fine print: a label above a value, a field's hint — never text the user
+  /// needs before acting (WO-V14 allows 10 sp only for non-essential text).
   static const fine = TextStyle(fontSize: 10, color: wearMuted);
 }
 
@@ -164,7 +164,7 @@ const wearErrorMaxChars = 80;
 const wearToastMaxChars = 100;
 
 TextStyle wearErrorStyle(BuildContext context) =>
-    WearText.small.copyWith(color: Theme.of(context).colorScheme.error);
+    WearText.body.copyWith(color: Theme.of(context).colorScheme.error);
 
 String wearShortText(String text, {required int max}) =>
     text.length > max ? '${text.substring(0, max)}…' : text;

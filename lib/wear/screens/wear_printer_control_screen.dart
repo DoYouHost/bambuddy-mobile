@@ -131,7 +131,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
                 Text(
                   l10n.wearWaitingForState,
                   textAlign: TextAlign.center,
-                  style: WearText.small.copyWith(color: wearInert),
+                  style: WearText.body.copyWith(color: wearInert),
                 ),
               ],
               const SizedBox(height: DashSpace.md),
@@ -529,7 +529,7 @@ class _WearFaultState extends State<_WearFault> {
               Expanded(
                 child: Text(
                   widget.fault.displayCode,
-                  style: WearText.small.copyWith(
+                  style: WearText.body.copyWith(
                     color: wearFaultText,
                     fontWeight: FontWeight.w600,
                   ),

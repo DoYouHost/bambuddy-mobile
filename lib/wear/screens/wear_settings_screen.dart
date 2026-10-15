@@ -75,7 +75,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
               Text(
                 l10n.wearFromPhoneWaiting,
                 textAlign: TextAlign.center,
-                style: WearText.small,
+                style: WearText.body,
               ),
               const SizedBox(height: DashSpace.sm),
               FilledButton(
@@ -91,11 +91,12 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
             const SizedBox(height: DashSpace.sm),
             // Said here rather than in the dialog: the shared wear dialog
             // clips its subtitle to one line, and this is the consequence
-            // worth reading before the tap, not after it.
+            // worth reading before the tap, not after it — essential text,
+            // so 12 sp (Play WO-V14), not fine print.
             Text(
               l10n.changeServerWarning,
               textAlign: TextAlign.center,
-              style: WearText.fine,
+              style: WearText.body.copyWith(color: wearMuted),
             ),
           ],
           const SizedBox(height: DashSpace.lg),

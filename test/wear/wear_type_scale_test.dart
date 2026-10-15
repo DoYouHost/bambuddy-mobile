@@ -106,4 +106,29 @@ void main() {
     expect(WearText.title.fontWeight, FontWeight.bold);
     expect(WearText.fine.color, wearMuted);
   });
+
+  test('every size in the tokens meets the Wear OS minimum (Play WO-V14)', () {
+    // Scans the source rather than listing roles, so a style added later —
+    // a WearText role or a button label — is held to the floor too.
+    // Comments out, so a `fontSize:` in prose cannot stand in for a real one.
+    final source = sources[tokens]!.replaceAll(RegExp(r'//.*'), '');
+    final sizes = [
+      for (final m in RegExp(r'fontSize:\s*([\d.]+)').allMatches(source))
+        double.parse(m.group(1)!),
+    ];
+
+    // A size behind a named constant, or a style with no size at all, would
+    // escape the scan.
+    expect(sizes, hasLength(fontSize.allMatches(source).length));
+    expect(sizes, hasLength(RegExp(r'TextStyle\(').allMatches(source).length));
+    expect(sizes, isNotEmpty);
+    expect(
+      sizes.where((s) => s < 12),
+      [WearText.fine.fontSize],
+      reason:
+          '12 sp is the floor for essential text; only WearText.fine, '
+          'the non-essential fine print, may go below it.',
+    );
+    expect(WearText.fine.fontSize, greaterThanOrEqualTo(10));
+  });
 }
