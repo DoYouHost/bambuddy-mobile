@@ -729,9 +729,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     );
   }
 
-  /// The job's cost preview (`FilamentMapping.tsx::totalCost`), or null where
-  /// there is nothing to price: a job aimed at "any printer of a model" has no
-  /// mapping, and a mapping needs the printer's loaded slots.
+  /// The job's cost preview, or null where the web draws no mapping panel: a job
+  /// aimed at "any printer of a model", no printer yet, no filament in the plate,
+  /// or a printer status that has not arrived.
   JobCost? _jobCost() {
     final source = _plateSource;
     final printerId = _printerId;

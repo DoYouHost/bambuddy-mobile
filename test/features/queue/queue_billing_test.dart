@@ -289,6 +289,17 @@ void main() {
       expect(find.text(pl.queueInsufficientBudget), findsNothing);
     });
 
+    testWidgets('says N/A where nothing has a price, as the web does', (
+      tester,
+    ) async {
+      await open(tester, cost: (total: 0, anyPrice: false), billingOn: false);
+
+      expect(
+        find.text(pl.queueEstimatedCost(pl.queueCostNotAvailable)),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('and what several copies cost together', (tester) async {
       await open(tester, cost: (total: 1, anyPrice: true));
       await tester.ensureVisible(byLogId('queue_edit.copies_up'));

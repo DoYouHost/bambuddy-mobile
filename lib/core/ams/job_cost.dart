@@ -11,21 +11,22 @@ typedef JobCost = ({double total, bool anyPrice});
 
 /// [mapping] is the job's `ams_mapping`: index `slotId - 1` holds the global tray
 /// of that filament, or `-1`. [costPerKgByTray] holds the price of the spool each
-/// tray carries — only a tray with a priced spool has an entry. Null when there is
-/// no mapping to price against, which is every job aimed at "any printer of a model".
-JobCost? estimateJobCost({
+/// tray carries — only a tray with a priced spool has an entry. A null [mapping] is
+/// a printer that reports no loaded slot: nothing matches, so the cost is 0 with no
+/// price, which the web words "N/A".
+JobCost estimateJobCost({
   required List<FilamentRequirement> requirements,
   required List<int>? mapping,
   required Map<int, double> costPerKgByTray,
   required double defaultCostPerKg,
 }) {
-  if (mapping == null) return null;
+  final slots = mapping ?? const <int>[];
   var total = 0.0;
   for (final f in requirements) {
     if (!f.usedInPlate) continue;
     final index = f.slotId - 1;
-    if (index < 0 || index >= mapping.length || mapping[index] < 0) continue;
-    final perKg = costPerKgByTray[mapping[index]] ?? defaultCostPerKg;
+    if (index < 0 || index >= slots.length || slots[index] < 0) continue;
+    final perKg = costPerKgByTray[slots[index]] ?? defaultCostPerKg;
     if (perKg > 0) total += (f.usedGrams ?? 0) / 1000 * perKg;
   }
   return (

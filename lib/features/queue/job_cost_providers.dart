@@ -20,8 +20,9 @@ typedef JobCostKey = ({
 
 String mappingKey(List<int>? mapping) => mapping?.join(',') ?? '';
 
-/// The job's cost preview, or null where there is nothing to price against: the
-/// printer reports no loaded slot, so there is no mapping. Native inventory only —
+/// The job's cost preview, or null where the web draws no panel: the plate uses
+/// no filament. A printer that reports no loaded slot is not null — it is a cost
+/// of nothing, which the form words "N/A". Native inventory only —
 /// with Spoolman the server prices every job at the default (`_default_cost_per_kg`
 /// is the only rate it uses there), and so does this.
 final jobCostProvider = FutureProvider.autoDispose.family<JobCost?, JobCostKey>(
@@ -33,6 +34,7 @@ final jobCostProvider = FutureProvider.autoDispose.family<JobCost?, JobCostKey>(
         plate: key.plate,
       )).future,
     );
+    if (requirements.isEmpty) return null;
     final mapping = await queueMappingToSend(
       requirements: requirements,
       printers: ref.watch(printersRepositoryProvider),
