@@ -27,7 +27,7 @@ const _blue = FilamentRequirement(
 
 void main() {
   group('estimateJobCost', () {
-    JobCost? cost({
+    JobCost cost({
       List<FilamentRequirement> reqs = const [_red, _blue],
       List<int>? mapping = const [0, 1],
       Map<int, double> prices = const {},
@@ -41,7 +41,7 @@ void main() {
 
     test('prices each filament at its own spool, else at the default', () {
       // 100 g at 40/kg, 50 g at the default 25/kg.
-      final c = cost(prices: {0: 40})!;
+      final c = cost(prices: {0: 40});
 
       expect(c.total, closeTo(4 + 1.25, 1e-9));
       expect(c.anyPrice, isTrue);
@@ -49,13 +49,13 @@ void main() {
 
     test('a spool priced at nothing prices its filament at nothing', () {
       // `0 ?? default` is 0 in the web: a free spool is not the default rate.
-      expect(cost(prices: {0: 0, 1: 0})!.total, 0);
-      expect(cost(prices: {0: 0, 1: 0})!.anyPrice, isFalse);
+      expect(cost(prices: {0: 0, 1: 0}).total, 0);
+      expect(cost(prices: {0: 0, 1: 0}).anyPrice, isFalse);
     });
 
     test('a filament no tray matches costs nothing', () {
-      expect(cost(mapping: const [0, -1])!.total, closeTo(2.5, 1e-9));
-      expect(cost(mapping: const [0])!.total, closeTo(2.5, 1e-9));
+      expect(cost(mapping: const [0, -1]).total, closeTo(2.5, 1e-9));
+      expect(cost(mapping: const [0]).total, closeTo(2.5, 1e-9));
     });
 
     test('a slot the plate does not use costs nothing', () {
@@ -65,15 +65,18 @@ void main() {
         usedGrams: 999,
       );
 
-      expect(cost(reqs: const [_red, unused])!.total, closeTo(2.5, 1e-9));
+      expect(cost(reqs: const [_red, unused]).total, closeTo(2.5, 1e-9));
     });
 
-    test('no mapping is nothing to price against', () {
-      expect(cost(mapping: null), isNull);
+    test('no mapping matches nothing, so there is no price either', () {
+      final c = cost(mapping: null, prices: const {0: 40});
+
+      expect(c.total, 0);
+      expect(c.anyPrice, isTrue, reason: 'a priced spool still makes it a 0');
     });
 
     test('no default price and no spool prices makes no price at all', () {
-      final c = cost(fallback: 0)!;
+      final c = cost(fallback: 0);
 
       expect(c.total, 0);
       expect(c.anyPrice, isFalse);
@@ -82,7 +85,7 @@ void main() {
     test('a filament with no weight adds nothing', () {
       const weightless = FilamentRequirement(slotId: 1);
 
-      expect(cost(reqs: const [weightless], mapping: const [0])!.total, 0);
+      expect(cost(reqs: const [weightless], mapping: const [0]).total, 0);
     });
   });
 
@@ -103,6 +106,7 @@ void main() {
     Future<JobCost?> read({
       required Map<String, dynamic> assignments,
       List<int>? mapping,
+      List<FilamentRequirement> requirements = const [_red, _blue],
       InventoryBackend backend = InventoryBackend.native,
       Map<int, PrinterStatus> live = const {1: status},
     }) async {
@@ -118,7 +122,7 @@ void main() {
           noServerProfileOverride,
           ...queueFormOverrides(live: live),
           printRequirementsProvider.overrideWith(
-            (ref, arg) async => const [_red, _blue],
+            (ref, arg) async => requirements,
           ),
           inventoryRepositoryProvider.overrideWithValue(
             InventoryRepository(switch (backend) {
@@ -179,16 +183,23 @@ void main() {
     );
 
     test(
-      'a printer that reports no loaded slot has nothing to price against',
+      'a printer that reports no loaded slot costs nothing, as the web says N/A',
       () async {
-        expect(
-          await read(
-            assignments: assignment(0, 40),
-            live: const {1: PrinterStatus(id: 1)},
-          ),
-          isNull,
-        );
+        final c = (await read(
+          assignments: assignment(0, 40),
+          live: const {1: PrinterStatus(id: 1)},
+        ))!;
+
+        expect(c.total, 0);
+        expect(c.anyPrice, isFalse);
       },
     );
+
+    test('a plate that uses no filament has no preview', () async {
+      expect(
+        await read(assignments: assignment(0, 40), requirements: const []),
+        isNull,
+      );
+    });
   });
 }

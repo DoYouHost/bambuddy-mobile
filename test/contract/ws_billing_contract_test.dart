@@ -299,7 +299,7 @@ void main() {
               ((await settings.fetch())['default_filament_cost'] as num?)
                   ?.toDouble() ??
               25,
-        )!;
+        );
         await queue.addFromLibraryFile(
           file.id,
           options: QueueCreateOptions(

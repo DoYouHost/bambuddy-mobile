@@ -255,6 +255,7 @@ void main() {
       required JobCost? cost,
       List<CostCenter> centers = const [tight],
       QueueItem? draft,
+      bool billingOn = true,
     }) async {
       usePhoneWindow(tester, dp: 2400);
       await tester.pumpWidget(
@@ -262,7 +263,7 @@ void main() {
           draft ?? archiveDraft(),
           extra: [
             serverUiFlagsProvider.overrideWith(
-              (ref) async => {'billing_enabled': true},
+              (ref) async => {'billing_enabled': billingOn},
             ),
             printableCostCentersProvider.overrideWith((ref) async => centers),
             jobCostProvider.overrideWith((ref, key) async => cost),
@@ -279,6 +280,24 @@ void main() {
 
       expect(find.text(pl.queueEstimatedCost(r'$3.50')), findsOneWidget);
       expect(find.text(pl.queueInsufficientBudget), findsNothing);
+    });
+
+    testWidgets('says it without billing too, as the web does', (tester) async {
+      await open(tester, cost: (total: 3.5, anyPrice: true), billingOn: false);
+
+      expect(find.text(pl.queueEstimatedCost(r'$3.50')), findsOneWidget);
+      expect(find.text(pl.queueInsufficientBudget), findsNothing);
+    });
+
+    testWidgets('says N/A where nothing has a price, as the web does', (
+      tester,
+    ) async {
+      await open(tester, cost: (total: 0, anyPrice: false), billingOn: false);
+
+      expect(
+        find.text(pl.queueEstimatedCost(pl.queueCostNotAvailable)),
+        findsOneWidget,
+      );
     });
 
     testWidgets('and what several copies cost together', (tester) async {

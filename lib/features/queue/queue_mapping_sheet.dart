@@ -398,10 +398,18 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     // A re-read keeps what is on screen until the new answer is in.
     if (!reqsAsync.hasValue && reqsAsync.isLoading ||
         !statusAsync.hasValue && statusAsync.isLoading) {
+      // A column, not the spinner alone: `DashLoading` is a `Center`, which
+      // takes all the height the scroll-controlled sheet offers, so the sheet
+      // opens full screen and shrinks once the answer is in.
       return wrap(
-        const Padding(
-          padding: EdgeInsets.all(DashSpace.xxl),
-          child: DashLoading(),
+        const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: EdgeInsets.all(DashSpace.xxl),
+              child: DashLoading(),
+            ),
+          ],
         ),
       );
     }

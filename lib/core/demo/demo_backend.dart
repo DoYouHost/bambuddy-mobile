@@ -1084,14 +1084,16 @@ class DemoBackend {
           : const [
               {'slot_id': 1, 'type': 'PLA', 'color': '#0ACCB8'},
             ];
+      // Sliced output knows what it uses; a source that has never been sliced
+      // has no measured figure, which the server answers with 0.
+      final grams = toDoubleOrNull(file['filament_used_grams']) ?? 0;
       for (final slot in slots) {
         final inPlate = used.contains(slot['slot_id']);
         if (!inPlate && q['full_slots'] != 'true') continue;
         rows.add({
           ...slot,
-          // No measured figure on a source that has never been sliced.
-          'used_grams': 0,
-          'used_meters': 0,
+          'used_grams': inPlate ? grams : 0,
+          'used_meters': inPlate ? _r1(grams * 0.33) : 0,
           'used_in_plate': inPlate,
         });
       }
