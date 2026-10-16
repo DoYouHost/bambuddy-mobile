@@ -12,6 +12,11 @@ import '../dashboard/smart_plug_actions.dart';
 import '../dashboard/smart_plugs_providers.dart';
 import '../dashboard/temp_readings.dart';
 import '../dashboard/widgets/pill_switch.dart';
+import 'scale_to_fit.dart';
+
+/// How far a tile's text and icons may grow with its room, so a big screen gets
+/// big readings without a tile on a tablet turning into a poster.
+const _tileMaxScale = 1.8;
 
 // The widgets below fill the height they are given: the Overview divides its
 // column between them (`controller_overview.dart`), so each one is built to
@@ -127,11 +132,12 @@ class _ReadingTile extends StatelessWidget {
                   : t.subCardBorder,
             ),
           ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
+          child: ScaleToFit(
+            designSize: const Size(120, 40),
+            maxScale: _tileMaxScale,
             alignment: Alignment.centerLeft,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -238,10 +244,11 @@ class ControllerSpeed extends ConsumerWidget {
                     borderRadius: radius,
                     onTap: busy ? null : () => _setSpeed(context, ref, level),
                     child: Center(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
+                      child: ScaleToFit(
+                        designSize: const Size(96, 40),
+                        maxScale: _tileMaxScale,
                         child: Column(
-                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
                               _speedName(l10n, level),
@@ -449,11 +456,12 @@ class _SwitchTile extends StatelessWidget {
                 const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Center(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
+                    child: ScaleToFit(
+                      designSize: const Size(130, 40),
+                      maxScale: _tileMaxScale,
                       alignment: Alignment.centerLeft,
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(

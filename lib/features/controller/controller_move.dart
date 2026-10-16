@@ -12,6 +12,7 @@ import '../../l10n/error_messages.dart';
 import '../dashboard/controls_providers.dart';
 import 'controller_controls.dart';
 import 'controller_providers.dart';
+import 'scale_to_fit.dart';
 
 /// The Move tab: the X/Y pad, Z, extrude and retract, the step and home
 /// ([docs/single-printer-controller.md] §2). The rules are the printer card's
@@ -101,30 +102,67 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // The axes share one card: the pad and Z are one gesture's worth
+              // of controls, and one box needs one padding.
               Expanded(
-                flex: 4,
-                child: _Card(title: 'X / Y', child: _xyPad(enabled)),
-              ),
-              const SizedBox(width: DashSpace.md),
-              Expanded(
-                flex: 2,
+                flex: 6,
                 child: _Card(
-                  title: isBedSlinger(model)
-                      ? l10n.ctrlMoveZToolhead
-                      : l10n.ctrlMoveZ,
-                  child: _zPair(model, enabled, l10n),
+                  designSize: _axesDesign,
+                  child: _axes(model, enabled, l10n),
                 ),
               ),
               const SizedBox(width: DashSpace.md),
               Expanded(
                 flex: 3,
-                child: _Card(child: _extruder(status, dual, enabled, l10n)),
+                child: _Card(
+                  designSize: Size(_columnWidth, dual ? 180 : 128),
+                  child: _extruder(status, dual, enabled, l10n),
+                ),
               ),
               const SizedBox(width: DashSpace.md),
               Expanded(
                 flex: 4,
-                child: _Card(child: _stepAndHome(enabled, l10n)),
+                child: _Card(
+                  designSize: _stepDesign,
+                  child: _stepAndHome(enabled, l10n),
+                ),
               ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// The pad and the Z pair side by side, each under its caption.
+  Widget _axes(String? model, bool enabled, AppLocalizations l10n) {
+    final t = DashTokens.of(context);
+    final caption = t.label.copyWith(color: t.textSecondary);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('X / Y', style: caption),
+            const SizedBox(height: DashSpace.sm),
+            _xyPad(enabled),
+          ],
+        ),
+        const SizedBox(width: DashSpace.xl),
+        SizedBox(
+          width: _columnWidth,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isBedSlinger(model) ? l10n.ctrlMoveZToolhead : l10n.ctrlMoveZ,
+                style: caption,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: DashSpace.sm),
+              _zPair(model, enabled, l10n),
             ],
           ),
         ),
@@ -225,12 +263,15 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
           );
     if (settled != null && distance(true) == null) {
       return SizedBox(
-        width: _noteWidth,
+        width: _columnWidth,
+        height: _padSide,
         child: Text(
           model == null || model.trim().isEmpty
               ? l10n.ctrlMoveZNoModel
               : l10n.ctrlMoveZUnknownDirection,
           style: t.bodyPlain.copyWith(color: t.textTertiary),
+          maxLines: 12,
+          overflow: TextOverflow.ellipsis,
         ),
       );
     }
@@ -267,7 +308,7 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
     AppLocalizations l10n,
   ) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (dual) ...[
           _NozzleChoice(
@@ -313,61 +354,62 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
   }
 
   Widget _stepAndHome(bool enabled, AppLocalizations l10n) {
-    return SizedBox(
-      width: _noteWidth,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _PresetRow(
-            id: 'controller.step',
-            title: l10n.ctrlMoveStep,
-            presets: _stepPresets,
-            value: _step,
-            enabled: enabled,
-            onChanged: (v) => setState(() => _step = v),
-          ),
-          const SizedBox(height: DashSpace.md),
-          _PresetRow(
-            id: 'controller.length',
-            title: l10n.ctrlMoveLength,
-            presets: _lengthPresets,
-            value: _length,
-            enabled: enabled,
-            onChanged: (v) => setState(() => _length = v),
-          ),
-          const SizedBox(height: DashSpace.md),
-          _JogButton(
-            id: 'controller.home',
-            icon: Icons.home_outlined,
-            label: l10n.ctrlMoveHome,
-            busy: _spin == 'home',
-            width: _noteWidth,
-            // A home has no reliable "done" signal (the web is fire-and-forget
-            // too), so the answer is a toast, not a lock waiting on it.
-            onTap: enabled
-                ? () => _send(
-                    'home',
-                    () => _notifier.homeAxes(widget.printerId),
-                    successMessage: l10n.ctrlMoveHomeStarted,
-                  )
-                : null,
-          ),
-        ],
-      ),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _PresetRow(
+          id: 'controller.step',
+          title: l10n.ctrlMoveStep,
+          presets: _stepPresets,
+          value: _step,
+          enabled: enabled,
+          onChanged: (v) => setState(() => _step = v),
+        ),
+        const SizedBox(height: DashSpace.md),
+        _PresetRow(
+          id: 'controller.length',
+          title: l10n.ctrlMoveLength,
+          presets: _lengthPresets,
+          value: _length,
+          enabled: enabled,
+          onChanged: (v) => setState(() => _length = v),
+        ),
+        const SizedBox(height: DashSpace.md),
+        _JogButton(
+          id: 'controller.home',
+          icon: Icons.home_outlined,
+          label: l10n.ctrlMoveHome,
+          busy: _spin == 'home',
+          width: _stepDesign.width,
+          // A home has no reliable "done" signal (the web is fire-and-forget
+          // too), so the answer is a toast, not a lock waiting on it.
+          onTap: enabled
+              ? () => _send(
+                  'home',
+                  () => _notifier.homeAxes(widget.printerId),
+                  successMessage: l10n.ctrlMoveHomeStarted,
+                )
+              : null,
+        ),
+      ],
     );
   }
 
-  /// Width a card's content is laid out at before it is scaled to fit.
-  static const _noteWidth = 220.0;
+  /// The sizes each card's content is laid out at before it is scaled to fit its
+  /// room — up on a big screen, down on a small one.
+  static const _padSide = 184.0;
+  static const _columnWidth = 148.0;
+  static const _axesDesign = Size(_padSide + 24 + _columnWidth, _padSide + 32);
+  static const _stepDesign = Size(220, 220);
 }
 
-/// A card of the tab: an optional title, and content that stays centred and is
-/// scaled down, never up, when its share of the height is too small.
+/// A card of the tab. Its content is laid out at [designSize] and scaled to the
+/// card, so a large screen gets large controls.
 class _Card extends StatelessWidget {
-  const _Card({this.title, required this.child});
+  const _Card({required this.designSize, required this.child});
 
-  final String? title;
+  final Size designSize;
   final Widget child;
 
   @override
@@ -376,25 +418,7 @@ class _Card extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(DashSpace.md),
       decoration: t.cardBox,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (title != null) ...[
-            Text(
-              title!,
-              style: t.label.copyWith(color: t.textSecondary),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: DashSpace.sm),
-          ],
-          Expanded(
-            child: Center(
-              child: FittedBox(fit: BoxFit.scaleDown, child: child),
-            ),
-          ),
-        ],
-      ),
+      child: ScaleToFit(designSize: designSize, child: child),
     );
   }
 }

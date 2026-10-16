@@ -164,6 +164,30 @@ void main() {
     );
   });
 
+  group('the rail', () {
+    testWidgets('a unit button is a real touch target, not a strip', (
+      tester,
+    ) async {
+      await pump(tester, _status());
+
+      expect(
+        tester.getRect(byLogId('controller.filament_unit').first).height,
+        greaterThanOrEqualTo(44),
+      );
+    });
+
+    testWidgets('and a slot card is big enough to read', (tester) async {
+      await pump(tester, _status());
+      final small = tester.getRect(slots().first).size;
+
+      await pump(tester, _status(), size: const Size(1280, 800));
+      final large = tester.getRect(slots().first).size;
+
+      expect(small.height, greaterThanOrEqualTo(120));
+      expect(large.height, greaterThan(small.height));
+    });
+  });
+
   group('several units', () {
     final two = [_unit(0), _unit(1, humidity: 30)];
 

@@ -314,6 +314,55 @@ void main() {
     });
   });
 
+  group('the size of the controls', () {
+    const jogs = [
+      'controller.jog_x_plus',
+      'controller.jog_y_minus',
+      'controller.jog_z_up',
+      'controller.jog_z_down',
+      'controller.jog_extrude',
+      'controller.jog_retract',
+      'controller.home',
+    ];
+
+    testWidgets('every jog is a real touch target at the design size', (
+      tester,
+    ) async {
+      await pump(tester, _status());
+
+      for (final id in jogs) {
+        final size = tester.getRect(byLogId(id)).size;
+        expect(size.height, greaterThanOrEqualTo(44), reason: id);
+        expect(size.width, greaterThanOrEqualTo(44), reason: id);
+      }
+    });
+
+    testWidgets('and they grow when the screen does', (tester) async {
+      await pump(tester, _status());
+      final small = tester.getRect(byLogId('controller.jog_z_up')).size;
+
+      await pump(tester, _status(), size: const Size(1280, 800));
+      final large = tester.getRect(byLogId('controller.jog_z_up')).size;
+
+      expect(large.height, greaterThan(small.height * 1.3));
+      expect(large.width, greaterThan(small.width * 1.3));
+    });
+
+    testWidgets('the axes share one card', (tester) async {
+      await pump(tester, _status());
+
+      // The pad and Z sit side by side in the same box, not in two.
+      final pad = tester.getRect(byLogId('controller.jog_x_plus'));
+      final z = tester.getRect(byLogId('controller.jog_z_up'));
+      expect(pad.right, lessThan(z.left));
+      expect(
+        (pad.center.dy - z.center.dy).abs(),
+        lessThan(200),
+        reason: 'on one row',
+      );
+    });
+  });
+
   group('the layout', () {
     for (final size in const [
       Size(844, 390),

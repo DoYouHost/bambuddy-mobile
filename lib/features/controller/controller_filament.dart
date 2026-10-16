@@ -10,6 +10,7 @@ import '../dashboard/controls_providers.dart';
 import '../dashboard/widgets/printer_card.dart';
 import '../inventory/inventory_providers.dart';
 import 'controller_providers.dart';
+import 'scale_to_fit.dart';
 
 /// The Filament tab: the AMS units, one at a time, with their slots
 /// ([docs/single-printer-controller.md] §2). A tap on a slot opens the printer
@@ -103,7 +104,8 @@ class _Rail extends StatelessWidget {
 
   /// A rail button never grows past this, so a printer with one unit does not
   /// get one enormous button.
-  static const _maxHeight = 64.0;
+  static const _minHeight = 56.0;
+  static const _maxHeight = 72.0;
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +120,10 @@ class _Rail extends StatelessWidget {
           if (i > 0) const SizedBox(height: DashSpace.sm),
           Flexible(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: _maxHeight),
+              constraints: const BoxConstraints(
+                minHeight: _minHeight,
+                maxHeight: _maxHeight,
+              ),
               child: logTag(
                 'controller.filament_unit',
                 Material(
@@ -234,7 +239,7 @@ class _Unit extends ConsumerWidget {
                     if (unit.humidity != null) '${unit.humidity}%',
                     if (unit.temp != null) '${unit.temp!.toStringAsFixed(0)}°',
                   ].join(' · '),
-                  style: t.monoValue,
+                  style: t.monoValue.copyWith(fontSize: _headerFont),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -298,6 +303,7 @@ class _Unit extends ConsumerWidget {
   }
 
   static const _headerHeight = 44.0;
+  static const _headerFont = 16.0;
 }
 
 /// The external spool holder: one card, or one per nozzle on two heads.
@@ -328,7 +334,10 @@ class _External extends ConsumerWidget {
           height: _Unit._headerHeight,
           child: Align(
             alignment: Alignment.centerLeft,
-            child: Text(l10n.externalSpool, style: t.monoValue),
+            child: Text(
+              l10n.externalSpool,
+              style: t.monoValue.copyWith(fontSize: _Unit._headerFont),
+            ),
           ),
         ),
         const SizedBox(height: DashSpace.sm),
@@ -421,72 +430,70 @@ class _SlotCard extends StatelessWidget {
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(DashSpace.sm),
-            child: Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (number != null)
-                      Text('$number', style: t.monoLabel)
-                    else if (caption != null)
-                      Text(caption!, style: t.labelSoft),
-                    const SizedBox(height: DashSpace.xs),
-                    Container(
-                      width: _disc,
-                      height: _disc,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: empty ? t.textTertiary : t.cardBorder,
-                          width: empty ? 2 : _discStroke,
-                        ),
+            child: ScaleToFit(
+              designSize: const Size(120, 160),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (number != null)
+                    Text('$number', style: t.monoLabel)
+                  else if (caption != null)
+                    Text(caption!, style: t.labelSoft),
+                  const SizedBox(height: DashSpace.xs),
+                  Container(
+                    width: _disc,
+                    height: _disc,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: empty ? t.textTertiary : t.cardBorder,
+                        width: empty ? 2 : _discStroke,
                       ),
                     ),
-                    const SizedBox(height: DashSpace.sm),
+                  ),
+                  const SizedBox(height: DashSpace.sm),
+                  Text(
+                    empty
+                        ? l10n.traySlotEmpty
+                        : (tray.materialLabel ?? l10n.traySlotEmpty),
+                    style: t.bodyBold.copyWith(
+                      color: empty ? t.textTertiary : t.textPrimary,
+                    ),
+                    maxLines: 1,
+                  ),
+                  if (percent != null || grams != null)
                     Text(
-                      empty
-                          ? l10n.traySlotEmpty
-                          : (tray.materialLabel ?? l10n.traySlotEmpty),
-                      style: t.bodyBold.copyWith(
-                        color: empty ? t.textTertiary : t.textPrimary,
+                      [
+                        if (percent != null) '$percent%',
+                        if (grams != null)
+                          l10n.inventoryUsageWeight(grams.toStringAsFixed(0)),
+                      ].join(' · '),
+                      style: t.monoLabel.copyWith(
+                        color: percent != null && percent < _lowPercent
+                            ? t.dangerInk
+                            : t.textSecondary,
                       ),
-                      maxLines: 1,
                     ),
-                    if (percent != null || grams != null)
-                      Text(
-                        [
-                          if (percent != null) '$percent%',
-                          if (grams != null)
-                            l10n.inventoryUsageWeight(grams.toStringAsFixed(0)),
-                        ].join(' · '),
-                        style: t.monoLabel.copyWith(
-                          color: percent != null && percent < _lowPercent
-                              ? t.dangerInk
-                              : t.textSecondary,
+                  if (active) ...[
+                    const SizedBox(height: DashSpace.xs),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          size: DashSpace.md,
+                          color: t.accentInk,
                         ),
-                      ),
-                    if (active) ...[
-                      const SizedBox(height: DashSpace.xs),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: DashSpace.md,
-                            color: t.accentInk,
-                          ),
-                          const SizedBox(width: DashSpace.xs),
-                          Text(
-                            l10n.ctrlNozzleActive,
-                            style: t.label.copyWith(color: t.accentInk),
-                          ),
-                        ],
-                      ),
-                    ],
+                        const SizedBox(width: DashSpace.xs),
+                        Text(
+                          l10n.ctrlNozzleActive,
+                          style: t.label.copyWith(color: t.accentInk),
+                        ),
+                      ],
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
           ),

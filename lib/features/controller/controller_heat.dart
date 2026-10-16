@@ -14,6 +14,7 @@ import '../dashboard/controls_providers.dart';
 import '../dashboard/temp_readings.dart';
 import 'controller_controls.dart';
 import 'controller_providers.dart';
+import 'scale_to_fit.dart';
 
 /// The Heat tab: every heater with its target, and the fans
 /// ([docs/single-printer-controller.md] §2). Reads its printer through
@@ -220,10 +221,11 @@ class _HeaterCard extends ConsumerWidget {
           ),
           Expanded(
             child: Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
+              child: ScaleToFit(
+                designSize: const Size(200, _ringSize),
+                maxScale: 1.8,
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     ExcludeSemantics(
                       child: SizedBox(
