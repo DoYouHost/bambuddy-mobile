@@ -10,18 +10,24 @@ class ControllerPrefs {
     this.liveCamera = true,
   });
 
-  /// Idle times the picker offers. Provisional: the maintainer has not chosen
-  /// them yet, and there is deliberately no "never" — an OLED left on one image
-  /// is what the saver exists to prevent.
+  /// Idle times the picker offers, then [saverNever]. Provisional: the
+  /// maintainer has not settled the list.
   static const saverAfterChoices = [1, 2, 5, 10, 15];
   static const defaultSaverAfterMinutes = 5;
 
-  /// Brightness range of the saver, in percent. Provisional, like the above.
+  /// The saver never starts. Choosing it is a risk to the panel, so the picker
+  /// must make the user confirm it (a burn-in warning) before it is stored.
+  static const saverNever = 0;
+
+  static const saverAfterOptions = [...saverAfterChoices, saverNever];
+
+  /// Brightness range of the saver, in percent.
   static const minSaverBrightness = 10;
-  static const maxSaverBrightness = 50;
+  static const maxSaverBrightness = 100;
   static const saverBrightnessStep = 5;
   static const defaultSaverBrightness = 25;
 
+  /// Minutes of idle time before the saver, or [saverNever].
   final int saverAfterMinutes;
   final int saverBrightness;
 
@@ -34,7 +40,10 @@ class ControllerPrefs {
   /// Off shows the file's cover instead of the stream.
   final bool liveCamera;
 
-  Duration get saverAfter => Duration(minutes: saverAfterMinutes);
+  /// Null when the saver never starts.
+  Duration? get saverAfter => saverAfterMinutes == saverNever
+      ? null
+      : Duration(minutes: saverAfterMinutes);
 
   ControllerPrefs copyWith({
     int? saverAfterMinutes,
@@ -51,13 +60,12 @@ class ControllerPrefs {
   );
 
   /// Anything unreadable falls back to that field's default; a time that is not
-  /// on the picker (an older build offered other values) does too, because the
-  /// picker could not show it.
+  /// on the picker does too, because the picker could not show it.
   factory ControllerPrefs.fromJson(Map<String, dynamic> json) {
     final after = json['saver_after_minutes'];
     final brightness = json['saver_brightness'];
     return ControllerPrefs(
-      saverAfterMinutes: after is int && saverAfterChoices.contains(after)
+      saverAfterMinutes: after is int && saverAfterOptions.contains(after)
           ? after
           : defaultSaverAfterMinutes,
       saverBrightness: brightness is int

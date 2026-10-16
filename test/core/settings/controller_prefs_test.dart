@@ -56,7 +56,7 @@ void main() {
       ControllerPrefs.fromJson({'saver_after_minutes': 7}).saverAfterMinutes,
       ControllerPrefs.defaultSaverAfterMinutes,
     );
-    for (final minutes in ControllerPrefs.saverAfterChoices) {
+    for (final minutes in ControllerPrefs.saverAfterOptions) {
       expect(
         ControllerPrefs.fromJson({
           'saver_after_minutes': minutes,
@@ -66,16 +66,43 @@ void main() {
     }
   });
 
-  test('brightness is held to the range', () {
+  test('brightness runs from the floor to the full panel', () {
     expect(
       ControllerPrefs.fromJson({'saver_brightness': 0}).saverBrightness,
       ControllerPrefs.minSaverBrightness,
     );
     expect(
       ControllerPrefs.fromJson({'saver_brightness': 100}).saverBrightness,
-      ControllerPrefs.maxSaverBrightness,
+      100,
+    );
+    expect(
+      ControllerPrefs.fromJson({'saver_brightness': 150}).saverBrightness,
+      100,
     );
   });
+
+  test('"never" is a choice, and means no saver', () {
+    final prefs = ControllerPrefs.fromJson({
+      'saver_after_minutes': ControllerPrefs.saverNever,
+    });
+
+    expect(prefs.saverAfterMinutes, ControllerPrefs.saverNever);
+    expect(prefs.saverAfter, isNull);
+    expect(const ControllerPrefs().saverAfter, isNotNull);
+  });
+
+  test(
+    '"never" survives a round trip, so it is not read back as the default',
+    () {
+      final back = ControllerPrefs.fromJson(
+        const ControllerPrefs(
+          saverAfterMinutes: ControllerPrefs.saverNever,
+        ).toJson(),
+      );
+
+      expect(back.saverAfter, isNull);
+    },
+  );
 
   test('copyWith changes only what it is given', () {
     final prefs = const ControllerPrefs().copyWith(liveCamera: false);

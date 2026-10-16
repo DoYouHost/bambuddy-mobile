@@ -91,14 +91,16 @@ panels. It is dim.
 
 | Setting | Meaning |
 |---|---|
-| Start after | idle time before the saver |
-| Brightness | how bright the saver is |
+| Start after | idle time before the saver: 1, 2, 5, 10 or 15 minutes, or *Never* |
+| Brightness | how bright the saver is, 10–100% |
 | Wake on warnings | whether a fault that does **not** pause the print also wakes the screen; faults that pause it always do |
 | Keep screen awake | holds the screen on while the controller is open |
 | Live camera | on: stream; off: file preview |
 
-Stored per device, like the wall-mode settings. The values offered for "Start
-after" and the brightness range are not decided yet.
+Stored per device, like the wall-mode settings. Choosing *Never* raises a popup
+that warns the screen may burn in and asks the user to confirm the risk; the
+choice is stored only once confirmed. The list of times (1, 2, 5, 10, 15) is
+provisional.
 
 ## 5. Server facts this relies on
 
