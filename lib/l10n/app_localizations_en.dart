@@ -7921,6 +7921,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controllerMoveLocked => 'Axes are locked while a print is running';
 
   @override
+  String get controllerTabFilament => 'Filament';
+
+  @override
   String get inventorySuppliersTitle => 'Suppliers';
 
   @override

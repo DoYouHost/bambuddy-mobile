@@ -8059,6 +8059,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get controllerMoveLocked => 'Osie są zablokowane podczas druku';
 
   @override
+  String get controllerTabFilament => 'Filament';
+
+  @override
   String get inventorySuppliersTitle => 'Dostawcy';
 
   @override

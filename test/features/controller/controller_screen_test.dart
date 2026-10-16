@@ -195,6 +195,38 @@ void main() {
     expect(find.text('RUNNING'), findsOneWidget);
   });
 
+  testWidgets('the top bar fits a long name, every tab and a long state', (
+    tester,
+  ) async {
+    await pumpController(
+      tester,
+      printers: [
+        _printer(
+          1,
+          'Pracownia X1C numer dwa',
+          model: 'X1 Carbon',
+          state: 'PREPARE',
+        ),
+      ],
+    );
+    tester.view.physicalSize = const Size(740, 320);
+
+    await open(tester);
+
+    expect(tester.takeException(), isNull);
+    for (final tab in ControllerTab.values) {
+      expect(byLogId(tab.logId), findsOneWidget);
+    }
+    // A FittedBox never reports an overflow, so look at where things sit: the
+    // tabs keep clear of the name on one side and of the state on the other.
+    final name = tester.getRect(find.text('Pracownia X1C numer dwa'));
+    final first = tester.getRect(byLogId(ControllerTab.values.first.logId));
+    final last = tester.getRect(byLogId(ControllerTab.values.last.logId));
+    final state = tester.getRect(find.text('PREPARE'));
+    expect(name.right, lessThanOrEqualTo(first.left));
+    expect(last.right, lessThanOrEqualTo(state.left));
+  });
+
   testWidgets('a printer the server no longer has says so, and can be left', (
     tester,
   ) async {

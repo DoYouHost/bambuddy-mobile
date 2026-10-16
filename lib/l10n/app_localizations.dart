@@ -13292,6 +13292,12 @@ abstract class AppLocalizations {
   /// **'Axes are locked while a print is running'**
   String get controllerMoveLocked;
 
+  /// Controller tab with the AMS units, their slots and the external spool
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get controllerTabFilament;
+
   /// No description provided for @inventorySuppliersTitle.
   ///
   /// In en, this message translates to:

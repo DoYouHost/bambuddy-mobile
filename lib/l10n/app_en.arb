@@ -5268,6 +5268,10 @@
   "@controllerMoveLocked": {
     "description": "Line above the controller's Move tab while the printer is printing; every control on the tab is switched off and this says why"
   },
+  "controllerTabFilament": "Filament",
+  "@controllerTabFilament": {
+    "description": "Controller tab with the AMS units, their slots and the external spool"
+  },
   "inventorySuppliersTitle": "Suppliers",
   "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
   "inventorySuppliersEmpty": "No suppliers yet",

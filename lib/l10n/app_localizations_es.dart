@@ -8018,6 +8018,9 @@ class AppLocalizationsEs extends AppLocalizations {
       'Los ejes están bloqueados durante la impresión';
 
   @override
+  String get controllerTabFilament => 'Filamento';
+
+  @override
   String get inventorySuppliersTitle => 'Proveedores';
 
   @override

@@ -7998,6 +7998,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Achsen sind während des Drucks gesperrt';
 
   @override
+  String get controllerTabFilament => 'Filament';
+
+  @override
   String get inventorySuppliersTitle => 'Lieferanten';
 
   @override

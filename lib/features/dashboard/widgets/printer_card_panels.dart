@@ -155,7 +155,7 @@ class _TotalPrintTimeLine extends ConsumerWidget {
 }
 
 /// Parses filament color from hex RRGGBBAA to [Color]; null if invalid.
-Color? _parseTrayColor(String? hex) {
+Color? parseTrayColor(String? hex) {
   if (hex == null || hex.length != 8) return null;
   final rgb = int.tryParse(hex.substring(0, 6), radix: 16);
   final a = int.tryParse(hex.substring(6, 8), radix: 16);

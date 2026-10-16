@@ -8091,6 +8091,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les axes sont verrouillés pendant l\'impression';
 
   @override
+  String get controllerTabFilament => 'Filament';
+
+  @override
   String get inventorySuppliersTitle => 'Fournisseurs';
 
   @override

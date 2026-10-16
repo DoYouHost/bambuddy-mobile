@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 import '../dashboard/widgets/printer_state_pill.dart';
 import '../dashboard/ws_providers.dart';
 import '../wall/wall_providers.dart';
+import 'controller_filament.dart';
 import 'controller_heat.dart';
 import 'controller_move.dart';
 import 'controller_overview.dart';
@@ -27,12 +28,14 @@ const _landscape = [
 enum ControllerTab {
   overview,
   heat,
-  move;
+  move,
+  filament;
 
   String label(AppLocalizations l10n) => switch (this) {
     ControllerTab.overview => l10n.controllerTabOverview,
     ControllerTab.heat => l10n.controllerTabHeat,
     ControllerTab.move => l10n.ctrlMove,
+    ControllerTab.filament => l10n.controllerTabFilament,
   };
 
   /// Wire value of the control's diagnostic id; never localized.
@@ -40,6 +43,7 @@ enum ControllerTab {
     ControllerTab.overview => 'controller.tab_overview',
     ControllerTab.heat => 'controller.tab_heat',
     ControllerTab.move => 'controller.tab_move',
+    ControllerTab.filament => 'controller.tab_filament',
   };
 }
 
@@ -173,6 +177,9 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
                           ControllerTab.move => ControllerMove(
                             printerId: widget.printerId,
                           ),
+                          ControllerTab.filament => ControllerFilament(
+                            printerId: widget.printerId,
+                          ),
                         },
                 ),
               ],
@@ -294,9 +301,14 @@ class _TopBar extends ConsumerWidget {
                 ),
               )
             : name(chevron: false),
+        // Scaled down, never up, when the name, the tabs and the state do not
+        // fit one line: a long printer name must not push a tab off the screen.
         Expanded(
           child: Center(
-            child: _Tabs(tab: tab, onTab: onTab),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: _Tabs(tab: tab, onTab: onTab),
+            ),
           ),
         ),
         printerStatePill(t, l10n, item.status, offline: offline),
@@ -369,7 +381,7 @@ class _TabButton extends StatelessWidget {
         onTap: onTap,
         child: Container(
           constraints: const BoxConstraints(minHeight: _barHeight),
-          padding: const EdgeInsets.symmetric(horizontal: DashSpace.lg),
+          padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
           alignment: Alignment.center,
           child: Text(
             label,

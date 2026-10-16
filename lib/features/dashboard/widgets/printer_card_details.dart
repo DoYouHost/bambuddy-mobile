@@ -489,7 +489,6 @@ class _DetailsPanel extends ConsumerWidget {
     final activeExtruder = status.activeExtruder;
     final assigned = ref.watch(assignedSpoolsProvider(status.id));
     final printerId = status.id;
-    final printerName = status.name;
     // The 0/1 side the external holder is addressed by everywhere ids are
     // local — the slot routes, the inventory assignment and the load command.
     int trayIdOf(int i) => externalSideOf(spools[i].id) ?? 0;
@@ -506,18 +505,19 @@ class _DetailsPanel extends ConsumerWidget {
           // resolves it through the inlet, but that is where the slot rests
           // between prints, not a side to label the unit with.
           extruder: dual ? (status.amsExtruderMap?[ams[i].id]) : null,
-          slotExtruder: dual ? status.extruderForSlot(ams[i].id ?? i, 0) : null,
           activeExtruder: activeExtruder,
           assigned: assigned,
           serial: serial,
           printerId: printerId,
-          printerName: printerName,
           supportsDrying: status.supportsDrying ?? false,
-          printing: status.isPrinting && !status.isPaused,
-          nozzleDiameter: status.nozzleDiameterFor(ams[i].id ?? i, 0),
-          printerModel: status.model,
-          filaSwitch: status.filaSwitch,
-          fedFrom: status.extruderSlots,
+          slotRef: (trayIndex) => _amsSlotRef(
+            status: status,
+            dual: dual,
+            unit: ams[i],
+            unitIndex: i,
+            trayIndex: trayIndex,
+            assigned: assigned,
+          ),
         ),
       if (spools.isNotEmpty)
         _SpoolSection(
@@ -532,18 +532,13 @@ class _DetailsPanel extends ConsumerWidget {
             trayId: trayIdOf(i),
             serial: serial,
           ),
-          tagBindsOf: (i) => assigned.tagBinds(spools[i]),
-          boundByTagOf: (i) => assigned.boundByTag(spools[i]),
-          trayIdOf: trayIdOf,
-          printerId: printerId,
-          printerName: printerName,
-          printing: status.isPrinting && !status.isPaused,
-          // The external holder is keyed under a unit no `ams_extruder_map`
-          // mentions — the tray side is the whole answer there, so it has to be
-          // asked per spool rather than per section.
-          nozzleDiameterOf: (i) =>
-              status.nozzleDiameterFor(externalHolderUnit, trayIdOf(i)),
-          printerModel: status.model,
+          slotRef: (i) => _externalSlotRef(
+            l10n: AppLocalizations.of(context),
+            status: status,
+            dual: dual,
+            spool: spools[i],
+            assigned: assigned,
+          ),
         ),
     ];
 
@@ -579,6 +574,148 @@ class _DetailsPanel extends ConsumerWidget {
   }
 }
 
+/// What the slot sheet needs for slot [trayIndex] of AMS [unit]: one place,
+/// shared by the card's rows and the single-printer controller's cards, so both
+/// open the same sheet from the same inputs.
+_SlotRef _amsSlotRef({
+  required PrinterStatus status,
+  required bool dual,
+  required AmsUnit unit,
+  required int unitIndex,
+  required int trayIndex,
+  required AssignedSpools assigned,
+}) {
+  final amsId = unit.id ?? unitIndex;
+  final tray = (unit.trays ?? const <AmsTray>[])[trayIndex];
+  return _SlotRef(
+    printerId: status.id,
+    printerName: status.name,
+    amsId: amsId,
+    trayId: trayIndex,
+    label: amsSlotName(amsId, trayIndex),
+    printing: status.isPrinting && !status.isPaused,
+    loadTrayId: amsLoadTrayId(amsId: amsId, trayId: trayIndex),
+    canRereadRfid: true,
+    tagUid: tray.tagUid,
+    trayUuid: tray.trayUuid,
+    tagBound: assigned.tagBinds(tray),
+    tagSpool: assigned.boundByTag(tray),
+    trayInfoIdx: tray.trayInfoIdx,
+    trayColour: tray.trayColor,
+    caliIdx: tray.caliIdx,
+    nozzleDiameter: status.nozzleDiameterFor(amsId, 0),
+    printerModel: status.model,
+    // The nozzle this unit's slots rest on, which on a Filament Track Switch
+    // machine is known even when the unit has no side of its own.
+    extruderId: dual ? status.extruderForSlot(amsId, 0) : null,
+    filaSwitch: status.filaSwitch,
+    fedFrom: status.extruderSlots,
+  );
+}
+
+/// The same for an external spool: addressed by the 0/1 side of its holder
+/// everywhere ids are local, and never asked the Filament Track Switch question.
+_SlotRef _externalSlotRef({
+  required AppLocalizations l10n,
+  required PrinterStatus status,
+  required bool dual,
+  required AmsTray spool,
+  required AssignedSpools assigned,
+}) {
+  final side = externalSideOf(spool.id) ?? 0;
+  final extruder = dual ? status.extruderForExternal(spool.id) : null;
+  return _SlotRef(
+    printerId: status.id,
+    printerName: status.name,
+    amsId: externalHolderUnit,
+    trayId: side,
+    label: switch (extruder) {
+      1 => l10n.extruderLeft,
+      0 => l10n.extruderRight,
+      _ => l10n.externalSpool,
+    },
+    printing: status.isPrinting && !status.isPaused,
+    loadTrayId: amsLoadTrayId(amsId: externalHolderUnit, trayId: side),
+    trayInfoIdx: spool.trayInfoIdx,
+    trayColour: spool.trayColor,
+    caliIdx: spool.caliIdx,
+    nozzleDiameter: status.nozzleDiameterFor(externalHolderUnit, side),
+    printerModel: status.model,
+    extruderId: extruder,
+    tagBound: assigned.tagBinds(spool),
+    tagSpool: assigned.boundByTag(spool),
+  );
+}
+
+/// Opens the sheet of slot [trayIndex] of AMS [unitIndex]: assign a spool, load
+/// or unload, re-read the tag, configure. The card's row and the single-printer
+/// controller's card both come here, so both offer the same actions under the
+/// same locks.
+Future<void> showAmsSlotSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  required PrinterStatus status,
+  required int? nozzleCount,
+  required int unitIndex,
+  required int trayIndex,
+}) => dashSheet<void>(
+  context,
+  builder: (_) => _AssignSlotSheet(
+    slot: _amsSlotRef(
+      status: status,
+      dual: status.isDualNozzle(nozzleCount),
+      unit: status.ams![unitIndex],
+      unitIndex: unitIndex,
+      trayIndex: trayIndex,
+      assigned: ref.read(assignedSpoolsProvider(status.id)),
+    ),
+  ),
+);
+
+/// The same for external spool [spoolIndex].
+Future<void> showExternalSlotSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  required PrinterStatus status,
+  required int? nozzleCount,
+  required int spoolIndex,
+}) => dashSheet<void>(
+  context,
+  builder: (_) => _AssignSlotSheet(
+    slot: _externalSlotRef(
+      l10n: AppLocalizations.of(context),
+      status: status,
+      dual: status.isDualNozzle(nozzleCount),
+      spool: status.externalSpools[spoolIndex],
+      assigned: ref.read(assignedSpoolsProvider(status.id)),
+    ),
+  ),
+);
+
+/// Opens the drying sheet of one AMS unit. The sheet decides whether to offer
+/// the "later" modes from what the listing last answered, so this is the moment
+/// to ask again: a server that gained the route (or a session that gained the
+/// permission) otherwise stays without them until the dashboard is pulled down.
+Future<void> showAmsDryingSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  required int printerId,
+  required int amsId,
+  required String amsLabel,
+  required AmsUnit unit,
+}) {
+  ref.invalidate(scheduledDryingsProvider);
+  return dashSurfaceSheet<void>(
+    context,
+    builder: (_) => _DryingSheet(
+      printerId: printerId,
+      amsId: amsId,
+      amsLabel: amsLabel,
+      unit: unit,
+    ),
+  );
+}
+
 /// One AMS unit as a titled list: header (unit + extruder + humidity/temp),
 /// then a filament row per slot.
 ///
@@ -591,18 +728,12 @@ class _AmsSection extends ConsumerWidget {
     required this.unitIndex,
     required this.active,
     required this.extruder,
-    required this.slotExtruder,
     required this.activeExtruder,
     required this.assigned,
     required this.serial,
     required this.printerId,
-    required this.printerName,
     required this.supportsDrying,
-    required this.printing,
-    required this.nozzleDiameter,
-    required this.printerModel,
-    required this.filaSwitch,
-    required this.fedFrom,
+    required this.slotRef,
   });
 
   final AmsUnit unit;
@@ -611,30 +742,16 @@ class _AmsSection extends ConsumerWidget {
 
   /// The side to badge the unit with — a real `ams_extruder_map` entry only.
   final int? extruder;
-
-  /// The nozzle this unit's slots currently rest on, which on a Filament Track
-  /// Switch machine is known even when [extruder] is not. Travels to the slot
-  /// configuration sheet, where it tells the printer's two calibration tables
-  /// apart.
-  final int? slotExtruder;
   final int? activeExtruder;
   final AssignedSpools assigned;
   final String? serial;
   final int printerId;
-  final String? printerName;
   final bool supportsDrying;
-  final bool printing;
 
-  /// Nozzle this unit feeds, and the printer's model code — both travel to the
-  /// slot configuration sheet, which needs them to filter presets and to name
-  /// the calibration context.
-  final String? nozzleDiameter;
-  final String? printerModel;
-
-  /// The Filament Track Switch and the hotend/slot pairing, for the load
-  /// question the slot sheet has to ask when one is fitted — see [_SlotRef].
-  final FilaSwitch? filaSwitch;
-  final Map<int, ExtruderSlot>? fedFrom;
+  /// What the slot sheet needs for slot [trayIndex] of this unit, built by
+  /// [_amsSlotRef] so the card and the single-printer controller open the same
+  /// sheet from the same inputs.
+  final _SlotRef Function(int trayIndex) slotRef;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -741,31 +858,7 @@ class _AmsSection extends ConsumerWidget {
                 serial: serial,
               ),
               last: i == trays.length - 1,
-              slot: _SlotRef(
-                printerId: printerId,
-                printerName: printerName,
-                amsId: unit.id ?? unitIndex,
-                trayId: i,
-                label: amsSlotName(unit.id ?? unitIndex, i),
-                printing: printing,
-                loadTrayId: amsLoadTrayId(
-                  amsId: unit.id ?? unitIndex,
-                  trayId: i,
-                ),
-                canRereadRfid: true,
-                tagUid: trays[i].tagUid,
-                trayUuid: trays[i].trayUuid,
-                tagBound: assigned.tagBinds(trays[i]),
-                tagSpool: assigned.boundByTag(trays[i]),
-                trayInfoIdx: trays[i].trayInfoIdx,
-                trayColour: trays[i].trayColor,
-                caliIdx: trays[i].caliIdx,
-                nozzleDiameter: nozzleDiameter,
-                printerModel: printerModel,
-                extruderId: slotExtruder,
-                filaSwitch: filaSwitch,
-                fedFrom: fedFrom,
-              ),
+              slot: slotRef(i),
             ),
       ],
     );
@@ -780,28 +873,16 @@ class _SpoolSection extends StatelessWidget {
     required this.active,
     required this.extruderOf,
     required this.fillOf,
-    required this.tagBindsOf,
-    required this.boundByTagOf,
-    required this.trayIdOf,
-    required this.printerId,
-    required this.printerName,
-    required this.printing,
-    required this.nozzleDiameterOf,
-    required this.printerModel,
+    required this.slotRef,
   });
 
   final List<AmsTray> trays;
   final AmsTray? active;
   final int? Function(int index) extruderOf;
   final TrayFill Function(int index) fillOf;
-  final bool Function(int index) tagBindsOf;
-  final Spool? Function(int index) boundByTagOf;
-  final int Function(int index) trayIdOf;
-  final int printerId;
-  final String? printerName;
-  final bool printing;
-  final String? Function(int index) nozzleDiameterOf;
-  final String? printerModel;
+
+  /// The slot sheet's input for spool [index], built by [_externalSlotRef].
+  final _SlotRef Function(int index) slotRef;
 
   @override
   Widget build(BuildContext context) {
@@ -826,30 +907,7 @@ class _SpoolSection extends StatelessWidget {
               0 => l10n.extruderRightShort,
               _ => null,
             },
-            slot: _SlotRef(
-              printerId: printerId,
-              printerName: printerName,
-              amsId: externalHolderUnit,
-              trayId: trayIdOf(i),
-              label: switch (extruderOf(i)) {
-                1 => l10n.extruderLeft,
-                0 => l10n.extruderRight,
-                _ => l10n.externalSpool,
-              },
-              printing: printing,
-              loadTrayId: amsLoadTrayId(
-                amsId: externalHolderUnit,
-                trayId: trayIdOf(i),
-              ),
-              trayInfoIdx: trays[i].trayInfoIdx,
-              trayColour: trays[i].trayColor,
-              caliIdx: trays[i].caliIdx,
-              nozzleDiameter: nozzleDiameterOf(i),
-              printerModel: printerModel,
-              extruderId: extruderOf(i),
-              tagBound: tagBindsOf(i),
-              tagSpool: boundByTagOf(i),
-            ),
+            slot: slotRef(i),
           ),
       ],
     );
@@ -885,7 +943,7 @@ class _FilamentRow extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final empty = tray.isEmpty;
-    final dotColor = empty ? null : _parseTrayColor(tray.trayColor);
+    final dotColor = empty ? null : parseTrayColor(tray.trayColor);
 
     final material = empty
         ? l10n.traySlotEmpty
@@ -1068,22 +1126,14 @@ class _AmsDryControl extends ConsumerWidget {
     final look = _dryLook(unit, t, l10n, noTimer: l10n.ctrlDry);
 
     return InkWell(
-      onTap: () {
-        // The sheet decides whether to offer the "later" modes from what the
-        // listing last answered, so this is the moment to ask again: a server
-        // that gained the route (or a session that gained the permission)
-        // otherwise stays without them until the dashboard is pulled down.
-        ref.invalidate(scheduledDryingsProvider);
-        dashSurfaceSheet<void>(
-          context,
-          builder: (_) => _DryingSheet(
-            printerId: printerId,
-            amsId: amsId,
-            amsLabel: amsLabel,
-            unit: unit,
-          ),
-        );
-      },
+      onTap: () => showAmsDryingSheet(
+        context,
+        ref,
+        printerId: printerId,
+        amsId: amsId,
+        amsLabel: amsLabel,
+        unit: unit,
+      ),
       borderRadius: BorderRadius.circular(6),
       child: Padding(
         padding: const EdgeInsets.symmetric(
