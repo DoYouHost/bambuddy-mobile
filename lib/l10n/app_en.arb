@@ -5256,6 +5256,14 @@
   "@controllerPower": {
     "description": "Label of the controller's smart plug switch, which powers the printer on and off"
   },
+  "controllerTabHeat": "Heat",
+  "@controllerTabHeat": {
+    "description": "Controller tab with the nozzle, bed and chamber targets and the fans"
+  },
+  "controllerNoChamberHeater": "No chamber heater",
+  "@controllerNoChamberHeater": {
+    "description": "Shown on the chamber card of a printer whose chamber can only be read, not heated"
+  },
   "inventorySuppliersTitle": "Suppliers",
   "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
   "inventorySuppliersEmpty": "No suppliers yet",

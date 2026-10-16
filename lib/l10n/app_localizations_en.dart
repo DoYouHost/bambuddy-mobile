@@ -7912,6 +7912,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controllerPower => 'Power';
 
   @override
+  String get controllerTabHeat => 'Heat';
+
+  @override
+  String get controllerNoChamberHeater => 'No chamber heater';
+
+  @override
   String get inventorySuppliersTitle => 'Suppliers';
 
   @override

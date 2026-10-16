@@ -8008,6 +8008,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get controllerPower => 'Alimentación';
 
   @override
+  String get controllerTabHeat => 'Calor';
+
+  @override
+  String get controllerNoChamberHeater => 'Sin calefactor de cámara';
+
+  @override
   String get inventorySuppliersTitle => 'Proveedores';
 
   @override

@@ -4005,6 +4005,8 @@
   "controllerPreviewBadge": "DATEI-VORSCHAU",
   "controllerNoPreview": "Keine Vorschau",
   "controllerPower": "Strom",
+  "controllerTabHeat": "Heizen",
+  "controllerNoChamberHeater": "Keine Kammerheizung",
   "inventorySuppliersTitle": "Lieferanten",
   "inventorySuppliersHint": "Lieferanten sind die Shops, in denen du Filament kaufst – nicht die Marke, die es hergestellt hat. Du weist sie im Formular der Spule zu; ein Lieferant, der noch einer Spule zugewiesen ist, lässt sich nicht löschen.",
   "inventorySuppliersEmpty": "Noch keine Lieferanten",

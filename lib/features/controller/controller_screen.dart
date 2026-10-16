@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 import '../dashboard/widgets/printer_state_pill.dart';
 import '../dashboard/ws_providers.dart';
 import '../wall/wall_providers.dart';
+import 'controller_heat.dart';
 import 'controller_overview.dart';
 import 'controller_picker.dart';
 import 'controller_providers.dart';
@@ -23,15 +24,18 @@ const _landscape = [
 ];
 
 enum ControllerTab {
-  overview;
+  overview,
+  heat;
 
   String label(AppLocalizations l10n) => switch (this) {
     ControllerTab.overview => l10n.controllerTabOverview,
+    ControllerTab.heat => l10n.controllerTabHeat,
   };
 
   /// Wire value of the control's diagnostic id; never localized.
   String get logId => switch (this) {
     ControllerTab.overview => 'controller.tab_overview',
+    ControllerTab.heat => 'controller.tab_heat',
   };
 }
 
@@ -157,6 +161,9 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
                         )
                       : switch (_tab) {
                           ControllerTab.overview => ControllerOverview(
+                            printerId: widget.printerId,
+                          ),
+                          ControllerTab.heat => ControllerHeat(
                             printerId: widget.printerId,
                           ),
                         },

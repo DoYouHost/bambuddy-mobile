@@ -8081,6 +8081,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get controllerPower => 'Alimentation';
 
   @override
+  String get controllerTabHeat => 'Chauffe';
+
+  @override
+  String get controllerNoChamberHeater => 'Pas de chauffage de chambre';
+
+  @override
   String get inventorySuppliersTitle => 'Fournisseurs';
 
   @override

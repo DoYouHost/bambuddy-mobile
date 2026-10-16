@@ -178,10 +178,8 @@ class _ReadingTile extends StatelessWidget {
   }
 }
 
-/// The printer's own speed scale and the percentage each level stands for. The
-/// server reports the level only (`spd_lvl`); the web draws these same numbers
-/// from a table of its own.
-const _speedLevels = {1: 50, 2: 100, 3: 124, 4: 166};
+/// The speed levels the printer has, 1 (silent) to 4 (ludicrous).
+const _speedLevels = [1, 2, 3, 4];
 
 String _speedName(AppLocalizations l10n, int level) => switch (level) {
   1 => l10n.speedSilent,
@@ -209,7 +207,7 @@ class ControllerSpeed extends ConsumerWidget {
     final pending = ref.watch(
       controlsProvider.select((s) => s.pendingFor(printerId)),
     );
-    final level = pending.speedLevel ?? status.speedLevel;
+    final current = pending.speedLevel ?? status.speedLevel;
     final busy = pending.isBusy(ControlAction.speed);
     final radius = BorderRadius.circular(DashSpace.md);
     return Container(
@@ -222,25 +220,23 @@ class ControllerSpeed extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final entry in _speedLevels.entries)
+          for (final level in _speedLevels)
             Expanded(
               child: logTag(
-                'controller.speed.${entry.key}',
+                'controller.speed.$level',
                 Material(
-                  color: level == entry.key
+                  color: current == level
                       ? t.accent.withValues(alpha: 0.16)
                       : Colors.transparent,
                   shape: RoundedRectangleBorder(
                     borderRadius: radius,
-                    side: level == entry.key
+                    side: current == level
                         ? BorderSide(color: t.accent.withValues(alpha: 0.4))
                         : BorderSide.none,
                   ),
                   child: InkWell(
                     borderRadius: radius,
-                    onTap: busy
-                        ? null
-                        : () => _setSpeed(context, ref, entry.key),
+                    onTap: busy ? null : () => _setSpeed(context, ref, level),
                     child: Center(
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
@@ -248,20 +244,23 @@ class ControllerSpeed extends ConsumerWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              _speedName(l10n, entry.key),
-                              style: level == entry.key
+                              _speedName(l10n, level),
+                              style: current == level
                                   ? t.bodyBold.copyWith(color: t.accentInk)
                                   : t.bodyBold,
                               maxLines: 1,
                             ),
-                            Text('${entry.value}%', style: t.monoLabel),
+                            Text(
+                              '${PrinterStatus.speedPercentFor(level)}%',
+                              style: t.monoLabel,
+                            ),
                           ],
                         ),
                       ),
                     ),
                   ),
                 ),
-                selected: level == entry.key,
+                selected: current == level,
               ),
             ),
         ],

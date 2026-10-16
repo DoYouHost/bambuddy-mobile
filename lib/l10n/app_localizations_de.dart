@@ -7988,6 +7988,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get controllerPower => 'Strom';
 
   @override
+  String get controllerTabHeat => 'Heizen';
+
+  @override
+  String get controllerNoChamberHeater => 'Keine Kammerheizung';
+
+  @override
   String get inventorySuppliersTitle => 'Lieferanten';
 
   @override

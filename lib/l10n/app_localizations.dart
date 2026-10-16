@@ -13274,6 +13274,18 @@ abstract class AppLocalizations {
   /// **'Power'**
   String get controllerPower;
 
+  /// Controller tab with the nozzle, bed and chamber targets and the fans
+  ///
+  /// In en, this message translates to:
+  /// **'Heat'**
+  String get controllerTabHeat;
+
+  /// Shown on the chamber card of a printer whose chamber can only be read, not heated
+  ///
+  /// In en, this message translates to:
+  /// **'No chamber heater'**
+  String get controllerNoChamberHeater;
+
   /// No description provided for @inventorySuppliersTitle.
   ///
   /// In en, this message translates to:

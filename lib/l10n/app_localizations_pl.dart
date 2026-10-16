@@ -8050,6 +8050,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get controllerPower => 'Zasilanie';
 
   @override
+  String get controllerTabHeat => 'Grzanie';
+
+  @override
+  String get controllerNoChamberHeater => 'Komora bez grzałki';
+
+  @override
   String get inventorySuppliersTitle => 'Dostawcy';
 
   @override

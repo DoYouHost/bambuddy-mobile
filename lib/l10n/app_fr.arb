@@ -4005,6 +4005,8 @@
   "controllerPreviewBadge": "APERÇU DU FICHIER",
   "controllerNoPreview": "Aucun aperçu",
   "controllerPower": "Alimentation",
+  "controllerTabHeat": "Chauffe",
+  "controllerNoChamberHeater": "Pas de chauffage de chambre",
   "inventorySuppliersTitle": "Fournisseurs",
   "inventorySuppliersHint": "Les fournisseurs sont les boutiques qui vous vendent le filament, pas la marque qui l'a fabriqué. Associez-les à une bobine dans son formulaire ; un fournisseur encore associé à une bobine ne peut pas être supprimé.",
   "inventorySuppliersEmpty": "Aucun fournisseur pour le moment",
