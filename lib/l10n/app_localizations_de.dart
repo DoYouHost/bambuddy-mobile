@@ -7960,6 +7960,22 @@ class AppLocalizationsDe extends AppLocalizations {
       'Alle Drucker sind auf dieser Wand ausgeblendet — blende sie in den Einstellungen ein.';
 
   @override
+  String get controllerTitle => 'Controller';
+
+  @override
+  String get controllerExit => 'Controller verlassen';
+
+  @override
+  String get controllerSwitchPrinter => 'Drucker wechseln';
+
+  @override
+  String get controllerTabOverview => 'Übersicht';
+
+  @override
+  String get controllerPrinterGone =>
+      'Dieser Drucker ist nicht mehr auf dem Server.';
+
+  @override
   String get inventorySuppliersTitle => 'Lieferanten';
 
   @override

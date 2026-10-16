@@ -13220,6 +13220,36 @@ abstract class AppLocalizations {
   /// **'Every printer is hidden from this wall — show them in the settings.'**
   String get wallAllHidden;
 
+  /// Name of the single-printer touch screen: the dashboard menu entry and the printer picker's title
+  ///
+  /// In en, this message translates to:
+  /// **'Controller'**
+  String get controllerTitle;
+
+  /// Tooltip of the controller's back button
+  ///
+  /// In en, this message translates to:
+  /// **'Exit controller'**
+  String get controllerExit;
+
+  /// Tooltip of the printer name in the controller's top bar; opens the printer picker
+  ///
+  /// In en, this message translates to:
+  /// **'Switch printer'**
+  String get controllerSwitchPrinter;
+
+  /// First tab of the controller: the camera or file preview, the job and the everyday controls
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get controllerTabOverview;
+
+  /// Shown by the controller when the printer it was opened for is not in the server's list any more
+  ///
+  /// In en, this message translates to:
+  /// **'This printer is no longer on the server.'**
+  String get controllerPrinterGone;
+
   /// No description provided for @inventorySuppliersTitle.
   ///
   /// In en, this message translates to:

@@ -46,6 +46,7 @@ import 'features/finance/finance_screen.dart';
 import 'features/stats/statistics_screen.dart';
 import 'features/swatches/swatches_screen.dart';
 import 'features/tour/tips_screen.dart';
+import 'features/controller/controller_screen.dart';
 import 'features/wall/wall_screen.dart';
 import 'providers.dart';
 
@@ -183,6 +184,16 @@ GoRouter buildAppRouter({
       // Wall mode — outside the shell, so it covers the navigation bar. Pushed
       // from the dashboard, which has to stay mounted under it (WallScreen).
       GoRoute(path: '/wall', builder: (_, _) => const WallScreen()),
+
+      // Single-printer controller — outside the shell like the wall, and pushed
+      // from the dashboard for the same reason. An id that is not a number
+      // opens on "this printer is gone", never on another printer.
+      GoRoute(
+        path: '/controller/:id',
+        builder: (_, state) => ControllerScreen(
+          printerId: int.tryParse(state.pathParameters['id'] ?? '') ?? -1,
+        ),
+      ),
 
       GoRoute(
         path: '/announcements',

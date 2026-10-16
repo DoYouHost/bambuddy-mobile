@@ -7884,6 +7884,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'Every printer is hidden from this wall — show them in the settings.';
 
   @override
+  String get controllerTitle => 'Controller';
+
+  @override
+  String get controllerExit => 'Exit controller';
+
+  @override
+  String get controllerSwitchPrinter => 'Switch printer';
+
+  @override
+  String get controllerTabOverview => 'Overview';
+
+  @override
+  String get controllerPrinterGone =>
+      'This printer is no longer on the server.';
+
+  @override
   String get inventorySuppliersTitle => 'Suppliers';
 
   @override

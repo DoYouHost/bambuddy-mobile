@@ -1,0 +1,283 @@
+import 'package:bambuddy_mobile/core/models/printer.dart';
+import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:bambuddy_mobile/features/controller/controller_picker.dart';
+import 'package:bambuddy_mobile/features/controller/controller_screen.dart';
+import 'package:bambuddy_mobile/features/dashboard/providers.dart';
+import 'package:bambuddy_mobile/providers.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers.dart';
+
+const _window = MethodChannel('page.codeberg.morganmlgman.bambuddy/window');
+
+/// A landscape phone.
+const _phone = Size(844, 390);
+
+PrinterWithStatus _printer(
+  int id,
+  String name, {
+  String? model,
+  bool connected = true,
+  String state = 'IDLE',
+}) => PrinterWithStatus(
+  printer: Printer(id: id, name: name, model: model),
+  status: PrinterStatus(id: id, connected: connected, state: state),
+);
+
+void main() {
+  /// Every `keepScreenOn` the screen asked for, in order.
+  late List<bool> awake;
+  late List<Object?> orientations;
+  late List<Object?> uiModes;
+  late List<Object?> overlays;
+  late GoRouter router;
+
+  Future<void> pumpController(
+    WidgetTester tester, {
+    List<PrinterWithStatus>? printers,
+    Map<String, Object> prefs = const {},
+  }) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = _phone;
+    addTearDown(tester.view.reset);
+    awake = [];
+    orientations = [];
+    uiModes = [];
+    overlays = [];
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(_window, (call) async {
+      awake.add((call.arguments as Map)['on'] as bool);
+      return null;
+    });
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'SystemChrome.setPreferredOrientations') {
+        orientations.add(call.arguments);
+      } else if (call.method == 'SystemChrome.setEnabledSystemUIMode') {
+        uiModes.add(call.arguments);
+      } else if (call.method == 'SystemChrome.setEnabledSystemUIOverlays') {
+        overlays.add(call.arguments);
+      }
+      return null;
+    });
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(_window, null);
+      messenger.setMockMethodCallHandler(SystemChannels.platform, null);
+    });
+
+    SharedPreferences.setMockInitialValues(prefs);
+    final sp = await SharedPreferences.getInstance();
+    router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, _) => Scaffold(
+            body: Consumer(
+              builder: (context, ref, _) => TextButton(
+                onPressed: () => openController(context, ref),
+                child: const Text('OPEN'),
+              ),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/controller/:id',
+          builder: (_, state) => ControllerScreen(
+            printerId: int.tryParse(state.pathParameters['id']!) ?? -1,
+          ),
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(sp),
+          fixedDashboardOverride(
+            DashboardState(
+              printers: printers ?? [_printer(1, 'X1C Warsztat', model: 'X1C')],
+            ),
+          ),
+          inertStatusesOverride,
+        ],
+        child: plRouterApp(router),
+      ),
+    );
+  }
+
+  Future<void> open(WidgetTester tester) async {
+    await tester.tap(find.text('OPEN'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('with one printer it opens at once, on that printer', (
+    tester,
+  ) async {
+    await pumpController(tester);
+
+    await open(tester);
+
+    expect(find.byType(ControllerScreen), findsOneWidget);
+    expect(find.text('X1C Warsztat'), findsOneWidget);
+    expect(find.text('X1C'), findsOneWidget);
+    expect(find.text(pl.controllerTabOverview), findsOneWidget);
+  });
+
+  testWidgets('entering locks landscape, hides the bars, holds the screen on', (
+    tester,
+  ) async {
+    await pumpController(tester);
+
+    await open(tester);
+
+    expect(orientations, [
+      ['DeviceOrientation.landscapeLeft', 'DeviceOrientation.landscapeRight'],
+    ]);
+    expect(uiModes, ['SystemUiMode.immersiveSticky']);
+    expect(awake, [true]);
+  });
+
+  testWidgets('with the setting off the screen is left to time out', (
+    tester,
+  ) async {
+    await pumpController(
+      tester,
+      prefs: {'controller_prefs': '{"keep_awake":false}'},
+    );
+
+    await open(tester);
+
+    expect(awake, [false]);
+  });
+
+  testWidgets(
+    'every way out gives the rotation, the bars and the timeout back',
+    (tester) async {
+      await pumpController(tester);
+      await open(tester);
+
+      await tester.tap(byLogId('controller.exit'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('OPEN'), findsOneWidget);
+      expect(orientations.last, <Object?>[]);
+      expect(overlays.last, [
+        'SystemUiOverlay.top',
+        'SystemUiOverlay.bottom',
+      ], reason: 'both bars back, the flags the activity starts with');
+      expect(awake.last, isFalse);
+    },
+  );
+
+  testWidgets('shows the live state of its printer', (tester) async {
+    await pumpController(
+      tester,
+      printers: [_printer(1, 'X1C Warsztat', state: 'RUNNING')],
+    );
+
+    await open(tester);
+
+    expect(find.text('RUNNING'), findsOneWidget);
+  });
+
+  testWidgets('a printer the server no longer has says so, and can be left', (
+    tester,
+  ) async {
+    await pumpController(tester);
+    router.push('/controller/99');
+    await tester.pumpAndSettle();
+
+    expect(find.text(pl.controllerPrinterGone), findsOneWidget);
+    expect(find.text('X1C Warsztat'), findsNothing);
+
+    await tester.tap(byLogId('controller.exit'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('OPEN'), findsOneWidget);
+  });
+
+  testWidgets('an id that is not a number opens no printer at all', (
+    tester,
+  ) async {
+    await pumpController(tester);
+    router.push('/controller/first');
+    await tester.pumpAndSettle();
+
+    expect(find.text(pl.controllerPrinterGone), findsOneWidget);
+  });
+
+  group('with several printers', () {
+    final farm = [
+      _printer(1, 'X1C Warsztat', model: 'X1C'),
+      _printer(2, 'P1S Biuro', model: 'P1S', state: 'RUNNING'),
+      _printer(3, 'A1 mini', connected: false),
+    ];
+
+    testWidgets('asks which one first, and lists them all', (tester) async {
+      await pumpController(tester, printers: farm);
+
+      await tester.tap(find.text('OPEN'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ControllerScreen), findsNothing);
+      expect(byLogId('controller.pick_printer'), findsNWidgets(3));
+    });
+
+    testWidgets('opens the one that was picked', (tester) async {
+      await pumpController(tester, printers: farm);
+      await tester.tap(find.text('OPEN'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('P1S Biuro'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ControllerScreen), findsOneWidget);
+      expect(find.text('P1S'), findsOneWidget, reason: 'its model');
+      expect(find.text('X1C Warsztat'), findsNothing);
+    });
+
+    testWidgets('a printer that does not answer cannot be picked', (
+      tester,
+    ) async {
+      await pumpController(tester, printers: farm);
+      await tester.tap(find.text('OPEN'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('A1 mini'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ControllerScreen), findsNothing);
+      expect(byLogId('controller.pick_printer'), findsNWidgets(3));
+    });
+
+    testWidgets('switching printers swaps the screen instead of stacking', (
+      tester,
+    ) async {
+      await pumpController(tester, printers: farm);
+      await tester.tap(find.text('OPEN'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('X1C Warsztat'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(byLogId('controller.switch_printer'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('P1S Biuro'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('P1S'), findsOneWidget);
+
+      await tester.tap(byLogId('controller.exit'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('OPEN'),
+        findsOneWidget,
+        reason: 'one Back reaches home',
+      );
+    });
+  });
+}

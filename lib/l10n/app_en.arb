@@ -5220,6 +5220,26 @@
   "@wallAllHidden": {
     "description": "Shown in place of the wall's tiles when the server has printers but all are hidden on this device"
   },
+  "controllerTitle": "Controller",
+  "@controllerTitle": {
+    "description": "Name of the single-printer touch screen: the dashboard menu entry and the printer picker's title"
+  },
+  "controllerExit": "Exit controller",
+  "@controllerExit": {
+    "description": "Tooltip of the controller's back button"
+  },
+  "controllerSwitchPrinter": "Switch printer",
+  "@controllerSwitchPrinter": {
+    "description": "Tooltip of the printer name in the controller's top bar; opens the printer picker"
+  },
+  "controllerTabOverview": "Overview",
+  "@controllerTabOverview": {
+    "description": "First tab of the controller: the camera or file preview, the job and the everyday controls"
+  },
+  "controllerPrinterGone": "This printer is no longer on the server.",
+  "@controllerPrinterGone": {
+    "description": "Shown by the controller when the printer it was opened for is not in the server's list any more"
+  },
   "inventorySuppliersTitle": "Suppliers",
   "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
   "inventorySuppliersEmpty": "No suppliers yet",

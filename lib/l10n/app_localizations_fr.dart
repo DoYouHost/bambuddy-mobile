@@ -8053,6 +8053,22 @@ class AppLocalizationsFr extends AppLocalizations {
       'Toutes les imprimantes sont masquées sur ce mur — affichez-les dans les paramètres.';
 
   @override
+  String get controllerTitle => 'Contrôleur';
+
+  @override
+  String get controllerExit => 'Quitter le contrôleur';
+
+  @override
+  String get controllerSwitchPrinter => 'Changer d\'imprimante';
+
+  @override
+  String get controllerTabOverview => 'Aperçu';
+
+  @override
+  String get controllerPrinterGone =>
+      'Cette imprimante n\'est plus sur le serveur.';
+
+  @override
   String get inventorySuppliersTitle => 'Fournisseurs';
 
   @override

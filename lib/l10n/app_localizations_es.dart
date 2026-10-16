@@ -7980,6 +7980,22 @@ class AppLocalizationsEs extends AppLocalizations {
       'Todas las impresoras están ocultas en esta pared — muéstralas en los ajustes.';
 
   @override
+  String get controllerTitle => 'Controlador';
+
+  @override
+  String get controllerExit => 'Salir del controlador';
+
+  @override
+  String get controllerSwitchPrinter => 'Cambiar de impresora';
+
+  @override
+  String get controllerTabOverview => 'Resumen';
+
+  @override
+  String get controllerPrinterGone =>
+      'Esta impresora ya no está en el servidor.';
+
+  @override
   String get inventorySuppliersTitle => 'Proveedores';
 
   @override

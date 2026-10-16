@@ -8023,6 +8023,21 @@ class AppLocalizationsPl extends AppLocalizations {
       'Wszystkie drukarki są ukryte na tej ścianie — pokaż je w ustawieniach.';
 
   @override
+  String get controllerTitle => 'Kontroler';
+
+  @override
+  String get controllerExit => 'Zamknij kontroler';
+
+  @override
+  String get controllerSwitchPrinter => 'Zmień drukarkę';
+
+  @override
+  String get controllerTabOverview => 'Przegląd';
+
+  @override
+  String get controllerPrinterGone => 'Tej drukarki nie ma już na serwerze.';
+
+  @override
   String get inventorySuppliersTitle => 'Dostawcy';
 
   @override
