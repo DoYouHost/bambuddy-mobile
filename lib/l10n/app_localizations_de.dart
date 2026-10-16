@@ -8024,6 +8024,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get controllerTouchToWake => 'Zum Aufwecken berühren';
 
   @override
+  String get controllerPrintPaused => 'Druck pausiert';
+
+  @override
   String get inventorySuppliersTitle => 'Lieferanten';
 
   @override

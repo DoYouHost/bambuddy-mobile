@@ -8085,6 +8085,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get controllerTouchToWake => 'Dotknij, aby wybudzić';
 
   @override
+  String get controllerPrintPaused => 'Wydruk wstrzymany';
+
+  @override
   String get inventorySuppliersTitle => 'Dostawcy';
 
   @override

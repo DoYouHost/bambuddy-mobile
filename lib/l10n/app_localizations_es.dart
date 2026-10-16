@@ -8044,6 +8044,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get controllerTouchToWake => 'Toca para activar';
 
   @override
+  String get controllerPrintPaused => 'Impresión en pausa';
+
+  @override
   String get inventorySuppliersTitle => 'Proveedores';
 
   @override

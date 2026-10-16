@@ -4016,6 +4016,7 @@
   "controllerCooling": "Enfriando",
   "controllerEditSlot": "Editar ranura",
   "controllerTouchToWake": "Toca para activar",
+  "controllerPrintPaused": "Impresión en pausa",
   "inventorySuppliersTitle": "Proveedores",
   "inventorySuppliersHint": "Los proveedores son las tiendas donde compras el filamento, no la marca que lo fabricó. Asígnalos a una bobina en su formulario; un proveedor que siga asignado a una bobina no se puede eliminar.",
   "inventorySuppliersEmpty": "Aún no hay proveedores",

@@ -6,9 +6,11 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format/duration_format.dart';
+import '../../core/models/printer_status.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../dashboard/widgets/printer_state_pill.dart';
+import 'controller_faults.dart';
 import 'controller_providers.dart';
 
 /// Where the saver's box is and where it is heading, and its hue.
@@ -47,6 +49,11 @@ const _edgeTurn = 60.0;
 /// passes the "Start after" setting, puts the saver over everything — an open
 /// dialog included. Any touch anywhere restarts the count; a touch on the saver
 /// only takes it away ([docs/single-printer-controller.md] §3).
+///
+/// It also answers this printer's faults: one that has paused the print wakes
+/// the screen and opens the fault view, and any other new one wakes it when
+/// "Wake on warnings" is on. A fault already there when the controller opened
+/// is on screen in the chip, so it raises nothing.
 class ControllerSaverHost extends ConsumerStatefulWidget {
   const ControllerSaverHost({
     super.key,
@@ -66,6 +73,13 @@ class ControllerSaverHostState extends ConsumerState<ControllerSaverHost> {
   Timer? _idle;
   OverlayEntry? _saver;
 
+  /// Faults that have woken the screen, and faults the alert has been shown
+  /// for, by code. A fault that was a warning first and then paused the print
+  /// is in the first and not yet in the second.
+  final _woken = <String>{};
+  final _alerted = <String>{};
+  bool _alertOpen = false;
+
   bool get saverUp => _saver != null;
 
   @override
@@ -78,7 +92,62 @@ class ControllerSaverHostState extends ConsumerState<ControllerSaverHost> {
       controllerPrefsProvider.select((p) => p.saverAfter),
       (_, _) => _restart(),
     );
+    final present = _codes(
+      ref.read(controllerErrorsProvider(widget.printerId)),
+    );
+    _woken.addAll(present);
+    _alerted.addAll(present);
+    ref.listenManual(
+      controllerErrorsProvider(widget.printerId),
+      (_, _) => _onFaults(),
+    );
+    ref.listenManual(
+      controllerPrinterProvider(
+        widget.printerId,
+      ).select((p) => p.item?.status?.isPaused ?? false),
+      (_, _) => _onFaults(),
+    );
     _restart();
+  }
+
+  static Set<String> _codes(List<HmsError> errors) => {
+    for (final e in errors) e.fullCode ?? e.displayCode,
+  };
+
+  void _onFaults() {
+    final codes = _codes(ref.read(controllerErrorsProvider(widget.printerId)));
+    // A cleared fault that comes back is new again.
+    _woken.retainAll(codes);
+    _alerted.retainAll(codes);
+    final paused =
+        ref
+            .read(controllerPrinterProvider(widget.printerId))
+            .item
+            ?.status
+            ?.isPaused ??
+        false;
+    if (paused && !codes.every(_alerted.contains)) {
+      _alerted.addAll(codes);
+      _woken.addAll(codes);
+      wake();
+      _openAlert();
+      return;
+    }
+    if (!codes.every(_woken.contains)) {
+      _woken.addAll(codes);
+      if (ref.read(controllerPrefsProvider).wakeOnWarnings) wake();
+    }
+  }
+
+  Future<void> _openAlert() async {
+    if (_alertOpen || !mounted) return;
+    _alertOpen = true;
+    await showControllerFaults(
+      context,
+      widget.printerId,
+      title: AppLocalizations.of(context).controllerPrintPaused,
+    );
+    _alertOpen = false;
   }
 
   @override

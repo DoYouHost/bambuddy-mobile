@@ -7947,6 +7947,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controllerTouchToWake => 'Touch to wake';
 
   @override
+  String get controllerPrintPaused => 'Print paused';
+
+  @override
   String get inventorySuppliersTitle => 'Suppliers';
 
   @override

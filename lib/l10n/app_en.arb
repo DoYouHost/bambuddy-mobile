@@ -5293,6 +5293,10 @@
   "@controllerTouchToWake": {
     "description": "Line on the controller's screen saver: the first touch only wakes the screen"
   },
+  "controllerPrintPaused": "Print paused",
+  "@controllerPrintPaused": {
+    "description": "Title of the fault view the controller opens on its own when a fault has paused the print"
+  },
   "inventorySuppliersTitle": "Suppliers",
   "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
   "inventorySuppliersEmpty": "No suppliers yet",

@@ -4016,6 +4016,7 @@
   "controllerCooling": "Refroidissement",
   "controllerEditSlot": "Modifier l'emplacement",
   "controllerTouchToWake": "Touchez pour réveiller",
+  "controllerPrintPaused": "Impression en pause",
   "inventorySuppliersTitle": "Fournisseurs",
   "inventorySuppliersHint": "Les fournisseurs sont les boutiques qui vous vendent le filament, pas la marque qui l'a fabriqué. Associez-les à une bobine dans son formulaire ; un fournisseur encore associé à une bobine ne peut pas être supprimé.",
   "inventorySuppliersEmpty": "Aucun fournisseur pour le moment",

@@ -8117,6 +8117,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get controllerTouchToWake => 'Touchez pour réveiller';
 
   @override
+  String get controllerPrintPaused => 'Impression en pause';
+
+  @override
   String get inventorySuppliersTitle => 'Fournisseurs';
 
   @override

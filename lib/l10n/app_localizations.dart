@@ -13340,6 +13340,12 @@ abstract class AppLocalizations {
   /// **'Touch to wake'**
   String get controllerTouchToWake;
 
+  /// Title of the fault view the controller opens on its own when a fault has paused the print
+  ///
+  /// In en, this message translates to:
+  /// **'Print paused'**
+  String get controllerPrintPaused;
+
   /// No description provided for @inventorySuppliersTitle.
   ///
   /// In en, this message translates to:

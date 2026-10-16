@@ -4016,6 +4016,7 @@
   "controllerCooling": "Kühlt ab",
   "controllerEditSlot": "Slot bearbeiten",
   "controllerTouchToWake": "Zum Aufwecken berühren",
+  "controllerPrintPaused": "Druck pausiert",
   "inventorySuppliersTitle": "Lieferanten",
   "inventorySuppliersHint": "Lieferanten sind die Shops, in denen du Filament kaufst – nicht die Marke, die es hergestellt hat. Du weist sie im Formular der Spule zu; ein Lieferant, der noch einer Spule zugewiesen ist, lässt sich nicht löschen.",
   "inventorySuppliersEmpty": "Noch keine Lieferanten",
