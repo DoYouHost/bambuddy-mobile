@@ -1830,7 +1830,14 @@ class _SlotActions extends ConsumerWidget {
     // a stray one on its own line.
     final load = OutlinedButton.icon(
       onPressed: enabled && canLoad
-          ? () => _startLoad(context, l10n, controls, loadTrayId)
+          ? () => _startSlotLoad(
+              context,
+              l10n,
+              controls,
+              slot,
+              loadTrayId,
+              beforeSend: () => Navigator.of(context).pop(),
+            )
           : null,
       icon: const Icon(Icons.login, size: 18),
       label: Text(l10n.amsLoad),
@@ -1838,21 +1845,13 @@ class _SlotActions extends ConsumerWidget {
 
     final unload = OutlinedButton.icon(
       onPressed: enabled
-          ? () => _run(
+          ? () => _unloadSlot(
               context,
               l10n,
-              // Naming the slot is what tells two hotends apart: `tray_now` is
-              // one value for the whole printer, so an unaddressed unload on a
-              // dual-nozzle machine empties whichever hotend that field
-              // happens to name, not the slot the sheet is about. A server
-              // that does not know the parameter ignores it and keeps the old
-              // printer-wide behaviour.
-              () => controls.amsUnload(slot.printerId, trayId: loadTrayId),
-              l10n.amsUnloadStarted,
-              // The one status this route answers for a reason the user can
-              // act on, and which "server returned error 409" would hide.
-              wordFailure: (e) =>
-                  e.statusCode == 409 ? l10n.amsUnloadSlotNotLoaded : null,
+              controls,
+              slot,
+              loadTrayId,
+              beforeSend: () => Navigator.of(context).pop(),
             )
           : null,
       icon: const Icon(Icons.logout, size: 18),
@@ -1861,9 +1860,10 @@ class _SlotActions extends ConsumerWidget {
 
     final reread = OutlinedButton.icon(
       onPressed: enabled
-          ? () => _run(
+          ? () => _runSlotAction(
               context,
               l10n,
+              beforeSend: () => Navigator.of(context).pop(),
               () => controls.refreshAmsSlot(
                 slot.printerId,
                 amsId: slot.amsId,
@@ -1928,135 +1928,208 @@ class _SlotActions extends ConsumerWidget {
       builder: (_) => AmsSlotConfigSheet(target: slot.configTarget),
     );
   }
+}
 
-  /// Closes the sheet before the command lands: these actions take tens of
-  /// seconds at the printer and there is nothing to watch here meanwhile.
-  ///
-  /// [wordFailure] is for a status this route means something specific by, which
-  /// the generic wording would bury; anything it answers null for falls through
-  /// to `messageFor`.
-  Future<void> _run(
-    BuildContext context,
-    AppLocalizations l10n,
-    Future<ActionOutcome> Function() action,
-    String startedMessage, {
-    String? Function(ApiException error)? wordFailure,
-  }) async {
-    final messenger = ScaffoldMessenger.of(context);
-    Navigator.of(context).pop();
-    final outcome = await action();
-    final failure = switch (outcome) {
-      ActionFailed(error: final ApiException e) => wordFailure?.call(e),
-      _ => null,
-    };
-    messenger.snack(
-      failure ?? outcome.messageFor(l10n) ?? startedMessage,
-      clearQueue: true,
-    );
-  }
+/// Runs one of the slot's commands and says how it went. [beforeSend] runs
+/// just before the command goes out; the sheet closes itself there, because
+/// these actions take tens of seconds at the printer and there is nothing to
+/// watch meanwhile.
+///
+/// [wordFailure] is for a status this route means something specific by, which
+/// the generic wording would bury; anything it answers null for falls through
+/// to `messageFor`.
+Future<void> _runSlotAction(
+  BuildContext context,
+  AppLocalizations l10n,
+  Future<ActionOutcome> Function() action,
+  String startedMessage, {
+  VoidCallback? beforeSend,
+  String? Function(ApiException error)? wordFailure,
+}) async {
+  final messenger = ScaffoldMessenger.of(context);
+  beforeSend?.call();
+  final outcome = await action();
+  final failure = switch (outcome) {
+    ActionFailed(error: final ApiException e) => wordFailure?.call(e),
+    _ => null,
+  };
+  messenger.snack(
+    failure ?? outcome.messageFor(l10n) ?? startedMessage,
+    clearQueue: true,
+  );
+}
 
-  /// Loads the slot, asking which hotend to feed first where that question has
-  /// an answer the printer cannot work out for itself.
-  ///
-  /// Without a Filament Track Switch every AMS is wired to one hotend and the
-  /// firmware derives the target, so the command names none. With one fitted the
-  /// AMS is bound to a switch inlet instead and both hotends are reachable — the
-  /// firmware then has nothing to derive from and drops a command that does not
-  /// say where the filament is going. Bambu Studio asks the same question in the
-  /// same place.
-  Future<void> _startLoad(
-    BuildContext context,
-    AppLocalizations l10n,
-    ControlsNotifier controls,
-    int loadTrayId,
-  ) async {
-    final filaSwitch = slot.filaSwitch;
-    // The external holder answers the question by itself — its two tray numbers
-    // name the side (254 = Ext-L, 255 = Ext-R) — and a switch cannot be fitted
-    // alongside one anyway: it would occupy an extruder channel permanently,
-    // which is why Bambu's own guidance is to take the switch off first.
-    // An AMS-HT never reaches here at all: it has no global tray number, so the
-    // button is hidden rather than disabled.
-    final asks = (filaSwitch?.installed ?? false) && slot.amsId != 255;
-    if (!asks) {
-      await _run(
-        context,
-        l10n,
-        () => controls.amsLoad(slot.printerId, loadTrayId),
-        l10n.amsLoadStarted,
-      );
-      return;
-    }
-    if (!filaSwitch!.ready) {
-      // Nothing can be routed until every AMS is bound to an inlet, so say so
-      // rather than send a command the firmware would drop whatever hotend it
-      // named. The sheet stays open — the fix is on the printer's own screen,
-      // and the user comes back to the same slot.
-      ScaffoldMessenger.of(context).snack(l10n.amsSwitchNotReady);
-      return;
-    }
-    final extruderId = await _askFeedDirection(context, l10n);
-    if (extruderId == null || !context.mounted) return;
-    await _run(
+/// Unloads [slot]. Naming the slot is what tells two hotends apart: `tray_now`
+/// is one value for the whole printer, so an unaddressed unload on a
+/// dual-nozzle machine empties whichever hotend that field happens to name, not
+/// the slot asked about. A server that does not know the parameter ignores it
+/// and keeps the old printer-wide behaviour.
+Future<void> _unloadSlot(
+  BuildContext context,
+  AppLocalizations l10n,
+  ControlsNotifier controls,
+  _SlotRef slot,
+  int? loadTrayId, {
+  VoidCallback? beforeSend,
+}) => _runSlotAction(
+  context,
+  l10n,
+  () => controls.amsUnload(slot.printerId, trayId: loadTrayId),
+  l10n.amsUnloadStarted,
+  beforeSend: beforeSend,
+  // The one status this route answers for a reason the user can act on, and
+  // which "server returned error 409" would hide.
+  wordFailure: (e) => e.statusCode == 409 ? l10n.amsUnloadSlotNotLoaded : null,
+);
+
+/// Loads [slot], asking which hotend to feed first where that question has an
+/// answer the printer cannot work out for itself.
+///
+/// Without a Filament Track Switch every AMS is wired to one hotend and the
+/// firmware derives the target, so the command names none. With one fitted the
+/// AMS is bound to a switch inlet instead and both hotends are reachable — the
+/// firmware then has nothing to derive from and drops a command that does not
+/// say where the filament is going. Bambu Studio asks the same question in the
+/// same place.
+Future<void> _startSlotLoad(
+  BuildContext context,
+  AppLocalizations l10n,
+  ControlsNotifier controls,
+  _SlotRef slot,
+  int loadTrayId, {
+  VoidCallback? beforeSend,
+}) async {
+  final filaSwitch = slot.filaSwitch;
+  // The external holder answers the question by itself — its two tray numbers
+  // name the side (254 = Ext-L, 255 = Ext-R) — and a switch cannot be fitted
+  // alongside one anyway: it would occupy an extruder channel permanently,
+  // which is why Bambu's own guidance is to take the switch off first.
+  // An AMS-HT never reaches here at all: it has no global tray number, so the
+  // button is hidden rather than disabled.
+  final asks = (filaSwitch?.installed ?? false) && slot.amsId != 255;
+  if (!asks) {
+    await _runSlotAction(
       context,
       l10n,
-      () =>
-          controls.amsLoad(slot.printerId, loadTrayId, extruderId: extruderId),
+      () => controls.amsLoad(slot.printerId, loadTrayId),
       l10n.amsLoadStarted,
+      beforeSend: beforeSend,
     );
+    return;
   }
+  if (!filaSwitch!.ready) {
+    // Nothing can be routed until every AMS is bound to an inlet, so say so
+    // rather than send a command the firmware would drop whatever hotend it
+    // named. The sheet stays open — the fix is on the printer's own screen,
+    // and the user comes back to the same slot.
+    ScaffoldMessenger.of(context).snack(l10n.amsSwitchNotReady);
+    return;
+  }
+  final extruderId = await _askFeedDirection(context, l10n, slot);
+  if (extruderId == null || !context.mounted) return;
+  await _runSlotAction(
+    context,
+    l10n,
+    () => controls.amsLoad(slot.printerId, loadTrayId, extruderId: extruderId),
+    l10n.amsLoadStarted,
+    beforeSend: beforeSend,
+  );
+}
 
-  /// Asks which hotend to feed, or answers null when the user backs out.
-  ///
-  /// A hotend already fed from this very slot is offered as disabled: loading it
-  /// again is a no-op the printer would accept and then do nothing about. The
-  /// pairing is the one the sheet was opened on — a slot that becomes loaded
-  /// while the dialog is up costs one refused command, which is a far smaller
-  /// trap than a button that moves under the finger.
-  Future<int?> _askFeedDirection(BuildContext context, AppLocalizations l10n) {
-    final fed = slot.fedFrom;
-    bool alreadyFed(int extruderId) =>
-        fed?[extruderId]?.holds(amsId: slot.amsId, slotId: slot.trayId) ??
-        false;
+/// Asks which hotend to feed, or answers null when the user backs out.
+///
+/// A hotend already fed from this very slot is offered as disabled: loading it
+/// again is a no-op the printer would accept and then do nothing about. The
+/// pairing is the one the question was asked on — a slot that becomes loaded
+/// while the dialog is up costs one refused command, which is a far smaller
+/// trap than a button that moves under the finger.
+Future<int?> _askFeedDirection(
+  BuildContext context,
+  AppLocalizations l10n,
+  _SlotRef slot,
+) {
+  final fed = slot.fedFrom;
+  bool alreadyFed(int extruderId) =>
+      fed?[extruderId]?.holds(amsId: slot.amsId, slotId: slot.trayId) ?? false;
 
-    Widget option(BuildContext ctx, int extruderId, String label, String id) {
-      final taken = alreadyFed(extruderId);
-      return logTag(
-        id,
-        OutlinedButton(
-          onPressed: taken ? null : () => Navigator.pop(ctx, extruderId),
-          child: Text(taken ? '$label — ${l10n.amsFeedAlreadyLoaded}' : label),
-        ),
-      );
-    }
-
-    return showDialog<int>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.amsFeedTitle(slot.label)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.amsFeedPrompt),
-            const SizedBox(height: DashSpace.lg),
-            option(ctx, 1, l10n.extruderLeft, 'feed_direction.left'),
-            const SizedBox(height: DashSpace.sm),
-            option(ctx, 0, l10n.extruderRight, 'feed_direction.right'),
-          ],
-        ),
-        actions: [
-          logTag(
-            'feed_direction.cancel',
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(l10n.cancel),
-            ),
-          ),
-        ],
+  Widget option(BuildContext ctx, int extruderId, String label, String id) {
+    final taken = alreadyFed(extruderId);
+    return logTag(
+      id,
+      OutlinedButton(
+        onPressed: taken ? null : () => Navigator.pop(ctx, extruderId),
+        child: Text(taken ? '$label — ${l10n.amsFeedAlreadyLoaded}' : label),
       ),
     );
   }
+
+  return showDialog<int>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(l10n.amsFeedTitle(slot.label)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l10n.amsFeedPrompt),
+          const SizedBox(height: DashSpace.lg),
+          option(ctx, 1, l10n.extruderLeft, 'feed_direction.left'),
+          const SizedBox(height: DashSpace.sm),
+          option(ctx, 0, l10n.extruderRight, 'feed_direction.right'),
+        ],
+      ),
+      actions: [
+        logTag(
+          'feed_direction.cancel',
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Loads or unloads one slot from outside its sheet — the single-printer
+/// controller's Filament tab — with the sheet's wording, its Filament Track
+/// Switch question and its addressing. [unitIndex] null means external spool
+/// [index]; otherwise [index] is the slot of that AMS unit. A slot with no
+/// global tray number (AMS-HT) is not addressable here and does nothing.
+Future<void> runSlotCommand(
+  BuildContext context,
+  WidgetRef ref, {
+  required bool load,
+  required PrinterStatus status,
+  required int? nozzleCount,
+  required int? unitIndex,
+  required int index,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  final dual = status.isDualNozzle(nozzleCount);
+  final assigned = ref.read(assignedSpoolsProvider(status.id));
+  final slot = unitIndex == null
+      ? _externalSlotRef(
+          l10n: l10n,
+          status: status,
+          dual: dual,
+          spool: status.externalSpools[index],
+          assigned: assigned,
+        )
+      : _amsSlotRef(
+          status: status,
+          dual: dual,
+          unit: status.ams![unitIndex],
+          unitIndex: unitIndex,
+          trayIndex: index,
+          assigned: assigned,
+        );
+  final loadTrayId = slot.loadTrayId;
+  if (loadTrayId == null) return;
+  final controls = ref.read(controlsProvider.notifier);
+  await (load
+      ? _startSlotLoad(context, l10n, controls, slot, loadTrayId)
+      : _unloadSlot(context, l10n, controls, slot, loadTrayId));
 }
 
 /// "Assign spool to this slot" sheet opened from a filament row. Slot is known

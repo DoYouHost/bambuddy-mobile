@@ -8062,6 +8062,26 @@ class AppLocalizationsPl extends AppLocalizations {
   String get controllerTabFilament => 'Filament';
 
   @override
+  String get controllerExtruder => 'Ekstruder';
+
+  @override
+  String controllerTarget(String value) {
+    return 'Cel $value';
+  }
+
+  @override
+  String get controllerHeating => 'Grzeje';
+
+  @override
+  String get controllerAtTarget => 'Osiągnięto';
+
+  @override
+  String get controllerCooling => 'Stygnie';
+
+  @override
+  String get controllerEditSlot => 'Edytuj slot';
+
+  @override
   String get inventorySuppliersTitle => 'Dostawcy';
 
   @override

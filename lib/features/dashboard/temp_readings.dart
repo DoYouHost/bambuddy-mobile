@@ -5,6 +5,8 @@ import '../../l10n/app_localizations.dart';
 
 enum TempKind { nozzle, bed, chamber, unknown }
 
+enum HeatState { off, heating, atTarget, cooling }
+
 /// Pair of readings (current + target) for one sensor. Label is translated
 /// at render time (with [BuildContext]).
 class TempReading {
@@ -68,12 +70,22 @@ class TempReading {
   /// holding at the setpoint → orange; already above the setpoint (cooling) or
   /// no setpoint → blue. A small tolerance avoids color flicker around target.
   /// [target] overrides the reading's own setpoint (for optimistic overlay).
-  Color gaugeColor(DashTokens t, {double? target}) {
+  Color gaugeColor(DashTokens t, {double? target}) =>
+      switch (heatState(target: target)) {
+        HeatState.off || HeatState.cooling => t.accentBlue,
+        HeatState.heating || HeatState.atTarget => t.accentOrange,
+      };
+
+  /// Where the reading stands against its setpoint, within the same tolerance
+  /// as [gaugeColor]. No reading yet with a setpoint counts as heating.
+  HeatState heatState({double? target}) {
     final tgt = target ?? this.target;
     const tolerance = 2.0;
-    if (tgt == null || tgt <= 0) return t.accentBlue;
-    if (actual != null && actual! > tgt + tolerance) return t.accentBlue;
-    return t.accentOrange;
+    final now = actual;
+    if (tgt == null || tgt <= 0) return HeatState.off;
+    if (now == null || now < tgt - tolerance) return HeatState.heating;
+    if (now > tgt + tolerance) return HeatState.cooling;
+    return HeatState.atTarget;
   }
 
   /// Upper bound the target slider allows. Slightly under the server's hard

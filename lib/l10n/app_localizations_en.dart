@@ -7924,6 +7924,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controllerTabFilament => 'Filament';
 
   @override
+  String get controllerExtruder => 'Extruder';
+
+  @override
+  String controllerTarget(String value) {
+    return 'Target $value';
+  }
+
+  @override
+  String get controllerHeating => 'Heating';
+
+  @override
+  String get controllerAtTarget => 'At target';
+
+  @override
+  String get controllerCooling => 'Cooling';
+
+  @override
+  String get controllerEditSlot => 'Edit slot';
+
+  @override
   String get inventorySuppliersTitle => 'Suppliers';
 
   @override

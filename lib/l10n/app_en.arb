@@ -5272,6 +5272,23 @@
   "@controllerTabFilament": {
     "description": "Controller tab with the AMS units, their slots and the external spool"
   },
+  "controllerExtruder": "Extruder",
+  "controllerTarget": "Target {value}",
+  "@controllerTarget": {
+    "description": "The setpoint a heater is driven to, on the button that changes it.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "controllerHeating": "Heating",
+  "controllerAtTarget": "At target",
+  "controllerCooling": "Cooling",
+  "controllerEditSlot": "Edit slot",
+  "@controllerEditSlot": {
+    "description": "Tooltip of the pencil on a controller slot card; opens the slot sheet (spool, configuration)"
+  },
   "inventorySuppliersTitle": "Suppliers",
   "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
   "inventorySuppliersEmpty": "No suppliers yet",

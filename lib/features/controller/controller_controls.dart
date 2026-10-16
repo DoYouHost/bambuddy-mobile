@@ -12,15 +12,11 @@ import '../dashboard/smart_plug_actions.dart';
 import '../dashboard/smart_plugs_providers.dart';
 import '../dashboard/temp_readings.dart';
 import '../dashboard/widgets/pill_switch.dart';
-import 'scale_to_fit.dart';
-
-/// How far a tile's text and icons may grow with its room, so a big screen gets
-/// big readings without a tile on a tablet turning into a poster.
-const _tileMaxScale = 1.8;
 
 // The widgets below fill the height they are given: the Overview divides its
 // column between them (`controller_overview.dart`), so each one is built to
-// stretch and to scale its text down rather than overflow.
+// stretch; their size comes from the one scale over the whole body
+// (`scale_to_fit.dart`), never from their own room.
 
 /// The sensors worth a tile, in the printer card's order.
 List<TempReading> controllerReadings(PrinterStatus status) => [
@@ -132,9 +128,7 @@ class _ReadingTile extends StatelessWidget {
                   : t.subCardBorder,
             ),
           ),
-          child: ScaleToFit(
-            designSize: const Size(120, 40),
-            maxScale: _tileMaxScale,
+          child: Align(
             alignment: Alignment.centerLeft,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -244,9 +238,7 @@ class ControllerSpeed extends ConsumerWidget {
                     borderRadius: radius,
                     onTap: busy ? null : () => _setSpeed(context, ref, level),
                     child: Center(
-                      child: ScaleToFit(
-                        designSize: const Size(96, 40),
-                        maxScale: _tileMaxScale,
+                      child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -456,9 +448,7 @@ class _SwitchTile extends StatelessWidget {
                 const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Center(
-                    child: ScaleToFit(
-                      designSize: const Size(130, 40),
-                      maxScale: _tileMaxScale,
+                    child: Align(
                       alignment: Alignment.centerLeft,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -512,6 +502,111 @@ class ControllerForbidden extends StatelessWidget {
             style: t.labelSoft.copyWith(color: t.textSecondary),
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Height of every button on the tabs — a jog, a preset, a step, an action — so
+/// buttons that do the same kind of thing are the same size wherever they sit.
+const controllerButtonHeight = 56.0;
+
+/// A card of the Heat and Move tabs: one or more [ControllerSection]s side by
+/// side, each with its title at the top of the card, and an optional [footer]
+/// across the whole width under them for what they share.
+class ControllerCard extends StatelessWidget {
+  const ControllerCard({super.key, required this.sections, this.footer});
+
+  ControllerCard.single({
+    Key? key,
+    required String title,
+    Widget? trailing,
+    required Widget child,
+  }) : this(
+         key: key,
+         sections: [
+           ControllerSection(title: title, trailing: trailing, child: child),
+         ],
+       );
+
+  final List<ControllerSection> sections;
+  final Widget? footer;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final row = Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, s) in sections.indexed) ...[
+          if (i > 0) const SizedBox(width: DashSpace.xl),
+          Expanded(flex: s.flex, child: s),
+        ],
+      ],
+    );
+    final footer = this.footer;
+    return Container(
+      padding: const EdgeInsets.all(DashSpace.md),
+      decoration: t.cardBox,
+      child: footer == null
+          ? row
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: row),
+                const SizedBox(height: DashSpace.md),
+                footer,
+              ],
+            ),
+    );
+  }
+}
+
+/// A title, an optional control beside it, and the content filling the rest.
+/// The header is as tall as a touch target whether or not it holds one, so the
+/// titles of a row of cards line up.
+class ControllerSection extends StatelessWidget {
+  const ControllerSection({
+    super.key,
+    required this.title,
+    required this.child,
+    this.trailing,
+    this.flex = 1,
+  });
+
+  static const headerHeight = 44.0;
+
+  final String title;
+  final Widget? trailing;
+  final Widget child;
+
+  /// Share of the card's width when it holds several sections.
+  final int flex;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: headerHeight,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: t.titleLg,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              ?trailing,
+            ],
+          ),
+        ),
+        const SizedBox(height: DashSpace.sm),
+        Expanded(child: child),
       ],
     );
   }

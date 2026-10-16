@@ -5,19 +5,21 @@ import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/filament_material.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/theme/dash_theme.dart';
+import '../../data/printer_commands_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../dashboard/controls_providers.dart';
 import '../dashboard/widgets/printer_card.dart';
 import '../inventory/inventory_providers.dart';
+import 'controller_controls.dart';
 import 'controller_providers.dart';
-import 'scale_to_fit.dart';
 
 /// The Filament tab: the AMS units, one at a time, with their slots
-/// ([docs/single-printer-controller.md] §2). A tap on a slot opens the printer
-/// card's own slot sheet — assign a spool, load or unload, re-read the tag,
-/// configure — so every action keeps the card's locks (load and unload are off
-/// while the printer is printing). One unit is on screen at a time, so the tab
-/// never scrolls however many units there are.
+/// ([docs/single-printer-controller.md] §2). A tap chooses a slot, and Load and
+/// Unload under the slots act on it, through the printer card's own commands
+/// (`runSlotCommand`), so the wording, the Filament Track Switch question and
+/// the addressing are the card's. The pencil on a slot opens the card's slot
+/// sheet for the spool and the configuration. One unit is on screen at a time,
+/// so the tab never scrolls however many units there are.
 class ControllerFilament extends ConsumerStatefulWidget {
   const ControllerFilament({super.key, required this.printerId});
 
@@ -32,6 +34,10 @@ typedef _Entry = ({int? unitIndex, AmsUnit? unit});
 
 class _ControllerFilamentState extends ConsumerState<ControllerFilament> {
   int _selected = 0;
+
+  /// The chosen slot of the unit on screen; null until one is tapped, when the
+  /// slot feeding the print (or else the first) stands in.
+  int? _slot;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +55,15 @@ class _ControllerFilamentState extends ConsumerState<ControllerFilament> {
     // A unit can vanish between frames; the choice follows what is there.
     final entry = entries[_selected.clamp(0, entries.length - 1)];
     final dual = status.isDualNozzle(item.printer.nozzleCount);
+    final trays = entry.unit == null
+        ? status.externalSpools
+        : (entry.unit!.trays ?? const <AmsTray>[]);
+    final active = trays.indexWhere(
+      (tray) => identical(tray, status.activeTray),
+    );
+    final slot = trays.isEmpty
+        ? null
+        : (_slot ?? (active >= 0 ? active : 0)).clamp(0, trays.length - 1);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -59,26 +74,25 @@ class _ControllerFilamentState extends ConsumerState<ControllerFilament> {
             selected: entries.indexOf(entry),
             status: status,
             dual: dual,
-            onSelect: (i) => setState(() => _selected = i),
+            onSelect: (i) => setState(() {
+              _selected = i;
+              _slot = null;
+            }),
           ),
         ),
         const SizedBox(width: DashSpace.md),
         Expanded(
-          child: entry.unit == null
-              ? _External(
-                  printerId: widget.printerId,
-                  status: status,
-                  nozzleCount: item.printer.nozzleCount,
-                  dual: dual,
-                )
-              : _Unit(
-                  printerId: widget.printerId,
-                  status: status,
-                  nozzleCount: item.printer.nozzleCount,
-                  unitIndex: entry.unitIndex!,
-                  unit: entry.unit!,
-                  dual: dual,
-                ),
+          child: _Pane(
+            printerId: widget.printerId,
+            status: status,
+            nozzleCount: item.printer.nozzleCount,
+            unitIndex: entry.unitIndex,
+            unit: entry.unit,
+            trays: trays,
+            slot: slot,
+            dual: dual,
+            onSlot: (i) => setState(() => _slot = i),
+          ),
         ),
       ],
     );
@@ -190,36 +204,99 @@ class _Rail extends StatelessWidget {
   }
 }
 
-/// One AMS unit: its readings and drying, and a card per slot.
-class _Unit extends ConsumerWidget {
-  const _Unit({
+/// The unit on screen: its readings, a card per slot, and the actions on the
+/// chosen slot.
+class _Pane extends ConsumerWidget {
+  const _Pane({
     required this.printerId,
     required this.status,
     required this.nozzleCount,
     required this.unitIndex,
     required this.unit,
+    required this.trays,
+    required this.slot,
     required this.dual,
+    required this.onSlot,
   });
 
   final int printerId;
   final PrinterStatus status;
   final int? nozzleCount;
-  final int unitIndex;
-  final AmsUnit unit;
+
+  /// Null for the external holder, whose [trays] are its spools.
+  final int? unitIndex;
+  final AmsUnit? unit;
+  final List<AmsTray> trays;
+  final int? slot;
   final bool dual;
+  final ValueChanged<int> onSlot;
+
+  static const _headerHeight = controllerButtonHeight;
+  static const _actionHeight = controllerButtonHeight;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final amsId = unit.id ?? unitIndex;
-    final trays = unit.trays ?? const <AmsTray>[];
     final assigned = ref.watch(assignedSpoolsProvider(status.id));
     final refused = ref.watch(
       controlRefusedProvider(ControlPermission.control),
     );
+    final busy = ref.watch(
+      controlsProvider.select(
+        (s) => s.pendingFor(printerId).isBusy(ControlAction.ams),
+      ),
+    );
+    final unit = this.unit;
+    final amsId = unit == null ? externalHolderUnit : (unit.id ?? unitIndex!);
     final active = status.activeTray;
-    final side = dual ? (status.amsExtruderMap?[unit.id]) : null;
+    // The card's lock: on while printing, off while paused, which is when a
+    // runout needs a reload ([docs/single-printer-controller.md] §2).
+    final locked = status.isPrinting && !status.isPaused;
+    final chosen = slot;
+    // A slot with no global tray number (AMS-HT) cannot be loaded by one.
+    final addressable =
+        chosen != null &&
+        amsLoadTrayId(
+              amsId: amsId,
+              trayId: unit == null
+                  ? (externalSideOf(trays[chosen].id) ?? 0)
+                  : chosen,
+            ) !=
+            null;
+    final canDry =
+        unit != null && (status.supportsDrying ?? false) && unit.canDry;
+    final side = dual && unit != null
+        ? (status.amsExtruderMap?[unit.id])
+        : null;
+
+    void command(bool load) => runSlotCommand(
+      context,
+      ref,
+      load: load,
+      status: status,
+      nozzleCount: nozzleCount,
+      unitIndex: unitIndex,
+      index: chosen!,
+    );
+
+    final actions = <Widget>[
+      if (!refused && addressable) ...[
+        _ActionButton(
+          id: 'controller.load',
+          icon: Icons.login,
+          label: l10n.amsLoad,
+          onPressed: locked || busy ? null : () => command(true),
+        ),
+        _ActionButton(
+          id: 'controller.unload',
+          icon: Icons.logout,
+          label: l10n.amsUnload,
+          onPressed: locked || busy ? null : () => command(false),
+        ),
+      ],
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -228,28 +305,48 @@ class _Unit extends ConsumerWidget {
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  [
-                    amsUnitName(amsId),
-                    ?switch (side) {
-                      1 => l10n.extruderLeftShort,
-                      0 => l10n.extruderRightShort,
-                      _ => null,
-                    },
-                    if (unit.humidity != null) '${unit.humidity}%',
-                    if (unit.temp != null) '${unit.temp!.toStringAsFixed(0)}°',
-                  ].join(' · '),
-                  style: t.monoValue.copyWith(fontSize: _headerFont),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        unit == null ? l10n.externalSpool : amsUnitName(amsId),
+                        style: t.titleLg,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (side == 1 || side == 0) ...[
+                      const SizedBox(width: DashSpace.md),
+                      DashPill(
+                        label: side == 1
+                            ? l10n.extruderLeft
+                            : l10n.extruderRight,
+                        accent: t.textSecondary,
+                      ),
+                    ],
+                    if (unit?.humidity != null)
+                      _Reading(
+                        icon: Icons.water_drop_outlined,
+                        color: t.accentBlue,
+                        value: '${unit!.humidity}%',
+                      ),
+                    if (unit?.temp != null)
+                      _Reading(
+                        icon: Icons.thermostat_outlined,
+                        color: t.accentOrange,
+                        value: '${unit!.temp!.toStringAsFixed(0)}°',
+                      ),
+                  ],
                 ),
               ),
-              if ((status.supportsDrying ?? false) && unit.canDry && !refused)
+              // Drying is the whole unit's, so it sits with the unit, not
+              // with the slot actions.
+              if (canDry && !refused)
                 logTag(
                   'controller.dry',
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, _headerHeight),
+                      minimumSize: const Size(0, controllerButtonHeight),
                     ),
                     icon: const Icon(Icons.local_fire_department_outlined),
                     label: Text(unit.isDrying ? l10n.ctrlDrying : l10n.ctrlDry),
@@ -275,123 +372,148 @@ class _Unit extends ConsumerWidget {
                 if (i > 0) const SizedBox(width: DashSpace.sm),
                 Expanded(
                   child: _SlotCard(
-                    number: i + 1,
-                    tray: tray,
-                    active: identical(tray, active),
-                    fill: assigned.fillOf(
-                      tray,
-                      amsId: amsId,
-                      trayId: i,
-                      serial: null,
-                    ),
-                    onTap: () => showAmsSlotSheet(
-                      context,
-                      ref,
-                      status: status,
-                      nozzleCount: nozzleCount,
-                      unitIndex: unitIndex,
-                      trayIndex: i,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  static const _headerHeight = 44.0;
-  static const _headerFont = 16.0;
-}
-
-/// The external spool holder: one card, or one per nozzle on two heads.
-class _External extends ConsumerWidget {
-  const _External({
-    required this.printerId,
-    required this.status,
-    required this.nozzleCount,
-    required this.dual,
-  });
-
-  final int printerId;
-  final PrinterStatus status;
-  final int? nozzleCount;
-  final bool dual;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final t = DashTokens.of(context);
-    final spools = status.externalSpools;
-    final assigned = ref.watch(assignedSpoolsProvider(status.id));
-    final active = status.activeTray;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          height: _Unit._headerHeight,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              l10n.externalSpool,
-              style: t.monoValue.copyWith(fontSize: _Unit._headerFont),
-            ),
-          ),
-        ),
-        const SizedBox(height: DashSpace.sm),
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final (i, spool) in spools.indexed) ...[
-                if (i > 0) const SizedBox(width: DashSpace.sm),
-                Expanded(
-                  child: _SlotCard(
-                    number: null,
-                    caption: dual
-                        ? switch (status.extruderForExternal(spool.id)) {
+                    number: unit == null ? null : i + 1,
+                    caption: unit == null && dual
+                        ? switch (status.extruderForExternal(tray.id)) {
                             1 => l10n.extruderLeft,
                             0 => l10n.extruderRight,
                             _ => null,
                           }
                         : null,
-                    tray: spool,
-                    active: identical(spool, active),
+                    tray: tray,
+                    active: identical(tray, active),
+                    selected: i == chosen,
                     fill: assigned.fillOf(
-                      spool,
-                      amsId: externalHolderUnit,
-                      trayId: externalSideOf(spool.id) ?? 0,
+                      tray,
+                      amsId: amsId,
+                      trayId: unit == null ? (externalSideOf(tray.id) ?? 0) : i,
                       serial: null,
                     ),
-                    onTap: () => showExternalSlotSheet(
-                      context,
-                      ref,
-                      status: status,
-                      nozzleCount: nozzleCount,
-                      spoolIndex: i,
-                    ),
+                    onTap: () => onSlot(i),
+                    onEdit: () => unit == null
+                        ? showExternalSlotSheet(
+                            context,
+                            ref,
+                            status: status,
+                            nozzleCount: nozzleCount,
+                            spoolIndex: i,
+                          )
+                        : showAmsSlotSheet(
+                            context,
+                            ref,
+                            status: status,
+                            nozzleCount: nozzleCount,
+                            unitIndex: unitIndex!,
+                            trayIndex: i,
+                          ),
                   ),
                 ),
               ],
             ],
           ),
         ),
+        if (actions.isNotEmpty) ...[
+          const SizedBox(height: DashSpace.md),
+          SizedBox(
+            height: _actionHeight,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final (i, action) in actions.indexed) ...[
+                  if (i > 0) const SizedBox(width: DashSpace.sm),
+                  Expanded(child: action),
+                ],
+              ],
+            ),
+          ),
+        ],
+        if (locked && !refused && addressable) ...[
+          const SizedBox(height: DashSpace.sm),
+          Row(
+            children: [
+              Icon(Icons.lock_outline, size: DashSpace.lg, color: t.warningInk),
+              const SizedBox(width: DashSpace.sm),
+              Expanded(
+                child: Text(
+                  l10n.amsActionsWhilePrinting,
+                  style: t.bodyBold.copyWith(color: t.warningInk),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
 }
 
+/// One of a unit's readings in its header: an icon that says what it is, and
+/// the value.
+class _Reading extends StatelessWidget {
+  const _Reading({
+    required this.icon,
+    required this.color,
+    required this.value,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(left: DashSpace.lg),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: DashSpace.xl, color: color),
+          const SizedBox(width: DashSpace.xs),
+          Text(value, style: t.monoTitle),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.id,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String id;
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => logTag(
+    id,
+    OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon),
+      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+    ),
+  );
+}
+
 /// One slot: its number, the colour, the material, what is left, and a mark on
-/// the one feeding the print. Tapping opens the slot sheet.
+/// the one feeding the print. A tap chooses it; the pencil opens its sheet.
 class _SlotCard extends StatelessWidget {
   const _SlotCard({
     required this.number,
     required this.tray,
     required this.active,
+    required this.selected,
     required this.fill,
     required this.onTap,
+    required this.onEdit,
     this.caption,
   });
 
@@ -399,8 +521,10 @@ class _SlotCard extends StatelessWidget {
   final String? caption;
   final AmsTray tray;
   final bool active;
+  final bool selected;
   final TrayFill fill;
   final VoidCallback onTap;
+  final VoidCallback onEdit;
 
   static const _disc = 56.0;
   static const _discStroke = 4.0;
@@ -414,12 +538,13 @@ class _SlotCard extends StatelessWidget {
     final radius = BorderRadius.circular(DashSpace.md + DashSpace.xs);
     final percent = empty ? null : fill.percent;
     final grams = empty ? null : fill.grams;
-    return Material(
-      color: active ? t.accent.withValues(alpha: 0.10) : t.subCard,
+    final card = Material(
+      color: selected ? t.accent.withValues(alpha: 0.10) : t.subCard,
       shape: RoundedRectangleBorder(
         borderRadius: radius,
         side: BorderSide(
-          color: active ? t.accent.withValues(alpha: 0.55) : t.subCardBorder,
+          color: selected ? t.accent.withValues(alpha: 0.7) : t.subCardBorder,
+          width: selected ? 2 : 1,
         ),
       ),
       child: logTagMaterial(
@@ -430,15 +555,14 @@ class _SlotCard extends StatelessWidget {
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(DashSpace.sm),
-            child: ScaleToFit(
-              designSize: const Size(120, 160),
+            child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (number != null)
-                    Text('$number', style: t.monoLabel)
+                    Text('$number', style: t.monoValue)
                   else if (caption != null)
-                    Text(caption!, style: t.labelSoft),
+                    Text(caption!, style: t.bodySoft),
                   const SizedBox(height: DashSpace.xs),
                   Container(
                     width: _disc,
@@ -499,6 +623,29 @@ class _SlotCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Semantics(selected: selected, child: card),
+        ),
+        Positioned(
+          top: 0,
+          right: 0,
+          child: logTag(
+            'controller.slot_edit',
+            IconButton(
+              tooltip: AppLocalizations.of(context).controllerEditSlot,
+              icon: const Icon(
+                Icons.edit_outlined,
+                size: DashSpace.lg + DashSpace.xs,
+              ),
+              color: t.textSecondary,
+              onPressed: onEdit,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

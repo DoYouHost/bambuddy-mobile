@@ -13298,6 +13298,42 @@ abstract class AppLocalizations {
   /// **'Filament'**
   String get controllerTabFilament;
 
+  /// No description provided for @controllerExtruder.
+  ///
+  /// In en, this message translates to:
+  /// **'Extruder'**
+  String get controllerExtruder;
+
+  /// The setpoint a heater is driven to, on the button that changes it.
+  ///
+  /// In en, this message translates to:
+  /// **'Target {value}'**
+  String controllerTarget(String value);
+
+  /// No description provided for @controllerHeating.
+  ///
+  /// In en, this message translates to:
+  /// **'Heating'**
+  String get controllerHeating;
+
+  /// No description provided for @controllerAtTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'At target'**
+  String get controllerAtTarget;
+
+  /// No description provided for @controllerCooling.
+  ///
+  /// In en, this message translates to:
+  /// **'Cooling'**
+  String get controllerCooling;
+
+  /// Tooltip of the pencil on a controller slot card; opens the slot sheet (spool, configuration)
+  ///
+  /// In en, this message translates to:
+  /// **'Edit slot'**
+  String get controllerEditSlot;
+
   /// No description provided for @inventorySuppliersTitle.
   ///
   /// In en, this message translates to:

@@ -9,6 +9,7 @@ import 'package:bambuddy_mobile/features/controller/controller_move.dart';
 import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -51,7 +52,8 @@ void main() {
       const Scaffold(
         body: Padding(
           padding: EdgeInsets.all(16),
-          child: ControllerMove(printerId: 1),
+          // Scaled as the screen scales its body.
+          child: ScaleToFit(child: ControllerMove(printerId: 1)),
         ),
       ),
       overrides: [
@@ -360,6 +362,47 @@ void main() {
         lessThan(200),
         reason: 'on one row',
       );
+    });
+  });
+
+  group('controls that do the same kind of thing', () {
+    for (final size in const [Size(844, 390), Size(1280, 800)]) {
+      testWidgets('are one size in every card at '
+          '${size.width.round()}x${size.height.round()}', (tester) async {
+        await pump(tester, _status(), size: size);
+
+        Size of(String id) => tester.getRect(byLogId(id).first).size;
+        // The step chips sit in the axes card, the length chips in the
+        // extruder's; one scale over the body keeps them the same.
+        expect(
+          of('controller.step_preset').height,
+          closeTo(of('controller.length_preset').height, 0.01),
+        );
+        expect(
+          of('controller.jog_z_up').height,
+          closeTo(of('controller.jog_extrude').height, 0.01),
+        );
+        expect(
+          of('controller.home').height,
+          closeTo(of('controller.jog_extrude').height, 0.01),
+        );
+      });
+    }
+  });
+
+  group('the step', () {
+    testWidgets('sits with the axes it moves, not with the extruder', (
+      tester,
+    ) async {
+      await pump(tester, _status());
+
+      final pad = tester.getRect(byLogId('controller.jog_y_minus'));
+      final step = tester.getRect(byLogId('controller.step_preset').first);
+      final home = tester.getRect(byLogId('controller.home'));
+      final extruder = tester.getRect(byLogId('controller.jog_extrude'));
+      expect(step.top, greaterThan(pad.bottom), reason: 'under the pad');
+      expect(home.top, greaterThan(pad.bottom));
+      expect(home.right, lessThan(extruder.left), reason: 'not in its card');
     });
   });
 

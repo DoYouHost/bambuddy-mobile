@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/features/controller/controller_overview.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -76,7 +77,8 @@ void main() {
       const Scaffold(
         body: Padding(
           padding: EdgeInsets.all(16),
-          child: ControllerOverview(printerId: 1),
+          // Scaled as the screen scales its body.
+          child: ScaleToFit(child: ControllerOverview(printerId: 1)),
         ),
       ),
       overrides: [

@@ -8094,6 +8094,26 @@ class AppLocalizationsFr extends AppLocalizations {
   String get controllerTabFilament => 'Filament';
 
   @override
+  String get controllerExtruder => 'Extrudeur';
+
+  @override
+  String controllerTarget(String value) {
+    return 'Cible $value';
+  }
+
+  @override
+  String get controllerHeating => 'Chauffe';
+
+  @override
+  String get controllerAtTarget => 'Atteinte';
+
+  @override
+  String get controllerCooling => 'Refroidissement';
+
+  @override
+  String get controllerEditSlot => 'Modifier l\'emplacement';
+
+  @override
   String get inventorySuppliersTitle => 'Fournisseurs';
 
   @override

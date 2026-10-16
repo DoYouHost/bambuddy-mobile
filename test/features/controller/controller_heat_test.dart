@@ -5,6 +5,7 @@ import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_heat.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -58,7 +59,8 @@ void main() {
       const Scaffold(
         body: Padding(
           padding: EdgeInsets.all(16),
-          child: ControllerHeat(printerId: 1),
+          // Scaled as the screen scales its body.
+          child: ScaleToFit(child: ControllerHeat(printerId: 1)),
         ),
       ),
       overrides: [
@@ -93,8 +95,50 @@ void main() {
       await pump(tester, _status());
 
       expect(find.text('218°'), findsOneWidget);
-      expect(find.text('220°'), findsOneWidget);
-      expect(find.text('60°'), findsNWidgets(2), reason: 'reading and target');
+      expect(find.text(pl.controllerTarget('220°')), findsOneWidget);
+      expect(find.text('60°'), findsOneWidget);
+      expect(find.text(pl.controllerTarget('60°')), findsOneWidget);
+    });
+
+    testWidgets('say whether each heater is heating, holding or cooling', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _status(
+          temps: const {
+            'nozzle': 150,
+            'nozzle_target': 220,
+            'bed': 60,
+            'bed_target': 61,
+            'chamber': 34,
+          },
+        ),
+      );
+
+      expect(find.text(pl.controllerHeating), findsOneWidget);
+      expect(find.text(pl.controllerAtTarget), findsOneWidget);
+      expect(find.text(pl.controllerCooling), findsNothing);
+    });
+
+    testWidgets('a heater above its target is cooling, one off says nothing', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _status(
+          temps: const {
+            'nozzle': 230,
+            'nozzle_target': 200,
+            'bed': 40,
+            'chamber': 34,
+          },
+        ),
+      );
+
+      expect(find.text(pl.controllerCooling), findsOneWidget);
+      expect(find.text(pl.controllerHeating), findsNothing);
+      expect(find.text(pl.controllerAtTarget), findsNothing);
     });
 
     testWidgets('plus raises the nozzle by one step', (tester) async {

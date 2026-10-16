@@ -2,38 +2,39 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// Lays [child] out at [designSize] and then scales it to fill the room it is
-/// given, up to [maxScale] times and down as far as it takes to fit. The
-/// controller's cards use it so a big screen gets big controls and a small one
-/// small ones, instead of every screen getting the design's sizes in a corner of
-/// the card.
+/// The controller's body area on the phone it was designed on (landscape, after
+/// the bar and the insets). Below it the whole body shrinks, above it the whole
+/// body grows — one factor for every tab, so a button, a font or a gap is the
+/// same size wherever it appears.
+const controllerBodySize = Size(800, 360);
+
+/// Scales [child] uniformly to fill the room it is given: the factor is the
+/// largest that keeps [minSize] inside the room (capped at [maxScale]), and
+/// [child] is laid out in the room divided by that factor, so it fills the
+/// room exactly and is never laid out smaller than [minSize].
 ///
-/// Scaling is uniform, so proportions hold; [child] must be built to look right
-/// at [designSize] with text at its normal size. A parent that gives it no bound
-/// to fill gets the design size.
+/// One of these wraps the whole controller body; nothing inside scales on its
+/// own, which is what keeps similar controls the same size across cards.
 class ScaleToFit extends StatelessWidget {
   const ScaleToFit({
     super.key,
-    required this.designSize,
     required this.child,
+    this.minSize = controllerBodySize,
     this.maxScale = 2,
-    this.alignment = Alignment.center,
   });
 
-  final Size designSize;
+  final Size minSize;
   final double maxScale;
-  final Alignment alignment;
   final Widget child;
 
-  /// The factor [designSize] is scaled by to fit [room]. A side with no bound
-  /// leaves the decision to the other; with neither bounded the design size
-  /// stands.
-  static double scaleFor(Size designSize, Size room, double maxScale) {
+  /// The factor [minSize] is scaled by to fit [room]. A side with no bound
+  /// leaves the decision to the other; with neither bounded nothing scales.
+  static double scaleFor(Size minSize, Size room, double maxScale) {
     final byWidth = room.width.isFinite
-        ? room.width / designSize.width
+        ? room.width / minSize.width
         : double.infinity;
     final byHeight = room.height.isFinite
-        ? room.height / designSize.height
+        ? room.height / minSize.height
         : double.infinity;
     final fit = math.min(byWidth, byHeight);
     return fit.isFinite ? math.min(fit, maxScale) : 1;
@@ -46,16 +47,21 @@ class ScaleToFit extends StatelessWidget {
       // the same words need more room, so the box they are laid out in grows
       // with it; the whole is then scaled to fit, and nothing overflows.
       final text = math.max(1.0, MediaQuery.textScalerOf(context).scale(1));
-      final design = Size(designSize.width * text, designSize.height * text);
-      final scale = scaleFor(design, box.biggest, maxScale);
+      final min = minSize * text;
+      final scale = scaleFor(min, box.biggest, maxScale);
+      final room = box.biggest;
+      final layout = Size(
+        room.width.isFinite ? room.width / scale : min.width,
+        room.height.isFinite ? room.height / scale : min.height,
+      );
+      // A FittedBox under loose constraints keeps the child's own size rather
+      // than growing it, so its box is given the scaled size outright.
       return Align(
-        alignment: alignment,
-        child: SizedBox(
-          width: design.width * scale,
-          height: design.height * scale,
+        alignment: Alignment.topCenter,
+        child: SizedBox.fromSize(
+          size: layout * scale,
           child: FittedBox(
-            alignment: alignment,
-            child: SizedBox.fromSize(size: design, child: child),
+            child: SizedBox.fromSize(size: layout, child: child),
           ),
         ),
       );

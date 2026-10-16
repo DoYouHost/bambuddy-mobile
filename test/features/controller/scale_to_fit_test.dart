@@ -2,12 +2,12 @@ import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _host(Size room, {double maxScale = 2, Size? design}) => MaterialApp(
+Widget _host(Size room, {double maxScale = 2}) => MaterialApp(
   home: Center(
     child: SizedBox.fromSize(
       size: room,
       child: ScaleToFit(
-        designSize: design ?? const Size(100, 50),
+        minSize: const Size(100, 50),
         maxScale: maxScale,
         child: const ColoredBox(key: Key('content'), color: Colors.red),
       ),
@@ -63,44 +63,45 @@ void main() {
   });
 
   group('the widget', () {
-    testWidgets('fills a bigger room, keeping the proportions', (tester) async {
-      await tester.pumpWidget(_host(const Size(150, 150)));
+    final content = find.byKey(const Key('content'));
 
-      expect(
-        tester.getRect(find.byKey(const Key('content'))).size,
-        const Size(150, 75),
-      );
+    testWidgets('fills a bigger room, laid out at the room over the factor', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_host(const Size(300, 100)));
+
+      // The factor is 2 (the height decides), so the content is laid out at
+      // 150x50 and painted over the whole room.
+      expect(tester.getSize(content), const Size(150, 50));
+      expect(tester.getRect(content).size, const Size(300, 100));
     });
 
-    testWidgets('stops at the cap', (tester) async {
-      await tester.pumpWidget(_host(const Size(900, 900), maxScale: 1.5));
+    testWidgets('stops at the cap, and still fills the room', (tester) async {
+      await tester.pumpWidget(_host(const Size(600, 300), maxScale: 1.5));
 
-      expect(
-        tester.getRect(find.byKey(const Key('content'))).size,
-        const Size(150, 75),
-      );
+      expect(tester.getSize(content), const Size(400, 200));
+      expect(tester.getRect(content).size, const Size(600, 300));
     });
 
-    testWidgets('shrinks into a smaller room', (tester) async {
+    testWidgets('is never laid out under its minimum, it shrinks instead', (
+      tester,
+    ) async {
       await tester.pumpWidget(_host(const Size(50, 100)));
 
-      expect(
-        tester.getRect(find.byKey(const Key('content'))).size,
-        const Size(50, 25),
-      );
+      expect(tester.getSize(content), const Size(100, 200));
+      expect(tester.getRect(content).size, const Size(50, 100));
     });
 
     testWidgets('lays out a larger system font in a box that grows with it', (
       tester,
     ) async {
-      // At 1.5x text the design box is 1.5x: the child gets the room its bigger
+      // At 1.5x text the minimum is 1.5x: the child gets the room its bigger
       // words need, and the whole is fitted back into the room it was given.
       tester.platformDispatcher.textScaleFactorTestValue = 1.5;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
       await tester.pumpWidget(_host(const Size(100, 50)));
 
-      final content = find.byKey(const Key('content'));
       expect(tester.getSize(content), const Size(150, 75), reason: 'laid out');
       expect(tester.getRect(content).size.width, closeTo(100, 0.01));
     });

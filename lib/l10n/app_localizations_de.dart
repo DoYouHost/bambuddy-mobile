@@ -8001,6 +8001,26 @@ class AppLocalizationsDe extends AppLocalizations {
   String get controllerTabFilament => 'Filament';
 
   @override
+  String get controllerExtruder => 'Extruder';
+
+  @override
+  String controllerTarget(String value) {
+    return 'Ziel $value';
+  }
+
+  @override
+  String get controllerHeating => 'Heizt';
+
+  @override
+  String get controllerAtTarget => 'Erreicht';
+
+  @override
+  String get controllerCooling => 'Kühlt ab';
+
+  @override
+  String get controllerEditSlot => 'Slot bearbeiten';
+
+  @override
   String get inventorySuppliersTitle => 'Lieferanten';
 
   @override

@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/features/controller/controller_filament.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -61,11 +62,10 @@ class _Statuses extends PrinterStatusesNotifier {
 
 /// The slot cards. Their identifier carries the material (`logTagMaterial`), so
 /// they are found by prefix.
-Finder slots() => find.byWidgetPredicate(
-  (w) =>
-      w is Semantics &&
-      (w.properties.identifier ?? '').startsWith('controller.slot'),
-);
+Finder slots() => find.byWidgetPredicate((w) {
+  final id = w is Semantics ? w.properties.identifier ?? '' : '';
+  return id.startsWith('controller.slot') && id != 'controller.slot_edit';
+});
 
 void main() {
   late RecordingCommands commands;
@@ -89,7 +89,8 @@ void main() {
       const Scaffold(
         body: Padding(
           padding: EdgeInsets.all(16),
-          child: ControllerFilament(printerId: 1),
+          // Scaled as the screen scales its body.
+          child: ScaleToFit(child: ControllerFilament(printerId: 1)),
         ),
       ),
       overrides: [
@@ -148,20 +149,47 @@ void main() {
     testWidgets('shows its readings in the header', (tester) async {
       await pump(tester, _status());
 
-      expect(find.textContaining('${amsUnitName(0)} · 24%'), findsOneWidget);
+      // Once in the rail, once in the header beside its drop icon.
+      expect(find.text('24%'), findsNWidgets(2));
+      expect(find.byIcon(Icons.water_drop_outlined), findsNWidgets(2));
     });
 
-    testWidgets(
-      'opens the card\'s own slot sheet for the slot that was tapped',
-      (tester) async {
-        await pump(tester, _status());
+    testWidgets('labels its temperature with a thermometer', (tester) async {
+      await pump(
+        tester,
+        _status(
+          ams: [
+            AmsUnit(id: 0, humidity: 24, temp: 28.4, trays: _unit(0).trays),
+          ],
+        ),
+      );
 
-        await tester.tap(slots().at(1));
-        await settle(tester);
+      expect(find.text('28°'), findsOneWidget);
+      expect(find.byIcon(Icons.thermostat_outlined), findsOneWidget);
+    });
 
-        expect(find.text(amsSlotName(0, 1)), findsWidgets);
-      },
-    );
+    testWidgets('the pencil opens the card\'s own slot sheet for its slot', (
+      tester,
+    ) async {
+      await pump(tester, _status());
+
+      await tester.tap(byLogId('controller.slot_edit').at(1));
+      await settle(tester);
+
+      expect(find.text(amsSlotName(0, 1)), findsWidgets);
+    });
+
+    testWidgets('a tap on a slot chooses it and opens nothing', (tester) async {
+      await pump(tester, _status());
+
+      await tester.tap(slots().at(2));
+      await settle(tester);
+
+      expect(find.text(amsSlotName(0, 2)), findsNothing);
+      await tester.tap(byLogId('controller.load'));
+      await settle(tester);
+      expect(commands.calls, ['amsLoad:1:2:-']);
+    });
   });
 
   group('the rail', () {
@@ -202,13 +230,13 @@ void main() {
 
     testWidgets('a tap on the rail switches to that unit', (tester) async {
       await pump(tester, _status(ams: two));
-      expect(find.textContaining('${amsUnitName(0)} · 24%'), findsOneWidget);
+      expect(find.text('24%'), findsNWidgets(2), reason: 'rail and header');
 
       await tester.tap(byLogId('controller.filament_unit').at(1));
       await tester.pump();
 
-      expect(find.textContaining('${amsUnitName(1)} · 30%'), findsOneWidget);
-      expect(find.textContaining('${amsUnitName(0)} · 24%'), findsNothing);
+      expect(find.text('30%'), findsNWidgets(2), reason: 'rail and header');
+      expect(find.text('24%'), findsOneWidget, reason: 'the rail only');
     });
 
     testWidgets('survive the unit they were looking at going away', (
@@ -222,7 +250,75 @@ void main() {
       await tester.pump();
 
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('${amsUnitName(0)} · 24%'), findsOneWidget);
+      expect(find.text('24%'), findsNWidgets(2), reason: 'back on unit 0');
+    });
+  });
+
+  group('load and unload', () {
+    testWidgets('act on the slot feeding the print until another is chosen', (
+      tester,
+    ) async {
+      await pump(tester, _status(ams: [_unit(0), _unit(1)], trayNow: 1));
+
+      await tester.tap(byLogId('controller.unload'));
+      await settle(tester);
+      expect(commands.calls, ['amsUnload:1:1']);
+    });
+
+    testWidgets('address a slot of the second unit by its global number', (
+      tester,
+    ) async {
+      await pump(tester, _status(ams: [_unit(0), _unit(1)]));
+      await tester.tap(byLogId('controller.filament_unit').at(1));
+      await tester.pump();
+
+      await tester.tap(slots().at(3));
+      await tester.pump();
+      await tester.tap(byLogId('controller.load'));
+      await settle(tester);
+
+      expect(commands.calls, ['amsLoad:1:7:-']);
+    });
+
+    testWidgets('are off while printing and say why', (tester) async {
+      await pump(tester, _status(state: 'RUNNING'));
+
+      expect(find.text(pl.amsActionsWhilePrinting), findsOneWidget);
+      await tester.tap(byLogId('controller.load'));
+      await tester.tap(byLogId('controller.unload'));
+      await settle(tester);
+
+      expect(commands.calls, isEmpty);
+    });
+
+    testWidgets('are on again while paused, for a runout', (tester) async {
+      await pump(tester, _status(state: 'PAUSE'));
+
+      expect(find.text(pl.amsActionsWhilePrinting), findsNothing);
+      await tester.tap(byLogId('controller.load'));
+      await settle(tester);
+
+      expect(commands.calls, ['amsLoad:1:0:-']);
+    });
+
+    testWidgets('are not offered on a slot with no global number (AMS-HT)', (
+      tester,
+    ) async {
+      await pump(tester, _status(ams: [_unit(128)]));
+
+      expect(byLogId('controller.load'), findsNothing);
+      expect(byLogId('controller.unload'), findsNothing);
+    });
+
+    testWidgets('load the external spool by its holder number', (tester) async {
+      await pump(tester, _status(external: [_tray(254, 'TPU', '2E6FD8FF')]));
+      await tester.tap(byLogId('controller.filament_unit').at(1));
+      await tester.pump();
+
+      await tester.tap(byLogId('controller.load'));
+      await settle(tester);
+
+      expect(commands.calls, ['amsLoad:1:254:-']);
     });
   });
 
@@ -247,6 +343,23 @@ void main() {
   });
 
   group('drying', () {
+    testWidgets('belongs to the unit, in its header, not with the slots', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _status(ams: [_unit(0, moduleType: 'n3f')], drying: true),
+      );
+
+      final dry = tester.getRect(byLogId('controller.dry'));
+      expect(dry.bottom, lessThan(tester.getRect(slots().first).top));
+      expect(
+        dry.right,
+        closeTo(tester.getRect(slots().last).right, 0.5),
+        reason: 'at the right edge, in line with the last slot',
+      );
+    });
+
     testWidgets('is offered on a module that can dry, on a printer that can', (
       tester,
     ) async {
@@ -292,16 +405,18 @@ void main() {
       );
 
       expect(
-        find.text('${amsUnitName(0)} · ${pl.extruderLeftShort} · 24%'),
+        find.text(pl.extruderLeft),
         findsOneWidget,
         reason: 'unit 0 feeds the left head',
       );
+      expect(find.text(pl.extruderRight), findsNothing);
     });
 
     testWidgets('say nothing of sides on one nozzle', (tester) async {
       await pump(tester, _status(sides: {0: 1}));
 
-      expect(find.text('${amsUnitName(0)} · 24%'), findsOneWidget);
+      expect(find.text(pl.extruderLeft), findsNothing);
+      expect(find.text(pl.extruderRight), findsNothing);
     });
   });
 

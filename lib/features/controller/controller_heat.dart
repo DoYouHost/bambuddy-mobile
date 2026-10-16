@@ -14,7 +14,6 @@ import '../dashboard/controls_providers.dart';
 import '../dashboard/temp_readings.dart';
 import 'controller_controls.dart';
 import 'controller_providers.dart';
-import 'scale_to_fit.dart';
 
 /// The Heat tab: every heater with its target, and the fans
 /// ([docs/single-printer-controller.md] §2). Reads its printer through
@@ -144,9 +143,10 @@ class _HeaterCard extends ConsumerWidget {
 
   /// How far one tap of − or + moves the target.
   static const _step = 5;
-  static const _buttonSize = 44.0;
-  static const _ringSize = 64.0;
-  static const _ringStroke = 6.0;
+  static const _buttonSize = controllerButtonHeight;
+  static const _ringSize = 72.0;
+  static const _ringStroke = 7.0;
+  static const _readingFont = 36.0;
 
   /// The server's hardware index of a nozzle: `nozzle_2` is the right head (0),
   /// the plain key the left one (1) on two heads, and 0 on one.
@@ -179,85 +179,76 @@ class _HeaterCard extends ConsumerWidget {
         ? l10n.tempNozzleNumbered(reading.index == null ? '1' : '2')
         : reading.label(l10n);
     final color = reading.gaugeColor(t, target: shown.toDouble());
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: DashSpace.md,
-        vertical: DashSpace.sm,
-      ),
-      decoration: t.cardBox,
+    final state = _editable
+        ? reading.heatState(target: shown.toDouble())
+        : null;
+    return ControllerCard.single(
+      title: label,
+      trailing: dual && reading.kind == TempKind.nozzle
+          ? _NozzleSwitch(
+              printerId: printerId,
+              hardwareIndex: _hardwareIndex,
+              status: status,
+              pending: pending,
+              refused: refused,
+            )
+          : reading.kind == TempKind.chamber && supportsAirduct(model)
+          ? _AirductSwitch(
+              printerId: printerId,
+              heating: pending.airductHeating ?? reading.airductIsHeating,
+              busy: pending.isBusy(ControlAction.airduct),
+              refused: refused,
+            )
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            height: _buttonSize,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    label,
-                    style: t.bodyBold.copyWith(color: t.textPrimary),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (dual && reading.kind == TempKind.nozzle)
-                  _NozzleSwitch(
-                    printerId: printerId,
-                    hardwareIndex: _hardwareIndex,
-                    status: status,
-                    pending: pending,
-                    refused: refused,
-                  )
-                else if (reading.kind == TempKind.chamber &&
-                    supportsAirduct(model))
-                  _AirductSwitch(
-                    printerId: printerId,
-                    heating: pending.airductHeating ?? reading.airductIsHeating,
-                    busy: pending.isBusy(ControlAction.airduct),
-                    refused: refused,
-                  ),
-              ],
-            ),
-          ),
           Expanded(
-            child: Center(
-              child: ScaleToFit(
-                designSize: const Size(200, _ringSize),
-                maxScale: 1.8,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ExcludeSemantics(
-                      child: SizedBox(
-                        width: _ringSize,
-                        height: _ringSize,
-                        child: CircularProgressIndicator(
-                          value: actual == null
-                              ? 0
-                              : (actual / reading.gaugeMax(chamberMax)).clamp(
-                                  0.0,
-                                  1.0,
-                                ),
-                          strokeWidth: _ringStroke,
-                          backgroundColor: t.gaugeTrack,
-                          valueColor: AlwaysStoppedAnimation(color),
-                          strokeCap: StrokeCap.round,
+            // Shrinks on a narrow card (four heaters on two nozzles) or a short
+            // one, never grows on its own: its size is the body's scale.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ExcludeSemantics(
+                    child: SizedBox.square(
+                      dimension: _ringSize,
+                      child: CircularProgressIndicator(
+                        value: actual == null
+                            ? 0
+                            : (actual / reading.gaugeMax(chamberMax)).clamp(
+                                0.0,
+                                1.0,
+                              ),
+                        strokeWidth: _ringStroke,
+                        backgroundColor: t.gaugeTrack,
+                        valueColor: AlwaysStoppedAnimation(color),
+                        strokeCap: StrokeCap.round,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: DashSpace.md),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        actual == null ? '—' : '${actual.round()}°',
+                        style: t.monoDisplay.copyWith(
+                          fontSize: _readingFont,
+                          color: color,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: DashSpace.md),
-                    Text(
-                      actual == null ? '—' : '${actual.round()}°',
-                      style: t.monoValue.copyWith(
-                        fontSize: _ringSize * 0.45,
-                        color: color,
-                      ),
-                    ),
-                  ],
-                ),
+                      if (state != null && state != HeatState.off)
+                        _StatePill(state: state),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
+          const SizedBox(height: DashSpace.sm),
           if (_editable)
             Row(
               children: [
@@ -280,7 +271,13 @@ class _HeaterCard extends ConsumerWidget {
                       onPressed: canSet
                           ? () => _typeTarget(context, ref, shown, max, label)
                           : null,
-                      child: Text(shown > 0 ? '$shown°' : l10n.ctrlOff),
+                      child: Text(
+                        shown > 0
+                            ? l10n.controllerTarget('$shown°')
+                            : l10n.ctrlOff,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
                 ),
@@ -309,7 +306,7 @@ class _HeaterCard extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       l10n.controllerNoChamberHeater,
-                      style: t.labelSoft,
+                      style: t.bodySoft,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -355,6 +352,30 @@ class _HeaterCard extends ConsumerWidget {
     );
     if (typed == null || !context.mounted) return;
     await _set(context, ref, typed.clamp(0, max));
+  }
+}
+
+/// Where a heater stands against its target, beside the reading.
+class _StatePill extends StatelessWidget {
+  const _StatePill({required this.state});
+
+  final HeatState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final (label, accent, ink) = switch (state) {
+      HeatState.heating => (
+        l10n.controllerHeating,
+        t.accentOrange,
+        t.accentOrangeInk,
+      ),
+      HeatState.atTarget => (l10n.controllerAtTarget, t.accent, t.accentInk),
+      HeatState.cooling ||
+      HeatState.off => (l10n.controllerCooling, t.accentBlue, t.accentBlue),
+    };
+    return DashPill(label: label, accent: accent, accentInk: ink);
   }
 }
 
@@ -431,7 +452,7 @@ class _NozzleSwitch extends ConsumerWidget {
       'controller.activate_nozzle',
       OutlinedButton.icon(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(0, _HeaterCard._buttonSize),
+          minimumSize: const Size(0, ControllerSection.headerHeight),
         ),
         icon: Icon(locked ? Icons.lock_outline : Icons.swap_horiz, size: 16),
         label: Text(l10n.ctrlActivate),
@@ -478,7 +499,7 @@ class _AirductSwitch extends ConsumerWidget {
       'controller.airduct',
       OutlinedButton.icon(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(0, _HeaterCard._buttonSize),
+          minimumSize: const Size(0, ControllerSection.headerHeight),
         ),
         icon: Icon(
           current == true ? Icons.whatshot_outlined : Icons.ac_unit,
@@ -631,12 +652,12 @@ class _FanCardState extends ConsumerState<_FanCard> {
         children: [
           Row(
             children: [
-              Icon(Icons.air, size: DashSpace.lg, color: t.textSecondary),
+              Icon(Icons.air, size: DashSpace.xl, color: t.textSecondary),
               const SizedBox(width: DashSpace.sm),
               Expanded(
                 child: Text(
                   widget.label,
-                  style: t.bodyBold.copyWith(color: t.textPrimary),
+                  style: t.titleMd,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -645,7 +666,7 @@ class _FanCardState extends ConsumerState<_FanCard> {
                 shown > 0
                     ? '${shown.round()}%'
                     : AppLocalizations.of(context).ctrlOff,
-                style: t.monoValue.copyWith(
+                style: t.monoHeadline.copyWith(
                   color: shown > 0 ? t.accentBlue : t.textTertiary,
                 ),
               ),

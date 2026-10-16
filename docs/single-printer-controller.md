@@ -39,6 +39,25 @@ that opens the fault view, the printer's state) over one tab at a time.
 | Filament | AMS units, slots with their remaining amount, edit, load and unload, dry |
 | Settings | the controller's own settings (§4) |
 
+### Size and layout
+
+- **One scale for the whole body.** Every tab is laid out in a box no smaller
+  than the phone design (`controllerBodySize`, 800×360) and scaled uniformly to
+  fill the screen (`ScaleToFit`). Nothing inside scales on its own; a card that
+  sized its own content made the same chip 44 in one card and 56 in the next.
+- Every button on a tab is one height (`controllerButtonHeight`, 56): jogs,
+  presets, −/+, Load/Unload/Dry.
+- Each card has its title at its top (`ControllerCard`), never a caption
+  glued to a control.
+- Heat: a heater shows its reading and whether it is heating, at target or
+  cooling; the target is on the button that changes it ("Target 220°").
+- Move: two cards. Axes (X/Y and Z) with the step and Home under them, and the
+  extruder with its own length presets.
+- Filament: a tap chooses a slot (the one feeding the print until then); Load,
+  Unload and Dry sit under the slots and act on it, through the card's own
+  commands. The pencil on a slot opens the card's slot sheet (spool,
+  configuration).
+
 The fault view (reached from the chip, not a tab) lists the printer's HMS
 faults with Retry, Ignore and Dismiss and a link to the troubleshooting page.
 

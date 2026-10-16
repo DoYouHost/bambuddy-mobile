@@ -19,6 +19,7 @@ import 'controller_move.dart';
 import 'controller_overview.dart';
 import 'controller_picker.dart';
 import 'controller_providers.dart';
+import 'scale_to_fit.dart';
 
 const _landscape = [
   DeviceOrientation.landscapeLeft,
@@ -167,20 +168,22 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
                             textAlign: TextAlign.center,
                           ),
                         )
-                      : switch (_tab) {
-                          ControllerTab.overview => ControllerOverview(
-                            printerId: widget.printerId,
-                          ),
-                          ControllerTab.heat => ControllerHeat(
-                            printerId: widget.printerId,
-                          ),
-                          ControllerTab.move => ControllerMove(
-                            printerId: widget.printerId,
-                          ),
-                          ControllerTab.filament => ControllerFilament(
-                            printerId: widget.printerId,
-                          ),
-                        },
+                      : ScaleToFit(
+                          child: switch (_tab) {
+                            ControllerTab.overview => ControllerOverview(
+                              printerId: widget.printerId,
+                            ),
+                            ControllerTab.heat => ControllerHeat(
+                              printerId: widget.printerId,
+                            ),
+                            ControllerTab.move => ControllerMove(
+                              printerId: widget.printerId,
+                            ),
+                            ControllerTab.filament => ControllerFilament(
+                              printerId: widget.printerId,
+                            ),
+                          },
+                        ),
                 ),
               ],
             ),
