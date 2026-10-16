@@ -1,0 +1,620 @@
+import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/api/action_outcome.dart';
+import '../../core/models/printer_capabilities.dart';
+import '../../core/models/printer_status.dart';
+import '../../core/printers/bed_jog.dart';
+import '../../core/theme/dash_theme.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/error_messages.dart';
+import '../dashboard/controls_providers.dart';
+import 'controller_controls.dart';
+import 'controller_providers.dart';
+
+/// The Move tab: the X/Y pad, Z, extrude and retract, the step and home
+/// ([docs/single-printer-controller.md] §2). The rules are the printer card's
+/// movement sheet's — the same steps, the same Z direction logic, the same
+/// `G28` for home — in a layout that shares the height between its cards and
+/// never scrolls. Locked while a print is running, and says so.
+class ControllerMove extends ConsumerStatefulWidget {
+  const ControllerMove({super.key, required this.printerId});
+
+  final int printerId;
+
+  @override
+  ConsumerState<ControllerMove> createState() => _ControllerMoveState();
+}
+
+class _ControllerMoveState extends ConsumerState<ControllerMove> {
+  /// Shared X/Y/Z jog step (mm).
+  static const _stepPresets = [1, 10, 50];
+
+  /// Extrude/retract length (mm), smaller than the jog steps.
+  static const _lengthPresets = [5, 10, 25];
+
+  int _step = 10;
+  int _length = 10;
+
+  /// Id of the button currently sending, so only it shows a spinner and the rest
+  /// of the pad waits. Null when nothing is in flight.
+  String? _spin;
+
+  bool get _busy => _spin != null;
+
+  ControlsNotifier get _notifier => ref.read(controlsProvider.notifier);
+
+  Future<void> _send(
+    String button,
+    Future<ActionOutcome> Function() action, {
+    String? successMessage,
+  }) async {
+    if (_busy) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    setState(() => _spin = button);
+    final result = await action();
+    if (!mounted) return;
+    setState(() => _spin = null);
+    final msg = result.messageFor(l10n) ?? successMessage;
+    if (msg != null) messenger.snack(msg, clearQueue: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final item = ref.watch(controllerPrinterProvider(widget.printerId)).item;
+    final status = item?.status;
+    if (item == null || status == null) return const SizedBox.shrink();
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final refused = ref.watch(
+      controlRefusedProvider(ControlPermission.control),
+    );
+    final printing = status.isPrinting;
+    final connected = status.connected ?? false;
+    final enabled = connected && !printing && !refused && !_busy;
+    final model = item.printer.model;
+    final dual = status.isDualNozzle(item.printer.nozzleCount);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (printing) ...[
+          Row(
+            children: [
+              Icon(Icons.lock_outline, size: DashSpace.lg, color: t.warningInk),
+              const SizedBox(width: DashSpace.sm),
+              Expanded(
+                child: Text(
+                  l10n.controllerMoveLocked,
+                  style: t.bodyBold.copyWith(color: t.warningInk),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: DashSpace.sm),
+        ] else if (refused) ...[
+          const ControllerForbidden(),
+          const SizedBox(height: DashSpace.sm),
+        ],
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: 4,
+                child: _Card(title: 'X / Y', child: _xyPad(enabled)),
+              ),
+              const SizedBox(width: DashSpace.md),
+              Expanded(
+                flex: 2,
+                child: _Card(
+                  title: isBedSlinger(model)
+                      ? l10n.ctrlMoveZToolhead
+                      : l10n.ctrlMoveZ,
+                  child: _zPair(model, enabled, l10n),
+                ),
+              ),
+              const SizedBox(width: DashSpace.md),
+              Expanded(
+                flex: 3,
+                child: _Card(child: _extruder(status, dual, enabled, l10n)),
+              ),
+              const SizedBox(width: DashSpace.md),
+              Expanded(
+                flex: 4,
+                child: _Card(child: _stepAndHome(enabled, l10n)),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Directional X/Y pad. The centre shows the step in use, for feedback.
+  Widget _xyPad(bool enabled) {
+    final t = DashTokens.of(context);
+    Widget jog(String id, IconData icon, {double x = 0, double y = 0}) =>
+        _JogButton(
+          id: 'controller.jog_$id',
+          icon: icon,
+          busy: _spin == id,
+          onTap: enabled
+              ? () => _send(
+                  id,
+                  () => _notifier.xyJog(widget.printerId, x: x, y: y),
+                )
+              : null,
+        );
+    const gap = SizedBox(width: DashSpace.sm, height: DashSpace.sm);
+    const blank = SizedBox(width: _JogButton.size, height: _JogButton.size);
+    final step = _step.toDouble();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            blank,
+            gap,
+            jog('y_plus', Icons.keyboard_arrow_up, y: step),
+            gap,
+            blank,
+          ],
+        ),
+        gap,
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            jog('x_minus', Icons.keyboard_arrow_left, x: -step),
+            gap,
+            SizedBox(
+              width: _JogButton.size,
+              height: _JogButton.size,
+              child: Center(
+                child: Text(
+                  '$_step',
+                  style: t.monoTitle.copyWith(color: t.textTertiary),
+                ),
+              ),
+            ),
+            gap,
+            jog('x_plus', Icons.keyboard_arrow_right, x: step),
+          ],
+        ),
+        gap,
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            blank,
+            gap,
+            jog('y_minus', Icons.keyboard_arrow_down, y: -step),
+            gap,
+            blank,
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Z up and down. The sign each arrow sends is [bedJogDistance]'s; where it
+  /// cannot be known the pair is replaced by a note, never guessed — a wrong
+  /// sign drives the plate into the nozzle.
+  Widget _zPair(String? model, bool enabled, AppLocalizations l10n) {
+    final t = DashTokens.of(context);
+    // Only the A1 family's sign depends on the server, so nothing is fetched
+    // for any other printer.
+    final convention = bedJogDependsOnServer(model)
+        ? ref.watch(bedJogConventionProvider)
+        : const AsyncData(BedJogConvention.direct);
+    // Null while (re)asking: a value kept from before a reconnect may belong to
+    // the server as it was before an in-place upgrade.
+    final settled = convention.hasError
+        ? BedJogConvention.unknown
+        : convention.isLoading
+        ? null
+        : convention.valueOrNull;
+    double? distance(bool up) => settled == null
+        ? null
+        : bedJogDistance(
+            up: up,
+            step: _step.toDouble(),
+            model: model,
+            convention: settled,
+          );
+    if (settled != null && distance(true) == null) {
+      return SizedBox(
+        width: _noteWidth,
+        child: Text(
+          model == null || model.trim().isEmpty
+              ? l10n.ctrlMoveZNoModel
+              : l10n.ctrlMoveZUnknownDirection,
+          style: t.bodyPlain.copyWith(color: t.textTertiary),
+        ),
+      );
+    }
+    Widget jog(String id, IconData icon, String label, bool up) {
+      final d = distance(up);
+      return _JogButton(
+        id: 'controller.jog_$id',
+        icon: icon,
+        label: label,
+        busy: _spin == id,
+        onTap: enabled && d != null
+            ? () => _send(id, () => _notifier.bedJog(widget.printerId, d))
+            : null,
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        jog('z_up', Icons.keyboard_arrow_up, l10n.ctrlMoveZUp, true),
+        const SizedBox(height: DashSpace.sm),
+        jog('z_down', Icons.keyboard_arrow_down, l10n.ctrlMoveZDown, false),
+      ],
+    );
+  }
+
+  /// Extrude and retract. Neither takes a nozzle: the server sends the move to
+  /// whichever extruder is active, so on two heads the choice of nozzle is made
+  /// first (`select-extruder`) and the jog follows it.
+  Widget _extruder(
+    PrinterStatus status,
+    bool dual,
+    bool enabled,
+    AppLocalizations l10n,
+  ) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (dual) ...[
+          _NozzleChoice(
+            printerId: widget.printerId,
+            status: status,
+            enabled: enabled,
+          ),
+          const SizedBox(height: DashSpace.sm),
+        ],
+        _JogButton(
+          id: 'controller.jog_extrude',
+          icon: Icons.arrow_downward,
+          label: l10n.ctrlMoveExtrude,
+          busy: _spin == 'extrude',
+          onTap: enabled
+              ? () => _send(
+                  'extrude',
+                  () => _notifier.extruderJog(
+                    widget.printerId,
+                    _length.toDouble(),
+                  ),
+                )
+              : null,
+        ),
+        const SizedBox(height: DashSpace.sm),
+        _JogButton(
+          id: 'controller.jog_retract',
+          icon: Icons.arrow_upward,
+          label: l10n.ctrlMoveRetract,
+          busy: _spin == 'retract',
+          onTap: enabled
+              ? () => _send(
+                  'retract',
+                  () => _notifier.extruderJog(
+                    widget.printerId,
+                    -_length.toDouble(),
+                  ),
+                )
+              : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _stepAndHome(bool enabled, AppLocalizations l10n) {
+    return SizedBox(
+      width: _noteWidth,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _PresetRow(
+            id: 'controller.step',
+            title: l10n.ctrlMoveStep,
+            presets: _stepPresets,
+            value: _step,
+            enabled: enabled,
+            onChanged: (v) => setState(() => _step = v),
+          ),
+          const SizedBox(height: DashSpace.md),
+          _PresetRow(
+            id: 'controller.length',
+            title: l10n.ctrlMoveLength,
+            presets: _lengthPresets,
+            value: _length,
+            enabled: enabled,
+            onChanged: (v) => setState(() => _length = v),
+          ),
+          const SizedBox(height: DashSpace.md),
+          _JogButton(
+            id: 'controller.home',
+            icon: Icons.home_outlined,
+            label: l10n.ctrlMoveHome,
+            busy: _spin == 'home',
+            width: _noteWidth,
+            // A home has no reliable "done" signal (the web is fire-and-forget
+            // too), so the answer is a toast, not a lock waiting on it.
+            onTap: enabled
+                ? () => _send(
+                    'home',
+                    () => _notifier.homeAxes(widget.printerId),
+                    successMessage: l10n.ctrlMoveHomeStarted,
+                  )
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Width a card's content is laid out at before it is scaled to fit.
+  static const _noteWidth = 220.0;
+}
+
+/// A card of the tab: an optional title, and content that stays centred and is
+/// scaled down, never up, when its share of the height is too small.
+class _Card extends StatelessWidget {
+  const _Card({this.title, required this.child});
+
+  final String? title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.all(DashSpace.md),
+      decoration: t.cardBox,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (title != null) ...[
+            Text(
+              title!,
+              style: t.label.copyWith(color: t.textSecondary),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: DashSpace.sm),
+          ],
+          Expanded(
+            child: Center(
+              child: FittedBox(fit: BoxFit.scaleDown, child: child),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A jog or action button: icon only for the pad, icon and label otherwise. A
+/// null [onTap] leaves it disabled; the spinner shows while it is the one in
+/// flight.
+class _JogButton extends StatelessWidget {
+  const _JogButton({
+    required this.id,
+    required this.icon,
+    required this.busy,
+    required this.onTap,
+    this.label,
+    this.width,
+  });
+
+  static const size = 56.0;
+
+  final String id;
+  final IconData icon;
+  final String? label;
+  final bool busy;
+  final VoidCallback? onTap;
+
+  /// Defaults to a square for an icon alone and to the card's width with a label.
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return logTag(
+      id,
+      OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          minimumSize: Size(width ?? (label == null ? size : 148), size),
+          padding: EdgeInsets.zero,
+        ),
+        onPressed: busy ? null : onTap,
+        child: busy
+            ? const DashSpinner()
+            : label == null
+            ? Icon(icon, size: 26)
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 20),
+                  const SizedBox(width: DashSpace.sm),
+                  Text(label!, style: t.bodyBold),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+/// A title and a few mm presets, one of them chosen.
+class _PresetRow extends StatelessWidget {
+  const _PresetRow({
+    required this.id,
+    required this.title,
+    required this.presets,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  /// Diagnostic id of this row's chips. The tab has two rows — the move step and
+  /// the extrude length — and one shared tag could not say which of them the
+  /// user changed.
+  final String id;
+  final String title;
+  final List<int> presets;
+  final int value;
+  final bool enabled;
+  final ValueChanged<int> onChanged;
+
+  static const _height = 44.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final radius = BorderRadius.circular(DashSpace.md);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(title, style: t.labelSoft.copyWith(color: t.textSecondary)),
+        const SizedBox(height: DashSpace.xs),
+        Row(
+          children: [
+            for (final (i, p) in presets.indexed) ...[
+              if (i > 0) const SizedBox(width: DashSpace.sm),
+              Expanded(
+                child: logTag(
+                  '${id}_preset',
+                  Material(
+                    color: value == p
+                        ? t.accent.withValues(alpha: 0.16)
+                        : t.subCard,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: radius,
+                      side: BorderSide(
+                        color: value == p
+                            ? t.accent.withValues(alpha: 0.4)
+                            : t.subCardBorder,
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: radius,
+                      onTap: enabled ? () => onChanged(p) : null,
+                      child: Container(
+                        height: _height,
+                        alignment: Alignment.center,
+                        child: Text(
+                          l10n.ctrlMoveMm(p),
+                          style: value == p
+                              ? t.monoValue.copyWith(color: t.accentInk)
+                              : t.monoValue,
+                        ),
+                      ),
+                    ),
+                  ),
+                  selected: value == p,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Which nozzle Extrude and Retract act on, on a printer with two. Plain `nozzle`
+/// is the left head (hardware index 1) and `nozzle_2` the right (0), numbered 1
+/// and 2 as on the Heat tab.
+class _NozzleChoice extends ConsumerWidget {
+  const _NozzleChoice({
+    required this.printerId,
+    required this.status,
+    required this.enabled,
+  });
+
+  final int printerId;
+  final PrinterStatus status;
+  final bool enabled;
+
+  static const _height = 44.0;
+  static const _width = 148.0;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final active = status.activeExtruder ?? 0;
+    final busy = ref.watch(
+      controlsProvider.select(
+        (s) => s.pendingFor(printerId).isBusy(ControlAction.extruder),
+      ),
+    );
+    final radius = BorderRadius.circular(DashSpace.md);
+    // (label number, hardware index)
+    const heads = [('1', 1), ('2', 0)];
+    return SizedBox(
+      width: _width,
+      child: Row(
+        children: [
+          for (final (i, head) in heads.indexed) ...[
+            if (i > 0) const SizedBox(width: DashSpace.sm),
+            Expanded(
+              child: logTag(
+                'controller.jog_nozzle',
+                Material(
+                  color: active == head.$2
+                      ? t.accent.withValues(alpha: 0.16)
+                      : t.subCard,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: radius,
+                    side: BorderSide(
+                      color: active == head.$2
+                          ? t.accent.withValues(alpha: 0.4)
+                          : t.subCardBorder,
+                    ),
+                  ),
+                  child: InkWell(
+                    borderRadius: radius,
+                    onTap: enabled && !busy && active != head.$2
+                        ? () => _select(context, ref, head.$2)
+                        : null,
+                    child: Container(
+                      height: _height,
+                      alignment: Alignment.center,
+                      child: Text(
+                        l10n.tempNozzleNumbered(head.$1),
+                        style: active == head.$2
+                            ? t.bodyBold.copyWith(color: t.accentInk)
+                            : t.bodyBold,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
+                ),
+                selected: active == head.$2,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _select(BuildContext context, WidgetRef ref, int index) async {
+    final result = await ref
+        .read(controlsProvider.notifier)
+        .setExtruder(printerId, index);
+    if (!context.mounted) return;
+    final msg = result.messageFor(AppLocalizations.of(context));
+    if (msg != null) {
+      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
+    }
+  }
+}

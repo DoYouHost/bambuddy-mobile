@@ -8014,6 +8014,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get controllerNoChamberHeater => 'Sin calefactor de cámara';
 
   @override
+  String get controllerMoveLocked =>
+      'Los ejes están bloqueados durante la impresión';
+
+  @override
   String get inventorySuppliersTitle => 'Proveedores';
 
   @override

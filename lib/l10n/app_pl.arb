@@ -3318,6 +3318,7 @@
   "controllerPower": "Zasilanie",
   "controllerTabHeat": "Grzanie",
   "controllerNoChamberHeater": "Komora bez grzałki",
+  "controllerMoveLocked": "Osie są zablokowane podczas druku",
   "inventorySuppliersTitle": "Dostawcy",
   "inventorySuppliersHint": "Dostawca to sklep, w którym kupujesz filament, a nie marka, która go wyprodukowała. Przypisujesz go w formularzu szpuli; dostawcy przypisanego do szpuli nie da się usunąć.",
   "inventorySuppliersEmpty": "Nie masz jeszcze dostawców",

@@ -7918,6 +7918,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controllerNoChamberHeater => 'No chamber heater';
 
   @override
+  String get controllerMoveLocked => 'Axes are locked while a print is running';
+
+  @override
   String get inventorySuppliersTitle => 'Suppliers';
 
   @override

@@ -5264,6 +5264,10 @@
   "@controllerNoChamberHeater": {
     "description": "Shown on the chamber card of a printer whose chamber can only be read, not heated"
   },
+  "controllerMoveLocked": "Axes are locked while a print is running",
+  "@controllerMoveLocked": {
+    "description": "Line above the controller's Move tab while the printer is printing; every control on the tab is switched off and this says why"
+  },
   "inventorySuppliersTitle": "Suppliers",
   "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
   "inventorySuppliersEmpty": "No suppliers yet",

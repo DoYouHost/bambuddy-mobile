@@ -7994,6 +7994,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get controllerNoChamberHeater => 'Keine Kammerheizung';
 
   @override
+  String get controllerMoveLocked =>
+      'Die Achsen sind während des Drucks gesperrt';
+
+  @override
   String get inventorySuppliersTitle => 'Lieferanten';
 
   @override

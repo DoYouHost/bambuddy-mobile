@@ -13286,6 +13286,12 @@ abstract class AppLocalizations {
   /// **'No chamber heater'**
   String get controllerNoChamberHeater;
 
+  /// Line above the controller's Move tab while the printer is printing; every control on the tab is switched off and this says why
+  ///
+  /// In en, this message translates to:
+  /// **'Axes are locked while a print is running'**
+  String get controllerMoveLocked;
+
   /// No description provided for @inventorySuppliersTitle.
   ///
   /// In en, this message translates to:

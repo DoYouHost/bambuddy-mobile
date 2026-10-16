@@ -47,7 +47,7 @@ class ControllerHeat extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (refused) ...[
-          const _Forbidden(),
+          const ControllerForbidden(),
           const SizedBox(height: DashSpace.sm),
         ],
         if (readings.isNotEmpty)
@@ -121,29 +121,6 @@ class ControllerHeat extends ConsumerWidget {
           value: status.bigFan2Speed!,
         ),
     ];
-  }
-}
-
-/// Said once at the top when the server refuses this session control: every
-/// stepper and slider below is dead, and a dead control must say why.
-class _Forbidden extends StatelessWidget {
-  const _Forbidden();
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Row(
-      children: [
-        Icon(Icons.lock_outline, size: DashSpace.lg, color: t.textSecondary),
-        const SizedBox(width: DashSpace.sm),
-        Expanded(
-          child: Text(
-            AppLocalizations.of(context).ctrlForbidden,
-            style: t.labelSoft.copyWith(color: t.textSecondary),
-          ),
-        ),
-      ],
-    );
   }
 }
 

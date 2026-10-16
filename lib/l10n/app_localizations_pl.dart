@@ -8056,6 +8056,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get controllerNoChamberHeater => 'Komora bez grzałki';
 
   @override
+  String get controllerMoveLocked => 'Osie są zablokowane podczas druku';
+
+  @override
   String get inventorySuppliersTitle => 'Dostawcy';
 
   @override

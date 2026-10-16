@@ -485,3 +485,26 @@ class _SwitchTile extends StatelessWidget {
     return reason == null ? tile : Tooltip(message: reason, child: tile);
   }
 }
+
+/// Said once at the top of a tab when the server refuses this session control:
+/// every stepper, slider and jog on it is dead, and a dead control must say why.
+class ControllerForbidden extends StatelessWidget {
+  const ControllerForbidden({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Row(
+      children: [
+        Icon(Icons.lock_outline, size: DashSpace.lg, color: t.textSecondary),
+        const SizedBox(width: DashSpace.sm),
+        Expanded(
+          child: Text(
+            AppLocalizations.of(context).ctrlForbidden,
+            style: t.labelSoft.copyWith(color: t.textSecondary),
+          ),
+        ),
+      ],
+    );
+  }
+}

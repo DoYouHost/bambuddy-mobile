@@ -8087,6 +8087,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get controllerNoChamberHeater => 'Pas de chauffage de chambre';
 
   @override
+  String get controllerMoveLocked =>
+      'Les axes sont verrouillés pendant l\'impression';
+
+  @override
   String get inventorySuppliersTitle => 'Fournisseurs';
 
   @override

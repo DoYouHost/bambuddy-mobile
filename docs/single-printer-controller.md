@@ -35,7 +35,7 @@ that opens the fault view, the printer's state) over one tab at a time.
 |---|---|
 | Overview | camera or file preview, job progress, pause/resume and stop, skip objects, temperature readings, speed profile, chamber light, smart plug |
 | Heat | nozzle(s), bed and chamber targets with −/+ and a typed value, the three fans |
-| Move | X/Y pad, Z, extruder, step, home. Locked while a print is running |
+| Move | X/Y pad, Z, extrude and retract, step and length, home. Locked while a print is running |
 | Filament | AMS units, slots with their remaining amount, edit, load and unload, dry |
 | Settings | the controller's own settings (§4) |
 
@@ -48,6 +48,15 @@ With "Live camera" on, the Overview shows the stream. With it off, it shows the
 cover of the file being printed (`GET /printers/{id}/cover`, extracted from the
 `.3mf`), marked as a file preview. A file without a cover shows an image icon
 and "No preview".
+
+### Move
+
+The rules are the printer card's movement sheet's: steps of 1, 10 and 50 mm for
+the pad and Z, lengths of 5, 10 and 25 mm for extrude and retract, and the Z
+direction from `bedJogDistance` — where it cannot be known the buttons give way
+to a note, never a guess. Home is the full auto-home only (`G28`): the server
+ignores the `axes` argument (`routes/printers.py`, `home-axes`), so there is no
+per-axis home to offer.
 
 ### Dual-nozzle printers (H2D, X2D)
 
