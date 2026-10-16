@@ -8027,6 +8027,56 @@ class AppLocalizationsDe extends AppLocalizations {
   String get controllerPrintPaused => 'Druck pausiert';
 
   @override
+  String get controllerTabSettings => 'Einstellungen';
+
+  @override
+  String get controllerSaverTitle => 'Bildschirmschoner';
+
+  @override
+  String get controllerSaverAfter => 'Startet nach';
+
+  @override
+  String get controllerSaverNever => 'Nie';
+
+  @override
+  String get controllerSaverNeverTitle => 'Bildschirm nie abdunkeln?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'Ein Bild, das sich nie bewegt, kann sich in den Bildschirm einbrennen, vor allem bei OLED. Schalte den Bildschirmschoner nur aus, wenn du dieses Risiko in Kauf nimmst.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Ausschalten';
+
+  @override
+  String get controllerSaverBrightness => 'Helligkeit';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Wie hell der Rahmen auf dem Bildschirmschoner ist';
+
+  @override
+  String get controllerWakeOnWarnings => 'Bei Warnungen aufwecken';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Fehler, die den Druck pausieren, wecken ihn immer.';
+
+  @override
+  String get controllerSaverPreview => 'Vorschau';
+
+  @override
+  String get controllerDisplayTitle => 'Anzeige';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'Der Bildschirm bleibt an, solange die Steuerung geöffnet ist.';
+
+  @override
+  String get controllerLiveCameraHint =>
+      'Aus zeigt die Vorschau aus der Datei.';
+
+  @override
   String get inventorySuppliersTitle => 'Lieferanten';
 
   @override

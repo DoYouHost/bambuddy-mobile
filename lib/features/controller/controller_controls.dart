@@ -591,6 +591,78 @@ class ControllerForbidden extends StatelessWidget {
 /// axes card (`_jogHeight` in `controller_move.dart`).
 const controllerButtonHeight = 56.0;
 
+/// A row of choices, one of them picked: the Move tab's step and length, the
+/// saver's idle time. Every choice is a button of [controllerButtonHeight];
+/// [id] tags each of them, and the row reports the index picked.
+class ControllerChoices extends StatelessWidget {
+  const ControllerChoices({
+    super.key,
+    required this.id,
+    required this.labels,
+    required this.selected,
+    required this.onChanged,
+    this.enabled = true,
+  });
+
+  final String id;
+  final List<String> labels;
+  final int selected;
+  final bool enabled;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final radius = BorderRadius.circular(DashSpace.md);
+    return Row(
+      children: [
+        for (final (i, label) in labels.indexed) ...[
+          if (i > 0) const SizedBox(width: DashSpace.sm),
+          Expanded(
+            child: logTag(
+              id,
+              Material(
+                color: i == selected
+                    ? t.accent.withValues(alpha: 0.16)
+                    : t.subCard,
+                shape: RoundedRectangleBorder(
+                  borderRadius: radius,
+                  side: BorderSide(
+                    color: i == selected
+                        ? t.accent.withValues(alpha: 0.4)
+                        : t.subCardBorder,
+                  ),
+                ),
+                child: InkWell(
+                  borderRadius: radius,
+                  onTap: enabled ? () => onChanged(i) : null,
+                  child: Container(
+                    height: controllerButtonHeight,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DashSpace.xs,
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        label,
+                        style: i == selected
+                            ? t.monoValue.copyWith(color: t.accentInk)
+                            : t.monoValue,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              selected: i == selected,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 /// A card of the Heat and Move tabs: one or more [ControllerSection]s side by
 /// side, each with its title at the top of the card, and an optional [footer]
 /// across the whole width under them for what they share.

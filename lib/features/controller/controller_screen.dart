@@ -21,6 +21,7 @@ import 'controller_picker.dart';
 import 'controller_faults.dart';
 import 'controller_providers.dart';
 import 'controller_saver.dart';
+import 'controller_settings.dart';
 import 'scale_to_fit.dart';
 
 const _landscape = [
@@ -32,13 +33,15 @@ enum ControllerTab {
   overview,
   heat,
   move,
-  filament;
+  filament,
+  settings;
 
   String label(AppLocalizations l10n) => switch (this) {
     ControllerTab.overview => l10n.controllerTabOverview,
     ControllerTab.heat => l10n.controllerTabHeat,
     ControllerTab.move => l10n.ctrlMove,
     ControllerTab.filament => l10n.controllerTabFilament,
+    ControllerTab.settings => l10n.controllerTabSettings,
   };
 
   /// Wire value of the control's diagnostic id; never localized.
@@ -47,6 +50,7 @@ enum ControllerTab {
     ControllerTab.heat => 'controller.tab_heat',
     ControllerTab.move => 'controller.tab_move',
     ControllerTab.filament => 'controller.tab_filament',
+    ControllerTab.settings => 'controller.tab_settings',
   };
 }
 
@@ -186,6 +190,8 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
                               ControllerTab.filament => ControllerFilament(
                                 printerId: widget.printerId,
                               ),
+                              ControllerTab.settings =>
+                                const ControllerSettings(),
                             },
                           ),
                   ),

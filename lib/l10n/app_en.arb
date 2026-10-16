@@ -5297,6 +5297,30 @@
   "@controllerPrintPaused": {
     "description": "Title of the fault view the controller opens on its own when a fault has paused the print"
   },
+  "controllerTabSettings": "Settings",
+  "controllerSaverTitle": "Screen saver",
+  "controllerSaverAfter": "Starts after",
+  "@controllerSaverAfter": {
+    "description": "Label above the idle-time choices of the controller's screen saver (1, 2, 5, 10, 15 minutes, Never)"
+  },
+  "controllerSaverNever": "Never",
+  "controllerSaverNeverTitle": "Never dim the screen?",
+  "controllerSaverNeverBody": "An image that never moves can burn into the screen, OLED panels above all. Turn the saver off only if you accept that risk.",
+  "@controllerSaverNeverBody": {
+    "description": "Shown before the screen saver is turned off for good: the burn-in risk the user has to accept"
+  },
+  "controllerSaverNeverConfirm": "Turn it off",
+  "controllerSaverBrightness": "Brightness",
+  "controllerSaverBrightnessHint": "How bright the box on the saver is",
+  "@controllerSaverBrightnessHint": {
+    "description": "What the brightness slider of the controller's screen saver changes"
+  },
+  "controllerWakeOnWarnings": "Wake on warnings",
+  "controllerWakeOnWarningsHint": "Faults that pause the print always wake it.",
+  "controllerSaverPreview": "Preview",
+  "controllerDisplayTitle": "Display",
+  "controllerKeepAwakeHint": "The screen stays on while the controller is open.",
+  "controllerLiveCameraHint": "Off shows the file preview.",
   "inventorySuppliersTitle": "Suppliers",
   "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
   "inventorySuppliersEmpty": "No suppliers yet",

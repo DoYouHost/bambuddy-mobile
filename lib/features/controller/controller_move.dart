@@ -328,12 +328,12 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
           ),
           const SizedBox(height: DashSpace.sm),
         ],
-        _PresetRow(
-          id: 'controller.length',
-          presets: _lengthPresets,
-          value: _length,
+        ControllerChoices(
+          id: 'controller.length_preset',
+          labels: [for (final p in _lengthPresets) l10n.ctrlMoveMm(p)],
+          selected: _lengthPresets.indexOf(_length),
           enabled: enabled,
-          onChanged: (v) => setState(() => _length = v),
+          onChanged: (i) => setState(() => _length = _lengthPresets[i]),
         ),
         const SizedBox(height: DashSpace.md),
         _JogButton(
@@ -384,12 +384,12 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
         children: [
           Expanded(
             flex: 3,
-            child: _PresetRow(
-              id: 'controller.step',
-              presets: _stepPresets,
-              value: _step,
+            child: ControllerChoices(
+              id: 'controller.step_preset',
+              labels: [for (final p in _stepPresets) l10n.ctrlMoveMm(p)],
+              selected: _stepPresets.indexOf(_step),
               enabled: enabled,
-              onChanged: (v) => setState(() => _step = v),
+              onChanged: (i) => setState(() => _step = _stepPresets[i]),
             ),
           ),
           const SizedBox(width: DashSpace.md),
@@ -487,73 +487,6 @@ class _JogButton extends StatelessWidget {
                 ],
               ),
       ),
-    );
-  }
-}
-
-/// A few mm presets, one of them chosen.
-class _PresetRow extends StatelessWidget {
-  const _PresetRow({
-    required this.id,
-    required this.presets,
-    required this.value,
-    required this.enabled,
-    required this.onChanged,
-  });
-
-  /// Diagnostic id of this row's chips. The tab has two rows — the move step and
-  /// the extrude length — and one shared tag could not say which of them the
-  /// user changed.
-  final String id;
-  final List<int> presets;
-  final int value;
-  final bool enabled;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final l10n = AppLocalizations.of(context);
-    final radius = BorderRadius.circular(DashSpace.md);
-    return Row(
-      children: [
-        for (final (i, p) in presets.indexed) ...[
-          if (i > 0) const SizedBox(width: DashSpace.sm),
-          Expanded(
-            child: logTag(
-              '${id}_preset',
-              Material(
-                color: value == p
-                    ? t.accent.withValues(alpha: 0.16)
-                    : t.subCard,
-                shape: RoundedRectangleBorder(
-                  borderRadius: radius,
-                  side: BorderSide(
-                    color: value == p
-                        ? t.accent.withValues(alpha: 0.4)
-                        : t.subCardBorder,
-                  ),
-                ),
-                child: InkWell(
-                  borderRadius: radius,
-                  onTap: enabled ? () => onChanged(p) : null,
-                  child: Container(
-                    height: _JogButton.size,
-                    alignment: Alignment.center,
-                    child: Text(
-                      l10n.ctrlMoveMm(p),
-                      style: value == p
-                          ? t.monoValue.copyWith(color: t.accentInk)
-                          : t.monoValue,
-                    ),
-                  ),
-                ),
-              ),
-              selected: value == p,
-            ),
-          ),
-        ],
-      ],
     );
   }
 }

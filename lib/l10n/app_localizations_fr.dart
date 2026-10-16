@@ -8120,6 +8120,56 @@ class AppLocalizationsFr extends AppLocalizations {
   String get controllerPrintPaused => 'Impression en pause';
 
   @override
+  String get controllerTabSettings => 'Réglages';
+
+  @override
+  String get controllerSaverTitle => 'Économiseur d\'écran';
+
+  @override
+  String get controllerSaverAfter => 'Démarre après';
+
+  @override
+  String get controllerSaverNever => 'Jamais';
+
+  @override
+  String get controllerSaverNeverTitle => 'Ne jamais assombrir l\'écran ?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'Une image qui ne bouge jamais peut marquer l\'écran, surtout un écran OLED. Désactivez l\'économiseur seulement si vous acceptez ce risque.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Désactiver';
+
+  @override
+  String get controllerSaverBrightness => 'Luminosité';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Luminosité du cadre de l\'économiseur';
+
+  @override
+  String get controllerWakeOnWarnings => 'Réveiller sur avertissement';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Les erreurs qui mettent l\'impression en pause le réveillent toujours.';
+
+  @override
+  String get controllerSaverPreview => 'Aperçu';
+
+  @override
+  String get controllerDisplayTitle => 'Affichage';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'L\'écran reste allumé tant que le contrôleur est ouvert.';
+
+  @override
+  String get controllerLiveCameraHint =>
+      'Désactivée, affiche l\'aperçu du fichier.';
+
+  @override
   String get inventorySuppliersTitle => 'Fournisseurs';
 
   @override

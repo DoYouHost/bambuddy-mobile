@@ -7950,6 +7950,55 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controllerPrintPaused => 'Print paused';
 
   @override
+  String get controllerTabSettings => 'Settings';
+
+  @override
+  String get controllerSaverTitle => 'Screen saver';
+
+  @override
+  String get controllerSaverAfter => 'Starts after';
+
+  @override
+  String get controllerSaverNever => 'Never';
+
+  @override
+  String get controllerSaverNeverTitle => 'Never dim the screen?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'An image that never moves can burn into the screen, OLED panels above all. Turn the saver off only if you accept that risk.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Turn it off';
+
+  @override
+  String get controllerSaverBrightness => 'Brightness';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'How bright the box on the saver is';
+
+  @override
+  String get controllerWakeOnWarnings => 'Wake on warnings';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Faults that pause the print always wake it.';
+
+  @override
+  String get controllerSaverPreview => 'Preview';
+
+  @override
+  String get controllerDisplayTitle => 'Display';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'The screen stays on while the controller is open.';
+
+  @override
+  String get controllerLiveCameraHint => 'Off shows the file preview.';
+
+  @override
   String get inventorySuppliersTitle => 'Suppliers';
 
   @override

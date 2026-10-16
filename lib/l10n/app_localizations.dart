@@ -13346,6 +13346,96 @@ abstract class AppLocalizations {
   /// **'Print paused'**
   String get controllerPrintPaused;
 
+  /// No description provided for @controllerTabSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get controllerTabSettings;
+
+  /// No description provided for @controllerSaverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen saver'**
+  String get controllerSaverTitle;
+
+  /// Label above the idle-time choices of the controller's screen saver (1, 2, 5, 10, 15 minutes, Never)
+  ///
+  /// In en, this message translates to:
+  /// **'Starts after'**
+  String get controllerSaverAfter;
+
+  /// No description provided for @controllerSaverNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get controllerSaverNever;
+
+  /// No description provided for @controllerSaverNeverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Never dim the screen?'**
+  String get controllerSaverNeverTitle;
+
+  /// Shown before the screen saver is turned off for good: the burn-in risk the user has to accept
+  ///
+  /// In en, this message translates to:
+  /// **'An image that never moves can burn into the screen, OLED panels above all. Turn the saver off only if you accept that risk.'**
+  String get controllerSaverNeverBody;
+
+  /// No description provided for @controllerSaverNeverConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn it off'**
+  String get controllerSaverNeverConfirm;
+
+  /// No description provided for @controllerSaverBrightness.
+  ///
+  /// In en, this message translates to:
+  /// **'Brightness'**
+  String get controllerSaverBrightness;
+
+  /// What the brightness slider of the controller's screen saver changes
+  ///
+  /// In en, this message translates to:
+  /// **'How bright the box on the saver is'**
+  String get controllerSaverBrightnessHint;
+
+  /// No description provided for @controllerWakeOnWarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Wake on warnings'**
+  String get controllerWakeOnWarnings;
+
+  /// No description provided for @controllerWakeOnWarningsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Faults that pause the print always wake it.'**
+  String get controllerWakeOnWarningsHint;
+
+  /// No description provided for @controllerSaverPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get controllerSaverPreview;
+
+  /// No description provided for @controllerDisplayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Display'**
+  String get controllerDisplayTitle;
+
+  /// No description provided for @controllerKeepAwakeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The screen stays on while the controller is open.'**
+  String get controllerKeepAwakeHint;
+
+  /// No description provided for @controllerLiveCameraHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Off shows the file preview.'**
+  String get controllerLiveCameraHint;
+
   /// No description provided for @inventorySuppliersTitle.
   ///
   /// In en, this message translates to:

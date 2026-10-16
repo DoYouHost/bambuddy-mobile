@@ -174,10 +174,11 @@ class ControllerSaverHostState extends ConsumerState<ControllerSaverHost> {
     _idle?.cancel();
     final after = ref.read(controllerPrefsProvider).saverAfter;
     if (after == null) return;
-    _idle = Timer(after, _show);
+    _idle = Timer(after, show);
   }
 
-  void _show() {
+  /// Puts the saver up now: the idle timer runs out, or Settings previews it.
+  void show() {
     if (!mounted || _saver != null) return;
     _saver = OverlayEntry(
       builder: (_) => ControllerSaver(printerId: widget.printerId),

@@ -8088,6 +8088,55 @@ class AppLocalizationsPl extends AppLocalizations {
   String get controllerPrintPaused => 'Wydruk wstrzymany';
 
   @override
+  String get controllerTabSettings => 'Ustawienia';
+
+  @override
+  String get controllerSaverTitle => 'Wygaszacz ekranu';
+
+  @override
+  String get controllerSaverAfter => 'Włącza się po';
+
+  @override
+  String get controllerSaverNever => 'Nigdy';
+
+  @override
+  String get controllerSaverNeverTitle => 'Nigdy nie wygaszać ekranu?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'Obraz, który się nie zmienia, może wypalić się na ekranie, zwłaszcza OLED. Wyłącz wygaszacz tylko wtedy, gdy akceptujesz to ryzyko.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Wyłącz';
+
+  @override
+  String get controllerSaverBrightness => 'Jasność';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Jak jasna jest ramka na wygaszaczu';
+
+  @override
+  String get controllerWakeOnWarnings => 'Budź przy ostrzeżeniach';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Błędy, które wstrzymują wydruk, budzą go zawsze.';
+
+  @override
+  String get controllerSaverPreview => 'Podgląd';
+
+  @override
+  String get controllerDisplayTitle => 'Ekran';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'Ekran nie gaśnie, dopóki kontroler jest otwarty.';
+
+  @override
+  String get controllerLiveCameraHint => 'Po wyłączeniu widać podgląd z pliku.';
+
+  @override
   String get inventorySuppliersTitle => 'Dostawcy';
 
   @override

@@ -8047,6 +8047,56 @@ class AppLocalizationsEs extends AppLocalizations {
   String get controllerPrintPaused => 'Impresión en pausa';
 
   @override
+  String get controllerTabSettings => 'Ajustes';
+
+  @override
+  String get controllerSaverTitle => 'Salvapantallas';
+
+  @override
+  String get controllerSaverAfter => 'Se activa tras';
+
+  @override
+  String get controllerSaverNever => 'Nunca';
+
+  @override
+  String get controllerSaverNeverTitle => '¿No atenuar nunca la pantalla?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'Una imagen que nunca se mueve puede quedar marcada en la pantalla, sobre todo en OLED. Desactiva el salvapantallas solo si aceptas ese riesgo.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Desactivar';
+
+  @override
+  String get controllerSaverBrightness => 'Brillo';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Brillo del recuadro del salvapantallas';
+
+  @override
+  String get controllerWakeOnWarnings => 'Activar con avisos';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Los errores que pausan la impresión siempre lo activan.';
+
+  @override
+  String get controllerSaverPreview => 'Vista previa';
+
+  @override
+  String get controllerDisplayTitle => 'Pantalla';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'La pantalla sigue encendida mientras el control está abierto.';
+
+  @override
+  String get controllerLiveCameraHint =>
+      'Desactivada, muestra la vista previa del archivo.';
+
+  @override
   String get inventorySuppliersTitle => 'Proveedores';
 
   @override
