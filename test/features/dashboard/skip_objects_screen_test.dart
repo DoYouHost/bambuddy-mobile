@@ -220,6 +220,35 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets('in landscape Skip sits under the list, not across the plate', (
+    tester,
+  ) async {
+    await pumpScreen(tester, landscape: const Size(844, 390));
+    final handle = tester.ensureSemantics();
+    final plateBefore = tester.getRect(
+      find.bySemanticsIdentifier('skip_objects.marker').first,
+    );
+
+    await tester.tap(
+      find.bySemanticsIdentifier('skip_objects.object_tile').first,
+    );
+    await tester.pump();
+
+    final skip = tester.getRect(byLogId('skip_objects.skip'));
+    final row = tester.getRect(
+      find.bySemanticsIdentifier('skip_objects.object_tile').first,
+    );
+    expect(skip.left, greaterThanOrEqualTo(row.left), reason: 'list column');
+    expect(skip.bottom, lessThanOrEqualTo(390));
+    expect(
+      tester.getRect(find.bySemanticsIdentifier('skip_objects.marker').first),
+      plateBefore,
+      reason: 'the plate keeps its place and size',
+    );
+    expect(tester.takeException(), isNull);
+    handle.dispose();
+  });
+
   testWidgets('without a mask the plate draws one tappable marker per object', (
     tester,
   ) async {

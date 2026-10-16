@@ -63,6 +63,10 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
     final layerNum = status?.layerNum ?? 0;
     final canSkipLayer = layerNum > 1;
     final canSelect = canSkipLayer && !_forbidden && !_skipping;
+    // Landscape: the plate keeps the full height on the left, and the list and
+    // the Skip button share the column beside it.
+    final size = MediaQuery.sizeOf(context);
+    final landscape = size.width > size.height;
 
     return Scaffold(
       appBar: loggedAppBar(
@@ -152,10 +156,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
                   Future<void> refresh() => ref
                       .read(skipObjectsProvider(widget.printerId).notifier)
                       .refresh();
-                  // Landscape: the plate keeps the full height on the left and
-                  // the list scrolls beside it, instead of a plate taller than
-                  // the screen with the list below it.
-                  if (box.maxWidth > box.maxHeight) {
+                  if (landscape) {
                     return Padding(
                       padding: const EdgeInsets.fromLTRB(
                         DashSpace.gutter,
@@ -175,14 +176,37 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
                           ),
                           const SizedBox(width: DashSpace.lg),
                           Expanded(
-                            child: RefreshIndicator(
-                              onRefresh: refresh,
-                              child: ListView(
-                                padding: const EdgeInsets.only(
-                                  bottom: DashSpace.xl,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: RefreshIndicator(
+                                    onRefresh: refresh,
+                                    child: ListView(
+                                      padding: const EdgeInsets.only(
+                                        bottom: DashSpace.md,
+                                      ),
+                                      children: [...details, ...list],
+                                    ),
+                                  ),
                                 ),
-                                children: [...details, ...list],
-                              ),
+                                if (pending.isNotEmpty)
+                                  SafeArea(
+                                    top: false,
+                                    left: false,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: DashSpace.sm,
+                                      ),
+                                      child: _confirmRow(
+                                        t,
+                                        l10n,
+                                        canSelect,
+                                        pending.length,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ],
@@ -212,7 +236,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
                 },
               ),
       ),
-      bottomNavigationBar: pending.isEmpty
+      bottomNavigationBar: pending.isEmpty || landscape
           ? null
           : _confirmBar(t, l10n, canSelect, pending.length),
     );
@@ -253,29 +277,38 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
           horizontal: DashSpace.gutter,
           vertical: DashSpace.sm,
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                l10n.skipObjectsSelectedCount(count),
-                style: t.body.copyWith(color: t.textSecondary),
-              ),
-            ),
-            if (_skipping)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: DashSpace.lg),
-                child: DashSpinner(size: 20),
-              )
-            else
-              FilledButton(
-                onPressed: canConfirm ? _confirmSkipSelected : null,
-                style: dashDangerButtonStyle(t),
-                child: Text(l10n.skipObjectsSkip),
-              ).tagged('skip_objects.skip'),
-          ],
-        ),
+        child: _confirmRow(t, l10n, canConfirm, count),
       ),
     ),
+  );
+
+  /// The selection count and the Skip button: a bar across the bottom in
+  /// portrait, the foot of the list column in landscape.
+  Widget _confirmRow(
+    DashTokens t,
+    AppLocalizations l10n,
+    bool canConfirm,
+    int count,
+  ) => Row(
+    children: [
+      Expanded(
+        child: Text(
+          l10n.skipObjectsSelectedCount(count),
+          style: t.body.copyWith(color: t.textSecondary),
+        ),
+      ),
+      if (_skipping)
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: DashSpace.lg),
+          child: DashSpinner(size: 20),
+        )
+      else
+        FilledButton(
+          onPressed: canConfirm ? _confirmSkipSelected : null,
+          style: dashDangerButtonStyle(t),
+          child: Text(l10n.skipObjectsSkip),
+        ).tagged('skip_objects.skip'),
+    ],
   );
 
   Future<void> _confirmSkipSelected() async {
