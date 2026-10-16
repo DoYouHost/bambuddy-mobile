@@ -4025,7 +4025,7 @@
   "controllerSaverNeverBody": "Une image qui ne bouge jamais peut marquer l'écran, surtout un écran OLED. Désactivez l'économiseur seulement si vous acceptez ce risque.",
   "controllerSaverNeverConfirm": "Désactiver",
   "controllerSaverBrightness": "Luminosité",
-  "controllerSaverBrightnessHint": "Luminosité du cadre de l'économiseur",
+  "controllerSaverBrightnessHint": "Luminosité de l'écran pendant l'économiseur",
   "controllerWakeOnWarnings": "Réveiller sur avertissement",
   "controllerWakeOnWarningsHint": "Les erreurs qui mettent l'impression en pause le réveillent toujours.",
   "controllerSaverPreview": "Aperçu",

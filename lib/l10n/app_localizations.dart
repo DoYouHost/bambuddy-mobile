@@ -13397,7 +13397,7 @@ abstract class AppLocalizations {
   /// What the brightness slider of the controller's screen saver changes
   ///
   /// In en, this message translates to:
-  /// **'How bright the box on the saver is'**
+  /// **'Screen brightness while the saver is up'**
   String get controllerSaverBrightnessHint;
 
   /// No description provided for @controllerWakeOnWarnings.

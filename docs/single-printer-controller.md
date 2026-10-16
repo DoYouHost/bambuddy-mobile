@@ -107,7 +107,9 @@ stays on for both kinds.
 A bouncing box, like the old DVD logo: it travels the whole screen and turns at
 the edges, and its hue changes on every wall hit (a corner hit changes it by
 both). Nothing keeps a fixed position or colour, which is the point on OLED
-panels. It is dim.
+panels. It is dim. The colour stays between green and violet: red, amber and
+yellow mean a fault in this app, and a saver passing through them looked like
+a printer asking for attention.
 
 - While it is up, everything under it is inactive. The first touch only wakes the
   screen and goes nowhere else.
@@ -131,7 +133,7 @@ panels. It is dim.
 | Setting | Meaning |
 |---|---|
 | Start after | idle time before the saver: 1, 2, 5, 10 or 15 minutes, or *Never* |
-| Brightness | how bright the saver is, 10–100% |
+| Brightness | the screen's backlight while the saver is up, 10–100%: this window's own brightness, not the system setting, given back on wake and on leaving |
 | Wake on warnings | whether a fault that does **not** pause the print also wakes the screen; faults that pause it always do |
 | Screen always on | holds the screen on while the controller is open; the saver still runs |
 | Live camera | on: stream; off: file preview |

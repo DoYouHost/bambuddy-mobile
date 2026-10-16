@@ -8073,7 +8073,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get controllerSaverBrightnessHint =>
-      'Brillo del recuadro del salvapantallas';
+      'Brillo de la pantalla mientras el salvapantallas está activo';
 
   @override
   String get controllerWakeOnWarnings => 'Activar con avisos';

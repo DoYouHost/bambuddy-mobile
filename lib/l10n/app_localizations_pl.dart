@@ -8114,7 +8114,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get controllerSaverBrightnessHint =>
-      'Jak jasna jest ramka na wygaszaczu';
+      'Jasność ekranu, gdy działa wygaszacz';
 
   @override
   String get controllerWakeOnWarnings => 'Budź przy ostrzeżeniach';

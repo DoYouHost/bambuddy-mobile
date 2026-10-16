@@ -8053,7 +8053,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get controllerSaverBrightnessHint =>
-      'Wie hell der Rahmen auf dem Bildschirmschoner ist';
+      'Bildschirmhelligkeit, solange der Bildschirmschoner läuft';
 
   @override
   String get controllerWakeOnWarnings => 'Bei Warnungen aufwecken';

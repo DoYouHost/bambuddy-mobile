@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/format/duration_format.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
@@ -5,6 +6,8 @@ import 'package:bambuddy_mobile/features/controller/controller_saver.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:bambuddy_mobile/core/settings/controller_prefs.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -68,18 +71,54 @@ void main() {
     });
   });
 
+  group('the colour', () {
+    test('never leaves green to violet, whatever the turn', () {
+      for (var hue = 0.0; hue < 720; hue += 7.5) {
+        final c = calmHue(hue);
+        expect(c, inInclusiveRange(130, 280), reason: 'hue $hue');
+      }
+    });
+
+    test('still changes at every wall', () {
+      expect(calmHue(100), isNot(calmHue(100 + 90)));
+      expect(calmHue(100), isNot(calmHue(100 + 60)));
+    });
+  });
+
   group('the saver', () {
     late int taps;
+
+    /// Every backlight level the host asked the window for, in order; null is
+    /// "back to the system setting".
+    late List<Object?> backlight;
 
     Future<void> pump(
       WidgetTester tester, {
       int minutes = 1,
       bool keepAwake = true,
+      PrinterStatus status = const PrinterStatus(
+        id: 1,
+        connected: true,
+        state: 'IDLE',
+      ),
     }) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(844, 390);
       addTearDown(tester.view.reset);
       taps = 0;
+      backlight = [];
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      const window = MethodChannel(
+        'page.codeberg.morganmlgman.bambuddy/window',
+      );
+      messenger.setMockMethodCallHandler(window, (call) async {
+        if (call.method == 'screenBrightness') {
+          backlight.add((call.arguments as Map)['level']);
+        }
+        return null;
+      });
+      addTearDown(() => messenger.setMockMethodCallHandler(window, null));
       SharedPreferences.setMockInitialValues({
         'controller_prefs':
             '{"saver_after_minutes":$minutes,"keep_awake":$keepAwake}',
@@ -118,11 +157,11 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(sp),
           noServerProfileOverride,
           fixedDashboardOverride(
-            const DashboardState(
+            DashboardState(
               printers: [
                 PrinterWithStatus(
-                  printer: Printer(id: 1, name: 'X1C'),
-                  status: PrinterStatus(id: 1, connected: true, state: 'IDLE'),
+                  printer: const Printer(id: 1, name: 'X1C'),
+                  status: status,
                 ),
               ],
             ),
@@ -202,6 +241,150 @@ void main() {
 
       expect(saver(), findsNothing);
     });
+
+    testWidgets('dims the backlight to the setting, and gives it back on '
+        'waking', (tester) async {
+      await pump(tester);
+      await tester.pump(const Duration(minutes: 1, seconds: 1));
+      expect(backlight, [ControllerPrefs.defaultSaverBrightness / 100]);
+
+      await tester.tap(find.text('press'), warnIfMissed: false);
+      await tester.pump();
+
+      expect(backlight.last, isNull);
+    });
+
+    testWidgets('gives the backlight back when the controller closes with the '
+        'saver up', (tester) async {
+      await pump(tester);
+      await tester.pump(const Duration(minutes: 1, seconds: 1));
+
+      await tester.pumpWidget(const SizedBox());
+
+      expect(backlight.last, isNull);
+    });
+
+    testWidgets('shows the job\'s progress as the Overview does, in plain '
+        'text', (tester) async {
+      await pump(
+        tester,
+        status: const PrinterStatus(
+          id: 1,
+          connected: true,
+          state: 'RUNNING',
+          progress: 44.3,
+        ),
+      );
+      await tester.pump(const Duration(minutes: 1, seconds: 1));
+
+      expect(find.text('44%'), findsOneWidget);
+      // An overlay entry outside a Material gets Flutter's yellow underlined
+      // fallback style.
+      final style = tester
+          .widget<RichText>(
+            find.descendant(
+              of: find.text(pl.controllerTouchToWake),
+              matching: find.byType(RichText),
+            ),
+          )
+          .text
+          .style;
+      expect(style?.decoration, isNot(TextDecoration.underline));
+    });
+
+    testWidgets('a job shows its progress, layer, time left and finish time', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        status: const PrinterStatus(
+          id: 1,
+          connected: true,
+          state: 'RUNNING',
+          progress: 44.3,
+          layerNum: 116,
+          totalLayers: 264,
+          remainingTime: 51,
+        ),
+      );
+      await tester.pump(const Duration(minutes: 1, seconds: 1));
+
+      expect(find.text('44%'), findsOneWidget);
+      expect(find.text('116/264'), findsOneWidget);
+      expect(find.text(pl.remaining(formatMinutes(pl, 51))), findsOneWidget);
+      expect(find.textContaining(pl.eta('').trim()), findsOneWidget);
+    });
+
+    testWidgets('with nothing printing it shows the printer and its state', (
+      tester,
+    ) async {
+      await pump(tester);
+      await tester.pump(const Duration(minutes: 1, seconds: 1));
+
+      expect(
+        find.descendant(
+          of: find.byType(ControllerSaver),
+          matching: find.text('X1C'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(ControllerSaver),
+          matching: find.textContaining('%'),
+        ),
+        findsNothing,
+        reason: 'no job, no progress',
+      );
+    });
+
+    testWidgets(
+      'the box stays on the screen and in calm colours however long it '
+      'travels',
+      (tester) async {
+        await pump(
+          tester,
+          status: const PrinterStatus(
+            id: 1,
+            connected: true,
+            state: 'RUNNING',
+            progress: 51,
+            layerNum: 134,
+            totalLayers: 264,
+            remainingTime: 45,
+          ),
+        );
+        await tester.pump(const Duration(minutes: 1, seconds: 1));
+
+        final screen = Offset.zero & tester.view.physicalSize;
+        final card = find
+            .descendant(
+              of: find.byType(ControllerSaver),
+              matching: find.byType(DecoratedBox),
+            )
+            .first;
+        for (var i = 0; i < 600; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+          final rect = tester.getRect(card);
+          expect(
+            screen.contains(rect.topLeft) &&
+                screen.contains(rect.bottomRight - const Offset(0.01, 0.01)),
+            isTrue,
+            reason: 'frame $i: $rect is outside $screen',
+          );
+          final border =
+              (tester.widget<DecoratedBox>(card).decoration as BoxDecoration)
+                  .border!
+                  .top
+                  .color;
+          expect(
+            HSVColor.fromColor(border).hue,
+            inInclusiveRange(129, 281),
+            reason: 'frame $i: a warning colour',
+          );
+        }
+      },
+    );
 
     testWidgets('never comes up when set to Never', (tester) async {
       await pump(tester, minutes: 0);

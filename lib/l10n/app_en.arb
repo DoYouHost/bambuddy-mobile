@@ -5311,7 +5311,7 @@
   },
   "controllerSaverNeverConfirm": "Turn it off",
   "controllerSaverBrightness": "Brightness",
-  "controllerSaverBrightnessHint": "How bright the box on the saver is",
+  "controllerSaverBrightnessHint": "Screen brightness while the saver is up",
   "@controllerSaverBrightnessHint": {
     "description": "What the brightness slider of the controller's screen saver changes"
   },

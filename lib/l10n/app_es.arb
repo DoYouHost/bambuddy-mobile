@@ -4025,7 +4025,7 @@
   "controllerSaverNeverBody": "Una imagen que nunca se mueve puede quedar marcada en la pantalla, sobre todo en OLED. Desactiva el salvapantallas solo si aceptas ese riesgo.",
   "controllerSaverNeverConfirm": "Desactivar",
   "controllerSaverBrightness": "Brillo",
-  "controllerSaverBrightnessHint": "Brillo del recuadro del salvapantallas",
+  "controllerSaverBrightnessHint": "Brillo de la pantalla mientras el salvapantallas está activo",
   "controllerWakeOnWarnings": "Activar con avisos",
   "controllerWakeOnWarningsHint": "Los errores que pausan la impresión siempre lo activan.",
   "controllerSaverPreview": "Vista previa",

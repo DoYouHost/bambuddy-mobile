@@ -3336,7 +3336,7 @@
   "controllerSaverNeverBody": "Obraz, który się nie zmienia, może wypalić się na ekranie, zwłaszcza OLED. Wyłącz wygaszacz tylko wtedy, gdy akceptujesz to ryzyko.",
   "controllerSaverNeverConfirm": "Wyłącz",
   "controllerSaverBrightness": "Jasność",
-  "controllerSaverBrightnessHint": "Jak jasna jest ramka na wygaszaczu",
+  "controllerSaverBrightnessHint": "Jasność ekranu, gdy działa wygaszacz",
   "controllerWakeOnWarnings": "Budź przy ostrzeżeniach",
   "controllerWakeOnWarningsHint": "Błędy, które wstrzymują wydruk, budzą go zawsze.",
   "controllerSaverPreview": "Podgląd",

@@ -1,16 +1,19 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_catalog.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../dashboard/widgets/printer_state_pill.dart';
+import '../wall/wall_providers.dart';
 import 'controller_faults.dart';
 import 'controller_providers.dart';
 
@@ -45,6 +48,16 @@ Bounce bounceStep(Bounce b, Duration dt, Size room, Size box) {
 
 const _sideTurn = 90.0;
 const _edgeTurn = 60.0;
+
+/// The colour the box is drawn in for [hue]: the full turn of [bounceStep]
+/// squeezed into green, teal, blue and violet. Red, amber and yellow are what
+/// a fault looks like in this app, and a saver drifting through them read as a
+/// printer asking for attention.
+double calmHue(double hue) =>
+    _calmFrom + (hue % 360) / 360 * (_calmTo - _calmFrom);
+
+const _calmFrom = 130.0;
+const _calmTo = 280.0;
 
 /// Wraps the controller: counts the time since the last touch and, once it
 /// passes the "Start after" setting, puts the saver over everything — an open
@@ -82,9 +95,13 @@ class ControllerSaverHostState extends ConsumerState<ControllerSaverHost> {
 
   bool get saverUp => _saver != null;
 
+  /// Read in `initState`: `dispose` must not touch `ref`.
+  late final ScreenAwake _awake;
+
   @override
   void initState() {
     super.initState();
+    _awake = ref.read(screenAwakeProvider);
     // Global, not a Listener over the screen: a touch in a dialog or a sheet,
     // which are routes of their own, is activity too.
     GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
@@ -163,7 +180,11 @@ class ControllerSaverHostState extends ConsumerState<ControllerSaverHost> {
   void dispose() {
     GestureBinding.instance.pointerRouter.removeGlobalRoute(_onPointer);
     _idle?.cancel();
-    _saver?.remove();
+    if (_saver != null) {
+      _saver!.remove();
+      // Leaving the controller with the saver up must not leave the window dim.
+      unawaited(_awake.setBrightness(null));
+    }
     super.dispose();
   }
 
@@ -174,8 +195,11 @@ class ControllerSaverHostState extends ConsumerState<ControllerSaverHost> {
 
   /// Takes the saver away, if it is up, and starts the count again.
   void wake() {
-    _saver?.remove();
-    _saver = null;
+    if (_saver != null) {
+      _saver!.remove();
+      _saver = null;
+      unawaited(_awake.setBrightness(null));
+    }
     _restart();
   }
 
@@ -192,6 +216,11 @@ class ControllerSaverHostState extends ConsumerState<ControllerSaverHost> {
   /// Puts the saver up now: the idle timer runs out, or Settings previews it.
   void show() {
     if (!mounted || _saver != null) return;
+    unawaited(
+      _awake.setBrightness(
+        ref.read(controllerPrefsProvider).saverBrightness / 100,
+      ),
+    );
     _saver = OverlayEntry(
       builder: (_) => ControllerSaver(printerId: widget.printerId),
     );
@@ -211,7 +240,7 @@ class ControllerSaver extends ConsumerStatefulWidget {
   final int printerId;
 
   /// The box's own size; it is laid out at this and bounced within the screen.
-  static const box = Size(300, 150);
+  static const box = Size(440, 200);
 
   @override
   ConsumerState<ControllerSaver> createState() => _ControllerSaverState();
@@ -233,14 +262,18 @@ class _ControllerSaverState extends ConsumerState<ControllerSaver>
   @override
   void initState() {
     super.initState();
-    _ticker = createTicker((elapsed) {
-      final dt = elapsed - _last;
-      _last = elapsed;
-      if (_room.isEmpty) return;
-      setState(
-        () => _bounce = bounceStep(_bounce, dt, _room, ControllerSaver.box),
-      );
-    })..start();
+    // A method, not a closure holding the step: a hot reload swaps a method's
+    // body but leaves a running closure on the code it was created with.
+    _ticker = createTicker(_tick)..start();
+  }
+
+  void _tick(Duration elapsed) {
+    final dt = elapsed - _last;
+    _last = elapsed;
+    if (_room.isEmpty) return;
+    setState(
+      () => _bounce = bounceStep(_bounce, dt, _room, ControllerSaver.box),
+    );
   }
 
   @override
@@ -251,13 +284,13 @@ class _ControllerSaverState extends ConsumerState<ControllerSaver>
 
   @override
   Widget build(BuildContext context) {
-    final brightness = ref.watch(
-      controllerPrefsProvider.select((p) => p.saverBrightness),
-    );
-    final color = HSVColor.fromAHSV(1, _bounce.hue, 0.55, 1).toColor();
+    final color = HSVColor.fromAHSV(1, calmHue(_bounce.hue), 0.55, 1).toColor();
     return Listener(
       behavior: HitTestBehavior.opaque,
-      child: ColoredBox(
+      // A Material, not a bare colour: the saver is an overlay entry above the
+      // screen's own Material, and text without one gets Flutter's yellow
+      // underlined fallback style.
+      child: Material(
         color: Colors.black,
         child: LayoutBuilder(
           builder: (context, box) {
@@ -269,10 +302,9 @@ class _ControllerSaverState extends ConsumerState<ControllerSaver>
                   top: _bounce.position.dy,
                   width: ControllerSaver.box.width,
                   height: ControllerSaver.box.height,
-                  child: Opacity(
-                    opacity: brightness / 100,
-                    child: _SaverBox(printerId: widget.printerId, color: color),
-                  ),
+                  // Full strength: the brightness setting dims the backlight
+                  // itself (the host's `setBrightness`).
+                  child: _SaverBox(printerId: widget.printerId, color: color),
                 ),
               ],
             );
@@ -289,83 +321,214 @@ class _SaverBox extends ConsumerWidget {
   final int printerId;
   final Color color;
 
+  static const _ring = 150.0;
+  static const _ringStroke = 12.0;
+  static const _percentFont = 44.0;
+  static const _leftFont = 26.0;
+  static const _clockFont = 64.0;
+
+  /// Near-black under the colour: white figures on it carry from across a
+  /// room, and the colour stays an accent rather than a wash.
+  static const _ground = Color(0xFF0B0C10);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
+    final fmt = DateTimeFormats.of(context);
     final item = ref.watch(controllerPrinterProvider(printerId)).item;
     final status = item?.status;
     final job = status != null && (status.isPrinting || status.isPaused);
-    final remaining = status?.remainingTime;
-    final ink = t.bodySoft.copyWith(color: color);
+    // Rebuilt every frame by the bounce, so the clock keeps itself current.
+    final now = DateTime.now();
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(DashSpace.xl),
-        border: Border.all(color: color.withValues(alpha: 0.6), width: 2),
+        gradient: RadialGradient(
+          center: Alignment.topLeft,
+          radius: 1.2,
+          colors: [color.withValues(alpha: 0.22), _ground],
+        ),
+        border: Border.all(color: color.withValues(alpha: 0.85), width: 2),
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: 0.18), blurRadius: 18),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(DashSpace.lg),
         child: FittedBox(
           fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (job) ...[
-                Row(
-                  children: [
-                    Text(
-                      '${status.progress ?? 0}%',
-                      style: t.monoDisplay.copyWith(
-                        color: color,
-                        fontSize: _percentFont,
-                      ),
-                    ),
-                    const SizedBox(width: DashSpace.lg),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (status.layerNum != null &&
-                            status.totalLayers != null)
-                          Text(
-                            '${status.layerNum}/${status.totalLayers}',
-                            style: ink,
-                          ),
-                        if (remaining != null && remaining > 0)
-                          Text(
-                            l10n.remaining(formatMinutes(l10n, remaining)),
-                            style: ink,
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-                Text(
-                  [
-                    ?(status.currentPrint ?? status.gcodeFile),
-                    ?item?.printer.name,
-                  ].join(' · '),
-                  style: ink,
-                  maxLines: 1,
-                ),
-              ] else ...[
-                Text(
-                  item?.printer.name ?? '',
-                  style: t.titleLg.copyWith(color: color),
-                ),
-                if (status != null) ...[
-                  const SizedBox(height: DashSpace.sm),
-                  printerStatePill(t, l10n, status, offline: false),
-                ],
-              ],
-              const SizedBox(height: DashSpace.sm),
-              Text(l10n.controllerTouchToWake, style: t.labelSoft),
-            ],
-          ),
+          child: job
+              ? _job(t, l10n, fmt, status, item!.printer.name, now)
+              : _idle(t, l10n, fmt, status, item?.printer.name ?? '', now),
         ),
       ),
     );
   }
 
-  static const _percentFont = 44.0;
+  Widget _job(
+    DashTokens t,
+    AppLocalizations l10n,
+    DateTimeFormats fmt,
+    PrinterStatus status,
+    String printer,
+    DateTime now,
+  ) {
+    final progress = status.progress ?? 0;
+    final remaining = status.remainingTime;
+    final quiet = t.bodySoft.copyWith(color: t.textSecondary);
+    Widget fact(IconData icon, String text) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: DashSpace.lg, color: color),
+        const SizedBox(width: DashSpace.xs),
+        Text(text, style: quiet),
+      ],
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox.square(
+          dimension: _ring,
+          child: CustomPaint(
+            painter: _RingPainter(
+              value: (progress / 100).clamp(0.0, 1.0),
+              color: color,
+              stroke: _ringStroke,
+            ),
+            child: Center(
+              child: Text(
+                '${progress.toStringAsFixed(0)}%',
+                style: t.monoDisplay.copyWith(
+                  color: t.textPrimary,
+                  fontSize: _percentFont,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: DashSpace.xl),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _nameWidth),
+              child: Text(
+                status.currentPrint ?? status.gcodeFile ?? printer,
+                style: t.titleLg.copyWith(color: t.textPrimary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Text('$printer · ${fmt.time(now)}', style: quiet),
+            if (remaining != null && remaining > 0) ...[
+              const SizedBox(height: DashSpace.md),
+              Text(
+                l10n.remaining(formatMinutes(l10n, remaining)),
+                style: t.monoDisplay.copyWith(
+                  color: color,
+                  fontSize: _leftFont,
+                ),
+              ),
+            ],
+            const SizedBox(height: DashSpace.sm),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (status.layerNum != null && status.totalLayers != null) ...[
+                  fact(
+                    Icons.layers_outlined,
+                    '${status.layerNum}/${status.totalLayers}',
+                  ),
+                  const SizedBox(width: DashSpace.lg),
+                ],
+                if (remaining != null && remaining > 0)
+                  fact(
+                    Icons.flag_outlined,
+                    l10n.eta(fmt.time(now.add(Duration(minutes: remaining)))),
+                  ),
+              ],
+            ),
+            const SizedBox(height: DashSpace.md),
+            Text(l10n.controllerTouchToWake, style: t.labelSoft),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _idle(
+    DashTokens t,
+    AppLocalizations l10n,
+    DateTimeFormats fmt,
+    PrinterStatus? status,
+    String printer,
+    DateTime now,
+  ) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        fmt.time(now),
+        style: t.monoDisplay.copyWith(
+          color: t.textPrimary,
+          fontSize: _clockFont,
+        ),
+      ),
+      const SizedBox(height: DashSpace.xs),
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(printer, style: t.titleLg.copyWith(color: color)),
+          if (status != null) ...[
+            const SizedBox(width: DashSpace.md),
+            printerStatePill(t, l10n, status, offline: false),
+          ],
+        ],
+      ),
+      const SizedBox(height: DashSpace.md),
+      Text(l10n.controllerTouchToWake, style: t.labelSoft),
+    ],
+  );
+
+  /// The file name never runs the box wider than this.
+  static const _nameWidth = 260.0;
+}
+
+/// The progress ring: a dim track, and an arc from 12 o'clock with round
+/// ends.
+class _RingPainter extends CustomPainter {
+  const _RingPainter({
+    required this.value,
+    required this.color,
+    required this.stroke,
+  });
+
+  final double value;
+  final Color color;
+  final double stroke;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = (Offset.zero & size).deflate(stroke / 2);
+    final track = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..color = color.withValues(alpha: 0.14);
+    canvas.drawArc(rect, 0, 2 * math.pi, false, track);
+    if (value <= 0) return;
+    final sweep = 2 * math.pi * value;
+    // One colour: a sweep gradient wraps around where the round cap reaches
+    // back past 12 o'clock, and painted a bright blob at the start.
+    final arc = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round
+      ..color = color;
+    canvas.drawArc(rect, -math.pi / 2, sweep, false, arc);
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.value != value || old.color != color || old.stroke != stroke;
 }

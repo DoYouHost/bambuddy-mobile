@@ -7976,7 +7976,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get controllerSaverBrightnessHint =>
-      'How bright the box on the saver is';
+      'Screen brightness while the saver is up';
 
   @override
   String get controllerWakeOnWarnings => 'Wake on warnings';

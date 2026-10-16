@@ -8146,7 +8146,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get controllerSaverBrightnessHint =>
-      'Luminosité du cadre de l\'économiseur';
+      'Luminosité de l\'écran pendant l\'économiseur';
 
   @override
   String get controllerWakeOnWarnings => 'Réveiller sur avertissement';
