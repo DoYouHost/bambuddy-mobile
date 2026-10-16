@@ -5319,8 +5319,13 @@
   "controllerWakeOnWarningsHint": "Faults that pause the print always wake it.",
   "controllerSaverPreview": "Preview",
   "controllerDisplayTitle": "Display",
-  "controllerKeepAwakeHint": "The screen stays on while the controller is open.",
+  "controllerKeepAwakeHint": "The phone won't turn the screen off. The saver still works.",
   "controllerLiveCameraHint": "Off shows the file preview.",
+  "controllerKeepAwake": "Screen always on",
+  "controllerSaverNeedsAwake": "Without this, the saver is off.",
+  "@controllerSaverNeedsAwake": {
+    "description": "Line under the Screen always on switch while it is off: the saver's settings are disabled, and this says why"
+  },
   "inventorySuppliersTitle": "Suppliers",
   "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
   "inventorySuppliersEmpty": "No suppliers yet",

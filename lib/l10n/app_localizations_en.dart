@@ -7993,10 +7993,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get controllerKeepAwakeHint =>
-      'The screen stays on while the controller is open.';
+      'The phone won\'t turn the screen off. The saver still works.';
 
   @override
   String get controllerLiveCameraHint => 'Off shows the file preview.';
+
+  @override
+  String get controllerKeepAwake => 'Screen always on';
+
+  @override
+  String get controllerSaverNeedsAwake => 'Without this, the saver is off.';
 
   @override
   String get inventorySuppliersTitle => 'Suppliers';

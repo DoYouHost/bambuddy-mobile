@@ -8070,11 +8070,18 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get controllerKeepAwakeHint =>
-      'Der Bildschirm bleibt an, solange die Steuerung geöffnet ist.';
+      'Das Handy schaltet den Bildschirm nicht selbst aus. Der Bildschirmschoner läuft weiter.';
 
   @override
   String get controllerLiveCameraHint =>
       'Aus zeigt die Vorschau aus der Datei.';
+
+  @override
+  String get controllerKeepAwake => 'Bildschirm immer an';
+
+  @override
+  String get controllerSaverNeedsAwake =>
+      'Ohne diese Option ist der Bildschirmschoner aus.';
 
   @override
   String get inventorySuppliersTitle => 'Lieferanten';

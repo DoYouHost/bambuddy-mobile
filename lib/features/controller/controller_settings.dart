@@ -33,11 +33,18 @@ class ControllerSettings extends ConsumerWidget {
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(0, ControllerSection.headerHeight),
                 ),
-                icon: const Icon(Icons.visibility_outlined),
+                icon: Icon(
+                  prefs.keepAwake
+                      ? Icons.visibility_outlined
+                      : Icons.lock_outline,
+                ),
                 label: Text(l10n.controllerSaverPreview),
-                onPressed: () => context
-                    .findAncestorStateOfType<ControllerSaverHostState>()
-                    ?.show(),
+                // Without the screen held on, the phone turns it off first.
+                onPressed: prefs.keepAwake
+                    ? () => context
+                          .findAncestorStateOfType<ControllerSaverHostState>()
+                          ?.show()
+                    : null,
               ),
             ),
             child: _SaverSettings(prefs: prefs),
@@ -53,8 +60,12 @@ class ControllerSettings extends ConsumerWidget {
               children: [
                 SettingsSwitchRow(
                   tag: 'controller.keep_awake',
-                  title: l10n.wallKeepAwakeTitle,
-                  subtitle: l10n.controllerKeepAwakeHint,
+                  title: l10n.controllerKeepAwake,
+                  // Off, the line says what it costs: the saver's settings
+                  // beside it are locked, and this is why.
+                  subtitle: prefs.keepAwake
+                      ? l10n.controllerKeepAwakeHint
+                      : l10n.controllerSaverNeedsAwake,
                   value: prefs.keepAwake,
                   onChanged: (v) =>
                       notifier.update((p) => p.copyWith(keepAwake: v)),
@@ -87,6 +98,7 @@ class _SaverSettings extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final notifier = ref.read(controllerPrefsProvider.notifier);
     const options = ControllerPrefs.saverAfterOptions;
+    final awake = prefs.keepAwake;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -104,6 +116,7 @@ class _SaverSettings extends ConsumerWidget {
                   : formatMinutes(l10n, m),
           ],
           selected: options.indexOf(prefs.saverAfterMinutes),
+          enabled: awake,
           onChanged: (i) => _setAfter(context, ref, options[i]),
         ),
         const SizedBox(height: DashSpace.md),
@@ -129,8 +142,11 @@ class _SaverSettings extends ConsumerWidget {
                 (ControllerPrefs.maxSaverBrightness -
                     ControllerPrefs.minSaverBrightness) ~/
                 ControllerPrefs.saverBrightnessStep,
-            onChanged: (v) =>
-                notifier.update((p) => p.copyWith(saverBrightness: v.round())),
+            onChanged: awake
+                ? (v) => notifier.update(
+                    (p) => p.copyWith(saverBrightness: v.round()),
+                  )
+                : null,
           ),
         ),
         SettingsSwitchRow(
@@ -138,8 +154,9 @@ class _SaverSettings extends ConsumerWidget {
           title: l10n.controllerWakeOnWarnings,
           subtitle: l10n.controllerWakeOnWarningsHint,
           value: prefs.wakeOnWarnings,
-          onChanged: (v) =>
-              notifier.update((p) => p.copyWith(wakeOnWarnings: v)),
+          onChanged: awake
+              ? (v) => notifier.update((p) => p.copyWith(wakeOnWarnings: v))
+              : null,
         ),
       ],
     );

@@ -71,13 +71,18 @@ void main() {
   group('the saver', () {
     late int taps;
 
-    Future<void> pump(WidgetTester tester, {int minutes = 1}) async {
+    Future<void> pump(
+      WidgetTester tester, {
+      int minutes = 1,
+      bool keepAwake = true,
+    }) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(844, 390);
       addTearDown(tester.view.reset);
       taps = 0;
       SharedPreferences.setMockInitialValues({
-        'controller_prefs': '{"saver_after_minutes":$minutes}',
+        'controller_prefs':
+            '{"saver_after_minutes":$minutes,"keep_awake":$keepAwake}',
       });
       final sp = await SharedPreferences.getInstance();
       await pumpPhone(
@@ -186,6 +191,16 @@ void main() {
       await tester.tap(find.text('in dialog'), warnIfMissed: false);
       await tester.pump();
       expect(taps, 0, reason: 'the dialog under the saver was not pressed');
+    });
+
+    testWidgets('does not count down while the phone may turn the screen off', (
+      tester,
+    ) async {
+      await pump(tester, keepAwake: false);
+
+      await tester.pump(const Duration(hours: 1));
+
+      expect(saver(), findsNothing);
     });
 
     testWidgets('never comes up when set to Never', (tester) async {

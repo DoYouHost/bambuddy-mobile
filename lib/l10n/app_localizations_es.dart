@@ -8090,11 +8090,18 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get controllerKeepAwakeHint =>
-      'La pantalla sigue encendida mientras el control está abierto.';
+      'El teléfono no apagará la pantalla. El salvapantallas sigue funcionando.';
 
   @override
   String get controllerLiveCameraHint =>
       'Desactivada, muestra la vista previa del archivo.';
+
+  @override
+  String get controllerKeepAwake => 'Pantalla siempre encendida';
+
+  @override
+  String get controllerSaverNeedsAwake =>
+      'Sin esta opción, el salvapantallas no funciona.';
 
   @override
   String get inventorySuppliersTitle => 'Proveedores';

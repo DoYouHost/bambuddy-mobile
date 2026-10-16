@@ -8131,10 +8131,16 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get controllerKeepAwakeHint =>
-      'Ekran nie gaśnie, dopóki kontroler jest otwarty.';
+      'Telefon nie wyłączy ekranu sam. Wygaszacz nadal działa.';
 
   @override
   String get controllerLiveCameraHint => 'Po wyłączeniu widać podgląd z pliku.';
+
+  @override
+  String get controllerKeepAwake => 'Ekran zawsze włączony';
+
+  @override
+  String get controllerSaverNeedsAwake => 'Bez tej opcji wygaszacz nie działa.';
 
   @override
   String get inventorySuppliersTitle => 'Dostawcy';

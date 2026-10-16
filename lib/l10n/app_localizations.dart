@@ -13427,7 +13427,7 @@ abstract class AppLocalizations {
   /// No description provided for @controllerKeepAwakeHint.
   ///
   /// In en, this message translates to:
-  /// **'The screen stays on while the controller is open.'**
+  /// **'The phone won\'t turn the screen off. The saver still works.'**
   String get controllerKeepAwakeHint;
 
   /// No description provided for @controllerLiveCameraHint.
@@ -13435,6 +13435,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Off shows the file preview.'**
   String get controllerLiveCameraHint;
+
+  /// No description provided for @controllerKeepAwake.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen always on'**
+  String get controllerKeepAwake;
+
+  /// Line under the Screen always on switch while it is off: the saver's settings are disabled, and this says why
+  ///
+  /// In en, this message translates to:
+  /// **'Without this, the saver is off.'**
+  String get controllerSaverNeedsAwake;
 
   /// No description provided for @inventorySuppliersTitle.
   ///

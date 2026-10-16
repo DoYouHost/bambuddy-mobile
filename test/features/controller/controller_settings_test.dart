@@ -121,6 +121,39 @@ void main() {
     expect(find.text(pl.controllerSaverNeverBody), findsNothing);
   });
 
+  group('without the screen always on', () {
+    Future<void> screenNotHeld(WidgetTester tester) async {
+      await pump(tester);
+      if (prefs(tester).keepAwake) {
+        await tester.tap(byLogId('controller.keep_awake'));
+        await tester.pump();
+      }
+    }
+
+    testWidgets('the saver\'s settings are locked and say why', (tester) async {
+      await screenNotHeld(tester);
+      final before = prefs(tester).saverAfterMinutes;
+
+      expect(find.text(pl.controllerSaverNeedsAwake), findsOneWidget);
+      await tapChoice(tester, ControllerPrefs.saverAfterOptions.indexOf(10));
+      await tester.tap(byLogId('controller.saver_preview'));
+      await tester.pump();
+
+      expect(prefs(tester).saverAfterMinutes, before);
+      expect(find.byType(ControllerSaver), findsNothing);
+    });
+
+    testWidgets('turning it back on unlocks them', (tester) async {
+      await screenNotHeld(tester);
+      await tester.tap(byLogId('controller.keep_awake'));
+      await tester.pump();
+
+      expect(find.text(pl.controllerSaverNeedsAwake), findsNothing);
+      await tapChoice(tester, ControllerPrefs.saverAfterOptions.indexOf(10));
+      expect(prefs(tester).saverAfterMinutes, 10);
+    });
+  });
+
   group('the switches', () {
     testWidgets('each one flips its own setting', (tester) async {
       await pump(tester);

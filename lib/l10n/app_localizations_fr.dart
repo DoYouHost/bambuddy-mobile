@@ -8163,11 +8163,18 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get controllerKeepAwakeHint =>
-      'L\'écran reste allumé tant que le contrôleur est ouvert.';
+      'Le téléphone n\'éteint pas l\'écran. L\'économiseur fonctionne toujours.';
 
   @override
   String get controllerLiveCameraHint =>
       'Désactivée, affiche l\'aperçu du fichier.';
+
+  @override
+  String get controllerKeepAwake => 'Écran toujours allumé';
+
+  @override
+  String get controllerSaverNeedsAwake =>
+      'Sans cette option, l\'économiseur est désactivé.';
 
   @override
   String get inventorySuppliersTitle => 'Fournisseurs';

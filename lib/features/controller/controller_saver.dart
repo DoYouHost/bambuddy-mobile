@@ -89,7 +89,7 @@ class ControllerSaverHostState extends ConsumerState<ControllerSaverHost> {
     // which are routes of their own, is activity too.
     GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
     ref.listenManual(
-      controllerPrefsProvider.select((p) => p.saverAfter),
+      controllerPrefsProvider.select((p) => (p.saverAfter, p.keepAwake)),
       (_, _) => _restart(),
     );
     final present = _codes(
@@ -181,8 +181,11 @@ class ControllerSaverHostState extends ConsumerState<ControllerSaverHost> {
 
   void _restart() {
     _idle?.cancel();
-    final after = ref.read(controllerPrefsProvider).saverAfter;
-    if (after == null) return;
+    final prefs = ref.read(controllerPrefsProvider);
+    final after = prefs.saverAfter;
+    // Without the screen held on, the phone's own timeout turns it off; the
+    // saver is not offered then (Settings says so), so it does not count down.
+    if (after == null || !prefs.keepAwake) return;
     _idle = Timer(after, show);
   }
 
