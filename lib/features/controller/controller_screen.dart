@@ -144,7 +144,13 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
       child: DashBackground(
         child: Scaffold(
           backgroundColor: Colors.transparent,
+          // Not the sides: Android reports a camera cutout as an inset down the
+          // whole edge, though the hole is a small circle, and the strip it
+          // left was the widest empty space on the screen. The gutter keeps
+          // the content off the glass edge.
           body: SafeArea(
+            left: false,
+            right: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
                 DashSpace.gutter,

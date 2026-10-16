@@ -128,6 +128,26 @@ void main() {
     expect(find.text(pl.controllerTabOverview), findsOneWidget);
   });
 
+  testWidgets('a camera cutout at the side does not push the content in', (
+    tester,
+  ) async {
+    await pumpController(tester);
+    // A punch-hole on the left of a landscape phone, reported as an inset
+    // down the whole edge.
+    tester.view.padding = FakeViewPadding(
+      left: 64 * tester.view.devicePixelRatio,
+    );
+    tester.view.viewPadding = FakeViewPadding(
+      left: 64 * tester.view.devicePixelRatio,
+    );
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
+
+    await open(tester);
+
+    expect(tester.getRect(byLogId('controller.exit')).left, lessThan(64));
+  });
+
   testWidgets('with one printer its name is not a switcher', (tester) async {
     await pumpController(tester);
 
