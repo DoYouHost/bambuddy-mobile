@@ -88,6 +88,26 @@ void main() {
     await tester.pump();
   }
 
+  group('a fan', () {
+    testWidgets('reading out of range is shown at the end, not a crash', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        const PrinterStatus(
+          id: 1,
+          connected: true,
+          state: 'IDLE',
+          coolingFanSpeed: 120,
+          temperatures: {'nozzle': 30, 'bed': 25},
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('100%'), findsOneWidget);
+    });
+  });
+
   group('the targets', () {
     testWidgets('show each heater with the target it is heading for', (
       tester,

@@ -1,10 +1,13 @@
 import 'package:bambuddy_mobile/core/ams/slot_addressing.dart';
+import 'package:bambuddy_mobile/core/models/inventory.dart';
+import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_filament.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:flutter/material.dart';
@@ -76,6 +79,8 @@ void main() {
     PrinterStatus status, {
     int? nozzleCount,
     Size size = _phone,
+    String? serial,
+    InventoryState? inventory,
   }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
@@ -107,6 +112,7 @@ void main() {
                   name: 'P',
                   model: 'X1C',
                   nozzleCount: nozzleCount,
+                  serialNumber: serial,
                 ),
                 status: status,
               ),
@@ -114,6 +120,10 @@ void main() {
           ),
         ),
         printerStatusesProvider.overrideWith(() => statuses),
+        if (inventory != null) ...[
+          inventoryProvider.overrideWith(() => FixedInventory(inventory)),
+          inventoryBackendOverride(InventoryBackend.spoolman),
+        ],
       ],
     );
     await tester.pump();
@@ -189,6 +199,30 @@ void main() {
       await tester.tap(byLogId('controller.load'));
       await settle(tester);
       expect(commands.calls, ['amsLoad:1:2:-']);
+    });
+  });
+
+  group('a spool without a tag', () {
+    testWidgets('is found in Spoolman by the printer\'s serial and the slot', (
+      tester,
+    ) async {
+      // The tag the server derives for slot 0 of unit 0 of this printer.
+      final tag = fallbackSpoolTag('01P00A123456789', 0, 0)!;
+      await pump(
+        tester,
+        _status(),
+        serial: '01P00A123456789',
+        inventory: InventoryState(
+          linkedTags: {
+            tag: const LinkedSpool(id: 7, remaining: 250, filament: 1000),
+          },
+        ),
+      );
+      await tester.pump();
+
+      // Spoolman's 25% wins over the tray's own 82%.
+      expect(find.textContaining('25%'), findsOneWidget);
+      expect(find.textContaining('82%'), findsNothing);
     });
   });
 

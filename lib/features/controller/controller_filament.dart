@@ -86,6 +86,7 @@ class _ControllerFilamentState extends ConsumerState<ControllerFilament> {
             printerId: widget.printerId,
             status: status,
             nozzleCount: item.printer.nozzleCount,
+            serial: item.printer.serialNumber,
             unitIndex: entry.unitIndex,
             unit: entry.unit,
             trays: trays,
@@ -211,6 +212,7 @@ class _Pane extends ConsumerWidget {
     required this.printerId,
     required this.status,
     required this.nozzleCount,
+    required this.serial,
     required this.unitIndex,
     required this.unit,
     required this.trays,
@@ -222,6 +224,10 @@ class _Pane extends ConsumerWidget {
   final int printerId;
   final PrinterStatus status;
   final int? nozzleCount;
+
+  /// The printer's serial number: a spool without a tag is matched in
+  /// Spoolman by a tag derived from it and the slot (`fallbackSpoolTag`).
+  final String? serial;
 
   /// Null for the external holder, whose [trays] are its spools.
   final int? unitIndex;
@@ -387,7 +393,7 @@ class _Pane extends ConsumerWidget {
                       tray,
                       amsId: amsId,
                       trayId: unit == null ? (externalSideOf(tray.id) ?? 0) : i,
-                      serial: null,
+                      serial: serial,
                     ),
                     onTap: () => onSlot(i),
                     onEdit: () => unit == null

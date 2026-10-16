@@ -585,8 +585,10 @@ class ControllerForbidden extends StatelessWidget {
   }
 }
 
-/// Height of every button on the tabs — a jog, a preset, a step, an action — so
-/// buttons that do the same kind of thing are the same size wherever they sit.
+/// Height of the tabs' presets, −/+ steps and actions, so buttons that do the
+/// same kind of thing are the same size wherever they sit. The Move tab's jogs
+/// are the exception: they share one height of their own, sized to fill the
+/// axes card (`_jogHeight` in `controller_move.dart`).
 const controllerButtonHeight = 56.0;
 
 /// A card of the Heat and Move tabs: one or more [ControllerSection]s side by

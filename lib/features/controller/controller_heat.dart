@@ -614,8 +614,11 @@ class _FanCardState extends ConsumerState<_FanCard> {
     final pending = ref.watch(
       controlsProvider.select((s) => s.pendingFor(widget.printerId)),
     );
-    final shown =
-        _drag ?? (pending.fanSpeed(widget.fan) ?? widget.value).toDouble();
+    // The server's number is passed on unchecked, and a Slider asserts on a
+    // value outside its range — the card's fan sheet clamps the same way.
+    final shown = (_drag ?? (pending.fanSpeed(widget.fan) ?? widget.value))
+        .toDouble()
+        .clamp(0.0, 100.0);
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: DashSpace.md,

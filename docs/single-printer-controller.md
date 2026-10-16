@@ -45,8 +45,11 @@ that opens the fault view, the printer's state) over one tab at a time.
   than the phone design (`controllerBodySize`, 800×360) and scaled uniformly to
   fill the screen (`ScaleToFit`). Nothing inside scales on its own; a card that
   sized its own content made the same chip 44 in one card and 56 in the next.
-- Every button on a tab is one height (`controllerButtonHeight`, 56): jogs,
-  presets, −/+, Load/Unload/Dry.
+- Presets, −/+ and actions (Load/Unload/Dry, Home) are one height
+  (`controllerButtonHeight`, 56). The Move tab's jogs — the pad, Z, Extrude
+  and Retract — share one height of their own, sized so the pad fills the
+  axes card; the pad, Z and the extruder's buttons stretch to their cards'
+  width.
 - Each card has its title at its top (`ControllerCard`), never a caption
   glued to a control.
 - Heat: a heater shows its reading and whether it is heating, at target or
