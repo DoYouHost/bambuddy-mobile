@@ -8114,6 +8114,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get controllerEditSlot => 'Modifier l\'emplacement';
 
   @override
+  String get controllerTouchToWake => 'Touchez pour réveiller';
+
+  @override
   String get inventorySuppliersTitle => 'Fournisseurs';
 
   @override

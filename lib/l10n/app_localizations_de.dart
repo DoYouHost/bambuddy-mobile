@@ -8021,6 +8021,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get controllerEditSlot => 'Slot bearbeiten';
 
   @override
+  String get controllerTouchToWake => 'Zum Aufwecken berühren';
+
+  @override
   String get inventorySuppliersTitle => 'Lieferanten';
 
   @override

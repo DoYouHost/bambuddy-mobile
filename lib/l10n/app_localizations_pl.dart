@@ -8082,6 +8082,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get controllerEditSlot => 'Edytuj slot';
 
   @override
+  String get controllerTouchToWake => 'Dotknij, aby wybudzić';
+
+  @override
   String get inventorySuppliersTitle => 'Dostawcy';
 
   @override

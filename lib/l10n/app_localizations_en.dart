@@ -7944,6 +7944,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controllerEditSlot => 'Edit slot';
 
   @override
+  String get controllerTouchToWake => 'Touch to wake';
+
+  @override
   String get inventorySuppliersTitle => 'Suppliers';
 
   @override

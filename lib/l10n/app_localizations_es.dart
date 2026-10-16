@@ -8041,6 +8041,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get controllerEditSlot => 'Editar ranura';
 
   @override
+  String get controllerTouchToWake => 'Toca para activar';
+
+  @override
   String get inventorySuppliersTitle => 'Proveedores';
 
   @override

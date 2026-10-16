@@ -5289,6 +5289,10 @@
   "@controllerEditSlot": {
     "description": "Tooltip of the pencil on a controller slot card; opens the slot sheet (spool, configuration)"
   },
+  "controllerTouchToWake": "Touch to wake",
+  "@controllerTouchToWake": {
+    "description": "Line on the controller's screen saver: the first touch only wakes the screen"
+  },
   "inventorySuppliersTitle": "Suppliers",
   "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
   "inventorySuppliersEmpty": "No suppliers yet",

@@ -20,6 +20,7 @@ import 'controller_overview.dart';
 import 'controller_picker.dart';
 import 'controller_faults.dart';
 import 'controller_providers.dart';
+import 'controller_saver.dart';
 import 'scale_to_fit.dart';
 
 const _landscape = [
@@ -134,59 +135,62 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
     final printer = ref.watch(controllerPrinterProvider(widget.printerId));
     final item = printer.item;
 
-    return DashBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              DashSpace.gutter,
-              0,
-              DashSpace.gutter,
-              DashSpace.sm,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (item != null)
-                  _TopBar(
-                    item: item,
-                    offline: _debounce.offline,
-                    tab: _tab,
-                    onTab: (tab) => setState(() => _tab = tab),
-                  )
-                else
-                  const _BareBar(),
-                const SizedBox(height: DashSpace.md),
-                Expanded(
-                  child: !printer.rosterKnown
-                      ? const Center(child: CircularProgressIndicator())
-                      : item == null
-                      ? Center(
-                          child: Text(
-                            l10n.controllerPrinterGone,
-                            style: t.bodySoft,
-                            textAlign: TextAlign.center,
+    return ControllerSaverHost(
+      printerId: widget.printerId,
+      child: DashBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                0,
+                DashSpace.gutter,
+                DashSpace.sm,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (item != null)
+                    _TopBar(
+                      item: item,
+                      offline: _debounce.offline,
+                      tab: _tab,
+                      onTab: (tab) => setState(() => _tab = tab),
+                    )
+                  else
+                    const _BareBar(),
+                  const SizedBox(height: DashSpace.md),
+                  Expanded(
+                    child: !printer.rosterKnown
+                        ? const Center(child: CircularProgressIndicator())
+                        : item == null
+                        ? Center(
+                            child: Text(
+                              l10n.controllerPrinterGone,
+                              style: t.bodySoft,
+                              textAlign: TextAlign.center,
+                            ),
+                          )
+                        : ScaleToFit(
+                            child: switch (_tab) {
+                              ControllerTab.overview => ControllerOverview(
+                                printerId: widget.printerId,
+                              ),
+                              ControllerTab.heat => ControllerHeat(
+                                printerId: widget.printerId,
+                              ),
+                              ControllerTab.move => ControllerMove(
+                                printerId: widget.printerId,
+                              ),
+                              ControllerTab.filament => ControllerFilament(
+                                printerId: widget.printerId,
+                              ),
+                            },
                           ),
-                        )
-                      : ScaleToFit(
-                          child: switch (_tab) {
-                            ControllerTab.overview => ControllerOverview(
-                              printerId: widget.printerId,
-                            ),
-                            ControllerTab.heat => ControllerHeat(
-                              printerId: widget.printerId,
-                            ),
-                            ControllerTab.move => ControllerMove(
-                              printerId: widget.printerId,
-                            ),
-                            ControllerTab.filament => ControllerFilament(
-                              printerId: widget.printerId,
-                            ),
-                          },
-                        ),
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -13334,6 +13334,12 @@ abstract class AppLocalizations {
   /// **'Edit slot'**
   String get controllerEditSlot;
 
+  /// Line on the controller's screen saver: the first touch only wakes the screen
+  ///
+  /// In en, this message translates to:
+  /// **'Touch to wake'**
+  String get controllerTouchToWake;
+
   /// No description provided for @inventorySuppliersTitle.
   ///
   /// In en, this message translates to:
