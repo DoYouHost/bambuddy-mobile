@@ -18,6 +18,7 @@ import 'controller_heat.dart';
 import 'controller_move.dart';
 import 'controller_overview.dart';
 import 'controller_picker.dart';
+import 'controller_faults.dart';
 import 'controller_providers.dart';
 import 'scale_to_fit.dart';
 
@@ -314,6 +315,8 @@ class _TopBar extends ConsumerWidget {
             ),
           ),
         ),
+        ControllerFaultChip(printerId: printer.id),
+        const SizedBox(width: DashSpace.sm),
         printerStatePill(t, l10n, item.status, offline: offline),
       ],
     );

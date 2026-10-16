@@ -189,7 +189,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
               // waiting for the printer) can drop an error from the middle of
               // the list, and an unkeyed card would keep its neighbour's
               // in-flight spinner.
-              _HmsErrorCard(
+              HmsErrorCard(
                 key: ValueKey(e.fullCode ?? e.displayCode),
                 printerId: widget.printerId,
                 printerName: widget.printerName,
@@ -217,15 +217,25 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
 }
 
 /// One fault: what it is, its code, a wiki link, and the buttons its firmware
-/// offers for it.
-class _HmsErrorCard extends ConsumerStatefulWidget {
-  const _HmsErrorCard({
+/// offers for it. The printer card lists it, and so does the single-printer
+/// controller's fault view, with [area] naming the screen in the diagnostic log
+/// and [large] giving its buttons the controller's height.
+class HmsErrorCard extends ConsumerStatefulWidget {
+  const HmsErrorCard({
     super.key,
     required this.printerId,
     required this.printerName,
     required this.error,
     required this.busy,
+    this.area = 'printer',
+    this.large = false,
   });
+
+  /// The first part of every identifier the card logs.
+  final String area;
+
+  /// Full-size buttons and text, for a screen that is read from arm's length.
+  final bool large;
 
   final int printerId;
   final String printerName;
@@ -236,10 +246,14 @@ class _HmsErrorCard extends ConsumerStatefulWidget {
   final bool busy;
 
   @override
-  ConsumerState<_HmsErrorCard> createState() => _HmsErrorCardState();
+  ConsumerState<HmsErrorCard> createState() => _HmsErrorCardState();
 }
 
-class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
+class _HmsErrorCardState extends ConsumerState<HmsErrorCard> {
+  /// The controller's `controllerButtonHeight`, written out: the dashboard does
+  /// not import the controller.
+  static const _largeHeight = 56.0;
+
   /// The action this card is waiting on, so the spinner sits on the button the
   /// user actually pressed rather than on all of them.
   String? _pending;
@@ -260,7 +274,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
         message: l10n.hmsStopConfirmBody(widget.printerName),
         confirmLabel: l10n.hmsStopConfirmAction,
         destructive: true,
-        id: 'printer.hms_stop_confirm',
+        id: '${widget.area}.hms_stop_confirm',
       );
       if (!confirmed || !mounted) return;
     }
@@ -331,14 +345,22 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                 label,
                 maxLines: _fullText ? null : 2,
                 overflow: _fullText ? null : TextOverflow.ellipsis,
-                style: t.bodyPlain.copyWith(color: t.textPrimary, height: 1.25),
+                style: (widget.large ? t.bodyStrong : t.bodyPlain).copyWith(
+                  color: t.textPrimary,
+                  height: 1.25,
+                ),
               ),
-            ).tagged('printer.hms_description'),
+            ).tagged('${widget.area}.hms_description'),
             const SizedBox(height: DashSpace.xs),
           ],
           Row(
             children: [
-              Expanded(child: Text(error.displayCode, style: t.monoMicro)),
+              Expanded(
+                child: Text(
+                  error.displayCode,
+                  style: widget.large ? t.monoValue : t.monoMicro,
+                ),
+              ),
               if (url != null)
                 InkWell(
                   onTap: () => unawaited(openWebLink(context, url)),
@@ -353,7 +375,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                       Icon(Icons.open_in_new, size: 14, color: scheme.primary),
                     ],
                   ),
-                ).tagged('printer.open_url'),
+                ).tagged('${widget.area}.open_url'),
             ],
           ),
           if (actions.isNotEmpty) ...[
@@ -372,7 +394,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                   // interpolate — the key comes from `hmsEffectiveActions`, a
                   // fixed vocabulary, never from anything the user typed.
                   logTag(
-                    'printer.hms_${action.toLowerCase()}',
+                    '${widget.area}.hms_${action.toLowerCase()}',
                     FilledButton.tonal(
                       onPressed: widget.busy ? null : () => _run(action),
                       style: FilledButton.styleFrom(
@@ -381,10 +403,10 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                         padding: const EdgeInsets.symmetric(
                           horizontal: DashSpace.lg,
                         ),
-                        minimumSize: const Size(0, 34),
-                        textStyle: const TextStyle(
+                        minimumSize: Size(0, widget.large ? _largeHeight : 34),
+                        textStyle: TextStyle(
                           fontFamily: DashTokens.fontUi,
-                          fontSize: 12.5,
+                          fontSize: widget.large ? 15 : 12.5,
                           fontWeight: FontWeight.w600,
                         ),
                         backgroundColor: action == hmsStopAction
