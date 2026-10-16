@@ -5,6 +5,8 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
+import 'package:bambuddy_mobile/features/controller/controller_controls.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_overview.dart';
@@ -140,6 +142,24 @@ void main() {
       expect(find.bySemanticsLabel('${pl.tempNozzle} 218° / 220°'), findsOne);
       expect(find.bySemanticsLabel('${pl.tempBed} 60° / 60°'), findsOne);
       expect(find.bySemanticsLabel('${pl.tempChamber} 34°'), findsOne);
+    });
+
+    testWidgets('say whether each heater is heading up, holding or off', (
+      tester,
+    ) async {
+      // 218 of 220 holds, 60 of 60 holds, the chamber has no target.
+      await pump(tester, _printing());
+
+      expect(find.text(pl.controllerAtTarget), findsNWidgets(2));
+      expect(find.text(pl.controllerHeating), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(ControllerReadings),
+          matching: find.byType(DashProgressBar),
+        ),
+        findsNWidgets(3),
+        reason: 'a bar each',
+      );
     });
 
     testWidgets('a printer without temperatures has no readings', (

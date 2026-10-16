@@ -132,15 +132,12 @@ void main() {
           await pump(tester, size, textScale: scale);
 
           // A FittedBox never reports an overflow, so look at where things sit.
+          // The job's bar is the first: the reading tiles below carry their own.
+          final jobBar = find.byType(DashProgressBar).first;
           final card = tester.getRect(
-            find
-                .ancestor(
-                  of: find.byType(DashProgressBar),
-                  matching: find.byType(Container),
-                )
-                .first,
+            find.ancestor(of: jobBar, matching: find.byType(Container)).first,
           );
-          final bar = tester.getRect(find.byType(DashProgressBar));
+          final bar = tester.getRect(jobBar);
           final percent = tester.getRect(find.text('43%'));
           expect(bar.bottom, lessThanOrEqualTo(card.bottom + 0.5));
           expect(percent.top, greaterThanOrEqualTo(card.top - 0.5));

@@ -7,6 +7,7 @@ import '../../core/models/smart_plug.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../../providers.dart';
 import '../dashboard/controls_providers.dart';
 import '../dashboard/smart_plug_actions.dart';
 import '../dashboard/smart_plugs_providers.dart';
@@ -79,7 +80,7 @@ class ControllerReadings extends StatelessWidget {
   }
 }
 
-class _ReadingTile extends StatelessWidget {
+class _ReadingTile extends ConsumerWidget {
   const _ReadingTile({
     required this.reading,
     required this.dual,
@@ -91,13 +92,17 @@ class _ReadingTile extends StatelessWidget {
   final bool active;
 
   static const _dot = 8.0;
+  static const _bar = 4.0;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
+    final chamberMax = ref.watch(chamberMaxTargetProvider);
     final actual = reading.actual;
     final target = reading.target;
+    final state = reading.heatState();
+    final color = reading.gaugeColor(t);
     // On two heads the plain key is the first nozzle, not "the" nozzle.
     final label =
         dual && reading.kind == TempKind.nozzle && reading.index == null
@@ -115,9 +120,11 @@ class _ReadingTile extends StatelessWidget {
       ].join(' '),
       child: ExcludeSemantics(
         child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: DashSpace.md,
-            vertical: DashSpace.sm,
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.md,
+            DashSpace.sm,
+            DashSpace.md,
+            DashSpace.sm,
           ),
           decoration: BoxDecoration(
             color: active ? t.accent.withValues(alpha: 0.08) : t.subCard,
@@ -128,53 +135,124 @@ class _ReadingTile extends StatelessWidget {
                   : t.subCardBorder,
             ),
           ),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Row(
                   children: [
-                    Container(
-                      width: _dot,
-                      height: _dot,
-                      decoration: BoxDecoration(
-                        color: reading.gaugeColor(t),
-                        shape: BoxShape.circle,
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: _dot,
+                                  height: _dot,
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: DashSpace.sm),
+                                Text(
+                                  label,
+                                  style: t.body.copyWith(
+                                    color: t.textSecondary,
+                                  ),
+                                  maxLines: 1,
+                                ),
+                              ],
+                            ),
+                            Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: actual == null
+                                        ? '—'
+                                        : '${actual.round()}°',
+                                    style: t.monoHeadline.copyWith(
+                                      color: color,
+                                    ),
+                                  ),
+                                  if (target != null && target > 0)
+                                    TextSpan(
+                                      text: ' / ${target.round()}°',
+                                      style: t.monoValue.copyWith(
+                                        color: t.textTertiary,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              maxLines: 1,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(width: DashSpace.sm),
-                    Text(
-                      label,
-                      style: t.labelSoft.copyWith(color: t.textSecondary),
-                      maxLines: 1,
-                    ),
+                    if (state != HeatState.off) ...[
+                      const SizedBox(width: DashSpace.xs),
+                      // Four heaters on two nozzles leave a narrow tile.
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: ControllerHeatPill(state: state, dense: true),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
-                Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: actual == null ? '—' : '${actual.round()}°',
-                        style: t.monoValue,
-                      ),
-                      if (target != null && target > 0)
-                        TextSpan(
-                          text: '/${target.round()}°',
-                          style: t.monoLabel,
-                        ),
-                    ],
-                  ),
-                  maxLines: 1,
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: DashSpace.xs),
+              // The same sweep as the Heat tab's ring, so the two agree.
+              DashProgressBar(
+                value: actual == null
+                    ? 0
+                    : (actual / reading.gaugeMax(chamberMax)).clamp(0.0, 1.0),
+                height: _bar,
+                color: color,
+              ),
+            ],
           ),
         ),
       ),
     );
+  }
+}
+
+/// Where a heater stands against its target, beside its reading on the Heat
+/// tab and on the Overview's tiles.
+class ControllerHeatPill extends StatelessWidget {
+  const ControllerHeatPill({
+    super.key,
+    required this.state,
+    this.dense = false,
+  });
+
+  final HeatState state;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final (label, accent, ink) = switch (state) {
+      HeatState.heating => (
+        l10n.controllerHeating,
+        t.accentOrange,
+        t.accentOrangeInk,
+      ),
+      HeatState.atTarget => (l10n.controllerAtTarget, t.accent, t.accentInk),
+      HeatState.cooling ||
+      HeatState.off => (l10n.controllerCooling, t.accentBlue, t.accentBlue),
+    };
+    return DashPill(label: label, accent: accent, accentInk: ink, dense: dense);
   }
 }
 

@@ -381,13 +381,37 @@ void main() {
         expect(
           of('controller.jog_z_up').height,
           closeTo(of('controller.jog_extrude').height, 0.01),
+          reason: 'jogs share one height',
+        );
+        expect(
+          of('controller.jog_x_plus').height,
+          closeTo(of('controller.jog_extrude').height, 0.01),
+          reason: 'a pad arrow and a jog in the other card',
         );
         expect(
           of('controller.home').height,
-          closeTo(of('controller.jog_extrude').height, 0.01),
+          closeTo(of('controller.step_preset').height, 0.01),
+          reason: 'Home sits in the step row, at its height',
         );
       });
     }
+  });
+
+  group('the jogs', () {
+    testWidgets('fill the width of their cards, leaving no empty band', (
+      tester,
+    ) async {
+      await pump(tester, _status(), size: const Size(1280, 600));
+
+      final right = tester.getRect(byLogId('controller.jog_x_plus'));
+      final zUp = tester.getRect(byLogId('controller.jog_z_up'));
+      final extrude = tester.getRect(byLogId('controller.jog_extrude'));
+      final length = tester.getRect(byLogId('controller.length_preset').last);
+      // The pad reaches the Z column, and Extrude spans its card like the
+      // presets above it.
+      expect(zUp.left - right.right, lessThan(48));
+      expect(extrude.right, closeTo(length.right, 0.5));
+    });
   });
 
   group('the step', () {

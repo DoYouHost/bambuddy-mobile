@@ -101,41 +101,30 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
                     .read(skipObjectsProvider(widget.printerId).notifier)
                     .refresh(reload: true),
               )
-            : RefreshIndicator(
-                onRefresh: () => ref
-                    .read(skipObjectsProvider(widget.printerId).notifier)
-                    .refresh(),
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(
-                    DashSpace.gutter,
-                    DashSpace.md,
-                    DashSpace.gutter,
-                    DashSpace.xl,
-                  ),
-                  physics: _plateInteracting
-                      ? const NeverScrollableScrollPhysics()
-                      : null,
-                  children: [
+            : LayoutBuilder(
+                builder: (context, box) {
+                  final plate = _PlatePreview(
+                    printerId: widget.printerId,
+                    coverUrl: status?.coverUrl,
+                    data: data,
+                    selected: _selected,
+                    canSelect: canSelect,
+                    onToggle: _toggleSelected,
+                    onInteractingChanged: (v) {
+                      if (v != _plateInteracting) {
+                        setState(() => _plateInteracting = v);
+                      }
+                    },
+                  );
+                  final details = [
                     _InfoBanner(data: data),
                     const SizedBox(height: DashSpace.md),
                     if (!canSkipLayer) ...[
                       _LayerWarning(layer: layerNum),
                       const SizedBox(height: DashSpace.md),
                     ],
-                    _PlatePreview(
-                      printerId: widget.printerId,
-                      coverUrl: status?.coverUrl,
-                      data: data,
-                      selected: _selected,
-                      canSelect: canSelect,
-                      onToggle: _toggleSelected,
-                      onInteractingChanged: (v) {
-                        if (v != _plateInteracting) {
-                          setState(() => _plateInteracting = v);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: DashSpace.sm),
+                  ];
+                  final list = [
                     if (pending.isEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: DashSpace.sm),
@@ -159,8 +148,68 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
                           onToggle: () => _toggleSelected(obj),
                         ),
                       ),
-                  ],
-                ),
+                  ];
+                  Future<void> refresh() => ref
+                      .read(skipObjectsProvider(widget.printerId).notifier)
+                      .refresh();
+                  // Landscape: the plate keeps the full height on the left and
+                  // the list scrolls beside it, instead of a plate taller than
+                  // the screen with the list below it.
+                  if (box.maxWidth > box.maxHeight) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        DashSpace.gutter,
+                        DashSpace.md,
+                        DashSpace.gutter,
+                        0,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: math.min(
+                              box.maxHeight - DashSpace.md - DashSpace.md,
+                              box.maxWidth / 2,
+                            ),
+                            child: plate,
+                          ),
+                          const SizedBox(width: DashSpace.lg),
+                          Expanded(
+                            child: RefreshIndicator(
+                              onRefresh: refresh,
+                              child: ListView(
+                                padding: const EdgeInsets.only(
+                                  bottom: DashSpace.xl,
+                                ),
+                                children: [...details, ...list],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return RefreshIndicator(
+                    onRefresh: refresh,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(
+                        DashSpace.gutter,
+                        DashSpace.md,
+                        DashSpace.gutter,
+                        DashSpace.xl,
+                      ),
+                      physics: _plateInteracting
+                          ? const NeverScrollableScrollPhysics()
+                          : null,
+                      children: [
+                        ...details,
+                        plate,
+                        const SizedBox(height: DashSpace.sm),
+                        ...list,
+                      ],
+                    ),
+                  );
+                },
               ),
       ),
       bottomNavigationBar: pending.isEmpty

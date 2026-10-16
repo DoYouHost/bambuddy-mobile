@@ -241,7 +241,7 @@ class _HeaterCard extends ConsumerWidget {
                         ),
                       ),
                       if (state != null && state != HeatState.off)
-                        _StatePill(state: state),
+                        ControllerHeatPill(state: state),
                     ],
                   ),
                 ],
@@ -352,30 +352,6 @@ class _HeaterCard extends ConsumerWidget {
     );
     if (typed == null || !context.mounted) return;
     await _set(context, ref, typed.clamp(0, max));
-  }
-}
-
-/// Where a heater stands against its target, beside the reading.
-class _StatePill extends StatelessWidget {
-  const _StatePill({required this.state});
-
-  final HeatState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final l10n = AppLocalizations.of(context);
-    final (label, accent, ink) = switch (state) {
-      HeatState.heating => (
-        l10n.controllerHeating,
-        t.accentOrange,
-        t.accentOrangeInk,
-      ),
-      HeatState.atTarget => (l10n.controllerAtTarget, t.accent, t.accentInk),
-      HeatState.cooling ||
-      HeatState.off => (l10n.controllerCooling, t.accentBlue, t.accentBlue),
-    };
-    return DashPill(label: label, accent: accent, accentInk: ink);
   }
 }
 
