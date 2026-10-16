@@ -3315,6 +3315,7 @@
   "controllerLiveBadge": "NA ŻYWO",
   "controllerPreviewBadge": "PODGLĄD PLIKU",
   "controllerNoPreview": "Brak podglądu",
+  "controllerPower": "Zasilanie",
   "inventorySuppliersTitle": "Dostawcy",
   "inventorySuppliersHint": "Dostawca to sklep, w którym kupujesz filament, a nie marka, która go wyprodukowała. Przypisujesz go w formularzu szpuli; dostawcy przypisanego do szpuli nie da się usunąć.",
   "inventorySuppliersEmpty": "Nie masz jeszcze dostawców",

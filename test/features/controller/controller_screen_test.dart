@@ -103,6 +103,7 @@ void main() {
             ),
           ),
           inertStatusesOverride,
+          inertSmartPlugsOverride,
         ],
         child: plRouterApp(router),
       ),

@@ -7985,6 +7985,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get controllerNoPreview => 'Keine Vorschau';
 
   @override
+  String get controllerPower => 'Strom';
+
+  @override
   String get inventorySuppliersTitle => 'Lieferanten';
 
   @override

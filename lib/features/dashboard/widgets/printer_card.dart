@@ -25,7 +25,6 @@ import '../../../core/settings/server_profile.dart';
 import '../../../data/inventory_source.dart';
 import '../../../data/printer_commands_repository.dart';
 import '../../../data/printers_repository.dart';
-import '../../../data/smart_plugs_repository.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/error_messages.dart';
 import '../../../providers.dart';
@@ -46,6 +45,9 @@ import '../../maintenance/maintenance_providers.dart';
 import '../add_printer_screen.dart';
 import '../controls_providers.dart';
 import '../print_lifecycle.dart';
+import '../smart_plug_actions.dart';
+import 'pill_switch.dart';
+import '../temp_readings.dart';
 import '../drying_schedule.dart';
 import '../scheduled_drying_providers.dart';
 import '../firmware_providers.dart';
@@ -230,7 +232,7 @@ class _PrinterCardState extends State<PrinterCard> {
     }
 
     final printing = status?.isPrinting ?? false;
-    final readings = _buildReadings(
+    final readings = buildTempReadings(
       status?.temperatures,
       status?.airductIsHeating,
     );

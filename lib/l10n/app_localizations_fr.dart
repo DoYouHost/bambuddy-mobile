@@ -8078,6 +8078,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get controllerNoPreview => 'Aucun aperçu';
 
   @override
+  String get controllerPower => 'Alimentation';
+
+  @override
   String get inventorySuppliersTitle => 'Fournisseurs';
 
   @override

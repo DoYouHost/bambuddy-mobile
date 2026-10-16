@@ -13268,6 +13268,12 @@ abstract class AppLocalizations {
   /// **'No preview'**
   String get controllerNoPreview;
 
+  /// Label of the controller's smart plug switch, which powers the printer on and off
+  ///
+  /// In en, this message translates to:
+  /// **'Power'**
+  String get controllerPower;
+
   /// No description provided for @inventorySuppliersTitle.
   ///
   /// In en, this message translates to:

@@ -13,6 +13,7 @@ import '../dashboard/print_lifecycle.dart';
 import '../dashboard/skip_objects_screen.dart';
 import '../dashboard/widgets/print_meta_row.dart';
 import '../wall/wall_camera.dart';
+import 'controller_controls.dart';
 import 'controller_providers.dart';
 
 /// The Overview tab: what the printer is doing and the controls used while it
@@ -54,11 +55,20 @@ class ControllerOverview extends ConsumerWidget {
         const SizedBox(width: DashSpace.md),
         Expanded(
           flex: 5,
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: printing && status != null
-                ? _JobCard(status: status)
-                : const SizedBox.shrink(),
+          // Scrolls only where the height cannot hold it (a large system font):
+          // at the design's 390 dp everything below is in view.
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (printing && status != null) _JobCard(status: status),
+                if (status != null) ...[
+                  ControllerReadings(status: status),
+                  ControllerSpeed(printerId: printerId, status: status),
+                  ControllerSwitches(printerId: printerId, status: status),
+                ],
+              ],
+            ),
           ),
         ),
       ],

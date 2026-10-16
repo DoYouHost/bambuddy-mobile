@@ -5252,6 +5252,10 @@
   "@controllerNoPreview": {
     "description": "Shown in place of the file preview when the printed file has no cover picture or it does not load"
   },
+  "controllerPower": "Power",
+  "@controllerPower": {
+    "description": "Label of the controller's smart plug switch, which powers the printer on and off"
+  },
   "inventorySuppliersTitle": "Suppliers",
   "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
   "inventorySuppliersEmpty": "No suppliers yet",

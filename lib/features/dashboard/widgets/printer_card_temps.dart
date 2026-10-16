@@ -25,7 +25,7 @@ class _GaugeTile extends ConsumerWidget {
     required this.historyKinds,
   });
 
-  final _TempReading reading;
+  final TempReading reading;
   final int printerId;
   final String? model;
 
@@ -47,9 +47,9 @@ class _GaugeTile extends ConsumerWidget {
   final bool printing;
 
   bool get _isEditable => switch (reading.kind) {
-    _TempKind.nozzle || _TempKind.bed => true,
-    _TempKind.chamber => supportsChamberHeater(model),
-    _TempKind.unknown => false,
+    TempKind.nozzle || TempKind.bed => true,
+    TempKind.chamber => supportsChamberHeater(model),
+    TempKind.unknown => false,
   };
 
   @override
@@ -65,14 +65,14 @@ class _GaugeTile extends ConsumerWidget {
     // Only the chamber gauge scales against the ceiling, so watching it on every
     // tile rebuilds nozzle and bed for nothing when the probe answers. 60 until
     // the server's version is known — see [chamberMaxTargetProvider].
-    final chamberMax = reading.kind != _TempKind.chamber
+    final chamberMax = reading.kind != TempKind.chamber
         ? 60
         : ref.watch(chamberMaxTargetProvider);
 
     final actual = reading.actual;
     // Optimistic overlay: setpoint and airduct glyph reflect a just-sent command
     // until real status catches up (see ControlsNotifier.optimisticHold).
-    final target = reading.kind == _TempKind.unknown
+    final target = reading.kind == TempKind.unknown
         ? reading.target
         : (pending.tempTarget(reading.raw)?.toDouble() ?? reading.target);
     final hasTarget = target != null && target > 0;
@@ -80,7 +80,7 @@ class _GaugeTile extends ConsumerWidget {
     // chamber's air-duct glyph all use [accent] (orange = heating/holding,
     // blue = cooling/idle). The ring center shows the setpoint ("-" when unset).
     final accent = reading.gaugeColor(t, target: target);
-    final airduct = reading.kind == _TempKind.chamber
+    final airduct = reading.kind == TempKind.chamber
         ? (pending.airductHeating ?? reading.airductIsHeating)
         : reading.airductIsHeating;
     final airductIcon = airduct == null
@@ -267,7 +267,7 @@ const _heaterHistoryKinds = {'nozzle', 'nozzle_2', 'bed', 'chamber'};
 /// The sensors of one printer the history sheet can switch between, labelled
 /// exactly as their tiles are.
 List<HeaterKindOption> _heaterKindOptions(
-  List<_TempReading> readings,
+  List<TempReading> readings,
   AppLocalizations l10n,
 ) => [
   for (final r in readings)
@@ -334,173 +334,6 @@ class _StateChip extends StatelessWidget {
   }
 }
 
-enum _TempKind { nozzle, bed, chamber, unknown }
-
-/// Pair of readings (current + target) for one sensor. Label is translated
-/// at render time (with [BuildContext]).
-class _TempReading {
-  const _TempReading({
-    required this.kind,
-    required this.raw,
-    required this.actual,
-    required this.target,
-    this.index,
-    this.airductIsHeating,
-  });
-
-  final _TempKind kind;
-  final String raw; // raw key—shown for unknown sensor
-  final int? index; // nozzle number (e.g., 2) or null
-  final double? actual;
-  final double? target;
-
-  /// Chamber air duct mode (heating/cooling); set ONLY for chamber tile where we
-  /// show it instead of the setpoint. null = unknown/n.a.
-  final bool? airductIsHeating;
-
-  /// Diagnostic identifier of this tile. [raw] is the server's own key
-  /// (`nozzle`, `nozzle_2`, `bed`), which keeps the log's vocabulary the same on
-  /// both sides — but it is the server's string, so anything not shaped like an
-  /// identifier falls back to the bare tile name rather than going in verbatim.
-  String get logId => _logId('printer.temperature');
-
-  /// Identifier of the tile's history shortcut, sensor by sensor for the same
-  /// reason [logId] is.
-  String get historyLogId => _logId('printer.temperature_history');
-
-  String _logId(String base) =>
-      RegExp(r'^\w+$').hasMatch(raw) ? '${base}_$raw' : base;
-
-  String label(AppLocalizations l10n) => switch (kind) {
-    _TempKind.nozzle =>
-      index == null ? l10n.tempNozzle : l10n.tempNozzleNumbered('$index'),
-    _TempKind.bed => l10n.tempBed,
-    _TempKind.chamber => l10n.tempChamber,
-    _TempKind.unknown => raw,
-  };
-
-  /// Upper bound of the gauge sweep per sensor (approx working range).
-  ///
-  /// [chamberMax] is the server's own chamber ceiling, read from
-  /// [chamberMaxTargetProvider] by whoever renders — 60 before server 1.2.6 and
-  /// 65 from it. Passed in on every call rather than stored on the reading
-  /// because this object is built by [PrinterCard], a plain `StatefulWidget`
-  /// with no `ref`, while both consumers of these three are Consumers already.
-  /// The chamber tracks it so a target at the ceiling cannot peg the needle
-  /// past the end of the sweep.
-  double gaugeMax(int chamberMax) => switch (kind) {
-    _TempKind.nozzle => 300,
-    _TempKind.bed => 120,
-    _TempKind.chamber => chamberMax.toDouble(),
-    _TempKind.unknown => 300,
-  };
-
-  /// Gauge/value color by thermal state (same for every sensor): heating or
-  /// holding at the setpoint → orange; already above the setpoint (cooling) or
-  /// no setpoint → blue. A small tolerance avoids color flicker around target.
-  /// [target] overrides the reading's own setpoint (for optimistic overlay).
-  Color gaugeColor(DashTokens t, {double? target}) {
-    final tgt = target ?? this.target;
-    const tolerance = 2.0;
-    if (tgt == null || tgt <= 0) return t.accentBlue;
-    if (actual != null && actual! > tgt + tolerance) return t.accentBlue;
-    return t.accentOrange;
-  }
-
-  /// Upper bound the target slider allows. Slightly under the server's hard
-  /// caps (nozzle 320 / bed 140) to a sane working range; chamber = server max.
-  int maxTarget(int chamberMax) => switch (kind) {
-    _TempKind.nozzle => 300,
-    _TempKind.bed => 120,
-    _TempKind.chamber => chamberMax,
-    _TempKind.unknown => 300,
-  };
-
-  /// Slider/stepper granularity: 1° everywhere for smooth fine control.
-  int get targetStep => 1;
-
-  /// Common quick-pick targets shown as chips in the sheet (Off has its own
-  /// button, so it's not listed here).
-  ///
-  /// The chamber keeps its familiar four and gains the ceiling as a fifth when
-  /// the server allows more than 60 — rather than moving the last chip up,
-  /// which would take away the 60 people actually use. The [Wrap] takes the
-  /// extra chip onto a second row if it has to.
-  List<int> presets(int chamberMax) => switch (kind) {
-    _TempKind.nozzle => const [200, 220, 240, 260],
-    _TempKind.bed => const [50, 60, 80, 100],
-    _TempKind.chamber => [30, 40, 50, 60, if (chamberMax > 60) chamberMax],
-    _TempKind.unknown => const [],
-  };
-}
-
-/// Group raw temperature keys into current/target pairs and order known sensors
-/// (nozzle, bed, chamber) before unknown ones.
-List<_TempReading> _buildReadings(
-  Map<String, double>? temps,
-  bool? airductIsHeating,
-) {
-  if (temps == null || temps.isEmpty) return const [];
-
-  final actuals = <String, double>{};
-  final targets = <String, double>{};
-  for (final entry in temps.entries) {
-    var base = entry.key;
-    final isTarget = base.endsWith('_target');
-    if (isTarget) base = base.substring(0, base.length - '_target'.length);
-    if (base.endsWith('_temper')) {
-      base = base.substring(0, base.length - '_temper'.length);
-    }
-    (isTarget ? targets : actuals)[base] = entry.value;
-  }
-
-  const orderHint = ['nozzle', 'bed', 'chamber'];
-  int rank(String base) {
-    final stem = RegExp(r'^([a-z]+)').firstMatch(base)?.group(1) ?? base;
-    final i = orderHint.indexOf(stem);
-    return i == -1 ? orderHint.length : i;
-  }
-
-  final bases = {...actuals.keys, ...targets.keys}.toList()
-    ..sort((a, b) {
-      final r = rank(a).compareTo(rank(b));
-      return r != 0 ? r : a.compareTo(b);
-    });
-
-  return [
-    for (final base in bases)
-      _readingFor(base, actuals[base], targets[base], airductIsHeating),
-  ];
-}
-
-_TempReading _readingFor(
-  String base,
-  double? actual,
-  double? target,
-  bool? airductIsHeating,
-) {
-  final numbered = RegExp(r'^([a-z]+)_(\d+)$').firstMatch(base);
-  final stem = numbered?.group(1) ?? base;
-  final index = numbered == null ? null : int.tryParse(numbered.group(2)!);
-
-  final kind = switch (stem) {
-    'nozzle' => _TempKind.nozzle,
-    'bed' => _TempKind.bed,
-    'chamber' => _TempKind.chamber,
-    _ => _TempKind.unknown,
-  };
-
-  return _TempReading(
-    kind: kind,
-    raw: base,
-    index: kind == _TempKind.nozzle ? index : null,
-    actual: actual,
-    target: target,
-    // Air duct applies to chamber only.
-    airductIsHeating: kind == _TempKind.chamber ? airductIsHeating : null,
-  );
-}
-
 /// ETA as a clock reading = now + remaining minutes.
 String _etaTime(DateTimeFormats fmt, int remainingMinutes) =>
     fmt.time(DateTime.now().add(Duration(minutes: remainingMinutes)));
@@ -523,7 +356,7 @@ class _TempControlSheet extends ConsumerStatefulWidget {
   });
 
   final int printerId;
-  final _TempReading reading;
+  final TempReading reading;
   final String? model;
   final int nozzleIndex;
   final int initialTarget;
@@ -552,7 +385,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
   /// (and not yet reflected) the switch shows a spinner and is locked.
   int? _switchingTo;
 
-  _TempReading get _reading => widget.reading;
+  TempReading get _reading => widget.reading;
 
   void _bump(int delta) => setState(
     () => _target = (_target + delta)
@@ -567,18 +400,18 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     setState(() => _busy = true);
     final notifier = ref.read(controlsProvider.notifier);
     final result = switch (_reading.kind) {
-      _TempKind.nozzle => await notifier.setNozzleTemp(
+      TempKind.nozzle => await notifier.setNozzleTemp(
         widget.printerId,
         _reading.raw,
         target,
         nozzle: widget.nozzleIndex,
       ),
-      _TempKind.bed => await notifier.setBedTemp(widget.printerId, target),
-      _TempKind.chamber => await notifier.setChamberTemp(
+      TempKind.bed => await notifier.setBedTemp(widget.printerId, target),
+      TempKind.chamber => await notifier.setChamberTemp(
         widget.printerId,
         target,
       ),
-      _TempKind.unknown => ActionOutcome.ok,
+      TempKind.unknown => ActionOutcome.ok,
     };
     if (!mounted) return;
     navigator.pop();
@@ -695,11 +528,11 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     final step = _reading.targetStep;
     final accent = _reading.gaugeColor(t, target: _target.toDouble());
     final showAirduct =
-        _reading.kind == _TempKind.chamber && supportsAirduct(widget.model);
+        _reading.kind == TempKind.chamber && supportsAirduct(widget.model);
     // Nozzle switch (dual-head only): the active extruder comes from LIVE
     // status (poll/WS), so the lock persists through the physical switch.
     final showNozzleSwitch =
-        _reading.kind == _TempKind.nozzle && widget.dualNozzle;
+        _reading.kind == TempKind.nozzle && widget.dualNozzle;
     final liveExtruder =
         ref.watch(
           printerStatusesProvider.select(
@@ -720,7 +553,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     final isActiveNozzle = liveExtruder == widget.nozzleIndex;
     // With the airduct in Cooling, M141 does nothing, so a chamber target can
     // only be set once the flap is switched to Heating.
-    final chamberGated = _reading.kind == _TempKind.chamber && showAirduct;
+    final chamberGated = _reading.kind == TempKind.chamber && showAirduct;
     final tempEnabled = !chamberGated || (_airductHeating ?? false);
 
     return FittedSheetSurface(

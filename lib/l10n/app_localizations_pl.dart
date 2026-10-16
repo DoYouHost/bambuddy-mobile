@@ -8047,6 +8047,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get controllerNoPreview => 'Brak podglądu';
 
   @override
+  String get controllerPower => 'Zasilanie';
+
+  @override
   String get inventorySuppliersTitle => 'Dostawcy';
 
   @override
