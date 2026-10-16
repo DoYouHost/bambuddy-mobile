@@ -71,15 +71,31 @@ class ControllerFaultChip extends ConsumerWidget {
 }
 
 /// Opens the printer's faults. [title] replaces the count in the header, for the
-/// alert that opens it on its own ("Print paused").
+/// alert that opens it on its own ("Print paused"). Does nothing while the view
+/// is already open for that printer — from the chip or from the alert — so the
+/// two never stack.
 Future<void> showControllerFaults(
   BuildContext context,
   int printerId, {
   String? title,
-}) => showDialog<void>(
-  context: context,
-  builder: (_) => ControllerFaults(printerId: printerId, title: title),
-);
+}) async {
+  // Claimed before the dialog is built, so a second call in the same frame is
+  // turned away too.
+  if (!_openFaultViews.add(printerId)) return;
+  try {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => ControllerFaults(printerId: printerId, title: title),
+    );
+  } finally {
+    _openFaultViews.remove(printerId);
+  }
+}
+
+/// The printers whose fault view is on screen. Released both when the dialog
+/// returns and when the view's state is disposed: the dialog's future does not
+/// complete when the tree under it is torn down.
+final _openFaultViews = <int>{};
 
 /// Every active fault of the printer, each with the actions its firmware offers
 /// (the printer card's own [HmsErrorCard]), and Dismiss all. Closes itself
@@ -102,8 +118,32 @@ class _ControllerFaultsState extends ConsumerState<ControllerFaults> {
   void initState() {
     super.initState();
     ref.listenManual(controllerErrorsProvider(widget.printerId), (_, next) {
-      if (next.isEmpty && mounted) Navigator.of(context).pop();
+      if (next.isNotEmpty || !mounted) return;
+      // A printer off the network lists no faults; they have not cleared.
+      final connected =
+          ref
+              .read(controllerPrinterProvider(widget.printerId))
+              .item
+              ?.status
+              ?.connected ??
+          false;
+      if (!connected) return;
+      // Its own route, not the top one: a Stop confirmation opened from the
+      // view may sit above it, and a bare pop would close that instead.
+      final route = ModalRoute.of(context);
+      if (route == null) return;
+      if (route.isCurrent) {
+        Navigator.of(context).pop();
+      } else {
+        Navigator.of(context).removeRoute(route);
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    _openFaultViews.remove(widget.printerId);
+    super.dispose();
   }
 
   Future<void> _dismissAll() async {

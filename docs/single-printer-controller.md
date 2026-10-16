@@ -116,9 +116,14 @@ panels. It is dim.
 - A fault that **pauses the print** wakes the screen and opens the fault dialog
   (Retry, Ignore, Stop print; Stop goes through `confirmDialog`). Closing the
   dialog leaves the print paused and the fault in the chip.
-- A fault already reported when the controller opens raises nothing: the chip
-  shows it. A fault that is a warning first and pauses the print later opens
-  the dialog when it pauses.
+- A fault that has already paused the print when the controller opens raises
+  nothing: the chip shows it. A fault that is a warning, whether it arrives
+  before the controller opens or after, opens the dialog when it pauses the
+  print.
+- A printer that drops off the network lists no faults; that is not its faults
+  clearing, so one already answered does not raise the alert again when the
+  printer comes back. The fault view never opens twice for one printer, from
+  the chip and from the alert alike.
 - It is not a screen lock: it protects the panel, not the printer.
 
 ## 4. Settings

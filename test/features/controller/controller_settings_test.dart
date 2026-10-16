@@ -107,6 +107,20 @@ void main() {
     });
   });
 
+  testWidgets('Never, once accepted, asks nothing when tapped again', (
+    tester,
+  ) async {
+    await pump(tester);
+    final never = ControllerPrefs.saverAfterOptions.length - 1;
+    await tapChoice(tester, never);
+    await tester.tap(byLogId('controller.saver_never.confirm'));
+    await settle(tester);
+
+    await tapChoice(tester, never);
+
+    expect(find.text(pl.controllerSaverNeverBody), findsNothing);
+  });
+
   group('the switches', () {
     testWidgets('each one flips its own setting', (tester) async {
       await pump(tester);

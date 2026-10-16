@@ -161,6 +161,65 @@ void main() {
       expect(find.byType(ControllerFaults), findsNothing);
     });
 
+    testWidgets('closes itself, not the Stop confirmation above it, when the '
+        'fault clears', (tester) async {
+      await pump(tester, mine: const [_runout]);
+      await open(tester);
+      await tester.tap(byLogId('controller.hms_stop_printing'));
+      await settle(tester);
+
+      statuses.put(_status(1));
+      await settle(tester);
+
+      expect(find.byType(ControllerFaults), findsNothing);
+      expect(commands.calls, isEmpty);
+    });
+
+    testWidgets('never opens twice for one printer', (tester) async {
+      await pump(tester, mine: const [_runout]);
+      await open(tester);
+
+      // What the alert does when the print pauses while the view is open.
+      showControllerFaults(
+        tester.element(find.byType(ControllerFaultChip)),
+        1,
+        title: 'paused',
+      );
+      await settle(tester);
+
+      expect(find.byType(ControllerFaults), findsOneWidget);
+    });
+
+    testWidgets('stays open while the printer is off the network', (
+      tester,
+    ) async {
+      await pump(tester, mine: const [_runout]);
+      await open(tester);
+
+      statuses.put(
+        const PrinterStatus(
+          id: 1,
+          connected: false,
+          state: 'PAUSE',
+          hmsErrors: [_runout],
+        ),
+      );
+      await settle(tester);
+
+      expect(find.byType(ControllerFaults), findsOneWidget);
+    });
+
+    testWidgets('two calls in one frame open one view', (tester) async {
+      await pump(tester, mine: const [_runout]);
+      final context = tester.element(find.byType(ControllerFaultChip));
+
+      showControllerFaults(context, 1);
+      showControllerFaults(context, 1);
+      await settle(tester);
+
+      expect(find.byType(ControllerFaults), findsOneWidget);
+    });
+
     testWidgets('stays open when another printer\'s fault clears', (
       tester,
     ) async {

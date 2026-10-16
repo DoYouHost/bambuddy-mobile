@@ -152,6 +152,8 @@ class _SaverSettings extends ConsumerWidget {
     WidgetRef ref,
     int minutes,
   ) async {
+    // The risk was accepted when Never was chosen; tapping it again asks nothing.
+    if (minutes == prefs.saverAfterMinutes) return;
     final notifier = ref.read(controllerPrefsProvider.notifier);
     if (minutes == ControllerPrefs.saverNever) {
       final l10n = AppLocalizations.of(context);

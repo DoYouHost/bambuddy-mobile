@@ -189,6 +189,72 @@ void main() {
     expect(alert(), findsNothing);
   });
 
+  testWidgets('a warning already there at open still raises the alert when '
+      'it pauses the print', (tester) async {
+    await pump(tester, atOpen: const [_runout]);
+    await idle(tester);
+
+    statuses.put(_status(1, state: 'PAUSE', errors: const [_runout]));
+    await frames(tester);
+
+    expect(saver(), findsNothing);
+    expect(alert(), findsOneWidget);
+  });
+
+  testWidgets('a dropped connection does not bring back an answered alert', (
+    tester,
+  ) async {
+    await pump(tester);
+    statuses.put(_status(1, state: 'PAUSE', errors: const [_runout]));
+    await frames(tester);
+    await tester.tap(byLogId('controller.faults_close'));
+    await frames(tester);
+    expect(alert(), findsNothing);
+
+    statuses.put(
+      const PrinterStatus(
+        id: 1,
+        connected: false,
+        state: 'PAUSE',
+        hmsErrors: [_runout],
+      ),
+    );
+    await frames(tester);
+    statuses.put(_status(1, state: 'PAUSE', errors: const [_runout]));
+    await frames(tester);
+
+    expect(alert(), findsNothing);
+  });
+
+  testWidgets('a fault cleared while the printer was away alerts again when '
+      'it comes back', (tester) async {
+    await pump(tester);
+    statuses.put(_status(1, state: 'PAUSE', errors: const [_runout]));
+    await frames(tester);
+    await tester.tap(byLogId('controller.faults_close'));
+    await frames(tester);
+
+    // Off the network, cleared at the printer, back with nothing to report.
+    statuses.put(
+      const PrinterStatus(
+        id: 1,
+        connected: false,
+        state: 'PAUSE',
+        hmsErrors: [_runout],
+      ),
+    );
+    await frames(tester);
+    statuses.put(_status(1, state: 'PAUSE'));
+    await frames(tester);
+    expect(alert(), findsNothing);
+
+    // The same fault, a second time.
+    statuses.put(_status(1, state: 'PAUSE', errors: const [_runout]));
+    await frames(tester);
+
+    expect(alert(), findsOneWidget);
+  });
+
   testWidgets('the saver comes back over the alert if nobody answers', (
     tester,
   ) async {

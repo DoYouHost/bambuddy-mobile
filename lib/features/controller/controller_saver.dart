@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format/duration_format.dart';
 import '../../core/models/printer_status.dart';
+import '../../core/notifications/hms_catalog.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../dashboard/widgets/printer_state_pill.dart';
@@ -78,7 +79,6 @@ class ControllerSaverHostState extends ConsumerState<ControllerSaverHost> {
   /// is in the first and not yet in the second.
   final _woken = <String>{};
   final _alerted = <String>{};
-  bool _alertOpen = false;
 
   bool get saverUp => _saver != null;
 
@@ -96,7 +96,9 @@ class ControllerSaverHostState extends ConsumerState<ControllerSaverHost> {
       ref.read(controllerErrorsProvider(widget.printerId)),
     );
     _woken.addAll(present);
-    _alerted.addAll(present);
+    // Already paused by it: the chip says so. Still printing: the pause, when
+    // it comes, is news, and raises the alert then.
+    if (_paused) _alerted.addAll(present);
     ref.listenManual(
       controllerErrorsProvider(widget.printerId),
       (_, _) => _onFaults(),
@@ -107,6 +109,7 @@ class ControllerSaverHostState extends ConsumerState<ControllerSaverHost> {
       ).select((p) => p.item?.status?.isPaused ?? false),
       (_, _) => _onFaults(),
     );
+
     _restart();
   }
 
@@ -114,19 +117,27 @@ class ControllerSaverHostState extends ConsumerState<ControllerSaverHost> {
     for (final e in errors) e.fullCode ?? e.displayCode,
   };
 
+  PrinterStatus? get _status =>
+      ref.read(controllerPrinterProvider(widget.printerId)).item?.status;
+
+  bool get _paused => _status?.isPaused ?? false;
+
   void _onFaults() {
-    final codes = _codes(ref.read(controllerErrorsProvider(widget.printerId)));
+    // A printer that drops off the network lists no faults
+    // (`displayableHmsErrors`); that is not its faults clearing, and a fault
+    // already answered must not raise the alert again when it comes back.
+    final status = _status;
+    if (!(status?.connected ?? false)) return;
+    // From the status just read, not from [controllerErrorsProvider]: on a
+    // reconnect this runs before that provider has caught up, and a stale
+    // empty list would read as every fault cleared.
+    final codes = _codes(
+      displayableHmsErrors(status, describe: HmsCatalog.instance.describe),
+    );
     // A cleared fault that comes back is new again.
     _woken.retainAll(codes);
     _alerted.retainAll(codes);
-    final paused =
-        ref
-            .read(controllerPrinterProvider(widget.printerId))
-            .item
-            ?.status
-            ?.isPaused ??
-        false;
-    if (paused && !codes.every(_alerted.contains)) {
+    if (_paused && !codes.every(_alerted.contains)) {
       _alerted.addAll(codes);
       _woken.addAll(codes);
       wake();
@@ -139,15 +150,13 @@ class ControllerSaverHostState extends ConsumerState<ControllerSaverHost> {
     }
   }
 
-  Future<void> _openAlert() async {
-    if (_alertOpen || !mounted) return;
-    _alertOpen = true;
-    await showControllerFaults(
+  void _openAlert() {
+    if (!mounted) return;
+    showControllerFaults(
       context,
       widget.printerId,
       title: AppLocalizations.of(context).controllerPrintPaused,
     );
-    _alertOpen = false;
   }
 
   @override
