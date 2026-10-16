@@ -7980,6 +7980,130 @@ class AppLocalizationsEs extends AppLocalizations {
       'Todas las impresoras están ocultas en esta pared — muéstralas en los ajustes.';
 
   @override
+  String get controllerTitle => 'Controlador';
+
+  @override
+  String get controllerExit => 'Salir del controlador';
+
+  @override
+  String get controllerSwitchPrinter => 'Cambiar de impresora';
+
+  @override
+  String get controllerTabOverview => 'Resumen';
+
+  @override
+  String get controllerPrinterGone =>
+      'Esta impresora ya no está en el servidor.';
+
+  @override
+  String get controllerLiveBadge => 'EN VIVO';
+
+  @override
+  String get controllerPreviewBadge => 'VISTA PREVIA DEL ARCHIVO';
+
+  @override
+  String get controllerNoPreview => 'Sin vista previa';
+
+  @override
+  String get controllerPower => 'Alimentación';
+
+  @override
+  String get controllerTabHeat => 'Calor';
+
+  @override
+  String get controllerNoChamberHeater => 'Sin calefactor de cámara';
+
+  @override
+  String get controllerMoveLocked =>
+      'Los ejes están bloqueados durante la impresión';
+
+  @override
+  String get controllerTabFilament => 'Filamento';
+
+  @override
+  String get controllerExtruder => 'Extrusor';
+
+  @override
+  String controllerTarget(String value) {
+    return 'Objetivo $value';
+  }
+
+  @override
+  String get controllerHeating => 'Calentando';
+
+  @override
+  String get controllerAtTarget => 'Alcanzada';
+
+  @override
+  String get controllerCooling => 'Enfriando';
+
+  @override
+  String get controllerEditSlot => 'Editar ranura';
+
+  @override
+  String get controllerTouchToWake => 'Toca para activar';
+
+  @override
+  String get controllerPrintPaused => 'Impresión en pausa';
+
+  @override
+  String get controllerTabSettings => 'Ajustes';
+
+  @override
+  String get controllerSaverTitle => 'Salvapantallas';
+
+  @override
+  String get controllerSaverAfter => 'Se activa tras';
+
+  @override
+  String get controllerSaverNever => 'Nunca';
+
+  @override
+  String get controllerSaverNeverTitle => '¿No atenuar nunca la pantalla?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'Una imagen que nunca se mueve puede quedar marcada en la pantalla, sobre todo en OLED. Desactiva el salvapantallas solo si aceptas ese riesgo.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Desactivar';
+
+  @override
+  String get controllerSaverBrightness => 'Brillo';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Brillo de la pantalla mientras el salvapantallas está activo';
+
+  @override
+  String get controllerWakeOnWarnings => 'Activar con avisos';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Los errores que pausan la impresión siempre lo activan.';
+
+  @override
+  String get controllerSaverPreview => 'Vista previa';
+
+  @override
+  String get controllerDisplayTitle => 'Pantalla';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'El teléfono no apagará la pantalla. El salvapantallas sigue funcionando.';
+
+  @override
+  String get controllerLiveCameraHint =>
+      'Desactivada, muestra la vista previa del archivo.';
+
+  @override
+  String get controllerKeepAwake => 'Pantalla siempre encendida';
+
+  @override
+  String get controllerSaverNeedsAwake =>
+      'Sin esta opción, el salvapantallas no funciona.';
+
+  @override
   String get inventorySuppliersTitle => 'Proveedores';
 
   @override

@@ -8053,6 +8053,130 @@ class AppLocalizationsFr extends AppLocalizations {
       'Toutes les imprimantes sont masquées sur ce mur — affichez-les dans les paramètres.';
 
   @override
+  String get controllerTitle => 'Contrôleur';
+
+  @override
+  String get controllerExit => 'Quitter le contrôleur';
+
+  @override
+  String get controllerSwitchPrinter => 'Changer d\'imprimante';
+
+  @override
+  String get controllerTabOverview => 'Aperçu';
+
+  @override
+  String get controllerPrinterGone =>
+      'Cette imprimante n\'est plus sur le serveur.';
+
+  @override
+  String get controllerLiveBadge => 'EN DIRECT';
+
+  @override
+  String get controllerPreviewBadge => 'APERÇU DU FICHIER';
+
+  @override
+  String get controllerNoPreview => 'Aucun aperçu';
+
+  @override
+  String get controllerPower => 'Alimentation';
+
+  @override
+  String get controllerTabHeat => 'Chauffe';
+
+  @override
+  String get controllerNoChamberHeater => 'Pas de chauffage de chambre';
+
+  @override
+  String get controllerMoveLocked =>
+      'Les axes sont verrouillés pendant l\'impression';
+
+  @override
+  String get controllerTabFilament => 'Filament';
+
+  @override
+  String get controllerExtruder => 'Extrudeur';
+
+  @override
+  String controllerTarget(String value) {
+    return 'Cible $value';
+  }
+
+  @override
+  String get controllerHeating => 'Chauffe';
+
+  @override
+  String get controllerAtTarget => 'Atteinte';
+
+  @override
+  String get controllerCooling => 'Refroidissement';
+
+  @override
+  String get controllerEditSlot => 'Modifier l\'emplacement';
+
+  @override
+  String get controllerTouchToWake => 'Touchez pour réveiller';
+
+  @override
+  String get controllerPrintPaused => 'Impression en pause';
+
+  @override
+  String get controllerTabSettings => 'Réglages';
+
+  @override
+  String get controllerSaverTitle => 'Économiseur d\'écran';
+
+  @override
+  String get controllerSaverAfter => 'Démarre après';
+
+  @override
+  String get controllerSaverNever => 'Jamais';
+
+  @override
+  String get controllerSaverNeverTitle => 'Ne jamais assombrir l\'écran ?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'Une image qui ne bouge jamais peut marquer l\'écran, surtout un écran OLED. Désactivez l\'économiseur seulement si vous acceptez ce risque.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Désactiver';
+
+  @override
+  String get controllerSaverBrightness => 'Luminosité';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Luminosité de l\'écran pendant l\'économiseur';
+
+  @override
+  String get controllerWakeOnWarnings => 'Réveiller sur avertissement';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Les erreurs qui mettent l\'impression en pause le réveillent toujours.';
+
+  @override
+  String get controllerSaverPreview => 'Aperçu';
+
+  @override
+  String get controllerDisplayTitle => 'Affichage';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'Le téléphone n\'éteint pas l\'écran. L\'économiseur fonctionne toujours.';
+
+  @override
+  String get controllerLiveCameraHint =>
+      'Désactivée, affiche l\'aperçu du fichier.';
+
+  @override
+  String get controllerKeepAwake => 'Écran toujours allumé';
+
+  @override
+  String get controllerSaverNeedsAwake =>
+      'Sans cette option, l\'économiseur est désactivé.';
+
+  @override
   String get inventorySuppliersTitle => 'Fournisseurs';
 
   @override

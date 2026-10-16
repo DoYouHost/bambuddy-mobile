@@ -5220,6 +5220,112 @@
   "@wallAllHidden": {
     "description": "Shown in place of the wall's tiles when the server has printers but all are hidden on this device"
   },
+  "controllerTitle": "Controller",
+  "@controllerTitle": {
+    "description": "Name of the single-printer touch screen: the dashboard menu entry and the printer picker's title"
+  },
+  "controllerExit": "Exit controller",
+  "@controllerExit": {
+    "description": "Tooltip of the controller's back button"
+  },
+  "controllerSwitchPrinter": "Switch printer",
+  "@controllerSwitchPrinter": {
+    "description": "Tooltip of the printer name in the controller's top bar; opens the printer picker"
+  },
+  "controllerTabOverview": "Overview",
+  "@controllerTabOverview": {
+    "description": "First tab of the controller: the camera or file preview, the job and the everyday controls"
+  },
+  "controllerPrinterGone": "This printer is no longer on the server.",
+  "@controllerPrinterGone": {
+    "description": "Shown by the controller when the printer it was opened for is not in the server's list any more"
+  },
+  "controllerLiveBadge": "LIVE",
+  "@controllerLiveBadge": {
+    "description": "Badge on the controller's camera picture while the stream is live; capitals on purpose"
+  },
+  "controllerPreviewBadge": "FILE PREVIEW",
+  "@controllerPreviewBadge": {
+    "description": "Badge on the controller's picture when it shows the cover of the file being printed instead of the camera; capitals on purpose"
+  },
+  "controllerNoPreview": "No preview",
+  "@controllerNoPreview": {
+    "description": "Shown in place of the file preview when the printed file has no cover picture or it does not load"
+  },
+  "controllerPower": "Power",
+  "@controllerPower": {
+    "description": "Label of the controller's smart plug switch, which powers the printer on and off"
+  },
+  "controllerTabHeat": "Heat",
+  "@controllerTabHeat": {
+    "description": "Controller tab with the nozzle, bed and chamber targets and the fans"
+  },
+  "controllerNoChamberHeater": "No chamber heater",
+  "@controllerNoChamberHeater": {
+    "description": "Shown on the chamber card of a printer whose chamber can only be read, not heated"
+  },
+  "controllerMoveLocked": "Axes are locked while a print is running",
+  "@controllerMoveLocked": {
+    "description": "Line above the controller's Move tab while the printer is printing; every control on the tab is switched off and this says why"
+  },
+  "controllerTabFilament": "Filament",
+  "@controllerTabFilament": {
+    "description": "Controller tab with the AMS units, their slots and the external spool"
+  },
+  "controllerExtruder": "Extruder",
+  "controllerTarget": "Target {value}",
+  "@controllerTarget": {
+    "description": "The setpoint a heater is driven to, on the button that changes it.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "controllerHeating": "Heating",
+  "controllerAtTarget": "At target",
+  "controllerCooling": "Cooling",
+  "controllerEditSlot": "Edit slot",
+  "@controllerEditSlot": {
+    "description": "Tooltip of the pencil on a controller slot card; opens the slot sheet (spool, configuration)"
+  },
+  "controllerTouchToWake": "Touch to wake",
+  "@controllerTouchToWake": {
+    "description": "Line on the controller's screen saver: the first touch only wakes the screen"
+  },
+  "controllerPrintPaused": "Print paused",
+  "@controllerPrintPaused": {
+    "description": "Title of the fault view the controller opens on its own when a fault has paused the print"
+  },
+  "controllerTabSettings": "Settings",
+  "controllerSaverTitle": "Screen saver",
+  "controllerSaverAfter": "Starts after",
+  "@controllerSaverAfter": {
+    "description": "Label above the idle-time choices of the controller's screen saver (1, 2, 5, 10, 15 minutes, Never)"
+  },
+  "controllerSaverNever": "Never",
+  "controllerSaverNeverTitle": "Never dim the screen?",
+  "controllerSaverNeverBody": "An image that never moves can burn into the screen, OLED panels above all. Turn the saver off only if you accept that risk.",
+  "@controllerSaverNeverBody": {
+    "description": "Shown before the screen saver is turned off for good: the burn-in risk the user has to accept"
+  },
+  "controllerSaverNeverConfirm": "Turn it off",
+  "controllerSaverBrightness": "Brightness",
+  "controllerSaverBrightnessHint": "Screen brightness while the saver is up",
+  "@controllerSaverBrightnessHint": {
+    "description": "What the brightness slider of the controller's screen saver changes"
+  },
+  "controllerWakeOnWarnings": "Wake on warnings",
+  "controllerWakeOnWarningsHint": "Faults that pause the print always wake it.",
+  "controllerSaverPreview": "Preview",
+  "controllerDisplayTitle": "Display",
+  "controllerKeepAwakeHint": "The phone won't turn the screen off. The saver still works.",
+  "controllerLiveCameraHint": "Off shows the file preview.",
+  "controllerKeepAwake": "Screen always on",
+  "controllerSaverNeedsAwake": "Without this, the saver is off.",
+  "@controllerSaverNeedsAwake": {
+    "description": "Line under the Screen always on switch while it is off: the saver's settings are disabled, and this says why"
+  },
   "inventorySuppliersTitle": "Suppliers",
   "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
   "inventorySuppliersEmpty": "No suppliers yet",

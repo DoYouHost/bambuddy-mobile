@@ -13220,6 +13220,234 @@ abstract class AppLocalizations {
   /// **'Every printer is hidden from this wall — show them in the settings.'**
   String get wallAllHidden;
 
+  /// Name of the single-printer touch screen: the dashboard menu entry and the printer picker's title
+  ///
+  /// In en, this message translates to:
+  /// **'Controller'**
+  String get controllerTitle;
+
+  /// Tooltip of the controller's back button
+  ///
+  /// In en, this message translates to:
+  /// **'Exit controller'**
+  String get controllerExit;
+
+  /// Tooltip of the printer name in the controller's top bar; opens the printer picker
+  ///
+  /// In en, this message translates to:
+  /// **'Switch printer'**
+  String get controllerSwitchPrinter;
+
+  /// First tab of the controller: the camera or file preview, the job and the everyday controls
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get controllerTabOverview;
+
+  /// Shown by the controller when the printer it was opened for is not in the server's list any more
+  ///
+  /// In en, this message translates to:
+  /// **'This printer is no longer on the server.'**
+  String get controllerPrinterGone;
+
+  /// Badge on the controller's camera picture while the stream is live; capitals on purpose
+  ///
+  /// In en, this message translates to:
+  /// **'LIVE'**
+  String get controllerLiveBadge;
+
+  /// Badge on the controller's picture when it shows the cover of the file being printed instead of the camera; capitals on purpose
+  ///
+  /// In en, this message translates to:
+  /// **'FILE PREVIEW'**
+  String get controllerPreviewBadge;
+
+  /// Shown in place of the file preview when the printed file has no cover picture or it does not load
+  ///
+  /// In en, this message translates to:
+  /// **'No preview'**
+  String get controllerNoPreview;
+
+  /// Label of the controller's smart plug switch, which powers the printer on and off
+  ///
+  /// In en, this message translates to:
+  /// **'Power'**
+  String get controllerPower;
+
+  /// Controller tab with the nozzle, bed and chamber targets and the fans
+  ///
+  /// In en, this message translates to:
+  /// **'Heat'**
+  String get controllerTabHeat;
+
+  /// Shown on the chamber card of a printer whose chamber can only be read, not heated
+  ///
+  /// In en, this message translates to:
+  /// **'No chamber heater'**
+  String get controllerNoChamberHeater;
+
+  /// Line above the controller's Move tab while the printer is printing; every control on the tab is switched off and this says why
+  ///
+  /// In en, this message translates to:
+  /// **'Axes are locked while a print is running'**
+  String get controllerMoveLocked;
+
+  /// Controller tab with the AMS units, their slots and the external spool
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get controllerTabFilament;
+
+  /// No description provided for @controllerExtruder.
+  ///
+  /// In en, this message translates to:
+  /// **'Extruder'**
+  String get controllerExtruder;
+
+  /// The setpoint a heater is driven to, on the button that changes it.
+  ///
+  /// In en, this message translates to:
+  /// **'Target {value}'**
+  String controllerTarget(String value);
+
+  /// No description provided for @controllerHeating.
+  ///
+  /// In en, this message translates to:
+  /// **'Heating'**
+  String get controllerHeating;
+
+  /// No description provided for @controllerAtTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'At target'**
+  String get controllerAtTarget;
+
+  /// No description provided for @controllerCooling.
+  ///
+  /// In en, this message translates to:
+  /// **'Cooling'**
+  String get controllerCooling;
+
+  /// Tooltip of the pencil on a controller slot card; opens the slot sheet (spool, configuration)
+  ///
+  /// In en, this message translates to:
+  /// **'Edit slot'**
+  String get controllerEditSlot;
+
+  /// Line on the controller's screen saver: the first touch only wakes the screen
+  ///
+  /// In en, this message translates to:
+  /// **'Touch to wake'**
+  String get controllerTouchToWake;
+
+  /// Title of the fault view the controller opens on its own when a fault has paused the print
+  ///
+  /// In en, this message translates to:
+  /// **'Print paused'**
+  String get controllerPrintPaused;
+
+  /// No description provided for @controllerTabSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get controllerTabSettings;
+
+  /// No description provided for @controllerSaverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen saver'**
+  String get controllerSaverTitle;
+
+  /// Label above the idle-time choices of the controller's screen saver (1, 2, 5, 10, 15 minutes, Never)
+  ///
+  /// In en, this message translates to:
+  /// **'Starts after'**
+  String get controllerSaverAfter;
+
+  /// No description provided for @controllerSaverNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get controllerSaverNever;
+
+  /// No description provided for @controllerSaverNeverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Never dim the screen?'**
+  String get controllerSaverNeverTitle;
+
+  /// Shown before the screen saver is turned off for good: the burn-in risk the user has to accept
+  ///
+  /// In en, this message translates to:
+  /// **'An image that never moves can burn into the screen, OLED panels above all. Turn the saver off only if you accept that risk.'**
+  String get controllerSaverNeverBody;
+
+  /// No description provided for @controllerSaverNeverConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn it off'**
+  String get controllerSaverNeverConfirm;
+
+  /// No description provided for @controllerSaverBrightness.
+  ///
+  /// In en, this message translates to:
+  /// **'Brightness'**
+  String get controllerSaverBrightness;
+
+  /// What the brightness slider of the controller's screen saver changes
+  ///
+  /// In en, this message translates to:
+  /// **'Screen brightness while the saver is up'**
+  String get controllerSaverBrightnessHint;
+
+  /// No description provided for @controllerWakeOnWarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Wake on warnings'**
+  String get controllerWakeOnWarnings;
+
+  /// No description provided for @controllerWakeOnWarningsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Faults that pause the print always wake it.'**
+  String get controllerWakeOnWarningsHint;
+
+  /// No description provided for @controllerSaverPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get controllerSaverPreview;
+
+  /// No description provided for @controllerDisplayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Display'**
+  String get controllerDisplayTitle;
+
+  /// No description provided for @controllerKeepAwakeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The phone won\'t turn the screen off. The saver still works.'**
+  String get controllerKeepAwakeHint;
+
+  /// No description provided for @controllerLiveCameraHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Off shows the file preview.'**
+  String get controllerLiveCameraHint;
+
+  /// No description provided for @controllerKeepAwake.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen always on'**
+  String get controllerKeepAwake;
+
+  /// Line under the Screen always on switch while it is off: the saver's settings are disabled, and this says why
+  ///
+  /// In en, this message translates to:
+  /// **'Without this, the saver is off.'**
+  String get controllerSaverNeedsAwake;
+
   /// No description provided for @inventorySuppliersTitle.
   ///
   /// In en, this message translates to:

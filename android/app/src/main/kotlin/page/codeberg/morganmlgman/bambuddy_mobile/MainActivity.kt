@@ -35,7 +35,9 @@ private typealias MethodHandler = (MethodCall, MethodChannel.Result) -> Unit
  *
  * `window` holds the screen on while wall mode is up (`lib/features/wall/`). A window flag
  * rather than a wake lock: it needs no permission, acts only while this window is visible,
- * and so needs nothing re-asserted on resume.
+ * and so needs nothing re-asserted on resume. It also dims this window's backlight while
+ * the controller's screen saver is up — the window's own `screenBrightness`, not the
+ * system setting, so it needs no permission either and ends with the window.
  */
 class MainActivity : FlutterActivity() {
 
@@ -110,6 +112,16 @@ class MainActivity : FlutterActivity() {
                         window.addFlags(flag)
                     } else {
                         window.clearFlags(flag)
+                    }
+                    result.success(null)
+                },
+                // `level` 0..1 overrides the backlight for this window only; null hands it
+                // back to the system setting.
+                "screenBrightness" to { call, result ->
+                    val level = call.argument<Double>("level")
+                    window.attributes = window.attributes.apply {
+                        screenBrightness = level?.toFloat()?.coerceIn(0f, 1f)
+                            ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
                     }
                     result.success(null)
                 }

@@ -191,6 +191,12 @@ do not stay silent because it was not part of the task.
 - [docs/play-store-listing.md](docs/play-store-listing.md),
   [docs/privacy-policy.md](docs/privacy-policy.md), `docs/store-assets/` — what
   Google Play shows.
+- [docs/single-printer-controller.md](docs/single-printer-controller.md) — the
+  single-printer touch controller (#54): everything scoped to the one selected
+  printer, landscape, the bouncing screen saver and its wake rules, dual-nozzle
+  behaviour, the server facts it leans on. **Read it before touching
+  `lib/features/controller/`**; the research behind it is
+  [single-printer-controller-research.md](docs/single-printer-controller-research.md).
 - `docs/plans/` is **gitignored**: local working notes, not history. A fresh
   session will not find a plan through `git log`, and CI never sees one. Anything
   that must survive belongs in the tracked docs above.

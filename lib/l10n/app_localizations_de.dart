@@ -7960,6 +7960,130 @@ class AppLocalizationsDe extends AppLocalizations {
       'Alle Drucker sind auf dieser Wand ausgeblendet — blende sie in den Einstellungen ein.';
 
   @override
+  String get controllerTitle => 'Controller';
+
+  @override
+  String get controllerExit => 'Controller verlassen';
+
+  @override
+  String get controllerSwitchPrinter => 'Drucker wechseln';
+
+  @override
+  String get controllerTabOverview => 'Übersicht';
+
+  @override
+  String get controllerPrinterGone =>
+      'Dieser Drucker ist nicht mehr auf dem Server.';
+
+  @override
+  String get controllerLiveBadge => 'LIVE';
+
+  @override
+  String get controllerPreviewBadge => 'DATEI-VORSCHAU';
+
+  @override
+  String get controllerNoPreview => 'Keine Vorschau';
+
+  @override
+  String get controllerPower => 'Strom';
+
+  @override
+  String get controllerTabHeat => 'Heizen';
+
+  @override
+  String get controllerNoChamberHeater => 'Keine Kammerheizung';
+
+  @override
+  String get controllerMoveLocked =>
+      'Die Achsen sind während des Drucks gesperrt';
+
+  @override
+  String get controllerTabFilament => 'Filament';
+
+  @override
+  String get controllerExtruder => 'Extruder';
+
+  @override
+  String controllerTarget(String value) {
+    return 'Ziel $value';
+  }
+
+  @override
+  String get controllerHeating => 'Heizt';
+
+  @override
+  String get controllerAtTarget => 'Erreicht';
+
+  @override
+  String get controllerCooling => 'Kühlt ab';
+
+  @override
+  String get controllerEditSlot => 'Slot bearbeiten';
+
+  @override
+  String get controllerTouchToWake => 'Zum Aufwecken berühren';
+
+  @override
+  String get controllerPrintPaused => 'Druck pausiert';
+
+  @override
+  String get controllerTabSettings => 'Einstellungen';
+
+  @override
+  String get controllerSaverTitle => 'Bildschirmschoner';
+
+  @override
+  String get controllerSaverAfter => 'Startet nach';
+
+  @override
+  String get controllerSaverNever => 'Nie';
+
+  @override
+  String get controllerSaverNeverTitle => 'Bildschirm nie abdunkeln?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'Ein Bild, das sich nie bewegt, kann sich in den Bildschirm einbrennen, vor allem bei OLED. Schalte den Bildschirmschoner nur aus, wenn du dieses Risiko in Kauf nimmst.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Ausschalten';
+
+  @override
+  String get controllerSaverBrightness => 'Helligkeit';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Bildschirmhelligkeit, solange der Bildschirmschoner läuft';
+
+  @override
+  String get controllerWakeOnWarnings => 'Bei Warnungen aufwecken';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Fehler, die den Druck pausieren, wecken ihn immer.';
+
+  @override
+  String get controllerSaverPreview => 'Vorschau';
+
+  @override
+  String get controllerDisplayTitle => 'Anzeige';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'Das Handy schaltet den Bildschirm nicht selbst aus. Der Bildschirmschoner läuft weiter.';
+
+  @override
+  String get controllerLiveCameraHint =>
+      'Aus zeigt die Vorschau aus der Datei.';
+
+  @override
+  String get controllerKeepAwake => 'Bildschirm immer an';
+
+  @override
+  String get controllerSaverNeedsAwake =>
+      'Ohne diese Option ist der Bildschirmschoner aus.';
+
+  @override
   String get inventorySuppliersTitle => 'Lieferanten';
 
   @override

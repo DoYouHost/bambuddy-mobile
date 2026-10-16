@@ -7884,6 +7884,127 @@ class AppLocalizationsEn extends AppLocalizations {
       'Every printer is hidden from this wall — show them in the settings.';
 
   @override
+  String get controllerTitle => 'Controller';
+
+  @override
+  String get controllerExit => 'Exit controller';
+
+  @override
+  String get controllerSwitchPrinter => 'Switch printer';
+
+  @override
+  String get controllerTabOverview => 'Overview';
+
+  @override
+  String get controllerPrinterGone =>
+      'This printer is no longer on the server.';
+
+  @override
+  String get controllerLiveBadge => 'LIVE';
+
+  @override
+  String get controllerPreviewBadge => 'FILE PREVIEW';
+
+  @override
+  String get controllerNoPreview => 'No preview';
+
+  @override
+  String get controllerPower => 'Power';
+
+  @override
+  String get controllerTabHeat => 'Heat';
+
+  @override
+  String get controllerNoChamberHeater => 'No chamber heater';
+
+  @override
+  String get controllerMoveLocked => 'Axes are locked while a print is running';
+
+  @override
+  String get controllerTabFilament => 'Filament';
+
+  @override
+  String get controllerExtruder => 'Extruder';
+
+  @override
+  String controllerTarget(String value) {
+    return 'Target $value';
+  }
+
+  @override
+  String get controllerHeating => 'Heating';
+
+  @override
+  String get controllerAtTarget => 'At target';
+
+  @override
+  String get controllerCooling => 'Cooling';
+
+  @override
+  String get controllerEditSlot => 'Edit slot';
+
+  @override
+  String get controllerTouchToWake => 'Touch to wake';
+
+  @override
+  String get controllerPrintPaused => 'Print paused';
+
+  @override
+  String get controllerTabSettings => 'Settings';
+
+  @override
+  String get controllerSaverTitle => 'Screen saver';
+
+  @override
+  String get controllerSaverAfter => 'Starts after';
+
+  @override
+  String get controllerSaverNever => 'Never';
+
+  @override
+  String get controllerSaverNeverTitle => 'Never dim the screen?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'An image that never moves can burn into the screen, OLED panels above all. Turn the saver off only if you accept that risk.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Turn it off';
+
+  @override
+  String get controllerSaverBrightness => 'Brightness';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Screen brightness while the saver is up';
+
+  @override
+  String get controllerWakeOnWarnings => 'Wake on warnings';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Faults that pause the print always wake it.';
+
+  @override
+  String get controllerSaverPreview => 'Preview';
+
+  @override
+  String get controllerDisplayTitle => 'Display';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'The phone won\'t turn the screen off. The saver still works.';
+
+  @override
+  String get controllerLiveCameraHint => 'Off shows the file preview.';
+
+  @override
+  String get controllerKeepAwake => 'Screen always on';
+
+  @override
+  String get controllerSaverNeedsAwake => 'Without this, the saver is off.';
+
+  @override
   String get inventorySuppliersTitle => 'Suppliers';
 
   @override

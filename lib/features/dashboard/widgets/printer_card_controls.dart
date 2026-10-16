@@ -88,39 +88,15 @@ class _ControlsActions extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     ControlAction action,
-  ) async {
-    final notifier = ref.read(controlsProvider.notifier);
-    final result = switch (action) {
-      ControlAction.pause => await notifier.pause(printerId),
-      ControlAction.resume => await notifier.resume(printerId),
-      ControlAction.stop => await notifier.stop(printerId),
-      _ => ActionOutcome.ok,
-    };
-    if (context.mounted) _showResult(context, result);
-  }
+  ) => runPrintAction(context, ref, printerId, action);
 
-  /// Stop always behind confirmation—easy to kill a multi-hour print with one tap.
-  Future<void> _confirmStop(BuildContext context, WidgetRef ref) async {
-    final l10n = AppLocalizations.of(context);
-    final confirmed = await confirmDialog(
-      context,
-      title: l10n.ctrlStopConfirmTitle,
-      message: l10n.ctrlStopConfirmBody,
-      confirmLabel: l10n.ctrlStop,
-      destructive: true,
-      id: 'controls.stop_confirm',
-    );
-    if (confirmed && context.mounted) {
-      await _run(context, ref, ControlAction.stop);
-    }
-  }
-
-  void _showResult(BuildContext context, ActionOutcome result) {
-    final l10n = AppLocalizations.of(context);
-    final msg = result.messageFor(l10n);
-    if (msg == null) return;
-    ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-  }
+  Future<void> _confirmStop(BuildContext context, WidgetRef ref) =>
+      stopPrintConfirmed(
+        context,
+        ref,
+        printerId,
+        confirmId: 'controls.stop_confirm',
+      );
 }
 
 /// Chamber-light row (design): bulb + label on the left, pill toggle on the
@@ -195,7 +171,7 @@ class _LightSwitchRow extends ConsumerWidget {
                   const SizedBox(width: DashSpace.md),
                   busy
                       ? const DashSpinner(size: 20)
-                      : _PillSwitch(on: on, tokens: t),
+                      : PillSwitch(on: on, tokens: t),
                 ],
               ),
             ),
@@ -219,46 +195,6 @@ class _LightSwitchRow extends ConsumerWidget {
     if (msg != null) {
       ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
     }
-  }
-}
-
-/// Design's 42×24 pill toggle: green track when ON, neutral when OFF, with a
-/// sliding knob. Animated; purely presentational (tap handled by parent).
-class _PillSwitch extends StatelessWidget {
-  const _PillSwitch({required this.on, required this.tokens});
-
-  final bool on;
-  final DashTokens tokens;
-
-  static const _height = 24.0;
-  static const _knob = 20.0;
-
-  @override
-  Widget build(BuildContext context) {
-    final knobColor = tokens.isDark
-        ? const Color(0xFF0A0C08)
-        : (on ? Colors.white : const Color(0xFFFFFFFF));
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeInOut,
-      width: 42,
-      height: _height,
-      padding: const EdgeInsets.all((_height - _knob) / 2),
-      decoration: BoxDecoration(
-        color: on ? tokens.accentGreen : tokens.gaugeTrack,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: AnimatedAlign(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeInOut,
-        alignment: on ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(
-          width: _knob,
-          height: _knob,
-          decoration: BoxDecoration(color: knobColor, shape: BoxShape.circle),
-        ),
-      ),
-    );
   }
 }
 
@@ -327,33 +263,7 @@ class _SmartPlugButton extends ConsumerWidget {
     WidgetRef ref,
     SmartPlug plug,
     bool want,
-  ) async {
-    final l10n = AppLocalizations.of(context);
-    final confirmed = await confirmDialog(
-      context,
-      title: want
-          ? l10n.smartPlugOnConfirmTitle
-          : l10n.smartPlugOffConfirmTitle,
-      message: want
-          ? l10n.smartPlugOnConfirmBody
-          : l10n.smartPlugOffConfirmBody,
-      confirmLabel: want ? l10n.smartPlugTurnOn : l10n.smartPlugTurnOff,
-      // Cutting the power to a machine is the answer worth a red button;
-      // turning it on is not.
-      destructive: !want,
-      id: 'smart_plug',
-    );
-    if (!confirmed || !context.mounted) return;
-
-    final result = await ref
-        .read(smartPlugsProvider.notifier)
-        .control(plug.id, want ? SmartPlugAction.on : SmartPlugAction.off);
-    if (!context.mounted) return;
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
-  }
+  ) => confirmAndSwitchPlug(context, ref, plug, want, confirmId: 'smart_plug');
 }
 
 /// Compact square icon button used in the card header (camera, files, plug).

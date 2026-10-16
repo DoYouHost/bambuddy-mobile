@@ -522,7 +522,12 @@ class PrinterStatus {
 
   /// Speed percent matching [speedLevel] (Bambu mapping);
   /// null if level unknown/unset.
-  int? get speedPercent => switch (speedLevel) {
+  int? get speedPercent => speedPercentFor(speedLevel);
+
+  /// The percentage a speed [level] stands for on Bambu's scale. The server
+  /// reports the level only (`spd_lvl`), so every screen that shows a
+  /// percentage takes it from here.
+  static int? speedPercentFor(int? level) => switch (level) {
     1 => 50,
     2 => 100,
     3 => 124,

@@ -110,12 +110,17 @@ void main() {
     PrintableObjects objects = _twoObjects,
     int layerNum = 2,
     ObjectPickMask? mask,
+    Size? landscape,
   }) async {
     // The test window defaults to 800×600 (wider than tall) — the square plate
     // preview (AspectRatio 1) would then claim the whole viewport height, and
     // the sliver never builds the list rows underneath it. A phone-shaped
     // window fixes that the same way other screen tests in this repo do.
     usePhoneWindow(tester, dp: 1200);
+    if (landscape != null) {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = landscape;
+    }
 
     final repo = _StubRepo(objects);
     await pumpPhone(
@@ -195,6 +200,53 @@ void main() {
 
     expect(find.text(pl.skipObjectsSkip), findsNothing);
     expect(repo.skipCalls, isEmpty);
+  });
+
+  testWidgets('in landscape the plate and the list sit side by side', (
+    tester,
+  ) async {
+    await pumpScreen(tester, landscape: const Size(844, 390));
+    final handle = tester.ensureSemantics();
+
+    final marker = tester.getRect(
+      find.bySemanticsIdentifier('skip_objects.marker').first,
+    );
+    final row = tester.getRect(
+      find.bySemanticsIdentifier('skip_objects.object_tile').first,
+    );
+    expect(marker.right, lessThan(row.left), reason: 'plate left, list right');
+    expect(row.top, lessThan(390), reason: 'the list is on screen, not below');
+    expect(tester.takeException(), isNull);
+    handle.dispose();
+  });
+
+  testWidgets('in landscape Skip sits under the list, not across the plate', (
+    tester,
+  ) async {
+    await pumpScreen(tester, landscape: const Size(844, 390));
+    final handle = tester.ensureSemantics();
+    final plateBefore = tester.getRect(
+      find.bySemanticsIdentifier('skip_objects.marker').first,
+    );
+
+    await tester.tap(
+      find.bySemanticsIdentifier('skip_objects.object_tile').first,
+    );
+    await tester.pump();
+
+    final skip = tester.getRect(byLogId('skip_objects.skip'));
+    final row = tester.getRect(
+      find.bySemanticsIdentifier('skip_objects.object_tile').first,
+    );
+    expect(skip.left, greaterThanOrEqualTo(row.left), reason: 'list column');
+    expect(skip.bottom, lessThanOrEqualTo(390));
+    expect(
+      tester.getRect(find.bySemanticsIdentifier('skip_objects.marker').first),
+      plateBefore,
+      reason: 'the plate keeps its place and size',
+    );
+    expect(tester.takeException(), isNull);
+    handle.dispose();
   });
 
   testWidgets('without a mask the plate draws one tappable marker per object', (

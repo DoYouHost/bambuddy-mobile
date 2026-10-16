@@ -35,6 +35,7 @@ import '../../core/theme/dash_theme.dart';
 import 'widgets/connection_banner.dart';
 import 'widgets/connection_mode_chip.dart';
 import 'widgets/dashboard_filter_sheet.dart';
+import '../controller/controller_picker.dart';
 import '../tour/tour_beacon.dart';
 import '../tour/tour_screen.dart';
 import 'widgets/power_breakdown_sheet.dart';
@@ -558,6 +559,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     l10n.wallModeTitle,
                     // Push, never go: the wall runs on this screen's lifecycle.
                     () => context.push('/wall'),
+                  ),
+                  _menuItem(
+                    'dashboard.controller',
+                    Icons.touch_app_outlined,
+                    l10n.controllerTitle,
+                    () => openController(context, ref),
                   ),
                 ],
               ).tagged('dashboard.menu').tourTarget('dashboard.menu'),

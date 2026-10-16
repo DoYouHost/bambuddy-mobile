@@ -8023,6 +8023,126 @@ class AppLocalizationsPl extends AppLocalizations {
       'Wszystkie drukarki są ukryte na tej ścianie — pokaż je w ustawieniach.';
 
   @override
+  String get controllerTitle => 'Kontroler';
+
+  @override
+  String get controllerExit => 'Zamknij kontroler';
+
+  @override
+  String get controllerSwitchPrinter => 'Zmień drukarkę';
+
+  @override
+  String get controllerTabOverview => 'Przegląd';
+
+  @override
+  String get controllerPrinterGone => 'Tej drukarki nie ma już na serwerze.';
+
+  @override
+  String get controllerLiveBadge => 'NA ŻYWO';
+
+  @override
+  String get controllerPreviewBadge => 'PODGLĄD PLIKU';
+
+  @override
+  String get controllerNoPreview => 'Brak podglądu';
+
+  @override
+  String get controllerPower => 'Zasilanie';
+
+  @override
+  String get controllerTabHeat => 'Grzanie';
+
+  @override
+  String get controllerNoChamberHeater => 'Komora bez grzałki';
+
+  @override
+  String get controllerMoveLocked => 'Osie są zablokowane podczas druku';
+
+  @override
+  String get controllerTabFilament => 'Filament';
+
+  @override
+  String get controllerExtruder => 'Ekstruder';
+
+  @override
+  String controllerTarget(String value) {
+    return 'Cel $value';
+  }
+
+  @override
+  String get controllerHeating => 'Grzeje';
+
+  @override
+  String get controllerAtTarget => 'Osiągnięto';
+
+  @override
+  String get controllerCooling => 'Stygnie';
+
+  @override
+  String get controllerEditSlot => 'Edytuj slot';
+
+  @override
+  String get controllerTouchToWake => 'Dotknij, aby wybudzić';
+
+  @override
+  String get controllerPrintPaused => 'Wydruk wstrzymany';
+
+  @override
+  String get controllerTabSettings => 'Ustawienia';
+
+  @override
+  String get controllerSaverTitle => 'Wygaszacz ekranu';
+
+  @override
+  String get controllerSaverAfter => 'Włącza się po';
+
+  @override
+  String get controllerSaverNever => 'Nigdy';
+
+  @override
+  String get controllerSaverNeverTitle => 'Nigdy nie wygaszać ekranu?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'Obraz, który się nie zmienia, może wypalić się na ekranie, zwłaszcza OLED. Wyłącz wygaszacz tylko wtedy, gdy akceptujesz to ryzyko.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Wyłącz';
+
+  @override
+  String get controllerSaverBrightness => 'Jasność';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Jasność ekranu, gdy działa wygaszacz';
+
+  @override
+  String get controllerWakeOnWarnings => 'Budź przy ostrzeżeniach';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Błędy, które wstrzymują wydruk, budzą go zawsze.';
+
+  @override
+  String get controllerSaverPreview => 'Podgląd';
+
+  @override
+  String get controllerDisplayTitle => 'Ekran';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'Telefon nie wyłączy ekranu sam. Wygaszacz nadal działa.';
+
+  @override
+  String get controllerLiveCameraHint => 'Po wyłączeniu widać podgląd z pliku.';
+
+  @override
+  String get controllerKeepAwake => 'Ekran zawsze włączony';
+
+  @override
+  String get controllerSaverNeedsAwake => 'Bez tej opcji wygaszacz nie działa.';
+
+  @override
   String get inventorySuppliersTitle => 'Dostawcy';
 
   @override
