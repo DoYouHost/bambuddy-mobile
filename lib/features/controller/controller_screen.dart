@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 import '../dashboard/widgets/printer_state_pill.dart';
 import '../dashboard/ws_providers.dart';
 import '../wall/wall_providers.dart';
+import 'controller_overview.dart';
 import 'controller_picker.dart';
 import 'controller_providers.dart';
 
@@ -155,7 +156,9 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
                           ),
                         )
                       : switch (_tab) {
-                          ControllerTab.overview => const SizedBox.expand(),
+                          ControllerTab.overview => ControllerOverview(
+                            printerId: widget.printerId,
+                          ),
                         },
                 ),
               ],

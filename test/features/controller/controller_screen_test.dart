@@ -111,7 +111,7 @@ void main() {
 
   Future<void> open(WidgetTester tester) async {
     await tester.tap(find.text('OPEN'));
-    await tester.pumpAndSettle();
+    await settle(tester);
   }
 
   testWidgets('with one printer it opens at once, on that printer', (
@@ -161,7 +161,7 @@ void main() {
       await open(tester);
 
       await tester.tap(byLogId('controller.exit'));
-      await tester.pumpAndSettle();
+      await settle(tester);
 
       expect(find.text('OPEN'), findsOneWidget);
       expect(orientations.last, <Object?>[]);
@@ -189,13 +189,13 @@ void main() {
   ) async {
     await pumpController(tester);
     router.push('/controller/99');
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     expect(find.text(pl.controllerPrinterGone), findsOneWidget);
     expect(find.text('X1C Warsztat'), findsNothing);
 
     await tester.tap(byLogId('controller.exit'));
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     expect(find.text('OPEN'), findsOneWidget);
   });
@@ -205,7 +205,7 @@ void main() {
   ) async {
     await pumpController(tester);
     router.push('/controller/first');
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     expect(find.text(pl.controllerPrinterGone), findsOneWidget);
   });
@@ -221,7 +221,7 @@ void main() {
       await pumpController(tester, printers: farm);
 
       await tester.tap(find.text('OPEN'));
-      await tester.pumpAndSettle();
+      await settle(tester);
 
       expect(find.byType(ControllerScreen), findsNothing);
       expect(byLogId('controller.pick_printer'), findsNWidgets(3));
@@ -230,10 +230,10 @@ void main() {
     testWidgets('opens the one that was picked', (tester) async {
       await pumpController(tester, printers: farm);
       await tester.tap(find.text('OPEN'));
-      await tester.pumpAndSettle();
+      await settle(tester);
 
       await tester.tap(find.text('P1S Biuro'));
-      await tester.pumpAndSettle();
+      await settle(tester);
 
       expect(find.byType(ControllerScreen), findsOneWidget);
       expect(find.text('P1S'), findsOneWidget, reason: 'its model');
@@ -245,10 +245,10 @@ void main() {
     ) async {
       await pumpController(tester, printers: farm);
       await tester.tap(find.text('OPEN'));
-      await tester.pumpAndSettle();
+      await settle(tester);
 
       await tester.tap(find.text('A1 mini'));
-      await tester.pumpAndSettle();
+      await settle(tester);
 
       expect(find.byType(ControllerScreen), findsNothing);
       expect(byLogId('controller.pick_printer'), findsNWidgets(3));
@@ -259,19 +259,19 @@ void main() {
     ) async {
       await pumpController(tester, printers: farm);
       await tester.tap(find.text('OPEN'));
-      await tester.pumpAndSettle();
+      await settle(tester);
       await tester.tap(find.text('X1C Warsztat'));
-      await tester.pumpAndSettle();
+      await settle(tester);
 
       await tester.tap(byLogId('controller.switch_printer'));
-      await tester.pumpAndSettle();
+      await settle(tester);
       await tester.tap(find.text('P1S Biuro'));
-      await tester.pumpAndSettle();
+      await settle(tester);
 
       expect(find.text('P1S'), findsOneWidget);
 
       await tester.tap(byLogId('controller.exit'));
-      await tester.pumpAndSettle();
+      await settle(tester);
 
       expect(
         find.text('OPEN'),

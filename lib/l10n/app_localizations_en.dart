@@ -7900,6 +7900,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'This printer is no longer on the server.';
 
   @override
+  String get controllerLiveBadge => 'LIVE';
+
+  @override
+  String get controllerPreviewBadge => 'FILE PREVIEW';
+
+  @override
+  String get controllerNoPreview => 'No preview';
+
+  @override
   String get inventorySuppliersTitle => 'Suppliers';
 
   @override

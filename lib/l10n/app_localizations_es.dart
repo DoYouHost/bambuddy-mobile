@@ -7996,6 +7996,15 @@ class AppLocalizationsEs extends AppLocalizations {
       'Esta impresora ya no está en el servidor.';
 
   @override
+  String get controllerLiveBadge => 'EN VIVO';
+
+  @override
+  String get controllerPreviewBadge => 'VISTA PREVIA DEL ARCHIVO';
+
+  @override
+  String get controllerNoPreview => 'Sin vista previa';
+
+  @override
   String get inventorySuppliersTitle => 'Proveedores';
 
   @override

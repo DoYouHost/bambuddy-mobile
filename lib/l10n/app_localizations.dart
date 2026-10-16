@@ -13250,6 +13250,24 @@ abstract class AppLocalizations {
   /// **'This printer is no longer on the server.'**
   String get controllerPrinterGone;
 
+  /// Badge on the controller's camera picture while the stream is live; capitals on purpose
+  ///
+  /// In en, this message translates to:
+  /// **'LIVE'**
+  String get controllerLiveBadge;
+
+  /// Badge on the controller's picture when it shows the cover of the file being printed instead of the camera; capitals on purpose
+  ///
+  /// In en, this message translates to:
+  /// **'FILE PREVIEW'**
+  String get controllerPreviewBadge;
+
+  /// Shown in place of the file preview when the printed file has no cover picture or it does not load
+  ///
+  /// In en, this message translates to:
+  /// **'No preview'**
+  String get controllerNoPreview;
+
   /// No description provided for @inventorySuppliersTitle.
   ///
   /// In en, this message translates to:

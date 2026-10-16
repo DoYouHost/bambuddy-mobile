@@ -5240,6 +5240,18 @@
   "@controllerPrinterGone": {
     "description": "Shown by the controller when the printer it was opened for is not in the server's list any more"
   },
+  "controllerLiveBadge": "LIVE",
+  "@controllerLiveBadge": {
+    "description": "Badge on the controller's camera picture while the stream is live; capitals on purpose"
+  },
+  "controllerPreviewBadge": "FILE PREVIEW",
+  "@controllerPreviewBadge": {
+    "description": "Badge on the controller's picture when it shows the cover of the file being printed instead of the camera; capitals on purpose"
+  },
+  "controllerNoPreview": "No preview",
+  "@controllerNoPreview": {
+    "description": "Shown in place of the file preview when the printed file has no cover picture or it does not load"
+  },
   "inventorySuppliersTitle": "Suppliers",
   "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
   "inventorySuppliersEmpty": "No suppliers yet",

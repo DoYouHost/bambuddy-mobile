@@ -7976,6 +7976,15 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Drucker ist nicht mehr auf dem Server.';
 
   @override
+  String get controllerLiveBadge => 'LIVE';
+
+  @override
+  String get controllerPreviewBadge => 'DATEI-VORSCHAU';
+
+  @override
+  String get controllerNoPreview => 'Keine Vorschau';
+
+  @override
   String get inventorySuppliersTitle => 'Lieferanten';
 
   @override

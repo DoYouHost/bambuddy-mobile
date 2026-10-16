@@ -8069,6 +8069,15 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cette imprimante n\'est plus sur le serveur.';
 
   @override
+  String get controllerLiveBadge => 'EN DIRECT';
+
+  @override
+  String get controllerPreviewBadge => 'APERÇU DU FICHIER';
+
+  @override
+  String get controllerNoPreview => 'Aucun aperçu';
+
+  @override
   String get inventorySuppliersTitle => 'Fournisseurs';
 
   @override

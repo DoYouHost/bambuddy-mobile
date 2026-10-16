@@ -8038,6 +8038,15 @@ class AppLocalizationsPl extends AppLocalizations {
   String get controllerPrinterGone => 'Tej drukarki nie ma już na serwerze.';
 
   @override
+  String get controllerLiveBadge => 'NA ŻYWO';
+
+  @override
+  String get controllerPreviewBadge => 'PODGLĄD PLIKU';
+
+  @override
+  String get controllerNoPreview => 'Brak podglądu';
+
+  @override
   String get inventorySuppliersTitle => 'Dostawcy';
 
   @override

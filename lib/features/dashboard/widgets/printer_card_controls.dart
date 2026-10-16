@@ -88,39 +88,15 @@ class _ControlsActions extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     ControlAction action,
-  ) async {
-    final notifier = ref.read(controlsProvider.notifier);
-    final result = switch (action) {
-      ControlAction.pause => await notifier.pause(printerId),
-      ControlAction.resume => await notifier.resume(printerId),
-      ControlAction.stop => await notifier.stop(printerId),
-      _ => ActionOutcome.ok,
-    };
-    if (context.mounted) _showResult(context, result);
-  }
+  ) => runPrintAction(context, ref, printerId, action);
 
-  /// Stop always behind confirmation—easy to kill a multi-hour print with one tap.
-  Future<void> _confirmStop(BuildContext context, WidgetRef ref) async {
-    final l10n = AppLocalizations.of(context);
-    final confirmed = await confirmDialog(
-      context,
-      title: l10n.ctrlStopConfirmTitle,
-      message: l10n.ctrlStopConfirmBody,
-      confirmLabel: l10n.ctrlStop,
-      destructive: true,
-      id: 'controls.stop_confirm',
-    );
-    if (confirmed && context.mounted) {
-      await _run(context, ref, ControlAction.stop);
-    }
-  }
-
-  void _showResult(BuildContext context, ActionOutcome result) {
-    final l10n = AppLocalizations.of(context);
-    final msg = result.messageFor(l10n);
-    if (msg == null) return;
-    ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-  }
+  Future<void> _confirmStop(BuildContext context, WidgetRef ref) =>
+      stopPrintConfirmed(
+        context,
+        ref,
+        printerId,
+        confirmId: 'controls.stop_confirm',
+      );
 }
 
 /// Chamber-light row (design): bulb + label on the left, pill toggle on the
