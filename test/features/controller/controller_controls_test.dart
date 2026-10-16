@@ -1,6 +1,7 @@
 import 'dart:ui' show Tristate;
 
 import 'package:bambuddy_mobile/core/api/action_outcome.dart';
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
@@ -89,7 +90,6 @@ void main() {
     WidgetTester tester,
     PrinterStatus status, {
     SmartPlugsState? plugState,
-    bool refused = false,
   }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = _phone;
@@ -245,6 +245,21 @@ void main() {
     });
   });
 
+  group('a session the server refuses', () {
+    testWidgets('loses the speed and the light, which could only fail', (
+      tester,
+    ) async {
+      await pump(tester, _printing());
+      commands.error = const AuthException(AppErrorCode.forbidden);
+
+      await tester.tap(byLogId('controller.speed.4'));
+      await settle(tester);
+
+      expect(byLogId('controller.speed.1'), findsNothing);
+      expect(byLogId('controller.light'), findsNothing);
+    });
+  });
+
   group('the chamber light', () {
     testWidgets('toggles to the opposite of what it is', (tester) async {
       await pump(tester, _printing(light: false));
@@ -337,7 +352,9 @@ void main() {
       expect(find.byTooltip(pl.smartPlugMonitorOnly), findsOneWidget);
     });
 
-    testWidgets('an unreachable plug cannot be switched', (tester) async {
+    testWidgets('an unreachable plug cannot be switched, and says why', (
+      tester,
+    ) async {
       await pump(
         tester,
         _printing(state: 'IDLE'),
@@ -348,6 +365,30 @@ void main() {
       await settle(tester);
 
       expect(plugs.calls, isEmpty);
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+      expect(find.byTooltip(pl.smartPlugUnreachable), findsOneWidget);
+    });
+
+    testWidgets('a session the server refuses is locked out, with the reason', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _printing(state: 'IDLE'),
+        plugState: _plug().copyWith(forbidden: true),
+      );
+
+      await tester.tap(byLogId('controller.smart_plug'));
+      await settle(tester);
+
+      expect(plugs.calls, isEmpty);
+      expect(find.byTooltip(pl.ctrlForbidden), findsOneWidget);
+    });
+
+    testWidgets('a plug that works shows a switch, not a lock', (tester) async {
+      await pump(tester, _printing(state: 'IDLE'), plugState: _plug());
+
+      expect(find.byIcon(Icons.lock_outline), findsNothing);
     });
   });
 }

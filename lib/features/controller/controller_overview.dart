@@ -11,6 +11,7 @@ import '../common/media_image.dart';
 import '../dashboard/controls_providers.dart';
 import '../dashboard/print_lifecycle.dart';
 import '../dashboard/skip_objects_screen.dart';
+import '../dashboard/smart_plugs_providers.dart';
 import '../dashboard/widgets/print_meta_row.dart';
 import '../wall/wall_camera.dart';
 import 'controller_controls.dart';
@@ -29,6 +30,14 @@ class ControllerOverview extends ConsumerWidget {
     final item = ref.watch(controllerPrinterProvider(printerId)).item;
     final status = item?.status;
     final printing = status?.isPrinting ?? false;
+    // A printer that does not answer cannot be told to pause: the card hides
+    // the buttons then, and so does this.
+    final controls = <Widget>[
+      if (printing && status != null && (status.connected ?? false))
+        _Lifecycle(printerId: printerId, status: status),
+      if (printing && item != null)
+        _SkipObjectsRow(printerId: printerId, printerName: item.printer.name),
+    ];
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -40,14 +49,9 @@ class ControllerOverview extends ConsumerWidget {
               Expanded(
                 child: _ViewCard(printerId: printerId, status: status),
               ),
-              if (printing && status != null) ...[
+              for (final control in controls) ...[
                 const SizedBox(height: DashSpace.md),
-                _Lifecycle(printerId: printerId, status: status),
-                const SizedBox(height: DashSpace.md),
-                _SkipObjectsRow(
-                  printerId: printerId,
-                  printerName: item!.printer.name,
-                ),
+                control,
               ],
             ],
           ),
@@ -55,22 +59,81 @@ class ControllerOverview extends ConsumerWidget {
         const SizedBox(width: DashSpace.md),
         Expanded(
           flex: 5,
-          // Scrolls only where the height cannot hold it (a large system font):
-          // at the design's 390 dp everything below is in view.
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (printing && status != null) _JobCard(status: status),
-                if (status != null) ...[
-                  ControllerReadings(status: status),
-                  ControllerSpeed(printerId: printerId, status: status),
-                  ControllerSwitches(printerId: printerId, status: status),
-                ],
-              ],
-            ),
-          ),
+          child: status == null
+              ? const SizedBox.shrink()
+              : _RightColumn(printerId: printerId, status: status),
         ),
+      ],
+    );
+  }
+}
+
+/// The job, the readings, the speed and the switches, sharing the column's
+/// height in the proportions of the design at 390 dp. Whatever the screen, the
+/// column fills it and never scrolls: a taller screen stretches every row, a
+/// shorter one squeezes them, and each row scales its text instead of
+/// overflowing.
+class _RightColumn extends ConsumerWidget {
+  const _RightColumn({required this.printerId, required this.status});
+
+  final int printerId;
+  final PrinterStatus status;
+
+  // Heights of the design (116 / 64 / 52 / 54 dp), used as shares.
+  static const _jobShare = 116;
+  static const _readingsShare = 64;
+  static const _speedShare = 52;
+  static const _switchesShare = 54;
+
+  /// Without a job there is nothing to anchor the rows to, so they keep a
+  /// reasonable height and sit in the middle instead of stretching over the
+  /// whole column.
+  static const _idleMaxHeight = 88.0;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final refused = ref.watch(
+      controlRefusedProvider(ControlPermission.control),
+    );
+    final hasPlug = ref.watch(
+      smartPlugsProvider.select((s) => s.plugForPrinterCard(printerId) != null),
+    );
+    final job = status.isPrinting;
+    final sections = <({int share, Widget child})>[
+      if (job) (share: _jobShare, child: _JobCard(status: status)),
+      if (controllerReadings(status).isNotEmpty)
+        (share: _readingsShare, child: ControllerReadings(status: status)),
+      if (controllerSpeedVisible(status, refused: refused))
+        (
+          share: _speedShare,
+          child: ControllerSpeed(printerId: printerId, status: status),
+        ),
+      if (controllerLightVisible(status, refused: refused) || hasPlug)
+        (
+          share: _switchesShare,
+          child: ControllerSwitches(printerId: printerId, status: status),
+        ),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: job
+          ? MainAxisAlignment.start
+          : MainAxisAlignment.center,
+      children: [
+        for (final (i, section) in sections.indexed) ...[
+          if (i > 0) const SizedBox(height: DashSpace.md),
+          job
+              ? Expanded(flex: section.share, child: section.child)
+              : Flexible(
+                  flex: section.share,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxHeight: _idleMaxHeight,
+                    ),
+                    child: section.child,
+                  ),
+                ),
+        ],
       ],
     );
   }
@@ -309,8 +372,11 @@ class _JobCard extends StatelessWidget {
 
   final PrinterStatus status;
 
-  /// The percentage is the one number read across the room, so it is large.
-  static const _percentSize = 44.0;
+  /// The percentage is the one number read across the room, so it is large and
+  /// grows with the card, between these bounds.
+  static const _percentShare = 0.3;
+  static const _percentMin = 28.0;
+  static const _percentMax = 96.0;
 
   @override
   Widget build(BuildContext context) {
@@ -343,39 +409,63 @@ class _JobCard extends StatelessWidget {
         ),
     ];
     return Container(
-      padding: const EdgeInsets.all(DashSpace.lg),
+      padding: const EdgeInsets.all(DashSpace.md),
       decoration: t.cardBox,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (name != null)
-            Text(
-              name,
-              style: t.titleMd,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final percentSize = (box.maxHeight * _percentShare).clamp(
+            _percentMin,
+            _percentMax,
+          );
+          // Scaled down, never up, when the share it was given is too small for
+          // its content: the card may shrink its text, it may not overflow.
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              width: box.maxWidth,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (name != null)
+                    Text(
+                      name,
+                      style: t.titleMd,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  const SizedBox(height: DashSpace.sm),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (progress != null && !preparing)
+                        Text(
+                          '${progress.toStringAsFixed(0)}%',
+                          style: t.monoValue.copyWith(fontSize: percentSize),
+                        ),
+                      const SizedBox(width: DashSpace.md),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: PrintMetaRow(items: meta),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: DashSpace.md),
+                  DashProgressBar(
+                    value: preparing || progress == null
+                        ? null
+                        : (progress / 100).clamp(0.0, 1.0),
+                    height: DashSpace.sm,
+                    color: status.isPaused ? t.accentOrange : null,
+                  ),
+                ],
+              ),
             ),
-          if (progress != null && !preparing) ...[
-            const SizedBox(height: DashSpace.sm),
-            Text(
-              '${progress.toStringAsFixed(0)}%',
-              style: t.monoValue.copyWith(fontSize: _percentSize),
-            ),
-          ],
-          const SizedBox(height: DashSpace.md),
-          DashProgressBar(
-            value: preparing || progress == null
-                ? null
-                : (progress / 100).clamp(0.0, 1.0),
-            height: DashSpace.sm,
-            color: status.isPaused ? t.accentOrange : null,
-          ),
-          if (meta.isNotEmpty) ...[
-            const SizedBox(height: DashSpace.md),
-            PrintMetaRow(items: meta),
-          ],
-        ],
+          );
+        },
       ),
     );
   }

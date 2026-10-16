@@ -221,56 +221,65 @@ class _TopBar extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final printer = item.printer;
+    final several = ref.watch(
+      wallRosterProvider.select((r) => (r?.length ?? 0) > 1),
+    );
+    Widget name({required bool chevron}) => ConstrainedBox(
+      constraints: const BoxConstraints(
+        maxWidth: _nameMaxWidth,
+        minHeight: _barHeight,
+      ),
+      child: Row(
+        children: [
+          Flexible(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  printer.name,
+                  style: t.titleMd,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (printer.model != null)
+                  Text(
+                    printer.model!,
+                    style: t.labelSoft,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          if (chevron)
+            Icon(
+              Icons.expand_more_rounded,
+              size: DashSpace.lg,
+              color: t.textTertiary,
+            ),
+        ],
+      ),
+    );
     return Row(
       children: [
         _ExitButton(),
         const SizedBox(width: DashSpace.sm),
-        logTag(
-          'controller.switch_printer',
-          Tooltip(
-            message: l10n.controllerSwitchPrinter,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(DashSpace.md),
-              onTap: () => openController(context, ref, replace: true),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: _nameMaxWidth,
-                  minHeight: _barHeight,
+        // With one printer there is nothing to switch to, so the name is plain
+        // text: a chevron that only reloaded the same screen would be a lie.
+        several
+            ? logTag(
+                'controller.switch_printer',
+                Tooltip(
+                  message: l10n.controllerSwitchPrinter,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(DashSpace.md),
+                    onTap: () => openController(context, ref, replace: true),
+                    child: name(chevron: true),
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            printer.name,
-                            style: t.titleMd,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (printer.model != null)
-                            Text(
-                              printer.model!,
-                              style: t.labelSoft,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Icons.expand_more_rounded,
-                      size: DashSpace.lg,
-                      color: t.textTertiary,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
+              )
+            : name(chevron: false),
         Expanded(
           child: Center(
             child: _Tabs(tab: tab, onTab: onTab),

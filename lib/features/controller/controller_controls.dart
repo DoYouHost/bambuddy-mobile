@@ -13,6 +13,29 @@ import '../dashboard/smart_plugs_providers.dart';
 import '../dashboard/temp_readings.dart';
 import '../dashboard/widgets/pill_switch.dart';
 
+// The widgets below fill the height they are given: the Overview divides its
+// column between them (`controller_overview.dart`), so each one is built to
+// stretch and to scale its text down rather than overflow.
+
+/// The sensors worth a tile, in the printer card's order.
+List<TempReading> controllerReadings(PrinterStatus status) => [
+  for (final r in buildTempReadings(
+    status.temperatures,
+    status.airductIsHeating,
+  ))
+    if (r.kind != TempKind.unknown) r,
+];
+
+/// Speed is offered while printing only, as the printer card does, and not to a
+/// session the server refuses control to.
+bool controllerSpeedVisible(PrinterStatus status, {required bool refused}) =>
+    (status.connected ?? false) && status.isPrinting && !refused;
+
+/// The light needs a printer that answers and a session that may drive it; the
+/// plug is shown whenever the printer has one.
+bool controllerLightVisible(PrinterStatus status, {required bool refused}) =>
+    (status.connected ?? false) && !refused;
+
 /// Nozzle, bed and chamber as they are now and where they are heading, with the
 /// active nozzle outlined on a dual-nozzle printer. Read-only here: setting a
 /// target belongs to the Heat tab.
@@ -23,34 +46,25 @@ class ControllerReadings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final readings = [
-      for (final r in buildTempReadings(
-        status.temperatures,
-        status.airductIsHeating,
-      ))
-        if (r.kind != TempKind.unknown) r,
-    ];
-    if (readings.isEmpty) return const SizedBox.shrink();
+    final readings = controllerReadings(status);
     // A second nozzle key is what says the printer has two heads.
     final dual = readings.any(
       (r) => r.kind == TempKind.nozzle && r.index != null,
     );
-    return Padding(
-      padding: const EdgeInsets.only(top: DashSpace.md),
-      child: Row(
-        children: [
-          for (final (i, r) in readings.indexed) ...[
-            if (i > 0) const SizedBox(width: DashSpace.sm),
-            Expanded(
-              child: _ReadingTile(
-                reading: r,
-                dual: dual,
-                active: dual && _isActive(r, status.activeExtruder),
-              ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, r) in readings.indexed) ...[
+          if (i > 0) const SizedBox(width: DashSpace.sm),
+          Expanded(
+            child: _ReadingTile(
+              reading: r,
+              dual: dual,
+              active: dual && _isActive(r, status.activeExtruder),
             ),
-          ],
+          ),
         ],
-      ),
+      ],
     );
   }
 
@@ -75,7 +89,6 @@ class _ReadingTile extends StatelessWidget {
   final bool dual;
   final bool active;
 
-  static const _minHeight = 64.0;
   static const _dot = 8.0;
 
   @override
@@ -101,7 +114,6 @@ class _ReadingTile extends StatelessWidget {
       ].join(' '),
       child: ExcludeSemantics(
         child: Container(
-          constraints: const BoxConstraints(minHeight: _minHeight),
           padding: const EdgeInsets.symmetric(
             horizontal: DashSpace.md,
             vertical: DashSpace.sm,
@@ -115,46 +127,50 @@ class _ReadingTile extends StatelessWidget {
                   : t.subCardBorder,
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: _dot,
-                    height: _dot,
-                    decoration: BoxDecoration(
-                      color: reading.gaugeColor(t),
-                      shape: BoxShape.circle,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: _dot,
+                      height: _dot,
+                      decoration: BoxDecoration(
+                        color: reading.gaugeColor(t),
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: DashSpace.sm),
-                  Flexible(
-                    child: Text(
+                    const SizedBox(width: DashSpace.sm),
+                    Text(
                       label,
                       style: t.labelSoft.copyWith(color: t.textSecondary),
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
-              ),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: actual == null ? '—' : '${actual.round()}°',
-                      style: t.monoValue,
-                    ),
-                    if (target != null && target > 0)
-                      TextSpan(text: '/${target.round()}°', style: t.monoLabel),
                   ],
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: actual == null ? '—' : '${actual.round()}°',
+                        style: t.monoValue,
+                      ),
+                      if (target != null && target > 0)
+                        TextSpan(
+                          text: '/${target.round()}°',
+                          style: t.monoLabel,
+                        ),
+                    ],
+                  ),
+                  maxLines: 1,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -162,7 +178,9 @@ class _ReadingTile extends StatelessWidget {
   }
 }
 
-/// The printer's own speed scale and the percentage each level stands for.
+/// The printer's own speed scale and the percentage each level stands for. The
+/// server reports the level only (`spd_lvl`); the web draws these same numbers
+/// from a table of its own.
 const _speedLevels = {1: 50, 2: 100, 3: 124, 4: 166};
 
 String _speedName(AppLocalizations l10n, int level) => switch (level) {
@@ -172,8 +190,8 @@ String _speedName(AppLocalizations l10n, int level) => switch (level) {
   _ => l10n.speedLudicrous,
 };
 
-/// The four print speeds as one row. Offered while printing only, as the printer
-/// card does; hidden for a session the server refuses control to.
+/// The four print speeds as one row. Built only where [controllerSpeedVisible]
+/// says so.
 class ControllerSpeed extends ConsumerWidget {
   const ControllerSpeed({
     super.key,
@@ -184,16 +202,8 @@ class ControllerSpeed extends ConsumerWidget {
   final int printerId;
   final PrinterStatus status;
 
-  static const _minHeight = 44.0;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!(status.connected ?? false) || !status.isPrinting) {
-      return const SizedBox.shrink();
-    }
-    if (ref.watch(controlRefusedProvider(ControlPermission.control))) {
-      return const SizedBox.shrink();
-    }
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final pending = ref.watch(
@@ -202,41 +212,38 @@ class ControllerSpeed extends ConsumerWidget {
     final level = pending.speedLevel ?? status.speedLevel;
     final busy = pending.isBusy(ControlAction.speed);
     final radius = BorderRadius.circular(DashSpace.md);
-    return Padding(
-      padding: const EdgeInsets.only(top: DashSpace.md),
-      child: Container(
-        padding: const EdgeInsets.all(DashSpace.xs),
-        decoration: BoxDecoration(
-          color: t.subCard,
-          borderRadius: BorderRadius.circular(DashSpace.md + DashSpace.xs),
-          border: Border.all(color: t.subCardBorder),
-        ),
-        child: Row(
-          children: [
-            for (final entry in _speedLevels.entries)
-              Expanded(
-                child: logTag(
-                  'controller.speed.${entry.key}',
-                  Material(
-                    color: level == entry.key
-                        ? t.accent.withValues(alpha: 0.16)
-                        : Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: radius,
-                      side: level == entry.key
-                          ? BorderSide(color: t.accent.withValues(alpha: 0.4))
-                          : BorderSide.none,
-                    ),
-                    child: InkWell(
-                      borderRadius: radius,
-                      onTap: busy
-                          ? null
-                          : () => _setSpeed(context, ref, entry.key),
-                      child: Container(
-                        constraints: const BoxConstraints(
-                          minHeight: _minHeight,
-                        ),
-                        alignment: Alignment.center,
+    return Container(
+      padding: const EdgeInsets.all(DashSpace.xs),
+      decoration: BoxDecoration(
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(DashSpace.md + DashSpace.xs),
+        border: Border.all(color: t.subCardBorder),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final entry in _speedLevels.entries)
+            Expanded(
+              child: logTag(
+                'controller.speed.${entry.key}',
+                Material(
+                  color: level == entry.key
+                      ? t.accent.withValues(alpha: 0.16)
+                      : Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: radius,
+                    side: level == entry.key
+                        ? BorderSide(color: t.accent.withValues(alpha: 0.4))
+                        : BorderSide.none,
+                  ),
+                  child: InkWell(
+                    borderRadius: radius,
+                    onTap: busy
+                        ? null
+                        : () => _setSpeed(context, ref, entry.key),
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -246,7 +253,6 @@ class ControllerSpeed extends ConsumerWidget {
                                   ? t.bodyBold.copyWith(color: t.accentInk)
                                   : t.bodyBold,
                               maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
                             Text('${entry.value}%', style: t.monoLabel),
                           ],
@@ -254,11 +260,11 @@ class ControllerSpeed extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  selected: level == entry.key,
                 ),
+                selected: level == entry.key,
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -276,7 +282,8 @@ class ControllerSpeed extends ConsumerWidget {
   }
 }
 
-/// The chamber light and, when the printer has one, its smart plug.
+/// The chamber light and, when the printer has one, its smart plug. Built only
+/// where the Overview found at least one of them to show.
 class ControllerSwitches extends ConsumerWidget {
   const ControllerSwitches({
     super.key,
@@ -289,28 +296,25 @@ class ControllerSwitches extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final connected = status.connected ?? false;
-    final forbidden = ref.watch(
+    final refused = ref.watch(
       controlRefusedProvider(ControlPermission.control),
     );
     final plug = ref.watch(
       smartPlugsProvider.select((s) => s.plugForPrinterCard(printerId)),
     );
     final tiles = [
-      if (connected && !forbidden) _light(context, ref),
+      if (controllerLightVisible(status, refused: refused))
+        _light(context, ref),
       if (plug != null) _plug(context, ref, plug),
     ];
-    if (tiles.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: DashSpace.md),
-      child: Row(
-        children: [
-          for (final (i, tile) in tiles.indexed) ...[
-            if (i > 0) const SizedBox(width: DashSpace.sm),
-            Expanded(child: tile),
-          ],
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, tile) in tiles.indexed) ...[
+          if (i > 0) const SizedBox(width: DashSpace.sm),
+          Expanded(child: tile),
         ],
-      ),
+      ],
     );
   }
 
@@ -343,9 +347,10 @@ class ControllerSwitches extends ConsumerWidget {
     }
   }
 
-  /// Same rules as the printer card's plug button: not while printing (the
-  /// reason is the tile's tooltip), not for a monitor-only plug, not when the
-  /// plug does not answer, and every change asks first.
+  /// The printer card's plug rules: not while printing, not for a monitor-only
+  /// plug, not when the plug does not answer or the session may not, and every
+  /// change asks first. A tile that cannot be used shows a lock, and its tooltip
+  /// says which of those it is.
   Widget _plug(BuildContext context, WidgetRef ref, SmartPlug plug) {
     final l10n = AppLocalizations.of(context);
     final state = ref.watch(smartPlugsProvider);
@@ -361,6 +366,15 @@ class ControllerSwitches extends ConsumerWidget {
         !state.forbidden &&
         reachable &&
         !printing;
+    final reason = printing
+        ? l10n.smartPlugCantPowerOff
+        : plug.isMonitorOnly
+        ? l10n.smartPlugMonitorOnly
+        : !reachable
+        ? l10n.smartPlugUnreachable
+        : state.forbidden
+        ? l10n.ctrlForbidden
+        : null;
     return _SwitchTile(
       id: 'controller.smart_plug',
       icon: on ? Icons.power : Icons.power_off,
@@ -370,10 +384,7 @@ class ControllerSwitches extends ConsumerWidget {
           : (on ? l10n.smartPlugOn : l10n.smartPlugOff),
       on: on,
       busy: busy,
-      locked: !canControl && !busy && (printing || plug.isMonitorOnly),
-      lockedReason: printing
-          ? l10n.smartPlugCantPowerOff
-          : l10n.smartPlugMonitorOnly,
+      lockedReason: busy ? null : reason,
       onTap: canControl
           ? () => confirmAndSwitchPlug(
               context,
@@ -396,7 +407,6 @@ class _SwitchTile extends StatelessWidget {
     required this.busy,
     required this.onTap,
     this.sub,
-    this.locked = false,
     this.lockedReason,
   });
 
@@ -406,16 +416,14 @@ class _SwitchTile extends StatelessWidget {
   final String? sub;
   final bool on;
   final bool busy;
-  final bool locked;
 
-  /// Said by the tooltip of a locked tile, so the lock is never unexplained.
+  /// Non-null locks the tile: a lock replaces the switch and the tooltip says
+  /// why, so the lock is never unexplained.
   final String? lockedReason;
 
   /// Null leaves the tile unreachable, which is what the lock or a busy command
   /// looks like.
   final VoidCallback? onTap;
-
-  static const _minHeight = 56.0;
 
   @override
   Widget build(BuildContext context) {
@@ -434,32 +442,36 @@ class _SwitchTile extends StatelessWidget {
         InkWell(
           borderRadius: radius,
           onTap: onTap,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: _minHeight),
+          child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
             child: Row(
               children: [
                 Icon(icon, color: on ? t.accentInk : t.textSecondary),
                 const SizedBox(width: DashSpace.md),
                 Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        style: t.bodyBold.copyWith(color: t.textPrimary),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            label,
+                            style: t.bodyBold.copyWith(color: t.textPrimary),
+                            maxLines: 1,
+                          ),
+                          if (sub != null) Text(sub!, style: t.monoLabel),
+                        ],
                       ),
-                      if (sub != null) Text(sub!, style: t.monoLabel),
-                    ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: DashSpace.sm),
                 if (busy)
                   const DashSpinner(size: DashSpace.xl)
-                else if (locked)
+                else if (lockedReason != null)
                   Icon(Icons.lock_outline, color: t.textTertiary)
                 else
                   PillSwitch(on: on, tokens: t),
@@ -470,8 +482,7 @@ class _SwitchTile extends StatelessWidget {
         selected: on,
       ),
     );
-    return locked && lockedReason != null
-        ? Tooltip(message: lockedReason!, child: tile)
-        : tile;
+    final reason = lockedReason;
+    return reason == null ? tile : Tooltip(message: reason, child: tile);
   }
 }

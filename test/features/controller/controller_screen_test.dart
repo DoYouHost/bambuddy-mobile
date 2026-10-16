@@ -128,6 +128,16 @@ void main() {
     expect(find.text(pl.controllerTabOverview), findsOneWidget);
   });
 
+  testWidgets('with one printer its name is not a switcher', (tester) async {
+    await pumpController(tester);
+
+    await open(tester);
+
+    expect(byLogId('controller.switch_printer'), findsNothing);
+    expect(find.byIcon(Icons.expand_more_rounded), findsNothing);
+    expect(find.text('X1C Warsztat'), findsOneWidget);
+  });
+
   testWidgets('entering locks landscape, hides the bars, holds the screen on', (
     tester,
   ) async {

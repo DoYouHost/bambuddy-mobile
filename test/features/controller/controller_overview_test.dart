@@ -116,6 +116,17 @@ void main() {
       expect(byLogId('controller.resume'), findsNothing);
     });
 
+    testWidgets('a printer that does not answer offers neither', (
+      tester,
+    ) async {
+      // Its last frame still says RUNNING, but a command could only fail.
+      await pumpOverview(tester, _status(connected: false));
+
+      expect(byLogId('controller.pause'), findsNothing);
+      expect(byLogId('controller.stop'), findsNothing);
+      expect(byLogId('controller.resume'), findsNothing);
+    });
+
     testWidgets('a paused one offers resume instead of pause', (tester) async {
       await pumpOverview(tester, _status(state: 'PAUSE'));
 
