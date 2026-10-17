@@ -15,9 +15,8 @@ into that FIFO to send the interactive commands.
 
 ## Prerequisites
 
-- Emulator online: `adb devices` should list the target (e.g. `emulator-5554`
-  for the local AVD, or `192.168.2.208:5555` for the shared headless GPU
-  emulator — `just emu-connect` connects the latter).
+- Emulator online: `adb devices` should list the target (e.g. `emulator-5554`;
+  `just emu-boot` starts one).
 - Flavors are mandatory: every `flutter run` **must** pass `--flavor mobile`
   (or `--flavor wear --target lib/wear/main_wear.dart` for the watch).
 
