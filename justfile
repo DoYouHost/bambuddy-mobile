@@ -62,9 +62,16 @@ test:
     patrol=$(command -v patrol || echo "$HOME/.pub-cache/bin/patrol")
     [ -x "$patrol" ] || { echo "patrol CLI missing: dart pub global activate patrol_cli" >&2; exit 1; }
     just test-device
+    # A watch this run boots is shut down when it ends, failed or not; one that
+    # was already running was opened by hand and is left alone.
+    booted=()
+    trap 'for s in "${booted[@]}"; do adb -s "$s" emu kill >/dev/null 2>&1 || true; done' EXIT
     for wear in {{wear_avd}} {{wear6_avd}}; do
+        running=0
+        just _emu-serial "$wear" >/dev/null 2>&1 && running=1
         just emu-boot "$wear"
         serial=$(just _emu-serial "$wear")
+        [ "$running" = 1 ] || booted+=("$serial")
         # Patrol drives the app from inside, so the watch sees no user: it went
         # to sleep (ungaze, ambient) and froze the test services' process, and
         # sent a waiting permission dialog to the watch face after 60 s. An
@@ -87,8 +94,15 @@ test:
 test-device avd=avd:
     #!/usr/bin/env bash
     set -euo pipefail
+    running=0
+    just _emu-serial {{avd}} >/dev/null 2>&1 && running=1
     just emu-boot {{avd}}
     serial=$(just _emu-serial {{avd}})
+    # The AVD this run booted is shut down when it ends, failed or not; one that
+    # was already running was opened by hand and is left alone.
+    if [ "$running" = 0 ]; then
+        trap 'adb -s "$serial" emu kill >/dev/null 2>&1 || true' EXIT
+    fi
     # One file per `flutter test`, each preceded by an install with -g. Android
     # 13+ gates notifications behind a runtime permission that no test can grant
     # for itself, and a run uninstalls the app when it ends — so a whole-folder
