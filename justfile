@@ -697,7 +697,14 @@ play-internal *flags:
 _at-or-below cutoff tags:
     #!/usr/bin/env bash
     set -euo pipefail
+    # A `v` left on the cutoff sorts after every digit, so each tag came out
+    # "at or below" it: `purge-releases v0.15.0` deleted every stable release.
     cutoff={{ quote(cutoff) }}
+    cutoff=${cutoff#v}
+    if ! grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' <<<"$cutoff"; then
+        echo "Cutoff must be X.Y.Z, got '{{cutoff}}'." >&2
+        exit 1
+    fi
     tags={{ quote(tags) }}
     for tag in $tags; do
         v="${tag#v}"
