@@ -1780,7 +1780,10 @@ class DemoBackend {
     'ams': [_amsUnitPlaOnly()],
     'vt_tray': const <Object>[],
     'tray_now': 255,
-    'active_extruder': 0,
+    // The left head, which is the plain `nozzle` key and the one a print here
+    // heats ([_maybePrinting] sets only that one): index 0 is the right head,
+    // `nozzle_2`, which would be marked active while it sat cold.
+    'active_extruder': 1,
     'hms_errors': const <Object>[],
     'firmware_version': '01.01.00.00',
     'cover_url': null,

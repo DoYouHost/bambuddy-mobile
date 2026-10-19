@@ -3,6 +3,7 @@ import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_heat.dart';
+import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dash_kit/dash_kit.dart';
@@ -49,6 +50,7 @@ void main() {
     PrinterStatus status, {
     String model = 'X1C',
     Size size = _phone,
+    bool refused = false,
   }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
@@ -69,6 +71,10 @@ void main() {
         sharedPreferencesProvider.overrideWithValue(sp),
         noServerProfileOverride,
         printerCommandsRepositoryProvider.overrideWithValue(commands),
+        if (refused)
+          controlRefusedProvider(
+            ControlPermission.control,
+          ).overrideWithValue(true),
         fixedDashboardOverride(
           DashboardState(
             printers: [
@@ -620,6 +626,80 @@ void main() {
     }
   });
 
+  group('four heaters and the fans', () {
+    const dual = {
+      'nozzle': 250.0,
+      'nozzle_target': 250.0,
+      'nozzle_2': 50.0,
+      'bed': 70.0,
+      'bed_target': 70.0,
+      'chamber': 41.0,
+    };
+
+    for (final (name, refused, textScale) in [
+      ('with a refused session above them', true, 1.0),
+      ('under a larger system font', false, 1.3),
+    ]) {
+      testWidgets('fit $name', (tester) async {
+        tester.platformDispatcher.textScaleFactorTestValue = textScale;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+        await pump(
+          tester,
+          _status(temps: dual),
+          model: 'H2D',
+          refused: refused,
+        );
+
+        // A fan card cannot shrink: the banner takes its height off the
+        // heaters, not off the fans.
+        expect(tester.takeException(), isNull);
+      });
+    }
+  });
+
+  testWidgets(
+    'a chamber without a heater keeps its row at the buttons\' height',
+    (tester) async {
+      // Two nozzles on a model whose chamber cannot be heated: four cards, the
+      // last one read-only, in the row of the stacked layout.
+      await pump(
+        tester,
+        _status(
+          temps: const {
+            'nozzle': 250.0,
+            'nozzle_target': 250.0,
+            'nozzle_2': 50.0,
+            'bed': 70.0,
+            'bed_target': 70.0,
+            'chamber': 41.0,
+          },
+        ),
+      );
+
+      final lock = tester.getSize(
+        find
+            .ancestor(
+              of: find.byIcon(Icons.lock_outline),
+              matching: find.byType(SizedBox),
+            )
+            .first,
+      );
+      final field = tester.getSize(byLogId('controller.heat_target').first);
+      expect(lock.height, field.height, reason: 'one row, one height');
+
+      // The steppers are that size too. An IconButton keeps a 48 dp touch area
+      // around what it draws, so it is the style that says how big it is.
+      final minus = tester.widget<IconButton>(
+        find.descendant(
+          of: byLogId('controller.heat_minus').first,
+          matching: find.byType(IconButton),
+        ),
+      );
+      expect(minus.style?.minimumSize?.resolve({}), Size.square(field.height));
+    },
+  );
+
   group('the text of a heater card', () {
     const dual = {
       'nozzle': 250.0,
@@ -672,6 +752,61 @@ void main() {
         }
       });
     }
+  });
+
+  testWidgets('a keypad left open under a field that goes away still works', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = _phone;
+    addTearDown(tester.view.reset);
+    SharedPreferences.setMockInitialValues({});
+    final sp = await SharedPreferences.getInstance();
+    final commands = RecordingCommands();
+    final visible = ValueNotifier(true);
+    await pumpPhone(
+      tester,
+      Scaffold(
+        body: ValueListenableBuilder<bool>(
+          valueListenable: visible,
+          builder: (_, shown, _) => shown
+              ? const ScaleToFit(child: ControllerHeat(printerId: 1))
+              : const SizedBox(),
+        ),
+      ),
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(sp),
+        noServerProfileOverride,
+        printerCommandsRepositoryProvider.overrideWithValue(commands),
+        fixedDashboardOverride(
+          DashboardState(
+            printers: [
+              PrinterWithStatus(
+                printer: const Printer(id: 1, name: 'P', model: 'X1C'),
+                status: _status(),
+              ),
+            ],
+          ),
+        ),
+        inertStatusesOverride,
+      ],
+    );
+    await tester.pump();
+    await tester.tap(byLogId('controller.heat_target').first);
+    await settle(tester);
+
+    // The roster loses the printer under the open keypad.
+    visible.value = false;
+    await tester.pump();
+    expect(byLogId('controller.heat_target'), findsNothing);
+    await tester.tap(byLogId('controller.heat_target_key.5'));
+    await tester.pump();
+    await tester.tap(byLogId('controller.heat_target_set'));
+    await settle(tester);
+
+    // Nothing to set it on, and no use of what was disposed.
+    expect(tester.takeException(), isNull);
+    expect(commands.calls, isEmpty);
   });
 
   group('the ring of a heater', () {

@@ -29,12 +29,11 @@ class ControllerHeat extends ConsumerWidget {
   static const _sideBySideMax = 3;
 
   // Heights of the design (188 / 100 dp), used as shares. With the readings
-  // under their rings a heater card needs about 250 dp and a fan card 93, which is
-  // the whole body.
+  // under their rings the heaters need nearly the whole body, so there the fans
+  // take the height they need and the heaters what is left: a fan card cannot
+  // shrink, and a banner above them (a refused session) must not push it over.
   static const _heatersShare = 188;
   static const _fansShare = 100;
-  static const _stackedHeatersShare = 250;
-  static const _stackedFansShare = 96;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,6 +51,23 @@ class ControllerHeat extends ConsumerWidget {
     );
     final fans = _fansOf(status, l10n);
     final stacked = readings.length > _sideBySideMax;
+    final fansRow = Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, fan) in fans.indexed) ...[
+          if (i > 0) const SizedBox(width: DashSpace.md),
+          Expanded(
+            child: _FanCard(
+              printerId: printerId,
+              fan: fan.key,
+              label: fan.label,
+              value: fan.value,
+              refused: refused,
+            ),
+          ),
+        ],
+      ],
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -61,7 +77,7 @@ class ControllerHeat extends ConsumerWidget {
         ],
         if (readings.isNotEmpty)
           Expanded(
-            flex: stacked ? _stackedHeatersShare : _heatersShare,
+            flex: stacked ? 1 : _heatersShare,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -85,26 +101,9 @@ class ControllerHeat extends ConsumerWidget {
         if (readings.isNotEmpty && fans.isNotEmpty)
           const SizedBox(height: DashSpace.md),
         if (fans.isNotEmpty)
-          Expanded(
-            flex: stacked ? _stackedFansShare : _fansShare,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final (i, fan) in fans.indexed) ...[
-                  if (i > 0) const SizedBox(width: DashSpace.md),
-                  Expanded(
-                    child: _FanCard(
-                      printerId: printerId,
-                      fan: fan.key,
-                      label: fan.label,
-                      value: fan.value,
-                      refused: refused,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+          stacked
+              ? IntrinsicHeight(child: fansRow)
+              : Expanded(flex: _fansShare, child: fansRow),
       ],
     );
   }
@@ -159,7 +158,10 @@ class _HeaterCard extends ConsumerWidget {
   static const _step = 5;
   static const _buttonSize = controllerButtonHeight;
   static const _ringSize = 72.0;
-  static const _stackedButtonSize = 44.0;
+
+  /// The least a touch target is, so the row is no smaller than the buttons in
+  /// it already lay out at: a smaller button keeps a 48 dp area around itself.
+  static const _stackedButtonSize = 48.0;
 
   /// Smaller with the reading under it, where height is what is short.
   static const _stackedRingSize = 68.0;
@@ -313,7 +315,7 @@ class _HeaterCard extends ConsumerWidget {
             )
           else
             SizedBox(
-              height: _buttonSize,
+              height: buttonSize,
               child: Row(
                 children: [
                   Icon(
@@ -380,7 +382,9 @@ class _StepButton extends StatelessWidget {
     return logTag(
       id,
       IconButton(
-        style: controllerButtonStyle(t),
+        // The size is the style's: an IconButton keeps its own 48 dp minimum
+        // under a smaller `constraints`.
+        style: controllerButtonStyle(t, minimumSize: Size.square(size)),
         tooltip: tooltip,
         constraints: BoxConstraints.tightFor(width: size, height: size),
         icon: Icon(icon),
@@ -447,7 +451,10 @@ class _NozzleSwitch extends ConsumerWidget {
       return logTag(
         'controller.activate_nozzle',
         IconButton(
-          style: controllerButtonStyle(t),
+          style: controllerButtonStyle(
+            t,
+            minimumSize: const Size.square(ControllerSection.headerHeight),
+          ),
           tooltip: l10n.ctrlActivate,
           constraints: const BoxConstraints.tightFor(
             width: ControllerSection.headerHeight,
@@ -525,7 +532,10 @@ class _AirductSwitch extends ConsumerWidget {
       return logTag(
         'controller.airduct',
         IconButton(
-          style: controllerButtonStyle(DashTokens.of(context)),
+          style: controllerButtonStyle(
+            DashTokens.of(context),
+            minimumSize: const Size.square(ControllerSection.headerHeight),
+          ),
           tooltip: name,
           constraints: const BoxConstraints.tightFor(
             width: ControllerSection.headerHeight,
@@ -611,11 +621,16 @@ class _TargetFieldState extends State<_TargetField> {
   /// The keypad is open and this is the number it types into.
   bool _editing = false;
 
+  /// The keypad lives in a route of its own, so it can outlast this field (the
+  /// printer drops off the roster under it): the notifier it types into is
+  /// then disposed when it closes, not before.
+  bool _keypadOpen = false;
+
   static const _activeBorder = 2.0;
 
   @override
   void dispose() {
-    _draft.dispose();
+    if (!_keypadOpen) _draft.dispose();
     super.dispose();
   }
 
@@ -628,6 +643,7 @@ class _TargetFieldState extends State<_TargetField> {
     // Read here, under the body: the route below is not.
     final scale = ControllerScale.of(context);
     setState(() => _editing = true);
+    _keypadOpen = true;
     final confirmed = await showGeneralDialog<bool>(
       context: context,
       barrierDismissible: true,
@@ -639,10 +655,15 @@ class _TargetFieldState extends State<_TargetField> {
         alignment: onLeft ? Alignment.centerRight : Alignment.centerLeft,
       ),
     );
+    _keypadOpen = false;
     final typed = _draft.value;
+    if (!mounted) {
+      _draft.dispose();
+      return;
+    }
     _draft.value = null;
-    if (mounted) setState(() => _editing = false);
-    if (confirmed != true || typed == null || !mounted) return;
+    setState(() => _editing = false);
+    if (confirmed != true || typed == null) return;
     widget.onSet(int.parse(typed));
   }
 

@@ -2145,6 +2145,12 @@ void main() {
       // Printer 1 carries the demo's own print, which another case in this
       // file may have stopped, so the H2D beside it is what is asserted.
       expect(stateOf(6), 'RUNNING');
+      // The head that is marked active is the one the print heats.
+      final h2d = DemoBackend.instance.statusJson(6);
+      final temps = h2d['temperatures'] as Map;
+      expect(h2d['active_extruder'], 1, reason: 'left head, the plain key');
+      expect(temps['nozzle_target'], greaterThan(0));
+      expect(temps['nozzle_2_target'], 0);
       for (final idle in [2, 4, 5]) {
         expect(stateOf(idle), 'IDLE', reason: 'printer $idle');
       }
