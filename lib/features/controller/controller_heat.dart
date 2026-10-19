@@ -1,6 +1,5 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
@@ -262,23 +261,12 @@ class _HeaterCard extends ConsumerWidget {
                 ),
                 const SizedBox(width: DashSpace.sm),
                 Expanded(
-                  child: logTag(
-                    'controller.heat_target',
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(_buttonSize),
-                      ),
-                      onPressed: canSet
-                          ? () => _typeTarget(context, ref, shown, max, label)
-                          : null,
-                      child: Text(
-                        shown > 0
-                            ? l10n.controllerTarget('$shown°')
-                            : l10n.ctrlOff,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
+                  child: _TargetField(
+                    text: shown > 0
+                        ? l10n.controllerTarget('$shown°')
+                        : l10n.ctrlOff,
+                    enabled: canSet,
+                    onSet: (typed) => _set(context, ref, typed.clamp(0, max)),
                   ),
                 ),
                 const SizedBox(width: DashSpace.sm),
@@ -337,21 +325,6 @@ class _HeaterCard extends ConsumerWidget {
     if (msg != null) {
       ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
     }
-  }
-
-  Future<void> _typeTarget(
-    BuildContext context,
-    WidgetRef ref,
-    int current,
-    int max,
-    String label,
-  ) async {
-    final typed = await showDialog<int>(
-      context: context,
-      builder: (_) => _TargetDialog(title: label, current: current, max: max),
-    );
-    if (typed == null || !context.mounted) return;
-    await _set(context, ref, typed.clamp(0, max));
   }
 }
 
@@ -507,77 +480,249 @@ class _AirductSwitch extends ConsumerWidget {
   }
 }
 
-/// A number to type in, for a target the − and + would take a long time to
-/// reach. A form, not a question, so it is a dialog of its own and not
-/// `confirmDialog`.
-class _TargetDialog extends StatefulWidget {
-  const _TargetDialog({
-    required this.title,
-    required this.current,
-    required this.max,
+/// The target button of a heater: a tap opens a keypad beside it and what is
+/// typed shows up here as it is typed. A keypad of its own, because the system
+/// keyboard resizes a screen that has no room to spare.
+class _TargetField extends StatefulWidget {
+  const _TargetField({
+    required this.text,
+    required this.enabled,
+    required this.onSet,
   });
 
-  final String title;
-  final int current;
-  final int max;
+  /// What the button says when nothing is being typed.
+  final String text;
+  final bool enabled;
+  final ValueChanged<int> onSet;
 
   @override
-  State<_TargetDialog> createState() => _TargetDialogState();
+  State<_TargetField> createState() => _TargetFieldState();
 }
 
-class _TargetDialogState extends State<_TargetDialog> {
-  late final _field = TextEditingController(
-    text: widget.current > 0 ? '${widget.current}' : '',
-  );
+class _TargetFieldState extends State<_TargetField> {
+  /// The digits typed so far; null until the first one, so what the button
+  /// said stays up and the first digit replaces it.
+  final _draft = ValueNotifier<String?>(null);
+
+  /// The keypad is open and this is the number it types into.
+  bool _editing = false;
+
+  static const _activeBorder = 2.0;
 
   @override
   void dispose() {
-    _field.dispose();
+    _draft.dispose();
     super.dispose();
   }
 
-  void _set() {
-    final value = int.tryParse(_field.text);
-    if (value == null) return;
-    Navigator.of(context).pop(value);
+  Future<void> _open() async {
+    // The keypad goes to the half of the screen this button is not in, so it
+    // never covers the number being typed.
+    final box = context.findRenderObject()! as RenderBox;
+    final centre = box.localToGlobal(box.size.center(Offset.zero)).dx;
+    final onLeft = centre < MediaQuery.sizeOf(context).width / 2;
+    setState(() => _editing = true);
+    final confirmed = await showGeneralDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Colors.transparent,
+      pageBuilder: (_, _, _) => _Numpad(
+        draft: _draft,
+        alignment: onLeft ? Alignment.centerRight : Alignment.centerLeft,
+      ),
+    );
+    final typed = _draft.value;
+    _draft.value = null;
+    if (mounted) setState(() => _editing = false);
+    if (confirmed != true || typed == null || !mounted) return;
+    widget.onSet(int.parse(typed));
   }
+
+  @override
+  Widget build(BuildContext context) => logTag(
+    'controller.heat_target',
+    OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(controllerButtonHeight),
+        side: _editing
+            ? BorderSide(
+                color: DashTokens.of(context).accent,
+                width: _activeBorder,
+              )
+            : null,
+      ),
+      onPressed: widget.enabled ? _open : null,
+      child: ValueListenableBuilder<String?>(
+        valueListenable: _draft,
+        builder: (_, typed, _) => Text(
+          typed == null ? widget.text : '$typed°',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    ),
+  );
+}
+
+/// Digits only, no title and no labels: 1–9 in three rows, ✕ 0 ✓ under them,
+/// and a handle above them to drag the whole pad out of the way.
+/// A 0 on its own is a target of 0, which is "off".
+class _Numpad extends StatefulWidget {
+  const _Numpad({required this.draft, required this.alignment});
+
+  final ValueNotifier<String?> draft;
+  final Alignment alignment;
+
+  @override
+  State<_Numpad> createState() => _NumpadState();
+}
+
+class _NumpadState extends State<_Numpad> {
+  static const _keySize = 56.0;
+  static const _maxDigits = 3;
+  static const _handleHeight = 24.0;
+  static const _gripSize = Size(40, 4);
+  static const _panelRadius = 22.0;
+
+  Offset _moved = Offset.zero;
+
+  void _type(int digit) {
+    // A 0 is not the start of a longer number.
+    final draft = widget.draft;
+    final base = draft.value == '0' ? '' : draft.value ?? '';
+    if (base.length < _maxDigits) draft.value = '$base$digit';
+  }
+
+  Widget _handle(DashTokens t) => logTag(
+    'controller.heat_target_handle',
+    GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onPanUpdate: (d) => setState(() => _moved += d.delta),
+      child: SizedBox(
+        height: _handleHeight,
+        child: Center(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: t.textTertiary,
+              borderRadius: BorderRadius.circular(_gripSize.height),
+            ),
+            child: SizedBox.fromSize(size: _gripSize),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Widget _digit(DashTokens t, int digit) => SizedBox.square(
+    dimension: _keySize,
+    child: logTag(
+      'controller.heat_target_key.$digit',
+      FilledButton.tonal(
+        style: FilledButton.styleFrom(
+          padding: EdgeInsets.zero,
+          backgroundColor: t.subCard,
+          foregroundColor: t.textPrimary,
+          side: BorderSide(color: t.subCardBorder),
+        ),
+        onPressed: () => _type(digit),
+        child: Text('$digit'),
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(widget.title),
-      content: logTag(
-        'controller.heat_target_field',
-        TextField(
-          controller: _field,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: InputDecoration(suffixText: '° / ${widget.max}°'),
-          onSubmitted: (_) => _set(),
+    final t = DashTokens.of(context);
+    const rows = [
+      [1, 2, 3],
+      [4, 5, 6],
+      [7, 8, 9],
+    ];
+    return Align(
+      alignment: widget.alignment,
+      child: Transform.translate(
+        offset: _moved,
+        child: Padding(
+          padding: const EdgeInsets.all(DashSpace.lg),
+          child: Material(
+            type: MaterialType.transparency,
+            child: DecoratedBox(
+              // Solid, unlike the translucent cards: it floats over them.
+              decoration: BoxDecoration(
+                color: t.overlaySurface,
+                border: Border.all(color: t.overlayBorder),
+                borderRadius: BorderRadius.circular(_panelRadius),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(DashSpace.md),
+                // As wide as the keys, not the handle's full-width strip.
+                child: IntrinsicWidth(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _handle(t),
+                      for (final row in rows) ...[
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (final (i, digit) in row.indexed) ...[
+                              if (i > 0) const SizedBox(width: DashSpace.sm),
+                              _digit(t, digit),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: DashSpace.sm),
+                      ],
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox.square(
+                            dimension: _keySize,
+                            child: logTag(
+                              'controller.heat_target_cancel',
+                              IconButton.filled(
+                                style: IconButton.styleFrom(
+                                  backgroundColor: t.dangerInk,
+                                  foregroundColor: t.onDanger,
+                                ),
+                                tooltip: l10n.cancel,
+                                onPressed: () =>
+                                    Navigator.of(context).pop(false),
+                                icon: const Icon(Icons.close),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: DashSpace.sm),
+                          _digit(t, 0),
+                          const SizedBox(width: DashSpace.sm),
+                          SizedBox.square(
+                            dimension: _keySize,
+                            child: logTag(
+                              'controller.heat_target_set',
+                              IconButton.filled(
+                                style: IconButton.styleFrom(
+                                  backgroundColor: t.accent,
+                                  foregroundColor: t.onAccent,
+                                ),
+                                tooltip: l10n.ctrlSet,
+                                onPressed: () =>
+                                    Navigator.of(context).pop(true),
+                                icon: const Icon(Icons.check),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
-      actions: [
-        logTag(
-          'controller.heat_target_off',
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(0),
-            child: Text(l10n.ctrlOff),
-          ),
-        ),
-        logTag(
-          'controller.heat_target_cancel',
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.cancel),
-          ),
-        ),
-        logTag(
-          'controller.heat_target_set',
-          FilledButton(onPressed: _set, child: Text(l10n.ctrlSet)),
-        ),
-      ],
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_heat.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:dash_kit/dash_kit.dart';
 import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -227,61 +228,256 @@ void main() {
   });
 
   group('typing a target', () {
-    Future<void> openDialog(WidgetTester tester) async {
-      await tester.tap(byLogId('controller.heat_target').first);
+    Future<void> openKeypad(WidgetTester tester, {int index = 0}) async {
+      await tester.tap(byLogId('controller.heat_target').at(index));
       await settle(tester);
     }
 
-    testWidgets('sets the number that was typed', (tester) async {
-      await pump(tester, _status());
-      await openDialog(tester);
+    Future<void> typeDigits(WidgetTester tester, String digits) async {
+      for (final digit in digits.split('')) {
+        await tester.tap(byLogId('controller.heat_target_key.$digit'));
+        await tester.pump();
+      }
+    }
 
-      await tester.enterText(byLogId('controller.heat_target_field'), '230');
+    Future<void> confirm(WidgetTester tester) async {
       await tester.tap(byLogId('controller.heat_target_set'));
       await settle(tester);
+    }
+
+    /// What the target button of the heater at [index] says.
+    Finder typedIn(String text, {int index = 0}) => find.descendant(
+      of: byLogId('controller.heat_target').at(index),
+      matching: find.text(text),
+    );
+
+    testWidgets('sets the number that was typed', (tester) async {
+      await pump(tester, _status());
+      await openKeypad(tester);
+
+      await typeDigits(tester, '230');
+      await confirm(tester);
 
       expect(commands.calls, ['nozzle:1:230:0']);
     });
 
     testWidgets('holds a number above the ceiling to it', (tester) async {
       await pump(tester, _status());
-      await openDialog(tester);
+      await openKeypad(tester);
 
-      await tester.enterText(byLogId('controller.heat_target_field'), '999');
-      await tester.tap(byLogId('controller.heat_target_set'));
-      await settle(tester);
+      await typeDigits(tester, '999');
+      await confirm(tester);
 
       expect(commands.calls, ['nozzle:1:300:0']);
     });
 
-    testWidgets('Off switches the heater off', (tester) async {
-      await pump(tester, _status());
-      await openDialog(tester);
+    testWidgets('holds a number to the ceiling of that heater', (tester) async {
+      await pump(tester, _status(), model: 'H2D');
+      await openKeypad(tester, index: 2);
 
-      await tester.tap(byLogId('controller.heat_target_off'));
+      await typeDigits(tester, '999');
+      await confirm(tester);
+
+      expect(commands.calls, ['chamber:1:60']);
+    });
+
+    testWidgets('marks the button that takes the digits while it is open', (
+      tester,
+    ) async {
+      await pump(tester, _status());
+      BorderSide? border(int index) => tester
+          .widget<OutlinedButton>(
+            find.descendant(
+              of: byLogId('controller.heat_target').at(index),
+              matching: find.byType(OutlinedButton),
+            ),
+          )
+          .style
+          ?.side
+          ?.resolve({});
+      final accent = DashTokens.of(
+        tester.element(find.byType(ControllerHeat)),
+      ).accent;
+      expect(border(0)?.color, isNot(accent));
+
+      await openKeypad(tester);
+      expect(border(0)?.color, accent);
+      // Only the one being typed in.
+      expect(border(1)?.color, isNot(accent));
+
+      await tester.tap(byLogId('controller.heat_target_cancel'));
       await settle(tester);
+      expect(border(0)?.color, isNot(accent));
+    });
+
+    testWidgets('a lone 0 switches the heater off', (tester) async {
+      await pump(tester, _status());
+      await openKeypad(tester);
+
+      await typeDigits(tester, '0');
+      await confirm(tester);
 
       expect(commands.calls, ['nozzle:1:0:0']);
     });
 
-    testWidgets('cancelling sends nothing', (tester) async {
+    testWidgets('a second 0 is still just 0', (tester) async {
       await pump(tester, _status());
-      await openDialog(tester);
+      await openKeypad(tester);
+
+      await typeDigits(tester, '00');
+      expect(typedIn('0°'), findsOneWidget);
+      await confirm(tester);
+
+      expect(commands.calls, ['nozzle:1:0:0']);
+    });
+
+    testWidgets('a leading 0 gives way to the next digit', (tester) async {
+      await pump(tester, _status());
+      await openKeypad(tester);
+
+      await typeDigits(tester, '05');
+      expect(typedIn('5°'), findsOneWidget);
+      await confirm(tester);
+
+      expect(commands.calls, ['nozzle:1:5:0']);
+    });
+
+    testWidgets('the first digit replaces the target the button showed', (
+      tester,
+    ) async {
+      await pump(tester, _status());
+      await openKeypad(tester);
+      expect(typedIn(pl.controllerTarget('220°')), findsOneWidget);
+
+      await typeDigits(tester, '2');
+      expect(typedIn('2°'), findsOneWidget);
+      await typeDigits(tester, '5');
+      expect(typedIn('25°'), findsOneWidget);
+      await confirm(tester);
+
+      expect(commands.calls, ['nozzle:1:25:0']);
+    });
+
+    testWidgets('takes no more than three digits', (tester) async {
+      await pump(tester, _status());
+      await openKeypad(tester);
+
+      await typeDigits(tester, '2305');
+      expect(typedIn('230°'), findsOneWidget);
+      await confirm(tester);
+
+      expect(commands.calls, ['nozzle:1:230:0']);
+    });
+
+    testWidgets('confirming with nothing typed sends nothing', (tester) async {
+      await pump(tester, _status());
+      await openKeypad(tester);
+
+      await confirm(tester);
+
+      expect(commands.calls, isEmpty);
+      expect(byLogId('controller.heat_target_key.1'), findsNothing);
+    });
+
+    testWidgets('cancelling sends nothing and gives the button back', (
+      tester,
+    ) async {
+      await pump(tester, _status());
+      await openKeypad(tester);
+      await typeDigits(tester, '230');
 
       await tester.tap(byLogId('controller.heat_target_cancel'));
       await settle(tester);
 
       expect(commands.calls, isEmpty);
+      expect(typedIn(pl.controllerTarget('220°')), findsOneWidget);
     });
 
-    testWidgets('an empty field sets nothing', (tester) async {
-      await pump(tester, _status(temps: const {'nozzle': 30, 'bed': 25}));
-      await openDialog(tester);
+    testWidgets('a tap outside closes it and sends nothing', (tester) async {
+      await pump(tester, _status());
+      await openKeypad(tester);
+      await typeDigits(tester, '230');
 
-      await tester.tap(byLogId('controller.heat_target_set'));
+      await tester.tapAt(const Offset(4, 200));
       await settle(tester);
 
       expect(commands.calls, isEmpty);
+      expect(byLogId('controller.heat_target_key.1'), findsNothing);
+      expect(typedIn(pl.controllerTarget('220°')), findsOneWidget);
+    });
+
+    testWidgets('is laid out as a keypad', (tester) async {
+      await pump(tester, _status());
+      await openKeypad(tester);
+
+      Rect key(String id) =>
+          tester.getRect(byLogId('controller.heat_target_$id'));
+      Rect digit(int d) => key('key.$d');
+      for (final row in const [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+      ]) {
+        expect(digit(row[1]).top, digit(row[0]).top);
+        expect(digit(row[2]).top, digit(row[0]).top);
+        expect(digit(row[0]).left, lessThan(digit(row[1]).left));
+        expect(digit(row[1]).left, lessThan(digit(row[2]).left));
+      }
+      expect(digit(4).top, greaterThan(digit(1).top));
+      expect(digit(7).top, greaterThan(digit(4).top));
+      expect(digit(0).top, greaterThan(digit(7).top));
+      expect(digit(0).center.dx, digit(8).center.dx);
+      // ✕ and ✓ flank the 0 on its row.
+      expect(key('cancel').top, digit(0).top);
+      expect(key('cancel').right, lessThan(digit(0).left));
+      expect(key('set').top, digit(0).top);
+      expect(key('set').left, greaterThan(digit(0).right));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('is dragged by its handle, keys and all', (tester) async {
+      await pump(tester, _status());
+      await openKeypad(tester);
+      final before = tester.getRect(byLogId('controller.heat_target_key.5'));
+
+      await tester.drag(
+        byLogId('controller.heat_target_handle'),
+        const Offset(-120, 30),
+      );
+      await tester.pump();
+
+      expect(
+        tester.getRect(byLogId('controller.heat_target_key.5')).center,
+        before.center + const Offset(-120, 30),
+      );
+      // Still a keypad after the move.
+      await typeDigits(tester, '7');
+      await confirm(tester);
+      expect(commands.calls, ['nozzle:1:7:0']);
+    });
+
+    testWidgets('stays clear of the button being typed in', (tester) async {
+      await pump(tester, _status());
+      for (final index in [0, 1]) {
+        await openKeypad(tester, index: index);
+        final field = tester.getRect(
+          byLogId('controller.heat_target').at(index),
+        );
+        final keys = [
+          for (final d in [1, 2, 3, 4, 5, 6, 7, 8, 9, 0])
+            tester.getRect(byLogId('controller.heat_target_key.$d')),
+          tester.getRect(byLogId('controller.heat_target_cancel')),
+          tester.getRect(byLogId('controller.heat_target_set')),
+        ];
+        final pad = keys.reduce((a, b) => a.expandToInclude(b));
+
+        expect(pad.overlaps(field), isFalse, reason: 'heater $index');
+        expect(pad.top, greaterThan(0));
+        expect(pad.bottom, lessThan(_phone.height));
+
+        await tester.tap(byLogId('controller.heat_target_cancel'));
+        await settle(tester);
+      }
     });
   });
 
