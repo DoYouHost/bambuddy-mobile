@@ -806,6 +806,18 @@ abstract class AppLocalizations {
   /// **'Heating'**
   String get ctrlAirductHeating;
 
+  /// No description provided for @ctrlAirductPrintTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch the chamber during a print?'**
+  String get ctrlAirductPrintTitle;
+
+  /// No description provided for @ctrlAirductPrintBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Changing between heating and cooling mid-print changes the temperature the print is made at, and can ruin it.'**
+  String get ctrlAirductPrintBody;
+
   /// No description provided for @ctrlOff.
   ///
   /// In en, this message translates to:
@@ -13303,30 +13315,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Extruder'**
   String get controllerExtruder;
-
-  /// The setpoint a heater is driven to, on the button that changes it.
-  ///
-  /// In en, this message translates to:
-  /// **'Target {value}'**
-  String controllerTarget(String value);
-
-  /// No description provided for @controllerHeating.
-  ///
-  /// In en, this message translates to:
-  /// **'Heating'**
-  String get controllerHeating;
-
-  /// No description provided for @controllerAtTarget.
-  ///
-  /// In en, this message translates to:
-  /// **'At target'**
-  String get controllerAtTarget;
-
-  /// No description provided for @controllerCooling.
-  ///
-  /// In en, this message translates to:
-  /// **'Cooling'**
-  String get controllerCooling;
 
   /// Tooltip of the pencil on a controller slot card; opens the slot sheet (spool, configuration)
   ///

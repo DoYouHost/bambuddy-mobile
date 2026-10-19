@@ -13,6 +13,7 @@ import '../dashboard/controls_providers.dart';
 import '../dashboard/temp_readings.dart';
 import 'controller_controls.dart';
 import 'controller_providers.dart';
+import 'scale_to_fit.dart';
 
 /// The Heat tab: every heater with its target, and the fans
 /// ([docs/single-printer-controller.md] §2). Reads its printer through
@@ -23,9 +24,17 @@ class ControllerHeat extends ConsumerWidget {
 
   final int printerId;
 
-  // Heights of the design (188 / 100 dp), used as shares.
+  /// The most heaters whose ring and reading still fit side by side at their
+  /// natural size; with more, the reading goes under the ring.
+  static const _sideBySideMax = 3;
+
+  // Heights of the design (188 / 100 dp), used as shares. With the readings
+  // under their rings a heater card needs about 250 dp and a fan card 93, which is
+  // the whole body.
   static const _heatersShare = 188;
   static const _fansShare = 100;
+  static const _stackedHeatersShare = 250;
+  static const _stackedFansShare = 96;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -42,6 +51,7 @@ class ControllerHeat extends ConsumerWidget {
       (r) => r.kind == TempKind.nozzle && r.index != null,
     );
     final fans = _fansOf(status, l10n);
+    final stacked = readings.length > _sideBySideMax;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -51,7 +61,7 @@ class ControllerHeat extends ConsumerWidget {
         ],
         if (readings.isNotEmpty)
           Expanded(
-            flex: _heatersShare,
+            flex: stacked ? _stackedHeatersShare : _heatersShare,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -64,6 +74,7 @@ class ControllerHeat extends ConsumerWidget {
                       model: item.printer.model,
                       reading: r,
                       dual: dual,
+                      stacked: stacked,
                       refused: refused,
                     ),
                   ),
@@ -75,7 +86,7 @@ class ControllerHeat extends ConsumerWidget {
           const SizedBox(height: DashSpace.md),
         if (fans.isNotEmpty)
           Expanded(
-            flex: _fansShare,
+            flex: stacked ? _stackedFansShare : _fansShare,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -130,6 +141,7 @@ class _HeaterCard extends ConsumerWidget {
     required this.model,
     required this.reading,
     required this.dual,
+    required this.stacked,
     required this.refused,
   });
 
@@ -138,12 +150,19 @@ class _HeaterCard extends ConsumerWidget {
   final String? model;
   final TempReading reading;
   final bool dual;
+
+  /// The reading under the ring instead of beside it.
+  final bool stacked;
   final bool refused;
 
   /// How far one tap of − or + moves the target.
   static const _step = 5;
   static const _buttonSize = controllerButtonHeight;
   static const _ringSize = 72.0;
+  static const _stackedButtonSize = 44.0;
+
+  /// Smaller with the reading under it, where height is what is short.
+  static const _stackedRingSize = 68.0;
   static const _ringStroke = 7.0;
   static const _readingFont = 36.0;
 
@@ -174,17 +193,50 @@ class _HeaterCard extends ConsumerWidget {
     final actual = reading.actual;
     final busy = pending.isBusy(ControlAction.temp);
     final canSet = _editable && !refused && !busy;
+    // Four across leave a card 169 dp inside: the buttons give up 12 dp each
+    // and the gaps between them, so the number has room to be read.
+    final buttonSize = stacked ? _stackedButtonSize : _buttonSize;
+    final gap = stacked ? DashSpace.xs : DashSpace.sm;
     final label = dual && reading.kind == TempKind.nozzle
         ? l10n.tempNozzleNumbered(reading.index == null ? '1' : '2')
         : reading.label(l10n);
     final color = reading.gaugeColor(t, target: shown.toDouble());
-    final state = _editable
-        ? reading.heatState(target: shown.toDouble())
-        : null;
+    final ring = ExcludeSemantics(
+      child: SizedBox.square(
+        dimension: stacked ? _stackedRingSize : _ringSize,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            CircularProgressIndicator(
+              value: actual == null
+                  ? 0
+                  : (actual / reading.gaugeMax(chamberMax)).clamp(0.0, 1.0),
+              strokeWidth: _ringStroke,
+              backgroundColor: t.gaugeTrack,
+              valueColor: AlwaysStoppedAnimation(color),
+              strokeCap: StrokeCap.round,
+            ),
+            // The target, in the ring that is heading for it.
+            if (shown > 0)
+              Center(
+                child: Text(
+                  '$shown°',
+                  style: t.monoValue.copyWith(color: t.textTertiary),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+    final number = Text(
+      actual == null ? '—' : '${actual.round()}°',
+      style: t.monoDisplay.copyWith(fontSize: _readingFont, color: color),
+    );
     return ControllerCard.single(
       title: label,
       trailing: dual && reading.kind == TempKind.nozzle
           ? _NozzleSwitch(
+              compact: stacked,
               printerId: printerId,
               hardwareIndex: _hardwareIndex,
               status: status,
@@ -193,6 +245,8 @@ class _HeaterCard extends ConsumerWidget {
             )
           : reading.kind == TempKind.chamber && supportsAirduct(model)
           ? _AirductSwitch(
+              compact: stacked,
+              printing: status.isPrinting,
               printerId: printerId,
               heating: pending.airductHeating ?? reading.airductIsHeating,
               busy: pending.isBusy(ControlAction.airduct),
@@ -207,51 +261,27 @@ class _HeaterCard extends ConsumerWidget {
             // one, never grows on its own: its size is the body's scale.
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ExcludeSemantics(
-                    child: SizedBox.square(
-                      dimension: _ringSize,
-                      child: CircularProgressIndicator(
-                        value: actual == null
-                            ? 0
-                            : (actual / reading.gaugeMax(chamberMax)).clamp(
-                                0.0,
-                                1.0,
-                              ),
-                        strokeWidth: _ringStroke,
-                        backgroundColor: t.gaugeTrack,
-                        valueColor: AlwaysStoppedAnimation(color),
-                        strokeCap: StrokeCap.round,
-                      ),
+              child: stacked
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [ring, number],
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ring,
+                        const SizedBox(width: DashSpace.md),
+                        number,
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: DashSpace.md),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        actual == null ? '—' : '${actual.round()}°',
-                        style: t.monoDisplay.copyWith(
-                          fontSize: _readingFont,
-                          color: color,
-                        ),
-                      ),
-                      if (state != null && state != HeatState.off)
-                        ControllerHeatPill(state: state),
-                    ],
-                  ),
-                ],
-              ),
             ),
           ),
-          const SizedBox(height: DashSpace.sm),
+          SizedBox(height: stacked ? DashSpace.xs : DashSpace.sm),
           if (_editable)
             Row(
               children: [
                 _StepButton(
+                  size: buttonSize,
                   id: 'controller.heat_minus',
                   tooltip: '−$_step°',
                   icon: Icons.remove,
@@ -259,18 +289,19 @@ class _HeaterCard extends ConsumerWidget {
                       ? () => _set(context, ref, (shown - _step).clamp(0, max))
                       : null,
                 ),
-                const SizedBox(width: DashSpace.sm),
+                SizedBox(width: gap),
                 Expanded(
                   child: _TargetField(
-                    text: shown > 0
-                        ? l10n.controllerTarget('$shown°')
-                        : l10n.ctrlOff,
+                    height: buttonSize,
+                    compact: stacked,
+                    text: shown > 0 ? '$shown' : l10n.ctrlOff,
                     enabled: canSet,
                     onSet: (typed) => _set(context, ref, typed.clamp(0, max)),
                   ),
                 ),
-                const SizedBox(width: DashSpace.sm),
+                SizedBox(width: gap),
                 _StepButton(
+                  size: buttonSize,
                   id: 'controller.heat_plus',
                   tooltip: '+$_step°',
                   icon: Icons.add,
@@ -330,12 +361,14 @@ class _HeaterCard extends ConsumerWidget {
 
 class _StepButton extends StatelessWidget {
   const _StepButton({
+    required this.size,
     required this.id,
     required this.tooltip,
     required this.icon,
     required this.onPressed,
   });
 
+  final double size;
   final String id;
   final String tooltip;
   final IconData icon;
@@ -346,13 +379,10 @@ class _StepButton extends StatelessWidget {
     final t = DashTokens.of(context);
     return logTag(
       id,
-      IconButton.outlined(
+      IconButton(
+        style: controllerButtonStyle(t),
         tooltip: tooltip,
-        constraints: const BoxConstraints.tightFor(
-          width: _HeaterCard._buttonSize,
-          height: _HeaterCard._buttonSize,
-        ),
-        color: t.textPrimary,
+        constraints: BoxConstraints.tightFor(width: size, height: size),
         icon: Icon(icon),
         onPressed: onPressed,
       ),
@@ -365,6 +395,7 @@ class _StepButton extends StatelessWidget {
 /// nozzle for the job.
 class _NozzleSwitch extends ConsumerWidget {
   const _NozzleSwitch({
+    required this.compact,
     required this.printerId,
     required this.hardwareIndex,
     required this.status,
@@ -372,6 +403,8 @@ class _NozzleSwitch extends ConsumerWidget {
     required this.refused,
   });
 
+  /// The icon alone, for a card too narrow to give the title and a label both.
+  final bool compact;
   final int printerId;
   final int hardwareIndex;
   final PrinterStatus status;
@@ -383,6 +416,16 @@ class _NozzleSwitch extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     if ((status.activeExtruder ?? 0) == hardwareIndex) {
+      if (compact) {
+        return Tooltip(
+          message: l10n.ctrlNozzleActive,
+          child: Icon(
+            Icons.check_circle,
+            size: DashSpace.xl,
+            color: t.accentInk,
+          ),
+        );
+      }
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -397,17 +440,34 @@ class _NozzleSwitch extends ConsumerWidget {
     }
     final locked = status.isPrinting;
     final busy = pending.isBusy(ControlAction.extruder);
+    final activate = locked || busy || refused
+        ? null
+        : () => _activate(context, ref);
+    if (compact) {
+      return logTag(
+        'controller.activate_nozzle',
+        IconButton(
+          style: controllerButtonStyle(t),
+          tooltip: l10n.ctrlActivate,
+          constraints: const BoxConstraints.tightFor(
+            width: ControllerSection.headerHeight,
+            height: ControllerSection.headerHeight,
+          ),
+          icon: Icon(locked ? Icons.lock_outline : Icons.swap_horiz),
+          onPressed: activate,
+        ),
+      );
+    }
     return logTag(
       'controller.activate_nozzle',
-      OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(
+      FilledButton.icon(
+        style: controllerButtonStyle(
+          t,
           minimumSize: const Size(0, ControllerSection.headerHeight),
         ),
         icon: Icon(locked ? Icons.lock_outline : Icons.swap_horiz, size: 16),
         label: Text(l10n.ctrlActivate),
-        onPressed: locked || busy || refused
-            ? null
-            : () => _activate(context, ref),
+        onPressed: activate,
       ),
     );
   }
@@ -427,12 +487,20 @@ class _NozzleSwitch extends ConsumerWidget {
 /// The chamber's airduct flap, as a button that shows its mode and flips it.
 class _AirductSwitch extends ConsumerWidget {
   const _AirductSwitch({
+    required this.compact,
+    required this.printing,
     required this.printerId,
     required this.heating,
     required this.busy,
     required this.refused,
   });
 
+  /// The icon alone, for a card too narrow to give the title and a label both.
+  final bool compact;
+
+  /// Switching it under a print changes the temperature the print is made at,
+  /// so it is asked about first.
+  final bool printing;
   final int printerId;
 
   /// Null while the printer has not said which way the flap is.
@@ -444,31 +512,59 @@ class _AirductSwitch extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final current = heating;
+    final flip = current == null || busy || refused
+        ? null
+        : () => _flip(context, ref, !current);
+    final icon = current == true ? Icons.whatshot_outlined : Icons.ac_unit;
+    final name = current == null
+        ? l10n.ctrlAirduct
+        : current
+        ? l10n.ctrlAirductHeating
+        : l10n.ctrlAirductCooling;
+    if (compact) {
+      return logTag(
+        'controller.airduct',
+        IconButton(
+          style: controllerButtonStyle(DashTokens.of(context)),
+          tooltip: name,
+          constraints: const BoxConstraints.tightFor(
+            width: ControllerSection.headerHeight,
+            height: ControllerSection.headerHeight,
+          ),
+          icon: Icon(icon),
+          onPressed: flip,
+        ),
+      );
+    }
     return logTag(
       'controller.airduct',
-      OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(
+      FilledButton.icon(
+        style: controllerButtonStyle(
+          DashTokens.of(context),
           minimumSize: const Size(0, ControllerSection.headerHeight),
         ),
-        icon: Icon(
-          current == true ? Icons.whatshot_outlined : Icons.ac_unit,
-          size: 16,
-        ),
-        label: Text(
-          current == null
-              ? l10n.ctrlAirduct
-              : current
-              ? l10n.ctrlAirductHeating
-              : l10n.ctrlAirductCooling,
-        ),
-        onPressed: current == null || busy || refused
-            ? null
-            : () => _flip(context, ref, !current),
+        icon: Icon(icon, size: 16),
+        label: Text(name),
+        onPressed: flip,
       ),
     );
   }
 
   Future<void> _flip(BuildContext context, WidgetRef ref, bool heating) async {
+    if (printing) {
+      final l10n = AppLocalizations.of(context);
+      final confirmed = await confirmDialog(
+        context,
+        id: 'controller.airduct_print',
+        title: l10n.ctrlAirductPrintTitle,
+        message: l10n.ctrlAirductPrintBody,
+        confirmLabel: heating
+            ? l10n.ctrlAirductHeating
+            : l10n.ctrlAirductCooling,
+        destructive: true,
+      );
+      if (!confirmed || !context.mounted) return;
+    }
     final result = await ref
         .read(controlsProvider.notifier)
         .setAirduct(printerId, heating: heating);
@@ -485,10 +581,18 @@ class _AirductSwitch extends ConsumerWidget {
 /// keyboard resizes a screen that has no room to spare.
 class _TargetField extends StatefulWidget {
   const _TargetField({
+    required this.height,
+    required this.compact,
     required this.text,
     required this.enabled,
     required this.onSet,
   });
+
+  final double height;
+
+  /// Less padding, for a button that has to share a narrow card with two
+  /// steppers.
+  final bool compact;
 
   /// What the button says when nothing is being typed.
   final String text;
@@ -521,6 +625,8 @@ class _TargetFieldState extends State<_TargetField> {
     final box = context.findRenderObject()! as RenderBox;
     final centre = box.localToGlobal(box.size.center(Offset.zero)).dx;
     final onLeft = centre < MediaQuery.sizeOf(context).width / 2;
+    // Read here, under the body: the route below is not.
+    final scale = ControllerScale.of(context);
     setState(() => _editing = true);
     final confirmed = await showGeneralDialog<bool>(
       context: context,
@@ -529,6 +635,7 @@ class _TargetFieldState extends State<_TargetField> {
       barrierColor: Colors.transparent,
       pageBuilder: (_, _, _) => _Numpad(
         draft: _draft,
+        scale: scale,
         alignment: onLeft ? Alignment.centerRight : Alignment.centerLeft,
       ),
     );
@@ -542,9 +649,13 @@ class _TargetFieldState extends State<_TargetField> {
   @override
   Widget build(BuildContext context) => logTag(
     'controller.heat_target',
-    OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(controllerButtonHeight),
+    FilledButton(
+      style: controllerButtonStyle(
+        DashTokens.of(context),
+        minimumSize: Size.fromHeight(widget.height),
+        padding: widget.compact
+            ? const EdgeInsets.symmetric(horizontal: DashSpace.xs)
+            : null,
         side: _editing
             ? BorderSide(
                 color: DashTokens.of(context).accent,
@@ -556,7 +667,7 @@ class _TargetFieldState extends State<_TargetField> {
       child: ValueListenableBuilder<String?>(
         valueListenable: _draft,
         builder: (_, typed, _) => Text(
-          typed == null ? widget.text : '$typed°',
+          typed ?? widget.text,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -569,9 +680,16 @@ class _TargetFieldState extends State<_TargetField> {
 /// and a handle above them to drag the whole pad out of the way.
 /// A 0 on its own is a target of 0, which is "off".
 class _Numpad extends StatefulWidget {
-  const _Numpad({required this.draft, required this.alignment});
+  const _Numpad({
+    required this.draft,
+    required this.scale,
+    required this.alignment,
+  });
 
   final ValueNotifier<String?> draft;
+
+  /// The factor the screen behind it is drawn at, so the keys grow with it.
+  final double scale;
   final Alignment alignment;
 
   @override
@@ -584,6 +702,17 @@ class _NumpadState extends State<_Numpad> {
   static const _handleHeight = 24.0;
   static const _gripSize = Size(40, 4);
   static const _panelRadius = 22.0;
+  static const _panelBorder = 1.0;
+
+  /// The pad at its natural size, which is then scaled whole: three keys and
+  /// two gaps across, and the handle, four rows of keys and three gaps down.
+  static const _panelWidth =
+      2 * (DashSpace.md + _panelBorder) + 3 * _keySize + 2 * DashSpace.sm;
+  static const _panelHeight =
+      2 * (DashSpace.md + _panelBorder) +
+      _handleHeight +
+      4 * _keySize +
+      3 * DashSpace.sm;
 
   Offset _moved = Offset.zero;
 
@@ -598,7 +727,9 @@ class _NumpadState extends State<_Numpad> {
     'controller.heat_target_handle',
     GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onPanUpdate: (d) => setState(() => _moved += d.delta),
+      // The delta arrives in the scaled panel's own units; the move is applied
+      // outside it, in screen pixels.
+      onPanUpdate: (d) => setState(() => _moved += d.delta * widget.scale),
       child: SizedBox(
         height: _handleHeight,
         child: Center(
@@ -618,13 +749,8 @@ class _NumpadState extends State<_Numpad> {
     dimension: _keySize,
     child: logTag(
       'controller.heat_target_key.$digit',
-      FilledButton.tonal(
-        style: FilledButton.styleFrom(
-          padding: EdgeInsets.zero,
-          backgroundColor: t.subCard,
-          foregroundColor: t.textPrimary,
-          side: BorderSide(color: t.subCardBorder),
-        ),
+      FilledButton(
+        style: controllerButtonStyle(t, padding: EdgeInsets.zero),
         onPressed: () => _type(digit),
         child: Text('$digit'),
       ),
@@ -640,84 +766,96 @@ class _NumpadState extends State<_Numpad> {
       [4, 5, 6],
       [7, 8, 9],
     ];
+    final panel = Material(
+      type: MaterialType.transparency,
+      child: DecoratedBox(
+        // Solid, unlike the translucent cards: it floats over them.
+        decoration: BoxDecoration(
+          color: t.overlaySurface,
+          border: Border.all(color: t.overlayBorder),
+          borderRadius: BorderRadius.circular(_panelRadius),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(DashSpace.md),
+          // As wide as the keys, not the handle's full-width strip.
+          child: IntrinsicWidth(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _handle(t),
+                for (final row in rows) ...[
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final (i, digit) in row.indexed) ...[
+                        if (i > 0) const SizedBox(width: DashSpace.sm),
+                        _digit(t, digit),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: DashSpace.sm),
+                ],
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox.square(
+                      dimension: _keySize,
+                      child: logTag(
+                        'controller.heat_target_cancel',
+                        IconButton.filled(
+                          style: IconButton.styleFrom(
+                            backgroundColor: t.dangerInk,
+                            foregroundColor: t.onDanger,
+                          ),
+                          tooltip: l10n.cancel,
+                          onPressed: () => Navigator.of(context).pop(false),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: DashSpace.sm),
+                    _digit(t, 0),
+                    const SizedBox(width: DashSpace.sm),
+                    SizedBox.square(
+                      dimension: _keySize,
+                      child: logTag(
+                        'controller.heat_target_set',
+                        IconButton.filled(
+                          style: IconButton.styleFrom(
+                            backgroundColor: t.accent,
+                            foregroundColor: t.onAccent,
+                          ),
+                          tooltip: l10n.ctrlSet,
+                          onPressed: () => Navigator.of(context).pop(true),
+                          icon: const Icon(Icons.check),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    final scale = widget.scale;
     return Align(
       alignment: widget.alignment,
       child: Transform.translate(
         offset: _moved,
         child: Padding(
-          padding: const EdgeInsets.all(DashSpace.lg),
-          child: Material(
-            type: MaterialType.transparency,
-            child: DecoratedBox(
-              // Solid, unlike the translucent cards: it floats over them.
-              decoration: BoxDecoration(
-                color: t.overlaySurface,
-                border: Border.all(color: t.overlayBorder),
-                borderRadius: BorderRadius.circular(_panelRadius),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(DashSpace.md),
-                // As wide as the keys, not the handle's full-width strip.
-                child: IntrinsicWidth(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _handle(t),
-                      for (final row in rows) ...[
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            for (final (i, digit) in row.indexed) ...[
-                              if (i > 0) const SizedBox(width: DashSpace.sm),
-                              _digit(t, digit),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: DashSpace.sm),
-                      ],
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox.square(
-                            dimension: _keySize,
-                            child: logTag(
-                              'controller.heat_target_cancel',
-                              IconButton.filled(
-                                style: IconButton.styleFrom(
-                                  backgroundColor: t.dangerInk,
-                                  foregroundColor: t.onDanger,
-                                ),
-                                tooltip: l10n.cancel,
-                                onPressed: () =>
-                                    Navigator.of(context).pop(false),
-                                icon: const Icon(Icons.close),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: DashSpace.sm),
-                          _digit(t, 0),
-                          const SizedBox(width: DashSpace.sm),
-                          SizedBox.square(
-                            dimension: _keySize,
-                            child: logTag(
-                              'controller.heat_target_set',
-                              IconButton.filled(
-                                style: IconButton.styleFrom(
-                                  backgroundColor: t.accent,
-                                  foregroundColor: t.onAccent,
-                                ),
-                                tooltip: l10n.ctrlSet,
-                                onPressed: () =>
-                                    Navigator.of(context).pop(true),
-                                icon: const Icon(Icons.check),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+          padding: EdgeInsets.all(DashSpace.lg * scale),
+          // Laid out at its natural size, then drawn at the screen's scale like
+          // everything behind it.
+          child: SizedBox(
+            width: _panelWidth * scale,
+            height: _panelHeight * scale,
+            child: FittedBox(
+              child: SizedBox(
+                width: _panelWidth,
+                height: _panelHeight,
+                child: panel,
               ),
             ),
           ),

@@ -61,10 +61,28 @@ class ScaleToFit extends StatelessWidget {
         child: SizedBox.fromSize(
           size: layout * scale,
           child: FittedBox(
-            child: SizedBox.fromSize(size: layout, child: child),
+            child: SizedBox.fromSize(
+              size: layout,
+              child: ControllerScale(scale: scale, child: child),
+            ),
           ),
         ),
       );
     },
   );
+}
+
+/// The factor the controller body is drawn at, for what it opens in a route of
+/// its own — a keypad is laid over the screen, not inside it, and would
+/// otherwise stay at the phone's size on a tablet. 1 where nothing scales.
+class ControllerScale extends InheritedWidget {
+  const ControllerScale({super.key, required this.scale, required super.child});
+
+  final double scale;
+
+  static double of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ControllerScale>()?.scale ?? 1;
+
+  @override
+  bool updateShouldNotify(ControllerScale old) => scale != old.scale;
 }

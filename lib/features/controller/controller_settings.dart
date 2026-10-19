@@ -29,8 +29,9 @@ class ControllerSettings extends ConsumerWidget {
             title: l10n.controllerSaverTitle,
             trailing: logTag(
               'controller.saver_preview',
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
+              FilledButton.icon(
+                style: controllerButtonStyle(
+                  DashTokens.of(context),
                   minimumSize: const Size(0, ControllerSection.headerHeight),
                 ),
                 icon: Icon(

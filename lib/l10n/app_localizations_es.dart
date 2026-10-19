@@ -400,6 +400,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ctrlAirductHeating => 'Calentamiento';
 
   @override
+  String get ctrlAirductPrintTitle =>
+      '¿Cambiar la cámara durante una impresión?';
+
+  @override
+  String get ctrlAirductPrintBody =>
+      'Cambiar entre calentar y enfriar a mitad de la impresión modifica la temperatura a la que se imprime y puede arruinarla.';
+
+  @override
   String get ctrlOff => 'Apagado';
 
   @override
@@ -8022,20 +8030,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get controllerExtruder => 'Extrusor';
-
-  @override
-  String controllerTarget(String value) {
-    return 'Objetivo $value';
-  }
-
-  @override
-  String get controllerHeating => 'Calentando';
-
-  @override
-  String get controllerAtTarget => 'Alcanzada';
-
-  @override
-  String get controllerCooling => 'Enfriando';
 
   @override
   String get controllerEditSlot => 'Editar ranura';

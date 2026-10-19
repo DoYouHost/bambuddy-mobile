@@ -92,6 +92,46 @@ void main() {
       expect(tester.getRect(content).size, const Size(50, 100));
     });
 
+    testWidgets('tells what is under it the factor it is drawn at', (
+      tester,
+    ) async {
+      double? seen;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: SizedBox.fromSize(
+              size: const Size(300, 100),
+              child: ScaleToFit(
+                minSize: const Size(100, 50),
+                child: Builder(
+                  builder: (context) {
+                    seen = ControllerScale.of(context);
+                    return const SizedBox();
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(seen, 2);
+    });
+
+    testWidgets('is 1 where nothing scales', (tester) async {
+      double? seen;
+      await tester.pumpWidget(
+        Builder(
+          builder: (context) {
+            seen = ControllerScale.of(context);
+            return const SizedBox();
+          },
+        ),
+      );
+
+      expect(seen, 1);
+    });
+
     testWidgets('lays out a larger system font in a box that grows with it', (
       tester,
     ) async {

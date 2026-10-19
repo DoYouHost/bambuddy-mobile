@@ -46,6 +46,9 @@ class ControllerReadings extends StatelessWidget {
 
   final PrinterStatus status;
 
+  /// The most readings in a row that still show their target.
+  static const _targetBeside = 3;
+
   @override
   Widget build(BuildContext context) {
     final readings = controllerReadings(status);
@@ -62,6 +65,11 @@ class ControllerReadings extends StatelessWidget {
             child: _ReadingTile(
               reading: r,
               dual: dual,
+              // Four across leave a tile too narrow for "250° / 250°" at the
+              // size of its neighbours; the target is on the Heat tab, and a
+              // tile that scaled its own text to fit made each one a
+              // different size.
+              showTarget: readings.length <= _targetBeside,
               active: dual && _isActive(r, status.activeExtruder),
             ),
           ),
@@ -84,15 +92,25 @@ class _ReadingTile extends ConsumerWidget {
   const _ReadingTile({
     required this.reading,
     required this.dual,
+    required this.showTarget,
     required this.active,
   });
 
   final TempReading reading;
   final bool dual;
+  final bool showTarget;
   final bool active;
 
   static const _dot = 8.0;
   static const _bar = 4.0;
+
+  /// Three across have room for the target at natural size; the scaling is
+  /// only a net for a narrow tile under a large system font.
+  static Widget _scaled(Widget child) => FittedBox(
+    fit: BoxFit.scaleDown,
+    alignment: Alignment.centerLeft,
+    child: child,
+  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -101,7 +119,6 @@ class _ReadingTile extends ConsumerWidget {
     final chamberMax = ref.watch(chamberMaxTargetProvider);
     final actual = reading.actual;
     final target = reading.target;
-    final state = reading.heatState();
     final color = reading.gaugeColor(t);
     // On two heads the plain key is the first nozzle, not "the" nozzle.
     final label =
@@ -139,13 +156,9 @@ class _ReadingTile extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Column(
+                child: showTarget
+                    ? _scaled(
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
@@ -180,7 +193,9 @@ class _ReadingTile extends ConsumerWidget {
                                       color: color,
                                     ),
                                   ),
-                                  if (target != null && target > 0)
+                                  if (showTarget &&
+                                      target != null &&
+                                      target > 0)
                                     TextSpan(
                                       text: ' / ${target.round()}°',
                                       style: t.monoValue.copyWith(
@@ -193,21 +208,56 @@ class _ReadingTile extends ConsumerWidget {
                             ),
                           ],
                         ),
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: _dot,
+                                height: _dot,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: DashSpace.sm),
+                              Expanded(
+                                child: Text(
+                                  label,
+                                  style: t.body.copyWith(
+                                    color: t.textSecondary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: actual == null
+                                      ? '—'
+                                      : '${actual.round()}°',
+                                  style: t.monoHeadline.copyWith(color: color),
+                                ),
+                                if (showTarget && target != null && target > 0)
+                                  TextSpan(
+                                    text: ' / ${target.round()}°',
+                                    style: t.monoValue.copyWith(
+                                      color: t.textTertiary,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            maxLines: 1,
+                          ),
+                        ],
                       ),
-                    ),
-                    if (state != HeatState.off) ...[
-                      const SizedBox(width: DashSpace.xs),
-                      // Four heaters on two nozzles leave a narrow tile.
-                      Flexible(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerRight,
-                          child: ControllerHeatPill(state: state, dense: true),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
               ),
               const SizedBox(height: DashSpace.xs),
               // The same sweep as the Heat tab's ring, so the two agree.
@@ -223,36 +273,6 @@ class _ReadingTile extends ConsumerWidget {
         ),
       ),
     );
-  }
-}
-
-/// Where a heater stands against its target, beside its reading on the Heat
-/// tab and on the Overview's tiles.
-class ControllerHeatPill extends StatelessWidget {
-  const ControllerHeatPill({
-    super.key,
-    required this.state,
-    this.dense = false,
-  });
-
-  final HeatState state;
-  final bool dense;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final l10n = AppLocalizations.of(context);
-    final (label, accent, ink) = switch (state) {
-      HeatState.heating => (
-        l10n.controllerHeating,
-        t.accentOrange,
-        t.accentOrangeInk,
-      ),
-      HeatState.atTarget => (l10n.controllerAtTarget, t.accent, t.accentInk),
-      HeatState.cooling ||
-      HeatState.off => (l10n.controllerCooling, t.accentBlue, t.accentBlue),
-    };
-    return DashPill(label: label, accent: accent, accentInk: ink, dense: dense);
   }
 }
 
@@ -587,9 +607,32 @@ class ControllerForbidden extends StatelessWidget {
 
 /// Height of the tabs' presets, −/+ steps and actions, so buttons that do the
 /// same kind of thing are the same size wherever they sit. The Move tab's jogs
-/// are the exception: they share one height of their own, sized to fill the
-/// axes card (`_jogHeight` in `controller_move.dart`).
+/// are the exception: they have no height of their own and fill their cell.
 const controllerButtonHeight = 56.0;
+
+/// Every button of the controller that is not a call to action: a filled tile
+/// with a border. Never a bare outline, which all but
+/// vanishes on the dark ground — disabled, where most jogs sit while a print
+/// runs, most of all.
+ButtonStyle controllerButtonStyle(
+  DashTokens t, {
+  Size? minimumSize,
+  EdgeInsetsGeometry? padding,
+  BorderSide? side,
+}) => FilledButton.styleFrom(
+  // A wash of the text colour: `subCard` is a 2% tint, which is a border with
+  // nothing inside it on this ground.
+  backgroundColor: t.textPrimary.withValues(alpha: 0.10),
+  foregroundColor: t.textPrimary,
+  disabledBackgroundColor: t.textPrimary.withValues(alpha: 0.07),
+  disabledForegroundColor: t.textTertiary,
+  side: side ?? BorderSide(color: t.subCardBorder),
+  minimumSize: minimumSize,
+  padding: padding,
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(DashSpace.md),
+  ),
+);
 
 /// A row of choices, one of them picked: the Move tab's step and length, the
 /// saver's idle time. Every choice is a button of [controllerButtonHeight];

@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:dash_kit/dash_kit.dart';
 import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -116,12 +117,15 @@ void main() {
       await pump(tester, _status());
 
       expect(find.text('218°'), findsOneWidget);
-      expect(find.text(pl.controllerTarget('220°')), findsOneWidget);
-      expect(find.text('60°'), findsOneWidget);
-      expect(find.text(pl.controllerTarget('60°')), findsOneWidget);
+      // The target, on the button and in the ring.
+      expect(find.text('220'), findsOneWidget);
+      expect(find.text('220°'), findsOneWidget);
+      // The bed's reading and its target, both 60°, and the button's 60.
+      expect(find.text('60°'), findsNWidgets(2));
+      expect(find.text('60'), findsOneWidget);
     });
 
-    testWidgets('say whether each heater is heating, holding or cooling', (
+    testWidgets('carry the target in the middle of the ring heading for it', (
       tester,
     ) async {
       await pump(
@@ -137,14 +141,11 @@ void main() {
         ),
       );
 
-      expect(find.text(pl.controllerHeating), findsOneWidget);
-      expect(find.text(pl.controllerAtTarget), findsOneWidget);
-      expect(find.text(pl.controllerCooling), findsNothing);
+      expect(find.text('220°'), findsOneWidget);
+      expect(find.text('61°'), findsOneWidget);
     });
 
-    testWidgets('a heater above its target is cooling, one off says nothing', (
-      tester,
-    ) async {
+    testWidgets('a heater with no target has an empty ring', (tester) async {
       await pump(
         tester,
         _status(
@@ -157,9 +158,10 @@ void main() {
         ),
       );
 
-      expect(find.text(pl.controllerCooling), findsOneWidget);
-      expect(find.text(pl.controllerHeating), findsNothing);
-      expect(find.text(pl.controllerAtTarget), findsNothing);
+      // Only the nozzle's 200° among the rings: the bed and the chamber have
+      // no target to carry.
+      expect(find.text('200°'), findsOneWidget);
+      expect(find.text('0°'), findsNothing);
     });
 
     testWidgets('plus raises the nozzle by one step', (tester) async {
@@ -286,10 +288,10 @@ void main() {
     ) async {
       await pump(tester, _status());
       BorderSide? border(int index) => tester
-          .widget<OutlinedButton>(
+          .widget<FilledButton>(
             find.descendant(
               of: byLogId('controller.heat_target').at(index),
-              matching: find.byType(OutlinedButton),
+              matching: find.byType(FilledButton),
             ),
           )
           .style
@@ -325,7 +327,7 @@ void main() {
       await openKeypad(tester);
 
       await typeDigits(tester, '00');
-      expect(typedIn('0°'), findsOneWidget);
+      expect(typedIn('0'), findsOneWidget);
       await confirm(tester);
 
       expect(commands.calls, ['nozzle:1:0:0']);
@@ -336,7 +338,7 @@ void main() {
       await openKeypad(tester);
 
       await typeDigits(tester, '05');
-      expect(typedIn('5°'), findsOneWidget);
+      expect(typedIn('5'), findsOneWidget);
       await confirm(tester);
 
       expect(commands.calls, ['nozzle:1:5:0']);
@@ -347,12 +349,12 @@ void main() {
     ) async {
       await pump(tester, _status());
       await openKeypad(tester);
-      expect(typedIn(pl.controllerTarget('220°')), findsOneWidget);
+      expect(typedIn('220'), findsOneWidget);
 
       await typeDigits(tester, '2');
-      expect(typedIn('2°'), findsOneWidget);
+      expect(typedIn('2'), findsOneWidget);
       await typeDigits(tester, '5');
-      expect(typedIn('25°'), findsOneWidget);
+      expect(typedIn('25'), findsOneWidget);
       await confirm(tester);
 
       expect(commands.calls, ['nozzle:1:25:0']);
@@ -363,7 +365,7 @@ void main() {
       await openKeypad(tester);
 
       await typeDigits(tester, '2305');
-      expect(typedIn('230°'), findsOneWidget);
+      expect(typedIn('230'), findsOneWidget);
       await confirm(tester);
 
       expect(commands.calls, ['nozzle:1:230:0']);
@@ -390,7 +392,7 @@ void main() {
       await settle(tester);
 
       expect(commands.calls, isEmpty);
-      expect(typedIn(pl.controllerTarget('220°')), findsOneWidget);
+      expect(typedIn('220'), findsOneWidget);
     });
 
     testWidgets('a tap outside closes it and sends nothing', (tester) async {
@@ -403,7 +405,7 @@ void main() {
 
       expect(commands.calls, isEmpty);
       expect(byLogId('controller.heat_target_key.1'), findsNothing);
-      expect(typedIn(pl.controllerTarget('220°')), findsOneWidget);
+      expect(typedIn('220'), findsOneWidget);
     });
 
     testWidgets('is laid out as a keypad', (tester) async {
@@ -446,14 +448,70 @@ void main() {
       );
       await tester.pump();
 
+      final moved = tester
+          .getRect(byLogId('controller.heat_target_key.5'))
+          .center;
       expect(
-        tester.getRect(byLogId('controller.heat_target_key.5')).center,
-        before.center + const Offset(-120, 30),
+        (moved - before.center - const Offset(-120, 30)).distance,
+        lessThan(0.01),
       );
       // Still a keypad after the move.
       await typeDigits(tester, '7');
       await confirm(tester);
       expect(commands.calls, ['nozzle:1:7:0']);
+    });
+
+    testWidgets('grows with the screen, as the body behind it does', (
+      tester,
+    ) async {
+      await pump(tester, _status());
+      await openKeypad(tester);
+      final phone = tester.getRect(byLogId('controller.heat_target_key.5'));
+      final phoneBody = tester.getRect(byLogId('controller.heat_minus').first);
+      await tester.tap(byLogId('controller.heat_target_cancel'));
+      await settle(tester);
+
+      await pump(tester, _status(), size: const Size(1280, 800));
+      await openKeypad(tester);
+      final tablet = tester.getRect(byLogId('controller.heat_target_key.5'));
+      final tabletBody = tester.getRect(byLogId('controller.heat_minus').first);
+
+      // A key is bigger on the tablet, by what a button of the screen behind
+      // it is: one scale for the whole controller.
+      expect(tablet.width, greaterThan(phone.width * 1.3));
+      expect(
+        tablet.width / phone.width,
+        closeTo(tabletBody.width / phoneBody.width, 0.02),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('stays on the screen and clear of the field on a tablet', (
+      tester,
+    ) async {
+      await pump(tester, _status(), size: const Size(1280, 800));
+      for (final index in [0, 1]) {
+        await openKeypad(tester, index: index);
+        final field = tester.getRect(
+          byLogId('controller.heat_target').at(index),
+        );
+        final keys = [
+          for (final d in [1, 2, 3, 4, 5, 6, 7, 8, 9, 0])
+            tester.getRect(byLogId('controller.heat_target_key.$d')),
+          tester.getRect(byLogId('controller.heat_target_cancel')),
+          tester.getRect(byLogId('controller.heat_target_set')),
+        ];
+        final pad = keys.reduce((a, b) => a.expandToInclude(b));
+
+        expect(pad.overlaps(field), isFalse, reason: 'heater $index');
+        expect(pad.top, greaterThan(0));
+        expect(pad.bottom, lessThan(800));
+        expect(pad.left, greaterThan(0));
+        expect(pad.right, lessThan(1280));
+
+        await tester.tap(byLogId('controller.heat_target_cancel'));
+        await settle(tester);
+      }
     });
 
     testWidgets('stays clear of the button being typed in', (tester) async {
@@ -478,6 +536,168 @@ void main() {
         await tester.tap(byLogId('controller.heat_target_cancel'));
         await settle(tester);
       }
+    });
+  });
+
+  group('the heater cards', () {
+    /// How far each card's ring-and-reading block was scaled down to fit: 1 is
+    /// the natural size.
+    List<double> scales(WidgetTester tester) => [
+      for (final e
+          in find
+              .descendant(
+                of: find.byType(ControllerHeat),
+                matching: find.byType(FittedBox),
+              )
+              .evaluate())
+        () {
+          final box = e.renderObject! as RenderFittedBox;
+          final child = box.child!;
+          return [
+            1.0,
+            box.size.width / child.size.width,
+            box.size.height / child.size.height,
+          ].reduce((a, b) => a < b ? a : b);
+        }(),
+    ];
+
+    for (final size in const [Size(844, 390), Size(1280, 800)]) {
+      for (final (name, model, temps) in [
+        ('three heaters', 'X1C', null),
+        (
+          'four heaters on two nozzles',
+          'H2D',
+          const {
+            'nozzle': 250.0,
+            'nozzle_target': 250.0,
+            'nozzle_2': 50.0,
+            'bed': 70.0,
+            'bed_target': 70.0,
+            'chamber': 41.0,
+            'chamber_target': 45.0,
+          },
+        ),
+      ]) {
+        testWidgets('with $name keep their text at its natural size at '
+            '${size.width.round()}x${size.height.round()}', (tester) async {
+          await pump(
+            tester,
+            _status(temps: temps),
+            model: model,
+            size: size,
+          );
+
+          final all = scales(tester);
+          expect(all, isNotEmpty);
+          for (final scale in all) {
+            expect(scale, closeTo(1, 0.001));
+          }
+
+          // And the target in a ring is inside the circle, not across it: the
+          // ring's width less the stroke on both sides (7 dp each).
+          for (final ring
+              in find.byType(CircularProgressIndicator).evaluate()) {
+            final stack = find
+                .ancestor(
+                  of: find.byWidget(ring.widget),
+                  matching: find.byType(Stack),
+                )
+                .first;
+            final target = find.descendant(
+              of: stack,
+              matching: find.byType(Text),
+            );
+            if (target.evaluate().isEmpty) continue;
+            expect(
+              tester.getSize(target).width,
+              lessThanOrEqualTo(
+                tester.getSize(find.byWidget(ring.widget)).width - 14,
+              ),
+            );
+          }
+        });
+      }
+    }
+  });
+
+  group('the text of a heater card', () {
+    const dual = {
+      'nozzle': 250.0,
+      'nozzle_target': 250.0,
+      'nozzle_2': 50.0,
+      'bed': 70.0,
+      'bed_target': 70.0,
+      'chamber': 41.0,
+      'chamber_target': 0.0,
+    };
+
+    for (final size in const [Size(844, 390), Size(1280, 800)]) {
+      testWidgets('is never cut short on four heaters at '
+          '${size.width.round()}x${size.height.round()}', (tester) async {
+        // Chamber off, so its button says "Off" and not a number.
+        await pump(
+          tester,
+          _status(temps: dual),
+          model: 'H2D',
+          size: size,
+        );
+
+        final texts = find.descendant(
+          of: find.byWidgetPredicate(
+            (w) => w.runtimeType.toString() == '_HeaterCard',
+          ),
+          matching: find.byType(Text),
+        );
+        expect(texts.evaluate(), isNotEmpty);
+        for (final e in texts.evaluate()) {
+          final paragraph = e.renderObject! as RenderParagraph;
+          final text = paragraph.text.toPlainText();
+          final style = paragraph.text.style;
+          if (style?.fontFamily != DashTokens.fontMono) {
+            // The test font is as wide as it is tall, about twice Manrope's
+            // advance, so UI text is measured by what it is given against
+            // 0.62 em a letter, which the widest weight stays under. The
+            // numbers are mono and narrower than the test font too, so they
+            // are held to the real thing.
+            expect(
+              paragraph.constraints.maxWidth,
+              greaterThanOrEqualTo(
+                text.length * (style?.fontSize ?? 14) * 0.62,
+              ),
+              reason: text,
+            );
+          } else {
+            expect(paragraph.didExceedMaxLines, isFalse, reason: text);
+          }
+        }
+      });
+    }
+  });
+
+  group('the ring of a heater', () {
+    const dual = {
+      'nozzle': 250.0,
+      'nozzle_target': 250.0,
+      'nozzle_2': 50.0,
+      'bed': 70.0,
+      'bed_target': 70.0,
+      'chamber': 41.0,
+    };
+
+    testWidgets('holds the target on three heaters', (tester) async {
+      await pump(tester, _status());
+
+      // The nozzle's 220° target, beside its 218° reading.
+      expect(find.text('220°'), findsOneWidget);
+    });
+
+    testWidgets('holds the target on four heaters too', (tester) async {
+      await pump(tester, _status(temps: dual), model: 'H2D');
+
+      // The nozzle's 250°, beside its reading and in its ring; and 250 on the
+      // button, which is not clipped to nothing.
+      expect(find.text('250°'), findsNWidgets(2));
+      expect(find.text('250'), findsOneWidget);
     });
   });
 
@@ -513,6 +733,53 @@ void main() {
       await tester.tap(byLogId('controller.airduct'));
       await tester.pump();
 
+      expect(commands.calls, ['airduct:1:true']);
+    });
+
+    group('under a print', () {
+      Future<void> openAsk(WidgetTester tester) async {
+        await pump(tester, _status(airduct: 0, state: 'RUNNING'), model: 'H2D');
+        await tester.tap(byLogId('controller.airduct'));
+        await settle(tester);
+      }
+
+      testWidgets('asks first, and sends nothing until it is confirmed', (
+        tester,
+      ) async {
+        await openAsk(tester);
+
+        expect(find.text(pl.ctrlAirductPrintTitle), findsOneWidget);
+        expect(find.text(pl.ctrlAirductPrintBody), findsOneWidget);
+        expect(commands.calls, isEmpty);
+      });
+
+      testWidgets('switches once it is confirmed', (tester) async {
+        await openAsk(tester);
+
+        await tester.tap(byLogId('controller.airduct_print.confirm'));
+        await settle(tester);
+
+        expect(commands.calls, ['airduct:1:true']);
+      });
+
+      testWidgets('leaves the flap alone when it is declined', (tester) async {
+        await openAsk(tester);
+
+        await tester.tap(byLogId('controller.airduct_print.cancel'));
+        await settle(tester);
+
+        expect(commands.calls, isEmpty);
+        expect(find.text(pl.ctrlAirductPrintTitle), findsNothing);
+      });
+    });
+
+    testWidgets('when idle switches without asking', (tester) async {
+      await pump(tester, _status(airduct: 0), model: 'H2D');
+
+      await tester.tap(byLogId('controller.airduct'));
+      await settle(tester);
+
+      expect(find.text(pl.ctrlAirductPrintTitle), findsNothing);
       expect(commands.calls, ['airduct:1:true']);
     });
 

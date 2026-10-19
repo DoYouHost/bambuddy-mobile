@@ -114,10 +114,10 @@ void main() {
       // The rest of the pad looks as dead as it is.
       expect(
         tester
-            .widget<OutlinedButton>(
+            .widget<FilledButton>(
               find.descendant(
                 of: byLogId('controller.jog_x_plus'),
-                matching: find.byType(OutlinedButton),
+                matching: find.byType(FilledButton),
               ),
             )
             .onPressed,
@@ -350,6 +350,92 @@ void main() {
       expect(large.width, greaterThan(small.width * 1.3));
     });
 
+    testWidgets('Z fills the pad\'s height between its two buttons', (
+      tester,
+    ) async {
+      await pump(tester, _status());
+
+      final up = tester.getRect(byLogId('controller.jog_z_up'));
+      final down = tester.getRect(byLogId('controller.jog_z_down'));
+      final top = tester.getRect(byLogId('controller.jog_y_plus'));
+      final bottom = tester.getRect(byLogId('controller.jog_y_minus'));
+      expect(up.top, closeTo(top.top, 0.5));
+      expect(down.bottom, closeTo(bottom.bottom, 0.5));
+      // Taller than a pad arrow, and only a gap between them.
+      expect(up.height, greaterThan(top.height * 1.3));
+      expect(down.top - up.bottom, lessThan(up.height / 4));
+    });
+
+    testWidgets('Extrude and Retract fill their card under the lengths', (
+      tester,
+    ) async {
+      await pump(tester, _status());
+
+      final length = tester.getRect(byLogId('controller.length_preset').last);
+      final extrude = tester.getRect(byLogId('controller.jog_extrude'));
+      final retract = tester.getRect(byLogId('controller.jog_retract'));
+      expect(extrude.top - length.bottom, lessThan(extrude.height / 4));
+      expect(retract.top - extrude.bottom, lessThan(extrude.height / 4));
+    });
+
+    testWidgets('the pad\'s arrows fill their cells, no gap in the middle', (
+      tester,
+    ) async {
+      await pump(tester, _status());
+
+      final up = tester.getRect(byLogId('controller.jog_y_plus'));
+      final right = tester.getRect(byLogId('controller.jog_x_plus'));
+      final left = tester.getRect(byLogId('controller.jog_x_minus'));
+      final down = tester.getRect(byLogId('controller.jog_y_minus'));
+      // The left and right arrows are as wide as the up and down ones are,
+      // and the three rows touch only through the gaps between them.
+      expect(left.width, closeTo(up.width, 0.5));
+      expect(right.width, closeTo(up.width, 0.5));
+      expect(right.top - up.bottom, lessThan(up.height / 4));
+      expect(down.top - right.bottom, lessThan(up.height / 4));
+    });
+
+    testWidgets('are filled, locked or not, never a bare outline', (
+      tester,
+    ) async {
+      await pump(tester, _status(state: 'RUNNING'));
+
+      for (final id in ['controller.jog_x_plus', 'controller.jog_z_up']) {
+        final button = tester.widget<FilledButton>(
+          find.descendant(of: byLogId(id), matching: find.byType(FilledButton)),
+        );
+        expect(button.onPressed, isNull, reason: '$id is locked in a print');
+        final fill = button.style?.backgroundColor?.resolve({
+          WidgetState.disabled,
+        });
+        expect(fill, isNotNull, reason: id);
+        expect(fill!.a, greaterThan(0.05), reason: id);
+      }
+    });
+
+    testWidgets('the step row lines up with the pad and Z above it', (
+      tester,
+    ) async {
+      await pump(tester, _status());
+
+      Rect at(String id, {bool last = false}) =>
+          tester.getRect(last ? byLogId(id).last : byLogId(id).first);
+      final steps = byLogId('controller.step_preset');
+      final firstStep = tester.getRect(steps.first);
+      final lastStep = tester.getRect(steps.last);
+      final home = at('controller.home');
+
+      // The presets span the pad's width, edge to edge...
+      expect(firstStep.left, closeTo(at('controller.jog_x_minus').left, 0.5));
+      expect(lastStep.right, closeTo(at('controller.jog_x_plus').right, 0.5));
+      // ...and Home spans Z's.
+      expect(home.left, closeTo(at('controller.jog_z_up').left, 0.5));
+      expect(home.right, closeTo(at('controller.jog_z_up').right, 0.5));
+      // Same top and bottom, so it is one row.
+      expect(home.top, closeTo(firstStep.top, 0.5));
+      expect(home.bottom, closeTo(firstStep.bottom, 0.5));
+    });
+
     testWidgets('the axes share one card', (tester) async {
       await pump(tester, _status());
 
@@ -384,9 +470,14 @@ void main() {
           reason: 'jogs share one height',
         );
         expect(
+          of('controller.jog_z_down').height,
+          closeTo(of('controller.jog_retract').height, 0.01),
+          reason: 'the second button of each pair too',
+        );
+        expect(
           of('controller.jog_x_plus').height,
-          closeTo(of('controller.jog_extrude').height, 0.01),
-          reason: 'a pad arrow and a jog in the other card',
+          closeTo(of('controller.jog_y_minus').height, 0.01),
+          reason: 'the rows of the pad are one height',
         );
         expect(
           of('controller.home').height,

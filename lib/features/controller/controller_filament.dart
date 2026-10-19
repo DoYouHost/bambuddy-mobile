@@ -350,8 +350,9 @@ class _Pane extends ConsumerWidget {
               if (canDry && !refused)
                 logTag(
                   'controller.dry',
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
+                  FilledButton.icon(
+                    style: controllerButtonStyle(
+                      DashTokens.of(context),
                       minimumSize: const Size(0, controllerButtonHeight),
                     ),
                     icon: const Icon(Icons.local_fire_department_outlined),
@@ -501,7 +502,8 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => logTag(
     id,
-    OutlinedButton.icon(
+    FilledButton.icon(
+      style: controllerButtonStyle(DashTokens.of(context)),
       onPressed: onPressed,
       icon: Icon(icon),
       label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),

@@ -400,6 +400,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get ctrlAirductHeating => 'Chauffage';
 
   @override
+  String get ctrlAirductPrintTitle =>
+      'Basculer la chambre pendant une impression ?';
+
+  @override
+  String get ctrlAirductPrintBody =>
+      'Passer du chauffage au refroidissement en cours d\'impression modifie la température d\'impression et peut ruiner la pièce.';
+
+  @override
   String get ctrlOff => 'Arrêt';
 
   @override
@@ -8095,20 +8103,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get controllerExtruder => 'Extrudeur';
-
-  @override
-  String controllerTarget(String value) {
-    return 'Cible $value';
-  }
-
-  @override
-  String get controllerHeating => 'Chauffe';
-
-  @override
-  String get controllerAtTarget => 'Atteinte';
-
-  @override
-  String get controllerCooling => 'Refroidissement';
 
   @override
   String get controllerEditSlot => 'Modifier l\'emplacement';

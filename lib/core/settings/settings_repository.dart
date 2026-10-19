@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../demo/demo_backend.dart';
 import '../models/swatch_code.dart';
 import '../notifications/notification_prefs.dart';
 import 'controller_prefs.dart';
@@ -280,7 +281,8 @@ class SettingsRepository {
 
   /// How many printers the demo runs a print on. Read by both isolates: the UI
   /// sets it, the service re-reads it on [BackgroundSync.demoPrinters].
-  int loadDemoPrintingCount() => _prefs.getInt(_demoPrintingKey) ?? 1;
+  int loadDemoPrintingCount() =>
+      _prefs.getInt(_demoPrintingKey) ?? DemoBackend.defaultPrintingPrinters;
 
   Future<void> saveDemoPrintingCount(int count) =>
       _prefs.setInt(_demoPrintingKey, count);

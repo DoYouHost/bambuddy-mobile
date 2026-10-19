@@ -236,8 +236,9 @@ class _ControllerFaultsState extends ConsumerState<ControllerFaults> {
                 alignment: Alignment.centerRight,
                 child: logTag(
                   'controller.faults_dismiss_all',
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
+                  FilledButton.icon(
+                    style: controllerButtonStyle(
+                      DashTokens.of(context),
                       minimumSize: const Size(0, controllerButtonHeight),
                     ),
                     onPressed: busy ? null : _dismissAll,

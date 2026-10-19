@@ -46,14 +46,16 @@ that opens the fault view, the printer's state) over one tab at a time.
   fill the screen (`ScaleToFit`). Nothing inside scales on its own; a card that
   sized its own content made the same chip 44 in one card and 56 in the next.
 - Presets, −/+ and actions (Load/Unload/Dry, Home) are one height
-  (`controllerButtonHeight`, 56). The Move tab's jogs — the pad, Z, Extrude
-  and Retract — share one height of their own, sized so the pad fills the
-  axes card; the pad, Z and the extruder's buttons stretch to their cards'
-  width.
+  (`controllerButtonHeight`, 56). The Move tab's jogs have no height of their
+  own: every one fills its cell. The pad is a three-by-three grid over its
+  section, and Z (up/down) and Extrude/Retract split their column between two
+  buttons, so the two pairs are the same height wherever nothing else sits in
+  the column (on two nozzles the extruder's choice takes a row).
 - Each card has its title at its top (`ControllerCard`), never a caption
   glued to a control.
 - Heat: a heater shows its reading and whether it is heating, at target or
-  cooling; the target is on the button that changes it ("Target 220°").
+  cooling; the target is the bare number on the button that changes it ("220",
+  "Off" when none): a word beside it did not fit three heaters in a row.
 - Move: two cards. Axes (X/Y and Z) with the step and Home under them, and the
   extruder with its own length presets.
 - Filament: a tap chooses a slot (the one feeding the print until then); Load,

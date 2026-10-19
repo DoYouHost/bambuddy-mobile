@@ -144,14 +144,9 @@ void main() {
       expect(find.bySemanticsLabel('${pl.tempChamber} 34°'), findsOne);
     });
 
-    testWidgets('say whether each heater is heading up, holding or off', (
-      tester,
-    ) async {
-      // 218 of 220 holds, 60 of 60 holds, the chamber has no target.
+    testWidgets('have a bar each and no state label', (tester) async {
       await pump(tester, _printing());
 
-      expect(find.text(pl.controllerAtTarget), findsNWidgets(2));
-      expect(find.text(pl.controllerHeating), findsNothing);
       expect(
         find.descendant(
           of: find.byType(ControllerReadings),
@@ -160,6 +155,73 @@ void main() {
         findsNWidgets(3),
         reason: 'a bar each',
       );
+    });
+
+    testWidgets('on four are one size, none scaled to fit, target on Heat', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _printing(
+          temps: const {
+            'nozzle': 250,
+            'nozzle_target': 250,
+            'nozzle_2': 50,
+            'bed': 70,
+            'bed_target': 70,
+            'chamber': 41,
+          },
+        ),
+      );
+
+      final tiles = find.descendant(
+        of: find.byType(ControllerReadings),
+        matching: find.byWidgetPredicate(
+          (w) => w.runtimeType.toString() == '_ReadingTile',
+        ),
+      );
+      expect(tiles, findsNWidgets(4));
+      // Nothing in a tile is scaled by a FittedBox: that is what made each
+      // tile's text a size of its own.
+      expect(
+        find.descendant(of: tiles, matching: find.byType(FittedBox)),
+        findsNothing,
+      );
+      // The same style in every tile, and no target beside the reading.
+      double? firstSize(InlineSpan span) {
+        double? size;
+        span.visitChildren((child) {
+          if (child is TextSpan && (child.text ?? '').isNotEmpty) {
+            size = child.style?.fontSize;
+            return false;
+          }
+          return true;
+        });
+        return size;
+      }
+
+      final readings = <String, double?>{
+        for (final e
+            in find
+                .descendant(of: tiles, matching: find.byType(RichText))
+                .evaluate())
+          (e.widget as RichText).text.toPlainText(): firstSize(
+            (e.widget as RichText).text,
+          ),
+      };
+      expect(readings.keys, containsAll(['250°', '50°', '70°', '41°']));
+      final values = [
+        for (final key in ['250°', '50°', '70°', '41°']) readings[key],
+      ];
+      expect(values.toSet(), hasLength(1));
+      expect(values.first, isNotNull);
+    });
+
+    testWidgets('on three keep the target beside the reading', (tester) async {
+      await pump(tester, _printing());
+
+      expect(find.textContaining('218°'), findsWidgets);
+      expect(find.textContaining('/ 220°'), findsOneWidget);
     });
 
     testWidgets('a printer without temperatures has no readings', (

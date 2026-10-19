@@ -398,6 +398,13 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlAirductHeating => 'Grzanie';
 
   @override
+  String get ctrlAirductPrintTitle => 'Przełączyć komorę w trakcie druku?';
+
+  @override
+  String get ctrlAirductPrintBody =>
+      'Zmiana między grzaniem a chłodzeniem w trakcie druku zmienia temperaturę, w której powstaje wydruk, i może go zepsuć.';
+
+  @override
   String get ctrlOff => 'Wył.';
 
   @override
@@ -8063,20 +8070,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get controllerExtruder => 'Ekstruder';
-
-  @override
-  String controllerTarget(String value) {
-    return 'Cel $value';
-  }
-
-  @override
-  String get controllerHeating => 'Grzeje';
-
-  @override
-  String get controllerAtTarget => 'Osiągnięto';
-
-  @override
-  String get controllerCooling => 'Stygnie';
 
   @override
   String get controllerEditSlot => 'Edytuj slot';

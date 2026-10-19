@@ -390,6 +390,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlAirductHeating => 'Heating';
 
   @override
+  String get ctrlAirductPrintTitle => 'Switch the chamber during a print?';
+
+  @override
+  String get ctrlAirductPrintBody =>
+      'Changing between heating and cooling mid-print changes the temperature the print is made at, and can ruin it.';
+
+  @override
   String get ctrlOff => 'Off';
 
   @override
@@ -7925,20 +7932,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get controllerExtruder => 'Extruder';
-
-  @override
-  String controllerTarget(String value) {
-    return 'Target $value';
-  }
-
-  @override
-  String get controllerHeating => 'Heating';
-
-  @override
-  String get controllerAtTarget => 'At target';
-
-  @override
-  String get controllerCooling => 'Cooling';
 
   @override
   String get controllerEditSlot => 'Edit slot';

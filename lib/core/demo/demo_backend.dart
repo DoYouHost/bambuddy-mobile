@@ -47,17 +47,21 @@ class DemoBackend {
 
   /// How many machines the demo runs a print on at once, from app settings.
   ///
-  /// The demo has always printed on one, and one is what every other fixture
-  /// here assumes (the queue, the archive, the finished-print alert). Raising it
-  /// is for looking at what several printing machines do to a screen — the
-  /// dashboard summary, the ongoing notification — not for making the rest of
-  /// the demo consistent with it.
-  static int printingPrinters = 1;
+  /// Two by default, the X1C and the dual-nozzle H2D, so the screens of a
+  /// two-nozzle machine have a job to show. Printer 1 carries the demo's own
+  /// print, which is what the queue, the archive and the finished-print alert
+  /// assume; the others are for looking at what several printing machines do to
+  /// a screen — the dashboard summary, the ongoing notification — not for making
+  /// the rest of the demo consistent with them.
+  static int printingPrinters = defaultPrintingPrinters;
+
+  /// What the setting starts at, and what a test restores.
+  static const defaultPrintingPrinters = 2;
 
   /// The order machines are taken in. Printer 3 is the offline fixture and is
   /// never one of them: something has to stay unreachable, or the offline card
   /// and its grace window have nothing to show.
-  static const _printOrder = [1, 2, 5, 4];
+  static const _printOrder = [1, 6, 2, 5, 4];
 
   /// The most the setting can ask for.
   static final int maxPrintingPrinters = _printOrder.length;
@@ -1472,6 +1476,20 @@ class DemoBackend {
       'is_active': true,
       'nozzle_count': 1,
     },
+    // The only machine with two nozzles and a chamber heater, so the four
+    // readings of a dual-nozzle Overview, the Nozzle 1 / 2 switch on Move and
+    // the chamber stepper on Heat are reachable without the hardware.
+    {
+      'id': 6,
+      'name': 'H2D',
+      'serial_number': '094000A59200000',
+      'ip_address': '192.168.4.26',
+      'access_code': '61937204',
+      'model': 'H2D',
+      'location': 'Workshop',
+      'is_active': true,
+      'nozzle_count': 2,
+    },
   ];
 
   /// Full status for the REST endpoint (`id`+`name` included).
@@ -1489,6 +1507,7 @@ class DemoBackend {
       2 => _maybePrinting(2, _statusIdle(), 'Mop station'),
       4 => _maybePrinting(4, _statusAccessoryFans(), 'Server rack – plate 17'),
       5 => _maybePrinting(5, _statusSecondX1c(), 'Server rack – plate 22'),
+      6 => _maybePrinting(6, _statusDualNozzle(), 'Gear set'),
       // Printer 3, and anything the fleet does not list. Written as the
       // fallback rather than as `3 =>` because an id that reached here at all
       // is one nothing should have asked about.
@@ -1718,6 +1737,52 @@ class DemoBackend {
     'active_extruder': 0,
     'hms_errors': const <Object>[],
     'firmware_version': '01.08.02.00',
+    'cover_url': null,
+    'supports_drying': true,
+    'awaiting_plate_clear': false,
+    'sdcard': true,
+    'ipcam': true,
+  };
+
+  /// An idle H2D: `nozzle_2` in the temperatures is what says it has two heads
+  /// (the plain `nozzle` key is the left one), and it has a chamber heater.
+  Map<String, dynamic> _statusDualNozzle() => {
+    'name': 'H2D',
+    'model': 'H2D',
+    'connected': true,
+    'state': 'IDLE',
+    'current_print': null,
+    'gcode_file': null,
+    'progress': 0,
+    'remaining_time': 0,
+    'layer_num': 0,
+    'total_layers': 0,
+    'temperatures': {
+      'nozzle': _r1(24.6 + _wiggle(0.3, phase: 35)),
+      'nozzle_target': 0.0,
+      'nozzle_2': _r1(24.2 + _wiggle(0.3, phase: 55)),
+      'nozzle_2_target': 0.0,
+      'bed': _r1(24.0 + _wiggle(0.2, phase: 70)),
+      'bed_target': 0.0,
+      'chamber': _r1(25.4 + _wiggle(0.3, phase: 90)),
+      'chamber_target': 0.0,
+    },
+    'cooling_fan_speed': 0,
+    'big_fan1_speed': 0,
+    'big_fan2_speed': 0,
+    'heatbreak_fan_speed': 0,
+    'speed_level': _speedLevel[6] ?? 2,
+    'chamber_light': _chamberLight[6] ?? false,
+    'airduct_mode': _airductMode[6] ?? 0,
+    'wifi_signal': -49,
+    'door_open': false,
+    'ams_exists': true,
+    'ams': [_amsUnitPlaOnly()],
+    'vt_tray': const <Object>[],
+    'tray_now': 255,
+    'active_extruder': 0,
+    'hms_errors': const <Object>[],
+    'firmware_version': '01.01.00.00',
     'cover_url': null,
     'supports_drying': true,
     'awaiting_plate_clear': false,

@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -98,43 +96,12 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
           const ControllerForbidden(),
           const SizedBox(height: DashSpace.sm),
         ],
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, box) => _cards(
-              _jogHeight(box.maxHeight, dual),
-              status,
-              model,
-              dual,
-              enabled,
-              l10n,
-            ),
-          ),
-        ),
+        Expanded(child: _cards(status, model, dual, enabled, l10n)),
       ],
     );
   }
 
-  /// The height of every jog button on the tab — the pad's arrows, Z, Extrude
-  /// and Retract — chosen so the pad fills the height of the axes card and the
-  /// extruder's column still fits beside it. One value for all of them, so a
-  /// jog is the same size in either card.
-  double _jogHeight(double room, bool dual) {
-    // The card's padding, and its border, which a decorated Container also
-    // takes out of its child's room.
-    final inner = room - 2 * DashSpace.md - 2 * _cardBorder;
-    final section = inner - ControllerSection.headerHeight - DashSpace.sm;
-    // Three pad rows over the section, less the step row under them.
-    final byPad =
-        (section - DashSpace.md - _JogButton.size - 2 * DashSpace.sm) / 3;
-    // The extruder's presets (and nozzle choice) above its two jogs.
-    final presets = _JogButton.size + DashSpace.md;
-    final nozzles = dual ? _JogButton.size + DashSpace.sm : 0;
-    final byExtruder = (section - presets - nozzles - DashSpace.sm) / 2;
-    return math.max(0, math.min(byPad, byExtruder));
-  }
-
   Widget _cards(
-    double jog,
     PrinterStatus status,
     String? model,
     bool dual,
@@ -153,12 +120,12 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
               ControllerSection(
                 title: 'X / Y',
                 flex: _padSide.round(),
-                child: Center(child: _xyPad(enabled, jog)),
+                child: _xyPad(enabled),
               ),
               ControllerSection(
                 title: 'Z',
                 flex: _zWidth.round(),
-                child: Center(child: _zPair(model, enabled, l10n, jog)),
+                child: _zPair(model, enabled, l10n),
               ),
             ],
             // The step is the pad's and Z's, so it sits under them.
@@ -170,23 +137,24 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
           flex: _sideWidth.round(),
           child: ControllerCard.single(
             title: l10n.controllerExtruder,
-            child: _extruder(status, dual, enabled, l10n, jog),
+            child: _extruder(status, dual, enabled, l10n),
           ),
         ),
       ],
     );
   }
 
-  /// Directional X/Y pad, as wide as its section. The centre shows the step in
-  /// use, for feedback.
-  Widget _xyPad(bool enabled, double jog) {
+  /// Directional X/Y pad: a three-by-three grid filling its section, the
+  /// arrows in the cross and the step in use, for feedback, in the middle.
+  Widget _xyPad(bool enabled) {
     final t = DashTokens.of(context);
     Widget arrow(String id, IconData icon, {double x = 0, double y = 0}) =>
         Expanded(
           child: _JogButton(
             id: 'controller.jog_$id',
             icon: icon,
-            height: jog,
+            width: double.infinity,
+            height: double.infinity,
             busy: _spin == id,
             onTap: enabled
                 ? () => _send(
@@ -199,12 +167,13 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
     const gap = SizedBox(width: DashSpace.sm, height: DashSpace.sm);
     const blank = Expanded(child: SizedBox.shrink());
     final step = _step.toDouble();
-    Widget row(List<Widget> cells) => SizedBox(
-      height: jog,
-      child: Row(children: [cells[0], gap, cells[1], gap, cells[2]]),
+    Widget row(List<Widget> cells) => Expanded(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [cells[0], gap, cells[1], gap, cells[2]],
+      ),
     );
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
         row([blank, arrow('y_plus', Icons.keyboard_arrow_up, y: step), blank]),
         gap,
@@ -233,12 +202,7 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
   /// Z up and down. The sign each arrow sends is [bedJogDistance]'s; where it
   /// cannot be known the pair is replaced by a note, never guessed — a wrong
   /// sign drives the plate into the nozzle.
-  Widget _zPair(
-    String? model,
-    bool enabled,
-    AppLocalizations l10n,
-    double jog,
-  ) {
+  Widget _zPair(String? model, bool enabled, AppLocalizations l10n) {
     final t = DashTokens.of(context);
     // Only the A1 family's sign depends on the server, so nothing is fetched
     // for any other printer.
@@ -261,16 +225,13 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
             convention: settled,
           );
     if (settled != null && distance(true) == null) {
-      return SizedBox(
-        height: 3 * jog + 2 * DashSpace.sm,
-        child: Text(
-          model == null || model.trim().isEmpty
-              ? l10n.ctrlMoveZNoModel
-              : l10n.ctrlMoveZUnknownDirection,
-          style: t.bodyPlain.copyWith(color: t.textTertiary),
-          maxLines: 12,
-          overflow: TextOverflow.ellipsis,
-        ),
+      return Text(
+        model == null || model.trim().isEmpty
+            ? l10n.ctrlMoveZNoModel
+            : l10n.ctrlMoveZUnknownDirection,
+        style: t.bodyPlain.copyWith(color: t.textTertiary),
+        maxLines: 12,
+        overflow: TextOverflow.ellipsis,
       );
     }
     Widget button(String id, IconData icon, String label, bool up) {
@@ -280,7 +241,7 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
         icon: icon,
         label: label,
         width: double.infinity,
-        height: jog,
+        height: double.infinity,
         busy: _spin == id,
         onTap: enabled && d != null
             ? () => _send(id, () => _notifier.bedJog(widget.printerId, d))
@@ -288,21 +249,26 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
       );
     }
 
-    // Level with the pad's top and bottom rows, as the arrows they pair with.
-    return SizedBox(
-      height: 3 * jog + 2 * DashSpace.sm,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          button('z_up', Icons.keyboard_arrow_up, l10n.ctrlMoveZUp, true),
-          button(
+    return Column(
+      children: [
+        Expanded(
+          child: button(
+            'z_up',
+            Icons.keyboard_arrow_up,
+            l10n.ctrlMoveZUp,
+            true,
+          ),
+        ),
+        const SizedBox(height: DashSpace.sm),
+        Expanded(
+          child: button(
             'z_down',
             Icons.keyboard_arrow_down,
             l10n.ctrlMoveZDown,
             false,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -314,10 +280,8 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
     bool dual,
     bool enabled,
     AppLocalizations l10n,
-    double jog,
   ) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (dual) ...[
@@ -336,46 +300,52 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
           onChanged: (i) => setState(() => _length = _lengthPresets[i]),
         ),
         const SizedBox(height: DashSpace.md),
-        _JogButton(
-          id: 'controller.jog_extrude',
-          icon: Icons.arrow_downward,
-          label: l10n.ctrlMoveExtrude,
-          width: double.infinity,
-          height: jog,
-          busy: _spin == 'extrude',
-          onTap: enabled
-              ? () => _send(
-                  'extrude',
-                  () => _notifier.extruderJog(
-                    widget.printerId,
-                    _length.toDouble(),
-                  ),
-                )
-              : null,
+        Expanded(
+          child: _JogButton(
+            id: 'controller.jog_extrude',
+            icon: Icons.arrow_downward,
+            label: l10n.ctrlMoveExtrude,
+            width: double.infinity,
+            height: double.infinity,
+            busy: _spin == 'extrude',
+            onTap: enabled
+                ? () => _send(
+                    'extrude',
+                    () => _notifier.extruderJog(
+                      widget.printerId,
+                      _length.toDouble(),
+                    ),
+                  )
+                : null,
+          ),
         ),
         const SizedBox(height: DashSpace.sm),
-        _JogButton(
-          id: 'controller.jog_retract',
-          icon: Icons.arrow_upward,
-          label: l10n.ctrlMoveRetract,
-          width: double.infinity,
-          height: jog,
-          busy: _spin == 'retract',
-          onTap: enabled
-              ? () => _send(
-                  'retract',
-                  () => _notifier.extruderJog(
-                    widget.printerId,
-                    -_length.toDouble(),
-                  ),
-                )
-              : null,
+        Expanded(
+          child: _JogButton(
+            id: 'controller.jog_retract',
+            icon: Icons.arrow_upward,
+            label: l10n.ctrlMoveRetract,
+            width: double.infinity,
+            height: double.infinity,
+            busy: _spin == 'retract',
+            onTap: enabled
+                ? () => _send(
+                    'retract',
+                    () => _notifier.extruderJog(
+                      widget.printerId,
+                      -_length.toDouble(),
+                    ),
+                  )
+                : null,
+          ),
         ),
       ],
     );
   }
 
-  /// The step presets and Home, in one row across the axes card.
+  /// The step presets and Home, in one row across the axes card, split the way
+  /// the sections above it are: the presets under the pad, Home under Z, so
+  /// their edges line up with the pad's and Z's.
   Widget _stepAndHome(bool enabled, AppLocalizations l10n) {
     return SizedBox(
       height: _JogButton.size,
@@ -383,7 +353,7 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            flex: 3,
+            flex: _padSide.round(),
             child: ControllerChoices(
               id: 'controller.step_preset',
               labels: [for (final p in _stepPresets) l10n.ctrlMoveMm(p)],
@@ -392,9 +362,10 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
               onChanged: (i) => setState(() => _step = _stepPresets[i]),
             ),
           ),
-          const SizedBox(width: DashSpace.md),
+          // The gap the card puts between its sections.
+          const SizedBox(width: DashSpace.xl),
           Expanded(
-            flex: 2,
+            flex: _zWidth.round(),
             child: _JogButton(
               id: 'controller.home',
               icon: Icons.home_outlined,
@@ -424,8 +395,6 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
 
   /// The extruder and step cards: three mm presets side by side.
   static const _sideWidth = 168.0;
-
-  static const _cardBorder = 1.0;
 }
 
 /// A jog or action button: icon only for the pad, icon and label otherwise. A
@@ -461,8 +430,9 @@ class _JogButton extends StatelessWidget {
     final t = DashTokens.of(context);
     return logTag(
       id,
-      OutlinedButton(
-        style: OutlinedButton.styleFrom(
+      FilledButton(
+        style: controllerButtonStyle(
+          t,
           minimumSize: Size(width ?? size, height ?? size),
           padding: EdgeInsets.zero,
         ),

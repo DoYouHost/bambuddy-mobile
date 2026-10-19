@@ -400,6 +400,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlAirductHeating => 'Heizen';
 
   @override
+  String get ctrlAirductPrintTitle => 'Kammer während des Drucks umschalten?';
+
+  @override
+  String get ctrlAirductPrintBody =>
+      'Der Wechsel zwischen Heizen und Kühlen während des Drucks verändert die Temperatur, bei der gedruckt wird, und kann den Druck ruinieren.';
+
+  @override
   String get ctrlOff => 'Aus';
 
   @override
@@ -8002,20 +8009,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get controllerExtruder => 'Extruder';
-
-  @override
-  String controllerTarget(String value) {
-    return 'Ziel $value';
-  }
-
-  @override
-  String get controllerHeating => 'Heizt';
-
-  @override
-  String get controllerAtTarget => 'Erreicht';
-
-  @override
-  String get controllerCooling => 'Kühlt ab';
 
   @override
   String get controllerEditSlot => 'Slot bearbeiten';
