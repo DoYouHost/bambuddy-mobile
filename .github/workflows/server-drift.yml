@@ -342,4 +342,9 @@ jobs:
 
       - name: Nothing moved
         if: steps.filter.outputs.drift == 'no'
-        run: echo "No contract path changed in this range — no issue filed."
+        run: |
+          msg="No contract path changed since ${FROM:0:8} — no issue filed."
+          echo "$msg"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          FROM: ${{ steps.state.outputs.from }}
