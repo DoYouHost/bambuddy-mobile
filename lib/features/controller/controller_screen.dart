@@ -29,6 +29,15 @@ const _landscape = [
   DeviceOrientation.landscapeRight,
 ];
 
+/// How many controller screens are mounted. Switching printers pushes the new
+/// screen before the old one is disposed, so the old one must not give back the
+/// bars, rotation and screen timeout the new one has just taken.
+class _OpenScreens {
+  int count = 0;
+}
+
+final _openScreensProvider = Provider((_) => _OpenScreens());
+
 enum ControllerTab {
   overview,
   heat,
@@ -74,6 +83,7 @@ class ControllerScreen extends ConsumerStatefulWidget {
 class _ControllerScreenState extends ConsumerState<ControllerScreen> {
   // Read once here: `dispose` must still reach it, and `ref` is gone by then.
   late final ScreenAwake _awake;
+  late final _OpenScreens _open;
   final _debounce = OfflineDebounce();
   ControllerTab _tab = ControllerTab.overview;
 
@@ -89,6 +99,8 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
   void initState() {
     super.initState();
     _awake = ref.read(screenAwakeProvider);
+    _open = ref.read(_openScreensProvider);
+    _open.count++;
     unawaited(SystemChrome.setPreferredOrientations(_landscape));
     unawaited(
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky),
@@ -116,15 +128,18 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
     // when the session expires — so the rest of the app gets its free rotation,
     // its bars and its screen timeout back on each of them. The app sets no
     // orientation of its own, so "restore" is the empty list, and the bars come
-    // back as the overlays the activity starts with (see WallScreen).
-    unawaited(SystemChrome.setPreferredOrientations(const []));
-    unawaited(
-      SystemChrome.setEnabledSystemUIMode(
-        SystemUiMode.manual,
-        overlays: SystemUiOverlay.values,
-      ),
-    );
-    unawaited(_awake.set(false));
+    // back as the overlays the activity starts with (see WallScreen). Not while
+    // another controller screen is up, which is a printer switch.
+    if (--_open.count == 0) {
+      unawaited(SystemChrome.setPreferredOrientations(const []));
+      unawaited(
+        SystemChrome.setEnabledSystemUIMode(
+          SystemUiMode.manual,
+          overlays: SystemUiOverlay.values,
+        ),
+      );
+      unawaited(_awake.set(false));
+    }
     super.dispose();
   }
 

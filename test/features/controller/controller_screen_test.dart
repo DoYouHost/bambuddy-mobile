@@ -319,6 +319,36 @@ void main() {
       expect(byLogId('controller.pick_printer'), findsNWidgets(3));
     });
 
+    testWidgets('switching printers keeps the bars hidden and the screen on', (
+      tester,
+    ) async {
+      await pumpController(tester, printers: farm);
+      await tester.tap(find.text('OPEN'));
+      await settle(tester);
+      await tester.tap(find.text('X1C Warsztat'));
+      await settle(tester);
+
+      await tester.tap(byLogId('controller.switch_printer'));
+      await settle(tester);
+      await tester.tap(find.text('P1S Biuro'));
+      await settle(tester);
+
+      expect(uiModes.last, 'SystemUiMode.immersiveSticky');
+      expect(overlays, isEmpty, reason: 'the bars were never given back');
+      expect(orientations.last, [
+        'DeviceOrientation.landscapeLeft',
+        'DeviceOrientation.landscapeRight',
+      ]);
+      expect(awake.last, isTrue);
+
+      await tester.tap(byLogId('controller.exit'));
+      await settle(tester);
+
+      expect(overlays, hasLength(1), reason: 'leaving gives them back');
+      expect(orientations.last, <Object?>[]);
+      expect(awake.last, isFalse);
+    });
+
     testWidgets('switching printers swaps the screen instead of stacking', (
       tester,
     ) async {

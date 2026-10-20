@@ -63,17 +63,27 @@ void main() {
     // A FittedBox shrinks whatever is in it to fit, so two things of one kind
     // can end up two sizes. The body is scaled as a whole by `ScaleToFit`, and
     // the keypad, which lives in a route of its own, by the same factor.
-    const allowed = {'scale_to_fit.dart', 'controller_heat.dart'};
     final offenders = [
       for (final file in Directory('lib/features/controller').listSync())
         if (file is File &&
             file.path.endsWith('.dart') &&
-            !allowed.contains(file.uri.pathSegments.last) &&
+            file.uri.pathSegments.last != 'scale_to_fit.dart' &&
+            file.uri.pathSegments.last != 'controller_heat.dart' &&
             file.readAsStringSync().contains(RegExp(r'FittedBox\(')))
           file.path,
     ];
 
     expect(offenders, isEmpty);
+
+    // controller_heat.dart holds the keypad, so it may have one, and only there.
+    final heat = File(
+      'lib/features/controller/controller_heat.dart',
+    ).readAsStringSync();
+    expect(RegExp(r'FittedBox\(').allMatches(heat), hasLength(1));
+    expect(
+      heat.indexOf('FittedBox('),
+      greaterThan(heat.indexOf('class _Numpad')),
+    );
   });
 
   Future<void> pump(
@@ -252,6 +262,22 @@ void main() {
               findsNothing,
             );
             expect(tester.takeException(), isNull, reason: '$temps');
+            for (final e
+                in find
+                    .descendant(
+                      of: find.byType(ControllerOverview),
+                      matching: find.byType(Text),
+                    )
+                    .evaluate()) {
+              final paragraph = e.renderObject! as RenderParagraph;
+              final text = paragraph.text.toPlainText();
+              if (text.endsWith('.3mf')) continue; // server data, may be long
+              expect(
+                paragraph.didExceedMaxLines,
+                isFalse,
+                reason: '"$text" is cut short',
+              );
+            }
           }
         });
 
