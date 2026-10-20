@@ -53,11 +53,12 @@ that opens the fault view, the printer's state) over one tab at a time.
   the column (on two nozzles the extruder's choice takes a row).
 - Each card has its title at its top (`ControllerCard`), never a caption
   glued to a control.
-- Heat: a heater shows its reading in a ring that fills toward its target, and
-  the target in the middle of the ring and as the bare number on the button that
-  changes it ("220", "Off" when none): a word beside it did not fit three
-  heaters in a row. There is no heating/at-target/cooling label; the ring's
-  colour says it.
+- Heat: a heater is a ring that fills toward its target with the current
+  temperature in the middle. The ring takes the room its card has and the
+  reading grows with it (28% of the ring's size, never scaled by the system
+  font); nothing else on the card is scaled to fit. The target is only the bare
+  number on the button between − and + ("220", "Off" when none). There is no
+  heating/at-target/cooling label; the ring's colour says it.
 - Move: two cards. Axes (X/Y and Z) with the step and Home under them, and the
   extruder with its own length presets.
 - Filament: a tap chooses a slot (the one feeding the print until then); Load,

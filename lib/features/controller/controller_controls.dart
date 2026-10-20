@@ -104,11 +104,11 @@ class _ReadingTile extends ConsumerWidget {
   static const _dot = 8.0;
   static const _bar = 4.0;
 
-  /// Three across have room for the target at natural size; the scaling is
-  /// only a net for a narrow tile under a large system font.
+  /// Three across have room for the reading and its target at natural size; the
+  /// scaling is only a net for a narrow tile under a large system font.
   static Widget _scaled(Widget child) => FittedBox(
     fit: BoxFit.scaleDown,
-    alignment: Alignment.centerLeft,
+    alignment: Alignment.center,
     child: child,
   );
 
@@ -126,6 +126,22 @@ class _ReadingTile extends ConsumerWidget {
         ? l10n.tempNozzleNumbered('1')
         : reading.label(l10n);
     final radius = BorderRadius.circular(DashSpace.md + DashSpace.xs);
+    final readingText = Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: actual == null ? '—' : '${actual.round()}°',
+            style: t.monoHeadline.copyWith(color: color),
+          ),
+          if (showTarget && target != null && target > 0)
+            TextSpan(
+              text: ' / ${target.round()}°',
+              style: t.monoValue.copyWith(color: t.textTertiary),
+            ),
+        ],
+      ),
+      maxLines: 1,
+    );
     return Semantics(
       container: true,
       // The outline says which nozzle is active; a reader is told the same.
@@ -152,114 +168,37 @@ class _ReadingTile extends ConsumerWidget {
                   : t.subCardBorder,
             ),
           ),
+          // The label on the top edge, the bar on the bottom one, and the reading
+          // centred between them.
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: showTarget
-                    ? _scaled(
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: _dot,
-                                  height: _dot,
-                                  decoration: BoxDecoration(
-                                    color: color,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: DashSpace.sm),
-                                Text(
-                                  label,
-                                  style: t.body.copyWith(
-                                    color: t.textSecondary,
-                                  ),
-                                  maxLines: 1,
-                                ),
-                              ],
-                            ),
-                            Text.rich(
-                              TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: actual == null
-                                        ? '—'
-                                        : '${actual.round()}°',
-                                    style: t.monoHeadline.copyWith(
-                                      color: color,
-                                    ),
-                                  ),
-                                  if (showTarget &&
-                                      target != null &&
-                                      target > 0)
-                                    TextSpan(
-                                      text: ' / ${target.round()}°',
-                                      style: t.monoValue.copyWith(
-                                        color: t.textTertiary,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              maxLines: 1,
-                            ),
-                          ],
-                        ),
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: _dot,
-                                height: _dot,
-                                decoration: BoxDecoration(
-                                  color: color,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: DashSpace.sm),
-                              Expanded(
-                                child: Text(
-                                  label,
-                                  style: t.body.copyWith(
-                                    color: t.textSecondary,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: actual == null
-                                      ? '—'
-                                      : '${actual.round()}°',
-                                  style: t.monoHeadline.copyWith(color: color),
-                                ),
-                                if (showTarget && target != null && target > 0)
-                                  TextSpan(
-                                    text: ' / ${target.round()}°',
-                                    style: t.monoValue.copyWith(
-                                      color: t.textTertiary,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            maxLines: 1,
-                          ),
-                        ],
-                      ),
+              Row(
+                children: [
+                  Container(
+                    width: _dot,
+                    height: _dot,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: DashSpace.sm),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: t.body.copyWith(color: t.textSecondary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: DashSpace.xs),
+              Expanded(
+                child: Center(
+                  child: showTarget ? _scaled(readingText) : readingText,
+                ),
+              ),
               // The same sweep as the Heat tab's ring, so the two agree.
               DashProgressBar(
                 value: actual == null

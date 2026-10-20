@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -157,16 +159,22 @@ class _HeaterCard extends ConsumerWidget {
   /// How far one tap of − or + moves the target.
   static const _step = 5;
   static const _buttonSize = controllerButtonHeight;
+
+  /// The ring the stroke is drawn for; a bigger ring draws a thicker one.
   static const _ringSize = 72.0;
+
+  /// The least a ring is: below it the reading inside no longer fits.
+  static const _ringFloor = 56.0;
+
+  /// The reading in the ring is this share of the ring's size, so the two grow
+  /// together: "250°" at 0.6 em a character fills about two thirds of it.
+  static const _readingShare = 0.28;
 
   /// The least a touch target is, so the row is no smaller than the buttons in
   /// it already lay out at: a smaller button keeps a 48 dp area around itself.
   static const _stackedButtonSize = 48.0;
 
-  /// Smaller with the reading under it, where height is what is short.
-  static const _stackedRingSize = 68.0;
   static const _ringStroke = 7.0;
-  static const _readingFont = 36.0;
 
   /// The server's hardware index of a nozzle: `nozzle_2` is the right head (0),
   /// the plain key the left one (1) on two heads, and 0 on one.
@@ -203,36 +211,36 @@ class _HeaterCard extends ConsumerWidget {
         ? l10n.tempNozzleNumbered(reading.index == null ? '1' : '2')
         : reading.label(l10n);
     final color = reading.gaugeColor(t, target: shown.toDouble());
-    final ring = ExcludeSemantics(
-      child: SizedBox.square(
-        dimension: stacked ? _stackedRingSize : _ringSize,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            CircularProgressIndicator(
+    // The ring takes the room the card has, and the reading in it grows with it.
+    // The target is on the button, not here.
+    final readingText = actual == null ? '—' : '${actual.round()}°';
+    Widget ringOf(double side) => Stack(
+      alignment: Alignment.center,
+      children: [
+        ExcludeSemantics(
+          child: SizedBox.square(
+            dimension: side,
+            child: CircularProgressIndicator(
               value: actual == null
                   ? 0
                   : (actual / reading.gaugeMax(chamberMax)).clamp(0.0, 1.0),
-              strokeWidth: _ringStroke,
+              strokeWidth: _ringStroke * side / _ringSize,
               backgroundColor: t.gaugeTrack,
               valueColor: AlwaysStoppedAnimation(color),
               strokeCap: StrokeCap.round,
             ),
-            // The target, in the ring that is heading for it.
-            if (shown > 0)
-              Center(
-                child: Text(
-                  '$shown°',
-                  style: t.monoValue.copyWith(color: t.textTertiary),
-                ),
-              ),
-          ],
+          ),
         ),
-      ),
-    );
-    final number = Text(
-      actual == null ? '—' : '${actual.round()}°',
-      style: t.monoDisplay.copyWith(fontSize: _readingFont, color: color),
+        Text(
+          readingText,
+          // Sized by the ring, so the system font does not outgrow it.
+          textScaler: TextScaler.noScaling,
+          style: t.monoDisplay.copyWith(
+            fontSize: side * _readingShare,
+            color: color,
+          ),
+        ),
+      ],
     );
     return ControllerCard.single(
       title: label,
@@ -259,23 +267,15 @@ class _HeaterCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            // Shrinks on a narrow card (four heaters on two nozzles) or a short
-            // one, never grows on its own: its size is the body's scale.
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: stacked
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [ring, number],
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ring,
-                        const SizedBox(width: DashSpace.md),
-                        number,
-                      ],
-                    ),
+            child: LayoutBuilder(
+              builder: (context, box) => Center(
+                child: ringOf(
+                  math.max(
+                    _ringFloor,
+                    math.min(box.maxWidth, box.maxHeight) - 2 * DashSpace.sm,
+                  ),
+                ),
+              ),
             ),
           ),
           SizedBox(height: stacked ? DashSpace.xs : DashSpace.sm),

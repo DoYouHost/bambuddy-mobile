@@ -122,36 +122,17 @@ void main() {
     ) async {
       await pump(tester, _status());
 
+      // The reading is in the ring, the target only on the button.
       expect(find.text('218°'), findsOneWidget);
-      // The target, on the button and in the ring.
       expect(find.text('220'), findsOneWidget);
-      expect(find.text('220°'), findsOneWidget);
-      // The bed's reading and its target, both 60°, and the button's 60.
-      expect(find.text('60°'), findsNWidgets(2));
+      expect(find.text('220°'), findsNothing);
+      expect(find.text('60°'), findsOneWidget);
       expect(find.text('60'), findsOneWidget);
     });
 
-    testWidgets('carry the target in the middle of the ring heading for it', (
+    testWidgets('keep the target off the ring, a heater with none says Off', (
       tester,
     ) async {
-      await pump(
-        tester,
-        _status(
-          temps: const {
-            'nozzle': 150,
-            'nozzle_target': 220,
-            'bed': 60,
-            'bed_target': 61,
-            'chamber': 34,
-          },
-        ),
-      );
-
-      expect(find.text('220°'), findsOneWidget);
-      expect(find.text('61°'), findsOneWidget);
-    });
-
-    testWidgets('a heater with no target has an empty ring', (tester) async {
       await pump(
         tester,
         _status(
@@ -164,10 +145,10 @@ void main() {
         ),
       );
 
-      // Only the nozzle's 200° among the rings: the bed and the chamber have
-      // no target to carry.
-      expect(find.text('200°'), findsOneWidget);
-      expect(find.text('0°'), findsNothing);
+      expect(find.text('230°'), findsOneWidget);
+      expect(find.text('200'), findsOneWidget);
+      expect(find.text('200°'), findsNothing);
+      expect(find.text(pl.ctrlOff), findsNWidgets(2), reason: 'bed, chamber');
     });
 
     testWidgets('plus raises the nozzle by one step', (tester) async {
@@ -546,27 +527,6 @@ void main() {
   });
 
   group('the heater cards', () {
-    /// How far each card's ring-and-reading block was scaled down to fit: 1 is
-    /// the natural size.
-    List<double> scales(WidgetTester tester) => [
-      for (final e
-          in find
-              .descendant(
-                of: find.byType(ControllerHeat),
-                matching: find.byType(FittedBox),
-              )
-              .evaluate())
-        () {
-          final box = e.renderObject! as RenderFittedBox;
-          final child = box.child!;
-          return [
-            1.0,
-            box.size.width / child.size.width,
-            box.size.height / child.size.height,
-          ].reduce((a, b) => a < b ? a : b);
-        }(),
-    ];
-
     for (final size in const [Size(844, 390), Size(1280, 800)]) {
       for (final (name, model, temps) in [
         ('three heaters', 'X1C', null),
@@ -593,34 +553,16 @@ void main() {
             size: size,
           );
 
-          final all = scales(tester);
-          expect(all, isNotEmpty);
-          for (final scale in all) {
-            expect(scale, closeTo(1, 0.001));
-          }
-
-          // And the target in a ring is inside the circle, not across it: the
-          // ring's width less the stroke on both sides (7 dp each).
-          for (final ring
-              in find.byType(CircularProgressIndicator).evaluate()) {
-            final stack = find
-                .ancestor(
-                  of: find.byWidget(ring.widget),
-                  matching: find.byType(Stack),
-                )
-                .first;
-            final target = find.descendant(
-              of: stack,
-              matching: find.byType(Text),
-            );
-            if (target.evaluate().isEmpty) continue;
-            expect(
-              tester.getSize(target).width,
-              lessThanOrEqualTo(
-                tester.getSize(find.byWidget(ring.widget)).width - 14,
-              ),
-            );
-          }
+          // Nothing in a card is scaled to fit: a FittedBox is what made each
+          // card's text a size of its own.
+          expect(
+            find.descendant(
+              of: find.byType(ControllerHeat),
+              matching: find.byType(FittedBox),
+            ),
+            findsNothing,
+          );
+          expect(tester.takeException(), isNull);
         });
       }
     }
@@ -699,6 +641,53 @@ void main() {
       expect(minus.style?.minimumSize?.resolve({}), Size.square(field.height));
     },
   );
+
+  group('the ring of a heater card', () {
+    double ring(WidgetTester tester) =>
+        tester.getSize(find.byType(CircularProgressIndicator).first).width;
+
+    for (final (name, model, temps, growth) in [
+      // The reading beside the ring is 144 dp wide in the test font and about
+      // 90 on screen, so the room a card has for its ring is understated here.
+      ('three heaters', 'X1C', null, 1.02),
+      (
+        'four heaters',
+        'H2D',
+        const {
+          'nozzle': 250.0,
+          'nozzle_target': 250.0,
+          'nozzle_2': 50.0,
+          'bed': 70.0,
+          'bed_target': 70.0,
+          'chamber': 41.0,
+        },
+        1.15,
+      ),
+    ]) {
+      testWidgets('with $name takes the room a bigger screen gives it', (
+        tester,
+      ) async {
+        await pump(tester, _status(temps: temps), model: model);
+        final phone = ring(tester);
+
+        await pump(
+          tester,
+          _status(temps: temps),
+          model: model,
+          size: const Size(1280, 800),
+        );
+        final tablet = ring(tester);
+        final card = tester.getSize(
+          find.byType(CircularProgressIndicator).first,
+        );
+
+        // Bigger than at the phone's size, and no wider than its card.
+        expect(tablet, greaterThan(phone * growth));
+        expect(card.width, lessThanOrEqualTo(card.height + 0.01));
+        expect(tester.takeException(), isNull);
+      });
+    }
+  });
 
   group('the text of a heater card', () {
     const dual = {
@@ -819,20 +808,57 @@ void main() {
       'chamber': 41.0,
     };
 
-    testWidgets('holds the target on three heaters', (tester) async {
+    testWidgets('holds the reading of every heater on three', (tester) async {
       await pump(tester, _status());
 
-      // The nozzle's 220° target, beside its 218° reading.
-      expect(find.text('220°'), findsOneWidget);
+      expect(find.text('218°'), findsOneWidget);
+      expect(find.text('220'), findsOneWidget, reason: 'the button');
     });
 
-    testWidgets('holds the target on four heaters too', (tester) async {
+    testWidgets('holds the reading of every heater on four', (tester) async {
       await pump(tester, _status(temps: dual), model: 'H2D');
 
-      // The nozzle's 250°, beside its reading and in its ring; and 250 on the
-      // button, which is not clipped to nothing.
-      expect(find.text('250°'), findsNWidgets(2));
-      expect(find.text('250'), findsOneWidget);
+      // The nozzle's 250° and the second one's 50°, each in its own ring.
+      expect(find.text('250°'), findsOneWidget);
+      expect(find.text('50°'), findsOneWidget);
+      expect(find.text('250'), findsOneWidget, reason: 'the button');
+    });
+
+    testWidgets('sizes the reading by the ring, whichever card it is in', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _status(temps: dual),
+        model: 'H2D',
+        size: const Size(1280, 800),
+      );
+
+      for (final ring in find.byType(CircularProgressIndicator).evaluate()) {
+        final side = tester.getSize(find.byWidget(ring.widget)).width;
+        final reading =
+            find
+                    .descendant(
+                      of: find
+                          .ancestor(
+                            of: find.byWidget(ring.widget),
+                            matching: find.byType(Stack),
+                          )
+                          .first,
+                      matching: find.byType(Text),
+                    )
+                    .evaluate()
+                    .single
+                    .widget
+                as Text;
+        expect(
+          reading.style!.fontSize! / side,
+          closeTo(0.28, 0.001),
+          reason: reading.data,
+        );
+        // Not scaled again by the system font, which the ring already counts.
+        expect(reading.textScaler, TextScaler.noScaling);
+      }
     });
   });
 

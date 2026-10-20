@@ -217,6 +217,67 @@ void main() {
       expect(values.first, isNotNull);
     });
 
+    for (final (name, temps) in [
+      ('three', null),
+      (
+        'four',
+        const {
+          'nozzle': 250.0,
+          'nozzle_target': 250.0,
+          'nozzle_2': 50.0,
+          'bed': 70.0,
+          'bed_target': 70.0,
+          'chamber': 41.0,
+        },
+      ),
+    ]) {
+      testWidgets('on $name have the label on the top edge, the bar on the '
+          'bottom one and the reading centred between them', (tester) async {
+        await pump(tester, _printing(temps: temps));
+
+        final tiles = find.descendant(
+          of: find.byType(ControllerReadings),
+          matching: find.byWidgetPredicate(
+            (w) => w.runtimeType.toString() == '_ReadingTile',
+          ),
+        );
+        expect(tiles.evaluate(), isNotEmpty);
+        // Padding and the tile's border.
+        const inset = DashSpace.sm + 1;
+        for (var i = 0; i < tiles.evaluate().length; i++) {
+          final tile = tester.getRect(tiles.at(i));
+          final texts = find
+              .descendant(of: tiles.at(i), matching: find.byType(RichText))
+              .evaluate()
+              .map((e) => tester.getRect(find.byWidget(e.widget)))
+              .toList();
+          // The label is the upper text, the reading the lower one.
+          texts.sort((a, b) => a.top.compareTo(b.top));
+          final label = texts.first;
+          final reading = texts.last;
+          final bar = tester.getRect(
+            find.descendant(
+              of: tiles.at(i),
+              matching: find.byType(DashProgressBar),
+            ),
+          );
+
+          expect(label.top, closeTo(tile.top + inset, 1), reason: 'label $i');
+          expect(bar.bottom, closeTo(tile.bottom - inset, 1), reason: 'bar $i');
+          expect(
+            reading.center.dy,
+            closeTo((label.bottom + bar.top) / 2, 1),
+            reason: 'reading vertically between them, tile $i',
+          );
+          expect(
+            reading.center.dx,
+            closeTo(tile.center.dx, 1),
+            reason: 'reading horizontally, tile $i',
+          );
+        }
+      });
+    }
+
     testWidgets('on three keep the target beside the reading', (tester) async {
       await pump(tester, _printing());
 
