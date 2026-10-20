@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ams/slot_addressing.dart';
@@ -160,6 +163,8 @@ class _Rail extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                         horizontal: DashSpace.md,
                       ),
+                      // The name, and on the same line the humidity, at a size
+                      // that reads from a stand.
                       child: Row(
                         children: [
                           Expanded(
@@ -169,7 +174,7 @@ class _Rail extends StatelessWidget {
                                   : amsUnitName(
                                       entry.unit!.id ?? entry.unitIndex!,
                                     ),
-                              style: t.bodyBold.copyWith(
+                              style: t.titleSm.copyWith(
                                 color: i == selected
                                     ? t.textPrimary
                                     : t.textSecondary,
@@ -182,12 +187,13 @@ class _Rail extends StatelessWidget {
                             const SizedBox(width: DashSpace.xs),
                             Icon(
                               Icons.water_drop_outlined,
-                              size: DashSpace.md,
+                              size: DashSpace.lg,
                               color: t.accentBlue,
                             ),
+                            const SizedBox(width: DashSpace.xs),
                             Text(
                               '${entry.unit!.humidity}%',
-                              style: t.monoLabel,
+                              style: t.monoValue,
                             ),
                           ],
                         ],
@@ -292,12 +298,16 @@ class _Pane extends ConsumerWidget {
           id: 'controller.load',
           icon: Icons.login,
           label: l10n.amsLoad,
+          tone: t.accentOrange,
+          ink: t.accentOrangeInk,
           onPressed: locked || busy ? null : () => command(true),
         ),
         _ActionButton(
           id: 'controller.unload',
           icon: Icons.logout,
           label: l10n.amsUnload,
+          tone: t.accentOrange,
+          ink: t.accentOrangeInk,
           onPressed: locked || busy ? null : () => command(false),
         ),
       ],
@@ -352,8 +362,9 @@ class _Pane extends ConsumerWidget {
                   'controller.dry',
                   FilledButton.icon(
                     style: controllerButtonStyle(
-                      DashTokens.of(context),
+                      t,
                       minimumSize: const Size(0, controllerButtonHeight),
+                      tone: t.accentBlue,
                     ),
                     icon: const Icon(Icons.local_fire_department_outlined),
                     label: Text(unit.isDrying ? l10n.ctrlDrying : l10n.ctrlDry),
@@ -492,6 +503,8 @@ class _ActionButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onPressed,
+    required this.tone,
+    this.ink,
   });
 
   final String id;
@@ -499,11 +512,19 @@ class _ActionButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
 
+  /// Its colour while it works ([controllerButtonStyle]).
+  final Color tone;
+  final Color? ink;
+
   @override
   Widget build(BuildContext context) => logTag(
     id,
     FilledButton.icon(
-      style: controllerButtonStyle(DashTokens.of(context)),
+      style: controllerButtonStyle(
+        DashTokens.of(context),
+        tone: tone,
+        ink: ink,
+      ),
       onPressed: onPressed,
       icon: Icon(icon),
       label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -534,8 +555,46 @@ class _SlotCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onEdit;
 
-  static const _disc = 56.0;
-  static const _discStroke = 4.0;
+  static const _spoolAsset = 'assets/icons/filament_spool_wound.svg';
+
+  /// The round chip the slot's number sits in.
+  static const _chip = 32.0;
+
+  /// What the edit pencil takes from the top row.
+  static const _editWidth = 48.0;
+
+  /// The corner mark: the slot's number in a round chip, or the external
+  /// spool's name in a pill, on the accent when the slot feeds the print. A
+  /// spool with no name that is active still gets a chip, with a tick in it;
+  /// null where there is nothing to say.
+  Widget? _labelChip(DashTokens t, AppLocalizations l10n) {
+    final label = number?.toString() ?? caption;
+    final named = label != null && label.isNotEmpty;
+    if (!named && !active) return null;
+    final ink = active ? t.onAccent : t.textPrimary;
+    final chip = Container(
+      constraints: const BoxConstraints(minWidth: _chip, minHeight: _chip),
+      padding: number == null && named
+          ? const EdgeInsets.symmetric(horizontal: DashSpace.md)
+          : EdgeInsets.zero,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(_chip / 2),
+        color: active ? t.accent : t.textPrimary.withValues(alpha: 0.12),
+      ),
+      child: named
+          ? Text(
+              label,
+              style: number == null
+                  ? t.bodyStrong.copyWith(color: ink)
+                  : t.monoValue.copyWith(color: ink),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )
+          : Icon(Icons.check, size: DashSpace.lg + DashSpace.xs, color: ink),
+    );
+    return active ? Tooltip(message: l10n.ctrlNozzleActive, child: chip) : chip;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -561,73 +620,80 @@ class _SlotCard extends StatelessWidget {
         InkWell(
           borderRadius: radius,
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(DashSpace.sm),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (number != null)
-                    Text('$number', style: t.monoValue)
-                  else if (caption != null)
-                    Text(caption!, style: t.bodySoft),
-                  const SizedBox(height: DashSpace.xs),
-                  Container(
-                    width: _disc,
-                    height: _disc,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: empty ? t.textTertiary : t.cardBorder,
-                        width: empty ? 2 : _discStroke,
+          child: Stack(
+            children: [
+              // The slot's number, or the external spool's name, in the corner
+              // the pencil is not in.
+              Padding(
+                padding: const EdgeInsets.all(DashSpace.sm),
+                child: Column(
+                  children: [
+                    // The spool takes what the text under it leaves, the same
+                    // on every card, so the cards fill up instead of sitting
+                    // in a corner of themselves.
+                    Expanded(
+                      child: _Wiggle(
+                        play: selected,
+                        child: Opacity(
+                          // An empty slot is the same spool, greyed out.
+                          opacity: empty ? 0.4 : 1,
+                          child: SvgPicture.asset(
+                            _spoolAsset,
+                            width: double.infinity,
+                            height: double.infinity,
+                            colorMapper: _SpoolColors(
+                              empty ? t.textTertiary : color ?? t.textTertiary,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: DashSpace.sm),
-                  Text(
-                    empty
-                        ? l10n.traySlotEmpty
-                        : (tray.materialLabel ?? l10n.traySlotEmpty),
-                    style: t.bodyBold.copyWith(
-                      color: empty ? t.textTertiary : t.textPrimary,
-                    ),
-                    maxLines: 1,
-                  ),
-                  if (percent != null || grams != null)
+                    const SizedBox(height: DashSpace.sm),
                     Text(
-                      [
-                        if (percent != null) '$percent%',
-                        if (grams != null)
-                          l10n.inventoryUsageWeight(grams.toStringAsFixed(0)),
-                      ].join(' · '),
-                      style: t.monoLabel.copyWith(
+                      empty
+                          ? l10n.traySlotEmpty
+                          : (tray.materialLabel ?? l10n.traySlotEmpty),
+                      style: t.titleMd.copyWith(
+                        color: empty ? t.textTertiary : t.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    // A line even where there is nothing to say, so an empty
+                    // slot's spool is the size of the others'.
+                    Text(
+                      percent == null && grams == null
+                          ? '\u00A0'
+                          : [
+                              if (percent != null) '$percent%',
+                              if (grams != null)
+                                l10n.inventoryUsageWeight(
+                                  grams.toStringAsFixed(0),
+                                ),
+                            ].join(' · '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.monoValue.copyWith(
                         color: percent != null && percent < _lowPercent
                             ? t.dangerInk
                             : t.textSecondary,
                       ),
                     ),
-                  if (active) ...[
-                    const SizedBox(height: DashSpace.xs),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.check_circle,
-                          size: DashSpace.md,
-                          color: t.accentInk,
-                        ),
-                        const SizedBox(width: DashSpace.xs),
-                        Text(
-                          l10n.ctrlNozzleActive,
-                          style: t.label.copyWith(color: t.accentInk),
-                        ),
-                      ],
-                    ),
                   ],
-                ],
+                ),
               ),
-            ),
+              // The slot's mark, in the corner the pencil is not in, painted
+              // over the spool, which reaches into that corner.
+              Positioned(
+                top: DashSpace.md,
+                left: DashSpace.md,
+                right: _editWidth,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _labelChip(t, l10n) ?? const SizedBox.shrink(),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -659,4 +725,91 @@ class _SlotCard extends StatelessWidget {
 
   /// A slot under this share of its spool reads as running out.
   static const _lowPercent = 20;
+}
+
+/// The colour of the spool drawing (`assets/icons/filament_spool_wound.svg`, made
+/// by Recraft) that stands for the filament: its winding. Everything else in it,
+/// the flanges and the outline, keeps its own.
+class _SpoolColors extends ColorMapper {
+  const _SpoolColors(this.filament);
+
+  final Color filament;
+
+  static const _winding = Color.fromARGB(255, 230, 71, 152);
+
+  @override
+  Color substitute(
+    String? id,
+    String elementName,
+    String attributeName,
+    Color color,
+  ) {
+    // The drawing's outline is near-black: a black filament is lifted a little
+    // so it still reads as a winding inside it.
+    final tint = filament.computeLuminance() < 0.02
+        ? Color.lerp(filament, Colors.white, 0.2)!
+        : filament;
+    if (color == _winding) return tint;
+    return color;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is _SpoolColors && other.filament == filament;
+
+  @override
+  int get hashCode => filament.hashCode;
+}
+
+/// Rocks [child] left and right, dying away, each time [play] turns true: the
+/// answer to a tap that only moves the outline, since choosing a slot changes
+/// nothing on the printer until Load or Unload is pressed. Not on first build,
+/// and the controller's own animation behaviour cuts it short for a person who
+/// turned animations off.
+class _Wiggle extends StatefulWidget {
+  const _Wiggle({required this.play, required this.child});
+
+  final bool play;
+  final Widget child;
+
+  @override
+  State<_Wiggle> createState() => _WiggleState();
+}
+
+class _WiggleState extends State<_Wiggle> with SingleTickerProviderStateMixin {
+  static const _duration = Duration(milliseconds: 500);
+
+  /// The widest swing, in radians (about 5 degrees), and how many swings.
+  static const _swing = 0.09;
+  static const _swings = 3;
+
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: _duration,
+  );
+
+  @override
+  void didUpdateWidget(_Wiggle old) {
+    super.didUpdateWidget(old);
+    if (widget.play && !old.play) _controller.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _controller,
+    child: widget.child,
+    builder: (context, child) {
+      final t = _controller.value;
+      return Transform.rotate(
+        angle: math.sin(t * 2 * math.pi * _swings) * _swing * (1 - t),
+        child: child,
+      );
+    },
+  );
 }

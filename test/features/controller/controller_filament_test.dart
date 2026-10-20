@@ -3,6 +3,7 @@ import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_filament.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
@@ -11,6 +12,7 @@ import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,6 +24,8 @@ AmsTray _tray(int id, String type, String color, {int? remain = 80}) =>
     AmsTray(id: id, trayType: type, trayColor: color, remain: remain);
 
 const _empty = AmsTray(id: 3);
+
+const _serial = '01P00A123456789';
 
 AmsUnit _unit(int id, {String? moduleType, int humidity = 24}) => AmsUnit(
   id: id,
@@ -145,17 +149,96 @@ void main() {
       expect(slots(), findsNWidgets(4));
     });
 
+    group('choosing a slot', () {
+      /// The tilt of slot [i]'s spool: the rotation the wiggle applies.
+      double tilt(WidgetTester tester, int i) {
+        final wiggle = find
+            .byWidgetPredicate((w) => w.runtimeType.toString() == '_Wiggle')
+            .at(i);
+        final box = tester.widget<Transform>(
+          find.descendant(of: wiggle, matching: find.byType(Transform)).first,
+        );
+        return box.transform.entry(0, 1);
+      }
+
+      testWidgets('the number sits over the spool, not under it', (
+        tester,
+      ) async {
+        await pump(tester, _status());
+
+        // A Stack paints its last child on top: the corner mark comes last.
+        final stack = tester.widget<Stack>(
+          find
+              .descendant(
+                of: slots().first,
+                matching: find.byWidgetPredicate(
+                  (w) => w is Stack && w.children.any((c) => c is Positioned),
+                ),
+              )
+              .first,
+        );
+        expect(stack.children.last, isA<Positioned>());
+      });
+
+      testWidgets('rocks the spool it chose, then it rests', (tester) async {
+        await pump(tester, _status());
+        // With nothing feeding the print, the first slot stands in as chosen.
+        expect(tilt(tester, 0), 0, reason: 'not on first build');
+
+        await tester.tap(slots().at(1));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 60));
+        expect(tilt(tester, 1), isNot(0), reason: 'mid-wiggle');
+        expect(tilt(tester, 0), 0, reason: 'only the chosen one');
+
+        await tester.pump(const Duration(seconds: 1));
+        expect(tilt(tester, 1), 0);
+      });
+
+      testWidgets('a tap on the chosen slot again does not rock it', (
+        tester,
+      ) async {
+        await pump(tester, _status());
+        await tester.tap(slots().at(1));
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+
+        await tester.tap(slots().at(1));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 60));
+
+        expect(tilt(tester, 1), 0);
+      });
+
+      testWidgets('stays still for whoever turned animations off', (
+        tester,
+      ) async {
+        tester.platformDispatcher.accessibilityFeaturesTestValue =
+            const FakeAccessibilityFeatures(disableAnimations: true);
+        addTearDown(
+          tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+        );
+        await pump(tester, _status());
+
+        await tester.tap(slots().at(1));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 60));
+
+        expect(tilt(tester, 1), 0);
+      });
+    });
+
     testWidgets('marks the slot that feeds the print', (tester) async {
       // Unit 0, slot 1 is global tray 1.
       await pump(tester, _status(trayNow: 1));
 
-      expect(find.text(pl.ctrlNozzleActive), findsOneWidget);
+      expect(find.byTooltip(pl.ctrlNozzleActive), findsOneWidget);
     });
 
     testWidgets('marks nothing when nothing is loaded', (tester) async {
       await pump(tester, _status());
 
-      expect(find.text(pl.ctrlNozzleActive), findsNothing);
+      expect(find.byTooltip(pl.ctrlNozzleActive), findsNothing);
     });
 
     testWidgets('shows its readings in the header', (tester) async {
@@ -209,11 +292,11 @@ void main() {
       tester,
     ) async {
       // The tag the server derives for slot 0 of unit 0 of this printer.
-      final tag = fallbackSpoolTag('01P00A123456789', 0, 0)!;
+      final tag = fallbackSpoolTag(_serial, 0, 0)!;
       await pump(
         tester,
         _status(),
-        serial: '01P00A123456789',
+        serial: _serial,
         inventory: InventoryState(
           linkedTags: {
             tag: const LinkedSpool(id: 7, remaining: 250, filament: 1000),
@@ -238,6 +321,33 @@ void main() {
         tester.getRect(byLogId('controller.filament_unit').first).height,
         greaterThanOrEqualTo(44),
       );
+    });
+
+    testWidgets('a unit shows its humidity at the size of a reading', (
+      tester,
+    ) async {
+      await pump(tester, _status());
+
+      final reading = tester.widget<Text>(
+        find.descendant(
+          of: byLogId('controller.filament_unit').first,
+          matching: find.text('24%'),
+        ),
+      );
+      // 11 dp in the tertiary ink was not legible from a stand.
+      expect(reading.style!.fontSize, greaterThanOrEqualTo(13));
+      expect(reading.style!.color!.a, 1, reason: 'the primary ink, not faded');
+
+      // On the line of the name, not under it.
+      final button = byLogId('controller.filament_unit').first;
+      final name = tester.getRect(
+        find.descendant(of: button, matching: find.text('AMS-A')),
+      );
+      final value = tester.getRect(
+        find.descendant(of: button, matching: find.text('24%')),
+      );
+      expect(value.center.dy, closeTo(name.center.dy, 2));
+      expect(value.left, greaterThan(name.right));
     });
 
     testWidgets('and a slot card is big enough to read', (tester) async {
@@ -371,6 +481,31 @@ void main() {
       expect(find.text(pl.externalSpool), findsWidgets);
     });
 
+    testWidgets('is marked when it feeds the print', (tester) async {
+      // Holder 254 is the external spool of the only nozzle.
+      await pump(
+        tester,
+        _status(external: [_tray(254, 'TPU', '2E6FD8FF')], trayNow: 254),
+      );
+      await tester.tap(byLogId('controller.filament_unit').at(1));
+      await tester.pump();
+
+      expect(find.byTooltip(pl.ctrlNozzleActive), findsOneWidget);
+    });
+
+    testWidgets('is not marked while another slot feeds the print', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        _status(external: [_tray(254, 'TPU', '2E6FD8FF')], trayNow: 1),
+      );
+      await tester.tap(byLogId('controller.filament_unit').at(1));
+      await tester.pump();
+
+      expect(find.byTooltip(pl.ctrlNozzleActive), findsNothing);
+    });
+
     testWidgets('is absent when the printer has none', (tester) async {
       await pump(tester, _status());
 
@@ -468,6 +603,44 @@ void main() {
   group('the layout', () {
     for (final size in const [
       Size(844, 390),
+      Size(740, 320),
+      Size(1280, 800),
+    ]) {
+      testWidgets('the spools fill their cards at ${size.width.round()}x'
+          '${size.height.round()}', (tester) async {
+        await pump(tester, _status(trayNow: 1, state: 'RUNNING'), size: size);
+        await tester.pump();
+
+        final cards = slots();
+        expect(cards, findsNWidgets(4));
+        final spools = [
+          for (var i = 0; i < 4; i++)
+            tester.getRect(
+              find.descendant(
+                of: cards.at(i),
+                matching: find.byType(SvgPicture),
+              ),
+            ),
+        ];
+        // One size on every card, empty one included, and never smaller than
+        // 84 dp, which reads from a stand.
+        for (final spool in spools) {
+          expect(spool.width, closeTo(spools.first.width, 0.5));
+          expect(spool.height, closeTo(spools.first.height, 0.5));
+        }
+        expect(spools.first.height, greaterThanOrEqualTo(84));
+        // Nothing hangs in a corner of the card: the last line sits within a
+        // small margin of its bottom.
+        final card = tester.getRect(cards.at(1));
+        final last = tester.getRect(
+          find.descendant(of: cards.at(1), matching: find.textContaining('%')),
+        );
+        expect(card.bottom - last.bottom, lessThanOrEqualTo(DashSpace.lg));
+      });
+    }
+
+    for (final size in const [
+      Size(844, 390),
       Size(1229, 540),
       Size(740, 320),
       Size(1280, 800),
@@ -480,8 +653,25 @@ void main() {
             ams: [for (var i = 0; i < 4; i++) _unit(i)],
             external: [_tray(254, 'TPU', '2E6FD8FF')],
             trayNow: 1,
+            // Printing: the lock's line sits under Load and Unload and takes
+            // its height from the cards.
+            state: 'RUNNING',
           ),
           size: size,
+          // Every slot linked to a spool, so each card carries its grams line
+          // as well, the tallest card there is.
+          serial: _serial,
+          inventory: InventoryState(
+            linkedTags: {
+              for (var unit = 0; unit < 4; unit++)
+                for (var slot = 0; slot < 4; slot++)
+                  fallbackSpoolTag(_serial, unit, slot)!: const LinkedSpool(
+                    id: 7,
+                    remaining: 880,
+                    filament: 1000,
+                  ),
+            },
+          ),
         );
 
         expect(

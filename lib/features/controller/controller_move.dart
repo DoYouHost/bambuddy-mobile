@@ -153,6 +153,7 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
           child: _JogButton(
             id: 'controller.jog_$id',
             icon: icon,
+            tone: t.accentBlue,
             width: double.infinity,
             height: double.infinity,
             busy: _spin == id,
@@ -175,10 +176,14 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
     );
     return Column(
       children: [
-        row([blank, arrow('y_plus', Icons.keyboard_arrow_up, y: step), blank]),
+        row([
+          blank,
+          arrow('y_plus', Icons.arrow_upward_rounded, y: step),
+          blank,
+        ]),
         gap,
         row([
-          arrow('x_minus', Icons.keyboard_arrow_left, x: -step),
+          arrow('x_minus', Icons.arrow_back_rounded, x: -step),
           Expanded(
             child: Center(
               child: Text(
@@ -187,12 +192,12 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
               ),
             ),
           ),
-          arrow('x_plus', Icons.keyboard_arrow_right, x: step),
+          arrow('x_plus', Icons.arrow_forward_rounded, x: step),
         ]),
         gap,
         row([
           blank,
-          arrow('y_minus', Icons.keyboard_arrow_down, y: -step),
+          arrow('y_minus', Icons.arrow_downward_rounded, y: -step),
           blank,
         ]),
       ],
@@ -240,6 +245,7 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
         id: 'controller.jog_$id',
         icon: icon,
         label: label,
+        tone: t.accentBlue,
         width: double.infinity,
         height: double.infinity,
         busy: _spin == id,
@@ -254,7 +260,7 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
         Expanded(
           child: button(
             'z_up',
-            Icons.keyboard_arrow_up,
+            Icons.vertical_align_top_rounded,
             l10n.ctrlMoveZUp,
             true,
           ),
@@ -263,7 +269,7 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
         Expanded(
           child: button(
             'z_down',
-            Icons.keyboard_arrow_down,
+            Icons.vertical_align_bottom_rounded,
             l10n.ctrlMoveZDown,
             false,
           ),
@@ -281,6 +287,7 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
     bool enabled,
     AppLocalizations l10n,
   ) {
+    final t = DashTokens.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -303,8 +310,10 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
         Expanded(
           child: _JogButton(
             id: 'controller.jog_extrude',
-            icon: Icons.arrow_downward,
+            icon: Icons.arrow_downward_rounded,
             label: l10n.ctrlMoveExtrude,
+            tone: t.accentOrange,
+            ink: t.accentOrangeInk,
             width: double.infinity,
             height: double.infinity,
             busy: _spin == 'extrude',
@@ -323,8 +332,10 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
         Expanded(
           child: _JogButton(
             id: 'controller.jog_retract',
-            icon: Icons.arrow_upward,
+            icon: Icons.arrow_upward_rounded,
             label: l10n.ctrlMoveRetract,
+            tone: t.accentOrange,
+            ink: t.accentOrangeInk,
             width: double.infinity,
             height: double.infinity,
             busy: _spin == 'retract',
@@ -347,6 +358,7 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
   /// the sections above it are: the presets under the pad, Home under Z, so
   /// their edges line up with the pad's and Z's.
   Widget _stepAndHome(bool enabled, AppLocalizations l10n) {
+    final t = DashTokens.of(context);
     return SizedBox(
       height: _JogButton.size,
       child: Row(
@@ -368,8 +380,9 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
             flex: _zWidth.round(),
             child: _JogButton(
               id: 'controller.home',
-              icon: Icons.home_outlined,
+              icon: Icons.home_rounded,
               label: l10n.ctrlMoveHome,
+              tone: t.accentBlue,
               busy: _spin == 'home',
               // A home has no reliable "done" signal (the web is
               // fire-and-forget too), so the answer is a toast, not a lock
@@ -409,6 +422,8 @@ class _JogButton extends StatelessWidget {
     this.label,
     this.width,
     this.height,
+    this.tone,
+    this.ink,
   });
 
   static const size = controllerButtonHeight;
@@ -425,6 +440,10 @@ class _JogButton extends StatelessWidget {
   /// Defaults to [size].
   final double? height;
 
+  /// What the button moves, as a colour ([controllerButtonStyle]).
+  final Color? tone;
+  final Color? ink;
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
@@ -435,16 +454,18 @@ class _JogButton extends StatelessWidget {
           t,
           minimumSize: Size(width ?? size, height ?? size),
           padding: EdgeInsets.zero,
+          tone: tone,
+          ink: ink,
         ),
         onPressed: busy ? null : onTap,
         child: busy
             ? const DashSpinner()
             : label == null
-            ? Icon(icon, size: 26)
+            ? Icon(icon, size: 32)
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, size: 20),
+                  Icon(icon, size: 24),
                   const SizedBox(width: DashSpace.sm),
                   Flexible(
                     child: Text(

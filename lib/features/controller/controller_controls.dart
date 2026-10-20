@@ -542,25 +542,46 @@ const controllerButtonHeight = 56.0;
 /// with a border. Never a bare outline, which all but
 /// vanishes on the dark ground — disabled, where most jogs sit while a print
 /// runs, most of all.
+///
+/// [tone] paints an enabled tile, its border and its icon in a colour, so what a
+/// button moves can be read before the label; [ink] is the icon and text colour
+/// where the tone itself would be too pale on a light theme. A disabled button
+/// is grey whatever its tone, so a colour means "this one works".
 ButtonStyle controllerButtonStyle(
   DashTokens t, {
   Size? minimumSize,
   EdgeInsetsGeometry? padding,
   BorderSide? side,
-}) => FilledButton.styleFrom(
-  // A wash of the text colour: `subCard` is a 2% tint, which is a border with
-  // nothing inside it on this ground.
-  backgroundColor: t.textPrimary.withValues(alpha: 0.10),
-  foregroundColor: t.textPrimary,
-  disabledBackgroundColor: t.textPrimary.withValues(alpha: 0.07),
-  disabledForegroundColor: t.textTertiary,
-  side: side ?? BorderSide(color: t.subCardBorder),
-  minimumSize: minimumSize,
-  padding: padding,
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(DashSpace.md),
-  ),
-);
+  Color? tone,
+  Color? ink,
+}) {
+  final base = tone ?? t.textPrimary;
+  // Pulled toward the text colour: the bare accent is too pale on a light tile.
+  final text =
+      ink ?? (tone == null ? null : Color.lerp(tone, t.textPrimary, 0.3));
+  final grey = BorderSide(color: t.textPrimary.withValues(alpha: 0.22));
+  final enabledSide =
+      side ??
+      BorderSide(color: base.withValues(alpha: tone == null ? 0.22 : 0.5));
+  return FilledButton.styleFrom(
+    // A wash of the text colour: `subCard` is a 2% tint and `subCardBorder` a
+    // 5% one, which is a border with nothing inside it on this ground.
+    backgroundColor: base.withValues(alpha: tone == null ? 0.16 : 0.22),
+    foregroundColor: text ?? t.textPrimary,
+    disabledBackgroundColor: t.textPrimary.withValues(alpha: 0.11),
+    disabledForegroundColor: t.textSecondary,
+    minimumSize: minimumSize,
+    padding: padding,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(DashSpace.md),
+    ),
+  ).copyWith(
+    side: WidgetStateProperty.resolveWith(
+      (states) =>
+          states.contains(WidgetState.disabled) ? side ?? grey : enabledSide,
+    ),
+  );
+}
 
 /// A row of choices, one of them picked: the Move tab's step and length, the
 /// saver's idle time. Every choice is a button of [controllerButtonHeight];
