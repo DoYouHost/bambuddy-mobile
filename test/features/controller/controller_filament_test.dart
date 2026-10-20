@@ -71,6 +71,8 @@ Finder slots() => find.byWidgetPredicate((w) {
 });
 
 void main() {
+  setUpAll(loadAppFonts);
+
   late RecordingCommands commands;
   late _Statuses statuses;
 

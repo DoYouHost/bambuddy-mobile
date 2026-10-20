@@ -383,6 +383,21 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlFanExhaustShort => 'Wyciąg';
 
   @override
+  String get ctrlFanPartLabel => 'Chłodzenie wydruku';
+
+  @override
+  String get ctrlFanAuxLabel => 'Pomocniczy';
+
+  @override
+  String get ctrlFanAux2Label => 'Lewy pomocniczy';
+
+  @override
+  String get ctrlFanChamberLabel => 'Komora';
+
+  @override
+  String get ctrlFanExhaustLabel => 'Wyciąg';
+
+  @override
   String get ctrlSpeed => 'Prędkość';
 
   @override

@@ -110,8 +110,11 @@ class ControllerHeat extends ConsumerWidget {
     );
   }
 
-  /// The fans the printer reports, in the order the card lists them. The server
-  /// key is what the fan route takes: part = cooling, aux2 = left aux, aux = big
+  /// The fans the printer reports, in the order the card lists them, by their
+  /// names without the word "fan" (the icon says it), in full: the card cuts a
+  /// name with an ellipsis where it does not fit (four across), since half a
+  /// screen translated and half abbreviated is worse than a name that ends in
+  /// "…". The server key is what the fan route takes: part = cooling, aux2 = left aux, aux = big
   /// fan 1, chamber = big fan 2.
   static List<({String key, String label, int value})> _fansOf(
     PrinterStatus status,
@@ -120,15 +123,23 @@ class ControllerHeat extends ConsumerWidget {
     final exhaust = status.usesExhaustFanLabel;
     return [
       if (status.coolingFanSpeed != null)
-        (key: 'part', label: l10n.ctrlFanPart, value: status.coolingFanSpeed!),
+        (
+          key: 'part',
+          label: l10n.ctrlFanPartLabel,
+          value: status.coolingFanSpeed!,
+        ),
       if (status.leftAuxFanSpeed != null)
-        (key: 'aux2', label: l10n.ctrlFanAux2, value: status.leftAuxFanSpeed!),
+        (
+          key: 'aux2',
+          label: l10n.ctrlFanAux2Label,
+          value: status.leftAuxFanSpeed!,
+        ),
       if (status.bigFan1Speed != null)
-        (key: 'aux', label: l10n.ctrlFanAux, value: status.bigFan1Speed!),
+        (key: 'aux', label: l10n.ctrlFanAuxLabel, value: status.bigFan1Speed!),
       if (status.chamberFanAvailable)
         (
           key: 'chamber',
-          label: exhaust ? l10n.ctrlFanExhaust : l10n.ctrlFanChamber,
+          label: exhaust ? l10n.ctrlFanExhaustLabel : l10n.ctrlFanChamberLabel,
           value: status.bigFan2Speed!,
         ),
     ];
@@ -600,7 +611,7 @@ class _TargetField extends StatefulWidget {
 
   final double height;
 
-  /// Less padding, for a button that has to share a narrow card with two
+  /// No side padding, for a button that has to share a narrow card with two
   /// steppers.
   final bool compact;
 
@@ -674,9 +685,9 @@ class _TargetFieldState extends State<_TargetField> {
       style: controllerButtonStyle(
         DashTokens.of(context),
         minimumSize: Size.fromHeight(widget.height),
-        padding: widget.compact
-            ? const EdgeInsets.symmetric(horizontal: DashSpace.xs)
-            : null,
+        // No side padding in the narrow layout: "Apagado" is 55 dp across and
+        // the button leaves 61.
+        padding: widget.compact ? EdgeInsets.zero : null,
         side: _editing
             ? BorderSide(
                 color: DashTokens.of(context).accent,

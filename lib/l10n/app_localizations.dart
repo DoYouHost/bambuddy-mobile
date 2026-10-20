@@ -776,6 +776,36 @@ abstract class AppLocalizations {
   /// **'Exhaust'**
   String get ctrlFanExhaustShort;
 
+  /// No description provided for @ctrlFanPartLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Part cooling'**
+  String get ctrlFanPartLabel;
+
+  /// No description provided for @ctrlFanAuxLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Aux'**
+  String get ctrlFanAuxLabel;
+
+  /// No description provided for @ctrlFanAux2Label.
+  ///
+  /// In en, this message translates to:
+  /// **'Left aux'**
+  String get ctrlFanAux2Label;
+
+  /// No description provided for @ctrlFanChamberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Chamber'**
+  String get ctrlFanChamberLabel;
+
+  /// No description provided for @ctrlFanExhaustLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Exhaust'**
+  String get ctrlFanExhaustLabel;
+
   /// No description provided for @ctrlSpeed.
   ///
   /// In en, this message translates to:

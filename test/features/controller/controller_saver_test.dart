@@ -17,6 +17,8 @@ const _room = Size(800, 400);
 const _box = Size(300, 150);
 
 void main() {
+  setUpAll(loadAppFonts);
+
   group('the bounce', () {
     Bounce at(Offset p, Offset v) => (position: p, velocity: v, hue: 100);
 

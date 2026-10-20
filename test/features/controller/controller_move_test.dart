@@ -32,6 +32,8 @@ PrinterStatus _status({
 );
 
 void main() {
+  setUpAll(loadAppFonts);
+
   late RecordingCommands commands;
 
   Future<void> pump(

@@ -385,6 +385,21 @@ class AppLocalizationsFr extends AppLocalizations {
   String get ctrlFanExhaustShort => 'Extraction';
 
   @override
+  String get ctrlFanPartLabel => 'Refroidissement pièce';
+
+  @override
+  String get ctrlFanAuxLabel => 'Auxiliaire';
+
+  @override
+  String get ctrlFanAux2Label => 'Auxiliaire gauche';
+
+  @override
+  String get ctrlFanChamberLabel => 'Chambre';
+
+  @override
+  String get ctrlFanExhaustLabel => 'Extraction';
+
+  @override
   String get ctrlSpeed => 'Vitesse';
 
   @override

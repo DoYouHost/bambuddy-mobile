@@ -417,52 +417,47 @@ class _JobCard extends StatelessWidget {
             _percentMin,
             _percentMax,
           );
-          // Scaled down, never up, when the share it was given is too small for
-          // its content: the card may shrink its text, it may not overflow.
-          return FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: SizedBox(
-              width: box.maxWidth,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (name != null)
-                    Text(
-                      name,
-                      style: t.titleMd,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  const SizedBox(height: DashSpace.sm),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (progress != null && !preparing)
-                        Text(
-                          '${progress.toStringAsFixed(0)}%',
-                          style: t.monoValue.copyWith(fontSize: percentSize),
-                        ),
-                      const SizedBox(width: DashSpace.md),
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: PrintMetaRow(items: meta),
-                        ),
+          // At its size, whatever the share: the percentage is what gives, by
+          // the card's height, and no text is scaled to fit.
+          return Center(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (name != null)
+                  Text(
+                    name,
+                    style: t.titleMd,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                const SizedBox(height: DashSpace.sm),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (progress != null && !preparing)
+                      Text(
+                        '${progress.toStringAsFixed(0)}%',
+                        style: t.monoValue.copyWith(fontSize: percentSize),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: DashSpace.md),
-                  DashProgressBar(
-                    value: preparing || progress == null
-                        ? null
-                        : (progress / 100).clamp(0.0, 1.0),
-                    height: DashSpace.sm,
-                    color: status.isPaused ? t.accentOrange : null,
-                  ),
-                ],
-              ),
+                    const SizedBox(width: DashSpace.md),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: PrintMetaRow(items: meta),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: DashSpace.md),
+                DashProgressBar(
+                  value: preparing || progress == null
+                      ? null
+                      : (progress / 100).clamp(0.0, 1.0),
+                  height: DashSpace.sm,
+                  color: status.isPaused ? t.accentOrange : null,
+                ),
+              ],
             ),
           );
         },

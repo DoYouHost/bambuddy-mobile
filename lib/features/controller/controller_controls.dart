@@ -104,14 +104,6 @@ class _ReadingTile extends ConsumerWidget {
   static const _dot = 8.0;
   static const _bar = 4.0;
 
-  /// Three across have room for the reading and its target at natural size; the
-  /// scaling is only a net for a narrow tile under a large system font.
-  static Widget _scaled(Widget child) => FittedBox(
-    fit: BoxFit.scaleDown,
-    alignment: Alignment.center,
-    child: child,
-  );
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
@@ -141,6 +133,7 @@ class _ReadingTile extends ConsumerWidget {
         ],
       ),
       maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
     return Semantics(
       container: true,
@@ -194,11 +187,7 @@ class _ReadingTile extends ConsumerWidget {
                   ),
                 ],
               ),
-              Expanded(
-                child: Center(
-                  child: showTarget ? _scaled(readingText) : readingText,
-                ),
-              ),
+              Expanded(child: Center(child: readingText)),
               // The same sweep as the Heat tab's ring, so the two agree.
               DashProgressBar(
                 value: actual == null
@@ -624,14 +613,15 @@ class ControllerChoices extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                       horizontal: DashSpace.xs,
                     ),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        label,
-                        style: i == selected
-                            ? t.monoValue.copyWith(color: t.accentInk)
-                            : t.monoValue,
-                      ),
+                    // One size for every choice: a label that does not fit is
+                    // cut, never shrunk on its own. None does in any language.
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: i == selected
+                          ? t.monoValue.copyWith(color: t.accentInk)
+                          : t.monoValue,
                     ),
                   ),
                 ),

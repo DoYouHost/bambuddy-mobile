@@ -59,6 +59,8 @@ const _printing = PrinterStatus(
 );
 
 void main() {
+  setUpAll(loadAppFonts);
+
   Future<void> pump(
     WidgetTester tester,
     Size size, {

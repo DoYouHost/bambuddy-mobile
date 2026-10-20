@@ -385,6 +385,21 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlFanExhaustShort => 'Abluft';
 
   @override
+  String get ctrlFanPartLabel => 'Bauteilkühlung';
+
+  @override
+  String get ctrlFanAuxLabel => 'Zusatz';
+
+  @override
+  String get ctrlFanAux2Label => 'Zusatz links';
+
+  @override
+  String get ctrlFanChamberLabel => 'Kammer';
+
+  @override
+  String get ctrlFanExhaustLabel => 'Abluft';
+
+  @override
   String get ctrlSpeed => 'Geschwindigkeit';
 
   @override

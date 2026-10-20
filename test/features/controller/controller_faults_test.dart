@@ -40,6 +40,8 @@ class _Statuses extends PrinterStatusesNotifier {
 }
 
 void main() {
+  setUpAll(loadAppFonts);
+
   late RecordingCommands commands;
   late _Statuses statuses;
 

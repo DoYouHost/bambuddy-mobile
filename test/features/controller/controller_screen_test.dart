@@ -31,6 +31,8 @@ PrinterWithStatus _printer(
 );
 
 void main() {
+  setUpAll(loadAppFonts);
+
   /// Every `keepScreenOn` the screen asked for, in order.
   late List<bool> awake;
   late List<Object?> orientations;
@@ -237,8 +239,8 @@ void main() {
     for (final tab in ControllerTab.values) {
       expect(byLogId(tab.logId), findsOneWidget);
     }
-    // A FittedBox never reports an overflow, so look at where things sit: the
-    // tabs keep clear of the name on one side and of the state on the other.
+    // The tabs scroll inside what the name and the state leave them, so look at
+    // where things sit: they keep clear of the name on one side.
     final name = tester.getRect(find.text('Pracownia X1C numer dwa'));
     final first = tester.getRect(byLogId(ControllerTab.values.first.logId));
     final last = tester.getRect(byLogId(ControllerTab.values.last.logId));

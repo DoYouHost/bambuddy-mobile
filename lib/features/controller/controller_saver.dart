@@ -240,7 +240,11 @@ class ControllerSaver extends ConsumerStatefulWidget {
   final int printerId;
 
   /// The box's own size; it is laid out at this and bounced within the screen.
-  static const box = Size(440, 200);
+  /// It grows with the system font, because what is in it does: the longest
+  /// language (German) needs 444 dp across at the normal size, and the box is
+  /// not scaled to its content, nor the content to the box.
+  static Size boxFor(double textScale) =>
+      const Size(500, 200) * math.max(1.0, textScale);
 
   @override
   ConsumerState<ControllerSaver> createState() => _ControllerSaverState();
@@ -258,6 +262,7 @@ class _ControllerSaverState extends ConsumerState<ControllerSaver>
   late final Ticker _ticker;
   Duration _last = Duration.zero;
   Size _room = Size.zero;
+  Size _box = ControllerSaver.boxFor(1);
 
   @override
   void initState() {
@@ -271,9 +276,7 @@ class _ControllerSaverState extends ConsumerState<ControllerSaver>
     final dt = elapsed - _last;
     _last = elapsed;
     if (_room.isEmpty) return;
-    setState(
-      () => _bounce = bounceStep(_bounce, dt, _room, ControllerSaver.box),
-    );
+    setState(() => _bounce = bounceStep(_bounce, dt, _room, _box));
   }
 
   @override
@@ -285,6 +288,7 @@ class _ControllerSaverState extends ConsumerState<ControllerSaver>
   @override
   Widget build(BuildContext context) {
     final color = HSVColor.fromAHSV(1, calmHue(_bounce.hue), 0.55, 1).toColor();
+    _box = ControllerSaver.boxFor(MediaQuery.textScalerOf(context).scale(1));
     return Listener(
       behavior: HitTestBehavior.opaque,
       // A Material, not a bare colour: the saver is an overlay entry above the
@@ -300,8 +304,8 @@ class _ControllerSaverState extends ConsumerState<ControllerSaver>
                 Positioned(
                   left: _bounce.position.dx,
                   top: _bounce.position.dy,
-                  width: ControllerSaver.box.width,
-                  height: ControllerSaver.box.height,
+                  width: _box.width,
+                  height: _box.height,
                   // Full strength: the brightness setting dims the backlight
                   // itself (the host's `setBrightness`).
                   child: _SaverBox(printerId: widget.printerId, color: color),
@@ -356,8 +360,7 @@ class _SaverBox extends ConsumerWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(DashSpace.lg),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
+        child: Center(
           child: job
               ? _job(t, l10n, fmt, status, item!.printer.name, now)
               : _idle(t, l10n, fmt, status, item?.printer.name ?? '', now),
@@ -421,7 +424,23 @@ class _SaverBox extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Text('$printer · ${fmt.time(now)}', style: quiet),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _nameWidth),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      printer,
+                      style: quiet,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(' · ${fmt.time(now)}', style: quiet),
+                ],
+              ),
+            ),
             if (remaining != null && remaining > 0) ...[
               const SizedBox(height: DashSpace.md),
               Text(
@@ -479,7 +498,14 @@ class _SaverBox extends ConsumerWidget {
       Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(printer, style: t.titleLg.copyWith(color: color)),
+          Flexible(
+            child: Text(
+              printer,
+              style: t.titleLg.copyWith(color: color),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
           if (status != null) ...[
             const SizedBox(width: DashSpace.md),
             printerStatePill(t, l10n, status, offline: false),

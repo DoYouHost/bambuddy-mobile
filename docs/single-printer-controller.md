@@ -45,6 +45,14 @@ that opens the fault view, the printer's state) over one tab at a time.
   than the phone design (`controllerBodySize`, 800×360) and scaled uniformly to
   fill the screen (`ScaleToFit`). Nothing inside scales on its own; a card that
   sized its own content made the same chip 44 in one card and 56 in the next.
+- **No text is scaled to fit, anywhere.** Equal things are one size: a
+  `FittedBox` around a label made each one a size of its own, so where text did
+  not fit the layout gives way instead — the Overview tiles drop the target at
+  four readings, the tabs scroll, the saver's box grows with the system font,
+  the keypad takes the body's scale. `controller_text_size_test.dart` scans for
+  a `FittedBox` outside `scale_to_fit.dart` and the keypad, and measures the
+  rest with the app's real fonts (`loadAppFonts`) in every language: the test
+  font is as wide as it is tall and would show overflows that are not there.
 - Presets, −/+ and actions (Load/Unload/Dry, Home) are one height
   (`controllerButtonHeight`, 56). The Move tab's jogs have no height of their
   own: every one fills its cell. The pad is a three-by-three grid over its

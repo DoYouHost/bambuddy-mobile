@@ -85,6 +85,8 @@ PrinterStatus _printing({
 );
 
 void main() {
+  setUpAll(loadAppFonts);
+
   late RecordingCommands commands;
   late _Plugs plugs;
 
