@@ -2,10 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// The controller's body area on the phone it was designed on (landscape, after
-/// the bar and the insets). Below it the whole body shrinks, above it the whole
-/// body grows — one factor for every tab, so a button, a font or a gap is the
-/// same size wherever it appears.
+/// The controller's body area on the screen it is designed for, a small
+/// landscape touch panel (after the bar and the insets). Below it the whole body
+/// shrinks, above it the whole body grows — one factor for every tab, so a
+/// button, a font or a gap is the same size wherever it appears.
 const controllerBodySize = Size(800, 360);
 
 /// Scales [child] uniformly to fill the room it is given: the factor is the
@@ -74,7 +74,7 @@ class ScaleToFit extends StatelessWidget {
 
 /// The factor the controller body is drawn at, for what it opens in a route of
 /// its own — a keypad is laid over the screen, not inside it, and would
-/// otherwise stay at the phone's size on a tablet. 1 where nothing scales.
+/// otherwise stay at the design size on a larger screen. 1 where nothing scales.
 class ControllerScale extends InheritedWidget {
   const ControllerScale({super.key, required this.scale, required super.child});
 

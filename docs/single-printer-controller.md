@@ -42,7 +42,7 @@ that opens the fault view, the printer's state) over one tab at a time.
 ### Size and layout
 
 - **One scale for the whole body.** Every tab is laid out in a box no smaller
-  than the phone design (`controllerBodySize`, 800×360) and scaled uniformly to
+  than the design size of the small touch panel (`controllerBodySize`, 800×360) and scaled uniformly to
   fill the screen (`ScaleToFit`). Nothing inside scales on its own; a card that
   sized its own content made the same chip 44 in one card and 56 in the next.
 - **No text is scaled to fit, anywhere.** Equal things are one size: a
