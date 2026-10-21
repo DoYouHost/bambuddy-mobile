@@ -301,9 +301,6 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
   }
 }
 
-/// One setting of the bulk edit: its name and the values it can be set to. No value picked is "leave it": tapping the picked one again puts it
-/// back, so there is no segment for "no change" that would have to fit a phone's
-/// width in four languages.
 class _Choice<T extends Object> extends StatelessWidget {
   const _Choice({
     required this.id,
