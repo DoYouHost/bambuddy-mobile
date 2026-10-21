@@ -81,3 +81,54 @@ Interleaved, they leave either a listener with no claim (a woken engine answers
 the same request) or a claim with no listener (nothing answers at all), and
 `start`'s own `_sub` check would read a subscription that `stop` is half-way
 through cancelling.
+
+## Waking a closed phone
+
+When the phone's process is dead, `WearRelayListenerService` (a
+`WearableListenerService` declared in the manifest) is what answers: Play services
+binds a declared listener and starts the process for it. It executes nothing
+itself, because the request needs the phone's authenticated session, which lives in
+Dart; it sends the `WearRpcAck`, checks the sender and hands the request to a
+headless engine (`WearRelayEngineHost`, entry point `wearRelayMain`, served by
+`WearRelayEngine`). There are no extra buttons on the watch: a connected phone is
+woken automatically, and a phone that is not connected is the fallback below.
+
+- **Transport policy** (`HybridWearTransport._attempt`). `WearRelayUnreachable`
+  falls back to REST for every call, because nothing went out. `WearRelayTimeout`
+  falls back only for a read (`mayRepeatOverRest`): a timed-out command may have
+  run, and a doubled `startNext` prints twice.
+- **The service is `exported="true"` on purpose**: the binder comes from Play
+  services' own process. The check is the sender, not the caller: a real request
+  comes from a node connected to this phone right now (3 s to find out; it fails
+  closed), and an ack to a forged node id costs one message to a node that does
+  not exist. The ack goes out first, before that check, because every millisecond
+  ahead of it comes out of the deadline it extends. The intent filter has no
+  `pathPrefix`: `watch_connectivity` sends on a path with no leading slash, so a
+  path filter is a coin toss on how Play services builds the URI. The path is
+  checked in code.
+- **The entry point must be in `lib/main.dart`.** `@pragma('vm:entry-point')` keeps
+  a declaration nothing calls, but not a *library* nothing imports: with
+  `wearRelayMain` alone in `wear_relay_engine.dart` the name was missing from the
+  release AOT snapshot (`startCallback` was in `libapp.so`, this was not), so the
+  engine started and never installed its handler. A debug build hides it and CI
+  builds debug, so build a release APK and check `libapp.so`.
+- **The claim is `<pid>:<nonce>`** (`wear_relay_claim`, in preferences as
+  `flutter.wear_relay_claim` on the native side, which reads only the pid). The pid
+  so that a killed process cannot leave a claim that silences the service for good;
+  the nonce because the foreground service's isolate **shares the process with the
+  UI** (the manifest has no `android:process`): on a hand-over both write the same
+  pid, and the outgoing handler used to clear the incoming one's claim. Code review
+  found that; the regression is `wear_relay_handler_test`, "the hand-over inside one
+  process survives the outgoing release".
+- **The Dart and Kotlin sides share four bare strings** (the preferences key, the
+  channel name, the entry-point name and the ack's fields) that no compiler
+  connects, and a mismatch means the phone stops waking. `wear_relay_native_contract_test`
+  scans both sources.
+- **Deadlines.** The watch's normal relay timeout is 4 s; after an ack it waits
+  `wearRpcWakeTimeout` (15 s). The service blocks up to 12 s
+  (`ANSWER_TIMEOUT_MS` in `WearRelayEngineHost.kt`) for the engine's answer.
+
+Open, not measured on hardware: a force-stopped phone and a command from the
+watch; whether Play services delivers one message both to the service and to the
+plugin's own listener (the claim prevents a double execution, but the double
+delivery itself was not observed); and how long a real cold start takes.

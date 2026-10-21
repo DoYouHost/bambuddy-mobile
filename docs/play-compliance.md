@@ -39,7 +39,7 @@ plugin manifests and are compared by hand (step 2 above).
 | Permission | Source | Phone | Watch | Why |
 |---|---|---|---|---|
 | `INTERNET` | manifest | yes | yes | The server is the whole app. |
-| `WRITE_EXTERNAL_STORAGE` | manifest | yes | no | Saving a file on Android ≤ 9 (`maxSdkVersion` 29). |
+| `WRITE_EXTERNAL_STORAGE` | manifest | yes | no | Saving a file on Android ≤ 9 (`maxSdkVersion` 29). The `mobile` flavor inherits minSdk 24 and the gallery plugin cannot save a timelapse on API 24–29 without it; approved by the maintainer, do not ask again. |
 | `POST_NOTIFICATIONS` | manifest | yes | yes | Print alerts; the watch's Ongoing Activity. |
 | `POST_PROMOTED_NOTIFICATIONS` | manifest | yes | no | Android 16 Live Update for the print in progress. |
 | `FOREGROUND_SERVICE` | manifest | yes | yes | Background print monitor; the watch's Ongoing Activity. |
@@ -104,7 +104,7 @@ asset rows are n/a.
 | Sensitive_Data_Logging | No personal data logged | manual | `docs/diagnostics-log.md` |
 | Component_Export | `android:exported` set explicitly | test | `compliance_test.dart` |
 | Network_Security_Traffic | All traffic over TLS | **deliberate** | `usesCleartextTraffic="true"`: self-hosted servers on plain HTTP in a LAN (AGENTS.md) |
-| Background_Service_Optimization, Power_Management | No needless long services; Doze-friendly | manual | `wakelock-and-fgs` history in `lib/main.dart`, no wake lock held |
+| Background_Service_Optimization, Power_Management | No needless long services; Doze-friendly | manual | history in [foreground-service.md](foreground-service.md), no wake lock held (`allowWakeLock: false` in `lib/main.dart`) |
 | Play_Content_Policies, Play_Content_Rating | Content, rating | manual | copy stays within PEGI 16 (AGENTS.md) |
 | Play_Device_References, Play_Misleading_Content | Screenshots honest, no other devices | manual | `docs/store-assets/screenshots/` |
 

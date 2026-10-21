@@ -13,8 +13,10 @@ mechanics from.
    it is scoped to that printer: the fault count, the fault view, the alert,
    the screen-saver wake and any other event or notification. Another printer's
    fault never wakes the screen or opens a dialog. Filter by `printerId` in the
-   provider, not in the widget, and test that a fault on printer B leaves
-   printer A's controller alone.
+   provider, not in the widget (`controllerPrinterProvider` and
+   `controllerErrorsProvider`, both families keyed by printer id), and test that a
+   fault on printer B leaves printer A's controller alone
+   (`controller_alert_test.dart`).
 2. **Landscape only**, about 780–890 × 360–410 dp; height is the constraint, so
    every tab fits without scrolling. Entered from a "Controller" item in the
    dashboard's menu, through a printer picker, pushed over the dashboard (never
@@ -131,7 +133,11 @@ a printer asking for attention.
   returns, also over an open fault dialog.
 - A fault that **pauses the print** wakes the screen and opens the fault dialog
   (Retry, Ignore, Stop print; Stop goes through `confirmDialog`). Closing the
-  dialog leaves the print paused and the fault in the chip.
+  dialog leaves the print paused and the fault in the chip. The app does not
+  rely on a server flag for "this fault paused the print"; it infers it: the printer is
+  `paused` and lists at least one displayable fault (`_onFaults` in
+  `controller_saver.dart`, run when either changes). Each fault code raises the
+  alert once; a fault that clears and comes back is new again.
 - A fault that has already paused the print when the controller opens raises
   nothing: the chip shows it. A fault that is a warning, whether it arrives
   before the controller opens or after, opens the dialog when it pauses the

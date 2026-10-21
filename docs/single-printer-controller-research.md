@@ -272,27 +272,18 @@ smart plugs cover power), groups and group printing (the queue covers it).
 
 ## 7. Decisions
 
-Decided by the maintainer on 2026-10-16:
+The maintainer decided on 2026-10-16 and the rules were then settled while designing
+the screens; they live in [single-printer-controller.md](single-printer-controller.md)
+(§1 rules, §3 screen saver) so there is one copy. What the research adds to them:
 
-1. **Accidental touch.** Risky actions (stop, and any other that cannot be
-   undone) ask for confirmation through `confirmDialog`. No lock or PIN.
-   Wall mode is read-only by design (D13 in [tv-flavor.md](tv-flavor.md)), so
-   this is a new rule, not an extension of it.
-2. **Screen saver.** Wanted, because fixed elements left on for hours burn in
-   on OLED panels, which is what an old phone has. It should move or dim the
-   content rather than only blank it, and wake on touch.
-3. **Entry point.** A "Controller" action in the dashboard's menu, next to
-   wall mode, opening a popup to pick the printer to control. Pushed on top of
-   the dashboard, never `go`, for the reason in tv-flavor.md §13.2.
-4. **Size.** Landscape only, as wall mode is. The BTT screen is 5" at 800×480 px,
-   about 187 ppi, which is roughly 686×411 dp in Flutter terms. A phone in
-   landscape is typically wider and a little shorter (about 780–890 × 360–410
-   dp), so the height is the constraint.
-5. **Name.** Nothing in the app, the store listing or the in-app copy says
-   the product's name or refers to it (§3).
-6. **Permissions.** Every control honours the gates in
-   [providers.md](providers.md): one the key or user may not use is hidden or
-   disabled. Which of the two, per control, is decided at implementation.
+- **Size.** The BTT screen is 5" at 800×480 px, about 187 ppi, roughly 686×411 dp in
+  Flutter terms. A phone in landscape is typically wider and a little shorter (about
+  780–890 × 360–410 dp), so the height is the constraint.
+- **Screen saver.** Wanted because fixed elements left on for hours burn in on OLED
+  panels, which is what an old phone has; the BTT firmware itself warns about it (§4a).
+- **Permissions.** Every control honours the gates in [providers.md](providers.md).
+  The first round left "hidden or disabled" open; it was settled as *disabled, with
+  the reason shown* (rule 4 of the controller doc).
 
 ## 8. Sources
 

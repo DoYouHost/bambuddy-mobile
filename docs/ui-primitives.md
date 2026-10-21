@@ -6,15 +6,15 @@ behind the non-obvious rules are here.
 
 ## Fields and selects (`dash_kit`'s `dash_input.dart`)
 
-- **One chrome.** `dashDecoration` is a rounded `subCard` fill with a hairline
+- **One chrome.** `dashDecoration` (`dash_kit`) is a rounded `subCard` fill with a hairline
   border, turning the accent on focus. A field built with Material's own
   defaults reads as a different app the moment it sits next to one of these,
   which is exactly what happens in a bottom sheet. A field's `helperText` may take
   three lines (Flutter's default is one, ellipsized, which cut a two-sentence hint
   off mid-word).
-- **`dashInputTheme` is the same chrome as an `InputDecorationTheme`**, for
+- **`dashInputTheme` (`dash_kit`) is the same chrome as an `InputDecorationTheme`**, for
   `DropdownMenu`, which builds its own text field and takes no `InputDecoration`.
-  It is read off `dashFieldDecoration` rather than restated, because that is how
+  It is read off `dashFieldDecoration` (`dash_ui`) rather than restated, because that is how
   the two drifted apart. `suffixIconConstraints` is deliberately absent: it boxes
   a select's arrow (`dashCombo` applies it), while a text field's own suffix icon
   is a real button whose tap target nothing here should shrink.
@@ -23,8 +23,14 @@ behind the non-obvious rules are here.
   diagnostic ids: the menu opens in a route of its own, so the field's id never
   reaches them ([logging-guide.md](logging-guide.md)). `filterable` turns it into
   a combo the user may type into, which is also what makes it take focus; a plain
-  select must not, or the keyboard covers the list it just opened.
-- **The arrow is boxed at 40 × 40 (`_arrowBox`).** Flutter builds it as a bare
+  select must not, or the keyboard covers the list it just opened. It is an M3
+  `DropdownMenu<T>` with `expandedInsets: EdgeInsets.zero`, `menuHeight: 320` and
+  `dashInputTheme`. A bottom sheet is for complex or searchable pickers only
+  (colours, the core-weight catalogue). Patterns: `_combo` in
+  [inventory_form.dart](../lib/features/inventory/inventory_form.dart), the subnet
+  and model fields in
+  [add_printer_screen.dart](../lib/features/dashboard/add_printer_screen.dart).
+- **The arrow is boxed at 40 × 40 (`dash_kit`'s private `_arrowBox`).** Flutter builds it as a bare
   `IconButton` with a 48 × 48 tap target, which pushes the field to 56 while every
   text field in the app is a dense 48: in a form holding both, the select stood
   8 px taller. `suffixIconConstraints` is routed straight to that button
@@ -78,6 +84,46 @@ behind the non-obvious rules are here.
   does not collapse and spring back (the history sheets). `failureBuilder` is for a
   section that already has its own way of saying "nothing here".
 
+## Menus and notes for a screen reader
+
+Rules for any menu or caveat a form adds; the references are the
+`_Dropdown` in [queue_edit_screen.dart](../lib/features/queue/queue_edit_screen.dart)
+and the rack-position rows in
+[queue_mapping_sheet.dart](../lib/features/queue/queue_mapping_sheet.dart).
+
+- **State goes on the tagged node.** `.tagged(id, selected: …)` takes `selected`
+  and `expanded`, and both ride on the same node as the identifier
+  ([logging-guide.md](logging-guide.md)); a separate `Semantics` wrapper annotates
+  another node, so the reader speaks of a state while the log resolves the tap
+  somewhere else, or the state reaches no one. A menu row is
+  `.tagged('area.menu_item', selected: isCurrent)` and the anchor field
+  `.tagged('area.picker', expanded: isOpen)`. The greyed text and the radio glyph
+  are information for the eye only; without the flag the reader says "button" and
+  nothing more.
+- **A disabled row says why in its text.** A reader announces "dimmed" and stops,
+  and a sighted user sees grey with no reason. The rack-position rows carry the
+  reason as a subtitle ("This rack position is empty", "Holds a 0.2 Standard
+  nozzle; this filament needs 0.4 High flow").
+- **`announce` (a live region) only for one note, and only as the answer to a
+  tap.** The missing-G-code-snippet warning is deliberately drawn twice (next to
+  the checkbox and in the Target section, so someone who came in only to change the
+  printer still sees it); marking both as live regions would read the same sentence
+  twice in a row, so only the copy beside the checkbox announces
+  (`queue_create_screen_test.dart`, "the warning is read out once, not once per
+  copy"). Notes that can all change at once (a printer switch can invalidate every
+  group's rack pick) do not announce at all: a burst of announcements is worse than
+  silence.
+- **A note is quiet unless it will fail the work.** `inlineNote(…, urgent: true)`
+  (`dash_kit`) is for a caveat about something the server will refuse *after* the
+  point where the user could have done anything: a rack pick the live rack no
+  longer fits (`queueEditRackPickStale`), a cost center that is required but
+  unavailable. The test is not "important" but "does this stop the job even though
+  the file was uploaded"; every other note on these forms is advice about a setting
+  the user may change, and colouring those makes the colour stop being read.
+  `urgent` colours the icon only: the light theme's amber is 2.7:1 on the palest
+  card, fine for a 16 px mark and under the 4.5:1 a 12 px line needs, while the
+  sentence keeps the tertiary ink at 4.6:1.
+
 ## Optimistic removal (`restoredPositionOf`, `withRowRestored`)
 
 When a row is removed before the server has answered and the request fails, it has
@@ -101,7 +147,7 @@ its position from the same function.
 
 ## Refetching when the server returns (`_WhenServerReturns`)
 
-It rebuilds on `ServerReachability` and asks its screen to fetch again the moment
+It rebuilds on `ServerReachability` (`app_util`) and asks its screen to fetch again the moment
 the server comes back. Without that, only the dashboard recovered by itself (it is
 the one screen that polls); every other tab kept the failure it had collected in
 flight mode until the user pulled it down by hand, though the app knew the
