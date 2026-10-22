@@ -8123,6 +8123,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get controllerFileNotSliced => 'Non découpé';
 
   @override
+  String get controllerFileReasonNotSliced =>
+      'Seuls les fichiers découpés peuvent être imprimés.';
+
+  @override
+  String controllerFileReasonModel(String model) {
+    return 'Découpé pour $model, que cette imprimante ne prend pas en charge.';
+  }
+
+  @override
+  String get controllerFilesReadOnly => 'Ce dossier est en lecture seule.';
+
+  @override
   String get controllerPrintTitle => 'Préparer l\'impression';
 
   @override

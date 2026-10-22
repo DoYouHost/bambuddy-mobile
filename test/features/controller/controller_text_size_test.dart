@@ -62,6 +62,13 @@ PrinterStatus _status(Map<String, double> temps, {bool job = true}) =>
 
 /// A library with a folder and four files, named at the length that stresses a tile.
 class _FixedLibrary extends FileManagerNotifier {
+  /// The query is applied over what the library holds, without a fetch.
+  @override
+  Future<void> setQuery(String q) async {
+    final current = state.requireValue;
+    state = AsyncData(current.copyWith(query: q, allFiles: current.files));
+  }
+
   @override
   Future<FileManagerState> build() async => FileManagerState(
     allFolders: const [
@@ -330,6 +337,107 @@ void main() {
               reason: '"$text" is cut short',
             );
           }
+        });
+
+        testWidgets('the file dialog keeps its text its size in $where', (
+          tester,
+        ) async {
+          await pump(
+            tester,
+            locale: locale,
+            size: size,
+            textScale: textScale,
+            extra: [fileManagerProvider.overrideWith(_FixedLibrary.new)],
+            child: const Scaffold(
+              body: Padding(
+                padding: EdgeInsets.all(16),
+                child: ScaleToFit(child: ControllerFiles(printerId: 1)),
+              ),
+            ),
+            status: _status(_threeHeaters, job: false),
+          );
+          await tester.pump();
+          await tester.pump();
+
+          // The printer is an H2D: the second file is sliced for a P1S, so its
+          // dialog carries the longest line the dialog can have, and the last
+          // file is a model, which has another.
+          for (final name in [
+            'a_rather_long_file_name_1.gcode.3mf',
+            'raw_model_file.stl',
+          ]) {
+            await tester.tap(find.text(name));
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 400));
+
+            final dialog = find.byType(Dialog);
+            expect(dialog, findsOneWidget, reason: name);
+            expect(tester.takeException(), isNull, reason: name);
+            for (final e
+                in find
+                    .descendant(of: dialog, matching: find.byType(Text))
+                    .evaluate()) {
+              final paragraph = e.renderObject! as RenderParagraph;
+              final text = paragraph.text.toPlainText();
+              if (text.contains('name') || text.contains('.stl')) continue;
+              expect(
+                paragraph.didExceedMaxLines,
+                isFalse,
+                reason: '"$text" is cut short',
+              );
+              // A button says its word on one line.
+              final words = lookupAppLocalizations(locale);
+              if (text == words.fmPrint || text == words.fmDelete) {
+                expect(
+                  paragraph.getBoxesForSelection(
+                    TextSelection(baseOffset: 0, extentOffset: text.length),
+                  ),
+                  hasLength(1),
+                  reason: '"$text" wraps',
+                );
+              }
+            }
+            await tester.tap(byLogId('controller.files.dialog.close'));
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 400));
+          }
+        });
+
+        testWidgets('the search keeps its text its size in $where', (
+          tester,
+        ) async {
+          await pump(
+            tester,
+            locale: locale,
+            size: size,
+            textScale: textScale,
+            extra: [fileManagerProvider.overrideWith(_FixedLibrary.new)],
+            child: const Scaffold(
+              body: Padding(
+                padding: EdgeInsets.all(16),
+                child: ScaleToFit(child: ControllerFiles(printerId: 1)),
+              ),
+            ),
+            status: _status(_threeHeaters, job: false),
+          );
+          await tester.pump();
+          await tester.pump();
+
+          await tester.tap(byLogId('controller.files.search'));
+          await tester.pump();
+          await tester.pump();
+          expect(find.byType(TextField), findsOneWidget);
+          expect(tester.takeException(), isNull);
+
+          await tester.enterText(find.byType(TextField), 'a_rather_long');
+          await tester.testTextInput.receiveAction(TextInputAction.search);
+          await tester.pump();
+          await tester.pump();
+
+          // The chip is a server-free string, but it shares the card with the
+          // path and the order: nothing overflows.
+          expect(byLogId('controller.files.search_chip'), findsOneWidget);
+          expect(tester.takeException(), isNull);
         });
 
         testWidgets('the Overview keeps its text its size in $where', (

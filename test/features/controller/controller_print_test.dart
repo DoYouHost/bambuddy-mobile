@@ -116,6 +116,16 @@ final _threePlates = PlateList.fromJson({
   'has_gcode': true,
 });
 
+/// The plates a file holds are whatever its gcode names say: plate 2 may have
+/// been deleted in the slicer.
+PlateList _platesAt(List<int> indexes) => PlateList.fromJson({
+  'plates': [
+    for (final i in indexes) {'index': i, 'name': 'P$i', 'object_count': 1},
+  ],
+  'is_multi_plate': true,
+  'has_gcode': true,
+});
+
 void main() {
   setUpAll(loadAppFonts);
   setUp(setUpQueueForm);
@@ -464,6 +474,48 @@ void main() {
       await tester.tap(byLogId('controller.print.plate.more'));
       await tester.pump();
       expect(button('controller.print.plate.more').onPressed, isNull);
+    });
+
+    testWidgets('a gap in the plate numbers is stepped over', (tester) async {
+      await pump(tester, plates: _platesAt([1, 3]));
+      expect(find.text('P1'), findsOneWidget);
+
+      await tester.tap(byLogId('controller.print.plate.more'));
+      await tester.pumpAndSettle();
+      expect(find.text('P3'), findsOneWidget);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.descendant(
+                of: byLogId('controller.print.plate.more'),
+                matching: find.byType(FilledButton),
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+      await send(tester);
+
+      expect(capturedBody?['plate_id'], 3);
+    });
+
+    testWidgets('a file whose plates start above 1 opens on its first and '
+        'sends it', (tester) async {
+      await pump(tester, plates: _platesAt([2, 3]));
+      expect(find.text('P2'), findsOneWidget);
+
+      await send(tester);
+
+      expect(capturedBody?['plate_id'], 2);
+    });
+
+    testWidgets('a file that starts at plate 1 sends no plate until one is '
+        'picked', (tester) async {
+      await pump(tester, plates: _platesAt([1, 3]));
+
+      await send(tester);
+
+      expect(capturedBody?.containsKey('plate_id'), isFalse);
     });
 
     testWidgets('copies are offered only where the server lists batches', (

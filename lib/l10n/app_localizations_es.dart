@@ -8050,6 +8050,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get controllerFileNotSliced => 'Sin laminar';
 
   @override
+  String get controllerFileReasonNotSliced =>
+      'Solo se pueden imprimir archivos laminados.';
+
+  @override
+  String controllerFileReasonModel(String model) {
+    return 'Laminado para $model, que esta impresora no admite.';
+  }
+
+  @override
+  String get controllerFilesReadOnly => 'Esta carpeta es de solo lectura.';
+
+  @override
   String get controllerPrintTitle => 'Preparar impresión';
 
   @override

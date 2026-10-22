@@ -82,7 +82,8 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
       .read(settingsRepositoryProvider)
       .loadPrintOptions();
 
-  /// Null until the user picks one: the job then prints plate 1.
+  /// Null until the user picks one: the job then prints the first plate the
+  /// file lists, see [_plate].
   int? _plateId;
   int _copies = 1;
   QueueScheduleType _when = QueueScheduleType.asap;
@@ -166,15 +167,28 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
 
   // --- Job ---
 
+  PlateList get _plates =>
+      ref.read(plateListProvider((false, _file.id))).valueOrNull ??
+      PlateList.none;
+
+  /// The plate the job prints. A file lists the plates it holds, and they need
+  /// not start at 1 or run without gaps (the server reads them off the gcode
+  /// names), so the default is the first one listed and not plate 1.
+  int get _plate => _plateId ?? _plates.plates.firstOrNull?.index ?? 1;
+
+  /// What the request carries: nothing while that is plate 1, which is what the
+  /// server reads an absent plate as.
+  int? get _plateToSend => _plateId ?? (_plate == 1 ? null : _plate);
+
   PlateSource get _plateSource =>
-      (isArchive: false, id: _file.id, plate: _plateId ?? 1);
+      (isArchive: false, id: _file.id, plate: _plate);
 
   /// What the cost preview prices: the plate, the printer and the slots picked
   /// by hand. An empty mapping is matched by the provider as the submit will.
   JobCostKey get _costKey => (
     isArchive: false,
     id: _file.id,
-    plate: _plateId ?? 1,
+    plate: _plate,
     printerId: _printer.id,
     mapping: mappingKey(_manualMapping),
   );
@@ -185,6 +199,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
         ref.watch(plateListProvider((false, _file.id))).valueOrNull ??
         PlateList.none;
     final copiesOffered = ref.watch(batchListingProvider).orFalse;
+    final position = plates.plates.indexWhere((p) => p.index == _plate);
     final meta = [
       if (_file.printTimeSeconds case final s?) formatSeconds(l10n, s),
       if (_file.filamentUsedGrams case final g?) fmtGrams(g),
@@ -235,13 +250,12 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
             PrintStepper(
               id: 'controller.print.plate',
               label: l10n.queueEditPlate,
-              value: plates.byIndex(_plateId ?? 1)?.name ?? '${_plateId ?? 1}',
-              onLess: (_plateId ?? 1) <= 1
+              value: plates.byIndex(_plate)?.name ?? '$_plate',
+              // Stepped through the list, not by arithmetic on the numbers.
+              onLess: position <= 0 ? null : () => _stepPlate(-1),
+              onMore: position >= plates.plates.length - 1
                   ? null
-                  : () => _setPlate((_plateId ?? 1) - 1),
-              onMore: (_plateId ?? 1) >= plates.plates.length
-                  ? null
-                  : () => _setPlate((_plateId ?? 1) + 1),
+                  : () => _stepPlate(1),
             ),
             const SizedBox(height: DashSpace.sm),
           ],
@@ -264,6 +278,14 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
 
   /// Another plate asks for other filaments, so the hand-picked slots and the
   /// rack positions made for the old one mean nothing now.
+  /// Read when tapped, not when built: a second tap before the frame lands
+  /// must go one further, not repeat the first.
+  void _stepPlate(int by) {
+    final list = _plates.plates;
+    final next = list.indexWhere((p) => p.index == _plate) + by;
+    if (next >= 0 && next < list.length) _setPlate(list[next].index);
+  }
+
   void _setPlate(int plate) => setState(() {
     _plateId = plate;
     _manualMapping = null;
@@ -429,7 +451,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
       printerId: _printer.id,
       printerName: _printer.name,
       confirmLabel: l10n.fmSave,
-      plateId: _plateId,
+      plateId: _plateToSend,
       startFrom: _manualMapping ?? const [],
       rackChoice: _rack,
       onRackChoice: (choice) => setState(
@@ -666,7 +688,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
             printerId: _printer.id,
             copies: _copies,
             insertAtTop: _when == QueueScheduleType.asap,
-            plateId: _plateId,
+            plateId: _plateToSend,
             confirmOutcomeChoice: _extras.confirmOutcome,
             confirmOutcomeSticky: false,
             buildOptions: () => QueueCreateOptions(

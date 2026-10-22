@@ -13352,6 +13352,24 @@ abstract class AppLocalizations {
   /// **'Not sliced'**
   String get controllerFileNotSliced;
 
+  /// Line in the file dialog of the controller's Files tab, why Print is disabled: the file is a model, not sliced G-code
+  ///
+  /// In en, this message translates to:
+  /// **'Only sliced files can be printed.'**
+  String get controllerFileReasonNotSliced;
+
+  /// Line in the file dialog of the controller's Files tab, why Print is disabled: the file was sliced for a printer model this printer cannot take
+  ///
+  /// In en, this message translates to:
+  /// **'Sliced for {model}. This printer cannot take it.'**
+  String controllerFileReasonModel(String model);
+
+  /// Tooltip of the disabled upload button in the controller's Files tab: the open folder is external or refuses writes
+  ///
+  /// In en, this message translates to:
+  /// **'This folder is read-only.'**
+  String get controllerFilesReadOnly;
+
   /// Title of the controller's print screen, opened from a file of the Files tab
   ///
   /// In en, this message translates to:

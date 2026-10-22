@@ -4,14 +4,19 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/format/duration_format.dart';
 import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_folder.dart';
+import 'package:bambuddy_mobile/core/models/library_stats.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:bambuddy_mobile/features/controller/controller_file_dialog.dart';
 import 'package:bambuddy_mobile/features/controller/controller_files.dart';
+import 'package:bambuddy_mobile/features/controller/controller_print.dart';
 import 'package:bambuddy_mobile/features/controller/controller_screen.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -104,6 +109,17 @@ class _Library extends FileManagerNotifier {
   }
 
   @override
+  Future<void> setQuery(String q) async {
+    calls.add('query $q');
+    state = AsyncData(
+      state.requireValue.copyWith(
+        query: q,
+        allFiles: [for (final files in filesByFolder.values) ...files],
+      ),
+    );
+  }
+
+  @override
   Future<void> refresh() async {
     calls.add('refresh');
     final gate = refreshGate;
@@ -115,6 +131,72 @@ class _Library extends FileManagerNotifier {
   }
 }
 
+/// A repository that records what the tab asked of it and answers at the
+/// test's pace.
+class _Repo extends LibraryRepository {
+  _Repo() : super(testDio());
+
+  final deleted = <int>[];
+  final uploads = <({String path, String name, int? folderId})>[];
+
+  /// What a delete and an upload fail with, when they do.
+  Object? deleteFails;
+  Object? uploadFails;
+
+  /// Holds an upload, after its first progress report, until completed.
+  Completer<void>? uploadGate;
+
+  @override
+  Future<void> deleteFile(int fileId) async {
+    if (deleteFails != null) throw deleteFails!;
+    deleted.add(fileId);
+  }
+
+  @override
+  Future<void> uploadFile({
+    required String filePath,
+    required String filename,
+    int? folderId,
+    void Function(double? progress)? onProgress,
+  }) async {
+    uploads.add((path: filePath, name: filename, folderId: folderId));
+    onProgress?.call(0.25);
+    await uploadGate?.future;
+    if (uploadFails != null) throw uploadFails!;
+  }
+}
+
+/// The system picker, answering what the test says: a file, or nothing.
+class _Picker extends FilePicker {
+  _Picker(this.answer);
+
+  /// Null is a cancelled dialog.
+  PlatformFile? answer;
+  Completer<void>? gate;
+  int opened = 0;
+
+  @override
+  Future<FilePickerResult?> pickFiles({
+    String? dialogTitle,
+    String? initialDirectory,
+    FileType type = FileType.any,
+    List<String>? allowedExtensions,
+    Function(FilePickerStatus)? onFileLoading,
+    bool allowCompression = false,
+    int compressionQuality = 0,
+    bool allowMultiple = false,
+    bool withData = false,
+    bool withReadStream = false,
+    bool lockParentWindow = false,
+    bool readSequential = false,
+  }) async {
+    opened++;
+    await gate?.future;
+    final file = answer;
+    return file == null ? null : FilePickerResult([file]);
+  }
+}
+
 LibraryFile _file(
   int id,
   String filename, {
@@ -123,9 +205,13 @@ LibraryFile _file(
   int? seconds,
   double? grams,
   String? printName,
+  bool external = false,
+  int? folderId,
 }) => LibraryFile(
   id: id,
   filename: filename,
+  isExternal: external,
+  folderId: folderId,
   fileType: type,
   fileSize: 2048,
   printCount: 0,
@@ -145,6 +231,7 @@ void main() {
     _Library? lib,
     String? model = 'P1S',
     Size size = const Size(844, 390),
+    List<Override> extra = const [],
   }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
@@ -182,6 +269,7 @@ void main() {
           inertStatusesOverride,
           inertSmartPlugsOverride,
           fileManagerProvider.overrideWith(() => library),
+          ...extra,
         ],
         child: plApp(const ControllerScreen(printerId: 1)),
       ),
@@ -669,6 +757,678 @@ void main() {
       expect(find.textContaining('library:read'), findsOneWidget);
       expect(byLogId('controller.files.retry'), findsNothing);
       expect(find.text(pl.connectFailed), findsNothing);
+    });
+  });
+
+  group('the file dialog', () {
+    _Library tree({List<LibraryFolder> folders = const []}) => _Library(
+      folders: folders,
+      filesByFolder: {
+        null: [
+          _file(
+            10,
+            'benchy.gcode.3mf',
+            model: 'P1S',
+            seconds: 11520,
+            grams: 45,
+          ),
+          _file(11, 'vase.gcode.3mf', model: 'H2D'),
+          _file(12, 'bracket.stl', type: 'stl'),
+          _file(13, 'mounted.gcode.3mf', model: 'P1S', external: true),
+        ],
+      },
+    );
+
+    Future<void> openDialog(WidgetTester tester, String name) async {
+      await tester.tap(find.text(name));
+      await settle(tester);
+    }
+
+    Finder dialogButton(String id) =>
+        find.descendant(of: byLogId(id), matching: find.byType(FilledButton));
+
+    bool enabled(WidgetTester tester, String id) =>
+        tester.widget<FilledButton>(dialogButton(id)).onPressed != null;
+
+    testWidgets('a tap on a file opens its dialog with what is known of it', (
+      tester,
+    ) async {
+      await pump(tester, lib: tree());
+      await openFiles(tester);
+      expect(find.byType(Dialog), findsNothing);
+
+      await openDialog(tester, 'benchy.gcode.3mf');
+
+      final dialog = find.byType(Dialog);
+      expect(dialog, findsOneWidget);
+      expect(
+        find.descendant(of: dialog, matching: find.text('benchy.gcode.3mf')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.textContaining('45 g')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.text('P1S')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.text(pl.fmPrint)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.text(pl.fmDelete)),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+      'the close icon closes it, and nothing is asked of the server',
+      (tester) async {
+        final repo = _Repo();
+        await pump(
+          tester,
+          lib: tree(),
+          extra: [libraryRepositoryProvider.overrideWithValue(repo)],
+        );
+        await openFiles(tester);
+        await openDialog(tester, 'benchy.gcode.3mf');
+
+        await tester.tap(byLogId('controller.files.dialog.close'));
+        await settle(tester);
+
+        expect(find.byType(Dialog), findsNothing);
+        expect(repo.deleted, isEmpty);
+        expect(library.calls, isNot(contains('refresh')));
+      },
+    );
+
+    testWidgets('Print opens the print screen for that file', (tester) async {
+      await pump(tester, lib: tree());
+      await openFiles(tester);
+      await openDialog(tester, 'benchy.gcode.3mf');
+      expect(enabled(tester, 'controller.files.dialog.print'), isTrue);
+
+      await tester.tap(byLogId('controller.files.dialog.print'));
+      await settle(tester);
+
+      expect(find.byType(Dialog), findsNothing);
+      final screen = tester.widget<ControllerPrintScreen>(
+        find.byType(ControllerPrintScreen),
+      );
+      expect(screen.file.id, 10);
+      expect(screen.printer.id, 1);
+    });
+
+    testWidgets('a model, not G-code, cannot be printed, and says why', (
+      tester,
+    ) async {
+      await pump(tester, lib: tree());
+      await openFiles(tester);
+
+      await openDialog(tester, 'bracket.stl');
+
+      expect(enabled(tester, 'controller.files.dialog.print'), isFalse);
+      expect(find.text(pl.controllerFileReasonNotSliced), findsOneWidget);
+    });
+
+    testWidgets('a file sliced for another model says which', (tester) async {
+      await pump(tester, lib: tree());
+      await openFiles(tester);
+
+      await openDialog(tester, 'vase.gcode.3mf');
+
+      expect(enabled(tester, 'controller.files.dialog.print'), isFalse);
+      expect(find.text(pl.controllerFileReasonModel('H2D')), findsOneWidget);
+    });
+
+    testWidgets('a printer of an unknown model blocks no sliced file', (
+      tester,
+    ) async {
+      await pump(tester, lib: tree(), model: null);
+      await openFiles(tester);
+
+      await openDialog(tester, 'vase.gcode.3mf');
+
+      expect(enabled(tester, 'controller.files.dialog.print'), isTrue);
+    });
+
+    test(
+      'a printer missing from the roster blocks a file that would print',
+      () {
+        final file = _file(1, 'a.gcode.3mf', model: 'P1S');
+
+        expect(
+          filePrintBlock(file, printerKnown: false, printerModel: 'P1S'),
+          FilePrintBlock.printerGone,
+        );
+        expect(
+          filePrintBlock(file, printerKnown: true, printerModel: 'P1S'),
+          isNull,
+        );
+        // Gone outranks the rest: nothing else can be said of no printer.
+        expect(
+          filePrintBlock(
+            _file(2, 'b.stl', type: 'stl'),
+            printerKnown: false,
+            printerModel: null,
+          ),
+          FilePrintBlock.printerGone,
+        );
+      },
+    );
+
+    testWidgets('a file on a host mount has no Delete', (tester) async {
+      await pump(tester, lib: tree());
+      await openFiles(tester);
+
+      await openDialog(tester, 'mounted.gcode.3mf');
+
+      expect(byLogId('controller.files.dialog.delete'), findsNothing);
+      expect(byLogId('controller.files.dialog.print'), findsOneWidget);
+    });
+
+    for (final (name, folder) in const [
+      (
+        'a folder the account may not write to',
+        LibraryFolder(id: 1, name: 'Shared', canWrite: false),
+      ),
+      (
+        'a read-only mount',
+        LibraryFolder(id: 1, name: 'Shared', externalReadonly: true),
+      ),
+      (
+        'an external folder',
+        LibraryFolder(id: 1, name: 'Shared', isExternal: true),
+      ),
+    ]) {
+      testWidgets('a file in $name has no Delete', (tester) async {
+        await pump(
+          tester,
+          lib: _Library(
+            folders: [folder],
+            startFolderId: 1,
+            filesByFolder: {
+              1: [_file(10, 'benchy.gcode.3mf', model: 'P1S', folderId: 1)],
+            },
+          ),
+        );
+        await openFiles(tester);
+
+        await openDialog(tester, 'benchy.gcode.3mf');
+
+        expect(byLogId('controller.files.dialog.delete'), findsNothing);
+      });
+    }
+
+    testWidgets('Delete asks first, and a no deletes nothing', (tester) async {
+      final repo = _Repo();
+      await pump(
+        tester,
+        lib: tree(),
+        extra: [libraryRepositoryProvider.overrideWithValue(repo)],
+      );
+      await openFiles(tester);
+      await openDialog(tester, 'benchy.gcode.3mf');
+
+      await tester.tap(byLogId('controller.files.dialog.delete'));
+      await settle(tester);
+      expect(
+        find.text(pl.fmDeleteFileConfirm('benchy.gcode.3mf')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.text(
+          MaterialLocalizations.of(
+            tester.element(find.byType(ControllerFiles)),
+          ).cancelButtonLabel,
+        ),
+      );
+      await settle(tester);
+
+      expect(repo.deleted, isEmpty);
+      expect(find.byType(Dialog), findsOneWidget);
+    });
+
+    testWidgets('a confirmed Delete removes the file, refreshes and closes', (
+      tester,
+    ) async {
+      final repo = _Repo();
+      await pump(
+        tester,
+        lib: tree(),
+        extra: [libraryRepositoryProvider.overrideWithValue(repo)],
+      );
+      await openFiles(tester);
+      await openDialog(tester, 'benchy.gcode.3mf');
+
+      await tester.tap(byLogId('controller.files.dialog.delete'));
+      await settle(tester);
+      await tester.tap(find.text(pl.fmDelete).last);
+      await settle(tester);
+
+      expect(repo.deleted, [10]);
+      expect(library.calls, contains('refresh'));
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.text(pl.fmDeleted), findsOneWidget);
+    });
+
+    testWidgets('a refused Delete keeps the dialog and says so', (
+      tester,
+    ) async {
+      final repo = _Repo()
+        ..deleteFails = const ApiException(
+          AppErrorCode.forbidden,
+          statusCode: 403,
+        );
+      await pump(
+        tester,
+        lib: tree(),
+        extra: [libraryRepositoryProvider.overrideWithValue(repo)],
+      );
+      await openFiles(tester);
+      await openDialog(tester, 'benchy.gcode.3mf');
+
+      await tester.tap(byLogId('controller.files.dialog.delete'));
+      await settle(tester);
+      await tester.tap(find.text(pl.fmDelete).last);
+      await settle(tester);
+
+      expect(repo.deleted, isEmpty);
+      expect(library.calls, isNot(contains('refresh')));
+      expect(find.byType(Dialog), findsOneWidget);
+      // Back to something a second tap can act on.
+      expect(enabled(tester, 'controller.files.dialog.delete'), isTrue);
+      expect(find.byType(SnackBar), findsOneWidget);
+    });
+  });
+
+  group('the search', () {
+    _Library tree() => _Library(
+      folders: const [LibraryFolder(id: 1, name: 'Alpha')],
+      filesByFolder: {
+        null: [
+          _file(10, 'benchy.gcode.3mf', model: 'P1S'),
+          _file(11, 'vase.gcode.3mf', model: 'P1S'),
+        ],
+        1: [_file(20, 'tower.gcode.3mf', model: 'P1S')],
+      },
+    );
+
+    Future<void> openSearch(WidgetTester tester) async {
+      await tester.tap(byLogId('controller.files.search'));
+      await settle(tester);
+    }
+
+    Future<void> submit(WidgetTester tester, String text) async {
+      await tester.enterText(find.byType(TextField), text);
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await settle(tester);
+    }
+
+    testWidgets('it expands into a field in the header, not a dialog', (
+      tester,
+    ) async {
+      await pump(tester, lib: tree());
+      await openFiles(tester);
+      expect(find.byType(TextField), findsNothing);
+
+      await openSearch(tester);
+
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.byType(Dialog), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(ControllerFiles),
+          matching: find.byType(TextField),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('typing applies nothing; the search action does', (
+      tester,
+    ) async {
+      await pump(tester, lib: tree());
+      await openFiles(tester);
+      await openSearch(tester);
+
+      await tester.enterText(find.byType(TextField), 'tow');
+      await settle(tester);
+      expect(library.calls, isEmpty);
+
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await settle(tester);
+
+      expect(library.calls, ['query tow']);
+      expect(find.byType(TextField), findsNothing);
+      expect(find.text('tower.gcode.3mf'), findsOneWidget);
+      expect(find.text('benchy.gcode.3mf'), findsNothing);
+      // A search spans the library: the folder of the listing is not beside it.
+      expect(byLogId('controller.files.folder'), findsNothing);
+    });
+
+    testWidgets('what is applied is a chip, and a tap on it clears it', (
+      tester,
+    ) async {
+      await pump(tester, lib: tree());
+      await openFiles(tester);
+      await openSearch(tester);
+      await submit(tester, 'tow');
+      expect(byLogId('controller.files.search_chip'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: byLogId('controller.files.search_chip'),
+          matching: find.text('tow'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(byLogId('controller.files.search_chip'));
+      await settle(tester);
+
+      expect(library.calls, ['query tow', 'query ']);
+      expect(byLogId('controller.files.search_chip'), findsNothing);
+      expect(find.text('benchy.gcode.3mf'), findsOneWidget);
+    });
+
+    testWidgets('an empty search applies nothing and shows no chip', (
+      tester,
+    ) async {
+      await pump(tester, lib: tree());
+      await openFiles(tester);
+      await openSearch(tester);
+
+      await submit(tester, '   ');
+
+      expect(byLogId('controller.files.search_chip'), findsNothing);
+      expect(find.text('benchy.gcode.3mf'), findsOneWidget);
+    });
+
+    testWidgets('cancel closes the field and keeps what was applied', (
+      tester,
+    ) async {
+      await pump(tester, lib: tree());
+      await openFiles(tester);
+      await openSearch(tester);
+      await submit(tester, 'tow');
+      await openSearch(tester);
+      // Reopened on what is applied.
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller?.text,
+        'tow',
+      );
+
+      await tester.enterText(find.byType(TextField), 'vas');
+      await tester.tap(byLogId('controller.files.search_cancel'));
+      await settle(tester);
+
+      expect(find.byType(TextField), findsNothing);
+      expect(library.calls, ['query tow']);
+      expect(byLogId('controller.files.search_chip'), findsOneWidget);
+    });
+
+    testWidgets('a search with no match says so', (tester) async {
+      await pump(tester, lib: tree());
+      await openFiles(tester);
+      await openSearch(tester);
+
+      await submit(tester, 'zzz');
+
+      expect(find.text(pl.fmNoMatches), findsOneWidget);
+    });
+
+    testWidgets('the keyboard does not resize the body while it is open', (
+      tester,
+    ) async {
+      await pump(tester, lib: tree());
+      await openFiles(tester);
+      await openSearch(tester);
+      final before = tester.getSize(find.byType(ControllerFiles));
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 220);
+      addTearDown(tester.view.resetViewInsets);
+      await settle(tester);
+
+      expect(tester.getSize(find.byType(ControllerFiles)), before);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('the upload', () {
+    final picked = PlatformFile(
+      path: '/tmp/new.gcode.3mf',
+      name: 'new.gcode.3mf',
+      size: 10,
+    );
+
+    late _Repo repo;
+    late _Picker picker;
+    late Future<void> Function(WidgetTester, {_Library? lib}) start;
+
+    setUp(() {
+      repo = _Repo();
+      picker = _Picker(picked);
+      FilePicker.platform = picker;
+      start = (tester, {lib}) async {
+        await pump(
+          tester,
+          lib:
+              lib ??
+              _Library(
+                filesByFolder: {
+                  null: [_file(10, 'benchy.gcode.3mf', model: 'P1S')],
+                },
+              ),
+          extra: [libraryRepositoryProvider.overrideWithValue(repo)],
+        );
+        await openFiles(tester);
+      };
+    });
+
+    FilledButton button(WidgetTester tester, String id) =>
+        tester.widget<FilledButton>(
+          find.descendant(of: byLogId(id), matching: find.byType(FilledButton)),
+        );
+
+    Future<void> tapUpload(WidgetTester tester) async {
+      await tester.tap(byLogId('controller.files.upload'));
+      await settle(tester);
+    }
+
+    testWidgets('a picked file goes into the open folder, then the list '
+        'is refreshed', (tester) async {
+      await start(
+        tester,
+        lib: _Library(
+          folders: const [LibraryFolder(id: 1, name: 'Alpha')],
+          startFolderId: 1,
+          filesByFolder: const {1: []},
+        ),
+      );
+
+      await tapUpload(tester);
+
+      expect(repo.uploads, [
+        (path: '/tmp/new.gcode.3mf', name: 'new.gcode.3mf', folderId: 1),
+      ]);
+      expect(library.calls, contains('refresh'));
+      expect(find.text(pl.fmUploaded('new.gcode.3mf')), findsOneWidget);
+    });
+
+    testWidgets('the library stats are invalidated after it', (tester) async {
+      var builds = 0;
+      await pump(
+        tester,
+        extra: [
+          libraryRepositoryProvider.overrideWithValue(repo),
+          libraryStatsProvider.overrideWith((ref) async {
+            builds++;
+            return const LibraryStats();
+          }),
+        ],
+      );
+      await openFiles(tester);
+      // The stats header is not on this tab; something has to be listening.
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(ControllerFiles)),
+      );
+      container.listen(libraryStatsProvider, (_, _) {});
+      await settle(tester);
+      expect(builds, 1);
+
+      await tapUpload(tester);
+
+      expect(builds, 2);
+    });
+
+    testWidgets('the bar shows the progress, and the header is locked', (
+      tester,
+    ) async {
+      repo.uploadGate = Completer<void>();
+      await start(tester);
+
+      await tapUpload(tester);
+
+      final bar = tester.widget<LinearProgressIndicator>(
+        find.byType(LinearProgressIndicator),
+      );
+      expect(bar.value, 0.25);
+      for (final id in [
+        'controller.files.up',
+        'controller.files.search',
+        'controller.files.sort',
+        'controller.files.upload',
+        'controller.files.refresh',
+      ]) {
+        expect(button(tester, id).onPressed, isNull, reason: id);
+      }
+      // Nor does a file or a folder open under the bar.
+      await tester.tap(find.text('benchy.gcode.3mf'), warnIfMissed: false);
+      await settle(tester);
+      expect(find.byType(Dialog), findsNothing);
+
+      repo.uploadGate!.complete();
+      await settle(tester);
+
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      expect(button(tester, 'controller.files.upload').onPressed, isNotNull);
+    });
+
+    testWidgets('a second tap while the picker is open starts no second '
+        'upload', (tester) async {
+      picker.gate = Completer<void>();
+      await start(tester);
+
+      await tester.tap(byLogId('controller.files.upload'));
+      await tester.pump();
+      await tester.tap(byLogId('controller.files.upload'), warnIfMissed: false);
+      await tester.pump();
+      picker.gate!.complete();
+      await settle(tester);
+
+      expect(picker.opened, 1);
+      expect(repo.uploads, hasLength(1));
+    });
+
+    testWidgets('a cancelled picker uploads nothing and unlocks', (
+      tester,
+    ) async {
+      picker.answer = null;
+      await start(tester);
+
+      await tapUpload(tester);
+
+      expect(repo.uploads, isEmpty);
+      expect(library.calls, isNot(contains('refresh')));
+      expect(button(tester, 'controller.files.upload').onPressed, isNotNull);
+    });
+
+    testWidgets('a refused upload says so, unlocks and refreshes nothing', (
+      tester,
+    ) async {
+      repo.uploadFails = const ApiException(
+        AppErrorCode.forbidden,
+        statusCode: 403,
+      );
+      await start(tester);
+
+      await tapUpload(tester);
+
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(library.calls, isNot(contains('refresh')));
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      expect(button(tester, 'controller.files.upload').onPressed, isNotNull);
+    });
+
+    for (final (name, folder) in const [
+      (
+        'a folder the account may not write to',
+        LibraryFolder(id: 1, name: 'Shared', canWrite: false),
+      ),
+      (
+        'a read-only mount',
+        LibraryFolder(id: 1, name: 'Shared', externalReadonly: true),
+      ),
+      (
+        'an external folder',
+        LibraryFolder(id: 1, name: 'Shared', isExternal: true),
+      ),
+    ]) {
+      testWidgets('it is off in $name, and the tooltip says why', (
+        tester,
+      ) async {
+        await start(
+          tester,
+          lib: _Library(
+            folders: [folder],
+            startFolderId: 1,
+            filesByFolder: const {1: []},
+          ),
+        );
+
+        expect(button(tester, 'controller.files.upload').onPressed, isNull);
+        expect(find.byTooltip(pl.controllerFilesReadOnly), findsOneWidget);
+        expect(picker.opened, 0);
+      });
+    }
+
+    testWidgets('leaving the tab mid-upload still refreshes the list, '
+        'without a toast', (tester) async {
+      repo.uploadGate = Completer<void>();
+      await start(tester);
+      await tapUpload(tester);
+
+      await select(tester, ControllerTab.heat);
+      repo.uploadGate!.complete();
+      await settle(tester);
+
+      expect(library.calls, contains('refresh'));
+      expect(find.byType(SnackBar), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('leaving mid-upload and then a refusal throws nothing', (
+      tester,
+    ) async {
+      repo.uploadGate = Completer<void>();
+      repo.uploadFails = const ApiException(
+        AppErrorCode.forbidden,
+        statusCode: 403,
+      );
+      await start(tester);
+      await tapUpload(tester);
+
+      await select(tester, ControllerTab.heat);
+      repo.uploadGate!.complete();
+      await settle(tester);
+
+      expect(library.calls, isNot(contains('refresh')));
+      expect(find.byType(SnackBar), findsNothing);
+      expect(tester.takeException(), isNull);
     });
   });
 

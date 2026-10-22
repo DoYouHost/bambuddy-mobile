@@ -8090,6 +8090,18 @@ class AppLocalizationsPl extends AppLocalizations {
   String get controllerFileNotSliced => 'Nie pocięto';
 
   @override
+  String get controllerFileReasonNotSliced =>
+      'Drukować można tylko pocięte pliki.';
+
+  @override
+  String controllerFileReasonModel(String model) {
+    return 'Pocięty pod $model. Ta drukarka go nie przyjmie.';
+  }
+
+  @override
+  String get controllerFilesReadOnly => 'Ten folder jest tylko do odczytu.';
+
+  @override
   String get controllerPrintTitle => 'Ustawienia wydruku';
 
   @override

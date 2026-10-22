@@ -5287,6 +5287,23 @@
   "@controllerFileNotSliced": {
     "description": "Chip on a file tile in the controller's Files tab: the file is a model, not sliced G-code, so it cannot be printed as it is"
   },
+  "controllerFileReasonNotSliced": "Only sliced files can be printed.",
+  "@controllerFileReasonNotSliced": {
+    "description": "Line in the file dialog of the controller's Files tab, why Print is disabled: the file is a model, not sliced G-code"
+  },
+  "controllerFileReasonModel": "Sliced for {model}. This printer cannot take it.",
+  "@controllerFileReasonModel": {
+    "description": "Line in the file dialog of the controller's Files tab, why Print is disabled: the file was sliced for a printer model this printer cannot take",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "controllerFilesReadOnly": "This folder is read-only.",
+  "@controllerFilesReadOnly": {
+    "description": "Tooltip of the disabled upload button in the controller's Files tab: the open folder is external or refuses writes"
+  },
   "controllerPrintTitle": "Print setup",
   "@controllerPrintTitle": {
     "description": "Title of the controller's print screen, opened from a file of the Files tab"

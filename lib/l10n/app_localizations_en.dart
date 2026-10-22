@@ -7952,6 +7952,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controllerFileNotSliced => 'Not sliced';
 
   @override
+  String get controllerFileReasonNotSliced =>
+      'Only sliced files can be printed.';
+
+  @override
+  String controllerFileReasonModel(String model) {
+    return 'Sliced for $model. This printer cannot take it.';
+  }
+
+  @override
+  String get controllerFilesReadOnly => 'This folder is read-only.';
+
+  @override
   String get controllerPrintTitle => 'Print setup';
 
   @override

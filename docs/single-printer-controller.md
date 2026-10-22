@@ -39,6 +39,7 @@ that opens the fault view, the printer's state) over one tab at a time.
 | Heat | nozzle(s), bed and chamber targets with −/+ and a typed value, the three fans |
 | Move | X/Y pad, Z, extrude and retract, step and length, home. Locked while a print is running |
 | Filament | AMS units, slots with their remaining amount, edit, load and unload, dry |
+| Files | the server's library (folders, files, six sorts), an inline search, upload into the open folder, and a file dialog that prints it on this printer or deletes it (§7) |
 | Settings | the controller's own settings (§4) |
 
 ### Size and layout
@@ -183,3 +184,59 @@ Milestone 1 — foundation and Overview: settings storage, entry and shell,
 Overview. Milestone 2 — Heat, Move and Filament. Milestone 3 — faults, the
 alert, the screen saver and the Settings tab. Each stage is one commit; each
 milestone ends with a review.
+
+## 7. Files tab
+
+The Files tab browses the server's library and prints a file on the controller's
+printer. The working plan is local (`docs/plans/` is gitignored), so what stays
+open lives here. Built: the model-compatibility guard (`gcode_compat.dart`), the
+shared create service (`queue_create_service.dart`), the tab and its listing
+(`controller_files.dart`), the file dialog (`controller_file_dialog.dart`), the print
+screen (`controller_print.dart`) with its "More options" dialog and the cost center
+(`controller_print_more.dart`, `queue_cost_center_state.dart`).
+
+- **File dialog.** A tap on a file opens a dialog scaled like the body (the scale is
+  read before `showDialog`, under the body, because the route is not): thumbnail,
+  name, size, sliced-for model, print time, grams, created date, a close icon, and two
+  buttons. Print closes the dialog with a choice and the tab then pushes
+  `openControllerPrint`; it is disabled, with the reason on the dialog, for a printer
+  missing from the roster, a file that is not sliced, or a model the printer cannot
+  take (`filePrintBlock`, in that order). Delete (through `confirmDialog`) is absent
+  for an external file and for a file in an external, read-only or unwritable
+  folder (`mayDeleteLibraryFile`).
+- **Search.** A header button expands into a field in place of the path card (a
+  dialog is inset by the keyboard and is left with about 100 dp). It applies on the
+  keyboard's search action, never per key: the first search fetches the whole library.
+  The applied query is a chip on the path card, cleared by a tap. A refresh or a
+  folder change drops the query, as in the library screen.
+- **Upload.** Picks one file and sends it into the open folder. Off, with the reason
+  as the tooltip, for an external, read-only or unwritable folder. While a file is
+  picked or sent the whole header and the grid answer nothing, and the path card
+  carries a determinate bar; this is also what guards against a second upload. Done:
+  refresh, invalidate `libraryStatsProvider`, toast. A tab left mid-upload does not
+  stop the request: a success still refreshes the listing (while the controller is
+  open) and invalidates the stats, without a toast; a failure writes only the log
+  record.
+
+Open points:
+
+- **Toasts.** The Files tab and the print screen both use the screen's snackbar. Decide
+  whether the controller wants a mechanism of its own before a third surface copies it.
+- **Demo backend.** The library listing and delete are there; the upload route answers
+  501 (as it does for the library screen), so the demo cannot show an upload end to end
+  (`lib/core/demo/demo_backend.dart`).
+- **Contract tests.** A library file queued from the controller sends the same fields
+  as the print form, plus the new options of the More dialog; cover `cost_center_id`,
+  the preheat fields and `confirm_outcome` against a docker server on `daily` and
+  `latest` (`test/contract/`).
+- **Chamber target stepper.** It moves in steps of 5 °C from "filament default"; 0 is
+  not selectable and the maximum takes 12 taps. Revisit if it proves slow on a device.
+- **Shared provider.** `fileManagerProvider` is shared with `FileManagerScreen`, which
+  the dashboard can push beneath the controller; both would then share folder and
+  search state. Theoretical, noted.
+- **USB-stick uploads** depend on the phone's document provider and are not verified.
+- **Compatibility guard** is deliberately stricter than the server for named printers;
+  an unlisted-but-working model combination is blocked. Unknown models stay compatible.
+- **Device check.** Nothing here was checked on a phone: the maintainer should try the
+  file dialog, a search, an upload, and Print on a billing server, a multi-plate file,
+  a dual-nozzle printer and a manual filament mapping.

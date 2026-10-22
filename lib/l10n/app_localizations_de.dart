@@ -8029,6 +8029,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String get controllerFileNotSliced => 'Nicht geslict';
 
   @override
+  String get controllerFileReasonNotSliced =>
+      'Nur geslicte Dateien lassen sich drucken.';
+
+  @override
+  String controllerFileReasonModel(String model) {
+    return 'Für $model geslict, das dieser Drucker nicht annimmt.';
+  }
+
+  @override
+  String get controllerFilesReadOnly => 'Dieser Ordner ist schreibgeschützt.';
+
+  @override
   String get controllerPrintTitle => 'Druck einrichten';
 
   @override
