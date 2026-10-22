@@ -294,6 +294,38 @@ void main() {
       expect(style?.decoration, isNot(TextDecoration.underline));
     });
 
+    testWidgets('its figures are light on its black ground in the light theme '
+        'too', (tester) async {
+      // The harness app is in the light theme, whose text tokens are dark ink.
+      await pump(
+        tester,
+        status: const PrinterStatus(
+          id: 1,
+          connected: true,
+          state: 'RUNNING',
+          progress: 44.3,
+        ),
+      );
+      await tester.pump(const Duration(minutes: 1, seconds: 1));
+
+      for (final text in ['44%', 'X1C']) {
+        final style = tester
+            .widgetList<Text>(
+              find.descendant(
+                of: find.byType(ControllerSaver),
+                matching: find.textContaining(text),
+              ),
+            )
+            .first
+            .style;
+        expect(
+          style?.color?.computeLuminance(),
+          greaterThan(0.5),
+          reason: '"$text" is dark on black',
+        );
+      }
+    });
+
     testWidgets('a job shows its progress, layer, time left and finish time', (
       tester,
     ) async {

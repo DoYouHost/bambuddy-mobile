@@ -291,28 +291,33 @@ class _ControllerSaverState extends ConsumerState<ControllerSaver>
     _box = ControllerSaver.boxFor(MediaQuery.textScalerOf(context).scale(1));
     return Listener(
       behavior: HitTestBehavior.opaque,
-      // A Material, not a bare colour: the saver is an overlay entry above the
-      // screen's own Material, and text without one gets Flutter's yellow
-      // underlined fallback style.
-      child: Material(
-        color: Colors.black,
-        child: LayoutBuilder(
-          builder: (context, box) {
-            _room = box.biggest;
-            return Stack(
-              children: [
-                Positioned(
-                  left: _bounce.position.dx,
-                  top: _bounce.position.dy,
-                  width: _box.width,
-                  height: _box.height,
-                  // Full strength: the brightness setting dims the backlight
-                  // itself (the host's `setBrightness`).
-                  child: _SaverBox(printerId: widget.printerId, color: color),
-                ),
-              ],
-            );
-          },
+      // The saver is black whatever the app's theme is, so its text is read in
+      // the dark one: in the light theme the tokens are dark ink on this ground.
+      child: Theme(
+        data: buildDashThemeData(Brightness.dark, brand: bambuddyBrand),
+        // A Material, not a bare colour: the saver is an overlay entry above the
+        // screen's own Material, and text without one gets Flutter's yellow
+        // underlined fallback style.
+        child: Material(
+          color: Colors.black,
+          child: LayoutBuilder(
+            builder: (context, box) {
+              _room = box.biggest;
+              return Stack(
+                children: [
+                  Positioned(
+                    left: _bounce.position.dx,
+                    top: _bounce.position.dy,
+                    width: _box.width,
+                    height: _box.height,
+                    // Full strength: the brightness setting dims the backlight
+                    // itself (the host's `setBrightness`).
+                    child: _SaverBox(printerId: widget.printerId, color: color),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
