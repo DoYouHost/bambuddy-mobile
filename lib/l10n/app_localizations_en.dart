@@ -7952,6 +7952,59 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controllerFileNotSliced => 'Not sliced';
 
   @override
+  String get controllerPrintTitle => 'Print setup';
+
+  @override
+  String get controllerPrintNow => 'Now';
+
+  @override
+  String get controllerPrintNowAction => 'Print now';
+
+  @override
+  String controllerPrintAutoMatched(String printer) {
+    return 'Auto-matched to $printer';
+  }
+
+  @override
+  String get controllerPrintManualMapping => 'Manual mapping';
+
+  @override
+  String get controllerPrintResetMapping => 'Reset to auto';
+
+  @override
+  String get controllerPrintNotLoaded => 'Not loaded';
+
+  @override
+  String controllerPrintUnmapped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count filaments have no matching slot',
+      one: '1 filament has no matching slot',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerPrintBusy =>
+      'The printer is busy. The job starts when it is free.';
+
+  @override
+  String get controllerPrintOffline =>
+      'The printer is offline. The job waits until it is back.';
+
+  @override
+  String get controllerPrintJob => 'Job';
+
+  @override
+  String get controllerPrintOptions => 'Options';
+
+  @override
+  String controllerPrintWrongModel(String model, String printer) {
+    return 'Sliced for $model; this printer is a $printer.';
+  }
+
+  @override
   String get controllerExtruder => 'Extruder';
 
   @override

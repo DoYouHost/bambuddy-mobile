@@ -8123,6 +8123,59 @@ class AppLocalizationsFr extends AppLocalizations {
   String get controllerFileNotSliced => 'Non découpé';
 
   @override
+  String get controllerPrintTitle => 'Préparer l\'impression';
+
+  @override
+  String get controllerPrintNow => 'Maintenant';
+
+  @override
+  String get controllerPrintNowAction => 'Imprimer maintenant';
+
+  @override
+  String controllerPrintAutoMatched(String printer) {
+    return 'Associé automatiquement à $printer';
+  }
+
+  @override
+  String get controllerPrintManualMapping => 'Association manuelle';
+
+  @override
+  String get controllerPrintResetMapping => 'Revenir à auto';
+
+  @override
+  String get controllerPrintNotLoaded => 'Non chargé';
+
+  @override
+  String controllerPrintUnmapped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count filaments n\'ont pas d\'emplacement correspondant',
+      one: '1 filament n\'a pas d\'emplacement correspondant',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerPrintBusy =>
+      'L\'imprimante est occupée. Le travail démarre dès qu\'elle est libre.';
+
+  @override
+  String get controllerPrintOffline =>
+      'L\'imprimante est hors ligne. Le travail attend son retour.';
+
+  @override
+  String get controllerPrintJob => 'Tâche';
+
+  @override
+  String get controllerPrintOptions => 'Options';
+
+  @override
+  String controllerPrintWrongModel(String model, String printer) {
+    return 'Découpé pour $model ; cette imprimante est une $printer.';
+  }
+
+  @override
   String get controllerExtruder => 'Extrudeur';
 
   @override

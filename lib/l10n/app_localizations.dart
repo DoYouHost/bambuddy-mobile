@@ -13352,6 +13352,84 @@ abstract class AppLocalizations {
   /// **'Not sliced'**
   String get controllerFileNotSliced;
 
+  /// Title of the controller's print screen, opened from a file of the Files tab
+  ///
+  /// In en, this message translates to:
+  /// **'Print setup'**
+  String get controllerPrintTitle;
+
+  /// Segment of the controller's print screen: start the job next, when the printer is free
+  ///
+  /// In en, this message translates to:
+  /// **'Now'**
+  String get controllerPrintNow;
+
+  /// Main button of the controller's print screen while the job is set to start next
+  ///
+  /// In en, this message translates to:
+  /// **'Print now'**
+  String get controllerPrintNowAction;
+
+  /// Line above the filament list of the controller's print screen while no slot was picked by hand; the placeholder is the printer's name
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-matched to {printer}'**
+  String controllerPrintAutoMatched(String printer);
+
+  /// Line above the filament list of the controller's print screen once slots were picked by hand
+  ///
+  /// In en, this message translates to:
+  /// **'Manual mapping'**
+  String get controllerPrintManualMapping;
+
+  /// Button that drops the hand-picked slots of the controller's print screen and matches the filament automatically again
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to auto'**
+  String get controllerPrintResetMapping;
+
+  /// Shown for a filament of the file that no slot of the printer can supply
+  ///
+  /// In en, this message translates to:
+  /// **'Not loaded'**
+  String get controllerPrintNotLoaded;
+
+  /// Warning on the controller's print screen: filaments of the file that no loaded slot matches
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 filament has no matching slot} other{{count} filaments have no matching slot}}'**
+  String controllerPrintUnmapped(int count);
+
+  /// Line on the controller's print screen while the printer is printing
+  ///
+  /// In en, this message translates to:
+  /// **'The printer is busy. The job starts when it is free.'**
+  String get controllerPrintBusy;
+
+  /// Line on the controller's print screen while the printer cannot be reached
+  ///
+  /// In en, this message translates to:
+  /// **'The printer is offline. The job waits until it is back.'**
+  String get controllerPrintOffline;
+
+  /// Title of the first card of the controller's print screen: the file, its plate and the number of copies
+  ///
+  /// In en, this message translates to:
+  /// **'Job'**
+  String get controllerPrintJob;
+
+  /// Title of the card with the print options (calibrations, timelapse, the start time) on the controller's print screen
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get controllerPrintOptions;
+
+  /// Line on the controller's print screen when the file was sliced for a model this printer cannot take
+  ///
+  /// In en, this message translates to:
+  /// **'Sliced for {model}; this printer is a {printer}.'**
+  String controllerPrintWrongModel(String model, String printer);
+
   /// No description provided for @controllerExtruder.
   ///
   /// In en, this message translates to:

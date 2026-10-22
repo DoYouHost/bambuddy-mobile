@@ -8050,6 +8050,59 @@ class AppLocalizationsEs extends AppLocalizations {
   String get controllerFileNotSliced => 'Sin laminar';
 
   @override
+  String get controllerPrintTitle => 'Preparar impresión';
+
+  @override
+  String get controllerPrintNow => 'Ahora';
+
+  @override
+  String get controllerPrintNowAction => 'Imprimir ahora';
+
+  @override
+  String controllerPrintAutoMatched(String printer) {
+    return 'Asignado automáticamente a $printer';
+  }
+
+  @override
+  String get controllerPrintManualMapping => 'Asignación manual';
+
+  @override
+  String get controllerPrintResetMapping => 'Volver a automático';
+
+  @override
+  String get controllerPrintNotLoaded => 'No cargado';
+
+  @override
+  String controllerPrintUnmapped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count filamentos no tienen ranura compatible',
+      one: '1 filamento no tiene ranura compatible',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerPrintBusy =>
+      'La impresora está ocupada. El trabajo empieza cuando quede libre.';
+
+  @override
+  String get controllerPrintOffline =>
+      'La impresora está sin conexión. El trabajo espera a que vuelva.';
+
+  @override
+  String get controllerPrintJob => 'Trabajo';
+
+  @override
+  String get controllerPrintOptions => 'Opciones';
+
+  @override
+  String controllerPrintWrongModel(String model, String printer) {
+    return 'Laminado para $model; esta impresora es una $printer.';
+  }
+
+  @override
   String get controllerExtruder => 'Extrusor';
 
   @override

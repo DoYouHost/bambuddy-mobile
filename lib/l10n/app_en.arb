@@ -5287,6 +5287,76 @@
   "@controllerFileNotSliced": {
     "description": "Chip on a file tile in the controller's Files tab: the file is a model, not sliced G-code, so it cannot be printed as it is"
   },
+  "controllerPrintTitle": "Print setup",
+  "@controllerPrintTitle": {
+    "description": "Title of the controller's print screen, opened from a file of the Files tab"
+  },
+  "controllerPrintNow": "Now",
+  "@controllerPrintNow": {
+    "description": "Segment of the controller's print screen: start the job next, when the printer is free"
+  },
+  "controllerPrintNowAction": "Print now",
+  "@controllerPrintNowAction": {
+    "description": "Main button of the controller's print screen while the job is set to start next"
+  },
+  "controllerPrintAutoMatched": "Auto-matched to {printer}",
+  "@controllerPrintAutoMatched": {
+    "description": "Line above the filament list of the controller's print screen while no slot was picked by hand; the placeholder is the printer's name",
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
+  "controllerPrintManualMapping": "Manual mapping",
+  "@controllerPrintManualMapping": {
+    "description": "Line above the filament list of the controller's print screen once slots were picked by hand"
+  },
+  "controllerPrintResetMapping": "Reset to auto",
+  "@controllerPrintResetMapping": {
+    "description": "Button that drops the hand-picked slots of the controller's print screen and matches the filament automatically again"
+  },
+  "controllerPrintNotLoaded": "Not loaded",
+  "@controllerPrintNotLoaded": {
+    "description": "Shown for a filament of the file that no slot of the printer can supply"
+  },
+  "controllerPrintUnmapped": "{count, plural, one{1 filament has no matching slot} other{{count} filaments have no matching slot}}",
+  "@controllerPrintUnmapped": {
+    "description": "Warning on the controller's print screen: filaments of the file that no loaded slot matches",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controllerPrintBusy": "The printer is busy. The job starts when it is free.",
+  "@controllerPrintBusy": {
+    "description": "Line on the controller's print screen while the printer is printing"
+  },
+  "controllerPrintOffline": "The printer is offline. The job waits until it is back.",
+  "@controllerPrintOffline": {
+    "description": "Line on the controller's print screen while the printer cannot be reached"
+  },
+  "controllerPrintJob": "Job",
+  "@controllerPrintJob": {
+    "description": "Title of the first card of the controller's print screen: the file, its plate and the number of copies"
+  },
+  "controllerPrintOptions": "Options",
+  "@controllerPrintOptions": {
+    "description": "Title of the card with the print options (calibrations, timelapse, the start time) on the controller's print screen"
+  },
+  "controllerPrintWrongModel": "Sliced for {model}; this printer is a {printer}.",
+  "@controllerPrintWrongModel": {
+    "description": "Line on the controller's print screen when the file was sliced for a model this printer cannot take",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
   "controllerExtruder": "Extruder",
   "controllerEditSlot": "Edit slot",
   "@controllerEditSlot": {

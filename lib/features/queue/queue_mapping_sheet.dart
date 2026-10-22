@@ -165,6 +165,25 @@ List<FilamentComparison> _compare(
   ftsActive: status?.filaSwitch?.installed ?? false,
 );
 
+/// The comparison the mapping sheet opens on, for a caller that shows it
+/// without the sheet: [requirements] matched against what [status] has loaded,
+/// starting from the slots [startFrom] already holds (the manual picks), as the
+/// sheet seeds them.
+List<FilamentComparison> queueMappingComparison({
+  required List<FilamentRequirement> requirements,
+  required PrinterStatus? status,
+  List<int>? startFrom,
+  Map<int, double>? remain,
+  bool? preferLowestSetting,
+}) => _compare(
+  requirements,
+  status,
+  buildLoadedFilaments(status),
+  _manualFrom(startFrom),
+  remain,
+  preferLowestSetting,
+);
+
 /// The `ams_mapping` the web sends when it saves or adds a job for
 /// [printerId] (`getMappingForPrinter`): the plate's [requirements] matched
 /// afresh against the live status, starting from [startFrom]. Null when the

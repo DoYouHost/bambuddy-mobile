@@ -8090,6 +8090,61 @@ class AppLocalizationsPl extends AppLocalizations {
   String get controllerFileNotSliced => 'Nie pocięto';
 
   @override
+  String get controllerPrintTitle => 'Ustawienia wydruku';
+
+  @override
+  String get controllerPrintNow => 'Teraz';
+
+  @override
+  String get controllerPrintNowAction => 'Drukuj teraz';
+
+  @override
+  String controllerPrintAutoMatched(String printer) {
+    return 'Dopasowano automatycznie do $printer';
+  }
+
+  @override
+  String get controllerPrintManualMapping => 'Mapowanie ręczne';
+
+  @override
+  String get controllerPrintResetMapping => 'Wróć do automatu';
+
+  @override
+  String get controllerPrintNotLoaded => 'Nie załadowano';
+
+  @override
+  String controllerPrintUnmapped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count filamentu nie ma pasującego slotu',
+      many: '$count filamentów nie ma pasującego slotu',
+      few: '$count filamenty nie mają pasującego slotu',
+      one: '1 filament nie ma pasującego slotu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerPrintBusy =>
+      'Drukarka jest zajęta. Zadanie ruszy, gdy się zwolni.';
+
+  @override
+  String get controllerPrintOffline =>
+      'Drukarka jest offline. Zadanie poczeka, aż wróci.';
+
+  @override
+  String get controllerPrintJob => 'Zadanie';
+
+  @override
+  String get controllerPrintOptions => 'Opcje';
+
+  @override
+  String controllerPrintWrongModel(String model, String printer) {
+    return 'Pocięty dla $model; ta drukarka to $printer.';
+  }
+
+  @override
   String get controllerExtruder => 'Ekstruder';
 
   @override

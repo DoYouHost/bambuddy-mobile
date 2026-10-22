@@ -115,7 +115,7 @@ typedef _CostCenterState = ({_CostCenterStep step, List<CostCenter> centers});
 
 /// Models with two nozzles — gate for the nozzle-offset-calibration option
 /// (matches the web `showDualNozzleOptions` model list).
-const _dualNozzleModels = {'H2D', 'H2DPRO', 'H2C', 'X2D'};
+const queueDualNozzleModels = {'H2D', 'H2DPRO', 'H2C', 'X2D'};
 
 class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   // Target
@@ -261,7 +261,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   bool get _showNozzleOffset {
     final m = widget.item.slicedForModel?.toUpperCase();
-    return m != null && _dualNozzleModels.contains(m);
+    return m != null && queueDualNozzleModels.contains(m);
   }
 
   /// Printer models the server has auto-print snippets for. Empty while

@@ -8029,6 +8029,59 @@ class AppLocalizationsDe extends AppLocalizations {
   String get controllerFileNotSliced => 'Nicht geslict';
 
   @override
+  String get controllerPrintTitle => 'Druck einrichten';
+
+  @override
+  String get controllerPrintNow => 'Jetzt';
+
+  @override
+  String get controllerPrintNowAction => 'Jetzt drucken';
+
+  @override
+  String controllerPrintAutoMatched(String printer) {
+    return 'Automatisch zugeordnet: $printer';
+  }
+
+  @override
+  String get controllerPrintManualMapping => 'Manuelle Zuordnung';
+
+  @override
+  String get controllerPrintResetMapping => 'Zurück zu Auto';
+
+  @override
+  String get controllerPrintNotLoaded => 'Nicht geladen';
+
+  @override
+  String controllerPrintUnmapped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Filamente haben keinen passenden Slot',
+      one: '1 Filament hat keinen passenden Slot',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerPrintBusy =>
+      'Der Drucker ist belegt. Der Auftrag startet, sobald er frei ist.';
+
+  @override
+  String get controllerPrintOffline =>
+      'Der Drucker ist offline. Der Auftrag wartet, bis er zurück ist.';
+
+  @override
+  String get controllerPrintJob => 'Auftrag';
+
+  @override
+  String get controllerPrintOptions => 'Optionen';
+
+  @override
+  String controllerPrintWrongModel(String model, String printer) {
+    return 'Für $model geslict; dieser Drucker ist ein $printer.';
+  }
+
+  @override
   String get controllerExtruder => 'Extruder';
 
   @override
