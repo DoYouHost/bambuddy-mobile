@@ -27,6 +27,7 @@ import '../slicer/slice_providers.dart';
 import '../common/dash_async.dart';
 import '../orders/orders_providers.dart';
 import 'job_cost_providers.dart';
+import 'queue_cost_center_state.dart';
 import 'queue_create_service.dart';
 import 'queue_form_parts.dart';
 import 'queue_mapping_sheet.dart';
@@ -82,36 +83,6 @@ enum QueueEditMode { edit, create }
 /// When the job should print. Only [QueueScheduleType.queue] can be staged with
 /// `manual_start`; the other two dispatch on their own terms.
 enum QueueScheduleType { asap, queue, scheduled }
-
-/// Where the form stands on billing, which decides what the cost-center section
-/// shows and whether Save waits on it.
-enum _CostCenterStep {
-  /// Neither the server's UI flags nor, on a server without them, its settings
-  /// have said whether billing is on.
-  unknown,
-
-  /// Billing is off, so no cost center is asked for or sent.
-  off,
-
-  /// Billing is on and the centers are being read.
-  loading,
-
-  /// Something to choose from.
-  pick,
-
-  /// Billing is on and this user may print to no active center: an administrator
-  /// has to grant one.
-  none,
-
-  /// Billing is on but this session may not list its centers (an API key on a
-  /// server before #3256), which only the browser gets around.
-  refused,
-
-  /// The list could not be read — a dropped connection, a server error.
-  failed,
-}
-
-typedef _CostCenterState = ({_CostCenterStep step, List<CostCenter> centers});
 
 /// Models with two nozzles — gate for the nozzle-offset-calibration option
 /// (matches the web `showDualNozzleOptions` model list).
@@ -587,31 +558,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   /// What the form can do about billing, from the flag and the centers this
   /// session may book to. [watch] as in [_snippetModels].
-  _CostCenterState _costCenterState({required bool watch}) {
-    T read<T>(ProviderListenable<T> provider) =>
-        watch ? ref.watch(provider) : ref.read(provider);
-    // A server before 1.2.6 has no UI flags and answers them at once with
-    // nothing, so billing is then the full settings' to say.
-    final flags = read(serverUiFlagsProvider);
-    final flagAnswered =
-        flags.valueOrNull?.containsKey('billing_enabled') ?? false;
-    if (flags.isLoading ||
-        (!flagAnswered && read(serverSettingsProvider).isLoading)) {
-      return (step: _CostCenterStep.unknown, centers: const []);
-    }
-    if (!read(billingEnabledProvider)) {
-      return (step: _CostCenterStep.off, centers: const []);
-    }
-    return read(printableCostCentersProvider).when(
-      loading: () => (step: _CostCenterStep.loading, centers: const []),
-      error: (_, _) => (step: _CostCenterStep.failed, centers: const []),
-      data: (centers) => switch (centers) {
-        null => (step: _CostCenterStep.refused, centers: const []),
-        [] => (step: _CostCenterStep.none, centers: const []),
-        _ => (step: _CostCenterStep.pick, centers: centers),
-      },
-    );
-  }
+  CostCenterState _costCenterState({required bool watch}) =>
+      costCenterStateOf(watch ? ref.watch : ref.read);
 
   /// A new job, or one queued before billing was on, cannot be saved without a
   /// cost center. An item that already has one keeps it on the server, so an
@@ -622,16 +570,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// Whether Save may be pressed as far as billing is concerned: every step
   /// that cannot offer a pick leaves a job without a cost center stuck.
   bool get _costCenterAllowsSubmit =>
-      switch (_costCenterState(watch: true).step) {
-        _CostCenterStep.off || _CostCenterStep.pick => true,
-        _ => !_costCenterRequired,
-      };
+      costCenterAllowsCreate(_costCenterState(watch: true).step) ||
+      !_costCenterRequired;
 
   /// The center Save sends: what the user picked if it is still on offer, else
   /// the web's default. Null when there is nothing to choose from.
   CostCenter? _selectedCostCenter(List<CostCenter> centers) =>
-      centers.where((c) => c.id == _costCenterId).firstOrNull ??
-      defaultCostCenter(centers);
+      selectedCostCenter(centers, _costCenterId);
 
   /// `cost_center_id` for the write, or null to leave the key out: on a server
   /// without billing, where the field is not read, and wherever there is no
@@ -644,8 +589,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Widget? _costCenterBlockedNote(AppLocalizations l10n) {
     if (!_costCenterRequired) return null;
     return inlineNote(switch (_costCenterState(watch: true).step) {
-      _CostCenterStep.refused => l10n.queueBillingCostCentersRefused,
-      _CostCenterStep.none => l10n.queueBillingNoCostCenter,
+      CostCenterStep.refused => l10n.queueBillingCostCentersRefused,
+      CostCenterStep.none => l10n.queueBillingNoCostCenter,
       _ => null,
     }, urgent: true);
   }
@@ -664,8 +609,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Widget? _costCenterSection(AppLocalizations l10n, DashTokens t) {
     final state = _costCenterState(watch: true);
     final body = switch (state.step) {
-      _CostCenterStep.loading => const LinearProgressIndicator(),
-      _CostCenterStep.failed => Row(
+      CostCenterStep.loading => const LinearProgressIndicator(),
+      CostCenterStep.failed => Row(
         children: [
           Expanded(
             child: Text(
@@ -679,7 +624,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           ).tagged('queue_edit.cost_center_retry'),
         ],
       ),
-      _CostCenterStep.pick => _costCenterPicker(l10n, t, state.centers),
+      CostCenterStep.pick => _costCenterPicker(l10n, t, state.centers),
       _ => null,
     };
     return body == null
@@ -758,19 +703,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final cost = _jobCost();
     if (cost == null) return null;
     final currency = ref.watch(currencySymbolProvider);
-    String money(double v) => formatMoney(currency, v.toStringAsFixed(2));
-    final copies = _costCopies;
-    final priced = cost.total > 0 || cost.anyPrice;
     return Padding(
       padding: const EdgeInsets.only(top: DashSpace.xs),
       child: Text(
-        [
-          l10n.queueEstimatedCost(
-            priced ? money(cost.total) : l10n.queueCostNotAvailable,
-          ),
-          if (copies > 1 && cost.total > 0)
-            l10n.queueEstimatedCostForCopies(money(cost.total * copies)),
-        ].join(' · '),
+        jobCostText(l10n, currency, cost, _costCopies),
         style: t.labelSoft,
       ),
     );
@@ -780,10 +716,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// The server refuses it when it does not fit; this says so before the form
   /// is sent.
   Widget? _budgetWarning(DashTokens t, CostCenter? selected) {
-    final cost = _jobCost();
-    final available = selected?.budgetAvailable;
-    if (cost == null || available == null) return null;
-    if (cost.total * _costCopies <= available) return null;
+    if (!jobExceedsBudget(_jobCost(), selected, _costCopies)) return null;
     return Padding(
       padding: const EdgeInsets.only(top: DashSpace.sm),
       child: Text(

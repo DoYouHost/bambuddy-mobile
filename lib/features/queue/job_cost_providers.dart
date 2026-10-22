@@ -1,8 +1,10 @@
+import 'package:app_util/app_util.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ams/job_cost.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../data/inventory_source.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../slicer/slice_providers.dart';
 import 'queue_mapping_sheet.dart';
@@ -65,3 +67,23 @@ final jobCostProvider = FutureProvider.autoDispose.family<JobCost?, JobCostKey>(
     );
   },
 );
+
+/// The preview line under the filament list: the job's cost, with the total for
+/// all the [copies] beside it when there are several. A printer that reports
+/// nothing loaded prices nothing and reads "N/A", as on the web.
+String jobCostText(
+  AppLocalizations l10n,
+  String currency,
+  JobCost cost,
+  int copies,
+) {
+  String money(double v) => formatMoney(currency, v.toStringAsFixed(2));
+  final priced = cost.total > 0 || cost.anyPrice;
+  return [
+    l10n.queueEstimatedCost(
+      priced ? money(cost.total) : l10n.queueCostNotAvailable,
+    ),
+    if (copies > 1 && cost.total > 0)
+      l10n.queueEstimatedCostForCopies(money(cost.total * copies)),
+  ].join(' · ');
+}
