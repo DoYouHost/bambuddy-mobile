@@ -11,6 +11,7 @@ import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_print.dart';
+import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/orders/orders_providers.dart';
 import 'package:bambuddy_mobile/features/queue/job_cost_providers.dart';
@@ -230,15 +231,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Saves the mapping sheet: its button is at the foot of a list that does not
-  /// build it until it is scrolled to.
+  /// Saves the mapping dialog.
   Future<void> confirmSheet(WidgetTester tester) async {
-    await tester.dragUntilVisible(
-      byLogId('queue_mapping.confirm'),
-      find.byType(ListView).last,
-      const Offset(0, -120),
-    );
-    await tester.ensureVisible(byLogId('queue_mapping.confirm'));
     await tester.pumpAndSettle();
     await tester.tap(byLogId('queue_mapping.confirm'));
     await tester.pumpAndSettle();
@@ -641,6 +635,12 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(byLogId('queue_mapping.rack').first);
       await tester.pumpAndSettle();
+      // Six positions in a dialog of a panel's height: the list scrolls.
+      await tester.dragUntilVisible(
+        byLogId('queue_mapping.rack_position_3'),
+        find.byType(ListView).last,
+        const Offset(0, -60),
+      );
       await tester.tap(byLogId('queue_mapping.rack_position_3'));
       await tester.pumpAndSettle();
     }
@@ -1498,5 +1498,128 @@ void main() {
       expect(find.text(pl.queueCostCenterLoadFailed), findsNothing);
       expect(submitButton(tester).onPressed, isNotNull);
     });
+  });
+
+  group('the mapping dialog', () {
+    // A row carries its filament's material in the identifier.
+    Finder byLogIdStarting(String id) => find.byWidgetPredicate(
+      (w) => w is Semantics && (w.properties.identifier ?? '').startsWith(id),
+    );
+
+    Future<void> openMapping(WidgetTester tester) async {
+      await tester.tap(byLogId('controller.print.filament').first);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('is a dialog beside a list, not a bottom sheet', (
+      tester,
+    ) async {
+      await pump(tester);
+
+      await openMapping(tester);
+
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byType(BottomSheet), findsNothing);
+      // The filaments and the way to save them are on one screen.
+      expect(byLogIdStarting('queue_mapping.slot'), findsNWidgets(3));
+      expect(byLogId('queue_mapping.confirm'), findsOneWidget);
+    });
+
+    testWidgets('the close button closes it and changes nothing', (
+      tester,
+    ) async {
+      await pump(tester);
+      await openMapping(tester);
+
+      await tester.tap(byLogId('queue_mapping.close'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Dialog), findsNothing);
+      expect(byLogId('controller.print.reset_mapping'), findsNothing);
+    });
+
+    testWidgets('the slot is picked from a dialog too, and kept', (
+      tester,
+    ) async {
+      await pump(tester);
+      await openMapping(tester);
+
+      await tester.tap(byLogIdStarting('queue_mapping.slot').first);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Dialog), findsNWidgets(2));
+      expect(find.byType(BottomSheet), findsNothing);
+
+      await tester.tap(byLogIdStarting('queue_mapping.tray_option').last);
+      await tester.pumpAndSettle();
+
+      // Only the picker is gone.
+      expect(find.byType(Dialog), findsOneWidget);
+      await tester.tap(byLogId('queue_mapping.confirm'));
+      await tester.pumpAndSettle();
+      expect(find.text(pl.controllerPrintManualMapping), findsOneWidget);
+    });
+
+    testWidgets('the picker closes with its own button', (tester) async {
+      await pump(tester);
+      await openMapping(tester);
+      await tester.tap(byLogIdStarting('queue_mapping.slot').first);
+      await tester.pumpAndSettle();
+
+      await tester.tap(byLogId('queue_mapping.picker_close'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Dialog), findsOneWidget);
+    });
+
+    testWidgets('both dialogs grow with the body on a larger screen', (
+      tester,
+    ) async {
+      Future<double> width(Future<void> Function() open) async {
+        await open();
+        final box = find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(ScaleToFit),
+        );
+        final w = tester.getSize(box.first).width;
+        await tester.tapAt(const Offset(2, 2));
+        await tester.pumpAndSettle();
+        return w;
+      }
+
+      await pump(tester, size: const Size(1280, 800));
+      final mapping = await width(() async {
+        await tester.tap(byLogId('controller.print.filament').first);
+        await tester.pumpAndSettle();
+      });
+      final more = await width(() async {
+        await tester.tap(byLogId('controller.print.more'));
+        await tester.pumpAndSettle();
+      });
+
+      // Laid out for 680 and 560 dp, and drawn bigger: the scale is the body's,
+      // read inside it, not the 1 the screen's own context would give.
+      expect(mapping, greaterThan(680));
+      expect(more, greaterThan(560));
+    });
+
+    for (final locale in AppLocalizations.supportedLocales) {
+      for (final size in const [Size(832, 392), Size(1280, 800)]) {
+        testWidgets('keeps its text its size in ${locale.languageCode} at '
+            '${size.width.round()}x${size.height.round()}', (tester) async {
+          tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+          await pump(tester, locale: locale, size: size);
+          await openMapping(tester);
+
+          expect(tester.takeException(), isNull);
+          expectNothingCut(tester, find.byType(Dialog));
+
+          await tester.tap(byLogIdStarting('queue_mapping.slot').first);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
   });
 }

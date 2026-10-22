@@ -77,6 +77,7 @@ const chamberStep = 5;
 /// closing the dialog by any route loses nothing.
 Future<void> showControllerMoreOptions(
   BuildContext context, {
+  required double scale,
   required Printer printer,
   required PrintOptions options,
   required ControllerJobExtras extras,
@@ -86,8 +87,6 @@ Future<void> showControllerMoreOptions(
   required ValueChanged<PrintOptions> onOptions,
   required ValueChanged<ControllerJobExtras> onExtras,
 }) {
-  // Read here, under the body: the dialog's route is not.
-  final scale = ControllerScale.of(context);
   return showDialog<void>(
     context: context,
     builder: (_) => _MoreDialog(

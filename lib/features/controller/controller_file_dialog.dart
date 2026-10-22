@@ -146,12 +146,20 @@ class _FileDialogState extends ConsumerState<_FileDialog> {
     final folder = folders?.where((f) => f.id == _file.folderId).firstOrNull;
     final mayDelete = mayDeleteLibraryFile(_file, folder);
     final formats = DateTimeFormats.of(context);
-    final facts = [
-      formatBytes(_file.fileSize),
-      ?_file.slicedForModel,
-      if (_file.printTimeSeconds case final s?) formatSeconds(l10n, s),
-      if (_file.filamentUsedGrams case final g?) fmtGrams(g),
-      if (_file.createdAt case final at?) formats.dateTime(at.toLocal()),
+    final facts = <_Fact>[
+      _Fact(Icons.sd_storage_outlined, formatBytes(_file.fileSize)),
+      if (_file.slicedForModel case final model?)
+        _Fact(
+          Icons.print_outlined,
+          model,
+          warn: block == FilePrintBlock.wrongModel,
+        ),
+      if (_file.printTimeSeconds case final s?)
+        _Fact(Icons.schedule_rounded, formatSeconds(l10n, s)),
+      if (_file.filamentUsedGrams case final g?)
+        _Fact(Icons.scale_outlined, fmtGrams(g)),
+      if (_file.createdAt case final at?)
+        _Fact(Icons.event_outlined, formats.dateTime(at.toLocal())),
     ];
     return Dialog(
       insetPadding: const EdgeInsets.all(DashSpace.md),
@@ -216,7 +224,7 @@ class _FileDialogState extends ConsumerState<_FileDialog> {
     );
   }
 
-  Widget _details(DashTokens t, List<String> facts) {
+  Widget _details(DashTokens t, List<_Fact> facts) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -244,9 +252,9 @@ class _FileDialogState extends ConsumerState<_FileDialog> {
         ),
         const SizedBox(height: DashSpace.sm),
         Wrap(
-          spacing: DashSpace.md,
-          runSpacing: DashSpace.xs,
-          children: [for (final fact in facts) Text(fact, style: t.monoLabel)],
+          spacing: DashSpace.sm,
+          runSpacing: DashSpace.sm,
+          children: [for (final fact in facts) _FactPill(fact)],
         ),
       ],
     );
@@ -304,6 +312,51 @@ class _FileDialogState extends ConsumerState<_FileDialog> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// One thing known of the file: what it is told by, and its value.
+class _Fact {
+  const _Fact(this.icon, this.text, {this.warn = false});
+
+  final IconData icon;
+  final String text;
+
+  /// The model this printer cannot take, in the colour the tile's chip has.
+  final bool warn;
+}
+
+class _FactPill extends StatelessWidget {
+  const _FactPill(this.fact);
+
+  final _Fact fact;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final ink = fact.warn ? t.warningInk : t.textSecondary;
+    final radius = BorderRadius.circular(DashSpace.sm);
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.sm,
+        vertical: DashSpace.xs,
+      ),
+      decoration: BoxDecoration(
+        color: fact.warn ? t.warning.withValues(alpha: 0.14) : t.subCard,
+        borderRadius: radius,
+        border: Border.all(
+          color: fact.warn ? t.warning.withValues(alpha: 0.5) : t.subCardBorder,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(fact.icon, size: DashSpace.lg, color: ink),
+          const SizedBox(width: DashSpace.xs),
+          Text(fact.text, style: t.monoLabel.copyWith(color: ink)),
+        ],
+      ),
     );
   }
 }

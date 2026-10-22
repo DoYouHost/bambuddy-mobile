@@ -104,6 +104,10 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
 
   bool _saving = false;
 
+  /// The factor the body is drawn at, for the dialogs this screen opens: they
+  /// are routes of their own and would stay at the design size.
+  double _scale = 1;
+
   Printer get _printer => widget.printer;
   LibraryFile get _file => widget.file;
 
@@ -136,24 +140,31 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
                 const SizedBox(height: DashSpace.md),
                 Expanded(
                   child: ScaleToFit(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(flex: 3, child: _jobCard(l10n)),
-                              const SizedBox(width: DashSpace.md),
-                              Expanded(flex: 4, child: _filamentCard(l10n)),
-                              const SizedBox(width: DashSpace.md),
-                              Expanded(flex: 3, child: _optionsCard(l10n)),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: DashSpace.md),
-                        _bottomBar(l10n),
-                      ],
+                    // The state's own context is above the scale, so the dialogs
+                    // this screen opens take it from here.
+                    child: Builder(
+                      builder: (scaled) {
+                        _scale = ControllerScale.of(scaled);
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(flex: 3, child: _jobCard(l10n)),
+                                  const SizedBox(width: DashSpace.md),
+                                  Expanded(flex: 4, child: _filamentCard(l10n)),
+                                  const SizedBox(width: DashSpace.md),
+                                  Expanded(flex: 3, child: _optionsCard(l10n)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: DashSpace.md),
+                            _bottomBar(l10n),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -459,6 +470,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
           ..clear()
           ..addAll(choice),
       ),
+      dialogScale: _scale,
     );
     if (!mounted) return;
     if (mapping == null) {
@@ -548,6 +560,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
 
   Future<void> _openMore() => showControllerMoreOptions(
     context,
+    scale: _scale,
     printer: _printer,
     options: _options,
     extras: _extras,
