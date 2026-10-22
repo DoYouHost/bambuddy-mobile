@@ -69,7 +69,7 @@ _test-wear avd patrol:
     set -euo pipefail
     running=0
     just _emu-serial {{avd}} >/dev/null 2>&1 && running=1
-    just emu-boot {{avd}}
+    just emu-boot {{avd}} cold
     serial=$(just _emu-serial {{avd}})
     # Shut down only an AVD this run booted; one already running was opened by hand.
     if [ "$running" = 0 ]; then
@@ -93,7 +93,7 @@ test-device avd=avd:
     set -euo pipefail
     running=0
     just _emu-serial {{avd}} >/dev/null 2>&1 && running=1
-    just emu-boot {{avd}}
+    just emu-boot {{avd}} cold
     serial=$(just _emu-serial {{avd}})
     # Shut down only an AVD this run booted; one already running was opened by hand.
     if [ "$running" = 0 ]; then
@@ -189,9 +189,14 @@ _emu-serial avd:
 
 # Idempotent (no-op if the AVD is already online); boots in the background and
 # blocks until Android finishes booting, so local recipes can depend on it.
-[doc('boot a local AVD and wait for it to finish booting')]
+# `cold` boots without loading the quickboot snapshot: the tests pass it, because
+# a snapshot saved from a killed or half-booted run is what hangs the next boot.
+# A boot that has not finished in EMU_BOOT_TIMEOUT seconds (default 180) is killed
+# and tried again, up to three times; an emulator that hangs reads as `offline`
+# in adb, and nothing waiting on it would ever give up.
+[doc('boot a local AVD, retrying a hung boot, and wait for it to finish')]
 [group('2-emulator')]
-emu-boot avd=avd:
+emu-boot avd=avd cold='':
     #!/usr/bin/env bash
     set -euo pipefail
     if serial=$(just _emu-serial {{avd}} 2>/dev/null); then
@@ -203,20 +208,33 @@ emu-boot avd=avd:
         just emu-list >&2
         exit 1
     fi
-    "{{emulator_bin}}" -avd {{avd}} >/dev/null 2>&1 &
-    disown
-    echo "Booting {{avd}}..."
-    for _ in $(seq 1 60); do
-        serial=$(just _emu-serial {{avd}} 2>/dev/null || true)
-        [ -n "${serial:-}" ] && break
-        sleep 2
+    flags=()
+    [ "{{cold}}" = cold ] && flags+=(-no-snapshot-load)
+    timeout_s=${EMU_BOOT_TIMEOUT:-180}
+    attempts=3
+    for attempt in $(seq 1 "$attempts"); do
+        "{{emulator_bin}}" -avd {{avd}} "${flags[@]}" >/dev/null 2>&1 &
+        pid=$!
+        disown
+        echo "Booting {{avd}}... (attempt $attempt of $attempts)"
+        deadline=$((SECONDS + timeout_s))
+        while [ "$SECONDS" -lt "$deadline" ]; do
+            serial=$(timeout 20 just _emu-serial {{avd}} 2>/dev/null || true)
+            if [ -n "${serial:-}" ] &&
+                [ "$(timeout 10 adb -s "$serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then
+                echo "{{avd}} ready ($serial)"
+                exit 0
+            fi
+            sleep 2
+        done
+        # SIGKILL, not a polite stop: a polite one lets a hung emulator save its
+        # half-booted state as the next quickboot snapshot.
+        echo "{{avd}} did not finish booting in ${timeout_s}s; killing it" >&2
+        kill -9 "$pid" 2>/dev/null || true
+        sleep 3
     done
-    [ -n "${serial:-}" ] || { echo "{{avd}} did not come up" >&2; exit 1; }
-    adb -s "$serial" wait-for-device
-    until [ "$(adb -s "$serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
-        sleep 2
-    done
-    echo "{{avd}} ready ($serial)"
+    echo "{{avd}} did not boot after $attempts attempts" >&2
+    exit 1
 
 [doc('list local AVDs, marking which are running')]
 [group('2-emulator')]

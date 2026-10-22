@@ -51,6 +51,14 @@ than a bump.
 Google APIs, x86_64). Hardware acceleration needs `/dev/kvm` to be usable by your
 user (`emulator -accel-check`).
 
+`emu-boot` kills a boot that has not finished in `EMU_BOOT_TIMEOUT` seconds (180 by
+default) and tries again, three times in all: a hung emulator shows as `offline` in
+adb, and nothing waiting on it would ever give up. The test recipes boot with
+`cold`, which adds `-no-snapshot-load`; a snapshot saved from a killed or half-booted
+run is what hangs the next boot, and the hung one is killed with SIGKILL so it cannot
+save one. An emulator that was already hung before `emu-boot` ran is not found by it
+(it reads as not running) and blocks the AVD's lock; kill that process by PID first.
+
 - **A narrow-screen AVD catches layout bugs the default one hides.** Create one
   from the *Galaxy Nexus* device profile, API 35 Google APIs x86_64, 720×1280 at
   320 dpi — 360 dp wide, against 411 dp for the Pixel 7. The justfile mentions it as
