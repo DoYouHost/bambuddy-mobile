@@ -47,19 +47,22 @@ class ControllerFiles extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Header(state: state),
+        _Header(state: state, loading: async.isLoading),
         const SizedBox(height: DashSpace.md),
         Expanded(
           child: Container(
             decoration: t.cardBox,
             padding: const EdgeInsets.all(DashSpace.sm),
+            // The error first: a failed refresh or a failed step into a folder
+            // keeps the listing it came from as `valueOrNull`, and showing that
+            // would leave the user looking at the old folder with no word.
             child: switch ((state, async)) {
+              (_, AsyncError(:final error)) => _Failure(error: error),
               (final s?, _) => _Grid(
                 state: s,
                 printerModel: model,
                 refreshing: async.isLoading,
               ),
-              (_, AsyncError(:final error)) => _Failure(error: error),
               _ => const Center(child: CircularProgressIndicator()),
             },
           ),
@@ -71,9 +74,12 @@ class ControllerFiles extends ConsumerWidget {
 
 /// Up, where the user is, the sort, and a refresh.
 class _Header extends ConsumerWidget {
-  const _Header({required this.state});
+  const _Header({required this.state, required this.loading});
 
   final FileManagerState? state;
+
+  /// A listing is on its way: what the buttons would act on is about to change.
+  final bool loading;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -92,9 +98,12 @@ class _Header extends ConsumerWidget {
           id: 'controller.files.up',
           tooltip: l10n.pfmUp,
           icon: Icons.arrow_upward_rounded,
-          onPressed: folder == null
+          // Not while a step is in flight, which would read the folder it is
+          // leaving; and a folder the tree no longer holds still has a way out,
+          // to the root.
+          onPressed: s?.currentFolderId == null || loading
               ? null
-              : () => notifier.openFolder(folder.parentId),
+              : () => notifier.openFolder(folder?.parentId),
         ),
         const SizedBox(width: DashSpace.sm),
         Expanded(
@@ -143,7 +152,7 @@ class _Header extends ConsumerWidget {
           id: 'controller.files.refresh',
           tooltip: l10n.pfmRefreshTooltip,
           icon: Icons.refresh_rounded,
-          onPressed: notifier.refresh,
+          onPressed: s == null || loading ? null : notifier.refresh,
         ),
       ],
     );
@@ -242,7 +251,9 @@ class _Grid extends ConsumerWidget {
             itemBuilder: (context, i) => i < folders.length
                 ? _FolderTile(
                     folder: folders[i],
-                    onTap: () => notifier.openFolder(folders[i].id),
+                    onTap: refreshing
+                        ? null
+                        : () => notifier.openFolder(folders[i].id),
                   )
                 : _FileTile(
                     file: files[i - folders.length],
@@ -318,7 +329,7 @@ class _FolderTile extends StatelessWidget {
   const _FolderTile({required this.folder, required this.onTap});
 
   final LibraryFolder folder;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

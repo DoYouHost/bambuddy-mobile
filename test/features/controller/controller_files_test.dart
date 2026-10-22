@@ -29,6 +29,10 @@ class _Library extends FileManagerNotifier {
     this.filesByFolder = const {},
     this.failWith,
     this.gate,
+    this.startFolderId,
+    this.openFailsWith,
+    this.openGate,
+    this.refreshGate,
   });
 
   final List<LibraryFolder> folders;
@@ -42,8 +46,22 @@ class _Library extends FileManagerNotifier {
   /// Held until completed, to look at the loading state.
   final Completer<void>? gate;
 
+  /// The folder the library opens in; one the tree does not hold, to see the
+  /// way out of it.
+  final int? startFolderId;
+
+  /// What a step into a folder fails with, after the first listing succeeded.
+  final Object? openFailsWith;
+
+  /// Holds a step into a folder, and a refresh, until completed.
+  final Completer<void>? openGate;
+  final Completer<void>? refreshGate;
+
   /// How often the library was built, which is how often it is fetched.
   final builds = <int>[];
+
+  /// How often it was let go of.
+  final disposals = <int>[];
 
   /// What the tab asked of it, in order.
   final calls = <String>[];
@@ -51,19 +69,33 @@ class _Library extends FileManagerNotifier {
   @override
   Future<FileManagerState> build() async {
     builds.add(builds.length + 1);
+    ref.onDispose(() => disposals.add(disposals.length + 1));
     await gate?.future;
     if (failWith != null) throw failWith!;
     return FileManagerState(
       allFolders: folders,
-      files: filesByFolder[null] ?? const [],
+      currentFolderId: startFolderId,
+      files: filesByFolder[startFolderId] ?? const [],
     );
   }
 
   @override
   Future<void> openFolder(int? folderId) async {
     calls.add('open $folderId');
+    final before = state;
+    if (openGate != null || openFailsWith != null) {
+      state = const AsyncLoading<FileManagerState>().copyWithPrevious(before);
+      await openGate?.future;
+      if (openFailsWith != null) {
+        state = AsyncError<FileManagerState>(
+          openFailsWith!,
+          StackTrace.empty,
+        ).copyWithPrevious(before);
+        return;
+      }
+    }
     state = AsyncData(
-      state.requireValue.copyWith(
+      before.requireValue.copyWith(
         currentFolderId: folderId,
         clearCurrentFolder: folderId == null,
         files: filesByFolder[folderId] ?? const [],
@@ -72,7 +104,15 @@ class _Library extends FileManagerNotifier {
   }
 
   @override
-  Future<void> refresh() async => calls.add('refresh');
+  Future<void> refresh() async {
+    calls.add('refresh');
+    final gate = refreshGate;
+    if (gate == null) return;
+    final before = state;
+    state = const AsyncLoading<FileManagerState>().copyWithPrevious(before);
+    await gate.future;
+    state = before;
+  }
 }
 
 LibraryFile _file(
@@ -205,6 +245,17 @@ void main() {
       await openFiles(tester);
 
       expect(library.builds, hasLength(1));
+    });
+
+    testWidgets('leaving the controller lets the library go', (tester) async {
+      await pump(tester);
+      await openFiles(tester);
+      expect(library.disposals, isEmpty);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+
+      expect(library.disposals, hasLength(1));
     });
 
     testWidgets('a keyboard does not resize the body', (tester) async {
@@ -429,6 +480,137 @@ void main() {
       await settle(tester);
 
       expect(library.calls, ['refresh']);
+    });
+  });
+
+  group('when something goes wrong after the first listing', () {
+    _Library tree({
+      Object? openFailsWith,
+      Completer<void>? openGate,
+      Completer<void>? refreshGate,
+    }) => _Library(
+      folders: const [
+        LibraryFolder(id: 1, name: 'Alpha'),
+        LibraryFolder(id: 2, name: 'Bravo'),
+      ],
+      filesByFolder: {
+        null: [_file(10, 'benchy.gcode.3mf', model: 'P1S')],
+      },
+      openFailsWith: openFailsWith,
+      openGate: openGate,
+      refreshGate: refreshGate,
+    );
+
+    FilledButton button(WidgetTester tester, String id) =>
+        tester.widget<FilledButton>(
+          find.descendant(of: byLogId(id), matching: find.byType(FilledButton)),
+        );
+
+    testWidgets('a failed step into a folder says so, not the old folder', (
+      tester,
+    ) async {
+      await pump(tester, lib: tree(openFailsWith: Exception('down')));
+      await openFiles(tester);
+
+      await tester.tap(find.text('Alpha'));
+      await settle(tester);
+
+      expect(find.text(pl.connectFailed), findsOneWidget);
+      expect(find.text('benchy.gcode.3mf'), findsNothing);
+    });
+
+    testWidgets('while a step is under way Up and the folders wait', (
+      tester,
+    ) async {
+      final gate = Completer<void>();
+      await pump(tester, lib: tree(openGate: gate));
+      await openFiles(tester);
+
+      await tester.tap(find.text('Alpha'));
+      await tester.pump();
+      await tester.tap(find.text('Bravo'), warnIfMissed: false);
+      await tester.pump();
+
+      expect(library.calls, ['open 1']);
+      expect(button(tester, 'controller.files.up').onPressed, isNull);
+
+      gate.complete();
+      await settle(tester);
+    });
+
+    testWidgets('Up pressed twice does not step to the same folder twice', (
+      tester,
+    ) async {
+      final gate = Completer<void>();
+      await pump(
+        tester,
+        lib: _Library(
+          folders: const [
+            LibraryFolder(id: 1, name: 'Alpha'),
+            LibraryFolder(id: 3, name: 'Charlie', parentId: 1),
+          ],
+          startFolderId: 3,
+          openGate: gate,
+        ),
+      );
+      await openFiles(tester);
+
+      await tester.tap(byLogId('controller.files.up'));
+      await tester.pump();
+      expect(button(tester, 'controller.files.up').onPressed, isNull);
+      await tester.tap(byLogId('controller.files.up'), warnIfMissed: false);
+      await tester.pump();
+
+      // The second press would have read Charlie again and sent Alpha again,
+      // where the user meant the root.
+      expect(library.calls, ['open 1']);
+
+      gate.complete();
+      await settle(tester);
+    });
+
+    testWidgets('a folder the tree does not hold still has a way up', (
+      tester,
+    ) async {
+      await pump(tester, lib: _Library(startFolderId: 7));
+      await openFiles(tester);
+
+      expect(button(tester, 'controller.files.up').onPressed, isNotNull);
+
+      await tester.tap(byLogId('controller.files.up'));
+      await settle(tester);
+
+      expect(library.calls, ['open null']);
+    });
+
+    testWidgets('Refresh is off while nothing is loaded', (tester) async {
+      await pump(tester, lib: _Library(failWith: Exception('down')));
+      await openFiles(tester);
+
+      expect(button(tester, 'controller.files.refresh').onPressed, isNull);
+    });
+
+    testWidgets('a refresh shows its progress and then is over', (
+      tester,
+    ) async {
+      final gate = Completer<void>();
+      await pump(tester, lib: tree(refreshGate: gate));
+      await openFiles(tester);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+
+      await tester.tap(byLogId('controller.files.refresh'));
+      await tester.pump();
+
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(button(tester, 'controller.files.refresh').onPressed, isNull);
+      // The listing stays while it is refreshed.
+      expect(find.text('benchy.gcode.3mf'), findsOneWidget);
+
+      gate.complete();
+      await settle(tester);
+
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      expect(button(tester, 'controller.files.refresh').onPressed, isNotNull);
     });
   });
 
