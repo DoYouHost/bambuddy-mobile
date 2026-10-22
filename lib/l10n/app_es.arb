@@ -4016,6 +4016,7 @@
   "controllerNoChamberHeater": "Sin calefactor de cámara",
   "controllerMoveLocked": "Los ejes están bloqueados durante la impresión",
   "controllerTabFilament": "Filamento",
+  "controllerTabFiles": "Archivos",
   "controllerExtruder": "Extrusor",
   "controllerEditSlot": "Editar ranura",
   "controllerTouchToWake": "Toca para activar",

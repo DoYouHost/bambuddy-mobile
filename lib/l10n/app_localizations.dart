@@ -13340,6 +13340,12 @@ abstract class AppLocalizations {
   /// **'Filament'**
   String get controllerTabFilament;
 
+  /// Controller tab with the server's file library: browse, upload and print a file on this printer
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get controllerTabFiles;
+
   /// No description provided for @controllerExtruder.
   ///
   /// In en, this message translates to:

@@ -8044,6 +8044,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get controllerTabFilament => 'Filamento';
 
   @override
+  String get controllerTabFiles => 'Archivos';
+
+  @override
   String get controllerExtruder => 'Extrusor';
 
   @override

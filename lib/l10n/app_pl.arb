@@ -3327,6 +3327,7 @@
   "controllerNoChamberHeater": "Komora bez grzałki",
   "controllerMoveLocked": "Osie są zablokowane podczas druku",
   "controllerTabFilament": "Filament",
+  "controllerTabFiles": "Pliki",
   "controllerExtruder": "Ekstruder",
   "controllerEditSlot": "Edytuj slot",
   "controllerTouchToWake": "Dotknij, aby wybudzić",

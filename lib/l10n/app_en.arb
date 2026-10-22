@@ -5279,6 +5279,10 @@
   "@controllerTabFilament": {
     "description": "Controller tab with the AMS units, their slots and the external spool"
   },
+  "controllerTabFiles": "Files",
+  "@controllerTabFiles": {
+    "description": "Controller tab with the server's file library: browse, upload and print a file on this printer"
+  },
   "controllerExtruder": "Extruder",
   "controllerEditSlot": "Edit slot",
   "@controllerEditSlot": {

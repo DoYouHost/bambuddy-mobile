@@ -8117,6 +8117,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get controllerTabFilament => 'Filament';
 
   @override
+  String get controllerTabFiles => 'Fichiers';
+
+  @override
   String get controllerExtruder => 'Extrudeur';
 
   @override

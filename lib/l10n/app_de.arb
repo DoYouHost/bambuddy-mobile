@@ -4016,6 +4016,7 @@
   "controllerNoChamberHeater": "Keine Kammerheizung",
   "controllerMoveLocked": "Die Achsen sind während des Drucks gesperrt",
   "controllerTabFilament": "Filament",
+  "controllerTabFiles": "Dateien",
   "controllerExtruder": "Extruder",
   "controllerEditSlot": "Slot bearbeiten",
   "controllerTouchToWake": "Zum Aufwecken berühren",

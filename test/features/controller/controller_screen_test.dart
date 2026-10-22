@@ -240,12 +240,16 @@ void main() {
       expect(byLogId(tab.logId), findsOneWidget);
     }
     // The tabs scroll inside what the name and the state leave them, so look at
-    // where things sit: they keep clear of the name on one side.
+    // where things sit: they keep clear of the name on one side, and the last
+    // one, once scrolled to, clears the state on the other. Before the scroll
+    // its rectangle lies past the edge of the viewport, under the state.
     final name = tester.getRect(find.text('Pracownia X1C numer dwa'));
     final first = tester.getRect(byLogId(ControllerTab.values.first.logId));
-    final last = tester.getRect(byLogId(ControllerTab.values.last.logId));
     final state = tester.getRect(find.text('PREPARE'));
     expect(name.right, lessThanOrEqualTo(first.left));
+    await tester.ensureVisible(byLogId(ControllerTab.values.last.logId));
+    await tester.pump();
+    final last = tester.getRect(byLogId(ControllerTab.values.last.logId));
     expect(last.right, lessThanOrEqualTo(state.left));
   });
 

@@ -4016,6 +4016,7 @@
   "controllerNoChamberHeater": "Pas de chauffage de chambre",
   "controllerMoveLocked": "Les axes sont verrouillés pendant l'impression",
   "controllerTabFilament": "Filament",
+  "controllerTabFiles": "Fichiers",
   "controllerExtruder": "Extrudeur",
   "controllerEditSlot": "Modifier l'emplacement",
   "controllerTouchToWake": "Touchez pour réveiller",

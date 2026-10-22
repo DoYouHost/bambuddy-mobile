@@ -12,8 +12,10 @@ import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../dashboard/widgets/printer_state_pill.dart';
 import '../dashboard/ws_providers.dart';
+import '../files/file_manager_providers.dart';
 import '../wall/wall_providers.dart';
 import 'controller_filament.dart';
+import 'controller_files.dart';
 import 'controller_heat.dart';
 import 'controller_move.dart';
 import 'controller_overview.dart';
@@ -43,6 +45,7 @@ enum ControllerTab {
   heat,
   move,
   filament,
+  files,
   settings;
 
   String label(AppLocalizations l10n) => switch (this) {
@@ -50,6 +53,7 @@ enum ControllerTab {
     ControllerTab.heat => l10n.controllerTabHeat,
     ControllerTab.move => l10n.ctrlMove,
     ControllerTab.filament => l10n.controllerTabFilament,
+    ControllerTab.files => l10n.controllerTabFiles,
     ControllerTab.settings => l10n.controllerTabSettings,
   };
 
@@ -59,6 +63,7 @@ enum ControllerTab {
     ControllerTab.heat => 'controller.tab_heat',
     ControllerTab.move => 'controller.tab_move',
     ControllerTab.filament => 'controller.tab_filament',
+    ControllerTab.files => 'controller.tab_files',
     ControllerTab.settings => 'controller.tab_settings',
   };
 }
@@ -86,6 +91,19 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
   late final _OpenScreens _open;
   final _debounce = OfflineDebounce();
   ControllerTab _tab = ControllerTab.overview;
+
+  /// Keeps the library's folder and search state while another tab is showing:
+  /// the provider is autoDispose, and the user would otherwise land at the root
+  /// each time they came back. Opened by the first visit to Files, so nothing is
+  /// fetched for someone who never looks; the state closes it with the screen.
+  ProviderSubscription<AsyncValue<FileManagerState>>? _library;
+
+  void _selectTab(ControllerTab tab) {
+    if (tab == ControllerTab.files) {
+      _library ??= ref.listenManual(fileManagerProvider, (_, _) {});
+    }
+    setState(() => _tab = tab);
+  }
 
   // No status at all is a roster without a frame: unreachable, as the printer
   // card reads it. A printer that is not in the roster says nothing either way.
@@ -159,6 +177,9 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
       child: DashBackground(
         child: Scaffold(
           backgroundColor: Colors.transparent,
+          // A keyboard must not shrink the body: every tab is scaled to the room
+          // it has, so a smaller room would rescale the whole controller.
+          resizeToAvoidBottomInset: false,
           // Not the sides: Android reports a camera cutout as an inset down the
           // whole edge, though the hole is a small circle, and the strip it
           // left was the widest empty space on the screen. The gutter keeps
@@ -181,7 +202,7 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
                       item: item,
                       offline: _debounce.offline,
                       tab: _tab,
-                      onTab: (tab) => setState(() => _tab = tab),
+                      onTab: _selectTab,
                     )
                   else
                     const _BareBar(),
@@ -209,6 +230,9 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
                                 printerId: widget.printerId,
                               ),
                               ControllerTab.filament => ControllerFilament(
+                                printerId: widget.printerId,
+                              ),
+                              ControllerTab.files => ControllerFiles(
                                 printerId: widget.printerId,
                               ),
                               ControllerTab.settings =>
