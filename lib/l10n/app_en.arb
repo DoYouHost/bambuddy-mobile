@@ -5345,6 +5345,35 @@
   "@controllerPrintOptions": {
     "description": "Title of the card with the print options (calibrations, timelapse, the start time) on the controller's print screen"
   },
+  "controllerPrintMore": "More",
+  "@controllerPrintMore": {
+    "description": "Button of the print screen's options card that opens the rest of the print options"
+  },
+  "controllerPrintMoreTitle": "More options",
+  "@controllerPrintMoreTitle": {
+    "description": "Title of the dialog with the print options the print screen does not show: cost center, calibrations, preheat and the queue switches"
+  },
+  "controllerPrintCostCenter": "Cost center: {name}",
+  "@controllerPrintCostCenter": {
+    "description": "Line under the filament list of the controller's print screen while billing is on; the placeholder is the center the job is booked to",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "controllerPrintNoCostCenter": "No cost center to print on",
+  "@controllerPrintNoCostCenter": {
+    "description": "Line on the controller's print screen: billing is on and this account may book to no active cost center"
+  },
+  "controllerPrintCostCentersRefused": "Cost centers can't be read with this login",
+  "@controllerPrintCostCentersRefused": {
+    "description": "Line on the controller's print screen: billing is on and this session may not list its cost centers"
+  },
+  "controllerPrintChamber": "Chamber target",
+  "@controllerPrintChamber": {
+    "description": "Label of the chamber temperature stepper in the controller's print options"
+  },
   "controllerPrintWrongModel": "Sliced for {model}; this printer is a {printer}.",
   "@controllerPrintWrongModel": {
     "description": "Line on the controller's print screen when the file was sliced for a model this printer cannot take",

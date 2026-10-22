@@ -8000,6 +8000,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controllerPrintOptions => 'Options';
 
   @override
+  String get controllerPrintMore => 'More';
+
+  @override
+  String get controllerPrintMoreTitle => 'More options';
+
+  @override
+  String controllerPrintCostCenter(String name) {
+    return 'Cost center: $name';
+  }
+
+  @override
+  String get controllerPrintNoCostCenter => 'No cost center to print on';
+
+  @override
+  String get controllerPrintCostCentersRefused =>
+      'Cost centers can\'t be read with this login';
+
+  @override
+  String get controllerPrintChamber => 'Chamber target';
+
+  @override
   String controllerPrintWrongModel(String model, String printer) {
     return 'Sliced for $model; this printer is a $printer.';
   }

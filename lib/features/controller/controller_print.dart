@@ -9,7 +9,6 @@ import '../../core/ams/slot_addressing.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/format/filament_colour.dart';
-import '../../core/models/calibration_option.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/plate_list.dart';
 import '../../core/models/printer.dart';
@@ -22,6 +21,8 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
 import '../files/library_thumbnail.dart';
+import '../queue/job_cost_providers.dart';
+import '../queue/queue_cost_center_state.dart';
 import '../queue/queue_create_service.dart';
 import '../queue/queue_edit_screen.dart';
 import '../queue/queue_mapping_sheet.dart';
@@ -31,6 +32,8 @@ import '../slicer/slice_providers.dart';
 import '../stats/stats_common.dart';
 import '../orders/orders_providers.dart';
 import 'controller_controls.dart';
+import 'controller_print_more.dart';
+import 'controller_print_parts.dart';
 import 'controller_providers.dart';
 import 'scale_to_fit.dart';
 
@@ -90,6 +93,9 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
   /// reads as picks made by hand, and the automatic match would stop following
   /// the AMS.
   List<int>? _manualMapping;
+
+  /// The switches and the cost centre of the "More options" dialog.
+  ControllerJobExtras _extras = const ControllerJobExtras();
 
   /// Nozzle-rack positions by filament group, written back by the mapping
   /// sheet while it is open.
@@ -163,6 +169,16 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
   PlateSource get _plateSource =>
       (isArchive: false, id: _file.id, plate: _plateId ?? 1);
 
+  /// What the cost preview prices: the plate, the printer and the slots picked
+  /// by hand. An empty mapping is matched by the provider as the submit will.
+  JobCostKey get _costKey => (
+    isArchive: false,
+    id: _file.id,
+    plate: _plateId ?? 1,
+    printerId: _printer.id,
+    mapping: mappingKey(_manualMapping),
+  );
+
   Widget _jobCard(AppLocalizations l10n) {
     final t = DashTokens.of(context);
     final plates =
@@ -216,7 +232,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
           ),
           const Spacer(),
           if (plates.isMultiPlate) ...[
-            _Stepper(
+            PrintStepper(
               id: 'controller.print.plate',
               label: l10n.queueEditPlate,
               value: plates.byIndex(_plateId ?? 1)?.name ?? '${_plateId ?? 1}',
@@ -230,7 +246,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
             const SizedBox(height: DashSpace.sm),
           ],
           if (copiesOffered)
-            _Stepper(
+            PrintStepper(
               id: 'controller.print.copies',
               label: l10n.queueEditCopies,
               value: '$_copies',
@@ -321,7 +337,83 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
                     ),
                   ),
           ),
+          ?_costFooter(l10n, t),
         ],
+      ),
+    );
+  }
+
+  /// The job's estimated cost and, while billing is on, the centre it is booked
+  /// to. A tap on the centre opens the dialog where it is changed.
+  Widget? _costFooter(AppLocalizations l10n, DashTokens t) {
+    final cost = ref.watch(jobCostProvider(_costKey)).valueOrNull;
+    final billing = costCenterStateOf(ref.watch);
+    final selected = billing.step == CostCenterStep.pick
+        ? selectedCostCenter(billing.centers, _extras.costCenterId)
+        : null;
+    final lines = <Widget>[
+      if (cost != null)
+        Text(
+          jobCostText(l10n, ref.watch(currencySymbolProvider), cost, _copies),
+          style: t.labelSoft,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      if (selected != null)
+        logTag(
+          'controller.print.cost_center',
+          InkWell(
+            onTap: _openMore,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
+              child: Text(
+                l10n.controllerPrintCostCenter(
+                  selected.isPrivate
+                      ? l10n.queueCostCenterPersonal(selected.name)
+                      : selected.name,
+                ),
+                style: t.bodyBold,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ),
+      if (jobExceedsBudget(cost, selected, _copies))
+        Text(
+          l10n.queueInsufficientBudget,
+          style: t.labelSoft.copyWith(color: t.dangerInk),
+          // The one line that says why the server will refuse the job.
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      if (billing.step == CostCenterStep.failed)
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                l10n.queueCostCenterLoadFailed,
+                style: t.labelSoft.copyWith(color: t.warningInk),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            logTag(
+              'controller.print.cost_center_retry',
+              TextButton(
+                onPressed: () => ref.invalidate(printableCostCentersProvider),
+                child: Text(l10n.retry),
+              ),
+            ),
+          ],
+        ),
+    ];
+    if (lines.isEmpty) return null;
+    return Padding(
+      padding: const EdgeInsets.only(top: DashSpace.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: lines,
       ),
     );
   }
@@ -376,43 +468,48 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     final triState = _triState;
     return ControllerCard.single(
       title: l10n.controllerPrintOptions,
+      trailing: logTag(
+        'controller.print.more',
+        TextButton(onPressed: _openMore, child: Text(l10n.controllerPrintMore)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _OptionRow(
+          PrintOptionRow(
             id: 'controller.print.bed_levelling',
             label: l10n.queueOptBedLevelling,
-            value: _calibrationLabel(l10n, _options.bedLevelling, triState),
+            value: calibrationLabel(l10n, _options.bedLevelling, triState),
             onTap: () => setState(
-              () => _options = _copy(
-                bed: _nextCalibration(_options.bedLevelling, triState),
+              () => _options = _options.copyWith(
+                bedLevelling: nextCalibration(_options.bedLevelling, triState),
               ),
             ),
           ),
           const SizedBox(height: DashSpace.xs),
-          _OptionRow(
+          PrintOptionRow(
             id: 'controller.print.flow_cali',
             label: l10n.queueOptFlowCali,
-            value: _calibrationLabel(l10n, _options.flowCali, triState),
+            value: calibrationLabel(l10n, _options.flowCali, triState),
             onTap: () => setState(
-              () => _options = _copy(
-                flow: _nextCalibration(_options.flowCali, triState),
+              () => _options = _options.copyWith(
+                flowCali: nextCalibration(_options.flowCali, triState),
               ),
             ),
           ),
           const SizedBox(height: DashSpace.xs),
-          _OptionRow(
+          PrintOptionRow(
             id: 'controller.print.timelapse',
             label: l10n.queueOptTimelapse,
             value: _options.timelapse ? l10n.commonOn : l10n.commonOff,
             on: _options.timelapse,
             onTap: () => setState(
-              () => _options = _copy(timelapse: !_options.timelapse),
+              () =>
+                  _options = _options.copyWith(timelapse: !_options.timelapse),
             ),
           ),
           if (_when == QueueScheduleType.scheduled) ...[
             const SizedBox(height: DashSpace.xs),
-            _OptionRow(
+            PrintOptionRow(
               id: 'controller.print.pick_time',
               label: l10n.queueEditPickTime,
               value: _scheduledTime == null
@@ -427,45 +524,17 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     );
   }
 
-  PrintOptions _copy({
-    CalibrationOption? bed,
-    CalibrationOption? flow,
-    bool? timelapse,
-  }) => PrintOptions(
-    bedLevelling: bed ?? _options.bedLevelling,
-    flowCali: flow ?? _options.flowCali,
-    vibrationCali: _options.vibrationCali,
-    layerInspect: _options.layerInspect,
-    timelapse: timelapse ?? _options.timelapse,
-    nozzleOffsetCali: _options.nozzleOffsetCali,
-    gcodeInjection: _options.gcodeInjection,
+  Future<void> _openMore() => showControllerMoreOptions(
+    context,
+    printer: _printer,
+    options: _options,
+    extras: _extras,
+    when: _when,
+    copies: _copies,
+    costKey: _costKey,
+    onOptions: (next) => setState(() => _options = next),
+    onExtras: (next) => setState(() => _extras = next),
   );
-
-  /// Auto, On, Off round again where the server can keep `auto`; On and Off
-  /// where it cannot, which is what the form's switch does too.
-  CalibrationOption _nextCalibration(CalibrationOption now, bool triState) {
-    if (!triState) {
-      return now.asSwitch ? CalibrationOption.off : CalibrationOption.on;
-    }
-    return switch (now) {
-      CalibrationOption.auto => CalibrationOption.on,
-      CalibrationOption.on => CalibrationOption.off,
-      CalibrationOption.off => CalibrationOption.auto,
-    };
-  }
-
-  String _calibrationLabel(
-    AppLocalizations l10n,
-    CalibrationOption value,
-    bool triState,
-  ) {
-    if (!triState) return value.asSwitch ? l10n.commonOn : l10n.commonOff;
-    return switch (value) {
-      CalibrationOption.auto => l10n.commonAuto,
-      CalibrationOption.on => l10n.commonOn,
-      CalibrationOption.off => l10n.commonOff,
-    };
-  }
 
   // --- Bottom bar ---
 
@@ -482,6 +551,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
       startFrom: _manualMapping,
     );
     final unmapped = comparison.where((c) => c.loaded == null).length;
+    final billing = costCenterStateOf(ref.watch).step;
     final String note;
     var warn = true;
     if (!compatible) {
@@ -491,6 +561,10 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
       );
     } else if (unmapped > 0) {
       note = l10n.controllerPrintUnmapped(unmapped);
+    } else if (billing == CostCenterStep.none) {
+      note = l10n.controllerPrintNoCostCenter;
+    } else if (billing == CostCenterStep.refused) {
+      note = l10n.controllerPrintCostCentersRefused;
     } else {
       warn = false;
       note = status?.connected == false
@@ -501,7 +575,12 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
           ? l10n.queueEditAwaitingReviewNote
           : '';
     }
-    final canPrint = !_saving && item != null && compatible && reqs != null;
+    final canPrint =
+        !_saving &&
+        item != null &&
+        compatible &&
+        reqs != null &&
+        costCenterAllowsCreate(billing);
     return SizedBox(
       height: controllerButtonHeight,
       child: Row(
@@ -522,8 +601,13 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
               l10n.queueScheduleSchedule,
             ],
             selected: _when.index,
-            onChanged: (i) =>
-                setState(() => _when = QueueScheduleType.values[i]),
+            onChanged: (i) => setState(() {
+              _when = QueueScheduleType.values[i];
+              // Staged for a manual start only in Queue, as the form has it.
+              if (_when != QueueScheduleType.queue) {
+                _extras = _extras.copyWith(requireManualStart: false);
+              }
+            }),
           ),
           const SizedBox(width: DashSpace.md),
           logTag(
@@ -583,17 +667,17 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
             copies: _copies,
             insertAtTop: _when == QueueScheduleType.asap,
             plateId: _plateId,
-            confirmOutcomeChoice: null,
+            confirmOutcomeChoice: _extras.confirmOutcome,
             confirmOutcomeSticky: false,
             buildOptions: () => QueueCreateOptions(
               amsMapping: mapping,
               scheduledTime: _when == QueueScheduleType.scheduled
                   ? _scheduledTime?.toUtc().toIso8601String()
                   : null,
-              requirePreviousSuccess: false,
-              autoOffAfter: false,
+              requirePreviousSuccess: _extras.requirePreviousSuccess,
+              autoOffAfter: _extras.autoOffAfter,
               // A user held for review always waits, whatever they chose.
-              manualStart: held,
+              manualStart: held || _extras.requireManualStart,
               bedLevelling: _options.bedLevelling,
               flowCali: _options.flowCali,
               vibrationCali: _options.vibrationCali,
@@ -601,7 +685,9 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
               timelapse: _options.timelapse,
               nozzleOffsetCali: _dualNozzle ? _options.nozzleOffsetCali : null,
               gcodeInjection: _injectionPayload,
-              preheatOverride: 'inherit',
+              preheatOverride: _extras.preheatOverride,
+              preheatChamberTargetOverride: _chamberPayload,
+              costCenterId: _costCenterPayload,
               nozzleRackChoice: _rack,
             ),
           ),
@@ -617,6 +703,20 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     messenger.snack(queueWriteMessage(l10n, outcome) ?? l10n.queueCreateAdded);
     if (outcome.isOk) navigator.pop(true);
   }
+
+  /// Off sends no target; otherwise the stepper's, within what the server takes.
+  int? get _chamberPayload {
+    final target = _extras.chamberTarget;
+    if (_extras.preheatOverride == 'off' || target == null) return null;
+    return target.clamp(0, ref.read(chamberMaxTargetProvider));
+  }
+
+  /// The centre the job is booked to; null leaves the key out, as on a server
+  /// without billing.
+  int? get _costCenterPayload => selectedCostCenter(
+    costCenterStateOf(ref.read).centers,
+    _extras.costCenterId,
+  )?.id;
 
   bool get _dualNozzle =>
       queueDualNozzleModels.contains(_printer.model?.toUpperCase());
@@ -797,73 +897,6 @@ class _WhenChoices extends StatelessWidget {
   }
 }
 
-/// A − / + row with the value between: plate and copies.
-class _Stepper extends StatelessWidget {
-  const _Stepper({
-    required this.id,
-    required this.label,
-    required this.value,
-    required this.onLess,
-    required this.onMore,
-    this.lessTooltip,
-    this.moreTooltip,
-  });
-
-  final String id;
-  final String label;
-  final String value;
-  final VoidCallback? onLess;
-  final VoidCallback? onMore;
-  final String? lessTooltip;
-  final String? moreTooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    Widget button(
-      String suffix,
-      IconData icon,
-      VoidCallback? onTap,
-      String? tip,
-    ) {
-      final b = logTag(
-        '$id.$suffix',
-        FilledButton(
-          style: controllerButtonStyle(
-            t,
-            minimumSize: const Size.square(controllerButtonHeight),
-            padding: EdgeInsets.zero,
-          ),
-          onPressed: onTap,
-          child: Icon(icon),
-        ),
-      );
-      return tip == null ? b : Tooltip(message: tip, child: b);
-    }
-
-    return Row(
-      children: [
-        button('less', Icons.remove_rounded, onLess, lessTooltip),
-        Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label, style: t.labelSoft, maxLines: 1),
-              Text(
-                value,
-                style: t.titleSm,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-        button('more', Icons.add_rounded, onMore, moreTooltip),
-      ],
-    );
-  }
-}
-
 /// One filament of the file against the slot it takes on this printer.
 class _FilamentRow extends StatelessWidget {
   const _FilamentRow({
@@ -1023,71 +1056,3 @@ class _Slot extends StatelessWidget {
     );
   }
 }
-
-/// A print option that changes by being tapped: its name, and its value at the
-/// far end.
-class _OptionRow extends StatelessWidget {
-  const _OptionRow({
-    required this.id,
-    required this.label,
-    required this.value,
-    required this.onTap,
-    this.on = false,
-  });
-
-  final String id;
-  final String label;
-  final String value;
-  final bool on;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final radius = BorderRadius.circular(DashSpace.md);
-    return logTag(
-      id,
-      Material(
-        color: on ? t.accent.withValues(alpha: 0.16) : t.subCard,
-        shape: RoundedRectangleBorder(
-          borderRadius: radius,
-          side: BorderSide(
-            color: on ? t.accent.withValues(alpha: 0.4) : t.subCardBorder,
-          ),
-        ),
-        child: InkWell(
-          borderRadius: radius,
-          onTap: onTap,
-          child: SizedBox(
-            height: _optionHeight,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: t.bodyPlain,
-                      // Two lines where a language names the option at length.
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: DashSpace.sm),
-                  Text(
-                    value,
-                    style: t.bodyBold.copyWith(color: on ? t.accentInk : null),
-                    maxLines: 1,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Three of these and the When switch fill the card of the 800x360 body.
-const _optionHeight = 48.0;

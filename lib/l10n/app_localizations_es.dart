@@ -8098,6 +8098,28 @@ class AppLocalizationsEs extends AppLocalizations {
   String get controllerPrintOptions => 'Opciones';
 
   @override
+  String get controllerPrintMore => 'Más';
+
+  @override
+  String get controllerPrintMoreTitle => 'Más opciones';
+
+  @override
+  String controllerPrintCostCenter(String name) {
+    return 'Centro de costes: $name';
+  }
+
+  @override
+  String get controllerPrintNoCostCenter =>
+      'Sin centro de costes para imprimir';
+
+  @override
+  String get controllerPrintCostCentersRefused =>
+      'Este acceso no ve los centros de costes';
+
+  @override
+  String get controllerPrintChamber => 'Cámara objetivo';
+
+  @override
   String controllerPrintWrongModel(String model, String printer) {
     return 'Laminado para $model; esta impresora es una $printer.';
   }

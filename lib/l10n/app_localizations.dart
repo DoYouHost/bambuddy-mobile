@@ -13424,6 +13424,42 @@ abstract class AppLocalizations {
   /// **'Options'**
   String get controllerPrintOptions;
 
+  /// Button of the print screen's options card that opens the rest of the print options
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get controllerPrintMore;
+
+  /// Title of the dialog with the print options the print screen does not show: cost center, calibrations, preheat and the queue switches
+  ///
+  /// In en, this message translates to:
+  /// **'More options'**
+  String get controllerPrintMoreTitle;
+
+  /// Line under the filament list of the controller's print screen while billing is on; the placeholder is the center the job is booked to
+  ///
+  /// In en, this message translates to:
+  /// **'Cost center: {name}'**
+  String controllerPrintCostCenter(String name);
+
+  /// Line on the controller's print screen: billing is on and this account may book to no active cost center
+  ///
+  /// In en, this message translates to:
+  /// **'No cost center to print on'**
+  String get controllerPrintNoCostCenter;
+
+  /// Line on the controller's print screen: billing is on and this session may not list its cost centers
+  ///
+  /// In en, this message translates to:
+  /// **'Cost centers can\'t be read with this login'**
+  String get controllerPrintCostCentersRefused;
+
+  /// Label of the chamber temperature stepper in the controller's print options
+  ///
+  /// In en, this message translates to:
+  /// **'Chamber target'**
+  String get controllerPrintChamber;
+
   /// Line on the controller's print screen when the file was sliced for a model this printer cannot take
   ///
   /// In en, this message translates to:

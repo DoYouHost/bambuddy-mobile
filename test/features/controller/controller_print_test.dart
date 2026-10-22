@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/core/ams/color_names.dart';
+import 'package:bambuddy_mobile/core/ams/job_cost.dart';
+import 'package:bambuddy_mobile/core/models/cost_center.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/plate_list.dart';
@@ -11,6 +13,7 @@ import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_print.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/orders/orders_providers.dart';
+import 'package:bambuddy_mobile/features/queue/job_cost_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -682,6 +685,168 @@ void main() {
     }
   }
 
+  /// Opens the "More options" dialog.
+  Future<void> openMore(WidgetTester tester) async {
+    await tester.tap(byLogId('controller.print.more'));
+    await tester.pumpAndSettle();
+  }
+
+  /// A row of the dialog, scrolled into the part of the list that is built.
+  Future<void> reveal(WidgetTester tester, String id, {Finder? target}) async {
+    await tester.dragUntilVisible(
+      target ?? byLogId('controller.print.more.$id'),
+      find.descendant(of: find.byType(Dialog), matching: find.byType(ListView)),
+      const Offset(0, -60),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> tapMore(WidgetTester tester, String id) async {
+    await reveal(tester, id);
+    await tester.tap(byLogId('controller.print.more.$id'));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> closeMore(WidgetTester tester) async {
+    await tester.tap(byLogId('controller.print.more.close'));
+    await tester.pumpAndSettle();
+  }
+
+  /// Fails on any text under [root] that its box cuts short.
+  void expectNothingCut(WidgetTester tester, Finder root) {
+    for (final e
+        in find.descendant(of: root, matching: find.byType(Text)).evaluate()) {
+      final paragraph = e.renderObject! as RenderParagraph;
+      final text = paragraph.text.toPlainText();
+      // Server data and names the user chose may be long.
+      if (text.contains('.gcode.3mf') || text.contains('Warsztat')) continue;
+      expect(
+        paragraph.didExceedMaxLines,
+        isFalse,
+        reason: '"$text" is cut short',
+      );
+    }
+  }
+
+  const tight = CostCenter(
+    id: 2,
+    name: 'Workshop',
+    budget: CostCenterBudget.monthly,
+    budgetLimit: 100,
+    budgetAvailable: 5,
+  );
+  const personal = CostCenter(id: 1, name: 'Alice', isPrivate: true);
+
+  for (final locale in AppLocalizations.supportedLocales) {
+    for (final size in const [Size(832, 392), Size(1280, 800)]) {
+      for (final textScale in const [1.0, 1.3]) {
+        final where =
+            '${locale.languageCode} at ${size.width.round()}x'
+            '${size.height.round()}, font $textScale';
+
+        testWidgets('billing keeps its text its size in $where', (
+          tester,
+        ) async {
+          tester.platformDispatcher.textScaleFactorTestValue = textScale;
+          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+          await pump(
+            tester,
+            locale: locale,
+            size: size,
+            copies: true,
+            extra: [
+              serverUiFlagsProvider.overrideWith(
+                (ref) async => {'billing_enabled': true},
+              ),
+              printableCostCentersProvider.overrideWith(
+                (ref) async => [personal, tight],
+              ),
+              jobCostProvider.overrideWith(
+                (ref, key) async => (total: 10.0, anyPrice: true),
+              ),
+            ],
+          );
+          // The cheaper centre has less than the job costs.
+          await tester.tap(byLogId('controller.print.cost_center'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Workshop'));
+          await tester.pumpAndSettle();
+          expectNothingCut(tester, find.byType(Dialog));
+          await closeMore(tester);
+
+          expect(tester.takeException(), isNull);
+          expectNothingCut(tester, find.byType(ControllerPrintScreen));
+        });
+
+        for (final blocked in const [<CostCenter>[], null]) {
+          testWidgets(
+            'the ${blocked == null ? 'refused' : 'empty'} billing note '
+            'keeps its text its size in $where',
+            (tester) async {
+              tester.platformDispatcher.textScaleFactorTestValue = textScale;
+              addTearDown(
+                tester.platformDispatcher.clearTextScaleFactorTestValue,
+              );
+              await pump(
+                tester,
+                locale: locale,
+                size: size,
+                extra: [
+                  serverUiFlagsProvider.overrideWith(
+                    (ref) async => {'billing_enabled': true},
+                  ),
+                  printableCostCentersProvider.overrideWith(
+                    (ref) async => blocked,
+                  ),
+                ],
+              );
+
+              expect(tester.takeException(), isNull);
+              expectNothingCut(tester, find.byType(ControllerPrintScreen));
+            },
+          );
+        }
+
+        testWidgets('the options dialog keeps its text its size in $where', (
+          tester,
+        ) async {
+          tester.platformDispatcher.textScaleFactorTestValue = textScale;
+          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+          await pump(
+            tester,
+            locale: locale,
+            size: size,
+            printer: _h2d,
+            file: _file(model: 'H2D'),
+            extra: [
+              queueOutcomeProvider.overrideWithValue(const AsyncData(true)),
+              gcodeSnippetModelsProvider.overrideWithValue(
+                const AsyncData({'P1S'}),
+              ),
+            ],
+          );
+
+          await tester.tap(
+            find.text(lookupAppLocalizations(locale).queueScheduleQueue),
+          );
+          await tester.pump();
+          await openMore(tester);
+          final list = find.descendant(
+            of: find.byType(Dialog),
+            matching: find.byType(ListView),
+          );
+          // Every row in turn: the list builds only the ones in view.
+          for (var i = 0; i < 8; i++) {
+            expectNothingCut(tester, find.byType(Dialog));
+            await tester.drag(list, const Offset(0, -80));
+            await tester.pumpAndSettle();
+          }
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
+  }
+
   group('print options', () {
     String valueOf(WidgetTester tester, String id) => tester
         .widgetList<Text>(
@@ -781,6 +946,505 @@ void main() {
 
       expect(find.byType(ControllerPrintScreen), findsNothing);
       expect(capturedBody, isNull);
+    });
+  });
+
+  group('more options', () {
+    testWidgets('the switches reach the request', (tester) async {
+      await pump(tester);
+
+      await openMore(tester);
+      await tapMore(tester, 'require_previous');
+      await tapMore(tester, 'power_off');
+      await closeMore(tester);
+      await send(tester);
+
+      expect(capturedBody?['require_previous_success'], isTrue);
+      expect(capturedBody?['auto_off_after'], isTrue);
+    });
+
+    testWidgets('vibration and first-layer inspection are sent and kept', (
+      tester,
+    ) async {
+      await pump(tester);
+
+      await openMore(tester);
+      await tapMore(tester, 'vibration');
+      await tapMore(tester, 'layer_inspect');
+      await closeMore(tester);
+      await send(tester);
+
+      expect(capturedBody?['vibration_cali'], isFalse);
+      expect(capturedBody?['layer_inspect'], isFalse);
+      expect(storedPrintOptions().vibrationCali, isFalse);
+    });
+
+    testWidgets(
+      'a change made in the dialog is on the screen after it closes',
+      (tester) async {
+        await pump(tester);
+
+        await openMore(tester);
+        await tapMore(tester, 'vibration');
+        await closeMore(tester);
+        await openMore(tester);
+        await reveal(tester, 'vibration');
+
+        expect(
+          find.descendant(
+            of: byLogId('controller.print.more.vibration'),
+            matching: find.text(pl.commonOff),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('manual start is offered in Queue and nowhere else', (
+      tester,
+    ) async {
+      await pump(tester);
+
+      await openMore(tester);
+      await reveal(tester, 'power_off');
+      expect(byLogId('controller.print.more.manual_start'), findsNothing);
+      await closeMore(tester);
+
+      await tester.tap(find.text(pl.queueScheduleQueue));
+      await tester.pump();
+      await openMore(tester);
+      await tapMore(tester, 'manual_start');
+      await closeMore(tester);
+      await send(tester);
+
+      expect(capturedBody?['manual_start'], isTrue);
+    });
+
+    testWidgets('leaving Queue drops the manual start', (tester) async {
+      await pump(tester);
+
+      await tester.tap(find.text(pl.queueScheduleQueue));
+      await tester.pump();
+      await openMore(tester);
+      await tapMore(tester, 'manual_start');
+      await closeMore(tester);
+      await tester.tap(find.text(pl.controllerPrintNow));
+      await tester.pump();
+      await send(tester);
+
+      expect(capturedBody?['manual_start'], isFalse);
+    });
+
+    testWidgets('an account held for review is not offered the switch', (
+      tester,
+    ) async {
+      await pump(tester, held: true);
+      await tester.tap(find.text(pl.queueScheduleQueue));
+      await tester.pump();
+
+      await openMore(tester);
+      await reveal(tester, 'power_off');
+
+      expect(byLogId('controller.print.more.manual_start'), findsNothing);
+    });
+
+    testWidgets('preheat is inherited until it is set', (tester) async {
+      await pump(tester);
+
+      await send(tester);
+
+      expect(capturedBody?['preheat_override'], 'inherit');
+      expect(
+        capturedBody?.containsKey('preheat_chamber_target_override'),
+        isFalse,
+      );
+    });
+
+    testWidgets('preheat on takes a chamber target in steps of five', (
+      tester,
+    ) async {
+      await pump(tester);
+
+      await openMore(tester);
+      await reveal(tester, 'preheat', target: find.text(pl.queueEditPreheat));
+      await tester.tap(
+        find.descendant(
+          of: byLogId('controller.print.more.preheat'),
+          matching: find.text(pl.commonOn),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await reveal(tester, 'chamber.more');
+      await tester.tap(byLogId('controller.print.more.chamber.more'));
+      await tester.pump();
+      await tester.tap(byLogId('controller.print.more.chamber.more'));
+      await tester.pumpAndSettle();
+      expect(find.text('10°'), findsOneWidget);
+      await closeMore(tester);
+      await send(tester);
+
+      expect(capturedBody?['preheat_override'], 'on');
+      expect(capturedBody?['preheat_chamber_target_override'], 10);
+    });
+
+    testWidgets('the target goes back to the filament default below five', (
+      tester,
+    ) async {
+      await pump(tester);
+
+      await openMore(tester);
+      await reveal(tester, 'chamber.more');
+      await tester.tap(byLogId('controller.print.more.chamber.more'));
+      await tester.pumpAndSettle();
+      expect(find.text('5°'), findsOneWidget);
+      await tester.tap(byLogId('controller.print.more.chamber.less'));
+      await tester.pumpAndSettle();
+      expect(find.text('—'), findsWidgets);
+      await closeMore(tester);
+      await send(tester);
+
+      expect(
+        capturedBody?.containsKey('preheat_chamber_target_override'),
+        isFalse,
+      );
+    });
+
+    testWidgets('the target stops at what the server takes', (tester) async {
+      await pump(tester);
+
+      await openMore(tester);
+      await reveal(tester, 'chamber.more');
+      for (var i = 0; i < 20; i++) {
+        await tester.tap(byLogId('controller.print.more.chamber.more'));
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
+
+      expect(find.text('60°'), findsOneWidget);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.descendant(
+                of: byLogId('controller.print.more.chamber.more'),
+                matching: find.byType(FilledButton),
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+    });
+
+    testWidgets('a ceiling between two steps is the last stop', (tester) async {
+      await pump(
+        tester,
+        extra: [chamberMaxTargetProvider.overrideWithValue(62)],
+      );
+
+      await openMore(tester);
+      await reveal(tester, 'chamber.more');
+      for (var i = 0; i < 13; i++) {
+        await tester.tap(byLogId('controller.print.more.chamber.more'));
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
+
+      expect(find.text('62°'), findsOneWidget);
+    });
+
+    testWidgets('preheat off sends no target', (tester) async {
+      await pump(tester);
+
+      await openMore(tester);
+      await reveal(tester, 'chamber.more');
+      await tester.tap(byLogId('controller.print.more.chamber.more'));
+      await tester.pumpAndSettle();
+      await reveal(tester, 'preheat', target: find.text(pl.queueEditPreheat));
+      await tester.tap(
+        find.descendant(
+          of: byLogId('controller.print.more.preheat'),
+          matching: find.text(pl.commonOff),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(byLogId('controller.print.more.chamber.more'), findsNothing);
+      await closeMore(tester);
+      await send(tester);
+
+      expect(capturedBody?['preheat_override'], 'off');
+      expect(
+        capturedBody?.containsKey('preheat_chamber_target_override'),
+        isFalse,
+      );
+    });
+
+    testWidgets(
+      'G-code injection is offered only where the server has snippets',
+      (tester) async {
+        await pump(tester);
+        await openMore(tester);
+        await reveal(tester, 'power_off');
+        expect(byLogId('controller.print.more.gcode_injection'), findsNothing);
+      },
+    );
+
+    testWidgets('injection is sent once switched on', (tester) async {
+      await pump(
+        tester,
+        extra: [
+          gcodeSnippetModelsProvider.overrideWithValue(
+            const AsyncData({'P1S'}),
+          ),
+        ],
+      );
+
+      await openMore(tester);
+      await tapMore(tester, 'gcode_injection');
+      await closeMore(tester);
+      await send(tester);
+
+      expect(capturedBody?['gcode_injection'], isTrue);
+    });
+
+    testWidgets('injection for a model with no snippet says so', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        extra: [
+          gcodeSnippetModelsProvider.overrideWithValue(
+            const AsyncData({'H2D'}),
+          ),
+        ],
+      );
+
+      await openMore(tester);
+      await tapMore(tester, 'gcode_injection');
+
+      expect(
+        find.text(pl.queueEditGcodeInjectionNoSnippet('P1S')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('nozzle offset is offered to a printer with two nozzles', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        printer: _h2d,
+        file: _file(model: 'H2D'),
+      );
+      await openMore(tester);
+      await reveal(tester, 'nozzle_offset');
+      expect(byLogId('controller.print.more.nozzle_offset'), findsOneWidget);
+    });
+
+    testWidgets('and to no other', (tester) async {
+      await pump(tester);
+      await openMore(tester);
+      await reveal(tester, 'power_off');
+      expect(byLogId('controller.print.more.nozzle_offset'), findsNothing);
+    });
+
+    testWidgets('asking for the outcome needs a server that offers it', (
+      tester,
+    ) async {
+      await pump(tester);
+      await openMore(tester);
+      await reveal(tester, 'power_off');
+      expect(byLogId('controller.print.more.confirm_outcome'), findsNothing);
+    });
+
+    testWidgets('the outcome switch starts from the server default', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        extra: [
+          queueOutcomeProvider.overrideWithValue(const AsyncData(true)),
+          defaultConfirmOutcomeProvider.overrideWithValue(
+            const AsyncData(true),
+          ),
+        ],
+      );
+
+      await openMore(tester);
+      await reveal(tester, 'confirm_outcome');
+      expect(
+        find.descendant(
+          of: byLogId('controller.print.more.confirm_outcome'),
+          matching: find.text(pl.commonOn),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(byLogId('controller.print.more.confirm_outcome'));
+      await tester.pumpAndSettle();
+      await closeMore(tester);
+      await send(tester);
+
+      expect(capturedBody?['confirm_outcome'], isFalse);
+    });
+
+    testWidgets('the dialog fits a small window and a large system font', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pump(
+        tester,
+        size: const Size(740, 320),
+        printer: _h2d,
+        file: _file(model: 'H2D'),
+        extra: [
+          queueOutcomeProvider.overrideWithValue(const AsyncData(true)),
+          gcodeSnippetModelsProvider.overrideWithValue(
+            const AsyncData({'H2D'}),
+          ),
+        ],
+      );
+
+      await openMore(tester);
+
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('billing', () {
+    const alice = CostCenter(id: 1, name: 'Alice', isPrivate: true);
+    const workshop = CostCenter(
+      id: 2,
+      name: 'Workshop',
+      budget: CostCenterBudget.monthly,
+      budgetLimit: 100,
+      budgetAvailable: 5,
+    );
+
+    List<Override> billing(
+      FutureOr<List<CostCenter>?> Function() centers, {
+      bool on = true,
+      JobCost? cost,
+    }) => [
+      serverUiFlagsProvider.overrideWith(
+        (ref) async => {'billing_enabled': on},
+      ),
+      printableCostCentersProvider.overrideWith(
+        (ref) async => on ? await centers() : const [],
+      ),
+      if (cost != null) jobCostProvider.overrideWith((ref, key) async => cost),
+    ];
+
+    testWidgets('the job is booked to the personal centre by default', (
+      tester,
+    ) async {
+      await pump(tester, extra: billing(() => [alice, workshop]));
+
+      expect(
+        find.text(
+          pl.controllerPrintCostCenter(pl.queueCostCenterPersonal('Alice')),
+        ),
+        findsOneWidget,
+      );
+      await send(tester);
+
+      expect(capturedBody?['cost_center_id'], 1);
+    });
+
+    testWidgets('another centre can be picked in the dialog', (tester) async {
+      await pump(tester, extra: billing(() => [alice, workshop]));
+
+      await tester.tap(byLogId('controller.print.cost_center'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Workshop'));
+      await tester.pumpAndSettle();
+      await closeMore(tester);
+      expect(
+        find.text(pl.controllerPrintCostCenter('Workshop')),
+        findsOneWidget,
+      );
+      await send(tester);
+
+      expect(capturedBody?['cost_center_id'], 2);
+    });
+
+    testWidgets('a centre with less left than the job says so', (tester) async {
+      await pump(
+        tester,
+        extra: billing(() => [workshop], cost: (total: 10.0, anyPrice: true)),
+      );
+
+      expect(find.text(pl.queueInsufficientBudget), findsOneWidget);
+    });
+
+    testWidgets('the estimate is shown with the filament', (tester) async {
+      await pump(
+        tester,
+        extra: billing(() => [alice], cost: (total: 1.5, anyPrice: true)),
+      );
+
+      expect(
+        find.textContaining(pl.queueEstimatedCost('').trim()),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('without billing no centre is asked for or sent', (
+      tester,
+    ) async {
+      await pump(tester, extra: billing(() => [alice], on: false));
+
+      expect(byLogId('controller.print.cost_center'), findsNothing);
+      await send(tester);
+
+      expect(capturedBody?.containsKey('cost_center_id'), isFalse);
+    });
+
+    testWidgets('an account with no centre to print on cannot print', (
+      tester,
+    ) async {
+      await pump(tester, extra: billing(() => const []));
+
+      expect(find.text(pl.controllerPrintNoCostCenter), findsOneWidget);
+      expect(submitButton(tester).onPressed, isNull);
+    });
+
+    testWidgets('a session that may not list its centres is told so', (
+      tester,
+    ) async {
+      await pump(tester, extra: billing(() => null));
+
+      expect(find.text(pl.controllerPrintCostCentersRefused), findsOneWidget);
+      expect(find.text(pl.controllerPrintNoCostCenter), findsNothing);
+      expect(submitButton(tester).onPressed, isNull);
+    });
+
+    testWidgets('waits for the centres to arrive', (tester) async {
+      final answer = Completer<List<CostCenter>?>();
+      await pump(tester, extra: billing(() => answer.future));
+      expect(submitButton(tester).onPressed, isNull);
+
+      answer.complete([alice]);
+      await tester.pumpAndSettle();
+
+      expect(submitButton(tester).onPressed, isNotNull);
+    });
+
+    testWidgets('a failed read can be retried', (tester) async {
+      var reads = 0;
+      await pump(
+        tester,
+        extra: billing(() {
+          if (reads++ == 0) throw Exception('offline');
+          return [alice];
+        }),
+      );
+      expect(find.text(pl.queueCostCenterLoadFailed), findsOneWidget);
+      expect(submitButton(tester).onPressed, isNull);
+
+      await tester.tap(byLogId('controller.print.cost_center_retry'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.queueCostCenterLoadFailed), findsNothing);
+      expect(submitButton(tester).onPressed, isNotNull);
     });
   });
 }
