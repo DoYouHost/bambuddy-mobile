@@ -87,6 +87,13 @@ void main() {
       expect(isGcodeCompatible('BL-P001', 'H2D'), isFalse);
     });
 
+    test('are matched whatever their case', () {
+      expect(isGcodeCompatible('c11', 'P1P'), isTrue);
+      expect(isGcodeCompatible('bl-p001', 'X1C'), isTrue);
+      expect(isGcodeCompatible('o1c2', 'H2C'), isTrue);
+      expect(isGcodeCompatible('c11', 'H2D'), isFalse);
+    });
+
     test('are looked up before the hyphen is stripped', () {
       // "BL-P001" is a key of the table; "BLP001" is nothing.
       expect(isGcodeCompatible('BL-P001', 'X1C'), isTrue);
@@ -105,6 +112,17 @@ void main() {
       expect(isGcodeCompatible('Bambu Lab X1 Carbon', 'X1C'), isTrue);
       expect(isGcodeCompatible('Bambu Lab A1 mini', 'A1 Mini'), isTrue);
       expect(isGcodeCompatible('Bambu Lab H2D', 'O1D'), isTrue);
+    });
+
+    test('are matched whatever their case', () {
+      expect(isGcodeCompatible('bambu lab x1 carbon', 'X1C'), isTrue);
+      expect(isGcodeCompatible('BAMBU LAB A1 MINI', 'A1 Mini'), isTrue);
+    });
+
+    test('an unlisted one loses the brand, as the server does at ingest', () {
+      expect(isGcodeCompatible('Bambu Lab P3S', 'P3S'), isTrue);
+      expect(isGcodeCompatible('bambu lab  P3S', 'P3S'), isTrue);
+      expect(isGcodeCompatible('Bambu Lab P3S', 'X1C'), isFalse);
     });
 
     test('keep their family', () {

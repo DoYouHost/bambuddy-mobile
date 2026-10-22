@@ -9,8 +9,9 @@ library;
 
 /// The server's `PRINTER_MODEL_ID_MAP`: the internal codes `slice_info.config`
 /// and SSDP carry, which `Printer.model` can hold as well. Keys are matched
-/// exactly (after trimming), before any normalisation: `BL-P001` and `O1C2`
-/// would not survive having their hyphens and case changed first.
+/// whole, before any normalisation: `BL-P001` would not survive having its
+/// hyphen stripped first. Case is ignored, which the server does not do; it can
+/// only turn a refusal into an acceptance for a spelling like `c11`.
 const _modelIds = {
   'BL-P001': 'X1C',
   'BL-P002': 'X1',
@@ -67,9 +68,24 @@ const _families = [
   {'X1', 'X1C', 'X1E', 'P1P', 'P1S'},
 ];
 
+final _modelIdsFolded = {
+  for (final e in _modelIds.entries) e.key.toLowerCase(): e.value,
+};
+final _displayNamesFolded = {
+  for (final e in _displayNames.entries) e.key.toLowerCase(): e.value,
+};
+
+/// What the server does to a display name it has no entry for
+/// (`normalize_printer_model`): drops the brand.
+final _brandPrefix = RegExp(r'^bambu lab\s+', caseSensitive: false);
+
 String _normalise(String model) {
   final trimmed = model.trim();
-  final resolved = _modelIds[trimmed] ?? _displayNames[trimmed] ?? trimmed;
+  final key = trimmed.toLowerCase();
+  final resolved =
+      _modelIdsFolded[key] ??
+      _displayNamesFolded[key] ??
+      trimmed.replaceFirst(_brandPrefix, '');
   return resolved.trim().toUpperCase().replaceAll(' ', '').replaceAll('-', '');
 }
 
