@@ -1851,7 +1851,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       plateId: _plateId,
       confirmOutcomeChoice: _confirmOutcomeChoice,
       confirmOutcomeSticky: _confirmOutcomeSticky,
-      options: QueueCreateOptions(
+      buildOptions: () => QueueCreateOptions(
         targetModel: _modelMode ? _targetModel : null,
         targetLocation: _modelMode ? _targetLocation : null,
         filamentOverrides: _modelMode

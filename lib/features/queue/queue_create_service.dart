@@ -24,12 +24,15 @@ class QueueCreateOutcome {
 /// and the clean-up of an order whose copies were refused.
 ///
 /// Shared by the print form and the controller's print screen, so the two can
-/// not drift apart on rules that cite web-parity bugs. The caller resolves
-/// everything that needs its own state into [options]; this function fills in
-/// the three fields only known here (see [QueueCreateOptions.withOrder]).
+/// not drift apart on rules that cite web-parity bugs. [buildOptions] resolves
+/// everything that needs the caller's own state; it runs **after** the order is
+/// made and the outcome flag is settled, as the form's code always did, so it
+/// samples providers as late as before. This function fills in the three
+/// fields only known here (see [QueueCreateOptions.withOrder]).
 ///
 /// [plateId] is the plate the user picked; an order makes the item carry the
-/// plate its target names instead. [confirmOutcomeChoice] is the user's own
+/// plate its target names instead. It is the only plate input: the built
+/// options must leave `plateId` null. [confirmOutcomeChoice] is the user's own
 /// toggle (null until touched) and [confirmOutcomeSticky] a reprint of an
 /// archive that already asks, which stays on whatever the switch says.
 Future<QueueCreateOutcome> createQueueJobs({
@@ -44,7 +47,7 @@ Future<QueueCreateOutcome> createQueueJobs({
   required int? plateId,
   required bool? confirmOutcomeChoice,
   required bool confirmOutcomeSticky,
-  required QueueCreateOptions options,
+  required QueueCreateOptions Function() buildOptions,
 }) async {
   final order = await _createOrder(
     providers,
@@ -58,6 +61,11 @@ Future<QueueCreateOutcome> createQueueJobs({
     providers,
     choice: confirmOutcomeChoice,
     sticky: confirmOutcomeSticky,
+  );
+  final options = buildOptions();
+  assert(
+    options.plateId == null,
+    'plateId is a parameter of createQueueJobs; the options must not set it',
   );
   final full = options.withOrder(
     // Into an order, the item carries the plate its target names.
