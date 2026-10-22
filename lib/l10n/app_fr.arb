@@ -4017,6 +4017,7 @@
   "controllerMoveLocked": "Les axes sont verrouillés pendant l'impression",
   "controllerTabFilament": "Filament",
   "controllerTabFiles": "Fichiers",
+  "controllerFileNotSliced": "Non découpé",
   "controllerExtruder": "Extrudeur",
   "controllerEditSlot": "Modifier l'emplacement",
   "controllerTouchToWake": "Touchez pour réveiller",

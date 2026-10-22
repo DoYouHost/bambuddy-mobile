@@ -1,15 +1,19 @@
 import 'dart:io';
 
+import 'package:bambuddy_mobile/core/models/library_file.dart';
+import 'package:bambuddy_mobile/core/models/library_folder.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:bambuddy_mobile/features/controller/controller_files.dart';
 import 'package:bambuddy_mobile/features/controller/controller_heat.dart';
 import 'package:bambuddy_mobile/features/controller/controller_overview.dart';
 import 'package:bambuddy_mobile/features/controller/controller_saver.dart';
 import 'package:bambuddy_mobile/features/controller/controller_screen.dart';
 import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
+import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
@@ -56,6 +60,45 @@ PrinterStatus _status(Map<String, double> temps, {bool job = true}) =>
       temperatures: temps,
     );
 
+/// A library with a folder and four files, named at the length that stresses a tile.
+class _FixedLibrary extends FileManagerNotifier {
+  @override
+  Future<FileManagerState> build() async => FileManagerState(
+    allFolders: const [
+      LibraryFolder(
+        id: 1,
+        name: 'Folder with a rather long name for a tile',
+        fileCount: 12,
+      ),
+    ],
+    files: [
+      for (final (i, model) in [
+        'H2D',
+        'P1S',
+        null,
+        'Bambu Lab X1 Carbon',
+      ].indexed)
+        LibraryFile(
+          id: i + 1,
+          filename: 'a_rather_long_file_name_$i.gcode.3mf',
+          fileType: 'gcode',
+          fileSize: 4096,
+          printCount: 0,
+          slicedForModel: model,
+          printTimeSeconds: 123456,
+          filamentUsedGrams: 1234.5,
+        ),
+      const LibraryFile(
+        id: 9,
+        filename: 'raw_model_file.stl',
+        fileType: 'stl',
+        fileSize: 4096,
+        printCount: 0,
+      ),
+    ],
+  );
+}
+
 void main() {
   setUpAll(loadAppFonts);
 
@@ -94,6 +137,7 @@ void main() {
     required Widget child,
     required PrinterStatus status,
     String name = 'Pracownia X1C numer dwa',
+    List<Override> extra = const [],
   }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
@@ -137,6 +181,7 @@ void main() {
             ),
           ),
           inertStatusesOverride,
+          ...extra,
         ],
         child: MaterialApp(
           theme: buildDashThemeData(Brightness.dark, brand: bambuddyBrand),
@@ -235,6 +280,57 @@ void main() {
         final where =
             '${locale.languageCode} at ${size.width.round()}x${size.height.round()}, '
             'font $textScale';
+
+        testWidgets('the Files tab keeps its text its size in $where', (
+          tester,
+        ) async {
+          await pump(
+            tester,
+            locale: locale,
+            size: size,
+            textScale: textScale,
+            extra: [fileManagerProvider.overrideWith(_FixedLibrary.new)],
+            child: const Scaffold(
+              body: Padding(
+                padding: EdgeInsets.all(16),
+                child: ScaleToFit(child: ControllerFiles(printerId: 1)),
+              ),
+            ),
+            status: _status(_threeHeaters, job: false),
+          );
+          await tester.pump();
+          await tester.pump();
+
+          expect(
+            find.descendant(
+              of: find.byType(ControllerFiles),
+              matching: find.byType(FittedBox),
+            ),
+            findsNothing,
+          );
+          expect(tester.takeException(), isNull);
+          for (final e
+              in find
+                  .descendant(
+                    of: find.byType(ControllerFiles),
+                    matching: find.byType(Text),
+                  )
+                  .evaluate()) {
+            final paragraph = e.renderObject! as RenderParagraph;
+            final text = paragraph.text.toPlainText();
+            // Server data (names, the model a file was sliced for) may be long.
+            if (text.contains('name') ||
+                text.contains('Bambu') ||
+                text.contains('.stl')) {
+              continue;
+            }
+            expect(
+              paragraph.didExceedMaxLines,
+              isFalse,
+              reason: '"$text" is cut short',
+            );
+          }
+        });
 
         testWidgets('the Overview keeps its text its size in $where', (
           tester,

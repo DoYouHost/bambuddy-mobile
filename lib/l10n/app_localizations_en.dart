@@ -7949,6 +7949,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controllerTabFiles => 'Files';
 
   @override
+  String get controllerFileNotSliced => 'Not sliced';
+
+  @override
   String get controllerExtruder => 'Extruder';
 
   @override

@@ -4017,6 +4017,7 @@
   "controllerMoveLocked": "Die Achsen sind während des Drucks gesperrt",
   "controllerTabFilament": "Filament",
   "controllerTabFiles": "Dateien",
+  "controllerFileNotSliced": "Nicht geslict",
   "controllerExtruder": "Extruder",
   "controllerEditSlot": "Slot bearbeiten",
   "controllerTouchToWake": "Zum Aufwecken berühren",

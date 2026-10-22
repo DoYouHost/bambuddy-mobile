@@ -5283,6 +5283,10 @@
   "@controllerTabFiles": {
     "description": "Controller tab with the server's file library: browse, upload and print a file on this printer"
   },
+  "controllerFileNotSliced": "Not sliced",
+  "@controllerFileNotSliced": {
+    "description": "Chip on a file tile in the controller's Files tab: the file is a model, not sliced G-code, so it cannot be printed as it is"
+  },
   "controllerExtruder": "Extruder",
   "controllerEditSlot": "Edit slot",
   "@controllerEditSlot": {

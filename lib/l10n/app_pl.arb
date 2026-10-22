@@ -3328,6 +3328,7 @@
   "controllerMoveLocked": "Osie są zablokowane podczas druku",
   "controllerTabFilament": "Filament",
   "controllerTabFiles": "Pliki",
+  "controllerFileNotSliced": "Nie pocięto",
   "controllerExtruder": "Ekstruder",
   "controllerEditSlot": "Edytuj slot",
   "controllerTouchToWake": "Dotknij, aby wybudzić",

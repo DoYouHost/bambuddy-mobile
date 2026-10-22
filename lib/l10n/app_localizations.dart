@@ -13346,6 +13346,12 @@ abstract class AppLocalizations {
   /// **'Files'**
   String get controllerTabFiles;
 
+  /// Chip on a file tile in the controller's Files tab: the file is a model, not sliced G-code, so it cannot be printed as it is
+  ///
+  /// In en, this message translates to:
+  /// **'Not sliced'**
+  String get controllerFileNotSliced;
+
   /// No description provided for @controllerExtruder.
   ///
   /// In en, this message translates to:

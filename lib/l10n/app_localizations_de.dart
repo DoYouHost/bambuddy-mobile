@@ -8026,6 +8026,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get controllerTabFiles => 'Dateien';
 
   @override
+  String get controllerFileNotSliced => 'Nicht geslict';
+
+  @override
   String get controllerExtruder => 'Extruder';
 
   @override
