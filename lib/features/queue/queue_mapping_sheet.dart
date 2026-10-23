@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +19,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../controller/scale_to_fit.dart';
 import '../inventory/inventory_providers.dart';
 import '../slicer/slice_providers.dart';
 
@@ -165,6 +168,25 @@ List<FilamentComparison> _compare(
   ftsActive: status?.filaSwitch?.installed ?? false,
 );
 
+/// The comparison the mapping sheet opens on, for a caller that shows it
+/// without the sheet: [requirements] matched against what [status] has loaded,
+/// starting from the slots [startFrom] already holds (the manual picks), as the
+/// sheet seeds them.
+List<FilamentComparison> queueMappingComparison({
+  required List<FilamentRequirement> requirements,
+  required PrinterStatus? status,
+  List<int>? startFrom,
+  Map<int, double>? remain,
+  bool? preferLowestSetting,
+}) => _compare(
+  requirements,
+  status,
+  buildLoadedFilaments(status),
+  _manualFrom(startFrom),
+  remain,
+  preferLowestSetting,
+);
+
 /// The `ams_mapping` the web sends when it saves or adds a job for
 /// [printerId] (`getMappingForPrinter`): the plate's [requirements] matched
 /// afresh against the live status, starting from [startFrom]. Null when the
@@ -209,6 +231,10 @@ Future<List<int>?> queueMappingToSend({
 /// [rackChoice] is the nozzle-rack position per filament group the caller
 /// holds, and [onRackChoice] makes it pickable from the rows; without it the
 /// positions are shown and cannot be changed, as the web's disabled picker.
+/// [dialogScale] opens it as a dialog laid out for a landscape panel, at that
+/// factor, instead of a bottom sheet: the single-printer controller's screen is
+/// too short for a sheet, which leaves its rows a strip. The slot and rack
+/// pickers it opens are dialogs too.
 /// [startFrom] is the mapping to start from when the caller holds a newer one
 /// than the item's stored mapping — the edit form after a pick, or `[]` once a
 /// printer or plate switch dropped it, as the web drops its picks then.
@@ -227,22 +253,24 @@ Future<List<int>?> showQueueMappingSheet(
   void Function(int slotId, bool value)? onForceColorMatch,
   Map<int, int>? rackChoice,
   void Function(Map<int, int> choice)? onRackChoice,
+  double? dialogScale,
 }) {
-  return dashSheet<List<int>>(
-    context,
-    builder: (_) => _MappingSheet(
-      item: item,
-      printerId: printerId,
-      confirmLabel: confirmLabel,
-      printerName: printerName,
-      plateId: plateId,
-      startFrom: startFrom,
-      forceColorMatch: forceColorMatch,
-      onForceColorMatch: onForceColorMatch,
-      rackChoice: rackChoice,
-      onRackChoice: onRackChoice,
-    ),
+  _MappingSheet sheet(_) => _MappingSheet(
+    item: item,
+    printerId: printerId,
+    confirmLabel: confirmLabel,
+    printerName: printerName,
+    plateId: plateId,
+    startFrom: startFrom,
+    forceColorMatch: forceColorMatch,
+    onForceColorMatch: onForceColorMatch,
+    rackChoice: rackChoice,
+    onRackChoice: onRackChoice,
+    dialogScale: dialogScale,
   );
+  return dialogScale == null
+      ? dashSheet<List<int>>(context, builder: sheet)
+      : showDialog<List<int>>(context: context, builder: sheet);
 }
 
 /// What the rows need to offer rack positions: the live rack by position, the
@@ -294,6 +322,7 @@ class _MappingSheet extends ConsumerStatefulWidget {
     this.onForceColorMatch,
     this.rackChoice,
     this.onRackChoice,
+    this.dialogScale,
   });
   final QueueItem item;
   final int printerId;
@@ -309,6 +338,9 @@ class _MappingSheet extends ConsumerStatefulWidget {
 
   final Map<int, int>? rackChoice;
   final void Function(Map<int, int> choice)? onRackChoice;
+
+  /// Non-null: a dialog at this factor, not a sheet.
+  final double? dialogScale;
 
   @override
   ConsumerState<_MappingSheet> createState() => _MappingSheetState();
@@ -339,6 +371,12 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
   bool _rereading = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
+  bool get _dialog => widget.dialogScale != null;
+
+  /// The size the dialog is laid out for, before the whole is scaled to the
+  /// room the screen gives it.
+  static const _dialogSize = Size(680, 320);
+
   bool get _isArchive => widget.item.archiveId != null;
   int? get _sourceId => widget.item.archiveId ?? widget.item.libraryFileId;
 
@@ -353,17 +391,19 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     final theme = Theme.of(context);
     final sourceId = _sourceId;
 
-    Widget wrap(Widget child) => SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          DashSpace.gutter,
-          0,
-          DashSpace.gutter,
-          DashSpace.lg + MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: child,
-      ),
-    );
+    Widget wrap(Widget child) => _dialog
+        ? _dialogShell(child)
+        : SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                0,
+                DashSpace.gutter,
+                DashSpace.lg + MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: child,
+            ),
+          );
 
     if (sourceId == null) {
       return logTag(
@@ -402,15 +442,17 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       // takes all the height the scroll-controlled sheet offers, so the sheet
       // opens full screen and shrinks once the answer is in.
       return wrap(
-        const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: EdgeInsets.all(DashSpace.xxl),
-              child: DashLoading(),
-            ),
-          ],
-        ),
+        _dialog
+            ? const DashLoading()
+            : const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(DashSpace.xxl),
+                    child: DashLoading(),
+                  ),
+                ],
+              ),
       );
     }
     final status = statusAsync.valueOrNull;
@@ -434,6 +476,28 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     );
   }
 
+  /// The dialog's frame: scaled like the controller body, and never larger than
+  /// the room the screen leaves it.
+  Widget _dialogShell(Widget child) => Dialog(
+    insetPadding: const EdgeInsets.all(DashSpace.md),
+    child: LayoutBuilder(
+      builder: (context, box) => SizedBox(
+        width: math.min(_dialogSize.width * widget.dialogScale!, box.maxWidth),
+        height: math.min(
+          _dialogSize.height * widget.dialogScale!,
+          box.maxHeight,
+        ),
+        child: ScaleToFit(
+          minSize: _dialogSize,
+          child: Padding(
+            padding: const EdgeInsets.all(DashSpace.md),
+            child: child,
+          ),
+        ),
+      ),
+    ),
+  );
+
   Widget _content(
     ThemeData theme,
     List<FilamentComparison> comparison,
@@ -444,7 +508,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     final l10n = _l10n;
     if (comparison.isEmpty) {
       // No per-slot info — nothing to map; let the caller proceed with defaults.
-      return Padding(
+      final none = Padding(
         padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -457,6 +521,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
           ],
         ),
       );
+      return _dialog ? Center(child: none) : none;
     }
 
     final t = DashTokens.of(context);
@@ -490,94 +555,140 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         ? (l10n.mappingStatusColorMismatch, t.warningInk)
         : (l10n.mappingStatusReady, t.accentGreenInk);
 
-    return ListView(
-      shrinkWrap: true,
-      children: [
-        Text(l10n.queueFilamentMapping, style: theme.textTheme.titleLarge),
-        const SizedBox(height: DashSpace.xs),
-        Text(
-          widget.item.displayName,
-          style: theme.textTheme.bodySmall,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: DashSpace.sm),
-        Row(
-          children: [
-            Icon(Icons.circle, size: 10, color: summaryInk),
-            const SizedBox(width: DashSpace.sm),
-            Expanded(
-              child: Text(
-                summary,
-                style: theme.textTheme.labelLarge?.copyWith(color: summaryInk),
-              ),
+    final header = <Widget>[
+      _title(theme),
+      const SizedBox(height: DashSpace.xs),
+      Text(
+        widget.item.displayName,
+        style: theme.textTheme.bodySmall,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      const SizedBox(height: DashSpace.sm),
+      Row(
+        children: [
+          Icon(Icons.circle, size: 10, color: summaryInk),
+          const SizedBox(width: DashSpace.sm),
+          Expanded(
+            child: Text(
+              summary,
+              style: theme.textTheme.labelLarge?.copyWith(color: summaryInk),
             ),
-          ],
-        ),
-        _actions(comparison),
-        if (_sameInlet(comparison, options.inletOf) case final inlet?)
-          Padding(
-            padding: const EdgeInsets.only(top: DashSpace.sm),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  size: 18,
-                  color: t.warningInk,
-                ),
-                const SizedBox(width: DashSpace.sm),
-                Expanded(
-                  child: Text(
-                    l10n.mappingFtsSameInlet(inlet),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: t.warningInk,
-                    ),
+          ),
+        ],
+      ),
+      _actions(comparison),
+      if (_sameInlet(comparison, options.inletOf) case final inlet?)
+        Padding(
+          padding: const EdgeInsets.only(top: DashSpace.sm),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.warning_amber_rounded, size: 18, color: t.warningInk),
+              const SizedBox(width: DashSpace.sm),
+              Expanded(
+                child: Text(
+                  l10n.mappingFtsSameInlet(inlet),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: t.warningInk,
                   ),
                 ),
+              ),
+            ],
+          ),
+        ),
+      if (loaded.isEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: DashSpace.sm),
+          child: Text(
+            l10n.mappingNoAms(
+              widget.printerName ?? widget.item.printerName ?? '',
+            ),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        )
+      else
+        Padding(
+          padding: const EdgeInsets.only(top: DashSpace.xs),
+          child: Text(
+            l10n.mappingTapToChange,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+    ];
+    final rows = [
+      for (final c in comparison)
+        _slotRow(
+          theme,
+          t,
+          c,
+          loaded,
+          options,
+          name: _filamentName(c.requirement, names),
+          dualNozzle: dualNozzle,
+          rack: rack,
+        ),
+    ];
+    // The web sends no mapping when the printer reports no slot, which
+    // leaves the stored one alone and the start to the server.
+    final confirm = _confirmButton(
+      loaded.isEmpty ? const [] : buildAmsMapping(comparison) ?? const [],
+    );
+
+    if (_dialog) {
+      // What is said about the job on the left, the filaments on the right: a
+      // panel this wide has the width a sheet's single column wastes.
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: ListView(children: header)),
+                const SizedBox(height: DashSpace.sm),
+                confirm,
               ],
             ),
           ),
-        if (loaded.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: DashSpace.sm),
-            child: Text(
-              l10n.mappingNoAms(
-                widget.printerName ?? widget.item.printerName ?? '',
-              ),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.only(top: DashSpace.xs),
-            child: Text(
-              l10n.mappingTapToChange,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
+          const SizedBox(width: DashSpace.lg),
+          Expanded(flex: 3, child: ListView(children: rows)),
+        ],
+      );
+    }
+    return ListView(
+      shrinkWrap: true,
+      children: [
+        ...header,
         const SizedBox(height: DashSpace.md),
-        for (final c in comparison)
-          _slotRow(
-            theme,
-            t,
-            c,
-            loaded,
-            options,
-            name: _filamentName(c.requirement, names),
-            dualNozzle: dualNozzle,
-            rack: rack,
-          ),
+        ...rows,
         const SizedBox(height: DashSpace.lg),
-        // The web sends no mapping when the printer reports no slot, which
-        // leaves the stored one alone and the start to the server.
-        _confirmButton(
-          loaded.isEmpty ? const [] : buildAmsMapping(comparison) ?? const [],
-        ),
+        confirm,
+      ],
+    );
+  }
+
+  /// The heading, with the way out beside it in a dialog: a sheet has its drag
+  /// handle and the barrier, a dialog on a touch panel wants a button.
+  Widget _title(ThemeData theme) {
+    final text = Text(
+      _l10n.queueFilamentMapping,
+      style: _dialog ? theme.textTheme.titleMedium : theme.textTheme.titleLarge,
+    );
+    if (!_dialog) return text;
+    return Row(
+      children: [
+        Expanded(child: text),
+        IconButton(
+          tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+          icon: const Icon(Icons.close_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ).tagged('queue_mapping.close'),
       ],
     );
   }
@@ -753,27 +864,28 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       diameter: group.nozzleDiameter,
       highFlow: highFlowFromName(group.volumeType),
     );
+    final hint =
+        '${l10n.mappingRackNeeds(needs)} ${l10n.mappingRackPositionHint}';
     // All six fit without a scroll on a phone only past the 9/16 cap.
-    final picked = await dashSheet<int>(
-      context,
-      builder: (ctx) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          children: [
+    final picked = await _pickOne<int>(
+      title: l10n.mappingRackPosition,
+      // A dialog carries the title and the hint above the list, not in it.
+      subtitle: hint,
+      builder: (ctx) => ListView(
+        // A dialog's list fills the room it is given and scrolls in it.
+        shrinkWrap: !_dialog,
+        children: [
+          if (!_dialog)
             ListTile(
               title: Text(
                 l10n.mappingRackPosition,
                 style: theme.textTheme.titleMedium,
               ),
-              subtitle: Text(
-                '${l10n.mappingRackNeeds(needs)} '
-                '${l10n.mappingRackPositionHint}',
-              ),
+              subtitle: Text(hint),
             ),
-            for (final position in rackPositions)
-              _rackOption(ctx, rack, position, group, needs, current),
-          ],
-        ),
+          for (final position in rackPositions)
+            _rackOption(ctx, rack, position, group, needs, current),
+        ],
       ),
     );
     if (picked == null || !mounted) return;
@@ -1011,59 +1123,61 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     const auto = -1;
     final theme = Theme.of(context);
     final wanted = normalizeColorForCompare(req.color);
-    final picked = await dashSheet<int>(
-      context,
+    final picked = await _pickOne<int>(
       scrollControlled: false,
-      builder: (ctx) => SafeArea(
-        // A Consumer, not the sheet's own ref: this is a route of its own,
-        // which a watch in the sheet would not rebuild.
-        child: Consumer(
-          builder: (context, ref, _) {
-            final assigned = ref.watch(
-              assignedSpoolsProvider(widget.printerId),
-            );
-            Spool? spoolOf(LoadedFilament f) => assigned.builtInAt(
-              f.isExternal ? externalHolderUnit : f.amsId,
-              f.trayId,
-            );
-
-            return ListView(
-              shrinkWrap: true,
-              children: [
-                ListTile(
-                  title: Text(_l10n.mappingPickTray),
-                  onTap: () => Navigator.pop(ctx, auto),
-                ).tagged('queue_mapping.tray_auto'),
-                for (final f in loaded)
-                  ListTile(
-                    leading: _swatch(theme, f.color, 28),
-                    title: Text(options.labelOf(f)),
-                    subtitle: Text(
-                      [
-                        // What the web's mapping shows: the built-in
-                        // inventory's spool for the slot, in grams, and no
-                        // percent (`FilamentMapping.tsx`,
-                        // trayRemainingWeightMap).
-                        if (spoolOf(f) case final spool?)
-                          _l10n.inventoryRemaining(
-                            spool.remainingWeight.toStringAsFixed(0),
-                          ),
-                        ?options.inletBadge(f),
-                        if (wanted.isNotEmpty &&
-                            normalizeColorForCompare(f.color) == wanted)
-                          _l10n.mappingExactColor,
-                      ].join(' · '),
-                    ),
-                    trailing: current?.globalTrayId == f.globalTrayId
-                        ? Icon(Icons.check, color: theme.colorScheme.primary)
-                        : null,
-                    onTap: () => Navigator.pop(ctx, f.globalTrayId),
-                  ).taggedMaterial('queue_mapping.tray_option', f.type),
-              ],
-            );
-          },
-        ),
+      title: _filamentName(
+        req,
+        ref.read(mappingFilamentNamesProvider).valueOrNull ?? const {},
       ),
+      builder: (ctx) =>
+          // A Consumer, not the sheet's own ref: this is a route of its own,
+          // which a watch in the sheet would not rebuild.
+          Consumer(
+            builder: (context, ref, _) {
+              final assigned = ref.watch(
+                assignedSpoolsProvider(widget.printerId),
+              );
+              Spool? spoolOf(LoadedFilament f) => assigned.builtInAt(
+                f.isExternal ? externalHolderUnit : f.amsId,
+                f.trayId,
+              );
+
+              return ListView(
+                shrinkWrap: true,
+                children: [
+                  ListTile(
+                    title: Text(_l10n.mappingPickTray),
+                    onTap: () => Navigator.pop(ctx, auto),
+                  ).tagged('queue_mapping.tray_auto'),
+                  for (final f in loaded)
+                    ListTile(
+                      leading: _swatch(theme, f.color, 28),
+                      title: Text(options.labelOf(f)),
+                      subtitle: Text(
+                        [
+                          // What the web's mapping shows: the built-in
+                          // inventory's spool for the slot, in grams, and no
+                          // percent (`FilamentMapping.tsx`,
+                          // trayRemainingWeightMap).
+                          if (spoolOf(f) case final spool?)
+                            _l10n.inventoryRemaining(
+                              spool.remainingWeight.toStringAsFixed(0),
+                            ),
+                          ?options.inletBadge(f),
+                          if (wanted.isNotEmpty &&
+                              normalizeColorForCompare(f.color) == wanted)
+                            _l10n.mappingExactColor,
+                        ].join(' · '),
+                      ),
+                      trailing: current?.globalTrayId == f.globalTrayId
+                          ? Icon(Icons.check, color: theme.colorScheme.primary)
+                          : null,
+                      onTap: () => Navigator.pop(ctx, f.globalTrayId),
+                    ).taggedMaterial('queue_mapping.tray_option', f.type),
+                ],
+              );
+            },
+          ),
     );
     if (picked == null) return;
     setState(() {
@@ -1073,6 +1187,33 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         _manual[req.slotId] = picked;
       }
     });
+  }
+
+  /// A choice from a list: a bottom sheet, or in a dialog a dialog of its own
+  /// at the same factor, titled [title].
+  Future<T?> _pickOne<T>({
+    required String title,
+    String? subtitle,
+    required WidgetBuilder builder,
+    bool scrollControlled = true,
+  }) {
+    final scale = widget.dialogScale;
+    if (scale == null) {
+      return dashSheet<T>(
+        context,
+        scrollControlled: scrollControlled,
+        builder: (ctx) => SafeArea(child: builder(ctx)),
+      );
+    }
+    return showDialog<T>(
+      context: context,
+      builder: (ctx) => _PickerDialog(
+        scale: scale,
+        title: title,
+        subtitle: subtitle,
+        child: builder(ctx),
+      ),
+    );
   }
 
   Widget _swatch(ThemeData theme, String? hex, double size) {
@@ -1092,6 +1233,75 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
               color: theme.colorScheme.onSurfaceVariant,
             )
           : null,
+    );
+  }
+}
+
+/// The dialog a pick from a list is made in when the mapping is a dialog.
+class _PickerDialog extends StatelessWidget {
+  const _PickerDialog({
+    required this.scale,
+    required this.title,
+    required this.child,
+    this.subtitle,
+  });
+
+  final double scale;
+  final String title;
+  final String? subtitle;
+  final Widget child;
+
+  static const _size = Size(460, 340);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Dialog(
+      insetPadding: const EdgeInsets.all(DashSpace.md),
+      child: LayoutBuilder(
+        builder: (context, box) => SizedBox(
+          width: math.min(_size.width * scale, box.maxWidth),
+          height: math.min(_size.height * scale, box.maxHeight),
+          child: ScaleToFit(
+            minSize: _size,
+            child: Padding(
+              padding: const EdgeInsets.all(DashSpace.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: theme.textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: MaterialLocalizations.of(
+                          context,
+                        ).closeButtonTooltip,
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ).tagged('queue_mapping.picker_close'),
+                    ],
+                  ),
+                  if (subtitle case final hint?)
+                    Text(
+                      hint,
+                      style: theme.textTheme.bodySmall,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  Expanded(child: child),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -162,7 +162,7 @@ void main() {
       expect(DemoBackend.printingPrinters, 3);
       expect(
         container.read(settingsRepositoryProvider).loadDemoPrintingCount(),
-        1,
+        DemoBackend.defaultPrintingPrinters,
         reason: 'nothing is kept until the drag ends',
       );
 

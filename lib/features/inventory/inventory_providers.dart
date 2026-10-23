@@ -436,10 +436,6 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
 /// [AssignedSpools.fillOf]'s answer.
 typedef TrayFill = ({int? percent, double? grams, Spool? spool});
 
-/// Resolves which spool from inventory sits in a given slot of a specific printer —
-/// to enrich AMS chips on the dashboard (exact remaining weight + name).
-/// Built from [InventoryState]; matching depends on assignment structure
-/// (see [[inventory-filaments]]).
 class AssignedSpools {
   const AssignedSpools(
     this.printerId,

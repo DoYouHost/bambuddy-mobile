@@ -15,9 +15,8 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/print_thumbnail.dart';
-import '../files/library_thumbnail.dart';
 import 'queue_edit_screen.dart';
+import 'queue_item_view.dart';
 import 'queue_removal.dart';
 
 /// The queue's History tab, as the web's `QueuePage.tsx` (`HistorySection`,
@@ -508,16 +507,7 @@ class _HistoryRow extends ConsumerWidget {
                 const SizedBox(width: DashSpace.sm),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: item.archiveId == null && item.libraryFileId != null
-                      ? LibraryThumbnail(
-                          fileId: item.libraryFileId!,
-                          hasThumbnail: item.libraryFileThumbnail != null,
-                          size: _thumbSize,
-                        )
-                      : PrintThumbnail(
-                          archiveId: item.archiveId,
-                          size: _thumbSize,
-                        ),
+                  child: QueueThumbnail(item: item, size: _thumbSize),
                 ),
                 const SizedBox(width: DashSpace.sm),
                 Expanded(

@@ -189,7 +189,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
               // waiting for the printer) can drop an error from the middle of
               // the list, and an unkeyed card would keep its neighbour's
               // in-flight spinner.
-              _HmsErrorCard(
+              HmsErrorCard(
                 key: ValueKey(e.fullCode ?? e.displayCode),
                 printerId: widget.printerId,
                 printerName: widget.printerName,
@@ -217,15 +217,25 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
 }
 
 /// One fault: what it is, its code, a wiki link, and the buttons its firmware
-/// offers for it.
-class _HmsErrorCard extends ConsumerStatefulWidget {
-  const _HmsErrorCard({
+/// offers for it. The printer card lists it, and so does the single-printer
+/// controller's fault view, with [area] naming the screen in the diagnostic log
+/// and [large] giving its buttons the controller's height.
+class HmsErrorCard extends ConsumerStatefulWidget {
+  const HmsErrorCard({
     super.key,
     required this.printerId,
     required this.printerName,
     required this.error,
     required this.busy,
+    this.area = 'printer',
+    this.large = false,
   });
+
+  /// The first part of every identifier the card logs.
+  final String area;
+
+  /// Full-size buttons and text, for a screen that is read from arm's length.
+  final bool large;
 
   final int printerId;
   final String printerName;
@@ -236,10 +246,14 @@ class _HmsErrorCard extends ConsumerStatefulWidget {
   final bool busy;
 
   @override
-  ConsumerState<_HmsErrorCard> createState() => _HmsErrorCardState();
+  ConsumerState<HmsErrorCard> createState() => _HmsErrorCardState();
 }
 
-class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
+class _HmsErrorCardState extends ConsumerState<HmsErrorCard> {
+  /// The controller's `controllerButtonHeight`, written out: the dashboard does
+  /// not import the controller.
+  static const _largeHeight = 56.0;
+
   /// The action this card is waiting on, so the spinner sits on the button the
   /// user actually pressed rather than on all of them.
   String? _pending;
@@ -260,7 +274,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
         message: l10n.hmsStopConfirmBody(widget.printerName),
         confirmLabel: l10n.hmsStopConfirmAction,
         destructive: true,
-        id: 'printer.hms_stop_confirm',
+        id: '${widget.area}.hms_stop_confirm',
       );
       if (!confirmed || !mounted) return;
     }
@@ -331,14 +345,22 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                 label,
                 maxLines: _fullText ? null : 2,
                 overflow: _fullText ? null : TextOverflow.ellipsis,
-                style: t.bodyPlain.copyWith(color: t.textPrimary, height: 1.25),
+                style: (widget.large ? t.bodyStrong : t.bodyPlain).copyWith(
+                  color: t.textPrimary,
+                  height: 1.25,
+                ),
               ),
-            ).tagged('printer.hms_description'),
+            ).tagged('${widget.area}.hms_description'),
             const SizedBox(height: DashSpace.xs),
           ],
           Row(
             children: [
-              Expanded(child: Text(error.displayCode, style: t.monoMicro)),
+              Expanded(
+                child: Text(
+                  error.displayCode,
+                  style: widget.large ? t.monoValue : t.monoMicro,
+                ),
+              ),
               if (url != null)
                 InkWell(
                   onTap: () => unawaited(openWebLink(context, url)),
@@ -353,7 +375,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                       Icon(Icons.open_in_new, size: 14, color: scheme.primary),
                     ],
                   ),
-                ).tagged('printer.open_url'),
+                ).tagged('${widget.area}.open_url'),
             ],
           ),
           if (actions.isNotEmpty) ...[
@@ -372,7 +394,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                   // interpolate — the key comes from `hmsEffectiveActions`, a
                   // fixed vocabulary, never from anything the user typed.
                   logTag(
-                    'printer.hms_${action.toLowerCase()}',
+                    '${widget.area}.hms_${action.toLowerCase()}',
                     FilledButton.tonal(
                       onPressed: widget.busy ? null : () => _run(action),
                       style: FilledButton.styleFrom(
@@ -381,10 +403,10 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                         padding: const EdgeInsets.symmetric(
                           horizontal: DashSpace.lg,
                         ),
-                        minimumSize: const Size(0, 34),
-                        textStyle: const TextStyle(
+                        minimumSize: Size(0, widget.large ? _largeHeight : 34),
+                        textStyle: TextStyle(
                           fontFamily: DashTokens.fontUi,
-                          fontSize: 12.5,
+                          fontSize: widget.large ? 15 : 12.5,
                           fontWeight: FontWeight.w600,
                         ),
                         backgroundColor: action == hmsStopAction
@@ -489,7 +511,6 @@ class _DetailsPanel extends ConsumerWidget {
     final activeExtruder = status.activeExtruder;
     final assigned = ref.watch(assignedSpoolsProvider(status.id));
     final printerId = status.id;
-    final printerName = status.name;
     // The 0/1 side the external holder is addressed by everywhere ids are
     // local — the slot routes, the inventory assignment and the load command.
     int trayIdOf(int i) => externalSideOf(spools[i].id) ?? 0;
@@ -506,18 +527,19 @@ class _DetailsPanel extends ConsumerWidget {
           // resolves it through the inlet, but that is where the slot rests
           // between prints, not a side to label the unit with.
           extruder: dual ? (status.amsExtruderMap?[ams[i].id]) : null,
-          slotExtruder: dual ? status.extruderForSlot(ams[i].id ?? i, 0) : null,
           activeExtruder: activeExtruder,
           assigned: assigned,
           serial: serial,
           printerId: printerId,
-          printerName: printerName,
           supportsDrying: status.supportsDrying ?? false,
-          printing: status.isPrinting && !status.isPaused,
-          nozzleDiameter: status.nozzleDiameterFor(ams[i].id ?? i, 0),
-          printerModel: status.model,
-          filaSwitch: status.filaSwitch,
-          fedFrom: status.extruderSlots,
+          slotRef: (trayIndex) => _amsSlotRef(
+            status: status,
+            dual: dual,
+            unit: ams[i],
+            unitIndex: i,
+            trayIndex: trayIndex,
+            assigned: assigned,
+          ),
         ),
       if (spools.isNotEmpty)
         _SpoolSection(
@@ -532,18 +554,13 @@ class _DetailsPanel extends ConsumerWidget {
             trayId: trayIdOf(i),
             serial: serial,
           ),
-          tagBindsOf: (i) => assigned.tagBinds(spools[i]),
-          boundByTagOf: (i) => assigned.boundByTag(spools[i]),
-          trayIdOf: trayIdOf,
-          printerId: printerId,
-          printerName: printerName,
-          printing: status.isPrinting && !status.isPaused,
-          // The external holder is keyed under a unit no `ams_extruder_map`
-          // mentions — the tray side is the whole answer there, so it has to be
-          // asked per spool rather than per section.
-          nozzleDiameterOf: (i) =>
-              status.nozzleDiameterFor(externalHolderUnit, trayIdOf(i)),
-          printerModel: status.model,
+          slotRef: (i) => _externalSlotRef(
+            l10n: AppLocalizations.of(context),
+            status: status,
+            dual: dual,
+            spool: spools[i],
+            assigned: assigned,
+          ),
         ),
     ];
 
@@ -579,6 +596,148 @@ class _DetailsPanel extends ConsumerWidget {
   }
 }
 
+/// What the slot sheet needs for slot [trayIndex] of AMS [unit]: one place,
+/// shared by the card's rows and the single-printer controller's cards, so both
+/// open the same sheet from the same inputs.
+_SlotRef _amsSlotRef({
+  required PrinterStatus status,
+  required bool dual,
+  required AmsUnit unit,
+  required int unitIndex,
+  required int trayIndex,
+  required AssignedSpools assigned,
+}) {
+  final amsId = unit.id ?? unitIndex;
+  final tray = (unit.trays ?? const <AmsTray>[])[trayIndex];
+  return _SlotRef(
+    printerId: status.id,
+    printerName: status.name,
+    amsId: amsId,
+    trayId: trayIndex,
+    label: amsSlotName(amsId, trayIndex),
+    printing: status.isPrinting && !status.isPaused,
+    loadTrayId: amsLoadTrayId(amsId: amsId, trayId: trayIndex),
+    canRereadRfid: true,
+    tagUid: tray.tagUid,
+    trayUuid: tray.trayUuid,
+    tagBound: assigned.tagBinds(tray),
+    tagSpool: assigned.boundByTag(tray),
+    trayInfoIdx: tray.trayInfoIdx,
+    trayColour: tray.trayColor,
+    caliIdx: tray.caliIdx,
+    nozzleDiameter: status.nozzleDiameterFor(amsId, 0),
+    printerModel: status.model,
+    // The nozzle this unit's slots rest on, which on a Filament Track Switch
+    // machine is known even when the unit has no side of its own.
+    extruderId: dual ? status.extruderForSlot(amsId, 0) : null,
+    filaSwitch: status.filaSwitch,
+    fedFrom: status.extruderSlots,
+  );
+}
+
+/// The same for an external spool: addressed by the 0/1 side of its holder
+/// everywhere ids are local, and never asked the Filament Track Switch question.
+_SlotRef _externalSlotRef({
+  required AppLocalizations l10n,
+  required PrinterStatus status,
+  required bool dual,
+  required AmsTray spool,
+  required AssignedSpools assigned,
+}) {
+  final side = externalSideOf(spool.id) ?? 0;
+  final extruder = dual ? status.extruderForExternal(spool.id) : null;
+  return _SlotRef(
+    printerId: status.id,
+    printerName: status.name,
+    amsId: externalHolderUnit,
+    trayId: side,
+    label: switch (extruder) {
+      1 => l10n.extruderLeft,
+      0 => l10n.extruderRight,
+      _ => l10n.externalSpool,
+    },
+    printing: status.isPrinting && !status.isPaused,
+    loadTrayId: amsLoadTrayId(amsId: externalHolderUnit, trayId: side),
+    trayInfoIdx: spool.trayInfoIdx,
+    trayColour: spool.trayColor,
+    caliIdx: spool.caliIdx,
+    nozzleDiameter: status.nozzleDiameterFor(externalHolderUnit, side),
+    printerModel: status.model,
+    extruderId: extruder,
+    tagBound: assigned.tagBinds(spool),
+    tagSpool: assigned.boundByTag(spool),
+  );
+}
+
+/// Opens the sheet of slot [trayIndex] of AMS [unitIndex]: assign a spool, load
+/// or unload, re-read the tag, configure. The card's row and the single-printer
+/// controller's card both come here, so both offer the same actions under the
+/// same locks.
+Future<void> showAmsSlotSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  required PrinterStatus status,
+  required int? nozzleCount,
+  required int unitIndex,
+  required int trayIndex,
+}) => dashSheet<void>(
+  context,
+  builder: (_) => _AssignSlotSheet(
+    slot: _amsSlotRef(
+      status: status,
+      dual: status.isDualNozzle(nozzleCount),
+      unit: status.ams![unitIndex],
+      unitIndex: unitIndex,
+      trayIndex: trayIndex,
+      assigned: ref.read(assignedSpoolsProvider(status.id)),
+    ),
+  ),
+);
+
+/// The same for external spool [spoolIndex].
+Future<void> showExternalSlotSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  required PrinterStatus status,
+  required int? nozzleCount,
+  required int spoolIndex,
+}) => dashSheet<void>(
+  context,
+  builder: (_) => _AssignSlotSheet(
+    slot: _externalSlotRef(
+      l10n: AppLocalizations.of(context),
+      status: status,
+      dual: status.isDualNozzle(nozzleCount),
+      spool: status.externalSpools[spoolIndex],
+      assigned: ref.read(assignedSpoolsProvider(status.id)),
+    ),
+  ),
+);
+
+/// Opens the drying sheet of one AMS unit. The sheet decides whether to offer
+/// the "later" modes from what the listing last answered, so this is the moment
+/// to ask again: a server that gained the route (or a session that gained the
+/// permission) otherwise stays without them until the dashboard is pulled down.
+Future<void> showAmsDryingSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  required int printerId,
+  required int amsId,
+  required String amsLabel,
+  required AmsUnit unit,
+}) {
+  ref.invalidate(scheduledDryingsProvider);
+  return dashSurfaceSheet<void>(
+    context,
+    builder: (_) => _DryingSheet(
+      printerId: printerId,
+      amsId: amsId,
+      amsLabel: amsLabel,
+      unit: unit,
+    ),
+  );
+}
+
 /// One AMS unit as a titled list: header (unit + extruder + humidity/temp),
 /// then a filament row per slot.
 ///
@@ -591,18 +750,12 @@ class _AmsSection extends ConsumerWidget {
     required this.unitIndex,
     required this.active,
     required this.extruder,
-    required this.slotExtruder,
     required this.activeExtruder,
     required this.assigned,
     required this.serial,
     required this.printerId,
-    required this.printerName,
     required this.supportsDrying,
-    required this.printing,
-    required this.nozzleDiameter,
-    required this.printerModel,
-    required this.filaSwitch,
-    required this.fedFrom,
+    required this.slotRef,
   });
 
   final AmsUnit unit;
@@ -611,30 +764,16 @@ class _AmsSection extends ConsumerWidget {
 
   /// The side to badge the unit with — a real `ams_extruder_map` entry only.
   final int? extruder;
-
-  /// The nozzle this unit's slots currently rest on, which on a Filament Track
-  /// Switch machine is known even when [extruder] is not. Travels to the slot
-  /// configuration sheet, where it tells the printer's two calibration tables
-  /// apart.
-  final int? slotExtruder;
   final int? activeExtruder;
   final AssignedSpools assigned;
   final String? serial;
   final int printerId;
-  final String? printerName;
   final bool supportsDrying;
-  final bool printing;
 
-  /// Nozzle this unit feeds, and the printer's model code — both travel to the
-  /// slot configuration sheet, which needs them to filter presets and to name
-  /// the calibration context.
-  final String? nozzleDiameter;
-  final String? printerModel;
-
-  /// The Filament Track Switch and the hotend/slot pairing, for the load
-  /// question the slot sheet has to ask when one is fitted — see [_SlotRef].
-  final FilaSwitch? filaSwitch;
-  final Map<int, ExtruderSlot>? fedFrom;
+  /// What the slot sheet needs for slot [trayIndex] of this unit, built by
+  /// [_amsSlotRef] so the card and the single-printer controller open the same
+  /// sheet from the same inputs.
+  final _SlotRef Function(int trayIndex) slotRef;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -741,31 +880,7 @@ class _AmsSection extends ConsumerWidget {
                 serial: serial,
               ),
               last: i == trays.length - 1,
-              slot: _SlotRef(
-                printerId: printerId,
-                printerName: printerName,
-                amsId: unit.id ?? unitIndex,
-                trayId: i,
-                label: amsSlotName(unit.id ?? unitIndex, i),
-                printing: printing,
-                loadTrayId: amsLoadTrayId(
-                  amsId: unit.id ?? unitIndex,
-                  trayId: i,
-                ),
-                canRereadRfid: true,
-                tagUid: trays[i].tagUid,
-                trayUuid: trays[i].trayUuid,
-                tagBound: assigned.tagBinds(trays[i]),
-                tagSpool: assigned.boundByTag(trays[i]),
-                trayInfoIdx: trays[i].trayInfoIdx,
-                trayColour: trays[i].trayColor,
-                caliIdx: trays[i].caliIdx,
-                nozzleDiameter: nozzleDiameter,
-                printerModel: printerModel,
-                extruderId: slotExtruder,
-                filaSwitch: filaSwitch,
-                fedFrom: fedFrom,
-              ),
+              slot: slotRef(i),
             ),
       ],
     );
@@ -780,28 +895,16 @@ class _SpoolSection extends StatelessWidget {
     required this.active,
     required this.extruderOf,
     required this.fillOf,
-    required this.tagBindsOf,
-    required this.boundByTagOf,
-    required this.trayIdOf,
-    required this.printerId,
-    required this.printerName,
-    required this.printing,
-    required this.nozzleDiameterOf,
-    required this.printerModel,
+    required this.slotRef,
   });
 
   final List<AmsTray> trays;
   final AmsTray? active;
   final int? Function(int index) extruderOf;
   final TrayFill Function(int index) fillOf;
-  final bool Function(int index) tagBindsOf;
-  final Spool? Function(int index) boundByTagOf;
-  final int Function(int index) trayIdOf;
-  final int printerId;
-  final String? printerName;
-  final bool printing;
-  final String? Function(int index) nozzleDiameterOf;
-  final String? printerModel;
+
+  /// The slot sheet's input for spool [index], built by [_externalSlotRef].
+  final _SlotRef Function(int index) slotRef;
 
   @override
   Widget build(BuildContext context) {
@@ -826,30 +929,7 @@ class _SpoolSection extends StatelessWidget {
               0 => l10n.extruderRightShort,
               _ => null,
             },
-            slot: _SlotRef(
-              printerId: printerId,
-              printerName: printerName,
-              amsId: externalHolderUnit,
-              trayId: trayIdOf(i),
-              label: switch (extruderOf(i)) {
-                1 => l10n.extruderLeft,
-                0 => l10n.extruderRight,
-                _ => l10n.externalSpool,
-              },
-              printing: printing,
-              loadTrayId: amsLoadTrayId(
-                amsId: externalHolderUnit,
-                trayId: trayIdOf(i),
-              ),
-              trayInfoIdx: trays[i].trayInfoIdx,
-              trayColour: trays[i].trayColor,
-              caliIdx: trays[i].caliIdx,
-              nozzleDiameter: nozzleDiameterOf(i),
-              printerModel: printerModel,
-              extruderId: extruderOf(i),
-              tagBound: tagBindsOf(i),
-              tagSpool: boundByTagOf(i),
-            ),
+            slot: slotRef(i),
           ),
       ],
     );
@@ -885,7 +965,7 @@ class _FilamentRow extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final empty = tray.isEmpty;
-    final dotColor = empty ? null : _parseTrayColor(tray.trayColor);
+    final dotColor = empty ? null : parseTrayColor(tray.trayColor);
 
     final material = empty
         ? l10n.traySlotEmpty
@@ -1068,22 +1148,14 @@ class _AmsDryControl extends ConsumerWidget {
     final look = _dryLook(unit, t, l10n, noTimer: l10n.ctrlDry);
 
     return InkWell(
-      onTap: () {
-        // The sheet decides whether to offer the "later" modes from what the
-        // listing last answered, so this is the moment to ask again: a server
-        // that gained the route (or a session that gained the permission)
-        // otherwise stays without them until the dashboard is pulled down.
-        ref.invalidate(scheduledDryingsProvider);
-        dashSurfaceSheet<void>(
-          context,
-          builder: (_) => _DryingSheet(
-            printerId: printerId,
-            amsId: amsId,
-            amsLabel: amsLabel,
-            unit: unit,
-          ),
-        );
-      },
+      onTap: () => showAmsDryingSheet(
+        context,
+        ref,
+        printerId: printerId,
+        amsId: amsId,
+        amsLabel: amsLabel,
+        unit: unit,
+      ),
       borderRadius: BorderRadius.circular(6),
       child: Padding(
         padding: const EdgeInsets.symmetric(
@@ -1780,7 +1852,14 @@ class _SlotActions extends ConsumerWidget {
     // a stray one on its own line.
     final load = OutlinedButton.icon(
       onPressed: enabled && canLoad
-          ? () => _startLoad(context, l10n, controls, loadTrayId)
+          ? () => _startSlotLoad(
+              context,
+              l10n,
+              controls,
+              slot,
+              loadTrayId,
+              beforeSend: () => Navigator.of(context).pop(),
+            )
           : null,
       icon: const Icon(Icons.login, size: 18),
       label: Text(l10n.amsLoad),
@@ -1788,21 +1867,13 @@ class _SlotActions extends ConsumerWidget {
 
     final unload = OutlinedButton.icon(
       onPressed: enabled
-          ? () => _run(
+          ? () => _unloadSlot(
               context,
               l10n,
-              // Naming the slot is what tells two hotends apart: `tray_now` is
-              // one value for the whole printer, so an unaddressed unload on a
-              // dual-nozzle machine empties whichever hotend that field
-              // happens to name, not the slot the sheet is about. A server
-              // that does not know the parameter ignores it and keeps the old
-              // printer-wide behaviour.
-              () => controls.amsUnload(slot.printerId, trayId: loadTrayId),
-              l10n.amsUnloadStarted,
-              // The one status this route answers for a reason the user can
-              // act on, and which "server returned error 409" would hide.
-              wordFailure: (e) =>
-                  e.statusCode == 409 ? l10n.amsUnloadSlotNotLoaded : null,
+              controls,
+              slot,
+              loadTrayId,
+              beforeSend: () => Navigator.of(context).pop(),
             )
           : null,
       icon: const Icon(Icons.logout, size: 18),
@@ -1811,9 +1882,10 @@ class _SlotActions extends ConsumerWidget {
 
     final reread = OutlinedButton.icon(
       onPressed: enabled
-          ? () => _run(
+          ? () => _runSlotAction(
               context,
               l10n,
+              beforeSend: () => Navigator.of(context).pop(),
               () => controls.refreshAmsSlot(
                 slot.printerId,
                 amsId: slot.amsId,
@@ -1878,135 +1950,208 @@ class _SlotActions extends ConsumerWidget {
       builder: (_) => AmsSlotConfigSheet(target: slot.configTarget),
     );
   }
+}
 
-  /// Closes the sheet before the command lands: these actions take tens of
-  /// seconds at the printer and there is nothing to watch here meanwhile.
-  ///
-  /// [wordFailure] is for a status this route means something specific by, which
-  /// the generic wording would bury; anything it answers null for falls through
-  /// to `messageFor`.
-  Future<void> _run(
-    BuildContext context,
-    AppLocalizations l10n,
-    Future<ActionOutcome> Function() action,
-    String startedMessage, {
-    String? Function(ApiException error)? wordFailure,
-  }) async {
-    final messenger = ScaffoldMessenger.of(context);
-    Navigator.of(context).pop();
-    final outcome = await action();
-    final failure = switch (outcome) {
-      ActionFailed(error: final ApiException e) => wordFailure?.call(e),
-      _ => null,
-    };
-    messenger.snack(
-      failure ?? outcome.messageFor(l10n) ?? startedMessage,
-      clearQueue: true,
-    );
-  }
+/// Runs one of the slot's commands and says how it went. [beforeSend] runs
+/// just before the command goes out; the sheet closes itself there, because
+/// these actions take tens of seconds at the printer and there is nothing to
+/// watch meanwhile.
+///
+/// [wordFailure] is for a status this route means something specific by, which
+/// the generic wording would bury; anything it answers null for falls through
+/// to `messageFor`.
+Future<void> _runSlotAction(
+  BuildContext context,
+  AppLocalizations l10n,
+  Future<ActionOutcome> Function() action,
+  String startedMessage, {
+  VoidCallback? beforeSend,
+  String? Function(ApiException error)? wordFailure,
+}) async {
+  final messenger = ScaffoldMessenger.of(context);
+  beforeSend?.call();
+  final outcome = await action();
+  final failure = switch (outcome) {
+    ActionFailed(error: final ApiException e) => wordFailure?.call(e),
+    _ => null,
+  };
+  messenger.snack(
+    failure ?? outcome.messageFor(l10n) ?? startedMessage,
+    clearQueue: true,
+  );
+}
 
-  /// Loads the slot, asking which hotend to feed first where that question has
-  /// an answer the printer cannot work out for itself.
-  ///
-  /// Without a Filament Track Switch every AMS is wired to one hotend and the
-  /// firmware derives the target, so the command names none. With one fitted the
-  /// AMS is bound to a switch inlet instead and both hotends are reachable — the
-  /// firmware then has nothing to derive from and drops a command that does not
-  /// say where the filament is going. Bambu Studio asks the same question in the
-  /// same place.
-  Future<void> _startLoad(
-    BuildContext context,
-    AppLocalizations l10n,
-    ControlsNotifier controls,
-    int loadTrayId,
-  ) async {
-    final filaSwitch = slot.filaSwitch;
-    // The external holder answers the question by itself — its two tray numbers
-    // name the side (254 = Ext-L, 255 = Ext-R) — and a switch cannot be fitted
-    // alongside one anyway: it would occupy an extruder channel permanently,
-    // which is why Bambu's own guidance is to take the switch off first.
-    // An AMS-HT never reaches here at all: it has no global tray number, so the
-    // button is hidden rather than disabled.
-    final asks = (filaSwitch?.installed ?? false) && slot.amsId != 255;
-    if (!asks) {
-      await _run(
-        context,
-        l10n,
-        () => controls.amsLoad(slot.printerId, loadTrayId),
-        l10n.amsLoadStarted,
-      );
-      return;
-    }
-    if (!filaSwitch!.ready) {
-      // Nothing can be routed until every AMS is bound to an inlet, so say so
-      // rather than send a command the firmware would drop whatever hotend it
-      // named. The sheet stays open — the fix is on the printer's own screen,
-      // and the user comes back to the same slot.
-      ScaffoldMessenger.of(context).snack(l10n.amsSwitchNotReady);
-      return;
-    }
-    final extruderId = await _askFeedDirection(context, l10n);
-    if (extruderId == null || !context.mounted) return;
-    await _run(
+/// Unloads [slot]. Naming the slot is what tells two hotends apart: `tray_now`
+/// is one value for the whole printer, so an unaddressed unload on a
+/// dual-nozzle machine empties whichever hotend that field happens to name, not
+/// the slot asked about. A server that does not know the parameter ignores it
+/// and keeps the old printer-wide behaviour.
+Future<void> _unloadSlot(
+  BuildContext context,
+  AppLocalizations l10n,
+  ControlsNotifier controls,
+  _SlotRef slot,
+  int? loadTrayId, {
+  VoidCallback? beforeSend,
+}) => _runSlotAction(
+  context,
+  l10n,
+  () => controls.amsUnload(slot.printerId, trayId: loadTrayId),
+  l10n.amsUnloadStarted,
+  beforeSend: beforeSend,
+  // The one status this route answers for a reason the user can act on, and
+  // which "server returned error 409" would hide.
+  wordFailure: (e) => e.statusCode == 409 ? l10n.amsUnloadSlotNotLoaded : null,
+);
+
+/// Loads [slot], asking which hotend to feed first where that question has an
+/// answer the printer cannot work out for itself.
+///
+/// Without a Filament Track Switch every AMS is wired to one hotend and the
+/// firmware derives the target, so the command names none. With one fitted the
+/// AMS is bound to a switch inlet instead and both hotends are reachable — the
+/// firmware then has nothing to derive from and drops a command that does not
+/// say where the filament is going. Bambu Studio asks the same question in the
+/// same place.
+Future<void> _startSlotLoad(
+  BuildContext context,
+  AppLocalizations l10n,
+  ControlsNotifier controls,
+  _SlotRef slot,
+  int loadTrayId, {
+  VoidCallback? beforeSend,
+}) async {
+  final filaSwitch = slot.filaSwitch;
+  // The external holder answers the question by itself — its two tray numbers
+  // name the side (254 = Ext-L, 255 = Ext-R) — and a switch cannot be fitted
+  // alongside one anyway: it would occupy an extruder channel permanently,
+  // which is why Bambu's own guidance is to take the switch off first.
+  // An AMS-HT never reaches here at all: it has no global tray number, so the
+  // button is hidden rather than disabled.
+  final asks = (filaSwitch?.installed ?? false) && slot.amsId != 255;
+  if (!asks) {
+    await _runSlotAction(
       context,
       l10n,
-      () =>
-          controls.amsLoad(slot.printerId, loadTrayId, extruderId: extruderId),
+      () => controls.amsLoad(slot.printerId, loadTrayId),
       l10n.amsLoadStarted,
+      beforeSend: beforeSend,
     );
+    return;
   }
+  if (!filaSwitch!.ready) {
+    // Nothing can be routed until every AMS is bound to an inlet, so say so
+    // rather than send a command the firmware would drop whatever hotend it
+    // named. The sheet stays open — the fix is on the printer's own screen,
+    // and the user comes back to the same slot.
+    ScaffoldMessenger.of(context).snack(l10n.amsSwitchNotReady);
+    return;
+  }
+  final extruderId = await _askFeedDirection(context, l10n, slot);
+  if (extruderId == null || !context.mounted) return;
+  await _runSlotAction(
+    context,
+    l10n,
+    () => controls.amsLoad(slot.printerId, loadTrayId, extruderId: extruderId),
+    l10n.amsLoadStarted,
+    beforeSend: beforeSend,
+  );
+}
 
-  /// Asks which hotend to feed, or answers null when the user backs out.
-  ///
-  /// A hotend already fed from this very slot is offered as disabled: loading it
-  /// again is a no-op the printer would accept and then do nothing about. The
-  /// pairing is the one the sheet was opened on — a slot that becomes loaded
-  /// while the dialog is up costs one refused command, which is a far smaller
-  /// trap than a button that moves under the finger.
-  Future<int?> _askFeedDirection(BuildContext context, AppLocalizations l10n) {
-    final fed = slot.fedFrom;
-    bool alreadyFed(int extruderId) =>
-        fed?[extruderId]?.holds(amsId: slot.amsId, slotId: slot.trayId) ??
-        false;
+/// Asks which hotend to feed, or answers null when the user backs out.
+///
+/// A hotend already fed from this very slot is offered as disabled: loading it
+/// again is a no-op the printer would accept and then do nothing about. The
+/// pairing is the one the question was asked on — a slot that becomes loaded
+/// while the dialog is up costs one refused command, which is a far smaller
+/// trap than a button that moves under the finger.
+Future<int?> _askFeedDirection(
+  BuildContext context,
+  AppLocalizations l10n,
+  _SlotRef slot,
+) {
+  final fed = slot.fedFrom;
+  bool alreadyFed(int extruderId) =>
+      fed?[extruderId]?.holds(amsId: slot.amsId, slotId: slot.trayId) ?? false;
 
-    Widget option(BuildContext ctx, int extruderId, String label, String id) {
-      final taken = alreadyFed(extruderId);
-      return logTag(
-        id,
-        OutlinedButton(
-          onPressed: taken ? null : () => Navigator.pop(ctx, extruderId),
-          child: Text(taken ? '$label — ${l10n.amsFeedAlreadyLoaded}' : label),
-        ),
-      );
-    }
-
-    return showDialog<int>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.amsFeedTitle(slot.label)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.amsFeedPrompt),
-            const SizedBox(height: DashSpace.lg),
-            option(ctx, 1, l10n.extruderLeft, 'feed_direction.left'),
-            const SizedBox(height: DashSpace.sm),
-            option(ctx, 0, l10n.extruderRight, 'feed_direction.right'),
-          ],
-        ),
-        actions: [
-          logTag(
-            'feed_direction.cancel',
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(l10n.cancel),
-            ),
-          ),
-        ],
+  Widget option(BuildContext ctx, int extruderId, String label, String id) {
+    final taken = alreadyFed(extruderId);
+    return logTag(
+      id,
+      OutlinedButton(
+        onPressed: taken ? null : () => Navigator.pop(ctx, extruderId),
+        child: Text(taken ? '$label — ${l10n.amsFeedAlreadyLoaded}' : label),
       ),
     );
   }
+
+  return showDialog<int>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(l10n.amsFeedTitle(slot.label)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l10n.amsFeedPrompt),
+          const SizedBox(height: DashSpace.lg),
+          option(ctx, 1, l10n.extruderLeft, 'feed_direction.left'),
+          const SizedBox(height: DashSpace.sm),
+          option(ctx, 0, l10n.extruderRight, 'feed_direction.right'),
+        ],
+      ),
+      actions: [
+        logTag(
+          'feed_direction.cancel',
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Loads or unloads one slot from outside its sheet — the single-printer
+/// controller's Filament tab — with the sheet's wording, its Filament Track
+/// Switch question and its addressing. [unitIndex] null means external spool
+/// [index]; otherwise [index] is the slot of that AMS unit. A slot with no
+/// global tray number (AMS-HT) is not addressable here and does nothing.
+Future<void> runSlotCommand(
+  BuildContext context,
+  WidgetRef ref, {
+  required bool load,
+  required PrinterStatus status,
+  required int? nozzleCount,
+  required int? unitIndex,
+  required int index,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  final dual = status.isDualNozzle(nozzleCount);
+  final assigned = ref.read(assignedSpoolsProvider(status.id));
+  final slot = unitIndex == null
+      ? _externalSlotRef(
+          l10n: l10n,
+          status: status,
+          dual: dual,
+          spool: status.externalSpools[index],
+          assigned: assigned,
+        )
+      : _amsSlotRef(
+          status: status,
+          dual: dual,
+          unit: status.ams![unitIndex],
+          unitIndex: unitIndex,
+          trayIndex: index,
+          assigned: assigned,
+        );
+  final loadTrayId = slot.loadTrayId;
+  if (loadTrayId == null) return;
+  final controls = ref.read(controlsProvider.notifier);
+  await (load
+      ? _startSlotLoad(context, l10n, controls, slot, loadTrayId)
+      : _unloadSlot(context, l10n, controls, slot, loadTrayId));
 }
 
 /// "Assign spool to this slot" sheet opened from a filament row. Slot is known

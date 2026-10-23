@@ -5,13 +5,10 @@
 # Anything irreversible on GitHub is purge-<deepest thing lost>, so
 # `just purge<TAB>` enumerates every no-undo command and nothing else.
 #
-# The listed description is the [doc] attribute, not the comment above it: just
-# shows only the LAST comment line, which is how half this file used to advertise
-# itself as "usage: …". Attributes must touch the recipe line — a comment between
-# them is `error: extraneous attribute`, and it breaks the whole file, not one
-# recipe. Group names are numbered because bare `just` (via --unsorted) reads in
-# source order while `just --list` re-sorts alphabetically; the digits are what
-# keep the two agreeing, and the cleanup ladder readable.
+# The listed description is the [doc] attribute; without one just shows the last
+# comment line. Attributes must touch the recipe line — a comment between them is
+# `error: extraneous attribute` for the whole file. Groups are numbered so bare
+# `just` (source order) and `just --list` (alphabetical) agree.
 
 # Release artifacts live in build/dist (survives _clean-artifacts, which only
 # wipes build/app) so the phone build isn't destroyed by the later watch build's
@@ -23,10 +20,8 @@ wear_aab := "build/dist/app-wear-release.aab"
 repo := "DoYouHost/bambuddy-mobile"
 
 emulator_bin := "$HOME/Android/Sdk/emulator/emulator"
-# Default local AVD (Pixel 7, API 35). Every local recipe takes an `avd=`
-# argument, so `just emu-list` shows the alternatives (e.g. small360, a 360dp
-# narrow screen). Serials are resolved by AVD name, not hardcoded — the port
-# depends on boot order.
+# Pixel 7, API 35. Every local recipe takes `avd=`; `just emu-list` shows the
+# others (e.g. small360, a 360 dp narrow screen).
 avd := "pixel35"
 
 # Default watch AVD. The wear flavor needs its own recipe rather than an `avd=`
@@ -62,33 +57,48 @@ test:
     patrol=$(command -v patrol || echo "$HOME/.pub-cache/bin/patrol")
     [ -x "$patrol" ] || { echo "patrol CLI missing: dart pub global activate patrol_cli" >&2; exit 1; }
     just test-device
-    for wear in {{wear_avd}} {{wear6_avd}}; do
-        just emu-boot "$wear"
-        serial=$(just _emu-serial "$wear")
-        # Patrol drives the app from inside, so the watch sees no user: it went
-        # to sleep (ungaze, ambient) and froze the test services' process, and
-        # sent a waiting permission dialog to the watch face after 60 s. An
-        # emulator has no wrist and no battery to save, so all three go.
-        for setting in ambient_enabled=0 ungaze_sleep_enabled=0 wear_activity_auto_resume_timeout_ms=2147483647; do
-            adb -s "$serial" shell settings put global "${setting%%=*}" "${setting#*=}"
-        done
-        adb -s "$serial" shell input keyevent KEYCODE_WAKEUP
-        "$patrol" test -t patrol_test/wear_app_test.dart --flavor wear -d "$serial"
+    just _test-wear {{wear_avd}} "$patrol"
+    just _test-wear {{wear6_avd}} "$patrol"
+
+# patrol_test/ on one watch AVD. Patrol drives the app from inside, so the watch
+# sees no user: it went to sleep (ungaze, ambient) and froze the test services'
+# process, and sent a waiting permission dialog to the watch face after 60 s. An
+# emulator has no wrist and no battery to save, so all three go.
+_test-wear avd patrol:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    running=0
+    just _emu-serial {{avd}} >/dev/null 2>&1 && running=1
+    just emu-boot {{avd}} cold
+    serial=$(just _emu-serial {{avd}})
+    # Shut down only an AVD this run booted; one already running was opened by hand.
+    if [ "$running" = 0 ]; then
+        trap 'adb -s "$serial" emu kill >/dev/null 2>&1 || true' EXIT
+    fi
+    for setting in ambient_enabled=0 ungaze_sleep_enabled=0 wear_activity_auto_resume_timeout_ms=2147483647; do
+        adb -s "$serial" shell settings put global "${setting%%=*}" "${setting#*=}"
     done
+    adb -s "$serial" shell input keyevent KEYCODE_WAKEUP
+    {{ quote(patrol) }} test -t patrol_test/wear_app_test.dart --flavor wear -d "$serial"
 
 # The tests a host `flutter test` cannot run. Its binding replaces the HTTP
 # client, so nothing there ever reads a byte off a socket — which is how a
 # camera view that showed a spinner forever passed a green suite. These boot the
 # AVD, serve an MJPEG stream from the device's own loopback and assert on what
 # reaches the screen.
-# usage: just test-device [AVD]
 [doc('run the on-device integration tests (boots the AVD first)')]
 [group('1-develop')]
 test-device avd=avd:
     #!/usr/bin/env bash
     set -euo pipefail
-    just emu-boot {{avd}}
+    running=0
+    just _emu-serial {{avd}} >/dev/null 2>&1 && running=1
+    just emu-boot {{avd}} cold
     serial=$(just _emu-serial {{avd}})
+    # Shut down only an AVD this run booted; one already running was opened by hand.
+    if [ "$running" = 0 ]; then
+        trap 'adb -s "$serial" emu kill >/dev/null 2>&1 || true' EXIT
+    fi
     # One file per `flutter test`, each preceded by an install with -g. Android
     # 13+ gates notifications behind a runtime permission that no test can grant
     # for itself, and a run uninstalls the app when it ends — so a whole-folder
@@ -115,29 +125,28 @@ hooks:
     git config core.hooksPath .githooks
     @echo "hooks: core.hooksPath = $(git config core.hooksPath)"
 
-# Spelling and grammar for the strings the user actually reads. Checks only what
-# this branch changed; `just l10n-check-all` sweeps every locale file. Set
-# LANGUAGETOOL_URL to a self-hosted instance to skip the public rate limit and
-# keep the copy off someone else's server.
-# usage: just l10n-check [BASE_REF]
-[doc('spell-check the .arb strings this branch changed')]
-[group('1-develop')]
-l10n-check base='dev':
-    dart run app_guards:l10n_language --base {{base}}
-
 # What ships in the watch APK is decided by Gradle and the manifest merger, so
 # no Dart test can see it: the per-flavor asset prune and the stripped startup
 # components are both silent when they break. Checks the debug APK the compile
 # step already produces; pass the phone one too and it also verifies the prune
 # is flavor-scoped rather than global.
-# usage: just check-wear-apk [WEAR_APK] [MOBILE_APK]
 [doc('check the built watch APK: pruned assets and stripped components')]
 [group('1-develop')]
 check-wear-apk wear='build/app/outputs/flutter-apk/app-wear-debug.apk' mobile='':
     python3 tool/check_wear_apk.py {{wear}} {{ if mobile != '' { '--mobile ' + mobile } else { '' } }}
 
-# A one-letter word ("i", "w", "a", "à") must not end a line in any language:
-# turns the space after each into a no-break space, then regenerates.
+# Set LANGUAGETOOL_URL to a self-hosted instance to skip the public rate limit and
+# keep the copy off someone else's server.
+[doc('spell-check the .arb strings this branch changed')]
+[group('1-develop')]
+l10n-check base='dev':
+    dart run app_guards:l10n_language --base {{base}}
+
+[doc('spell-check every .arb string, not only this branch')]
+[group('1-develop')]
+l10n-check-all:
+    dart run app_guards:l10n_language --all
+
 # test/l10n/short_words_test.dart fails until this has run.
 [doc('glue one-letter words to the next word in every .arb, then gen-l10n')]
 [group('1-develop')]
@@ -145,13 +154,6 @@ l10n-glue:
     dart run app_guards:glue_short_words
     flutter gen-l10n
 
-[doc('spell-check every .arb string, not only this branch')]
-[group('1-develop')]
-l10n-check-all:
-    dart run app_guards:l10n_language --all
-
-# Compare .arb files against the English template: find missing, outdated or mismatched keys.
-# usage: just l10n-status [*ARGS]
 [doc('check translation status and missing keys against app_en.arb')]
 [group('1-develop')]
 l10n-status *args:
@@ -159,21 +161,15 @@ l10n-status *args:
 
 # Boots the AVD first if needed, then builds, installs and runs with hot reload.
 # This is the primary pre-commit verify loop.
-# usage: just run [AVD]
 [doc('run the app on a local AVD, booting it first')]
 [group('1-develop')]
 run avd=avd: (emu-boot avd)
-    #!/usr/bin/env bash
-    set -euo pipefail
     flutter run -d "$(just _emu-serial {{avd}})" --flavor mobile
 
 # Same loop as `run`, for the watch: wear flavor, wear entry point.
-# usage: just run-wear [AVD]
 [doc('run the watch app on a local Wear AVD, booting it first')]
 [group('1-develop')]
 run-wear avd=wear_avd: (emu-boot avd)
-    #!/usr/bin/env bash
-    set -euo pipefail
     flutter run -d "$(just _emu-serial {{avd}})" --flavor wear --target lib/wear/main_wear.dart
 
 # ---- 2-emulator — boots the emulator and puts its screen on your desk ----
@@ -193,10 +189,14 @@ _emu-serial avd:
 
 # Idempotent (no-op if the AVD is already online); boots in the background and
 # blocks until Android finishes booting, so local recipes can depend on it.
-# usage: just emu-boot [AVD]
-[doc('boot a local AVD and wait for it to finish booting')]
+# `cold` boots without loading the quickboot snapshot: the tests pass it, because
+# a snapshot saved from a killed or half-booted run is what hangs the next boot.
+# A boot that has not finished in EMU_BOOT_TIMEOUT seconds (default 180) is killed
+# and tried again, up to three times; an emulator that hangs reads as `offline`
+# in adb, and nothing waiting on it would ever give up.
+[doc('boot a local AVD, retrying a hung boot, and wait for it to finish')]
 [group('2-emulator')]
-emu-boot avd=avd:
+emu-boot avd=avd cold='':
     #!/usr/bin/env bash
     set -euo pipefail
     if serial=$(just _emu-serial {{avd}} 2>/dev/null); then
@@ -208,20 +208,33 @@ emu-boot avd=avd:
         just emu-list >&2
         exit 1
     fi
-    "{{emulator_bin}}" -avd {{avd}} >/dev/null 2>&1 &
-    disown
-    echo "Booting {{avd}}..."
-    for _ in $(seq 1 60); do
-        serial=$(just _emu-serial {{avd}} 2>/dev/null || true)
-        [ -n "${serial:-}" ] && break
-        sleep 2
+    flags=()
+    [ "{{cold}}" = cold ] && flags+=(-no-snapshot-load)
+    timeout_s=${EMU_BOOT_TIMEOUT:-180}
+    attempts=3
+    for attempt in $(seq 1 "$attempts"); do
+        "{{emulator_bin}}" -avd {{avd}} "${flags[@]}" >/dev/null 2>&1 &
+        pid=$!
+        disown
+        echo "Booting {{avd}}... (attempt $attempt of $attempts)"
+        deadline=$((SECONDS + timeout_s))
+        while [ "$SECONDS" -lt "$deadline" ]; do
+            serial=$(timeout 20 just _emu-serial {{avd}} 2>/dev/null || true)
+            if [ -n "${serial:-}" ] &&
+                [ "$(timeout 10 adb -s "$serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then
+                echo "{{avd}} ready ($serial)"
+                exit 0
+            fi
+            sleep 2
+        done
+        # SIGKILL, not a polite stop: a polite one lets a hung emulator save its
+        # half-booted state as the next quickboot snapshot.
+        echo "{{avd}} did not finish booting in ${timeout_s}s; killing it" >&2
+        kill -9 "$pid" 2>/dev/null || true
+        sleep 3
     done
-    [ -n "${serial:-}" ] || { echo "{{avd}} did not come up" >&2; exit 1; }
-    adb -s "$serial" wait-for-device
-    until [ "$(adb -s "$serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
-        sleep 2
-    done
-    echo "{{avd}} ready ($serial)"
+    echo "{{avd}} did not boot after $attempts attempts" >&2
+    exit 1
 
 [doc('list local AVDs, marking which are running')]
 [group('2-emulator')]
@@ -329,7 +342,6 @@ build-wear-aab name='' code='': (_build "appbundle" "wear" name code)
 # to gradle: the flavor offset is applied on the gradle side, so what it baked in
 # is the only number Play will judge — and a wrong one stays invisible until the
 # upload is rejected. `play-internal` reads the same manifest before it uploads.
-# usage: just aab-show [BUNDLE...]
 [doc('print the versions baked into the built Play bundles')]
 [group('3-build')]
 aab-show *paths:
@@ -370,8 +382,7 @@ _branch:
 # versionCode = (major*10000 + minor*100 + patch) * 20 + 2_000_000
 # (e.g. 1.2.3 → 2_204_060). The *20 opens 19 slots under each release for
 # `ship-dev` to number its builds into, so a dev build can never block the
-# release it precedes; the busiest cycle so far used 8 of them. The old bare
-# major*10000+minor*100+patch left no integer at all between two patches.
+# release it precedes; the busiest cycle so far used 8 of them.
 #
 # The + 2_000_000 is what makes the narrower multiplier safe. Up to 0.13.0 the
 # multiplier was 1000, so the phone shipped 1_300_000 and the watch
@@ -391,12 +402,25 @@ _branch:
 # wear sits a billion up because 1_001_300_000 is already published and cannot
 # be moved down. That leaves 300 M..1_000 M and 1_022 M..2_100 M (Play's
 # ceiling) empty — room for 17 more bands beyond the one reserved above.
-#
+[no-exit-message]
+_version-code ver:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ver={{ quote(ver) }}
+    if ! grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' <<<"$ver"; then
+        echo "Version must be X.Y.Z, got '$ver'." >&2
+        exit 1
+    fi
+    IFS=. read -r major minor patch <<<"$ver"
+    # 10# so a padded `08` is decimal eight and not an octal error.
+    echo $(( (10#$major * 10000 + 10#$minor * 100 + 10#$patch) * 20 + 2000000 ))
+
 # Idempotent: safe to re-run after a partially-completed `ship` — it skips the
 # edit/commit when the version is already bumped, so the pipeline can resume.
 _bump ver:
     #!/usr/bin/env bash
     set -euo pipefail
+    code=$(just _version-code {{ quote(ver) }})
     branch=$(just _branch)
     # A branch that exists only here — the first release cut from it — has
     # nothing to rebase onto, and `git pull` would fail on the missing ref.
@@ -410,10 +434,6 @@ _bump ver:
         2) echo "origin has no $branch yet — first release from this branch" ;;
         *) echo "Cannot read origin (git ls-remote exited $rc)." >&2; exit 1 ;;
     esac
-    major=$(echo "{{ver}}" | cut -d. -f1)
-    minor=$(echo "{{ver}}" | cut -d. -f2)
-    patch=$(echo "{{ver}}" | cut -d. -f3)
-    code=$(((major * 10000 + minor * 100 + patch) * 20 + 2000000))
     target="version: {{ver}}+${code}"
     if [ "$(grep '^version: ' pubspec.yaml)" = "$target" ]; then
         echo "pubspec.yaml already at {{ver}}+${code}, skipping bump"
@@ -472,7 +492,6 @@ _play-only tag name:
 # Produces everything a stable version needs: APKs for the GitHub release (and
 # Obtainium), plus both Play bundles released to internal testing. Promoting
 # them to production stays a click in the Play Console.
-# usage: just ship X.Y.Z
 [doc('bump, test, build and publish a stable release')]
 [group('4-release')]
 ship ver:
@@ -493,7 +512,7 @@ ship ver:
 
 # Test, build both flavors and publish the current commit as a dev prerelease.
 #
-#   versionName  X.Y.Z-dev.N    versionCode  (X.Y.Z as in _bump) - 20 + N
+#   versionName  X.Y.Z-dev.N    versionCode  (X.Y.Z as in _version-code) - 20 + N
 #
 # X.Y.Z is the release this build is heading for (default: the next patch after
 # the last tag) and N counts the dev builds of that target — so every dev build
@@ -510,7 +529,6 @@ ship ver:
 # `bundles` and not `aab` because a parameter shadows the global of the same name
 # for the whole recipe, which would expand `{{aab}}` to `yes`.
 #
-# usage: just ship-dev [X.Y.Z | X.Y.Z-dev.N] [bundles=yes|no]
 [doc('publish a dev prerelease from the current commit')]
 [group('4-release')]
 ship-dev target='' bundles='yes':
@@ -602,10 +620,7 @@ ship-dev target='' bundles='yes':
         echo "$n dev builds under $target — past the 19 slots. Ship a release." >&2
         exit 1
     fi
-    maj=$(cut -d. -f1 <<<"$target")
-    min=$(cut -d. -f2 <<<"$target")
-    pat=$(cut -d. -f3 <<<"$target")
-    code=$(( (maj * 10000 + min * 100 + pat) * 20 + 2000000 - 20 + n ))
+    code=$(( $(just _version-code "$target") - 20 + n ))
     name="$target-dev.$n"
     sha=$(git rev-parse HEAD)
     # The release is created around a commit, so the server needs it first. Said
@@ -652,7 +667,6 @@ ship-dev target='' bundles='yes':
 # Assumes both APKs are already built. Phone and watch share an applicationId but
 # have distinct filenames (app-mobile/app-wear), so Obtainium picks the right one
 # via a filename regex.
-# usage: just release-publish X.Y.Z
 [doc('publish the GitHub release for an already-built version')]
 [group('4-release')]
 release-publish ver:
@@ -681,7 +695,6 @@ release-publish ver:
 # Releases the two Play bundles in build/dist to internal testing, phone and
 # watch in one edit. Safe to re-run: what is already on its track is skipped.
 # Needs uv and the service-account key (tool/play.toml says where).
-# usage: just play-internal [--dry-run]
 [doc('release the built Play bundles to internal testing')]
 [group('4-release')]
 play-internal *flags:
@@ -690,9 +703,8 @@ play-internal *flags:
 # ---- 5-danger — deletes what cannot be restored ----
 #
 # All three are irreversible on the server side, hence the preview + typed
-# confirmation. The original driver was Codeberg's release storage quota, which
-# GitHub does not impose; what is left is housekeeping, so old releases stay
-# findable without carrying binaries nobody installs.
+# confirmation. Housekeeping: old releases stay findable without carrying
+# binaries nobody installs.
 
 # Echo the subset of `tags` older than or EQUAL to `cutoff`, in input order.
 # `sort -V` orders versions numerically (v0.9.0 < v0.10.0, which a plain lexical
@@ -703,7 +715,14 @@ play-internal *flags:
 _at-or-below cutoff tags:
     #!/usr/bin/env bash
     set -euo pipefail
+    # A `v` left on the cutoff sorts after every digit, so each tag came out
+    # "at or below" it: `purge-releases v0.15.0` deleted every stable release.
     cutoff={{ quote(cutoff) }}
+    cutoff=${cutoff#v}
+    if ! grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' <<<"$cutoff"; then
+        echo "Cutoff must be X.Y.Z, got '{{cutoff}}'." >&2
+        exit 1
+    fi
     tags={{ quote(tags) }}
     for tag in $tags; do
         v="${tag#v}"
@@ -712,8 +731,9 @@ _at-or-below cutoff tags:
         fi
     done
 
-# Preview an irreversible list and demand a typed `yes`. The Keeping line is what
-# catches an off-by-one in the cutoff before it executes.
+# Preview an irreversible list and demand a typed `yes`. The Keeping line (`all`
+# minus `doomed`, in input order) is what catches an off-by-one in the cutoff
+# before it executes.
 #
 # `printf ... $doomed` is deliberately unquoted: $doomed is a newline-separated
 # blob and the word split is what puts one item per line.
@@ -722,11 +742,11 @@ _at-or-below cutoff tags:
 # `exit 1` below IS the abort, and a caller that swallows it walks straight into
 # the deletion loop.
 [no-exit-message]
-_confirm headline doomed keeping:
+_confirm headline doomed all:
     #!/usr/bin/env bash
     set -euo pipefail
     doomed={{ quote(doomed) }}
-    keeping={{ quote(keeping) }}
+    keeping=$({ grep -vxF -f <(printf '%s\n' $doomed) <<<{{ quote(all) }} || true; } | tr '\n' ' ')
     echo {{ quote(headline) }}
     printf '  %s\n' $doomed
     echo "Keeping: $keeping"
@@ -740,17 +760,13 @@ _confirm headline doomed keeping:
 # major.minor than the newest release's, so the whole latest minor (e.g. all of
 # v0.2.x) keeps its APKs while v0.1.x and earlier lose theirs. With VER
 # everything at or below that release is stripped, the newest minor included.
-# usage: just purge-assets [X.Y.Z]
 [doc('DELETE the APKs of old releases, releases and tags stay')]
 [group('5-danger')]
 purge-assets ver='':
     #!/usr/bin/env bash
     set -euo pipefail
-    # Capture the list first (piping gh straight into a filter risks a pipefail
-    # abort). Keep only real vMAJOR.MINOR.PATCH tags; a high --limit grabs every
-    # release in one page.
-    releases=$(gh release list --repo {{repo}} --limit 50 --json tagName --jq '.[].tagName')
-    tags=$(grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' <<<"$releases" || true)
+    tags=$(gh release list --repo {{repo}} --limit 1000 --json tagName \
+        --jq '.[].tagName | select(test("^v\\d+\\.\\d+\\.\\d+$"))')
     if [ -z "$tags" ]; then
         echo "No version releases found; nothing to clean."
         exit 0
@@ -763,28 +779,18 @@ purge-assets ver='':
         fi
         headline="About to strip artifacts from releases at or below v{{ver}} (irreversible; releases and tags stay):"
     else
-        # Latest minor = the max (major, minor) across all tags.
-        latest_major=-1; latest_minor=-1
-        for tag in $tags; do
-            v="${tag#v}"; major="${v%%.*}"; rest="${v#*.}"; minor="${rest%%.*}"
-            if (( major > latest_major )) || { (( major == latest_major )) && (( minor > latest_minor )); }; then
-                latest_major=$major; latest_minor=$minor
-            fi
-        done
-        # Keep the current minor (and anything newer); clean only older minors.
-        doomed=$(for tag in $tags; do
-            v="${tag#v}"; major="${v%%.*}"; rest="${v#*.}"; minor="${rest%%.*}"
-            if (( major < latest_major )) || { (( major == latest_major )) && (( minor < latest_minor )); }; then
-                echo "$tag"
-            fi
-        done)
+        # The newest release's series (e.g. v0.2) is kept whole; nothing sorts
+        # above it, so every other tag belongs to an older minor.
+        series=$(sort -V <<<"$tags" | tail -1)
+        series=${series%.*}
+        doomed=$(for tag in $tags; do [[ $tag == "$series".* ]] || echo "$tag"; done)
         if [ -z "$doomed" ]; then
-            echo "Only v${latest_major}.${latest_minor}.x releases exist; nothing to clean."
+            echo "Only $series.x releases exist; nothing to clean."
             exit 0
         fi
-        headline="Latest minor: v${latest_major}.${latest_minor}.x (kept). About to strip artifacts from older releases (irreversible; releases and tags stay):"
+        headline="Latest minor: $series.x (kept). About to strip artifacts from older releases (irreversible; releases and tags stay):"
     fi
-    just _confirm "$headline" "$doomed" "$(comm -23 <(sort <<<"$tags") <(sort <<<"$doomed") | tr '\n' ' ')"
+    just _confirm "$headline" "$doomed" "$tags"
     for tag in $doomed; do
         mapfile -t assets < <(gh release view "$tag" --repo {{repo}} --json assets --jq '.assets[].name')
         if (( ${#assets[@]} == 0 )); then
@@ -792,7 +798,6 @@ purge-assets ver='':
             continue
         fi
         echo "  $tag: deleting ${assets[*]}"
-        # One call per asset: gh takes a single asset name, unlike tea.
         for name in "${assets[@]}"; do
             gh release delete-asset "$tag" "$name" --repo {{repo}} -y
         done
@@ -803,16 +808,13 @@ purge-assets ver='':
 # purge-assets. Tags are kept, so history and `git describe` still work and a
 # release can be recreated from one; pass --cleanup-tag to gh by hand if you
 # really want the tags gone too.
-# usage: just purge-releases X.Y.Z
 [doc('DELETE whole releases at VER and below, tags stay')]
 [group('5-danger')]
 purge-releases ver:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Capture first (piping gh straight into a filter risks a pipefail abort);
-    # keep only real version tags.
-    releases=$(gh release list --repo {{repo}} --limit 100 --json tagName --jq '.[].tagName')
-    tags=$(grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' <<<"$releases" || true)
+    tags=$(gh release list --repo {{repo}} --limit 1000 --json tagName \
+        --jq '.[].tagName | select(test("^v\\d+\\.\\d+\\.\\d+$"))')
     if [ -z "$tags" ]; then
         echo "No version releases found; nothing to purge."
         exit 0
@@ -822,9 +824,7 @@ purge-releases ver:
         echo "No releases at or below v{{ver}}; nothing to purge."
         exit 0
     fi
-    just _confirm "About to DELETE these releases from GitHub (irreversible; tags stay):" "$doomed" \
-        "$(comm -23 <(sort <<<"$tags") <(sort <<<"$doomed") | tr '\n' ' ')"
-    # One call per release: gh deletes a single tag, unlike tea.
+    just _confirm "About to DELETE these releases from GitHub (irreversible; tags stay):" "$doomed" "$tags"
     for tag in $doomed; do
         gh release delete "$tag" --repo {{repo}} -y
     done
@@ -835,7 +835,6 @@ purge-releases ver:
 # dev tag marks a build nobody can install any more, and `git describe` picking
 # one over the release it came after is actively misleading. Stable releases are
 # unreachable from here — the pattern only matches -dev tags.
-# usage: just purge-dev-tags [KEEP]
 [doc('DELETE old dev prereleases and their tags')]
 [group('5-danger')]
 purge-dev-tags keep='5':
@@ -844,8 +843,8 @@ purge-dev-tags keep='5':
     # gh lists newest first, and that is the right order here: a dev build is
     # superseded by the next one, so "old" is positional rather than semantic —
     # no version sort to get wrong on a `-dev.10` vs `-dev.9`.
-    releases=$(gh release list --repo {{repo}} --limit 100 --json tagName --jq '.[].tagName')
-    devs=$(grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-dev\.[0-9]+$' <<<"$releases" || true)
+    devs=$(gh release list --repo {{repo}} --limit 1000 --json tagName \
+        --jq '.[].tagName | select(test("^v\\d+\\.\\d+\\.\\d+-dev\\.\\d+$"))')
     if [ -z "$devs" ]; then
         echo "No dev prereleases; nothing to clean."
         exit 0
@@ -855,8 +854,7 @@ purge-dev-tags keep='5':
         echo "Only $(wc -l <<<"$devs") dev prerelease(s), keeping {{keep}}; nothing to clean."
         exit 0
     fi
-    just _confirm "About to DELETE these dev prereleases and their tags (irreversible):" "$doomed" \
-        "$(head -n {{keep}} <<<"$devs" | tr '\n' ' ')"
+    just _confirm "About to DELETE these dev prereleases and their tags (irreversible):" "$doomed" "$devs"
     for tag in $doomed; do
         gh release delete "$tag" --repo {{repo}} --cleanup-tag -y
     done

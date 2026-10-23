@@ -385,6 +385,21 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlFanExhaustShort => 'Abluft';
 
   @override
+  String get ctrlFanPartLabel => 'Bauteilkühlung';
+
+  @override
+  String get ctrlFanAuxLabel => 'Zusatz';
+
+  @override
+  String get ctrlFanAux2Label => 'Zusatz links';
+
+  @override
+  String get ctrlFanChamberLabel => 'Kammer';
+
+  @override
+  String get ctrlFanExhaustLabel => 'Abluft';
+
+  @override
   String get ctrlSpeed => 'Geschwindigkeit';
 
   @override
@@ -398,6 +413,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get ctrlAirductHeating => 'Heizen';
+
+  @override
+  String get ctrlAirductPrintTitle => 'Kammer während des Drucks umschalten?';
+
+  @override
+  String get ctrlAirductPrintBody =>
+      'Der Wechsel zwischen Heizen und Kühlen während des Drucks verändert die Temperatur, bei der gedruckt wird, und kann den Druck ruinieren.';
 
   @override
   String get ctrlOff => 'Aus';
@@ -1033,6 +1055,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get archiveAddToQueue => 'Zur Warteschlange hinzufügen';
+
+  @override
+  String get archiveReprintNoQueue =>
+      'Sie haben keine Berechtigung, zur Warteschlange hinzuzufügen';
+
+  @override
+  String get archiveReprintNotAllowed =>
+      'Sie haben keine Berechtigung, dies erneut zu drucken';
 
   @override
   String get archiveTimelapse => 'Zeitraffer ansehen';
@@ -7958,6 +7988,241 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get wallAllHidden =>
       'Alle Drucker sind auf dieser Wand ausgeblendet — blende sie in den Einstellungen ein.';
+
+  @override
+  String get controllerTitle => 'Controller';
+
+  @override
+  String get controllerExit => 'Controller verlassen';
+
+  @override
+  String get controllerSwitchPrinter => 'Drucker wechseln';
+
+  @override
+  String get controllerTabOverview => 'Übersicht';
+
+  @override
+  String get controllerPrinterGone =>
+      'Dieser Drucker ist nicht mehr auf dem Server.';
+
+  @override
+  String get controllerLiveBadge => 'LIVE';
+
+  @override
+  String get controllerPreviewBadge => 'DATEI-VORSCHAU';
+
+  @override
+  String get controllerNoPreview => 'Keine Vorschau';
+
+  @override
+  String get controllerPower => 'Strom';
+
+  @override
+  String get controllerTabHeat => 'Heizen';
+
+  @override
+  String get controllerNoChamberHeater => 'Keine Kammerheizung';
+
+  @override
+  String get controllerMoveLocked =>
+      'Die Achsen sind während des Drucks gesperrt';
+
+  @override
+  String get controllerTabFilament => 'Filament';
+
+  @override
+  String get controllerTabFiles => 'Dateien';
+
+  @override
+  String get controllerTabPrints => 'Drucke';
+
+  @override
+  String controllerQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Aufträge',
+      one: '1 Auftrag',
+      zero: 'Keine Aufträge',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerQueueEmpty => 'Für diesen Drucker wartet kein Auftrag';
+
+  @override
+  String get controllerQueueCrossModel =>
+      'Dieser Auftrag hat Druckeralternativen und startet auf dem ersten freien Drucker.';
+
+  @override
+  String get controllerQueueNoStart =>
+      'Ihr Konto kann diesen Auftrag nicht starten.';
+
+  @override
+  String get controllerArchiveEmpty =>
+      'Auf diesem Drucker wurde noch nichts gedruckt';
+
+  @override
+  String get controllerArchiveLoadingMore => 'Ältere Drucke werden geladen…';
+
+  @override
+  String get controllerFileNotSliced => 'Nicht geslict';
+
+  @override
+  String get controllerFileReasonNotSliced =>
+      'Nur geslicte Dateien lassen sich drucken.';
+
+  @override
+  String controllerFileReasonModel(String model) {
+    return 'Für $model geslict, das dieser Drucker nicht annimmt.';
+  }
+
+  @override
+  String get controllerFilesReadOnly => 'Dieser Ordner ist schreibgeschützt.';
+
+  @override
+  String get controllerPrintTitle => 'Druck einrichten';
+
+  @override
+  String get controllerPrintNow => 'Jetzt';
+
+  @override
+  String get controllerPrintNowAction => 'Jetzt drucken';
+
+  @override
+  String controllerPrintAutoMatched(String printer) {
+    return 'Automatisch zugeordnet: $printer';
+  }
+
+  @override
+  String get controllerPrintManualMapping => 'Manuelle Zuordnung';
+
+  @override
+  String get controllerPrintResetMapping => 'Zurück zu Auto';
+
+  @override
+  String get controllerPrintNotLoaded => 'Nicht geladen';
+
+  @override
+  String controllerPrintUnmapped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Filamente haben keinen passenden Slot',
+      one: '1 Filament hat keinen passenden Slot',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerPrintBusy =>
+      'Der Drucker ist belegt. Der Auftrag startet, sobald er frei ist.';
+
+  @override
+  String get controllerPrintOffline =>
+      'Der Drucker ist offline. Der Auftrag wartet, bis er zurück ist.';
+
+  @override
+  String get controllerPrintJob => 'Auftrag';
+
+  @override
+  String get controllerPrintOptions => 'Optionen';
+
+  @override
+  String get controllerPrintMore => 'Mehr';
+
+  @override
+  String get controllerPrintMoreTitle => 'Weitere Optionen';
+
+  @override
+  String controllerPrintCostCenter(String name) {
+    return 'Kostenstelle: $name';
+  }
+
+  @override
+  String get controllerPrintNoCostCenter => 'Keine Kostenstelle zum Drucken';
+
+  @override
+  String get controllerPrintCostCentersRefused =>
+      'Dieser Login sieht keine Kostenstellen';
+
+  @override
+  String get controllerPrintChamber => 'Kammerziel';
+
+  @override
+  String controllerPrintWrongModel(String model, String printer) {
+    return 'Für $model geslict; dieser Drucker ist ein $printer.';
+  }
+
+  @override
+  String get controllerExtruder => 'Extruder';
+
+  @override
+  String get controllerEditSlot => 'Slot bearbeiten';
+
+  @override
+  String get controllerTouchToWake => 'Zum Aufwecken berühren';
+
+  @override
+  String get controllerPrintPaused => 'Druck pausiert';
+
+  @override
+  String get controllerTabSettings => 'Einstellungen';
+
+  @override
+  String get controllerSaverTitle => 'Bildschirmschoner';
+
+  @override
+  String get controllerSaverAfter => 'Startet nach';
+
+  @override
+  String get controllerSaverNever => 'Nie';
+
+  @override
+  String get controllerSaverNeverTitle => 'Bildschirm nie abdunkeln?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'Ein Bild, das sich nie bewegt, kann sich in den Bildschirm einbrennen, vor allem bei OLED. Schalte den Bildschirmschoner nur aus, wenn du dieses Risiko in Kauf nimmst.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Ausschalten';
+
+  @override
+  String get controllerSaverBrightness => 'Helligkeit';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Bildschirmhelligkeit, solange der Bildschirmschoner läuft';
+
+  @override
+  String get controllerWakeOnWarnings => 'Bei Warnungen aufwecken';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Fehler, die den Druck pausieren, wecken ihn immer.';
+
+  @override
+  String get controllerSaverPreview => 'Vorschau';
+
+  @override
+  String get controllerDisplayTitle => 'Anzeige';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'Das Handy schaltet den Bildschirm nicht selbst aus. Der Bildschirmschoner läuft weiter.';
+
+  @override
+  String get controllerLiveCameraHint =>
+      'Aus zeigt die Vorschau aus der Datei.';
+
+  @override
+  String get controllerKeepAwake => 'Bildschirm immer an';
+
+  @override
+  String get controllerSaverNeedsAwake =>
+      'Ohne diese Option ist der Bildschirmschoner aus.';
 
   @override
   String get inventorySuppliersTitle => 'Lieferanten';

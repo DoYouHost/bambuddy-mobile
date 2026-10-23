@@ -31,7 +31,7 @@ same setting rather than the web modal:
   the server holds snippets.
 - There is no "no change" segment. A row with nothing picked is unchanged, and
   tapping the picked value again puts it back: a fourth segment would not fit a
-  360 dp screen in four languages, and a dash has no accessible name.
+  360 dp screen in every shipped language, and a dash has no accessible name.
 - Segment order is Auto / On / Off, as in `QueueCalibrationRow`.
 
 **Selection** is a provider (`queueSelectionProvider`), not the screen's state: the
@@ -41,7 +41,9 @@ leaves the selection by itself, or the count in the bar would promise more than 
 route can change. The selection is dropped only after a successful apply, so a
 refused edit can be corrected and sent again.
 
-Not built: the web's selection bar also has "Cancel selected" and "Group as batch".
+Not built: the web's selection bar also has "Cancel selected" (ask before adding it).
+"Group as batch" exists, but on the Orders screen, not in the selection bar
+([queue-and-pipelines.md](queue-and-pipelines.md#batch-orders-orders)).
 
 ## Resume after failure
 
@@ -57,6 +59,9 @@ it. `queueSkippedProvider` asks `GET /queue/?status=skipped`, is reloaded by eve
 — the route's own requirement and the web's — so the request is not made for them.
 `gateBlockedPrinters` is the web's grouping: per printer, by name, skipped rows
 with no printer ignored.
+
+Resume goes through plain `guard`, not `guardKeepingDetail`: that keeps `detail` for 400
+and 422 only, and this route's refusals are a 403 and a 404.
 
 The route is idempotent: a second call returns zeros. `acknowledged` counts the
 failed prints that stopped holding the gate, `restored` the jobs that are `pending`

@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
@@ -281,6 +283,27 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     Future<void> Function() send,
     String logId,
   ) => runAction(send, logId: logId, onSuccess: refresh);
+}
+
+/// Refreshes [queueProvider] once this frame is built and then every [every],
+/// for a screen that shows the queue outside its own tab. The provider outlives
+/// such a screen (the nav badge keeps it), so what it holds may be old, or a
+/// failure from before; one with an answer on its way needs no second request
+/// beside it. The caller cancels the timer.
+///
+/// Not at once: the callers start it from `initState`, where a provider write
+/// throws ([docs/riverpod-traps.md] §2), and `refresh` writes before it awaits.
+Timer pollQueue(ProviderContainer providers, Duration every) {
+  void refresh() {
+    if (providers.read(queueProvider).isLoading) return;
+    unawaited(providers.read(queueProvider.notifier).refresh());
+  }
+
+  final timer = Timer.periodic(every, (_) => refresh());
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (timer.isActive) refresh();
+  });
+  return timer;
 }
 
 /// The jobs the scheduler skipped, which is where a failed print's hold on a

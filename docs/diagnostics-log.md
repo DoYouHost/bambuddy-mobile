@@ -201,7 +201,9 @@ out.
   what a busy half hour produces (measured: ~18 KB a minute with one printer
   printing), so reaching it means something is wrong.
 
-The ring buffer's own caps are **runaway guards, not budgets**. The report is read
+The ring buffer's own caps (20 000 records, 4 MB; `recordingLimit` and
+`recordingSizeLimit` in `report_config.dart` are the two ceilings above) are
+**runaway guards, not budgets**. The report is read
 back from the file, which nothing evicts from, so eviction costs the heap nothing
 and the report nothing.
 

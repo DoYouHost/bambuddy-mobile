@@ -107,6 +107,38 @@ class QueueCreateOptions {
   /// derives the estimate itself and ignores one sent.
   final int? costCenterId;
 
+  /// These options with the three fields that are only known once an order for
+  /// the copies exists (or has been refused): the plate its target names, the
+  /// order itself, and the outcome flag resolved against the server's default.
+  QueueCreateOptions withOrder({
+    required int? plateId,
+    required int? batchId,
+    required bool? confirmOutcome,
+  }) => QueueCreateOptions(
+    targetModel: targetModel,
+    targetLocation: targetLocation,
+    filamentOverrides: filamentOverrides,
+    amsMapping: amsMapping,
+    plateId: plateId,
+    scheduledTime: scheduledTime,
+    requirePreviousSuccess: requirePreviousSuccess,
+    autoOffAfter: autoOffAfter,
+    manualStart: manualStart,
+    bedLevelling: bedLevelling,
+    flowCali: flowCali,
+    vibrationCali: vibrationCali,
+    layerInspect: layerInspect,
+    timelapse: timelapse,
+    nozzleOffsetCali: nozzleOffsetCali,
+    gcodeInjection: gcodeInjection,
+    confirmOutcome: confirmOutcome,
+    preheatOverride: preheatOverride,
+    preheatChamberTargetOverride: preheatChamberTargetOverride,
+    nozzleRackChoice: nozzleRackChoice,
+    batchId: batchId,
+    costCenterId: costCenterId,
+  );
+
   /// Body fragment merged into the POST. Null fields are absent, not null-valued.
   ///
   /// [triState] says whether the server can store `auto` on the three

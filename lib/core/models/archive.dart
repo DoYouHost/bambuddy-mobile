@@ -23,6 +23,7 @@ class Archive {
     required this.filename,
     required this.status,
     this.printerId,
+    this.createdById,
     this.printName,
     this.plateId,
     this.completedAt,
@@ -80,6 +81,10 @@ class Archive {
   final String status;
 
   final int? printerId;
+
+  /// Who printed it. Null is an ownerless print, which a user holding only
+  /// `archives:reprint_own` may not reprint (`print_queue.py::_assert_can_queue_archive`).
+  final int? createdById;
 
   /// Human-readable print name from user or slicer.
   final String? printName;

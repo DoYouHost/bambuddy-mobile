@@ -133,3 +133,23 @@ the real one. This file keeps the reasons; the code keeps one line each.
 - The two profile/user fakes left with their own class are the ones that need
   one: `current_user_provider` drives the profile by hand mid-test, and the
   watch's settings screen overrides `clear()` to record that it was called.
+
+## Proving a test bites
+
+A test that asserts a **status** or a **body** is only as good as the mutation it
+survived. Three ways one passes while measuring nothing:
+
+- **A mock on the wrong HTTP method.** `adapter.onGet('/x/999', reply(404))` while
+  the code under test does `PUT /x/999` leaves the request unmatched: the adapter
+  fails with no response, `statusCode` is `null`, and the 404 the test's name
+  promises never happens. `throwsA(isA<AppApiException>())` still passes, because
+  every failure maps to it. Assert on `statuses` (a `null` there gives it away) and
+  invert the behaviour under test once to see the test fail.
+- **A mutation that did not take effect.** `git stash push <file>` only reverts to
+  `HEAD`; if the fix is already committed, the code stays fixed and the test looks
+  empty. Mutate the **file's content** (copy it aside, replace the line, run, copy
+  it back) and not git state.
+- **A finder that compares a widget with itself.** `find.byType(TextField)` also
+  matches the field a `DropdownMenu` builds inside itself, so `.last` can pick the
+  select instead of its neighbour and the assertion compares it to itself. Find the
+  neighbour by `Key`.

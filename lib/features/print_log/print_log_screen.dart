@@ -440,16 +440,8 @@ class _PrintLogCard extends ConsumerWidget {
                             DashPill(
                               dense: true,
                               label: printRunStatusLabel(l10n, entry.status),
-                              accent: entry.countsAsFailure
-                                  ? t.danger
-                                  : (entry.status == 'completed'
-                                        ? t.accentGreen
-                                        : t.textTertiary),
-                              accentInk: entry.countsAsFailure
-                                  ? t.dangerInk
-                                  : (entry.status == 'completed'
-                                        ? t.accentGreenInk
-                                        : t.textTertiary),
+                              accent: printRunTone(t, entry.status).$1,
+                              accentInk: printRunTone(t, entry.status).$2,
                             ),
                           ],
                         ),

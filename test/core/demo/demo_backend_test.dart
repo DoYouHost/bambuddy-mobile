@@ -74,7 +74,11 @@ void main() {
       final all = await PrintersRepository(dio).fetchAll();
       // Five, not four: the second X1C exists so a pipeline can target the X1C
       // *class* and have more than one candidate — see `_statusSecondX1c`.
-      expect(all, hasLength(5));
+      // And a sixth, the H2D, for the one thing none of them has: two nozzles.
+      expect(all, hasLength(6));
+      final dual = all.firstWhere((p) => p.printer.id == 6);
+      expect(dual.printer.nozzleCount, 2);
+      expect(dual.status!.temperatures, contains('nozzle_2'));
       final printing = all.firstWhere((p) => p.printer.id == 1).status;
       expect(printing, isNotNull);
       expect(printing!.isPrinting, isTrue);
@@ -1059,7 +1063,7 @@ void main() {
       final overview = await repo.fetchOverview();
       expect(
         overview,
-        hasLength(5),
+        hasLength(6),
         reason: 'one row per printer in the fleet',
       );
       final x1c = overview.firstWhere((o) => o.printerId == 1);
@@ -1511,8 +1515,8 @@ void main() {
       // REST poll, and the service isolate — which polls no statuses of its
       // own — never: the notification said "2 printing" while the dashboard
       // said three.
-      expect(DemoBackend.instance.printerIds, hasLength(5));
-      expect(DemoBackend.instance.printerIds, containsAll([1, 2, 3, 4, 5]));
+      expect(DemoBackend.instance.printerIds, hasLength(6));
+      expect(DemoBackend.instance.printerIds, containsAll([1, 2, 3, 4, 5, 6]));
     });
 
     test('a poke broadcasts now, instead of at the next tick', () async {
@@ -1558,7 +1562,10 @@ void main() {
 
     test('the fleet frames cover the machines the count can pick', () async {
       DemoBackend.printingPrinters = DemoBackend.maxPrintingPrinters;
-      addTearDown(() => DemoBackend.printingPrinters = 1);
+      addTearDown(
+        () =>
+            DemoBackend.printingPrinters = DemoBackend.defaultPrintingPrinters,
+      );
 
       final conn = DemoWsConnection();
       final frames = await conn.stream
@@ -2126,26 +2133,41 @@ void main() {
   group('how many printers print at once', () {
     // A demo-only knob (app settings), so the screens that behave differently
     // with several machines running can be looked at at all.
-    tearDown(() => DemoBackend.printingPrinters = 1);
+    tearDown(
+      () => DemoBackend.printingPrinters = DemoBackend.defaultPrintingPrinters,
+    );
 
     String? stateOf(int id) =>
         DemoBackend.instance.statusJson(id)['state'] as String?;
 
-    test('one by default, so the other machines stand idle', () {
-      expect(DemoBackend.printingPrinters, 1);
+    test('two by default, the X1C and the dual-nozzle H2D', () {
+      expect(DemoBackend.printingPrinters, 2);
+      // Printer 1 carries the demo's own print, which another case in this
+      // file may have stopped, so the H2D beside it is what is asserted.
+      expect(stateOf(6), 'RUNNING');
+      // The head that is marked active is the one the print heats.
+      final h2d = DemoBackend.instance.statusJson(6);
+      final temps = h2d['temperatures'] as Map;
+      expect(h2d['active_extruder'], 1, reason: 'left head, the plain key');
+      expect(temps['nozzle_target'], greaterThan(0));
+      expect(temps['nozzle_2_target'], 0);
       for (final idle in [2, 4, 5]) {
         expect(stateOf(idle), 'IDLE', reason: 'printer $idle');
       }
+      expect(
+        DemoBackend.instance.statusJson(6)['temperatures'],
+        containsPair('nozzle_2', isA<num>()),
+      );
     });
 
     test('raising it takes machines in order, and never the offline one', () {
-      DemoBackend.printingPrinters = 3;
+      DemoBackend.printingPrinters = 4;
 
       // Printer 1 is left out of this one on purpose: it carries the demo's
       // own print, which another case in this file may have stopped, and the
       // order is what is being checked here.
-      expect([stateOf(2), stateOf(5)], everyElement('RUNNING'));
-      expect(stateOf(4), 'IDLE', reason: 'fourth in line, not asked for yet');
+      expect([stateOf(6), stateOf(2), stateOf(5)], everyElement('RUNNING'));
+      expect(stateOf(4), 'IDLE', reason: 'fifth in line, not asked for yet');
       // Printer 3 is the fixture that must stay unreachable: the offline card
       // and its grace window have nothing to show without it.
       expect(stateOf(3), isNull);
@@ -2163,7 +2185,7 @@ void main() {
       DemoBackend.printingPrinters = DemoBackend.maxPrintingPrinters;
 
       final percents = [
-        for (final id in [2, 4, 5])
+        for (final id in [6, 2, 4, 5])
           DemoBackend.instance.statusJson(id)['progress'] as num,
       ];
       // Identical numbers would hide what several printers are here to show:
@@ -2175,7 +2197,7 @@ void main() {
     });
 
     test('a machine put to work reports a print, not just a state', () {
-      DemoBackend.printingPrinters = 2;
+      DemoBackend.printingPrinters = 3;
       final status = DemoBackend.instance.statusJson(2);
 
       expect(status['current_print'], 'Mop station.3mf');
@@ -2293,7 +2315,7 @@ void main() {
       final rows = await repo.list();
       final byName = {for (final l in rows) l.name: l};
 
-      expect(byName['Workshop']!.printerCount, 4);
+      expect(byName['Workshop']!.printerCount, 5);
       expect(byName['Workshop']!.icon, 'wrench');
       expect(byName['Office']!.printerCount, 1);
       expect(byName['Storage']!.printerCount, 0);

@@ -1,7 +1,6 @@
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
-import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/features/archive/archive_details.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/print_outcome.dart';
@@ -13,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'archive_fakes.dart';
 
 /// The archive #237 from the web card the feature was copied from.
 const _part = Archive(
@@ -270,11 +270,11 @@ void main() {
   });
 
   group('verdict thumbs', () {
-    late _FakeArchives repo;
+    late FakeArchives repo;
     var rejected = 0;
 
     Future<void> open(WidgetTester tester, Archive archive) async {
-      repo = _FakeArchives(archive);
+      repo = FakeArchives(archive: archive);
       rejected = 0;
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
@@ -303,7 +303,7 @@ void main() {
       await tester.tap(thumb(pl.outcomeGood));
       await tester.pumpAndSettle();
 
-      expect(repo.sent.single, PrintVerdict.good);
+      expect(repo.sent.single.verdict, PrintVerdict.good);
       expect(rejected, 0);
     });
 
@@ -317,7 +317,7 @@ void main() {
       await tester.tap(thumb(pl.outcomeGood));
       await tester.pumpAndSettle();
 
-      expect(repo.sent.single, isNull);
+      expect(repo.sent.single.verdict, isNull);
     });
 
     testWidgets('a thumb down records the reject and asks why', (tester) async {
@@ -326,7 +326,7 @@ void main() {
       await tester.tap(thumb(pl.outcomeReject));
       await tester.pumpAndSettle();
 
-      expect(repo.sent.single, PrintVerdict.reject);
+      expect(repo.sent.single.verdict, PrintVerdict.reject);
       expect(rejected, 1);
     });
 
@@ -343,7 +343,11 @@ void main() {
       await tester.tap(thumb(pl.outcomeReject));
       await tester.pumpAndSettle();
 
-      expect(repo.reasons.single, (reason: 'warping', clearReason: false));
+      expect(repo.sent.single, (
+        verdict: PrintVerdict.reject,
+        reason: 'warping',
+        clearReason: false,
+      ));
     });
 
     testWidgets('a reject the server dropped does not ask why', (tester) async {
@@ -357,29 +361,4 @@ void main() {
       expect(find.text(pl.outcomeUnsupported), findsOneWidget);
     });
   });
-}
-
-class _FakeArchives implements ArchiveRepository {
-  _FakeArchives(this.archive);
-
-  final Archive archive;
-  bool applied = true;
-  final sent = <PrintVerdict?>[];
-  final reasons = <({String? reason, bool clearReason})>[];
-
-  @override
-  Future<({Archive archive, bool applied})> setVerdict(
-    int archiveId,
-    PrintVerdict? verdict, {
-    String? reason,
-    bool clearReason = false,
-  }) async {
-    sent.add(verdict);
-    reasons.add((reason: reason, clearReason: clearReason));
-    return (archive: archive, applied: applied);
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError('${invocation.memberName} is not this test\'s');
 }

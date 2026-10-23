@@ -113,3 +113,28 @@ the service is the one place that hears the socket with the app closed. The swit
 by default: a stopped print and a missing charge both happened without anyone asking.
 A tap opens the printer. No contract test: neither frame can be provoked without a
 printer, so the shape is read from the server source.
+
+## Decided against, and where the app differs from the web
+
+Not built, on purpose; do not propose them again without a new argument:
+
+- **Admin billing settings** (`billing_enabled`, the kill switch, the budget reset day and
+  timezone) stay web-only. The app only reads `billing_enabled`.
+- **The queue card** shows no cost center name and no estimate.
+
+Differences from the web the Finance screen keeps:
+
+- A manual print takes no `created_at`.
+- An empty budget amount means "no budget" (the web sends the same).
+- The ledger loads more with a button instead of page buttons.
+- Editing a personal center sends the budget only. The web also PATCHes the name, which
+  the server always answers with 400.
+
+Server facts worth knowing when a billing test or a manual check looks wrong:
+
+- The admin created by `/auth/setup` has no private cost center (only users created through
+  the API or the admin screen get one), so `GET /finance/cost-centers/mine` is empty for
+  them, on the web as well.
+- A queue job's cost is computed by the server (`estimate_queue_source_cost`); when it
+  cannot be (no filament figure) the create answers 400 "Estimated cost is required…",
+  which `queue_removal.dart` words as `queueBillingEstimateRequired`.

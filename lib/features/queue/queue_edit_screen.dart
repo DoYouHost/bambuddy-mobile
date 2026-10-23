@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/ams/color_names.dart';
 import '../../core/ams/job_cost.dart';
-import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/filament_colour.dart';
 import '../../core/models/available_filament.dart';
@@ -22,14 +21,14 @@ import '../../core/theme/dash_theme.dart';
 import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/api_failure_snack.dart';
-import '../common/print_thumbnail.dart';
-import '../files/library_thumbnail.dart';
 import '../slicer/slice_providers.dart';
 import '../common/dash_async.dart';
 import '../orders/orders_providers.dart';
 import 'job_cost_providers.dart';
+import 'queue_cost_center_state.dart';
+import 'queue_create_service.dart';
 import 'queue_form_parts.dart';
+import 'queue_item_view.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_plate_sheet.dart';
 import 'queue_providers.dart';
@@ -84,39 +83,9 @@ enum QueueEditMode { edit, create }
 /// `manual_start`; the other two dispatch on their own terms.
 enum QueueScheduleType { asap, queue, scheduled }
 
-/// Where the form stands on billing, which decides what the cost-center section
-/// shows and whether Save waits on it.
-enum _CostCenterStep {
-  /// Neither the server's UI flags nor, on a server without them, its settings
-  /// have said whether billing is on.
-  unknown,
-
-  /// Billing is off, so no cost center is asked for or sent.
-  off,
-
-  /// Billing is on and the centers are being read.
-  loading,
-
-  /// Something to choose from.
-  pick,
-
-  /// Billing is on and this user may print to no active center: an administrator
-  /// has to grant one.
-  none,
-
-  /// Billing is on but this session may not list its centers (an API key on a
-  /// server before #3256), which only the browser gets around.
-  refused,
-
-  /// The list could not be read — a dropped connection, a server error.
-  failed,
-}
-
-typedef _CostCenterState = ({_CostCenterStep step, List<CostCenter> centers});
-
 /// Models with two nozzles — gate for the nozzle-offset-calibration option
 /// (matches the web `showDualNozzleOptions` model list).
-const _dualNozzleModels = {'H2D', 'H2DPRO', 'H2C', 'X2D'};
+const queueDualNozzleModels = {'H2D', 'H2DPRO', 'H2C', 'X2D'};
 
 class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   // Target
@@ -262,7 +231,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   bool get _showNozzleOffset {
     final m = widget.item.slicedForModel?.toUpperCase();
-    return m != null && _dualNozzleModels.contains(m);
+    return m != null && queueDualNozzleModels.contains(m);
   }
 
   /// Printer models the server has auto-print snippets for. Empty while
@@ -387,13 +356,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: it.archiveId == null && it.libraryFileId != null
-              ? LibraryThumbnail(
-                  fileId: it.libraryFileId!,
-                  hasThumbnail: it.libraryFileThumbnail != null,
-                  size: 52,
-                )
-              : PrintThumbnail(archiveId: it.archiveId, size: 52),
+          child: QueueThumbnail(item: it, size: 52),
         ),
         const SizedBox(width: DashSpace.md),
         Expanded(
@@ -588,31 +551,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   /// What the form can do about billing, from the flag and the centers this
   /// session may book to. [watch] as in [_snippetModels].
-  _CostCenterState _costCenterState({required bool watch}) {
-    T read<T>(ProviderListenable<T> provider) =>
-        watch ? ref.watch(provider) : ref.read(provider);
-    // A server before 1.2.6 has no UI flags and answers them at once with
-    // nothing, so billing is then the full settings' to say.
-    final flags = read(serverUiFlagsProvider);
-    final flagAnswered =
-        flags.valueOrNull?.containsKey('billing_enabled') ?? false;
-    if (flags.isLoading ||
-        (!flagAnswered && read(serverSettingsProvider).isLoading)) {
-      return (step: _CostCenterStep.unknown, centers: const []);
-    }
-    if (!read(billingEnabledProvider)) {
-      return (step: _CostCenterStep.off, centers: const []);
-    }
-    return read(printableCostCentersProvider).when(
-      loading: () => (step: _CostCenterStep.loading, centers: const []),
-      error: (_, _) => (step: _CostCenterStep.failed, centers: const []),
-      data: (centers) => switch (centers) {
-        null => (step: _CostCenterStep.refused, centers: const []),
-        [] => (step: _CostCenterStep.none, centers: const []),
-        _ => (step: _CostCenterStep.pick, centers: centers),
-      },
-    );
-  }
+  CostCenterState _costCenterState({required bool watch}) =>
+      costCenterStateOf(watch ? ref.watch : ref.read);
 
   /// A new job, or one queued before billing was on, cannot be saved without a
   /// cost center. An item that already has one keeps it on the server, so an
@@ -623,16 +563,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// Whether Save may be pressed as far as billing is concerned: every step
   /// that cannot offer a pick leaves a job without a cost center stuck.
   bool get _costCenterAllowsSubmit =>
-      switch (_costCenterState(watch: true).step) {
-        _CostCenterStep.off || _CostCenterStep.pick => true,
-        _ => !_costCenterRequired,
-      };
+      costCenterAllowsCreate(_costCenterState(watch: true).step) ||
+      !_costCenterRequired;
 
   /// The center Save sends: what the user picked if it is still on offer, else
   /// the web's default. Null when there is nothing to choose from.
   CostCenter? _selectedCostCenter(List<CostCenter> centers) =>
-      centers.where((c) => c.id == _costCenterId).firstOrNull ??
-      defaultCostCenter(centers);
+      selectedCostCenter(centers, _costCenterId);
 
   /// `cost_center_id` for the write, or null to leave the key out: on a server
   /// without billing, where the field is not read, and wherever there is no
@@ -645,8 +582,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Widget? _costCenterBlockedNote(AppLocalizations l10n) {
     if (!_costCenterRequired) return null;
     return inlineNote(switch (_costCenterState(watch: true).step) {
-      _CostCenterStep.refused => l10n.queueBillingCostCentersRefused,
-      _CostCenterStep.none => l10n.queueBillingNoCostCenter,
+      CostCenterStep.refused => l10n.queueBillingCostCentersRefused,
+      CostCenterStep.none => l10n.queueBillingNoCostCenter,
       _ => null,
     }, urgent: true);
   }
@@ -665,8 +602,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Widget? _costCenterSection(AppLocalizations l10n, DashTokens t) {
     final state = _costCenterState(watch: true);
     final body = switch (state.step) {
-      _CostCenterStep.loading => const LinearProgressIndicator(),
-      _CostCenterStep.failed => Row(
+      CostCenterStep.loading => const LinearProgressIndicator(),
+      CostCenterStep.failed => Row(
         children: [
           Expanded(
             child: Text(
@@ -680,7 +617,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           ).tagged('queue_edit.cost_center_retry'),
         ],
       ),
-      _CostCenterStep.pick => _costCenterPicker(l10n, t, state.centers),
+      CostCenterStep.pick => _costCenterPicker(l10n, t, state.centers),
       _ => null,
     };
     return body == null
@@ -759,19 +696,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final cost = _jobCost();
     if (cost == null) return null;
     final currency = ref.watch(currencySymbolProvider);
-    String money(double v) => formatMoney(currency, v.toStringAsFixed(2));
-    final copies = _costCopies;
-    final priced = cost.total > 0 || cost.anyPrice;
     return Padding(
       padding: const EdgeInsets.only(top: DashSpace.xs),
       child: Text(
-        [
-          l10n.queueEstimatedCost(
-            priced ? money(cost.total) : l10n.queueCostNotAvailable,
-          ),
-          if (copies > 1 && cost.total > 0)
-            l10n.queueEstimatedCostForCopies(money(cost.total * copies)),
-        ].join(' · '),
+        jobCostText(l10n, currency, cost, _costCopies),
         style: t.labelSoft,
       ),
     );
@@ -781,10 +709,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// The server refuses it when it does not fit; this says so before the form
   /// is sent.
   Widget? _budgetWarning(DashTokens t, CostCenter? selected) {
-    final cost = _jobCost();
-    final available = selected?.budgetAvailable;
-    if (cost == null || available == null) return null;
-    if (cost.total * _costCopies <= available) return null;
+    if (!jobExceedsBudget(_jobCost(), selected, _costCopies)) return null;
     return Padding(
       padding: const EdgeInsets.only(top: DashSpace.sm),
       child: Text(
@@ -1694,27 +1619,6 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       _confirmOutcomeChoice == null &&
       ref.watch(defaultConfirmOutcomeProvider).isUnanswered;
 
-  /// The flag for a new job, or null to leave the key out where the server
-  /// would drop it. `POST /queue/` does not read the server's default itself
-  /// (only the paths without a dialog do), so an untouched switch sends the
-  /// default — waited for, since a job submitted before it arrived would
-  /// otherwise go out as `false`.
-  ///
-  /// A choice the user made stands unless the gate has since settled on no:
-  /// it was made on a switch that was on screen, and a gate briefly reloading
-  /// must not throw it away.
-  Future<bool?> _confirmOutcomeForCreate(ProviderContainer providers) async {
-    final gate = providers.read(queueOutcomeProvider);
-    if (gate.valueOrNull == false) return null;
-    if (_confirmOutcomeChoice case final choice?) return choice;
-    if (_confirmOutcomeSticky) return true;
-    if (!gate.orFalse) return null;
-    return settledGate(
-      providers,
-      defaultConfirmOutcomeProvider,
-    ).catchError((Object _) => false);
-  }
-
   /// The flag for a PATCH, sent only when it changed — as the calibrations
   /// are ([_calibrationUpdate]) — so a save about something else cannot
   /// rewrite what another client set meanwhile.
@@ -1860,147 +1764,45 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   Future<void> _create(QueueRepository repo) async {
     final it = widget.item;
-    final providers = ProviderScope.containerOf(context, listen: false);
-    final orderId = await _createOrder(providers);
-    final confirmOutcome = await _confirmOutcomeForCreate(providers);
-    final plate = _plate;
-    final options = QueueCreateOptions(
-      // Into an order, the item carries the plate its target names.
-      plateId: orderId == null ? _plateId : plate.id,
-      targetModel: _modelMode ? _targetModel : null,
-      targetLocation: _modelMode ? _targetLocation : null,
-      filamentOverrides: _modelMode
-          ? _buildFilamentOverrides()
-          : _buildPrinterOverrides(),
-      amsMapping: _modelMode ? null : _sentMapping,
-      scheduledTime: _scheduledTimeIso,
-      requirePreviousSuccess: _requirePreviousSuccess,
-      autoOffAfter: _autoOffAfter,
-      manualStart: _manualStartSent,
-      bedLevelling: _bedLevelling,
-      flowCali: _flowCali,
-      vibrationCali: _vibrationCali,
-      layerInspect: _layerInspect,
-      timelapse: _timelapse,
-      nozzleOffsetCali: _showNozzleOffset ? _nozzleOffsetCali : null,
-      gcodeInjection: _gcodeInjectionPayload,
-      confirmOutcome: confirmOutcome,
-      preheatOverride: _preheatOverride,
-      preheatChamberTargetOverride: _chamberTargetValue,
-      nozzleRackChoice: _modelMode ? null : _nozzleRackChoice,
-      batchId: orderId,
-      costCenterId: _costCenterPayload,
-    );
-    // ASAP is a position at insertion, not a stored field — the web sends it the
-    // same way, and it is what makes "reprint" print next.
-    final insertAtTop = _scheduleType == QueueScheduleType.asap;
-    final printerId = _modelMode ? null : _printerId;
-    try {
-      await (it.archiveId != null
-          ? repo.addFromArchive(
-              it.archiveId!,
-              printerId: printerId,
-              quantity: _copies,
-              insertAtTop: insertAtTop,
-              options: options,
-            )
-          : repo.addFromLibraryFile(
-              it.libraryFileId!,
-              printerId: printerId,
-              quantity: _copies,
-              insertAtTop: insertAtTop,
-              options: options,
-            ));
-    } on Object catch (e) {
-      // An order with targets and no runs is listed, owes every copy and has
-      // nothing to clone them from. Ungrouping an empty one deletes it — but
-      // only after a refusal: a timeout may have queued the copies, and
-      // ungrouping would then unlink live runs while the user queues again.
-      if (orderId != null && _isRefusal(e)) {
-        try {
-          await providers.read(batchRepositoryProvider).ungroup(orderId);
-        } on AppApiException {
-          // The create's own error is the one the user has to see.
-        }
-      }
-      rethrow;
-    }
-  }
-
-  /// Whether the server answered and refused — nothing was written. A 5xx
-  /// is not one: a proxy's 502/504 can arrive after the server committed,
-  /// exactly like a dropped connection.
-  static bool _isRefusal(Object e) =>
-      e is AuthException || (e is ApiException && (e.statusCode ?? 500) < 500);
-
-  /// The plate the order's target named, for the item to carry too.
-  ({int? id, String? name}) _plate = (id: null, name: null);
-
-  /// The plate an order's target names. A multi-plate file with no plate
-  /// picked prints plate 1 (`plate_id or 1` server-side) and the form says
-  /// so; a null target would read "whole file" on the orders screen instead.
-  ///
-  /// Awaited, not read: a submit before the plate list has loaded would
-  /// otherwise take a multi-plate file for a single-plate one.
-  Future<({int? id, String? name})> _orderPlate(
-    ProviderContainer providers,
-  ) async {
-    final source = _plateSource;
-    final plates = source == null
-        ? PlateList.none
-        : await providers
-              .read(plateListProvider(source).future)
-              .catchError((Object _) => PlateList.none);
-    if (!plates.isMultiPlate) return (id: _plateId, name: null);
-    final id = _plateId ?? 1;
-    return (id: id, name: plates.byIndex(id)?.name);
-  }
-
-  /// The order the copies go into, made first — the web's print dialog does
-  /// the same. Null for one copy, on a server without orders, and when the
-  /// order is refused: the copies then go in as a plain grouping, which is
-  /// what `quantity` alone makes, so the print is not lost over its tracking.
-  ///
-  /// Only a refusal falls back; see [_isRefusal] for what is not one.
-  Future<int?> _createOrder(ProviderContainer providers) async {
     _orderRefused = false;
-    _plate = (id: _plateId, name: null);
-    if (_copies < 2) return null;
-    final supported = await settledGate(
-      providers,
-      batchOrdersProvider,
-    ).catchError((Object _) => false);
-    if (!supported) return null;
-    final it = widget.item;
-    final plate = _plate = await _orderPlate(providers);
-    try {
-      final order = await providers
-          .read(batchRepositoryProvider)
-          .create(
-            name: '${_baseName(it.displayName)} ×$_copies',
-            archiveId: it.archiveId,
-            libraryFileId: it.archiveId == null ? it.libraryFileId : null,
-            // The runs are matched to the target by plate, so the target
-            // names the plate the item will carry — null for a whole file.
-            plates: [
-              (plateId: plate.id, plateName: plate.name, quantity: _copies),
-            ],
-          );
-      return order.id;
-    } on AppApiException catch (e) {
-      // No answer, or a 5xx: the order may exist, and a grouping queued
-      // beside it would leave it owing every copy. The submit stops.
-      if (!_isRefusal(e)) rethrow;
-      // Shown, as the outcome of the whole submit — see [_submit].
-      recordActionFailure(e, action: 'queue_create.order', shown: true);
-      _orderRefused = true;
-      return null;
-    }
+    final outcome = await createQueueJobs(
+      repo: repo,
+      providers: ProviderScope.containerOf(context, listen: false),
+      archiveId: it.archiveId,
+      libraryFileId: it.libraryFileId,
+      sourceName: it.displayName,
+      printerId: _modelMode ? null : _printerId,
+      copies: _copies,
+      insertAtTop: _scheduleType == QueueScheduleType.asap,
+      plateId: _plateId,
+      confirmOutcomeChoice: _confirmOutcomeChoice,
+      confirmOutcomeSticky: _confirmOutcomeSticky,
+      buildOptions: () => QueueCreateOptions(
+        targetModel: _modelMode ? _targetModel : null,
+        targetLocation: _modelMode ? _targetLocation : null,
+        filamentOverrides: _modelMode
+            ? _buildFilamentOverrides()
+            : _buildPrinterOverrides(),
+        amsMapping: _modelMode ? null : _sentMapping,
+        scheduledTime: _scheduledTimeIso,
+        requirePreviousSuccess: _requirePreviousSuccess,
+        autoOffAfter: _autoOffAfter,
+        manualStart: _manualStartSent,
+        bedLevelling: _bedLevelling,
+        flowCali: _flowCali,
+        vibrationCali: _vibrationCali,
+        layerInspect: _layerInspect,
+        timelapse: _timelapse,
+        nozzleOffsetCali: _showNozzleOffset ? _nozzleOffsetCali : null,
+        gcodeInjection: _gcodeInjectionPayload,
+        preheatOverride: _preheatOverride,
+        preheatChamberTargetOverride: _chamberTargetValue,
+        nozzleRackChoice: _modelMode ? null : _nozzleRackChoice,
+        costCenterId: _costCenterPayload,
+      ),
+    );
+    _orderRefused = outcome.orderRefused;
   }
-
-  /// A file name as the server names a batch after it (`print_queue.py`).
-  static String _baseName(String name) =>
-      name.replaceAll('.gcode.3mf', '').replaceAll('.3mf', '');
 }
 
 /// Imperative entry: open the Edit Queue Item screen for [item].

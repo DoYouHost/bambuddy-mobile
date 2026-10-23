@@ -383,6 +383,21 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlFanExhaustShort => 'Wyciąg';
 
   @override
+  String get ctrlFanPartLabel => 'Chłodzenie wydruku';
+
+  @override
+  String get ctrlFanAuxLabel => 'Pomocniczy';
+
+  @override
+  String get ctrlFanAux2Label => 'Lewy pomocniczy';
+
+  @override
+  String get ctrlFanChamberLabel => 'Komora';
+
+  @override
+  String get ctrlFanExhaustLabel => 'Wyciąg';
+
+  @override
   String get ctrlSpeed => 'Prędkość';
 
   @override
@@ -396,6 +411,13 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get ctrlAirductHeating => 'Grzanie';
+
+  @override
+  String get ctrlAirductPrintTitle => 'Przełączyć komorę w trakcie druku?';
+
+  @override
+  String get ctrlAirductPrintBody =>
+      'Zmiana między grzaniem a chłodzeniem w trakcie druku zmienia temperaturę, w której powstaje wydruk, i może go zepsuć.';
 
   @override
   String get ctrlOff => 'Wył.';
@@ -1041,6 +1063,14 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get archiveAddToQueue => 'Dodaj do kolejki';
+
+  @override
+  String get archiveReprintNoQueue =>
+      'Nie masz uprawnień do dodawania do kolejki';
+
+  @override
+  String get archiveReprintNotAllowed =>
+      'Nie masz uprawnień do ponownego druku';
 
   @override
   String get archiveTimelapse => 'Obejrzyj timelapse';
@@ -8021,6 +8051,241 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get wallAllHidden =>
       'Wszystkie drukarki są ukryte na tej ścianie — pokaż je w ustawieniach.';
+
+  @override
+  String get controllerTitle => 'Kontroler';
+
+  @override
+  String get controllerExit => 'Zamknij kontroler';
+
+  @override
+  String get controllerSwitchPrinter => 'Zmień drukarkę';
+
+  @override
+  String get controllerTabOverview => 'Przegląd';
+
+  @override
+  String get controllerPrinterGone => 'Tej drukarki nie ma już na serwerze.';
+
+  @override
+  String get controllerLiveBadge => 'NA ŻYWO';
+
+  @override
+  String get controllerPreviewBadge => 'PODGLĄD PLIKU';
+
+  @override
+  String get controllerNoPreview => 'Brak podglądu';
+
+  @override
+  String get controllerPower => 'Zasilanie';
+
+  @override
+  String get controllerTabHeat => 'Grzanie';
+
+  @override
+  String get controllerNoChamberHeater => 'Komora bez grzałki';
+
+  @override
+  String get controllerMoveLocked => 'Osie są zablokowane podczas druku';
+
+  @override
+  String get controllerTabFilament => 'Filament';
+
+  @override
+  String get controllerTabFiles => 'Pliki';
+
+  @override
+  String get controllerTabPrints => 'Wydruki';
+
+  @override
+  String controllerQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count zadania',
+      many: '$count zadań',
+      few: '$count zadania',
+      one: '1 zadanie',
+      zero: 'Brak zadań',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerQueueEmpty => 'Na tę drukarkę nie czeka żadne zadanie';
+
+  @override
+  String get controllerQueueCrossModel =>
+      'To zadanie ma kilka drukarek do wyboru i ruszy na pierwszej wolnej.';
+
+  @override
+  String get controllerQueueNoStart =>
+      'Twoje konto nie może uruchomić tego zadania.';
+
+  @override
+  String get controllerArchiveEmpty =>
+      'Na tej drukarce nic jeszcze nie wydrukowano';
+
+  @override
+  String get controllerArchiveLoadingMore => 'Wczytywanie starszych wydruków…';
+
+  @override
+  String get controllerFileNotSliced => 'Nie pocięto';
+
+  @override
+  String get controllerFileReasonNotSliced =>
+      'Drukować można tylko pocięte pliki.';
+
+  @override
+  String controllerFileReasonModel(String model) {
+    return 'Pocięty pod $model. Ta drukarka go nie przyjmie.';
+  }
+
+  @override
+  String get controllerFilesReadOnly => 'Ten folder jest tylko do odczytu.';
+
+  @override
+  String get controllerPrintTitle => 'Ustawienia wydruku';
+
+  @override
+  String get controllerPrintNow => 'Teraz';
+
+  @override
+  String get controllerPrintNowAction => 'Drukuj teraz';
+
+  @override
+  String controllerPrintAutoMatched(String printer) {
+    return 'Dopasowano automatycznie do $printer';
+  }
+
+  @override
+  String get controllerPrintManualMapping => 'Mapowanie ręczne';
+
+  @override
+  String get controllerPrintResetMapping => 'Wróć do automatu';
+
+  @override
+  String get controllerPrintNotLoaded => 'Nie załadowano';
+
+  @override
+  String controllerPrintUnmapped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count filamentu nie ma pasującego slotu',
+      many: '$count filamentów nie ma pasującego slotu',
+      few: '$count filamenty nie mają pasującego slotu',
+      one: '1 filament nie ma pasującego slotu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerPrintBusy =>
+      'Drukarka jest zajęta. Zadanie ruszy, gdy się zwolni.';
+
+  @override
+  String get controllerPrintOffline =>
+      'Drukarka jest offline. Zadanie poczeka, aż wróci.';
+
+  @override
+  String get controllerPrintJob => 'Zadanie';
+
+  @override
+  String get controllerPrintOptions => 'Opcje';
+
+  @override
+  String get controllerPrintMore => 'Więcej';
+
+  @override
+  String get controllerPrintMoreTitle => 'Więcej opcji';
+
+  @override
+  String controllerPrintCostCenter(String name) {
+    return 'Centrum kosztów: $name';
+  }
+
+  @override
+  String get controllerPrintNoCostCenter => 'Brak centrum kosztów do druku';
+
+  @override
+  String get controllerPrintCostCentersRefused =>
+      'Ten login nie widzi centrów kosztów';
+
+  @override
+  String get controllerPrintChamber => 'Temp. komory';
+
+  @override
+  String controllerPrintWrongModel(String model, String printer) {
+    return 'Pocięty dla $model; ta drukarka to $printer.';
+  }
+
+  @override
+  String get controllerExtruder => 'Ekstruder';
+
+  @override
+  String get controllerEditSlot => 'Edytuj slot';
+
+  @override
+  String get controllerTouchToWake => 'Dotknij, aby wybudzić';
+
+  @override
+  String get controllerPrintPaused => 'Wydruk wstrzymany';
+
+  @override
+  String get controllerTabSettings => 'Ustawienia';
+
+  @override
+  String get controllerSaverTitle => 'Wygaszacz ekranu';
+
+  @override
+  String get controllerSaverAfter => 'Włącza się po';
+
+  @override
+  String get controllerSaverNever => 'Nigdy';
+
+  @override
+  String get controllerSaverNeverTitle => 'Nigdy nie wygaszać ekranu?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'Obraz, który się nie zmienia, może wypalić się na ekranie, zwłaszcza OLED. Wyłącz wygaszacz tylko wtedy, gdy akceptujesz to ryzyko.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Wyłącz';
+
+  @override
+  String get controllerSaverBrightness => 'Jasność';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Jasność ekranu, gdy działa wygaszacz';
+
+  @override
+  String get controllerWakeOnWarnings => 'Budź przy ostrzeżeniach';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Błędy, które wstrzymują wydruk, budzą go zawsze.';
+
+  @override
+  String get controllerSaverPreview => 'Podgląd';
+
+  @override
+  String get controllerDisplayTitle => 'Ekran';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'Telefon nie wyłączy ekranu sam. Wygaszacz nadal działa.';
+
+  @override
+  String get controllerLiveCameraHint => 'Po wyłączeniu widać podgląd z pliku.';
+
+  @override
+  String get controllerKeepAwake => 'Ekran zawsze włączony';
+
+  @override
+  String get controllerSaverNeedsAwake => 'Bez tej opcji wygaszacz nie działa.';
 
   @override
   String get inventorySuppliersTitle => 'Dostawcy';

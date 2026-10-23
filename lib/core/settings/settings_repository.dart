@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../demo/demo_backend.dart';
 import '../models/swatch_code.dart';
 import '../notifications/notification_prefs.dart';
+import 'controller_prefs.dart';
 import 'label_print_prefs.dart';
 import 'print_options.dart';
 import 'server_profile.dart';
@@ -40,6 +42,7 @@ class SettingsRepository {
   static const _dashboardViewKey = 'dashboard_view';
   static const _labelPrinterNameKey = 'label_printer_name';
   static const _wallHiddenPrintersKey = 'wall_hidden_printer_ids';
+  static const _controllerPrefsKey = 'controller_prefs';
   static const _tourSeenKey = 'tour_seen';
 
   final SharedPreferences _prefs;
@@ -236,6 +239,21 @@ class SettingsRepository {
   Future<void> saveWallLiveCamera(bool on) =>
       _prefs.setBool(_wallLiveCameraKey, on);
 
+  /// The single-printer controller's settings; absent or unreadable reads as
+  /// the defaults.
+  ControllerPrefs loadControllerPrefs() {
+    final raw = _prefs.getString(_controllerPrefsKey);
+    if (raw == null) return const ControllerPrefs();
+    try {
+      return ControllerPrefs.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } on Object {
+      return const ControllerPrefs();
+    }
+  }
+
+  Future<void> saveControllerPrefs(ControllerPrefs prefs) =>
+      _prefs.setString(_controllerPrefsKey, jsonEncode(prefs.toJson()));
+
   /// The slice form's two filters (#3172), remembered on this device as the
   /// web remembers them per browser. Absent reads as off, as there.
   bool loadSliceOnlyOnline() => _prefs.getBool(_sliceOnlyOnlineKey) ?? false;
@@ -263,7 +281,8 @@ class SettingsRepository {
 
   /// How many printers the demo runs a print on. Read by both isolates: the UI
   /// sets it, the service re-reads it on [BackgroundSync.demoPrinters].
-  int loadDemoPrintingCount() => _prefs.getInt(_demoPrintingKey) ?? 1;
+  int loadDemoPrintingCount() =>
+      _prefs.getInt(_demoPrintingKey) ?? DemoBackend.defaultPrintingPrinters;
 
   Future<void> saveDemoPrintingCount(int count) =>
       _prefs.setInt(_demoPrintingKey, count);

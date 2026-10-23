@@ -86,12 +86,11 @@ flag the same way (`_first_layer_notified`).
   and that must not wake anyone. A gap shorter than the grace *pauses* the count
   instead of restarting it, so a fault that keeps flickering through a print
   still adds up to an alert.
-- **Offline printers.** An offline printer cannot be actively faulting: its
-  `hms_errors` are the last-known values carried forward by `mergedWith`. This is
-  the rule `displayableHmsErrors` applies on every screen, spelled out again
-  because this path needs the carried-forward codes themselves, which that
-  function drops; change the meaning of "offline" there and the line here moves
-  with it. Never alert while disconnected, but still *refresh* last-seen for
+- **Offline printers.** An offline printer cannot be actively faulting, the rule
+  `displayableHmsErrors` applies on every screen
+  ([notification-delivery.md](notification-delivery.md)). This path needs the
+  carried-forward codes that function drops; change the meaning of "offline" there
+  and the line here moves with it. Never alert while disconnected, but still *refresh* last-seen for
   present codes: that pauses the clear-grace clock across the outage, so a fault
   known before the disconnect does not re-alert on reconnect. Forgetting absent
   codes runs only while connected: a frame from a disconnected printer carries
@@ -182,8 +181,21 @@ faking an end.
   *before* averaging. The mean is not part of the re-post key: it used to be,
   and keeping it would re-post a notification whose every visible field is
   unchanged.
-- Recorded in the monitor, not the notification decorator: by the time the
-  service sees it, everything is baked into a title and body made of the user's
-  job name, which never enters a log.
+- Recorded in the monitor, not the notification decorator (why:
+  [notification-delivery.md](notification-delivery.md), `showOngoing`).
 - **At most three action buttons** (`_maxAlertActions`): Android's shade lays
   out three and drops what follows without a word.
+
+## Preferences and the master switch
+
+- **The master switch gates inside `NotificationPrefs.isOn()`**
+  (`alertsEnabled && enabled.contains(e)`), so every consumer honours it without
+  asking. `_updateOngoing` does not call `isOn()`: the ongoing foreground-service
+  notification stays up with alerts muted. A missing key in the stored JSON reads as
+  `true`, so older installs keep their alerts.
+- **Preferences are read once, when the foreground service starts.** A change in the
+  UI applies from the next entry into the background. There is one HIGH-importance
+  channel, `print_alerts`, and deliberately no separate silent one.
+- The event list and its defaults live in `NotifEvent` / `notification_prefs.dart`;
+  the numeric defaults there (bed cooled 35 °C, AMS humidity 60%, low filament 10%)
+  are the thresholds the monitor uses.

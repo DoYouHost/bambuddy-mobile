@@ -375,6 +375,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlFanExhaustShort => 'Exhaust';
 
   @override
+  String get ctrlFanPartLabel => 'Part cooling';
+
+  @override
+  String get ctrlFanAuxLabel => 'Aux';
+
+  @override
+  String get ctrlFanAux2Label => 'Left aux';
+
+  @override
+  String get ctrlFanChamberLabel => 'Chamber';
+
+  @override
+  String get ctrlFanExhaustLabel => 'Exhaust';
+
+  @override
   String get ctrlSpeed => 'Speed';
 
   @override
@@ -388,6 +403,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ctrlAirductHeating => 'Heating';
+
+  @override
+  String get ctrlAirductPrintTitle => 'Switch the chamber during a print?';
+
+  @override
+  String get ctrlAirductPrintBody =>
+      'Changing between heating and cooling mid-print changes the temperature the print is made at, and can ruin it.';
 
   @override
   String get ctrlOff => 'Off';
@@ -1016,6 +1038,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get archiveAddToQueue => 'Add to queue';
+
+  @override
+  String get archiveReprintNoQueue =>
+      'You don\'t have permission to add to the queue';
+
+  @override
+  String get archiveReprintNotAllowed =>
+      'You don\'t have permission to reprint this';
 
   @override
   String get archiveTimelapse => 'Watch timelapse';
@@ -7882,6 +7912,236 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get wallAllHidden =>
       'Every printer is hidden from this wall — show them in the settings.';
+
+  @override
+  String get controllerTitle => 'Controller';
+
+  @override
+  String get controllerExit => 'Exit controller';
+
+  @override
+  String get controllerSwitchPrinter => 'Switch printer';
+
+  @override
+  String get controllerTabOverview => 'Overview';
+
+  @override
+  String get controllerPrinterGone =>
+      'This printer is no longer on the server.';
+
+  @override
+  String get controllerLiveBadge => 'LIVE';
+
+  @override
+  String get controllerPreviewBadge => 'FILE PREVIEW';
+
+  @override
+  String get controllerNoPreview => 'No preview';
+
+  @override
+  String get controllerPower => 'Power';
+
+  @override
+  String get controllerTabHeat => 'Heat';
+
+  @override
+  String get controllerNoChamberHeater => 'No chamber heater';
+
+  @override
+  String get controllerMoveLocked => 'Axes are locked while a print is running';
+
+  @override
+  String get controllerTabFilament => 'Filament';
+
+  @override
+  String get controllerTabFiles => 'Files';
+
+  @override
+  String get controllerTabPrints => 'Prints';
+
+  @override
+  String controllerQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jobs',
+      one: '1 job',
+      zero: 'No jobs',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerQueueEmpty => 'No jobs wait for this printer';
+
+  @override
+  String get controllerQueueCrossModel =>
+      'This job has printer alternatives and starts on the first free one.';
+
+  @override
+  String get controllerQueueNoStart => 'Your account cannot start this job.';
+
+  @override
+  String get controllerArchiveEmpty => 'Nothing printed on this printer yet';
+
+  @override
+  String get controllerArchiveLoadingMore => 'Loading older prints…';
+
+  @override
+  String get controllerFileNotSliced => 'Not sliced';
+
+  @override
+  String get controllerFileReasonNotSliced =>
+      'Only sliced files can be printed.';
+
+  @override
+  String controllerFileReasonModel(String model) {
+    return 'Sliced for $model. This printer cannot take it.';
+  }
+
+  @override
+  String get controllerFilesReadOnly => 'This folder is read-only.';
+
+  @override
+  String get controllerPrintTitle => 'Print setup';
+
+  @override
+  String get controllerPrintNow => 'Now';
+
+  @override
+  String get controllerPrintNowAction => 'Print now';
+
+  @override
+  String controllerPrintAutoMatched(String printer) {
+    return 'Auto-matched to $printer';
+  }
+
+  @override
+  String get controllerPrintManualMapping => 'Manual mapping';
+
+  @override
+  String get controllerPrintResetMapping => 'Reset to auto';
+
+  @override
+  String get controllerPrintNotLoaded => 'Not loaded';
+
+  @override
+  String controllerPrintUnmapped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count filaments have no matching slot',
+      one: '1 filament has no matching slot',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerPrintBusy =>
+      'The printer is busy. The job starts when it is free.';
+
+  @override
+  String get controllerPrintOffline =>
+      'The printer is offline. The job waits until it is back.';
+
+  @override
+  String get controllerPrintJob => 'Job';
+
+  @override
+  String get controllerPrintOptions => 'Options';
+
+  @override
+  String get controllerPrintMore => 'More';
+
+  @override
+  String get controllerPrintMoreTitle => 'More options';
+
+  @override
+  String controllerPrintCostCenter(String name) {
+    return 'Cost center: $name';
+  }
+
+  @override
+  String get controllerPrintNoCostCenter => 'No cost center to print on';
+
+  @override
+  String get controllerPrintCostCentersRefused =>
+      'Cost centers can\'t be read with this login';
+
+  @override
+  String get controllerPrintChamber => 'Chamber target';
+
+  @override
+  String controllerPrintWrongModel(String model, String printer) {
+    return 'Sliced for $model; this printer is a $printer.';
+  }
+
+  @override
+  String get controllerExtruder => 'Extruder';
+
+  @override
+  String get controllerEditSlot => 'Edit slot';
+
+  @override
+  String get controllerTouchToWake => 'Touch to wake';
+
+  @override
+  String get controllerPrintPaused => 'Print paused';
+
+  @override
+  String get controllerTabSettings => 'Settings';
+
+  @override
+  String get controllerSaverTitle => 'Screen saver';
+
+  @override
+  String get controllerSaverAfter => 'Starts after';
+
+  @override
+  String get controllerSaverNever => 'Never';
+
+  @override
+  String get controllerSaverNeverTitle => 'Never dim the screen?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'An image that never moves can burn into the screen, OLED panels above all. Turn the saver off only if you accept that risk.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Turn it off';
+
+  @override
+  String get controllerSaverBrightness => 'Brightness';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Screen brightness while the saver is up';
+
+  @override
+  String get controllerWakeOnWarnings => 'Wake on warnings';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Faults that pause the print always wake it.';
+
+  @override
+  String get controllerSaverPreview => 'Preview';
+
+  @override
+  String get controllerDisplayTitle => 'Display';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'The phone won\'t turn the screen off. The saver still works.';
+
+  @override
+  String get controllerLiveCameraHint => 'Off shows the file preview.';
+
+  @override
+  String get controllerKeepAwake => 'Screen always on';
+
+  @override
+  String get controllerSaverNeedsAwake => 'Without this, the saver is off.';
 
   @override
   String get inventorySuppliersTitle => 'Suppliers';

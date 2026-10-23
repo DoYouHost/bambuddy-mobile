@@ -776,6 +776,36 @@ abstract class AppLocalizations {
   /// **'Exhaust'**
   String get ctrlFanExhaustShort;
 
+  /// No description provided for @ctrlFanPartLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Part cooling'**
+  String get ctrlFanPartLabel;
+
+  /// No description provided for @ctrlFanAuxLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Aux'**
+  String get ctrlFanAuxLabel;
+
+  /// No description provided for @ctrlFanAux2Label.
+  ///
+  /// In en, this message translates to:
+  /// **'Left aux'**
+  String get ctrlFanAux2Label;
+
+  /// No description provided for @ctrlFanChamberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Chamber'**
+  String get ctrlFanChamberLabel;
+
+  /// No description provided for @ctrlFanExhaustLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Exhaust'**
+  String get ctrlFanExhaustLabel;
+
   /// No description provided for @ctrlSpeed.
   ///
   /// In en, this message translates to:
@@ -805,6 +835,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Heating'**
   String get ctrlAirductHeating;
+
+  /// No description provided for @ctrlAirductPrintTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch the chamber during a print?'**
+  String get ctrlAirductPrintTitle;
+
+  /// No description provided for @ctrlAirductPrintBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Changing between heating and cooling mid-print changes the temperature the print is made at, and can ruin it.'**
+  String get ctrlAirductPrintBody;
 
   /// No description provided for @ctrlOff.
   ///
@@ -1825,6 +1867,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add to queue'**
   String get archiveAddToQueue;
+
+  /// Why Reprint and Add to queue are off: the account lacks queue:create.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to add to the queue'**
+  String get archiveReprintNoQueue;
+
+  /// Why Reprint and Add to queue are off: the account may not reprint this archive (archives:reprint_own/all).
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to reprint this'**
+  String get archiveReprintNotAllowed;
 
   /// No description provided for @archiveTimelapse.
   ///
@@ -13219,6 +13273,396 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Every printer is hidden from this wall — show them in the settings.'**
   String get wallAllHidden;
+
+  /// Name of the single-printer touch screen: the dashboard menu entry and the printer picker's title
+  ///
+  /// In en, this message translates to:
+  /// **'Controller'**
+  String get controllerTitle;
+
+  /// Tooltip of the controller's back button
+  ///
+  /// In en, this message translates to:
+  /// **'Exit controller'**
+  String get controllerExit;
+
+  /// Tooltip of the printer name in the controller's top bar; opens the printer picker
+  ///
+  /// In en, this message translates to:
+  /// **'Switch printer'**
+  String get controllerSwitchPrinter;
+
+  /// First tab of the controller: the camera or file preview, the job and the everyday controls
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get controllerTabOverview;
+
+  /// Shown by the controller when the printer it was opened for is not in the server's list any more
+  ///
+  /// In en, this message translates to:
+  /// **'This printer is no longer on the server.'**
+  String get controllerPrinterGone;
+
+  /// Badge on the controller's camera picture while the stream is live; capitals on purpose
+  ///
+  /// In en, this message translates to:
+  /// **'LIVE'**
+  String get controllerLiveBadge;
+
+  /// Badge on the controller's picture when it shows the cover of the file being printed instead of the camera; capitals on purpose
+  ///
+  /// In en, this message translates to:
+  /// **'FILE PREVIEW'**
+  String get controllerPreviewBadge;
+
+  /// Shown in place of the file preview when the printed file has no cover picture or it does not load
+  ///
+  /// In en, this message translates to:
+  /// **'No preview'**
+  String get controllerNoPreview;
+
+  /// Label of the controller's smart plug switch, which powers the printer on and off
+  ///
+  /// In en, this message translates to:
+  /// **'Power'**
+  String get controllerPower;
+
+  /// Controller tab with the nozzle, bed and chamber targets and the fans
+  ///
+  /// In en, this message translates to:
+  /// **'Heat'**
+  String get controllerTabHeat;
+
+  /// Shown on the chamber card of a printer whose chamber can only be read, not heated
+  ///
+  /// In en, this message translates to:
+  /// **'No chamber heater'**
+  String get controllerNoChamberHeater;
+
+  /// Line above the controller's Move tab while the printer is printing; every control on the tab is switched off and this says why
+  ///
+  /// In en, this message translates to:
+  /// **'Axes are locked while a print is running'**
+  String get controllerMoveLocked;
+
+  /// Controller tab with the AMS units, their slots and the external spool
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get controllerTabFilament;
+
+  /// Controller tab with the server's file library: browse, upload and print a file on this printer
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get controllerTabFiles;
+
+  /// Controller tab that holds the printer's prints: the file library, this printer's queue and its archive, chosen on a rail at its left
+  ///
+  /// In en, this message translates to:
+  /// **'Prints'**
+  String get controllerTabPrints;
+
+  /// Header of the controller's Queue view: how many jobs this printer's queue holds
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No jobs} =1{1 job} other{{count} jobs}}'**
+  String controllerQueueCount(int count);
+
+  /// The controller's Queue view when nothing is queued for this printer, neither pinned to it nor for any printer of its model
+  ///
+  /// In en, this message translates to:
+  /// **'No jobs wait for this printer'**
+  String get controllerQueueEmpty;
+
+  /// Why Start is off in a queued job's dialog in the controller: the job has printer alternatives, so the server picks the printer when it dispatches
+  ///
+  /// In en, this message translates to:
+  /// **'This job has printer alternatives and starts on the first free one.'**
+  String get controllerQueueCrossModel;
+
+  /// Why Start is off in a queued job's dialog in the controller: the account may not start this job
+  ///
+  /// In en, this message translates to:
+  /// **'Your account cannot start this job.'**
+  String get controllerQueueNoStart;
+
+  /// The controller's Archive view when this printer has no archived print
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing printed on this printer yet'**
+  String get controllerArchiveEmpty;
+
+  /// At the end of the controller's Archive view while the next page of older prints is fetched
+  ///
+  /// In en, this message translates to:
+  /// **'Loading older prints…'**
+  String get controllerArchiveLoadingMore;
+
+  /// Chip on a file tile in the controller's Files tab: the file is a model, not sliced G-code, so it cannot be printed as it is
+  ///
+  /// In en, this message translates to:
+  /// **'Not sliced'**
+  String get controllerFileNotSliced;
+
+  /// Line in the file dialog of the controller's Files tab, why Print is disabled: the file is a model, not sliced G-code
+  ///
+  /// In en, this message translates to:
+  /// **'Only sliced files can be printed.'**
+  String get controllerFileReasonNotSliced;
+
+  /// Line in the file dialog of the controller's Files tab, why Print is disabled: the file was sliced for a printer model this printer cannot take
+  ///
+  /// In en, this message translates to:
+  /// **'Sliced for {model}. This printer cannot take it.'**
+  String controllerFileReasonModel(String model);
+
+  /// Tooltip of the disabled upload button in the controller's Files tab: the open folder is external or refuses writes
+  ///
+  /// In en, this message translates to:
+  /// **'This folder is read-only.'**
+  String get controllerFilesReadOnly;
+
+  /// Title of the controller's print screen, opened from a file of the Files tab
+  ///
+  /// In en, this message translates to:
+  /// **'Print setup'**
+  String get controllerPrintTitle;
+
+  /// Segment of the controller's print screen: start the job next, when the printer is free
+  ///
+  /// In en, this message translates to:
+  /// **'Now'**
+  String get controllerPrintNow;
+
+  /// Main button of the controller's print screen while the job is set to start next
+  ///
+  /// In en, this message translates to:
+  /// **'Print now'**
+  String get controllerPrintNowAction;
+
+  /// Line above the filament list of the controller's print screen while no slot was picked by hand; the placeholder is the printer's name
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-matched to {printer}'**
+  String controllerPrintAutoMatched(String printer);
+
+  /// Line above the filament list of the controller's print screen once slots were picked by hand
+  ///
+  /// In en, this message translates to:
+  /// **'Manual mapping'**
+  String get controllerPrintManualMapping;
+
+  /// Button that drops the hand-picked slots of the controller's print screen and matches the filament automatically again
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to auto'**
+  String get controllerPrintResetMapping;
+
+  /// Shown for a filament of the file that no slot of the printer can supply
+  ///
+  /// In en, this message translates to:
+  /// **'Not loaded'**
+  String get controllerPrintNotLoaded;
+
+  /// Warning on the controller's print screen: filaments of the file that no loaded slot matches
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 filament has no matching slot} other{{count} filaments have no matching slot}}'**
+  String controllerPrintUnmapped(int count);
+
+  /// Line on the controller's print screen while the printer is printing
+  ///
+  /// In en, this message translates to:
+  /// **'The printer is busy. The job starts when it is free.'**
+  String get controllerPrintBusy;
+
+  /// Line on the controller's print screen while the printer cannot be reached
+  ///
+  /// In en, this message translates to:
+  /// **'The printer is offline. The job waits until it is back.'**
+  String get controllerPrintOffline;
+
+  /// Title of the first card of the controller's print screen: the file, its plate and the number of copies
+  ///
+  /// In en, this message translates to:
+  /// **'Job'**
+  String get controllerPrintJob;
+
+  /// Title of the card with the print options (calibrations, timelapse, the start time) on the controller's print screen
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get controllerPrintOptions;
+
+  /// Button of the print screen's options card that opens the rest of the print options
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get controllerPrintMore;
+
+  /// Title of the dialog with the print options the print screen does not show: cost center, calibrations, preheat and the queue switches
+  ///
+  /// In en, this message translates to:
+  /// **'More options'**
+  String get controllerPrintMoreTitle;
+
+  /// Line under the filament list of the controller's print screen while billing is on; the placeholder is the center the job is booked to
+  ///
+  /// In en, this message translates to:
+  /// **'Cost center: {name}'**
+  String controllerPrintCostCenter(String name);
+
+  /// Line on the controller's print screen: billing is on and this account may book to no active cost center
+  ///
+  /// In en, this message translates to:
+  /// **'No cost center to print on'**
+  String get controllerPrintNoCostCenter;
+
+  /// Line on the controller's print screen: billing is on and this session may not list its cost centers
+  ///
+  /// In en, this message translates to:
+  /// **'Cost centers can\'t be read with this login'**
+  String get controllerPrintCostCentersRefused;
+
+  /// Label of the chamber temperature stepper in the controller's print options
+  ///
+  /// In en, this message translates to:
+  /// **'Chamber target'**
+  String get controllerPrintChamber;
+
+  /// Line on the controller's print screen when the file was sliced for a model this printer cannot take
+  ///
+  /// In en, this message translates to:
+  /// **'Sliced for {model}; this printer is a {printer}.'**
+  String controllerPrintWrongModel(String model, String printer);
+
+  /// No description provided for @controllerExtruder.
+  ///
+  /// In en, this message translates to:
+  /// **'Extruder'**
+  String get controllerExtruder;
+
+  /// Tooltip of the pencil on a controller slot card; opens the slot sheet (spool, configuration)
+  ///
+  /// In en, this message translates to:
+  /// **'Edit slot'**
+  String get controllerEditSlot;
+
+  /// Line on the controller's screen saver: the first touch only wakes the screen
+  ///
+  /// In en, this message translates to:
+  /// **'Touch to wake'**
+  String get controllerTouchToWake;
+
+  /// Title of the fault view the controller opens on its own when a fault has paused the print
+  ///
+  /// In en, this message translates to:
+  /// **'Print paused'**
+  String get controllerPrintPaused;
+
+  /// No description provided for @controllerTabSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get controllerTabSettings;
+
+  /// No description provided for @controllerSaverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen saver'**
+  String get controllerSaverTitle;
+
+  /// Label above the idle-time choices of the controller's screen saver (1, 2, 5, 10, 15 minutes, Never)
+  ///
+  /// In en, this message translates to:
+  /// **'Starts after'**
+  String get controllerSaverAfter;
+
+  /// No description provided for @controllerSaverNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get controllerSaverNever;
+
+  /// No description provided for @controllerSaverNeverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Never dim the screen?'**
+  String get controllerSaverNeverTitle;
+
+  /// Shown before the screen saver is turned off for good: the burn-in risk the user has to accept
+  ///
+  /// In en, this message translates to:
+  /// **'An image that never moves can burn into the screen, OLED panels above all. Turn the saver off only if you accept that risk.'**
+  String get controllerSaverNeverBody;
+
+  /// No description provided for @controllerSaverNeverConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn it off'**
+  String get controllerSaverNeverConfirm;
+
+  /// No description provided for @controllerSaverBrightness.
+  ///
+  /// In en, this message translates to:
+  /// **'Brightness'**
+  String get controllerSaverBrightness;
+
+  /// What the brightness slider of the controller's screen saver changes
+  ///
+  /// In en, this message translates to:
+  /// **'Screen brightness while the saver is up'**
+  String get controllerSaverBrightnessHint;
+
+  /// No description provided for @controllerWakeOnWarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Wake on warnings'**
+  String get controllerWakeOnWarnings;
+
+  /// No description provided for @controllerWakeOnWarningsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Faults that pause the print always wake it.'**
+  String get controllerWakeOnWarningsHint;
+
+  /// No description provided for @controllerSaverPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get controllerSaverPreview;
+
+  /// No description provided for @controllerDisplayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Display'**
+  String get controllerDisplayTitle;
+
+  /// No description provided for @controllerKeepAwakeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The phone won\'t turn the screen off. The saver still works.'**
+  String get controllerKeepAwakeHint;
+
+  /// No description provided for @controllerLiveCameraHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Off shows the file preview.'**
+  String get controllerLiveCameraHint;
+
+  /// No description provided for @controllerKeepAwake.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen always on'**
+  String get controllerKeepAwake;
+
+  /// Line under the Screen always on switch while it is off: the saver's settings are disabled, and this says why
+  ///
+  /// In en, this message translates to:
+  /// **'Without this, the saver is off.'**
+  String get controllerSaverNeedsAwake;
 
   /// No description provided for @inventorySuppliersTitle.
   ///

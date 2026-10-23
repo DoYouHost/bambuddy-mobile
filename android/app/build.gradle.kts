@@ -6,7 +6,10 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val keyPropertiesFile = rootProject.file("key.properties")
+// The maintainer's copy lives outside the repo; CI and contributors keep using
+// android/key.properties.
+val keyPropertiesFile = File(System.getProperty("user.home"), ".config/bambuddy/key.properties")
+    .takeIf { it.exists() } ?: rootProject.file("key.properties")
 val keyProperties = Properties().apply {
     if (keyPropertiesFile.exists()) load(keyPropertiesFile.inputStream())
 }

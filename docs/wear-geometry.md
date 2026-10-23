@@ -115,6 +115,33 @@ Google's, and changing one is a deviation from the guidance.
 Touch targets (Play's WO-V2) follow from auto-centering: every item can be
 brought to the middle, where it is full size.
 
+## Rules for a watch screen
+
+- **Every scrolling watch screen goes through `WearScrollView`**
+  ([lib/wear/widgets/wear_scroll_view.dart](../lib/wear/widgets/wear_scroll_view.dart)).
+  It owns both things Google Play checks on Wear OS: the round-safe geometry
+  (`wear_geometry.dart`, never a padding literal) and the curved scroll indicator.
+  The insets go on the viewport, not on the content (see above); the viewport's own
+  edge is softened by a fade as long as the content's lead-in.
+- **A confirmation is Wear Material 3's `AlertDialog`** (`wear_confirm_dialog.dart`):
+  a scrolling list with its buttons as the last item, every size taken from the
+  compose-material3 source.
+- **A watch row needs a corner radius of about 16 or more and a label that can
+  ellipsize.** Wear widget tests run on a real watch face (`pumpWear`), which is
+  what makes an overflow show up at all.
+- **A list says `curved: true`**: Wear OS's own `ScalingLazyColumn`, ported 1:1
+  (`wear_scaling_list.dart`). Its numbers are Google's; a list that looks wrong is
+  fixed to match the guidance, not with a curve of our own.
+- **A watch never shows a `SnackBar`.** A bar is laid out against the square the
+  display reports and pinned to its bottom, where a round face has almost no width
+  left, so most of the bar and of its sentence is off the glass, and
+  `ScaffoldMessenger` offers no hook to move it. Transient messages go through
+  `wearToast` ([lib/wear/widgets/wear_toast.dart](../lib/wear/widgets/wear_toast.dart)):
+  the middle of the face, the same round-safe rectangle, three seconds, a tap to
+  dismiss, hosted by `WearScreen` so a message cannot outlive the screen that
+  raised it. `wear_type_scale_test.dart` scans the watch sources to keep snackbars
+  out.
+
 ## Checking a change
 
 `test/wear/wear_geometry_test.dart` holds the rectangle to itself;
@@ -124,8 +151,21 @@ Google's numbers: the reference points of `calculateScaleAndAlpha`, nothing
 below 70%, no gaps at any offset, item 1 and the last item centred, and paint,
 hit test and semantics agreeing on the size an item shrank to.
 
-A widget test only catches this on a large face — `pumpWear` defaults to
-384x384, and `wearFaceLarge` (450x450) is the roomier one to check against.
+**Do not pin text width in a watch widget test.** The test font is as wide as it is
+tall (about 1 em a character), while the watch draws in the platform font
+(`wearTheme` sets no `fontFamily`; Manrope is in `assets/` but the watch theme
+does not use it), about 0.55 em. Measured: the unbreakable `0.14.0+2028000` in the
+settings footer came out at 143.5 dp against a 141.8 dp viewport in a test and
+about 80 dp on a device, so a `didExceedMaxLines` assertion failed on an artefact.
+Pin the **geometry** (`expectOnGlass`), not the pixels of text. Where a length
+budget is really needed, make it in **characters** with its estimate written down,
+as `wearErrorMaxChars` and `wearToastMaxChars` are (`wear_theme.dart`). What stays
+real is the system text scale, which is why the footer's `maxLines` is 3: a
+version string such as `Server 1.2.6b1-daily.20260729` breaks only at the hyphen.
+
+A widget test catches this on the small face — `pumpWear` defaults to
+`wearFaceSmall` (384x384 px, 192 dp), where the overflow shows; `wearFaceLarge`
+(450x450 px, 225 dp) is the roomier one to check against.
 `expectOnGlass` (`test/helpers.dart`) is the assertion for anything a screen
 positions itself rather than handing to `WearScrollView`: a plain widget test is
 otherwise happy with a layout that fits the square and lights none of the circle.

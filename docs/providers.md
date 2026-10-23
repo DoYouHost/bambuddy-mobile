@@ -40,8 +40,8 @@ Three gates read it, and they disagree on purpose:
   says about a key never described that gate. Hence the decision on the auth mode
   rather than on the payload.
 - **`canUpdatePrintersProvider`**: `printers:update` is outside the key scope
-  allowlist, so an API-key session never may change a printer; decided on the
-  auth mode like the one above. Unlike it, an unknown identity answers yes: the
+  allowlist ([server-contract-traps.md](server-contract-traps.md)), so an API-key
+  session never may change a printer; decided on the auth mode like the one above. Unlike it, an unknown identity answers yes: the
   server is the enforcer, and a server without auth has nobody to refuse.
 
 ## The client and the teardown frame
@@ -78,12 +78,10 @@ them per lifecycle, and the service isolate takes over in the background.
 
 ## Versions
 
-- **`serverVersionProvider`** is for a synchronous reader. Warmed by the shell at
-  start and asked again on every regained contact: a read that failed while the
-  network was down would otherwise wait out the service's retry window. Re-running
-  costs nothing once known (`ServerVersionService` caches it) and keeps the
-  previous value up meanwhile, so nothing blinks. `null` is "the server did not
-  say".
+- **`serverVersionProvider`** is for a synchronous reader: warmed by the shell at
+  start and asked again on every regained contact (the contact epoch, see
+  [server-gates.md](server-gates.md)), keeping the previous value up meanwhile so
+  nothing blinks. `null` is "the server did not say".
 - **`appVersionProvider`** is a provider rather than a future held in each
   widget's `State`, which is how three screens did it: `PackageInfo.fromPlatform`
   hands back a fresh future on every call, so a `FutureBuilder` given one
@@ -93,18 +91,10 @@ them per lifecycle, and the service isolate takes over in the background.
   on.
 - **`serverVersionLabelProvider`** (drawer footer): `null` is "nobody knows" (too
   old to serve `/updates/version`, unreachable, or a reply the parser made nothing
-  of), and with no profile it answers `null` rather than letting
-  `apiClientProvider` throw. It is `autoDispose` **with a link kept on success**
-  because the two halves answer two different failures. Kept unconditionally, a
-  drawer opened once in a lift reads "unknown" until the app is killed; disposed
-  unconditionally, every reopening starts at `AsyncLoading`, the flash
-  `appVersionProvider` exists to avoid. An answer cannot go stale without the
-  server restarting, and an unknown released puts the service's retry within reach
-  of the next opening. The no-profile return is synchronous on purpose (a future
-  would put a loading frame in front of a known answer), and `keepAlive` is taken
-  *before* the await: it belongs to the build, the provider may be disposed while
-  the read is in flight, and closing a link afterwards is safe while taking one is
-  not.
+  of), and with no profile it answers `null` synchronously rather than letting
+  `apiClientProvider` throw — a future would put a loading frame in front of a
+  known answer. It is `autoDispose` with a link kept on success; why both halves
+  are needed, and where the link is taken: [riverpod-traps.md](riverpod-traps.md) §4.
 - **`chamberMaxTargetProvider`** is a *value*, not a gate: 65 from 1.2.6, 60
   before it and whenever the version is not known yet; never a loading state. It
   and `labelStartingPositionProvider` are the two with nothing to observe; every
@@ -176,8 +166,7 @@ them per lifecycle, and the service isolate takes over in the background.
 - **`serverGate` vs `serverValue`.** A *gate* decides whether a control exists, so
   a caller must tell "not answered yet" from "answered, and the answer is no":
   reading such a flag as `false` while `/settings` is in flight shows a screen
-  missing a button the server does offer. It is derived synchronously, because a
-  `FutureProvider` reports a loading frame even for a future already complete; it
+  missing a button the server does offer. It is derived synchronously ([riverpod-traps.md](riverpod-traps.md) §3): it
   keeps the last answer up during a refetch and hands on an error rather than
   reading "off". A caller outside a build wants `settledGate`. A *value* (a
   symbol, a limit, a set of presets) resolves immediately against the fallback the

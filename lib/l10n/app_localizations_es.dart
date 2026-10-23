@@ -385,6 +385,21 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ctrlFanExhaustShort => 'Escape';
 
   @override
+  String get ctrlFanPartLabel => 'Refrigeración de piezas';
+
+  @override
+  String get ctrlFanAuxLabel => 'Auxiliar';
+
+  @override
+  String get ctrlFanAux2Label => 'Auxiliar izquierdo';
+
+  @override
+  String get ctrlFanChamberLabel => 'Cámara';
+
+  @override
+  String get ctrlFanExhaustLabel => 'Escape';
+
+  @override
   String get ctrlSpeed => 'Velocidad';
 
   @override
@@ -398,6 +413,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get ctrlAirductHeating => 'Calentamiento';
+
+  @override
+  String get ctrlAirductPrintTitle =>
+      '¿Cambiar la cámara durante una impresión?';
+
+  @override
+  String get ctrlAirductPrintBody =>
+      'Cambiar entre calentar y enfriar a mitad de la impresión modifica la temperatura a la que se imprime y puede arruinarla.';
 
   @override
   String get ctrlOff => 'Apagado';
@@ -1031,6 +1054,13 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get archiveAddToQueue => 'Añadir a la cola';
+
+  @override
+  String get archiveReprintNoQueue => 'No tiene permiso para añadir a la cola';
+
+  @override
+  String get archiveReprintNotAllowed =>
+      'No tiene permiso para reimprimir esto';
 
   @override
   String get archiveTimelapse => 'Ver timelapse';
@@ -7978,6 +8008,241 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get wallAllHidden =>
       'Todas las impresoras están ocultas en esta pared — muéstralas en los ajustes.';
+
+  @override
+  String get controllerTitle => 'Controlador';
+
+  @override
+  String get controllerExit => 'Salir del controlador';
+
+  @override
+  String get controllerSwitchPrinter => 'Cambiar de impresora';
+
+  @override
+  String get controllerTabOverview => 'Resumen';
+
+  @override
+  String get controllerPrinterGone =>
+      'Esta impresora ya no está en el servidor.';
+
+  @override
+  String get controllerLiveBadge => 'EN VIVO';
+
+  @override
+  String get controllerPreviewBadge => 'VISTA PREVIA DEL ARCHIVO';
+
+  @override
+  String get controllerNoPreview => 'Sin vista previa';
+
+  @override
+  String get controllerPower => 'Alimentación';
+
+  @override
+  String get controllerTabHeat => 'Calor';
+
+  @override
+  String get controllerNoChamberHeater => 'Sin calefactor de cámara';
+
+  @override
+  String get controllerMoveLocked =>
+      'Los ejes están bloqueados durante la impresión';
+
+  @override
+  String get controllerTabFilament => 'Filamento';
+
+  @override
+  String get controllerTabFiles => 'Archivos';
+
+  @override
+  String get controllerTabPrints => 'Impresiones';
+
+  @override
+  String controllerQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count trabajos',
+      one: '1 trabajo',
+      zero: 'Sin trabajos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerQueueEmpty => 'Ningún trabajo espera a esta impresora';
+
+  @override
+  String get controllerQueueCrossModel =>
+      'Este trabajo tiene impresoras alternativas y empieza en la primera libre.';
+
+  @override
+  String get controllerQueueNoStart =>
+      'Su cuenta no puede iniciar este trabajo.';
+
+  @override
+  String get controllerArchiveEmpty => 'Esta impresora aún no ha impreso nada';
+
+  @override
+  String get controllerArchiveLoadingMore => 'Cargando impresiones anteriores…';
+
+  @override
+  String get controllerFileNotSliced => 'Sin laminar';
+
+  @override
+  String get controllerFileReasonNotSliced =>
+      'Solo se pueden imprimir archivos laminados.';
+
+  @override
+  String controllerFileReasonModel(String model) {
+    return 'Laminado para $model, que esta impresora no admite.';
+  }
+
+  @override
+  String get controllerFilesReadOnly => 'Esta carpeta es de solo lectura.';
+
+  @override
+  String get controllerPrintTitle => 'Preparar impresión';
+
+  @override
+  String get controllerPrintNow => 'Ahora';
+
+  @override
+  String get controllerPrintNowAction => 'Imprimir ahora';
+
+  @override
+  String controllerPrintAutoMatched(String printer) {
+    return 'Asignado automáticamente a $printer';
+  }
+
+  @override
+  String get controllerPrintManualMapping => 'Asignación manual';
+
+  @override
+  String get controllerPrintResetMapping => 'Volver a automático';
+
+  @override
+  String get controllerPrintNotLoaded => 'No cargado';
+
+  @override
+  String controllerPrintUnmapped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count filamentos no tienen ranura compatible',
+      one: '1 filamento no tiene ranura compatible',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerPrintBusy =>
+      'La impresora está ocupada. El trabajo empieza cuando quede libre.';
+
+  @override
+  String get controllerPrintOffline =>
+      'La impresora está sin conexión. El trabajo espera a que vuelva.';
+
+  @override
+  String get controllerPrintJob => 'Trabajo';
+
+  @override
+  String get controllerPrintOptions => 'Opciones';
+
+  @override
+  String get controllerPrintMore => 'Más';
+
+  @override
+  String get controllerPrintMoreTitle => 'Más opciones';
+
+  @override
+  String controllerPrintCostCenter(String name) {
+    return 'Centro de costes: $name';
+  }
+
+  @override
+  String get controllerPrintNoCostCenter =>
+      'Sin centro de costes para imprimir';
+
+  @override
+  String get controllerPrintCostCentersRefused =>
+      'Este acceso no ve los centros de costes';
+
+  @override
+  String get controllerPrintChamber => 'Cámara objetivo';
+
+  @override
+  String controllerPrintWrongModel(String model, String printer) {
+    return 'Laminado para $model; esta impresora es una $printer.';
+  }
+
+  @override
+  String get controllerExtruder => 'Extrusor';
+
+  @override
+  String get controllerEditSlot => 'Editar ranura';
+
+  @override
+  String get controllerTouchToWake => 'Toca para activar';
+
+  @override
+  String get controllerPrintPaused => 'Impresión en pausa';
+
+  @override
+  String get controllerTabSettings => 'Ajustes';
+
+  @override
+  String get controllerSaverTitle => 'Salvapantallas';
+
+  @override
+  String get controllerSaverAfter => 'Se activa tras';
+
+  @override
+  String get controllerSaverNever => 'Nunca';
+
+  @override
+  String get controllerSaverNeverTitle => '¿No atenuar nunca la pantalla?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'Una imagen que nunca se mueve puede quedar marcada en la pantalla, sobre todo en OLED. Desactiva el salvapantallas solo si aceptas ese riesgo.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Desactivar';
+
+  @override
+  String get controllerSaverBrightness => 'Brillo';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Brillo de la pantalla mientras el salvapantallas está activo';
+
+  @override
+  String get controllerWakeOnWarnings => 'Activar con avisos';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Los errores que pausan la impresión siempre lo activan.';
+
+  @override
+  String get controllerSaverPreview => 'Vista previa';
+
+  @override
+  String get controllerDisplayTitle => 'Pantalla';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'El teléfono no apagará la pantalla. El salvapantallas sigue funcionando.';
+
+  @override
+  String get controllerLiveCameraHint =>
+      'Desactivada, muestra la vista previa del archivo.';
+
+  @override
+  String get controllerKeepAwake => 'Pantalla siempre encendida';
+
+  @override
+  String get controllerSaverNeedsAwake =>
+      'Sin esta opción, el salvapantallas no funciona.';
 
   @override
   String get inventorySuppliersTitle => 'Proveedores';

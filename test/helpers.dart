@@ -164,6 +164,51 @@ Future<ProviderContainer> pumpWear(
 Widget wearShapeBuilder(BuildContext context, Widget? child) =>
     WearShapeScope(child: child!);
 
+/// The button the diagnostic [id] tags, whichever [ButtonStyleButton] it is —
+/// filled, outlined or text — so a test asks for the id, not the kind.
+ButtonStyleButton buttonAt(WidgetTester tester, String id) => tester.widget(
+  find.descendant(
+    of: byLogId(id),
+    matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+  ),
+);
+
+/// A window of [size] logical pixels at density 1, given back with the test.
+void useLogicalWindow(WidgetTester tester, Size size) {
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = size;
+  addTearDown(tester.view.reset);
+}
+
+/// The phones a landscape screen (the controller, wall mode) is designed for:
+/// the reporter's Redmi 9T Pro and a 20:9 Pixel-class phone, in dp.
+const landscapeRedmi = Size(891, 411);
+const landscapePixel = Size(915, 412);
+
+/// Answers what a landscape screen asks the platform on entry and exit — the
+/// window's keep-screen-on and `SystemChrome` — and hands each call to
+/// [onWindow] / [onPlatform] for a test that checks them.
+void mockImmersiveChannels(
+  WidgetTester tester, {
+  void Function(MethodCall call)? onWindow,
+  void Function(MethodCall call)? onPlatform,
+}) {
+  const window = MethodChannel('page.codeberg.morganmlgman.bambuddy/window');
+  final messenger = tester.binding.defaultBinaryMessenger;
+  messenger.setMockMethodCallHandler(window, (call) async {
+    onWindow?.call(call);
+    return null;
+  });
+  messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+    onPlatform?.call(call);
+    return null;
+  });
+  addTearDown(() {
+    messenger.setMockMethodCallHandler(window, null);
+    messenger.setMockMethodCallHandler(SystemChannels.platform, null);
+  });
+}
+
 /// The two round faces worth testing against, in physical pixels at density 2;
 /// the small one is the default (see docs/test-harness.md).
 const wearFaceSmall = Size(384, 384);
@@ -759,4 +804,38 @@ class FixedDashboard extends DashboardNotifier {
 
   /// What a poll does when the session is rejected and cannot be renewed.
   void expire() => state = const DashboardState(authExpired: true);
+}
+
+/// Loads the app's own fonts, Manrope and JetBrains Mono, for a test file that
+/// measures text. Without it every glyph is a square as wide as it is tall, about
+/// twice what the real fonts take, so a label that fits on a phone looks too
+/// wide and a check on how text sits proves nothing. Call it from `setUpAll`.
+Future<void> loadAppFonts() async {
+  for (final (family, files) in [
+    (
+      'JetBrainsMono',
+      [
+        'JetBrainsMono-400.ttf',
+        'JetBrainsMono-600.ttf',
+        'JetBrainsMono-700.ttf',
+        'JetBrainsMono-800.ttf',
+      ],
+    ),
+    (
+      'Manrope',
+      [
+        'Manrope-400.ttf',
+        'Manrope-500.ttf',
+        'Manrope-600.ttf',
+        'Manrope-700.ttf',
+        'Manrope-800.ttf',
+      ],
+    ),
+  ]) {
+    final loader = FontLoader(family);
+    for (final file in files) {
+      loader.addFont(rootBundle.load('assets/fonts/$file'));
+    }
+    await loader.load();
+  }
 }

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
-import 'package:bambuddy_mobile/data/archive_repository.dart';
+import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/features/archive/outcome_sheet.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -12,19 +12,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'archive_fakes.dart';
 
 /// The sheet that asks how a print came out. What it sends is the point: the
 /// server counts a completed reject out of the project's good parts and yield,
 /// so a verdict or a cause written wrong is a wrong number on another screen.
 void main() {
-  late _FakeArchives repo;
+  late FakeArchives repo;
 
   Future<void> open(
     WidgetTester tester,
     Archive archive, {
     bool rejecting = false,
+    CurrentUser? user,
   }) async {
-    repo = _FakeArchives(archive);
+    repo = FakeArchives(archive: archive);
     SharedPreferences.setMockInitialValues({});
     // The reprint form reads the print options this phone remembers.
     final prefs = await SharedPreferences.getInstance();
@@ -34,6 +36,7 @@ void main() {
           archiveRepositoryProvider.overrideWithValue(repo),
           sharedPreferencesProvider.overrideWithValue(prefs),
           noServerProfileOverride,
+          if (user != null) currentUserOverride(user),
         ],
         child: plApp(
           Scaffold(
@@ -246,6 +249,30 @@ void main() {
     final form = tester.widget<QueueEditScreen>(find.byType(QueueEditScreen));
     expect(form.item.archiveId, 1);
   });
+
+  // The server refuses the queue job without the reprint right (403), so the
+  // reject can still be saved but not followed by a print.
+  testWidgets('print again is off, with the reason, without the right', (
+    tester,
+  ) async {
+    await open(
+      tester,
+      testArchive(confirmRequested: true),
+      user: const CurrentUser(
+        id: 7,
+        username: 'op',
+        isAdmin: false,
+        permissions: {Permissions.queueCreate},
+      ),
+    );
+
+    await tapText(tester, pl.outcomeReject);
+
+    final again = buttonAt(tester, 'outcome.reject_reprint');
+    expect(again.onPressed, isNull);
+    expect(find.text(pl.archiveReprintNotAllowed), findsOneWidget);
+    expect(find.text(pl.outcomeSaveReject), findsOneWidget);
+  });
 }
 
 Archive _withReason(Archive a, String reason) => Archive(
@@ -257,33 +284,3 @@ Archive _withReason(Archive a, String reason) => Archive(
   userVerdict: a.userVerdict,
   failureReason: reason,
 );
-
-class _FakeArchives implements ArchiveRepository {
-  _FakeArchives(this.archive);
-
-  Archive archive;
-  bool applied = true;
-  AppApiException? error;
-  Completer<void>? held;
-  final sent = <({PrintVerdict? verdict, String? reason, bool clearReason})>[];
-
-  @override
-  Future<Archive> byId(int archiveId) async => archive;
-
-  @override
-  Future<({Archive archive, bool applied})> setVerdict(
-    int archiveId,
-    PrintVerdict? verdict, {
-    String? reason,
-    bool clearReason = false,
-  }) async {
-    if (error != null) throw error!;
-    sent.add((verdict: verdict, reason: reason, clearReason: clearReason));
-    if (held != null) await held!.future;
-    return (archive: archive, applied: applied);
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError('${invocation.memberName} is not this test\'s');
-}

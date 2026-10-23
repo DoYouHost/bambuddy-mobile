@@ -37,7 +37,7 @@ request already on the bridge; the phone pushes the same config on every launch,
 so every cold start used to pay a relay timeout for its first poll. A refreshed
 secret needs no invalidate: `authHeaders` reads the store on each request.
 
-## `WearFleetNotifier`: three flags and an epoch
+## `WearFleetNotifier`: the flags and an epoch
 
 - **`_epoch`** says which run is the current one. Riverpod builds the notifier
   once and keeps the instance across every rebuild, while still running the

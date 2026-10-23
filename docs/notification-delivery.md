@@ -129,7 +129,10 @@ Riverpod or the UI.
 - **HMS actions** (`handleHmsAction`): stopping a print never runs from a
   notification. A tap that abandons hours of printing has to be confirmed and a
   notification has nowhere to ask, so that button brings the app up and the
-  request is parked in `hmsStopRequests` for the shell.
+  request is parked in `hmsStopRequests` for the shell. **Known gap:** an HMS action
+  answered after the user switched servers sends its command to the *new* server's
+  printer with the same id, because the action payload carries no server tag (the
+  print-outcome notification has one).
 - **Maintenance "Mark Done"** rebuilds everything from scratch (prefs, client,
   repository), resets the item counter, removes the items from the dedup set
   (re-arm for future alerts) and dismisses the notification. All errors are
@@ -186,3 +189,48 @@ Riverpod or the UI.
   padded into one: `HmsError.ecode` would compose 16 hex out of a 32-bit value
   that means something else, which is how a link lands on a page about a
   different fault. Those get bambuddy's own answer, the HMS index.
+
+## Testing an alert without printing
+
+- `dart run tool/fake_bambuddy.dart` is a fake REST+WebSocket server with no
+  dependencies; its header explains the commands (`finish`, `fail`, `photo`, `go`).
+  A phone on the LAN uses `http://<ip>:8099`, or `adb reverse tcp:8099 tcp:8099`.
+  **The app must be in the background**, otherwise there is no service and no alert.
+- To check only how a watch renders a big picture:
+  `adb shell cmd notification post -S bigpicture --picture data:base64,<…>`. Two
+  misleading traps: after `adb root` the call fails with `NameNotFoundException: root`
+  (use `adb unroot`), and `file:///data/local/tmp/…` fails under SELinux and is
+  reported as "not a bitmap". Wear OS 5 renders the picture only once expanded.
+
+## The system 12/24 h setting
+
+The `flutter/settings` channel is sent **only** by an engine that has a view, and
+only when the view attaches. Two separate bugs follow from that:
+
+1. **The foreground-service isolate never receives it.** `ForegroundTask` creates a
+   bare `FlutterEngine(context)`, so `PlatformDispatcher.alwaysUse24HourFormat` is
+   always `false` there — a phone set to 24 h got `ETA 8:29 PM`. The locale does
+   arrive (the engine sends it from `Configuration`); the clock does not.
+2. **The UI receives it once and never refreshes.** Switching the clock in Android
+   settings and returning to the app does not change `MediaQuery` until the process
+   dies.
+
+The fix is a native channel (`…/clock` → `DateFormat.is24HourFormat` in
+`MainActivity`) asked by `SystemClockSync` (in `MaterialApp.builder`) at start and
+**on every resume**. The answer overrides `MediaQuery` for the whole tree and lands
+in `DateTimeFormats.rememberSystemClock` and in the `clock_24h` preference, which the
+service reads (`onStart`, plus a `BackgroundSync.clock` ping that
+`publishSystemClock` sends after writing the preference, when the service is
+running). No answer
+means the locale convention (the `jm` pattern), never a hard-coded 12 h. **Every
+other `MediaQuery` system setting (font scale, brightness) has both problems.**
+
+A 12 h clock makes the ETA about 20 px wider, which stopped the
+`remaining / ETA / layers` row on the print card from fitting and let a `Wrap` break
+it anywhere. `PrintMetaRow` now measures its text and drops to a two-column grid (or
+one column). **Measurement trap:** a `TextPainter` with the widget's own style is not
+enough — `Text` merges the style with `DefaultTextStyle` (the theme's `bodyMedium`
+has `letterSpacing: 0.25`, about 8 px over the whole row), and an `Icon` scales with
+the font only when `IconTheme.applyTextScaling` is set. Measure with the `.merge()`d
+style, add slack, and put the element in a `Flexible` proportional to the
+measurement, so an error ends in an ellipsis rather than overflow stripes.

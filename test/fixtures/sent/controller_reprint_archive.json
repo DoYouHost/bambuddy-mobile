@@ -1,0 +1,30 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/queue/",
+    "body": {
+      "archive_id": 77,
+      "printer_id": 1,
+      "quantity": 1,
+      "insert_at_top": true,
+      "ams_mapping": [
+        0,
+        1,
+        2
+      ],
+      "plate_id": 2,
+      "require_previous_success": false,
+      "auto_off_after": false,
+      "manual_start": false,
+      "bed_levelling": true,
+      "flow_cali": true,
+      "vibration_cali": true,
+      "layer_inspect": true,
+      "timelapse": false,
+      "nozzle_offset_cali": true,
+      "confirm_outcome": true,
+      "preheat_override": "inherit",
+      "cost_center_id": 1
+    }
+  }
+]

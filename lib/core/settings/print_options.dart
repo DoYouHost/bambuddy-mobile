@@ -59,6 +59,24 @@ class PrintOptions {
   /// configured, so a remembered ON cannot start injecting behind the user.
   final bool gcodeInjection;
 
+  PrintOptions copyWith({
+    CalibrationOption? bedLevelling,
+    CalibrationOption? flowCali,
+    bool? vibrationCali,
+    bool? layerInspect,
+    bool? timelapse,
+    CalibrationOption? nozzleOffsetCali,
+    bool? gcodeInjection,
+  }) => PrintOptions(
+    bedLevelling: bedLevelling ?? this.bedLevelling,
+    flowCali: flowCali ?? this.flowCali,
+    vibrationCali: vibrationCali ?? this.vibrationCali,
+    layerInspect: layerInspect ?? this.layerInspect,
+    timelapse: timelapse ?? this.timelapse,
+    nozzleOffsetCali: nozzleOffsetCali ?? this.nozzleOffsetCali,
+    gcodeInjection: gcodeInjection ?? this.gcodeInjection,
+  );
+
   String encode() => jsonEncode({
     'bed_levelling': bedLevelling.name,
     'flow_cali': flowCali.name,

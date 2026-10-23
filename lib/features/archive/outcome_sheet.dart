@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/api/endpoints.dart';
 import '../../core/models/archive.dart';
-import '../../core/models/queue_item.dart';
 import '../../core/notifications/finish_alert_memory.dart';
 import '../../core/notifications/outcome_alert.dart';
 import '../../core/theme/dash_theme.dart';
@@ -19,30 +18,10 @@ import '../../core/app_context.dart';
 import '../common/media_image.dart';
 import '../common/print_run_labels.dart';
 import '../common/print_thumbnail.dart';
+import '../queue/queue_drafts.dart';
 import '../queue/queue_edit_screen.dart';
 import 'archive_providers.dart';
 import 'print_outcome.dart';
-
-/// The queue draft a reprint of [archive] starts from. The archive's own
-/// printer is a starting point, not a decision — the form lists every printer
-/// and the user can switch before anything is created.
-QueueItem archiveQueueDraft(Archive archive, {bool manualStart = false}) =>
-    QueueItem.draft(
-      archiveId: archive.id,
-      name: archive.displayName,
-      thumbnail: archive.thumbnailPath,
-      printerId: archive.printerId,
-      filamentType: archive.filamentType,
-      filamentColor: archive.filamentColor,
-      slicedForModel: archive.slicedForModel,
-      // The plate this print ran on, so a reprint runs the same one. Null on
-      // a single-plate file and on servers that do not report it, which is
-      // what the form and the server both read as plate 1.
-      plateId: archive.plateId,
-      manualStart: manualStart,
-      // Sticky on the server: a reprint of an archive that asked asks again.
-      confirmOutcome: archive.confirmRequested,
-    );
 
 /// "How did your print come out?" for one archive: the finish photo, Good or
 /// Reject, and for a reject an optional reason and a reprint.
@@ -246,68 +225,81 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
     ];
   }
 
-  List<Widget> _rejectStep(AppLocalizations l10n, Archive archive) => [
-    dashCombo<String>(
-      context,
-      id: 'outcome.reason',
-      label: Text(l10n.outcomeRejectReason),
-      initialSelection: _reason ?? archive.failureReason ?? '',
-      onSelected: (v) => setState(() => _reason = v),
-      entries: failureReasonEntries(
-        l10n,
-        none: l10n.outcomeNoReason,
-        carries: archive.failureReason,
-        ids: (
-          none: 'outcome.reason.none',
-          option: 'outcome.reason.option',
-          legacy: 'outcome.reason.legacy',
+  List<Widget> _rejectStep(AppLocalizations l10n, Archive archive) {
+    final reprintBlock = ref.watch(
+      archiveReprintBlockProvider(archive.createdById),
+    );
+    return [
+      dashCombo<String>(
+        context,
+        id: 'outcome.reason',
+        label: Text(l10n.outcomeRejectReason),
+        initialSelection: _reason ?? archive.failureReason ?? '',
+        onSelected: (v) => setState(() => _reason = v),
+        entries: failureReasonEntries(
+          l10n,
+          none: l10n.outcomeNoReason,
+          carries: archive.failureReason,
+          ids: (
+            none: 'outcome.reason.none',
+            option: 'outcome.reason.option',
+            legacy: 'outcome.reason.legacy',
+          ),
         ),
       ),
-    ),
-    const SizedBox(height: DashSpace.md),
-    ButtonPair(
-      primaryLabel: l10n.outcomeSaveReject,
-      secondaryLabel: l10n.outcomeRejectAndReprint,
-      primary: logTag(
-        'outcome.reject_save',
-        FilledButton(
-          onPressed: _saving
-              ? null
-              : () => _save(
-                  archive,
-                  PrintVerdict.reject,
-                  reason: _reason ?? archive.failureReason,
-                  logId: 'outcome.reject_save',
-                ),
-          child: Text(l10n.outcomeSaveReject),
+      const SizedBox(height: DashSpace.md),
+      ButtonPair(
+        primaryLabel: l10n.outcomeSaveReject,
+        secondaryLabel: l10n.outcomeRejectAndReprint,
+        primary: logTag(
+          'outcome.reject_save',
+          FilledButton(
+            onPressed: _saving
+                ? null
+                : () => _save(
+                    archive,
+                    PrintVerdict.reject,
+                    reason: _reason ?? archive.failureReason,
+                    logId: 'outcome.reject_save',
+                  ),
+            child: Text(l10n.outcomeSaveReject),
+          ),
+        ),
+        secondary: logTag(
+          'outcome.reject_reprint',
+          OutlinedButton.icon(
+            icon: const Icon(Icons.replay),
+            label: Text(l10n.outcomeRejectAndReprint),
+            onPressed: _saving || reprintBlock != null
+                ? null
+                : () => _save(
+                    archive,
+                    PrintVerdict.reject,
+                    reason: _reason ?? archive.failureReason,
+                    reprint: true,
+                    logId: 'outcome.reject_reprint',
+                  ),
+          ),
         ),
       ),
-      secondary: logTag(
-        'outcome.reject_reprint',
-        OutlinedButton.icon(
-          icon: const Icon(Icons.replay),
-          label: Text(l10n.outcomeRejectAndReprint),
-          onPressed: _saving
-              ? null
-              : () => _save(
-                  archive,
-                  PrintVerdict.reject,
-                  reason: _reason ?? archive.failureReason,
-                  reprint: true,
-                  logId: 'outcome.reject_reprint',
-                ),
+      if (reprintBlock != null)
+        Padding(
+          padding: const EdgeInsets.only(top: DashSpace.xs),
+          child: Text(
+            reprintBlock.reason(l10n),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+      const SizedBox(height: DashSpace.xs),
+      logTag(
+        'outcome.back',
+        TextButton(
+          onPressed: _saving ? null : () => setState(() => _rejecting = false),
+          child: Text(l10n.back),
         ),
       ),
-    ),
-    const SizedBox(height: DashSpace.xs),
-    logTag(
-      'outcome.back',
-      TextButton(
-        onPressed: _saving ? null : () => setState(() => _rejecting = false),
-        child: Text(l10n.back),
-      ),
-    ),
-  ];
+    ];
+  }
 
   /// Writes [verdict] (null clears it) and closes the sheet once it landed.
   Future<void> _save(

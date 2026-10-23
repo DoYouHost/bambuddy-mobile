@@ -16,11 +16,6 @@ void _openAssignSheet(BuildContext context, Spool spool) {
   dashSurfaceSheet<void>(context, builder: (_) => _AssignSheet(spool: spool));
 }
 
-/// Printer and slot picker for assigning [spool]. Printer list from dashboard roster;
-/// slot layout (AMS units, dual-extruder) fetched from live status if available —
-/// for offline printer, fall back to manual number entry (assignment is DB operation,
-/// works even with machine off). External spool convention: `ams_id=255`,
-/// `tray_id` 0=left, 1=right ([[inventory-filaments]]).
 class _AssignSheet extends ConsumerStatefulWidget {
   const _AssignSheet({required this.spool});
 

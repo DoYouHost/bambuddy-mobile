@@ -13,15 +13,12 @@ import 'package:bambuddy_mobile/features/wall/wall_providers.dart';
 import 'package:bambuddy_mobile/features/wall/wall_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
-
-const _window = MethodChannel('page.codeberg.morganmlgman.bambuddy/window');
 
 /// Live statuses, fixed: what the socket would have delivered.
 class _FixedStatuses extends PrinterStatusesNotifier {
@@ -87,32 +84,24 @@ void main() {
     Override? profile,
   }) async {
     _CountingQueue.refreshes = 0;
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = size;
-    addTearDown(tester.view.reset);
+    useLogicalWindow(tester, size);
     awake = [];
     orientations = [];
     uiModes = [];
     overlays = [];
-    final messenger = tester.binding.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(_window, (call) async {
-      awake.add((call.arguments as Map)['on'] as bool);
-      return null;
-    });
-    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
-      if (call.method == 'SystemChrome.setPreferredOrientations') {
-        orientations.add(call.arguments);
-      } else if (call.method == 'SystemChrome.setEnabledSystemUIMode') {
-        uiModes.add(call.arguments);
-      } else if (call.method == 'SystemChrome.setEnabledSystemUIOverlays') {
-        overlays.add(call.arguments);
-      }
-      return null;
-    });
-    addTearDown(() {
-      messenger.setMockMethodCallHandler(_window, null);
-      messenger.setMockMethodCallHandler(SystemChannels.platform, null);
-    });
+    mockImmersiveChannels(
+      tester,
+      onWindow: (call) => awake.add((call.arguments as Map)['on'] as bool),
+      onPlatform: (call) {
+        if (call.method == 'SystemChrome.setPreferredOrientations') {
+          orientations.add(call.arguments);
+        } else if (call.method == 'SystemChrome.setEnabledSystemUIMode') {
+          uiModes.add(call.arguments);
+        } else if (call.method == 'SystemChrome.setEnabledSystemUIOverlays') {
+          overlays.add(call.arguments);
+        }
+      },
+    );
 
     SharedPreferences.setMockInitialValues(prefs);
     final sp = await SharedPreferences.getInstance();

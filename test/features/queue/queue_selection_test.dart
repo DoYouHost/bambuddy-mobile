@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import 'queue_fakes.dart';
 
 /// Picking queue items for a bulk edit: long press starts it (the archive's
 /// gesture), a tap extends it, and only a `pending` row can be picked — the
@@ -21,7 +22,7 @@ void main() {
     'archive_name': 'Part $id',
   });
 
-  Widget screen(_Queue queue, {List<Override> extra = const []}) =>
+  Widget screen(FakeQueue queue, {List<Override> extra = const []}) =>
       ProviderScope(
         overrides: [
           queueProvider.overrideWith(() => queue),
@@ -46,7 +47,7 @@ void main() {
   testWidgets('a long press picks the item and the bar counts it', (
     tester,
   ) async {
-    await open(tester, screen(_Queue([item(1), item(2)])));
+    await open(tester, screen(FakeQueue([item(1), item(2)])));
 
     await pick(tester, 1);
 
@@ -62,7 +63,7 @@ void main() {
   testWidgets('a tap extends the selection, and taps it away again', (
     tester,
   ) async {
-    await open(tester, screen(_Queue([item(1), item(2)])));
+    await open(tester, screen(FakeQueue([item(1), item(2)])));
     await pick(tester, 1);
 
     await tester.tap(find.text('Part 2'));
@@ -83,7 +84,7 @@ void main() {
   });
 
   testWidgets('without a selection a tap does nothing', (tester) async {
-    await open(tester, screen(_Queue([item(1)])));
+    await open(tester, screen(FakeQueue([item(1)])));
 
     await tester.tap(find.text('Part 1'));
     await tester.pumpAndSettle();
@@ -92,7 +93,7 @@ void main() {
   });
 
   testWidgets('the close button drops the selection', (tester) async {
-    await open(tester, screen(_Queue([item(1)])));
+    await open(tester, screen(FakeQueue([item(1)])));
     await pick(tester, 1);
 
     await tester.tap(byLogId('queue.selection_clear'));
@@ -107,7 +108,7 @@ void main() {
   ) async {
     await open(
       tester,
-      screen(_Queue([item(1), item(2), item(3, status: 'printing')])),
+      screen(FakeQueue([item(1), item(2), item(3, status: 'printing')])),
     );
     await pick(tester, 1);
 
@@ -118,7 +119,7 @@ void main() {
   });
 
   testWidgets('a printing item cannot be picked', (tester) async {
-    await open(tester, screen(_Queue([item(3, status: 'printing')])));
+    await open(tester, screen(FakeQueue([item(3, status: 'printing')])));
 
     await tester.longPress(find.text('Part 3'));
     await tester.pumpAndSettle();
@@ -129,7 +130,7 @@ void main() {
   testWidgets('while picking, the per-item menu is out of the way', (
     tester,
   ) async {
-    await open(tester, screen(_Queue([item(1), item(2)])));
+    await open(tester, screen(FakeQueue([item(1), item(2)])));
     expect(find.byIcon(Icons.more_vert), findsNWidgets(2));
 
     await pick(tester, 1);
@@ -138,7 +139,7 @@ void main() {
   });
 
   testWidgets('while picking, a swipe deletes nothing', (tester) async {
-    await open(tester, screen(_Queue([item(1), item(2)])));
+    await open(tester, screen(FakeQueue([item(1), item(2)])));
     Dismissible swipe() =>
         tester.widget<Dismissible>(find.byKey(const ValueKey('dismiss_2')));
     expect(swipe().direction, DismissDirection.endToStart);
@@ -163,7 +164,7 @@ void main() {
     );
     await open(
       tester,
-      screen(_Queue([item(1)]), extra: [currentUserOverride(reader)]),
+      screen(FakeQueue([item(1)]), extra: [currentUserOverride(reader)]),
     );
 
     await tester.longPress(find.text('Part 1'));
@@ -175,7 +176,7 @@ void main() {
   testWidgets('the edit button opens the bulk edit for the picked items', (
     tester,
   ) async {
-    await open(tester, screen(_Queue([item(1), item(2), item(3)])));
+    await open(tester, screen(FakeQueue([item(1), item(2), item(3)])));
     await pick(tester, 1);
     await tester.tap(find.text('Part 3'));
     await tester.pumpAndSettle();
@@ -188,7 +189,7 @@ void main() {
 
   group('queueSelectionProvider', () {
     test('drops an item that left the waiting list', () async {
-      final queue = _Queue([item(1), item(2)]);
+      final queue = FakeQueue([item(1), item(2)]);
       final container = ProviderContainer(
         overrides: [queueProvider.overrideWith(() => queue)],
       );
@@ -204,7 +205,7 @@ void main() {
     });
 
     test('is not touched by a poll that changes nothing for it', () async {
-      final queue = _Queue([item(1)]);
+      final queue = FakeQueue([item(1)]);
       final container = ProviderContainer(
         overrides: [queueProvider.overrideWith(() => queue)],
       );
@@ -218,19 +219,4 @@ void main() {
       expect(container.read(queueSelectionProvider), {1});
     });
   });
-}
-
-/// A queue whose rows the test can change, as a poll would.
-class _Queue extends QueueNotifier {
-  _Queue(this._items);
-
-  List<QueueItem> _items;
-
-  @override
-  Future<List<QueueItem>> build() async => _items;
-
-  void replace(List<QueueItem> items) {
-    _items = items;
-    state = AsyncData(items);
-  }
 }
