@@ -164,9 +164,8 @@ Future<ProviderContainer> pumpWear(
 Widget wearShapeBuilder(BuildContext context, Widget? child) =>
     WearShapeScope(child: child!);
 
-/// The button the diagnostic [id] tags, of any [ButtonStyleButton] kind — a
-/// `FilledButton.icon` included, whose private type `find.byType(FilledButton)`
-/// does not match.
+/// The button the diagnostic [id] tags, whichever [ButtonStyleButton] it is —
+/// filled, outlined or text — so a test asks for the id, not the kind.
 ButtonStyleButton buttonAt(WidgetTester tester, String id) => tester.widget(
   find.descendant(
     of: byLogId(id),

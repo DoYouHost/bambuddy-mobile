@@ -9,7 +9,6 @@ import '../../core/models/current_user.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/project.dart';
-import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -21,6 +20,7 @@ import '../files/library_thumbnail.dart';
 import '../queue/queue_edit_screen.dart';
 import 'projects_providers.dart';
 import '../common/web_link.dart';
+import '../queue/queue_drafts.dart';
 
 /// Card wrapper for a detail section: header (icon + title + optional action)
 /// over its body. Matches the web's stacked-card layout.
@@ -261,12 +261,7 @@ class ProjectFilesSection extends ConsumerWidget {
   Future<void> _print(BuildContext context, WidgetRef ref, LibraryFile file) =>
       openQueueCreate(
         context,
-        draft: QueueItem.draft(
-          libraryFileId: file.id,
-          name: file.displayName,
-          thumbnail: file.thumbnailPath,
-          slicedForModel: file.slicedForModel,
-        ),
+        draft: libraryFileQueueDraft(file),
         schedule: QueueScheduleType.asap,
       );
 }

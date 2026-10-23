@@ -9,7 +9,6 @@ import '../../core/ams/slot_addressing.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/format/filament_colour.dart';
-import '../../core/models/library_file.dart';
 import '../../core/models/plate_list.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/queue_item.dart';
@@ -19,12 +18,14 @@ import '../../core/theme/dash_theme.dart';
 import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../archive/archive_providers.dart';
 import '../common/dash_async.dart';
-import '../files/library_thumbnail.dart';
 import '../queue/job_cost_providers.dart';
 import '../queue/queue_cost_center_state.dart';
 import '../queue/queue_create_service.dart';
+import '../queue/queue_drafts.dart';
 import '../queue/queue_edit_screen.dart';
+import '../queue/queue_item_view.dart';
 import '../queue/queue_mapping_sheet.dart';
 import '../queue/queue_providers.dart';
 import '../queue/queue_removal.dart';
@@ -37,9 +38,54 @@ import 'controller_print_parts.dart';
 import 'controller_providers.dart';
 import 'scale_to_fit.dart';
 
+/// Why a job cannot be printed on this printer from the controller, or null
+/// when it can, in the order a dialog names them: a printer gone from the
+/// roster first, since nothing else can be said of it; then what `POST /queue/`
+/// would refuse this account; then what the file itself rules out.
+enum ControllerPrintBlock {
+  printerGone,
+  noQueue,
+  noReprint,
+  notSliced,
+  wrongModel;
+
+  String reason(AppLocalizations l10n, {required String? slicedForModel}) =>
+      switch (this) {
+        printerGone => l10n.controllerPrinterGone,
+        noQueue => ArchiveReprintBlock.noQueue.reason(l10n),
+        noReprint => ArchiveReprintBlock.noReprint.reason(l10n),
+        notSliced => l10n.controllerFileReasonNotSliced,
+        wrongModel => l10n.controllerFileReasonModel(slicedForModel ?? ''),
+      };
+}
+
+/// [refused] is what the account may not do: `queue:create` for any job, the
+/// reprint right on top for an archive ([archiveReprintBlockProvider]).
+ControllerPrintBlock? controllerPrintBlock({
+  required bool printerKnown,
+  required ArchiveReprintBlock? refused,
+  required bool printable,
+  required String? slicedForModel,
+  required String? printerModel,
+}) {
+  if (!printerKnown) return ControllerPrintBlock.printerGone;
+  switch (refused) {
+    case ArchiveReprintBlock.noQueue:
+      return ControllerPrintBlock.noQueue;
+    case ArchiveReprintBlock.noReprint:
+      return ControllerPrintBlock.noReprint;
+    case null:
+  }
+  if (!printable) return ControllerPrintBlock.notSliced;
+  if (!isGcodeCompatible(slicedForModel, printerModel)) {
+    return ControllerPrintBlock.wrongModel;
+  }
+  return null;
+}
+
 /// The print screen of the single-printer controller
-/// ([docs/single-printer-controller.md]): a library file, aimed at the
-/// controller's printer and at no other. Everything the queue form asks is here
+/// ([docs/single-printer-controller.md]): a library file or an archive, aimed at
+/// the controller's printer and at no other. Everything the queue form asks is here
 /// or one tap away, laid out for a phone held sideways instead of upright.
 ///
 /// Pushed over the controller, never replacing it, and answers true when a job
@@ -47,11 +93,11 @@ import 'scale_to_fit.dart';
 Future<bool> openControllerPrint(
   BuildContext context, {
   required Printer printer,
-  required LibraryFile file,
+  required QueueItem draft,
 }) async {
   final created = await Navigator.of(context).push<bool>(
     MaterialPageRoute<bool>(
-      builder: (_) => ControllerPrintScreen(printer: printer, file: file),
+      builder: (_) => ControllerPrintScreen(printer: printer, draft: draft),
     ),
   );
   return created ?? false;
@@ -61,13 +107,16 @@ class ControllerPrintScreen extends ConsumerStatefulWidget {
   const ControllerPrintScreen({
     super.key,
     required this.printer,
-    required this.file,
+    required this.draft,
   });
 
   /// The controller's printer. It is the target of the job and cannot be
   /// changed from here.
   final Printer printer;
-  final LibraryFile file;
+
+  /// What is printed, as the phone's print form takes it: a library file
+  /// ([libraryFileQueueDraft]) or an archive ([archiveQueueDraft]).
+  final QueueItem draft;
 
   @override
   ConsumerState<ControllerPrintScreen> createState() =>
@@ -81,9 +130,10 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
       .read(settingsRepositoryProvider)
       .loadPrintOptions();
 
-  /// Null until the user picks one: the job then prints the first plate the
-  /// file lists, see [_plate].
-  int? _plateId;
+  /// The plate an archive ran on, so a reprint runs the same one; otherwise
+  /// null until the user picks one, and the job prints the first plate the file
+  /// lists, see [_plate].
+  late int? _plateId = widget.draft.plateId;
   int _copies = 1;
   QueueScheduleType _when = QueueScheduleType.asap;
   DateTime? _scheduledTime;
@@ -108,7 +158,12 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
   double _scale = 1;
 
   Printer get _printer => widget.printer;
-  LibraryFile get _file => widget.file;
+  QueueItem get _source => widget.draft;
+  bool get _isArchive => _source.archiveId != null;
+
+  /// The archive's id or the library file's: every route below is keyed by it
+  /// together with [_isArchive].
+  int get _sourceId => _source.archiveId ?? _source.libraryFileId!;
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +188,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
               children: [
                 _TopBar(
                   printer: _printer,
-                  file: _file,
+                  name: _source.displayName,
                   title: l10n.controllerPrintTitle,
                 ),
                 const SizedBox(height: DashSpace.md),
@@ -178,7 +233,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
   // --- Job ---
 
   PlateList get _plates =>
-      ref.read(plateListProvider((false, _file.id))).valueOrNull ??
+      ref.read(plateListProvider((_isArchive, _sourceId))).valueOrNull ??
       PlateList.none;
 
   /// The plate the job prints. A file lists the plates it holds, and they need
@@ -191,13 +246,13 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
   int? get _plateToSend => _plateId ?? (_plate == 1 ? null : _plate);
 
   PlateSource get _plateSource =>
-      (isArchive: false, id: _file.id, plate: _plate);
+      (isArchive: _isArchive, id: _sourceId, plate: _plate);
 
   /// What the cost preview prices: the plate, the printer and the slots picked
   /// by hand. An empty mapping is matched by the provider as the submit will.
   JobCostKey get _costKey => (
-    isArchive: false,
-    id: _file.id,
+    isArchive: _isArchive,
+    id: _sourceId,
     plate: _plate,
     printerId: _printer.id,
     mapping: mappingKey(_manualMapping),
@@ -206,13 +261,13 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
   Widget _jobCard(AppLocalizations l10n) {
     final t = DashTokens.of(context);
     final plates =
-        ref.watch(plateListProvider((false, _file.id))).valueOrNull ??
+        ref.watch(plateListProvider((_isArchive, _sourceId))).valueOrNull ??
         PlateList.none;
     final copiesOffered = ref.watch(batchListingProvider).orFalse;
     final position = plates.plates.indexWhere((p) => p.index == _plate);
     final meta = [
-      if (_file.printTimeSeconds case final s?) formatSeconds(l10n, s),
-      if (_file.filamentUsedGrams case final g?) fmtGrams(g),
+      if (_source.printTimeSeconds case final s?) formatSeconds(l10n, s),
+      if (_source.filamentUsedGrams case final g?) fmtGrams(g),
     ];
     return ControllerCard.single(
       title: l10n.controllerPrintJob,
@@ -224,11 +279,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(DashSpace.md),
-                child: LibraryThumbnail(
-                  fileId: _file.id,
-                  hasThumbnail: _file.thumbnailPath != null,
-                  size: _thumbSize,
-                ),
+                child: QueueThumbnail(item: _source, size: _thumbSize),
               ),
               const SizedBox(width: DashSpace.md),
               Expanded(
@@ -236,7 +287,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _file.displayName,
+                      _source.displayName,
                       style: t.titleSm,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -485,12 +536,13 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
   }
 
   QueueItem get _draft => QueueItem.draft(
-    libraryFileId: _file.id,
-    name: _file.displayName,
-    thumbnail: _file.thumbnailPath,
+    archiveId: _source.archiveId,
+    libraryFileId: _isArchive ? null : _source.libraryFileId,
+    name: _source.displayName,
+    thumbnail: _source.archiveThumbnail ?? _source.libraryFileThumbnail,
     printerId: _printer.id,
     printerName: _printer.name,
-    slicedForModel: _file.slicedForModel,
+    slicedForModel: _source.slicedForModel,
   );
 
   // --- When and options ---
@@ -566,6 +618,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     when: _when,
     copies: _copies,
     costKey: _costKey,
+    confirmOutcomeSticky: _confirmOutcomeSticky,
     onOptions: (next) => setState(() => _options = next),
     onExtras: (next) => setState(() => _extras = next),
   );
@@ -577,7 +630,10 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     final item = ref.watch(controllerPrinterProvider(_printer.id)).item;
     final status = item?.status;
     final held = ref.watch(awaitingReviewProvider);
-    final compatible = isGcodeCompatible(_file.slicedForModel, _printer.model);
+    final compatible = isGcodeCompatible(
+      _source.slicedForModel,
+      _printer.model,
+    );
     final reqs = ref.watch(printRequirementsProvider(_plateSource)).valueOrNull;
     final comparison = queueMappingComparison(
       requirements: reqs ?? const [],
@@ -590,7 +646,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     var warn = true;
     if (!compatible) {
       note = l10n.controllerPrintWrongModel(
-        '${_file.slicedForModel}',
+        '${_source.slicedForModel}',
         _printer.model ?? _printer.name,
       );
     } else if (unmapped > 0) {
@@ -663,6 +719,10 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     );
   }
 
+  /// A reprint of an archive that already asks, as the phone's print form reads
+  /// it (`queue_edit_screen.dart`, `_confirmOutcomeSticky`).
+  bool get _confirmOutcomeSticky => _isArchive && _source.confirmOutcome;
+
   /// A scheduled job with no time yet has nothing to be scheduled for.
   bool get _awaitingTime =>
       _when == QueueScheduleType.scheduled && _scheduledTime == null;
@@ -694,15 +754,15 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
           (repo) => createQueueJobs(
             repo: repo,
             providers: providers,
-            archiveId: null,
-            libraryFileId: _file.id,
-            sourceName: _file.displayName,
+            archiveId: _source.archiveId,
+            libraryFileId: _isArchive ? null : _source.libraryFileId,
+            sourceName: _source.displayName,
             printerId: _printer.id,
             copies: _copies,
             insertAtTop: _when == QueueScheduleType.asap,
             plateId: _plateToSend,
             confirmOutcomeChoice: _extras.confirmOutcome,
-            confirmOutcomeSticky: false,
+            confirmOutcomeSticky: _confirmOutcomeSticky,
             buildOptions: () => QueueCreateOptions(
               amsMapping: mapping,
               scheduledTime: _when == QueueScheduleType.scheduled
@@ -796,12 +856,12 @@ const _lockHeight = 36.0;
 class _TopBar extends StatelessWidget {
   const _TopBar({
     required this.printer,
-    required this.file,
+    required this.name,
     required this.title,
   });
 
   final Printer printer;
-  final LibraryFile file;
+  final String name;
   final String title;
 
   @override
@@ -829,7 +889,7 @@ class _TopBar extends StatelessWidget {
               children: [
                 Text(title, style: t.titleMd, maxLines: 1),
                 Text(
-                  file.displayName,
+                  name,
                   style: t.monoLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

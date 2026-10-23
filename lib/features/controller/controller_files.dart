@@ -14,6 +14,7 @@ import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/device_files.dart';
 import '../files/file_manager_providers.dart';
+import '../queue/queue_drafts.dart';
 import '../files/library_thumbnail.dart';
 import '../stats/stats_common.dart';
 import 'controller_controls.dart';
@@ -532,7 +533,11 @@ class _Grid extends ConsumerWidget {
         .item
         ?.printer;
     if (printer == null) return;
-    await openControllerPrint(context, printer: printer, file: file);
+    await openControllerPrint(
+      context,
+      printer: printer,
+      draft: libraryFileQueueDraft(file),
+    );
   }
 }
 

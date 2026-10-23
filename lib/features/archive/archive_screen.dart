@@ -34,6 +34,7 @@ import 'outcome_sheet.dart';
 import 'print_outcome.dart';
 import '../common/web_link.dart';
 import '../tour/tour_beacon.dart';
+import '../queue/queue_drafts.dart';
 
 /// Archive screen for prints (M5): browsing with search and thumbnails,
 /// reprint and add to queue (both require printer selection).
@@ -1119,10 +1120,7 @@ class _SheetPrimaryActions extends StatelessWidget {
       children: [
         pair,
         const SizedBox(height: DashSpace.xs),
-        Text(switch (block!) {
-          ArchiveReprintBlock.noQueue => l10n.archiveReprintNoQueue,
-          ArchiveReprintBlock.noReprint => l10n.archiveReprintNotAllowed,
-        }, style: Theme.of(context).textTheme.bodySmall),
+        Text(block!.reason(l10n), style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }

@@ -111,6 +111,8 @@ class QueueItem {
     String? filamentColor,
     String? slicedForModel,
     int? plateId,
+    int? printTimeSeconds,
+    double? filamentUsedGrams,
     bool manualStart = false,
     bool confirmOutcome = false,
   }) {
@@ -131,6 +133,8 @@ class QueueItem {
       filamentColor: filamentColor,
       slicedForModel: slicedForModel,
       plateId: plateId,
+      printTimeSeconds: printTimeSeconds,
+      filamentUsedGrams: filamentUsedGrams,
       manualStart: manualStart,
       confirmOutcome: confirmOutcome,
     );

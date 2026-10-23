@@ -9,6 +9,7 @@ import '../../core/models/current_user.dart';
 import '../../core/models/no_3mf_warning.dart';
 import '../../core/models/print_run.dart';
 import '../../core/models/printer.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
 
@@ -18,7 +19,16 @@ import '../common/dash_async.dart';
 const _fullListLimit = 10000;
 
 /// Why this user may not queue an archive again, or null when they may.
-enum ArchiveReprintBlock { noQueue, noReprint }
+enum ArchiveReprintBlock {
+  noQueue,
+  noReprint;
+
+  /// The line a refused Reprint shows under it.
+  String reason(AppLocalizations l10n) => switch (this) {
+    noQueue => l10n.archiveReprintNoQueue,
+    noReprint => l10n.archiveReprintNotAllowed,
+  };
+}
 
 /// Mirrors what `POST /queue/` checks for an archive — `queue:create`, then
 /// `_assert_can_queue_archive` (`print_queue.py`) — the way the web's

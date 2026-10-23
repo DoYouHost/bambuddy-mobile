@@ -206,8 +206,9 @@ screen (`controller_print.dart`) with its "More options" dialog and the cost cen
   name, size, sliced-for model, print time, grams, created date, a close icon, and two
   buttons. Print closes the dialog with a choice and the tab then pushes
   `openControllerPrint`; it is disabled, with the reason on the dialog, for a printer
-  missing from the roster, a file that is not sliced, or a model the printer cannot
-  take (`filePrintBlock`, in that order). Delete (through `confirmDialog`) is absent
+  missing from the roster, an account without `queue:create` (which `POST /queue/`
+  asks of every source), a file that is not sliced, or a model the printer cannot
+  take (`controllerPrintBlock`, in that order). Delete (through `confirmDialog`) is absent
   for an external file and for a file in an external, read-only or unwritable
   folder (`mayDeleteLibraryFile`).
 - **Search.** A header button expands into a field in place of the path card (a
@@ -237,6 +238,11 @@ Open points:
   `latest` (`test/contract/`).
 - **Chamber target stepper.** It moves in steps of 5 °C from "filament default"; 0 is
   not selectable and the maximum takes 12 taps. Revisit if it proves slow on a device.
+- **The print screen takes a queue draft**, as the phone's print form does: a file's
+  (`libraryFileQueueDraft`) or an archive's (`archiveQueueDraft`), both in
+  `queue_drafts.dart`. An archive's draft carries the plate it ran and its sticky
+  outcome request, so a reprint runs the same plate and still asks; every route the
+  screen reads (plates, filament, cost) is keyed by the archive.
 - **Shared provider.** `fileManagerProvider` is shared with `FileManagerScreen`, which
   the dashboard can push beneath the controller; both would then share folder and
   search state. Theoretical, noted.

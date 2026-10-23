@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/api/endpoints.dart';
 import '../../core/models/archive.dart';
-import '../../core/models/queue_item.dart';
 import '../../core/notifications/finish_alert_memory.dart';
 import '../../core/notifications/outcome_alert.dart';
 import '../../core/theme/dash_theme.dart';
@@ -19,30 +18,10 @@ import '../../core/app_context.dart';
 import '../common/media_image.dart';
 import '../common/print_run_labels.dart';
 import '../common/print_thumbnail.dart';
+import '../queue/queue_drafts.dart';
 import '../queue/queue_edit_screen.dart';
 import 'archive_providers.dart';
 import 'print_outcome.dart';
-
-/// The queue draft a reprint of [archive] starts from. The archive's own
-/// printer is a starting point, not a decision — the form lists every printer
-/// and the user can switch before anything is created.
-QueueItem archiveQueueDraft(Archive archive, {bool manualStart = false}) =>
-    QueueItem.draft(
-      archiveId: archive.id,
-      name: archive.displayName,
-      thumbnail: archive.thumbnailPath,
-      printerId: archive.printerId,
-      filamentType: archive.filamentType,
-      filamentColor: archive.filamentColor,
-      slicedForModel: archive.slicedForModel,
-      // The plate this print ran on, so a reprint runs the same one. Null on
-      // a single-plate file and on servers that do not report it, which is
-      // what the form and the server both read as plate 1.
-      plateId: archive.plateId,
-      manualStart: manualStart,
-      // Sticky on the server: a reprint of an archive that asked asks again.
-      confirmOutcome: archive.confirmRequested,
-    );
 
 /// "How did your print come out?" for one archive: the finish photo, Good or
 /// Reject, and for a reject an optional reason and a reprint.
@@ -306,10 +285,10 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
       if (reprintBlock != null)
         Padding(
           padding: const EdgeInsets.only(top: DashSpace.xs),
-          child: Text(switch (reprintBlock) {
-            ArchiveReprintBlock.noQueue => l10n.archiveReprintNoQueue,
-            ArchiveReprintBlock.noReprint => l10n.archiveReprintNotAllowed,
-          }, style: Theme.of(context).textTheme.bodySmall),
+          child: Text(
+            reprintBlock.reason(l10n),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ),
       const SizedBox(height: DashSpace.xs),
       logTag(

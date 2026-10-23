@@ -210,6 +210,8 @@ Widget queueFormScreen(
 /// The overrides that keep the print form off the network, for a test that
 /// reaches it through another screen. Same knobs as [queueFormScreen]; call
 /// [setUpQueueForm] first, the form reads its remembered options from there.
+/// [asked] collects the keys the plate list and the filament requirements were
+/// read with — which source, which plate.
 List<Override> queueFormOverrides({
   bool triState = false,
   Set<String> snippets = const {},
@@ -221,6 +223,7 @@ List<Override> queueFormOverrides({
   List<AvailableFilament> availableFilaments = const [],
   int createStatus = 200,
   Duration? platesDelay,
+  List<Object>? asked,
 }) => [
   queueRepositoryProvider.overrideWithValue(
     queueFormRepo(triState: triState, createStatus: createStatus),
@@ -230,10 +233,14 @@ List<Override> queueFormOverrides({
   triStateCalibrationProvider.overrideWithValue(AsyncData(triState)),
   gcodeSnippetModelsProvider.overrideWithValue(AsyncValue.data(snippets)),
   plateListProvider.overrideWith((ref, arg) async {
+    asked?.add(arg);
     if (platesDelay != null) await Future<void>.delayed(platesDelay);
     return plates;
   }),
-  printRequirementsProvider.overrideWith((ref, arg) async => requirements),
+  printRequirementsProvider.overrideWith((ref, arg) async {
+    asked?.add(arg);
+    return requirements;
+  }),
   printersRepositoryProvider.overrideWithValue(_LivePrinters(live, nozzleRack)),
   availableFilamentsProvider.overrideWith((ref, arg) => availableFilaments),
 ];

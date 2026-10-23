@@ -11,7 +11,6 @@ import '../../core/models/cost_center.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
-import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/server_refusal.dart';
@@ -29,6 +28,7 @@ import '../../data/pipelines_repository.dart' show PipelineSource;
 import '../pipelines/pipeline_run_screen.dart';
 import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
+import '../queue/queue_drafts.dart';
 import 'file_manager_providers.dart';
 import 'file_details_screen.dart';
 import 'library_thumbnail.dart';
@@ -1018,12 +1018,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }) {
     return openQueueCreate(
       context,
-      draft: QueueItem.draft(
-        libraryFileId: file.id,
-        name: file.displayName,
-        thumbnail: file.thumbnailPath,
-        slicedForModel: file.slicedForModel,
-      ),
+      draft: libraryFileQueueDraft(file),
       schedule: schedule,
     );
   }

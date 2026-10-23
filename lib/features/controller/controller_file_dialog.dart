@@ -6,40 +6,23 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/library_file.dart';
+import '../../core/models/current_user.dart';
 import '../../core/models/library_folder.dart';
-import '../../core/printers/gcode_compat.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../archive/archive_providers.dart';
 import '../files/file_manager_providers.dart';
 import '../files/library_thumbnail.dart';
 import '../stats/stats_common.dart';
 import 'controller_detail_dialog.dart';
+import 'controller_print.dart';
 import 'controller_providers.dart';
 
 /// What the dialog closed with: the user asked to print the file. Anything else
 /// (closing, a finished delete) closes with null.
 enum ControllerFileChoice { print }
-
-/// Why a file cannot be printed on [printerModel], or null when it can. A
-/// printer missing from the roster is [printerModel] == null and `gone`.
-///
-/// Mirrors the tile's own dimming, so a quiet tile and a disabled button agree.
-enum FilePrintBlock { printerGone, notSliced, wrongModel }
-
-FilePrintBlock? filePrintBlock(
-  LibraryFile file, {
-  required bool printerKnown,
-  required String? printerModel,
-}) {
-  if (!printerKnown) return FilePrintBlock.printerGone;
-  if (!file.isPrintable) return FilePrintBlock.notSliced;
-  if (!isGcodeCompatible(file.slicedForModel, printerModel)) {
-    return FilePrintBlock.wrongModel;
-  }
-  return null;
-}
 
 /// A file may be deleted from the controller unless it lives on a mount the host
 /// owns, or in a folder the account may not write to (#3201).
@@ -123,9 +106,13 @@ class _FileDialogState extends ConsumerState<_FileDialog> {
         widget.printerId,
       ).select((p) => p.item?.printer),
     );
-    final block = filePrintBlock(
-      _file,
+    final block = controllerPrintBlock(
       printerKnown: printer != null,
+      refused: ref.watch(permissionProvider(Permissions.queueCreate))
+          ? null
+          : ArchiveReprintBlock.noQueue,
+      printable: _file.isPrintable,
+      slicedForModel: _file.slicedForModel,
       printerModel: printer?.model,
     );
     final folders = ref.watch(
@@ -134,7 +121,7 @@ class _FileDialogState extends ConsumerState<_FileDialog> {
     final folder = folders?.where((f) => f.id == _file.folderId).firstOrNull;
     final mayDelete = mayDeleteLibraryFile(_file, folder);
     final formats = DateTimeFormats.of(context);
-    final wrongModel = block == FilePrintBlock.wrongModel;
+    final wrongModel = block == ControllerPrintBlock.wrongModel;
     return ControllerDetailDialog(
       scale: widget.scale,
       closeId: 'controller.files.dialog.close',
@@ -161,14 +148,7 @@ class _FileDialogState extends ConsumerState<_FileDialog> {
         if (_file.createdAt case final at?)
           ControllerFact(Icons.event_outlined, formats.dateTime(at.toLocal())),
       ],
-      reason: switch (block) {
-        null => null,
-        FilePrintBlock.printerGone => l10n.controllerPrinterGone,
-        FilePrintBlock.notSliced => l10n.controllerFileReasonNotSliced,
-        FilePrintBlock.wrongModel => l10n.controllerFileReasonModel(
-          _file.slicedForModel ?? '',
-        ),
-      },
+      reason: block?.reason(l10n, slicedForModel: _file.slicedForModel),
       actions: [
         if (mayDelete)
           ControllerDialogAction(

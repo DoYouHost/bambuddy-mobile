@@ -84,6 +84,7 @@ Future<void> showControllerMoreOptions(
   required QueueScheduleType when,
   required int copies,
   required JobCostKey? costKey,
+  required bool confirmOutcomeSticky,
   required ValueChanged<PrintOptions> onOptions,
   required ValueChanged<ControllerJobExtras> onExtras,
 }) {
@@ -97,6 +98,7 @@ Future<void> showControllerMoreOptions(
       when: when,
       copies: copies,
       costKey: costKey,
+      confirmOutcomeSticky: confirmOutcomeSticky,
       onOptions: onOptions,
       onExtras: onExtras,
     ),
@@ -112,6 +114,7 @@ class _MoreDialog extends ConsumerStatefulWidget {
     required this.when,
     required this.copies,
     required this.costKey,
+    required this.confirmOutcomeSticky,
     required this.onOptions,
     required this.onExtras,
   });
@@ -123,6 +126,11 @@ class _MoreDialog extends ConsumerStatefulWidget {
   final QueueScheduleType when;
   final int copies;
   final JobCostKey? costKey;
+
+  /// A reprint of an archive that already asks: the server keeps asking
+  /// whatever the switch says, so it shows on and cannot be turned off, as on
+  /// the phone's print form.
+  final bool confirmOutcomeSticky;
   final ValueChanged<PrintOptions> onOptions;
   final ValueChanged<ControllerJobExtras> onExtras;
 
@@ -334,14 +342,16 @@ class _MoreDialogState extends ConsumerState<_MoreDialog> {
   /// one tapped wrong.
   Widget _confirmOutcomeRow(AppLocalizations l10n) {
     final server = ref.watch(defaultConfirmOutcomeProvider);
-    final value = _extras.confirmOutcome ?? server.valueOrNull ?? false;
+    final sticky = widget.confirmOutcomeSticky;
+    final value =
+        sticky || (_extras.confirmOutcome ?? server.valueOrNull ?? false);
     final unanswered = _extras.confirmOutcome == null && server.isUnanswered;
     return PrintOptionRow(
       id: 'controller.print.more.confirm_outcome',
       label: l10n.queueOptConfirmOutcome,
       value: value ? l10n.commonOn : l10n.commonOff,
       on: value,
-      onTap: unanswered
+      onTap: unanswered || sticky
           ? null
           : () => _setExtras(_extras.copyWith(confirmOutcome: !value)),
     );

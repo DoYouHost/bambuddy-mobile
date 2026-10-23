@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/core/ams/color_names.dart';
 import 'package:bambuddy_mobile/core/ams/job_cost.dart';
+import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/cost_center.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/library_file.dart';
@@ -13,10 +14,14 @@ import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_print.dart';
 import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
+import 'package:bambuddy_mobile/features/common/print_thumbnail.dart';
 import 'package:bambuddy_mobile/features/orders/orders_providers.dart';
+import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/features/queue/job_cost_providers.dart';
+import 'package:bambuddy_mobile/features/queue/queue_drafts.dart';
 import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
+import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
@@ -136,6 +141,8 @@ void main() {
     WidgetTester tester, {
     Printer printer = _p1s,
     LibraryFile? file,
+    QueueItem? draft,
+    List<Object>? asked,
     List<FilamentRequirement> requirements = _threeFilaments,
     Map<int, PrinterStatus>? live,
     PlateList plates = PlateList.none,
@@ -162,6 +169,7 @@ void main() {
             live: live ?? {printer.id: const PrinterStatus(id: 1, ams: _ams)},
             createStatus: createStatus,
             nozzleRack: nozzleRack,
+            asked: asked,
           ),
           fixedDashboardOverride(
             DashboardState(
@@ -218,7 +226,7 @@ void main() {
       openControllerPrint(
         tester.element(find.byType(SizedBox).first),
         printer: printer,
-        file: file ?? _file(),
+        draft: draft ?? libraryFileQueueDraft(file ?? _file()),
       ),
     );
     await tester.pumpAndSettle();
@@ -892,6 +900,80 @@ void main() {
       }
     }
   }
+
+  group('an archive', () {
+    Archive archive({int? plateId, bool asks = false}) => Archive(
+      id: 77,
+      filename: 'cube.gcode.3mf',
+      status: 'completed',
+      printName: 'Cube',
+      slicedForModel: 'P1S',
+      plateId: plateId,
+      confirmRequested: asks,
+    );
+
+    testWidgets('is reprinted from the archive, on the plate it ran', (
+      tester,
+    ) async {
+      final asked = <Object>[];
+      await pump(
+        tester,
+        plates: _threePlates,
+        draft: archiveQueueDraft(archive(plateId: 2)),
+        asked: asked,
+      );
+
+      expect(find.byType(PrintThumbnail), findsOneWidget);
+      await send(tester);
+
+      expect(capturedBody?['archive_id'], 77);
+      expect(capturedBody?['library_file_id'], isNull);
+      expect(capturedBody?['plate_id'], 2);
+      // The plate list and the filament it needs are read from the archive:
+      // a library route keyed by an archive id answers for another file.
+      expect(asked, isNotEmpty);
+      for (final key in asked) {
+        final isArchive = switch (key) {
+          (final bool archive, int _) => archive,
+          PlateSource(:final isArchive) => isArchive,
+          _ => fail('unexpected key $key'),
+        };
+        expect(isArchive, isTrue, reason: '$key');
+      }
+    });
+
+    testWidgets('an archive that asked for its outcome asks again', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        draft: archiveQueueDraft(archive(asks: true)),
+        extra: [
+          queueOutcomeProvider.overrideWithValue(const AsyncData(true)),
+          defaultConfirmOutcomeProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
+        ],
+      );
+
+      await openMore(tester);
+      await reveal(tester, 'confirm_outcome');
+      expect(
+        find.descendant(
+          of: byLogId('controller.print.more.confirm_outcome'),
+          matching: find.text(pl.commonOn),
+        ),
+        findsOneWidget,
+      );
+      // Locked on: the server keeps asking whatever the switch says.
+      await tester.tap(byLogId('controller.print.more.confirm_outcome'));
+      await tester.pumpAndSettle();
+      await closeMore(tester);
+      await send(tester);
+
+      expect(capturedBody?['confirm_outcome'], isTrue);
+    });
+  });
 
   group('print options', () {
     String valueOf(WidgetTester tester, String id) => tester

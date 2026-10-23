@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/format/duration_format.dart';
+import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_folder.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
 import 'package:bambuddy_mobile/data/library_repository.dart';
-import 'package:bambuddy_mobile/features/controller/controller_file_dialog.dart';
 import 'package:bambuddy_mobile/features/controller/controller_files.dart';
 import 'package:bambuddy_mobile/features/controller/controller_print.dart';
 import 'package:bambuddy_mobile/features/controller/controller_screen.dart';
@@ -812,7 +812,8 @@ void main() {
       final screen = tester.widget<ControllerPrintScreen>(
         find.byType(ControllerPrintScreen),
       );
-      expect(screen.file.id, 10);
+      expect(screen.draft.libraryFileId, 10);
+      expect(screen.draft.archiveId, isNull);
       expect(screen.printer.id, 1);
     });
 
@@ -838,6 +839,27 @@ void main() {
       expect(find.text(pl.controllerFileReasonModel('H2D')), findsOneWidget);
     });
 
+    testWidgets('an account that may not queue cannot print, and is told', (
+      tester,
+    ) async {
+      // `POST /queue/` asks for queue:create whatever the source.
+      await pump(
+        tester,
+        lib: tree(),
+        extra: [
+          currentUserOverride(
+            const CurrentUser(id: 7, username: 'op', isAdmin: false),
+          ),
+        ],
+      );
+      await openFiles(tester);
+
+      await openDialog(tester, 'benchy.gcode.3mf');
+
+      expect(enabled(tester, 'controller.files.dialog.print'), isFalse);
+      expect(find.text(pl.archiveReprintNoQueue), findsOneWidget);
+    });
+
     testWidgets('a printer of an unknown model blocks no sliced file', (
       tester,
     ) async {
@@ -853,23 +875,21 @@ void main() {
       'a printer missing from the roster blocks a file that would print',
       () {
         final file = _file(1, 'a.gcode.3mf', model: 'P1S');
+        ControllerPrintBlock? block(LibraryFile f, {required bool known}) =>
+            controllerPrintBlock(
+              printerKnown: known,
+              refused: null,
+              printable: f.isPrintable,
+              slicedForModel: f.slicedForModel,
+              printerModel: known ? 'P1S' : null,
+            );
 
-        expect(
-          filePrintBlock(file, printerKnown: false, printerModel: 'P1S'),
-          FilePrintBlock.printerGone,
-        );
-        expect(
-          filePrintBlock(file, printerKnown: true, printerModel: 'P1S'),
-          isNull,
-        );
+        expect(block(file, known: false), ControllerPrintBlock.printerGone);
+        expect(block(file, known: true), isNull);
         // Gone outranks the rest: nothing else can be said of no printer.
         expect(
-          filePrintBlock(
-            _file(2, 'b.stl', type: 'stl'),
-            printerKnown: false,
-            printerModel: null,
-          ),
-          FilePrintBlock.printerGone,
+          block(_file(2, 'b.stl', type: 'stl'), known: false),
+          ControllerPrintBlock.printerGone,
         );
       },
     );
