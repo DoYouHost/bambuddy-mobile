@@ -2,6 +2,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/models/print_run.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 
 /// The label for a run's failure cause. The server stores and groups by an i18n **key**
@@ -44,6 +45,15 @@ String printRunStatusLabel(AppLocalizations l10n, String status) =>
       'aborted' => l10n.printLogStatusAborted,
       _ => status,
     };
+
+/// The colour a run's status is shown in, as a fill and as ink: a failure in
+/// the danger colour, a success in the accent, anything else quiet.
+(Color, Color) printRunTone(DashTokens t, String status) =>
+    printRunIsFailure(status)
+    ? (t.danger, t.dangerInk)
+    : printRunIsSuccess(status)
+    ? (t.accentGreen, t.accentGreenInk)
+    : (t.textTertiary, t.textTertiary);
 
 /// The entries of a failure-cause picker: [none] (value `''`), the vocabulary
 /// the server validates, and the cause a row already [carries] when it is

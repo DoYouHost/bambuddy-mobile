@@ -4024,6 +4024,8 @@
   "controllerQueueEmpty": "Aucune tâche n'attend cette imprimante",
   "controllerQueueCrossModel": "Cette tâche a des imprimantes alternatives et démarre sur la première libre.",
   "controllerQueueNoStart": "Votre compte ne peut pas démarrer cette tâche.",
+  "controllerArchiveEmpty": "Rien n'a encore été imprimé sur cette imprimante",
+  "controllerArchiveLoadingMore": "Chargement des impressions précédentes…",
   "controllerFileNotSliced": "Non découpé",
   "controllerFileReasonNotSliced": "Seuls les fichiers découpés peuvent être imprimés.",
   "controllerFileReasonModel": "Découpé pour {model}, que cette imprimante ne prend pas en charge.",

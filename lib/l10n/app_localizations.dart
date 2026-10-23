@@ -13388,6 +13388,18 @@ abstract class AppLocalizations {
   /// **'Your account cannot start this job.'**
   String get controllerQueueNoStart;
 
+  /// The controller's Archive view when this printer has no archived print
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing printed on this printer yet'**
+  String get controllerArchiveEmpty;
+
+  /// At the end of the controller's Archive view while the next page of older prints is fetched
+  ///
+  /// In en, this message translates to:
+  /// **'Loading older prints…'**
+  String get controllerArchiveLoadingMore;
+
   /// Chip on a file tile in the controller's Files tab: the file is a model, not sliced G-code, so it cannot be printed as it is
   ///
   /// In en, this message translates to:

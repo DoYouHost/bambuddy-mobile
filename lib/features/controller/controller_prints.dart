@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'controller_controls.dart';
+import 'controller_archive.dart';
 import 'controller_files.dart';
 import 'controller_queue.dart';
 
@@ -66,7 +67,9 @@ class ControllerPrints extends StatelessWidget {
           child: switch (view) {
             ControllerPrintsView.files => ControllerFiles(printerId: printerId),
             ControllerPrintsView.queue => ControllerQueue(printerId: printerId),
-            ControllerPrintsView.archive => const SizedBox.shrink(),
+            ControllerPrintsView.archive => ControllerArchive(
+              printerId: printerId,
+            ),
           },
         ),
       ],

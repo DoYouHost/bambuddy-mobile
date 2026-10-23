@@ -8123,6 +8123,13 @@ class AppLocalizationsPl extends AppLocalizations {
       'Twoje konto nie może uruchomić tego zadania.';
 
   @override
+  String get controllerArchiveEmpty =>
+      'Na tej drukarce nic jeszcze nie wydrukowano';
+
+  @override
+  String get controllerArchiveLoadingMore => 'Wczytywanie starszych wydruków…';
+
+  @override
   String get controllerFileNotSliced => 'Nie pocięto';
 
   @override

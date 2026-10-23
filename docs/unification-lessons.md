@@ -47,7 +47,10 @@ is the map and the decisions.
 | `startQueueItem`, `removeFromQueue`: a job's Start and Remove, from the queue screen and the controller alike | [queue_actions.dart](../lib/features/queue/queue_actions.dart) |
 | `QueueThumbnail`, `queueStatusLabel`, `queueStagedLabel`, `queueTargetLabel`; `pollQueue` (in `queue_providers.dart`) for a screen that shows the queue outside its tab | [queue_item_view.dart](../lib/features/queue/queue_item_view.dart) |
 | The controller's list tiles, header, chip and failure message; the frame of an item's dialog | [controller_list_parts.dart](../lib/features/controller/controller_list_parts.dart), [controller_detail_dialog.dart](../lib/features/controller/controller_detail_dialog.dart) |
-| `buttonAt`, `useLogicalWindow`, `mockImmersiveChannels`, `landscapeRedmi` / `landscapePixel`; `FakeQueue`; `pumpControllerScreen` | [test/helpers.dart](../test/helpers.dart), [queue_fakes.dart](../test/features/queue/queue_fakes.dart), [controller_harness.dart](../test/features/controller/controller_harness.dart) |
+| `libraryFileQueueDraft`, `archiveQueueDraft`: what a print form, the phone's or the controller's, is opened on | [queue_drafts.dart](../lib/features/queue/queue_drafts.dart) |
+| `printRunStatusLabel` and `printRunTone`: a run's status word and colour | [print_run_labels.dart](../lib/features/common/print_run_labels.dart) |
+| `controllerPrintBlock`: why the controller may not print a file or an archive | [controller_print.dart](../lib/features/controller/controller_print.dart) |
+| `buttonAt`, `useLogicalWindow`, `mockImmersiveChannels`, `landscapeRedmi` / `landscapePixel`; `FakeQueue`; `FakeArchives`; `pumpControllerScreen` | [test/helpers.dart](../test/helpers.dart), [queue_fakes.dart](../test/features/queue/queue_fakes.dart), [archive_fakes.dart](../test/features/archive/archive_fakes.dart), [controller_harness.dart](../test/features/controller/controller_harness.dart) |
 
 ## Traps that cost real debugging
 

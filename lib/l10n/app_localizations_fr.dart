@@ -8154,6 +8154,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Votre compte ne peut pas démarrer cette tâche.';
 
   @override
+  String get controllerArchiveEmpty =>
+      'Rien n\'a encore été imprimé sur cette imprimante';
+
+  @override
+  String get controllerArchiveLoadingMore =>
+      'Chargement des impressions précédentes…';
+
+  @override
   String get controllerFileNotSliced => 'Non découpé';
 
   @override

@@ -7982,6 +7982,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controllerQueueNoStart => 'Your account cannot start this job.';
 
   @override
+  String get controllerArchiveEmpty => 'Nothing printed on this printer yet';
+
+  @override
+  String get controllerArchiveLoadingMore => 'Loading older prints…';
+
+  @override
   String get controllerFileNotSliced => 'Not sliced';
 
   @override

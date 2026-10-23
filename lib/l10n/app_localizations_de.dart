@@ -8060,6 +8060,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ihr Konto kann diesen Auftrag nicht starten.';
 
   @override
+  String get controllerArchiveEmpty =>
+      'Auf diesem Drucker wurde noch nichts gedruckt';
+
+  @override
+  String get controllerArchiveLoadingMore => 'Ältere Drucke werden geladen…';
+
+  @override
   String get controllerFileNotSliced => 'Nicht geslict';
 
   @override

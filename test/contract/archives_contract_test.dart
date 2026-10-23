@@ -10,6 +10,7 @@ import 'package:bambuddy_mobile/core/models/plate_list.dart';
 import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
 import 'package:bambuddy_mobile/core/models/timelapse.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
+import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/data/print_log_repository.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
 import 'package:bambuddy_mobile/data/timelapse_repository.dart';
@@ -68,6 +69,67 @@ void main() {
             expect(info, isA<TimelapseInfo>());
           }
         }
+      },
+    );
+
+    test(
+      'one printer\'s archive pages with printer_id, limit and offset',
+      () async {
+        // What the controller's Archive view reads, 50 rows at a time.
+        final printerId =
+            (await dio.get<List<dynamic>>(
+                  Endpoints.printers,
+                )).data!.cast<Map<String, dynamic>>().first['id']
+                as int;
+        final file = (await LibraryRepository(
+          dio,
+        ).listFiles()).firstWhere((f) => f.filename == 'contract-probe.3mf');
+        final bytes = (await dio.get<List<int>>(
+          '${Endpoints.libraryFile(file.id)}/download',
+          options: Options(responseType: ResponseType.bytes),
+        )).data!;
+        final made = <int>[];
+        for (final name in ['paged-a.3mf', 'paged-b.3mf']) {
+          final res = await dio.post<Map<String, dynamic>>(
+            '${Endpoints.archives}upload',
+            queryParameters: {'printer_id': printerId},
+            data: FormData.fromMap({
+              'file': MultipartFile.fromBytes(bytes, filename: name),
+            }),
+          );
+          made.add(res.data!['id'] as int);
+        }
+        addTearDown(() async {
+          for (final id in made) {
+            await archiveRepo.delete(id, purgeStats: true);
+          }
+        });
+
+        final first = await archiveRepo.list(
+          printerId: printerId,
+          limit: 1,
+          offset: 0,
+        );
+        final second = await archiveRepo.list(
+          printerId: printerId,
+          limit: 1,
+          offset: 1,
+        );
+
+        expect(first, hasLength(1));
+        expect(second, hasLength(1));
+        expect(first.single.id, isNot(second.single.id));
+        expect(
+          [first.single.printerId, second.single.printerId],
+          [printerId, printerId],
+        );
+        // Both uploads land in the same second, and the server breaks that tie
+        // as it likes; the two pages still hold the two prints, once each.
+        expect({first.single.id, second.single.id}, made.toSet());
+        expect(
+          await archiveRepo.list(printerId: printerId + 9999, limit: 50),
+          isEmpty,
+        );
       },
     );
 

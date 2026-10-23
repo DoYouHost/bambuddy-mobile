@@ -8080,6 +8080,12 @@ class AppLocalizationsEs extends AppLocalizations {
       'Su cuenta no puede iniciar este trabajo.';
 
   @override
+  String get controllerArchiveEmpty => 'Esta impresora aún no ha impreso nada';
+
+  @override
+  String get controllerArchiveLoadingMore => 'Cargando impresiones anteriores…';
+
+  @override
   String get controllerFileNotSliced => 'Sin laminar';
 
   @override

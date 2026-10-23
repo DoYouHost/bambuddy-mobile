@@ -5316,6 +5316,14 @@
   "@controllerQueueNoStart": {
     "description": "Why Start is off in a queued job's dialog in the controller: the account may not start this job"
   },
+  "controllerArchiveEmpty": "Nothing printed on this printer yet",
+  "@controllerArchiveEmpty": {
+    "description": "The controller's Archive view when this printer has no archived print"
+  },
+  "controllerArchiveLoadingMore": "Loading older prints…",
+  "@controllerArchiveLoadingMore": {
+    "description": "At the end of the controller's Archive view while the next page of older prints is fetched"
+  },
   "controllerFileNotSliced": "Not sliced",
   "@controllerFileNotSliced": {
     "description": "Chip on a file tile in the controller's Files tab: the file is a model, not sliced G-code, so it cannot be printed as it is"

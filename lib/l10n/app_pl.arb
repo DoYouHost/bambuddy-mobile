@@ -3335,6 +3335,8 @@
   "controllerQueueEmpty": "Na tę drukarkę nie czeka żadne zadanie",
   "controllerQueueCrossModel": "To zadanie ma kilka drukarek do wyboru i ruszy na pierwszej wolnej.",
   "controllerQueueNoStart": "Twoje konto nie może uruchomić tego zadania.",
+  "controllerArchiveEmpty": "Na tej drukarce nic jeszcze nie wydrukowano",
+  "controllerArchiveLoadingMore": "Wczytywanie starszych wydruków…",
   "controllerFileNotSliced": "Nie pocięto",
   "controllerFileReasonNotSliced": "Drukować można tylko pocięte pliki.",
   "controllerFileReasonModel": "Pocięty pod {model}. Ta drukarka go nie przyjmie.",

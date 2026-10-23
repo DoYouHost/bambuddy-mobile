@@ -4024,6 +4024,8 @@
   "controllerQueueEmpty": "Für diesen Drucker wartet kein Auftrag",
   "controllerQueueCrossModel": "Dieser Auftrag hat Druckeralternativen und startet auf dem ersten freien Drucker.",
   "controllerQueueNoStart": "Ihr Konto kann diesen Auftrag nicht starten.",
+  "controllerArchiveEmpty": "Auf diesem Drucker wurde noch nichts gedruckt",
+  "controllerArchiveLoadingMore": "Ältere Drucke werden geladen…",
   "controllerFileNotSliced": "Nicht geslict",
   "controllerFileReasonNotSliced": "Nur geslicte Dateien lassen sich drucken.",
   "controllerFileReasonModel": "Für {model} geslict, das dieser Drucker nicht annimmt.",

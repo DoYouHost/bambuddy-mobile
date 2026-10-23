@@ -285,3 +285,26 @@ phone screens and the web: they are not things done at the printer (maintainer,
   theirs to start.
 - The job on the plate offers no actions: Stop is on Overview.
 
+### Archive
+
+- **What is listed** is the server's archive with its own printer filter
+  (`GET /archives/?printer_id=`), newest first (`created_at desc`), 50 rows a
+  request (`controllerArchiveProvider` in `controller_archive.dart`). It is read
+  again on each visit, on Refresh, and when the server announces an archive it
+  changed (`RefreshWhenShown`).
+- **Paging.** The next 50 are asked for when the grid builds one of its last two
+  rows, which it does only as they come near the screen. Not from a footer: a
+  sliver builds its first child even far off screen, so a footer that asked when
+  built read the whole archive page after page. One page at a time; a failed page
+  keeps what was read and its footer offers Retry; a page shorter than 50 is the
+  end. The offset counts the rows the server handed over, and a row a print
+  finished meanwhile pushed into the next page is kept once.
+- **Print again** opens the print screen on the archive's draft
+  (`archiveQueueDraft`). It is off, with the reason, by `controllerPrintBlock`: a
+  printer gone, no `queue:create`, no reprint right for this print
+  (`archiveReprintBlockProvider`: reprint-all, or reprint-own on the user's own,
+  never an ownerless one), not sliced, a model this printer cannot take. A tile is
+  quieter for the last two, as a file's is.
+- A dialog's choice is acted on from the view's context, not the tile's: a refresh
+  while the dialog is open may take the tile away.
+
