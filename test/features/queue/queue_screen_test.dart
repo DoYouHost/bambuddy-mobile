@@ -226,6 +226,52 @@ void main() {
     expect(queue.started, isEmpty);
   });
 
+  testWidgets('a job with alternatives is released by a bare start (#671)', (
+    tester,
+  ) async {
+    // The server answers 400 to a printer put on a job with alternatives, so
+    // the flow must neither pick a printer nor assign one.
+    final crossModel = QueueItem.fromJson({
+      ...readFixture('queue_item.json') as Map<String, dynamic>,
+      'status': 'pending',
+      'printer_id': null,
+      'target_model': 'X1C',
+      'variants': [
+        {
+          'library_file_id': 1,
+          'filename': 'a.3mf',
+          'target_model': 'X1C',
+          'position': 0,
+        },
+        {
+          'library_file_id': 2,
+          'filename': 'b.3mf',
+          'target_model': 'P1S',
+          'position': 1,
+        },
+      ],
+    });
+    final queue = _MutableQueueNotifier([crossModel]);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          queueProvider.overrideWith(() => queue),
+          noServerProfileOverride,
+        ],
+        child: plApp(const QueueScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(byLogId('queue.actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(byLogId('queue.action.start'));
+    await tester.pumpAndSettle();
+
+    expect(queue.startedAsIs, [crossModel.id]);
+    expect(queue.started, isEmpty);
+  });
+
   testWidgets('swiping a pending item reveals the delete confirmation', (
     tester,
   ) async {

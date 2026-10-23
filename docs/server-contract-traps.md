@@ -93,7 +93,10 @@ zone-independent assertion is `isUtc, isFalse`.
   expects target positions → send SEQUENTIAL 1..N in the new order (a permutation of
   the existing values is all ones = a no-op).
 - `POST /queue/{id}/start` **takes no printer**: to start on a specific one, `PATCH
-  printer_id` first, then start.
+  printer_id` first, then start. **Not on a job with alternatives** (#671, `variants`):
+  that PATCH is a 400, so Start sends the bare `/start` and the scheduler picks the
+  candidate. `POST /queue/` answers such a job with `variants: []`; only a read shows
+  them (`queue_cross_model_contract_test.dart`).
 - `GET /archives/search` needs q ≥ 2 characters (422) and **returns 500 on short,
   common terms** (`co`, `X2`, `X2D`) while longer ones work — a server bug; the
   client degrades to a mild message.

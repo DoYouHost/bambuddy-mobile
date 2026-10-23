@@ -978,6 +978,14 @@ Future<void> _sendQueuedPrint(
   DetachedHandles handles,
 ) async {
   final (:providers, :messenger) = handles;
+  // A job with alternatives picks its printer at dispatch, and the server
+  // refuses to put one on it (`print_queue.py::update_queue_item`, 400), so it
+  // is released as it stands — what the web's Start does for every job.
+  if (item.isCrossModel) {
+    final result = await providers.read(queueProvider.notifier).start(item.id);
+    messenger.snack(queueWriteMessage(l10n, result) ?? l10n.queuePrintStarted);
+    return;
+  }
   // Only offered with a printer on the job, so it never reaches the picker.
   final claims = providers.read(startClaimsJobProvider(item.createdById));
   var printerId = item.printerId;
