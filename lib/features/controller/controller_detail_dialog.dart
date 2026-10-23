@@ -36,9 +36,11 @@ class ControllerFact {
 /// The frame of a Prints item's dialog: thumbnail, name and close, the facts,
 /// why the main action is off, and the actions.
 ///
-/// The actions close the dialog with a choice, and the caller acts once it is
-/// gone: a flow started from inside would open its own dialogs over this one,
-/// and leave it standing over an item that may be gone.
+/// An action that leads into another flow closes the dialog with a choice, and
+/// the caller runs it once the dialog is gone: started from inside, the flow
+/// would open its own dialogs over this one and leave it standing over an item
+/// that may be gone. An action that finishes in place — a file's delete — runs
+/// with [busy] set.
 class ControllerDetailDialog extends StatelessWidget {
   const ControllerDetailDialog({
     super.key,

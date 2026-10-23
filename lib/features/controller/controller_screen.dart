@@ -95,26 +95,20 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
 
   /// Keeps the library's folder and search state while another tab or view is
   /// showing: the provider is autoDispose, and the user would otherwise land at
-  /// the root each time they came back. Opened by the first visit to Files, so
-  /// nothing is fetched for someone who never looks; the state closes it with
-  /// the screen.
+  /// the root each time they came back. Opened by the first visit to Prints,
+  /// which opens on Files, so nothing is fetched for someone who never looks;
+  /// the state closes it with the screen.
   ProviderSubscription<AsyncValue<FileManagerState>>? _library;
 
-  void _keepLibraryWhenShown(ControllerTab tab, ControllerPrintsView view) {
-    if (tab == ControllerTab.prints && view == ControllerPrintsView.files) {
+  void _selectTab(ControllerTab tab) {
+    if (tab == ControllerTab.prints) {
       _library ??= ref.listenManual(fileManagerProvider, (_, _) {});
     }
-  }
-
-  void _selectTab(ControllerTab tab) {
-    _keepLibraryWhenShown(tab, _printsView);
     setState(() => _tab = tab);
   }
 
-  void _selectPrintsView(ControllerPrintsView view) {
-    _keepLibraryWhenShown(_tab, view);
-    setState(() => _printsView = view);
-  }
+  void _selectPrintsView(ControllerPrintsView view) =>
+      setState(() => _printsView = view);
 
   // No status at all is a roster without a frame: unreachable, as the printer
   // card reads it. A printer that is not in the roster says nothing either way.
