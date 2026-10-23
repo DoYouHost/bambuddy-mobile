@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/features/controller/controller_prints.dart';
@@ -244,6 +245,55 @@ void main() {
       expect(byLogId('controller.queue.dialog.remove'), findsNothing);
     });
 
+    testWidgets('a job that started while its dialog was open is left alone', (
+      tester,
+    ) async {
+      await open(tester, [_job(11)]);
+      await openJob(tester, 11);
+
+      queue.replace([_job(11, status: 'printing')]);
+      await tester.pump();
+      await tester.tap(byLogId('controller.queue.dialog.remove'));
+      await settle(tester);
+
+      // Not even asked: a stop's confirmation would be the next thing open.
+      expect(find.byType(Dialog), findsNothing);
+      expect(queue.cancelled, isEmpty);
+      expect(queue.stopped, isEmpty);
+    });
+
+    testWidgets('a job put on another printer meanwhile is not started here', (
+      tester,
+    ) async {
+      // Another job takes the tile's place, so the tile the dialog came from
+      // stays on screen and the choice still arrives.
+      await open(tester, [
+        _job(12, printerId: null, targetModel: 'P1S'),
+        _job(11),
+      ]);
+      await openJob(tester, 12);
+
+      queue.replace([_job(12, printerId: 2), _job(11)]);
+      await tester.pump();
+      await tester.tap(byLogId('controller.queue.dialog.start'));
+      await settle(tester);
+
+      // Not even the mapping step, which would be for the other printer.
+      expect(byLogId('queue_mapping.confirm'), findsNothing);
+      expect(queue.started, isEmpty);
+      expect(queue.startedAsIs, isEmpty);
+    });
+
+    testWidgets('a queue that failed before is asked again on entry', (
+      tester,
+    ) async {
+      final failing = _FailsFirstQueue([_job(11)]);
+      await open(tester, const [], fake: failing, warm: true);
+
+      expect(failing.refreshes, 1);
+      expect(find.text('Job 11'), findsOneWidget);
+    });
+
     testWidgets('opening the view refreshes the queue once it is built', (
       tester,
     ) async {
@@ -270,5 +320,21 @@ class _WritingQueue extends FakeQueue {
     refreshes++;
     state = const AsyncLoading<List<QueueItem>>().copyWithPrevious(state);
     state = AsyncData(await build());
+  }
+}
+
+/// A queue whose first answer is a failure, as after a dropped connection.
+class _FailsFirstQueue extends _WritingQueue {
+  _FailsFirstQueue(super.items);
+
+  bool _failed = false;
+
+  @override
+  Future<List<QueueItem>> build() async {
+    if (!_failed) {
+      _failed = true;
+      throw const ApiException(AppErrorCode.connectionError);
+    }
+    return super.build();
   }
 }

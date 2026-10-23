@@ -287,9 +287,9 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
 
 /// Refreshes [queueProvider] once this frame is built and then every [every],
 /// for a screen that shows the queue outside its own tab. The provider outlives
-/// such a screen (the nav badge keeps it), so what it holds may be old; one
-/// still loading its first answer needs no second request beside it. The
-/// caller cancels the timer.
+/// such a screen (the nav badge keeps it), so what it holds may be old, or a
+/// failure from before; one with an answer on its way needs no second request
+/// beside it. The caller cancels the timer.
 ///
 /// Not at once: the callers start it from `initState`, where a provider write
 /// throws ([docs/riverpod-traps.md] §2), and `refresh` writes before it awaits.
@@ -297,7 +297,7 @@ Timer pollQueue(ProviderContainer providers, Duration every) {
   void refresh() => unawaited(providers.read(queueProvider.notifier).refresh());
   final timer = Timer.periodic(every, (_) => refresh());
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (timer.isActive && providers.read(queueProvider).hasValue) refresh();
+    if (timer.isActive && !providers.read(queueProvider).isLoading) refresh();
   });
   return timer;
 }

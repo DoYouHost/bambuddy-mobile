@@ -212,12 +212,28 @@ class _Grid extends ConsumerWidget {
       ),
     );
     if (choice == null || !context.mounted) return;
+    // What the dialog offered held when it opened. The job may have started,
+    // left, or been put on another printer since, and then Remove would stop a
+    // running print and Start would start it somewhere else.
     final current = ref
         .read(queueProvider)
         .valueOrNull
         ?.where((i) => i.id == item.id)
         .firstOrNull;
-    if (current == null) return;
+    final model = ref
+        .read(controllerPrinterProvider(printerId))
+        .item
+        ?.printer
+        .model;
+    if (current == null ||
+        !_waiting(current) ||
+        queueForPrinter(
+          [current],
+          printerId: printerId,
+          model: model,
+        ).isEmpty) {
+      return;
+    }
     switch (choice) {
       case ControllerQueueChoice.start:
         await startQueueItem(
@@ -240,6 +256,11 @@ class _Grid extends ConsumerWidget {
     }
   }
 }
+
+/// A job that has not started: the only kind the dialog offers to act on.
+bool _waiting(QueueItem item) =>
+    item.statusKind == QueueItemStatusKind.pending ||
+    item.statusKind == QueueItemStatusKind.scheduled;
 
 /// Which route takes [item] out of the queue, as the queue screen picks it.
 QueueRemoval _removal(WidgetRef ref, QueueItem item) {
@@ -385,9 +406,7 @@ class _QueueDialog extends ConsumerWidget {
     final printerKnown =
         ref.watch(controllerPrinterProvider(printerId).select((p) => p.item)) !=
         null;
-    final waiting =
-        item.statusKind == QueueItemStatusKind.pending ||
-        item.statusKind == QueueItemStatusKind.scheduled;
+    final waiting = _waiting(item);
     // The gate takes the job's own printer, not this one: an ownerless job for
     // any printer of a model is one an update-own user may not put a printer
     // on (the PATCH answers 403), so it is not theirs to start either.

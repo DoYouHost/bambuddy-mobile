@@ -90,7 +90,8 @@ Future<void> _sendQueuedPrint(
     messenger.snack(queueWriteMessage(l10n, result) ?? l10n.queuePrintStarted);
     return;
   }
-  // Only offered with a printer on the job, so it never reaches the picker.
+  // A claim is only offered on a job with a printer on it
+  // (`mayStartQueueItemProvider`), so a claiming start never meets the picker.
   final claims = providers.read(startClaimsJobProvider(item.createdById));
   var printerId = item.printerId ?? onPrinter;
   if (printerId == null) {
