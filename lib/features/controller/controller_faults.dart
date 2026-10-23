@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../dashboard/controls_providers.dart';
 import '../dashboard/widgets/printer_card.dart';
 import 'controller_controls.dart';
@@ -146,18 +145,6 @@ class _ControllerFaultsState extends ConsumerState<ControllerFaults> {
     super.dispose();
   }
 
-  Future<void> _dismissAll() async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final result = await ref
-        .read(controlsProvider.notifier)
-        .clearHmsErrors(widget.printerId);
-    messenger.snack(
-      result.messageFor(l10n) ?? l10n.hmsDismissed,
-      clearQueue: true,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
@@ -241,7 +228,13 @@ class _ControllerFaultsState extends ConsumerState<ControllerFaults> {
                       DashTokens.of(context),
                       minimumSize: const Size(0, controllerButtonHeight),
                     ),
-                    onPressed: busy ? null : _dismissAll,
+                    onPressed: busy
+                        ? null
+                        : () => dismissAllHmsErrors(
+                            context,
+                            ref,
+                            widget.printerId,
+                          ),
                     icon: const Icon(Icons.done_all),
                     label: Text(l10n.hmsDismissAll),
                   ),

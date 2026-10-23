@@ -1502,6 +1502,14 @@
   },
   "hmsDismissAll": "Dismiss all",
   "hmsDismissed": "Errors cleared on the printer",
+  "hmsStillReported": "{count, plural, =1{The printer still reports 1 error} other{The printer still reports {count} errors}}",
+  "@hmsStillReported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hmsActionSent": "Sent to the printer",
   "hmsActionNotAcknowledged": "The printer did not confirm the action — check its screen",
   "hmsStopConfirmTitle": "Stop the print?",

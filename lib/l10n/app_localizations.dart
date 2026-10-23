@@ -3938,6 +3938,12 @@ abstract class AppLocalizations {
   /// **'Errors cleared on the printer'**
   String get hmsDismissed;
 
+  /// No description provided for @hmsStillReported.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{The printer still reports 1 error} other{The printer still reports {count} errors}}'**
+  String hmsStillReported(int count);
+
   /// No description provided for @hmsActionSent.
   ///
   /// In en, this message translates to:

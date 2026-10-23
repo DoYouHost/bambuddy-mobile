@@ -100,6 +100,30 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
   }
 }
 
+/// "Dismiss all" on the phone, for the card's panel and the controller's fault
+/// view alike: clear, read the status back, and say what the printer reports.
+///
+/// The messenger is taken before the await and nothing after it touches
+/// [context] or [ref]: both screens can be gone by the time the read-back ends
+/// (the last fault leaving closes the controller's view), and the answer is
+/// owed to the user all the same.
+Future<void> dismissAllHmsErrors(
+  BuildContext context,
+  WidgetRef ref,
+  int printerId,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final result = await ref
+      .read(controlsProvider.notifier)
+      .clearHmsErrors(printerId);
+  messenger.snack(
+    result.outcome.messageFor(l10n) ??
+        hmsDismissedMessage(l10n, result.remaining),
+    clearQueue: true,
+  );
+}
+
 /// Active HMS errors panel: red-bordered, collapsed to a count until tapped.
 ///
 /// Collapsed is the default even mid-fault — an error card that expands itself
@@ -122,19 +146,6 @@ class _HmsErrorsPanel extends ConsumerStatefulWidget {
 
 class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
   bool _expanded = false;
-
-  Future<void> _dismissAll() async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final result = await ref
-        .read(controlsProvider.notifier)
-        .clearHmsErrors(widget.printerId);
-    if (!mounted) return;
-    messenger.snack(
-      result.messageFor(l10n) ?? l10n.hmsDismissed,
-      clearQueue: true,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -202,7 +213,10 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
               child: logTag(
                 'printer.hms_dismiss_all',
                 TextButton.icon(
-                  onPressed: busy ? null : _dismissAll,
+                  onPressed: busy
+                      ? null
+                      : () =>
+                            dismissAllHmsErrors(context, ref, widget.printerId),
                   icon: const Icon(Icons.done_all, size: 18),
                   label: Text(l10n.hmsDismissAll),
                   style: TextButton.styleFrom(foregroundColor: scheme.error),

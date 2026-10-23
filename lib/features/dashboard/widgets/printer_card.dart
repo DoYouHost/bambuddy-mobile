@@ -17,6 +17,7 @@ import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';
 import '../../../core/models/scheduled_drying.dart';
 import '../../../core/printers/bed_jog.dart';
+import '../../../core/printers/hms_readback.dart';
 import '../../../core/printers/offline_debounce.dart';
 import '../../../core/models/smart_plug.dart';
 import '../../../core/notifications/hms_actions.dart';

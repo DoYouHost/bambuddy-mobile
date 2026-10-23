@@ -1261,6 +1261,7 @@
   },
   "hmsDismissAll": "Descartar todo",
   "hmsDismissed": "Errores borrados en la impresora",
+  "hmsStillReported": "{count, plural, =1{La impresora sigue notificando 1 error} other{La impresora sigue notificando {count} errores}}",
   "hmsActionSent": "Enviado a la impresora",
   "hmsActionNotAcknowledged": "La impresora no confirmó la acción — comprueba su pantalla",
   "hmsStopConfirmTitle": "¿Detener la impresión?",

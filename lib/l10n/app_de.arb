@@ -1261,6 +1261,7 @@
   },
   "hmsDismissAll": "Alle verwerfen",
   "hmsDismissed": "Fehler auf dem Drucker gelöscht",
+  "hmsStillReported": "{count, plural, =1{Der Drucker meldet weiterhin 1 Fehler} other{Der Drucker meldet weiterhin {count} Fehler}}",
   "hmsActionSent": "An den Drucker gesendet",
   "hmsActionNotAcknowledged": "Der Drucker hat die Aktion nicht bestätigt — überprüfe seinen Bildschirm",
   "hmsStopConfirmTitle": "Druck abbrechen?",

@@ -13,6 +13,7 @@ import 'package:bambuddy_mobile/core/models/smart_plug.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/core/printers/bed_jog.dart';
 import 'package:bambuddy_mobile/features/dashboard/add_printer_screen.dart';
+import 'package:bambuddy_mobile/core/printers/hms_readback.dart';
 import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
@@ -2659,20 +2660,53 @@ void main() {
       tester,
     ) async {
       final commands = RecordingCommands();
+      final readBack = StatusReadBack([const PrinterStatus(id: 9)]);
       await tester.pumpWidget(
         _cardWithProviders(
           itemWith(const [_runoutWithActions]),
           extra: [
             printerCommandsRepositoryProvider.overrideWithValue(commands),
+            printersRepositoryProvider.overrideWithValue(readBack),
           ],
         ),
       );
       await tester.tap(find.text(pl.hmsErrorsCount(1)));
       await tester.pumpAndSettle();
       await tester.tap(find.text(pl.hmsDismissAll));
+      await tester.pump();
+      // The read-back waits on timers that settling does not advance.
+      await tester.pump(hmsRecheckEvery * hmsRecheckAttempts);
       await tester.pumpAndSettle();
 
       expect(commands.calls, ['hmsClear:9']);
+    });
+
+    testWidgets('dismiss-all says the printer still reports a fault that '
+        'came back', (tester) async {
+      final readBack = StatusReadBack([
+        PrinterStatus(id: 9, connected: true, hmsErrors: [_runoutWithActions]),
+      ]);
+      await tester.pumpWidget(
+        _cardWithProviders(
+          itemWith(const [_runoutWithActions]),
+          extra: [
+            printerCommandsRepositoryProvider.overrideWithValue(
+              RecordingCommands(),
+            ),
+            printersRepositoryProvider.overrideWithValue(readBack),
+          ],
+        ),
+      );
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(pl.hmsDismissAll));
+      await tester.pump();
+      // The read-back waits on timers that settling does not advance.
+      await tester.pump(hmsRecheckEvery * hmsRecheckAttempts);
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.hmsStillReported(1)), findsOneWidget);
+      expect(find.text(pl.hmsDismissed), findsNothing);
     });
 
     testWidgets('a long description is cut to two lines until tapped', (
