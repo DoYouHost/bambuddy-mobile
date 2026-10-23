@@ -239,11 +239,20 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
   /// The plate the job prints. A file lists the plates it holds, and they need
   /// not start at 1 or run without gaps (the server reads them off the gcode
   /// names), so the default is the first one listed and not plate 1.
-  int get _plate => _plateId ?? _plates.plates.firstOrNull?.index ?? 1;
+  /// An archive's plate its file no longer lists gives way to the first listed.
+  int get _plate {
+    final listed = _plates.plates;
+    final picked = _plateId;
+    if (picked != null &&
+        (listed.isEmpty || listed.any((p) => p.index == picked))) {
+      return picked;
+    }
+    return listed.firstOrNull?.index ?? 1;
+  }
 
-  /// What the request carries: nothing while that is plate 1, which is what the
-  /// server reads an absent plate as.
-  int? get _plateToSend => _plateId ?? (_plate == 1 ? null : _plate);
+  /// What the request carries: nothing for plate 1, which is what the server
+  /// reads an absent plate as.
+  int? get _plateToSend => _plate == 1 ? null : _plate;
 
   PlateSource get _plateSource =>
       (isArchive: _isArchive, id: _sourceId, plate: _plate);

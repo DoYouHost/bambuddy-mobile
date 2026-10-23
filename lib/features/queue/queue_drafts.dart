@@ -3,8 +3,8 @@ import '../../core/models/library_file.dart';
 import '../../core/models/queue_item.dart';
 
 /// The queue draft a reprint of [archive] starts from. The archive's own
-/// printer is a starting point, not a decision — the form lists every printer
-/// and the user can switch before anything is created.
+/// printer is a starting point, not a decision — the phone's form lists every
+/// printer to switch to; the controller's prints on its own.
 QueueItem archiveQueueDraft(Archive archive, {bool manualStart = false}) =>
     QueueItem.draft(
       archiveId: archive.id,

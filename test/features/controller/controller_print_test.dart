@@ -942,6 +942,21 @@ void main() {
       }
     });
 
+    testWidgets('a plate the file no longer lists gives way to the first', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        plates: _threePlates,
+        draft: archiveQueueDraft(archive(plateId: 5)),
+      );
+
+      await send(tester);
+
+      // Plate 1, which the request leaves out; never the missing 5.
+      expect(capturedBody?['plate_id'], isNull);
+    });
+
     testWidgets('an archive that asked for its outcome asks again', (
       tester,
     ) async {
