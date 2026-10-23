@@ -375,16 +375,25 @@ class _Place extends StatelessWidget {
 
   final int place;
 
+  /// Read from a phone on a stand: a round chip, as a slot's number is on the
+  /// Filament tab, over a corner of the thumbnail.
+  static const _size = 28.0;
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
+      constraints: const BoxConstraints(minWidth: _size, minHeight: _size),
       padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
       decoration: BoxDecoration(
         color: t.overlaySurface.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(DashSpace.xs),
+        borderRadius: BorderRadius.circular(_size / 2),
       ),
-      child: Text('$place', style: t.monoLabel),
+      child: Center(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Text('$place', style: t.monoValue),
+      ),
     );
   }
 }

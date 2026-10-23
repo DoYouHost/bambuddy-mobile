@@ -191,6 +191,31 @@ void main() {
       expect(find.text(pl.controllerQueueCount(3)), findsOneWidget);
     });
 
+    testWidgets('numbers its jobs in a round chip legible from a stand', (
+      tester,
+    ) async {
+      await open(tester, [_job(11), _job(12)]);
+
+      for (final place in ['1', '2']) {
+        final number = find.descendant(
+          of: byLogId('controller.queue.job'),
+          matching: find.text(place),
+        );
+        expect(
+          tester
+              .getSize(
+                find
+                    .ancestor(of: number, matching: find.byType(Container))
+                    .first,
+              )
+              .width,
+          28,
+          reason: place,
+        );
+        expect(tester.widget<Text>(number).style?.fontSize, 13);
+      }
+    });
+
     testWidgets('nothing queued for it says so', (tester) async {
       await open(tester, [_job(13, printerId: 2)]);
 
