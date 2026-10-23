@@ -425,6 +425,8 @@
   "archiveFavoriteFailed": "Impossible de mettre à jour le favori",
   "archiveReprint": "Réimprimer",
   "archiveAddToQueue": "Ajouter à la file d'attente",
+  "archiveReprintNoQueue": "Pas d'autorisation pour la file d'attente",
+  "archiveReprintNotAllowed": "Pas d'autorisation de réimprimer ceci",
   "archiveTimelapse": "Regarder le timelapse",
   "archivePhotos": "{count, plural, =1{Voir la photo} other{Voir les photos ({count})}}",
   "@archivePhotos": {

@@ -246,68 +246,81 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
     ];
   }
 
-  List<Widget> _rejectStep(AppLocalizations l10n, Archive archive) => [
-    dashCombo<String>(
-      context,
-      id: 'outcome.reason',
-      label: Text(l10n.outcomeRejectReason),
-      initialSelection: _reason ?? archive.failureReason ?? '',
-      onSelected: (v) => setState(() => _reason = v),
-      entries: failureReasonEntries(
-        l10n,
-        none: l10n.outcomeNoReason,
-        carries: archive.failureReason,
-        ids: (
-          none: 'outcome.reason.none',
-          option: 'outcome.reason.option',
-          legacy: 'outcome.reason.legacy',
+  List<Widget> _rejectStep(AppLocalizations l10n, Archive archive) {
+    final reprintBlock = ref.watch(
+      archiveReprintBlockProvider(archive.createdById),
+    );
+    return [
+      dashCombo<String>(
+        context,
+        id: 'outcome.reason',
+        label: Text(l10n.outcomeRejectReason),
+        initialSelection: _reason ?? archive.failureReason ?? '',
+        onSelected: (v) => setState(() => _reason = v),
+        entries: failureReasonEntries(
+          l10n,
+          none: l10n.outcomeNoReason,
+          carries: archive.failureReason,
+          ids: (
+            none: 'outcome.reason.none',
+            option: 'outcome.reason.option',
+            legacy: 'outcome.reason.legacy',
+          ),
         ),
       ),
-    ),
-    const SizedBox(height: DashSpace.md),
-    ButtonPair(
-      primaryLabel: l10n.outcomeSaveReject,
-      secondaryLabel: l10n.outcomeRejectAndReprint,
-      primary: logTag(
-        'outcome.reject_save',
-        FilledButton(
-          onPressed: _saving
-              ? null
-              : () => _save(
-                  archive,
-                  PrintVerdict.reject,
-                  reason: _reason ?? archive.failureReason,
-                  logId: 'outcome.reject_save',
-                ),
-          child: Text(l10n.outcomeSaveReject),
+      const SizedBox(height: DashSpace.md),
+      ButtonPair(
+        primaryLabel: l10n.outcomeSaveReject,
+        secondaryLabel: l10n.outcomeRejectAndReprint,
+        primary: logTag(
+          'outcome.reject_save',
+          FilledButton(
+            onPressed: _saving
+                ? null
+                : () => _save(
+                    archive,
+                    PrintVerdict.reject,
+                    reason: _reason ?? archive.failureReason,
+                    logId: 'outcome.reject_save',
+                  ),
+            child: Text(l10n.outcomeSaveReject),
+          ),
+        ),
+        secondary: logTag(
+          'outcome.reject_reprint',
+          OutlinedButton.icon(
+            icon: const Icon(Icons.replay),
+            label: Text(l10n.outcomeRejectAndReprint),
+            onPressed: _saving || reprintBlock != null
+                ? null
+                : () => _save(
+                    archive,
+                    PrintVerdict.reject,
+                    reason: _reason ?? archive.failureReason,
+                    reprint: true,
+                    logId: 'outcome.reject_reprint',
+                  ),
+          ),
         ),
       ),
-      secondary: logTag(
-        'outcome.reject_reprint',
-        OutlinedButton.icon(
-          icon: const Icon(Icons.replay),
-          label: Text(l10n.outcomeRejectAndReprint),
-          onPressed: _saving
-              ? null
-              : () => _save(
-                  archive,
-                  PrintVerdict.reject,
-                  reason: _reason ?? archive.failureReason,
-                  reprint: true,
-                  logId: 'outcome.reject_reprint',
-                ),
+      if (reprintBlock != null)
+        Padding(
+          padding: const EdgeInsets.only(top: DashSpace.xs),
+          child: Text(switch (reprintBlock) {
+            ArchiveReprintBlock.noQueue => l10n.archiveReprintNoQueue,
+            ArchiveReprintBlock.noReprint => l10n.archiveReprintNotAllowed,
+          }, style: Theme.of(context).textTheme.bodySmall),
+        ),
+      const SizedBox(height: DashSpace.xs),
+      logTag(
+        'outcome.back',
+        TextButton(
+          onPressed: _saving ? null : () => setState(() => _rejecting = false),
+          child: Text(l10n.back),
         ),
       ),
-    ),
-    const SizedBox(height: DashSpace.xs),
-    logTag(
-      'outcome.back',
-      TextButton(
-        onPressed: _saving ? null : () => setState(() => _rejecting = false),
-        child: Text(l10n.back),
-      ),
-    ),
-  ];
+    ];
+  }
 
   /// Writes [verdict] (null clears it) and closes the sheet once it landed.
   Future<void> _save(

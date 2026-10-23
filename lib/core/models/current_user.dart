@@ -209,4 +209,10 @@ abstract final class Permissions {
   /// `can_manage_archives` covers both.
   static const archivesUpdateOwn = 'archives:update_own';
   static const archivesUpdateAll = 'archives:update_all';
+
+  /// Queueing an archive again — reprint and add to queue alike — on top of
+  /// [queueCreate]: reprint-all for any print, reprint-own for the caller's own
+  /// and never an ownerless one. An API key's `can_queue` covers both.
+  static const archivesReprintOwn = 'archives:reprint_own';
+  static const archivesReprintAll = 'archives:reprint_all';
 }

@@ -641,6 +641,14 @@
   "archiveFavoriteFailed": "Couldn't update favorite",
   "archiveReprint": "Reprint",
   "archiveAddToQueue": "Add to queue",
+  "archiveReprintNoQueue": "You don't have permission to add to the queue",
+  "@archiveReprintNoQueue": {
+    "description": "Why Reprint and Add to queue are off: the account lacks queue:create."
+  },
+  "archiveReprintNotAllowed": "You don't have permission to reprint this",
+  "@archiveReprintNotAllowed": {
+    "description": "Why Reprint and Add to queue are off: the account may not reprint this archive (archives:reprint_own/all)."
+  },
   "archiveTimelapse": "Watch timelapse",
   "archivePhotos": "{count, plural, =1{View photo} other{View photos ({count})}}",
   "@archivePhotos": {

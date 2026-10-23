@@ -1065,6 +1065,14 @@ class AppLocalizationsPl extends AppLocalizations {
   String get archiveAddToQueue => 'Dodaj do kolejki';
 
   @override
+  String get archiveReprintNoQueue =>
+      'Nie masz uprawnień do dodawania do kolejki';
+
+  @override
+  String get archiveReprintNotAllowed =>
+      'Nie masz uprawnień do ponownego druku';
+
+  @override
   String get archiveTimelapse => 'Obejrzyj timelapse';
 
   @override

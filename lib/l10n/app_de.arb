@@ -425,6 +425,8 @@
   "archiveFavoriteFailed": "Favorit konnte nicht aktualisiert werden",
   "archiveReprint": "Erneut drucken",
   "archiveAddToQueue": "Zur Warteschlange hinzufügen",
+  "archiveReprintNoQueue": "Sie haben keine Berechtigung, zur Warteschlange hinzuzufügen",
+  "archiveReprintNotAllowed": "Sie haben keine Berechtigung, dies erneut zu drucken",
   "archiveTimelapse": "Zeitraffer ansehen",
   "archivePhotos": "{count, plural, =1{Foto ansehen} other{Fotos ansehen ({count})}}",
   "@archivePhotos": {

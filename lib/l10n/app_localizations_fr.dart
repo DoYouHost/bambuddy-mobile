@@ -1069,6 +1069,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get archiveAddToQueue => 'Ajouter à la file d\'attente';
 
   @override
+  String get archiveReprintNoQueue =>
+      'Pas d\'autorisation pour la file d\'attente';
+
+  @override
+  String get archiveReprintNotAllowed =>
+      'Pas d\'autorisation de réimprimer ceci';
+
+  @override
   String get archiveTimelapse => 'Regarder le timelapse';
 
   @override

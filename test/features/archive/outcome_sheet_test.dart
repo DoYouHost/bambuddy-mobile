@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
+import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/features/archive/outcome_sheet.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
@@ -23,6 +24,7 @@ void main() {
     WidgetTester tester,
     Archive archive, {
     bool rejecting = false,
+    CurrentUser? user,
   }) async {
     repo = _FakeArchives(archive);
     SharedPreferences.setMockInitialValues({});
@@ -34,6 +36,7 @@ void main() {
           archiveRepositoryProvider.overrideWithValue(repo),
           sharedPreferencesProvider.overrideWithValue(prefs),
           noServerProfileOverride,
+          if (user != null) currentUserOverride(user),
         ],
         child: plApp(
           Scaffold(
@@ -245,6 +248,35 @@ void main() {
     expect(repo.sent.single.verdict, PrintVerdict.reject);
     final form = tester.widget<QueueEditScreen>(find.byType(QueueEditScreen));
     expect(form.item.archiveId, 1);
+  });
+
+  // The server refuses the queue job without the reprint right (403), so the
+  // reject can still be saved but not followed by a print.
+  testWidgets('print again is off, with the reason, without the right', (
+    tester,
+  ) async {
+    await open(
+      tester,
+      testArchive(confirmRequested: true),
+      user: const CurrentUser(
+        id: 7,
+        username: 'op',
+        isAdmin: false,
+        permissions: {Permissions.queueCreate},
+      ),
+    );
+
+    await tapText(tester, pl.outcomeReject);
+
+    final again = tester.widget<ButtonStyleButton>(
+      find.ancestor(
+        of: find.text(pl.outcomeRejectAndReprint),
+        matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+      ),
+    );
+    expect(again.onPressed, isNull);
+    expect(find.text(pl.archiveReprintNotAllowed), findsOneWidget);
+    expect(find.text(pl.outcomeSaveReject), findsOneWidget);
   });
 }
 

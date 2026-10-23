@@ -1040,6 +1040,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveAddToQueue => 'Add to queue';
 
   @override
+  String get archiveReprintNoQueue =>
+      'You don\'t have permission to add to the queue';
+
+  @override
+  String get archiveReprintNotAllowed =>
+      'You don\'t have permission to reprint this';
+
+  @override
   String get archiveTimelapse => 'Watch timelapse';
 
   @override

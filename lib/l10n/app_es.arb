@@ -425,6 +425,8 @@
   "archiveFavoriteFailed": "No se pudo actualizar el favorito",
   "archiveReprint": "Reimprimir",
   "archiveAddToQueue": "Añadir a la cola",
+  "archiveReprintNoQueue": "No tiene permiso para añadir a la cola",
+  "archiveReprintNotAllowed": "No tiene permiso para reimprimir esto",
   "archiveTimelapse": "Ver timelapse",
   "archivePhotos": "{count, plural, =1{Ver foto} other{Ver fotos ({count})}}",
   "@archivePhotos": {

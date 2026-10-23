@@ -1868,6 +1868,18 @@ abstract class AppLocalizations {
   /// **'Add to queue'**
   String get archiveAddToQueue;
 
+  /// Why Reprint and Add to queue are off: the account lacks queue:create.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to add to the queue'**
+  String get archiveReprintNoQueue;
+
+  /// Why Reprint and Add to queue are off: the account may not reprint this archive (archives:reprint_own/all).
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to reprint this'**
+  String get archiveReprintNotAllowed;
+
   /// No description provided for @archiveTimelapse.
   ///
   /// In en, this message translates to:

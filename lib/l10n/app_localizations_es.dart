@@ -1056,6 +1056,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get archiveAddToQueue => 'Añadir a la cola';
 
   @override
+  String get archiveReprintNoQueue => 'No tiene permiso para añadir a la cola';
+
+  @override
+  String get archiveReprintNotAllowed =>
+      'No tiene permiso para reimprimir esto';
+
+  @override
   String get archiveTimelapse => 'Ver timelapse';
 
   @override

@@ -19,6 +19,7 @@ abstract class _$ArchiveCWProxy {
     String filename,
     String status,
     int? printerId,
+    int? createdById,
     String? printName,
     int? plateId,
     DateTime? completedAt,
@@ -85,6 +86,7 @@ class _$ArchiveCWProxyImpl implements _$ArchiveCWProxy {
     Object? filename = const $CopyWithPlaceholder(),
     Object? status = const $CopyWithPlaceholder(),
     Object? printerId = const $CopyWithPlaceholder(),
+    Object? createdById = const $CopyWithPlaceholder(),
     Object? printName = const $CopyWithPlaceholder(),
     Object? plateId = const $CopyWithPlaceholder(),
     Object? completedAt = const $CopyWithPlaceholder(),
@@ -146,6 +148,10 @@ class _$ArchiveCWProxyImpl implements _$ArchiveCWProxy {
           ? _value.printerId
           // ignore: cast_nullable_to_non_nullable
           : printerId as int?,
+      createdById: createdById == const $CopyWithPlaceholder()
+          ? _value.createdById
+          // ignore: cast_nullable_to_non_nullable
+          : createdById as int?,
       printName: printName == const $CopyWithPlaceholder()
           ? _value.printName
           // ignore: cast_nullable_to_non_nullable
@@ -347,6 +353,7 @@ Archive _$ArchiveFromJson(Map<String, dynamic> json) => Archive(
   filename: json['filename'] as String,
   status: json['status'] as String,
   printerId: (json['printer_id'] as num?)?.toInt(),
+  createdById: (json['created_by_id'] as num?)?.toInt(),
   printName: json['print_name'] as String?,
   plateId: toIntOrNull(json['plate_id']),
   completedAt: dateTimeFromJson(json['completed_at']),

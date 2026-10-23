@@ -1020,6 +1020,9 @@ class _ArchiveSheet extends ConsumerWidget {
                 ),
                 const SizedBox(height: DashSpace.lg),
                 _SheetPrimaryActions(
+                  block: ref.watch(
+                    archiveReprintBlockProvider(archive.createdById),
+                  ),
                   onAddToQueue: onAddToQueue,
                   onReprint: onReprint,
                 ),
@@ -1075,17 +1078,22 @@ class _ArchiveSheet extends ConsumerWidget {
 /// rule; this only names the buttons and their labels.
 class _SheetPrimaryActions extends StatelessWidget {
   const _SheetPrimaryActions({
+    required this.block,
     required this.onAddToQueue,
     required this.onReprint,
   });
 
+  /// Both buttons queue the archive, so one refusal turns off both, and the
+  /// line under them says why once.
+  final ArchiveReprintBlock? block;
   final VoidCallback onAddToQueue;
   final VoidCallback onReprint;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return ButtonPair(
+    final allowed = block == null;
+    final pair = ButtonPair(
       primaryLabel: l10n.archiveReprint,
       secondaryLabel: l10n.archiveAddToQueue,
       primary: logTag(
@@ -1093,7 +1101,7 @@ class _SheetPrimaryActions extends StatelessWidget {
         FilledButton.icon(
           icon: const Icon(Icons.print),
           label: Text(l10n.archiveReprint),
-          onPressed: onReprint,
+          onPressed: allowed ? onReprint : null,
         ),
       ),
       secondary: logTag(
@@ -1101,9 +1109,21 @@ class _SheetPrimaryActions extends StatelessWidget {
         OutlinedButton.icon(
           icon: const Icon(Icons.playlist_add),
           label: Text(l10n.archiveAddToQueue),
-          onPressed: onAddToQueue,
+          onPressed: allowed ? onAddToQueue : null,
         ),
       ),
+    );
+    if (allowed) return pair;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        pair,
+        const SizedBox(height: DashSpace.xs),
+        Text(switch (block!) {
+          ArchiveReprintBlock.noQueue => l10n.archiveReprintNoQueue,
+          ArchiveReprintBlock.noReprint => l10n.archiveReprintNotAllowed,
+        }, style: Theme.of(context).textTheme.bodySmall),
+      ],
     );
   }
 }

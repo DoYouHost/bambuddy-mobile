@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/filament_colour.dart';
 import '../../core/models/archive.dart';
+import '../../core/models/current_user.dart';
 import '../../core/models/no_3mf_warning.dart';
 import '../../core/models/print_run.dart';
 import '../../core/models/printer.dart';
@@ -15,6 +16,27 @@ import '../common/dash_async.dart';
 /// client-side over the full set (matching bambuddy), so we fetch everything
 /// once rather than paginating on the wire. Mirrors bambuddy's `limit=10000`.
 const _fullListLimit = 10000;
+
+/// Why this user may not queue an archive again, or null when they may.
+enum ArchiveReprintBlock { noQueue, noReprint }
+
+/// Mirrors what `POST /queue/` checks for an archive — `queue:create`, then
+/// `_assert_can_queue_archive` (`print_queue.py`) — the way the web's
+/// `canModify('archives', 'reprint', …)` reads it. Unknown identity (auth off,
+/// `/auth/me` unread) blocks nothing: the server stays the enforcer.
+final archiveReprintBlockProvider = Provider.family<ArchiveReprintBlock?, int?>(
+  (ref, createdById) {
+    final me = ref.watch(currentUserProvider).valueOrNull;
+    if (me == null) return null;
+    if (!me.can(Permissions.queueCreate)) return ArchiveReprintBlock.noQueue;
+    if (me.can(Permissions.archivesReprintAll)) return null;
+    final own =
+        createdById != null &&
+        createdById == me.id &&
+        me.can(Permissions.archivesReprintOwn);
+    return own ? null : ArchiveReprintBlock.noReprint;
+  },
+);
 
 /// How archives are ordered in the list. Values match bambuddy's sort options.
 enum ArchiveSort { dateDesc, dateAsc, nameAsc, nameDesc, sizeDesc, sizeAsc }

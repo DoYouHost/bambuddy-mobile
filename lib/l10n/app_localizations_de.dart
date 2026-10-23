@@ -1057,6 +1057,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get archiveAddToQueue => 'Zur Warteschlange hinzufügen';
 
   @override
+  String get archiveReprintNoQueue =>
+      'Sie haben keine Berechtigung, zur Warteschlange hinzuzufügen';
+
+  @override
+  String get archiveReprintNotAllowed =>
+      'Sie haben keine Berechtigung, dies erneut zu drucken';
+
+  @override
   String get archiveTimelapse => 'Zeitraffer ansehen';
 
   @override

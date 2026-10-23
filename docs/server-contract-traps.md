@@ -97,6 +97,10 @@ zone-independent assertion is `isUtc, isFalse`.
   that PATCH is a 400, so Start sends the bare `/start` and the scheduler picks the
   candidate. `POST /queue/` answers such a job with `variants: []`; only a read shows
   them (`queue_cross_model_contract_test.dart`).
+- **Queueing an archive again** (reprint, add to queue) needs `queue:create` and
+  `archives:reprint_all`, or `reprint_own` on the user's own print, never an ownerless
+  one (`_assert_can_queue_archive`). The app gates on `archiveReprintBlockProvider`,
+  which reads the archive's `created_by_id` (`archive_reprint_contract_test.dart`).
 - `GET /archives/search` needs q ≥ 2 characters (422) and **returns 500 on short,
   common terms** (`co`, `X2`, `X2D`) while longer ones work — a server bug; the
   client degrades to a mild message.

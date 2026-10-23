@@ -394,6 +394,8 @@
   "archiveFavoriteFailed": "Nie udało się zmienić ulubionego",
   "archiveReprint": "Drukuj ponownie",
   "archiveAddToQueue": "Dodaj do kolejki",
+  "archiveReprintNoQueue": "Nie masz uprawnień do dodawania do kolejki",
+  "archiveReprintNotAllowed": "Nie masz uprawnień do ponownego druku",
   "archiveTimelapse": "Obejrzyj timelapse",
   "archivePhotos": "{count, plural, =1{Zobacz zdjęcie} few{Zobacz zdjęcia ({count})} many{Zobacz zdjęcia ({count})} other{Zobacz zdjęcia ({count})}}",
   "@archivePhotos": {
