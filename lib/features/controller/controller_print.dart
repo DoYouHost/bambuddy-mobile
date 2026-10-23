@@ -9,6 +9,7 @@ import '../../core/ams/slot_addressing.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/format/filament_colour.dart';
+import '../../core/models/current_user.dart';
 import '../../core/models/plate_list.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/queue_item.dart';
@@ -651,9 +652,18 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     );
     final unmapped = comparison.where((c) => c.loaded == null).length;
     final billing = costCenterStateOf(ref.watch).step;
+    // What `POST /queue/` would refuse this account, judged again here as the
+    // dialog that opened the screen judged it: rights change while it is open.
+    final refused = _isArchive
+        ? ref.watch(archiveReprintBlockProvider(_source.createdById))
+        : ref.watch(permissionProvider(Permissions.queueCreate))
+        ? null
+        : ArchiveReprintBlock.noQueue;
     final String note;
     var warn = true;
-    if (!compatible) {
+    if (refused != null) {
+      note = refused.reason(l10n);
+    } else if (!compatible) {
       note = l10n.controllerPrintWrongModel(
         '${_source.slicedForModel}',
         _printer.model ?? _printer.name,
@@ -677,6 +687,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     final canPrint =
         !_saving &&
         item != null &&
+        refused == null &&
         compatible &&
         reqs != null &&
         costCenterAllowsCreate(billing);

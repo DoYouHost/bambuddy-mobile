@@ -113,6 +113,7 @@ class QueueItem {
     int? plateId,
     int? printTimeSeconds,
     double? filamentUsedGrams,
+    int? createdById,
     bool manualStart = false,
     bool confirmOutcome = false,
   }) {
@@ -135,6 +136,7 @@ class QueueItem {
       plateId: plateId,
       printTimeSeconds: printTimeSeconds,
       filamentUsedGrams: filamentUsedGrams,
+      createdById: createdById,
       manualStart: manualStart,
       confirmOutcome: confirmOutcome,
     );

@@ -5,6 +5,7 @@ import 'package:bambuddy_mobile/core/ams/color_names.dart';
 import 'package:bambuddy_mobile/core/ams/job_cost.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/cost_center.dart';
+import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/plate_list.dart';
@@ -902,15 +903,17 @@ void main() {
   }
 
   group('an archive', () {
-    Archive archive({int? plateId, bool asks = false}) => Archive(
-      id: 77,
-      filename: 'cube.gcode.3mf',
-      status: 'completed',
-      printName: 'Cube',
-      slicedForModel: 'P1S',
-      plateId: plateId,
-      confirmRequested: asks,
-    );
+    Archive archive({int? plateId, bool asks = false, int? createdById}) =>
+        Archive(
+          id: 77,
+          createdById: createdById,
+          filename: 'cube.gcode.3mf',
+          status: 'completed',
+          printName: 'Cube',
+          slicedForModel: 'P1S',
+          plateId: plateId,
+          confirmRequested: asks,
+        );
 
     testWidgets('is reprinted from the archive, on the plate it ran', (
       tester,
@@ -955,6 +958,54 @@ void main() {
 
       // Plate 1, which the request leaves out; never the missing 5.
       expect(capturedBody?['plate_id'], isNull);
+    });
+
+    const reprintOwn = CurrentUser(
+      id: 7,
+      username: 'op',
+      isAdmin: false,
+      permissions: {Permissions.queueCreate, Permissions.archivesReprintOwn},
+    );
+
+    testWidgets('a reprint-own user prints their own print again', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        draft: archiveQueueDraft(archive(createdById: 7)),
+        extra: [currentUserOverride(reprintOwn)],
+      );
+
+      expect(submitButton(tester).onPressed, isNotNull);
+    });
+
+    testWidgets('someone else\'s print is refused here too, and says why', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        draft: archiveQueueDraft(archive(createdById: 99)),
+        extra: [currentUserOverride(reprintOwn)],
+      );
+
+      expect(submitButton(tester).onPressed, isNull);
+      expect(find.text(pl.archiveReprintNotAllowed), findsOneWidget);
+    });
+
+    testWidgets('a file is refused to an account that may not queue', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        extra: [
+          currentUserOverride(
+            const CurrentUser(id: 7, username: 'op', isAdmin: false),
+          ),
+        ],
+      );
+
+      expect(submitButton(tester).onPressed, isNull);
+      expect(find.text(pl.archiveReprintNoQueue), findsOneWidget);
     });
 
     testWidgets('an archive that asked for its outcome asks again', (

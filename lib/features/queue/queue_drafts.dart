@@ -23,6 +23,8 @@ QueueItem archiveQueueDraft(Archive archive, {bool manualStart = false}) =>
       confirmOutcome: archive.confirmRequested,
       printTimeSeconds: archive.printTimeSeconds,
       filamentUsedGrams: archive.filamentUsedGrams,
+      // Whose print it is: the reprint right is judged by it.
+      createdById: archive.createdById,
     );
 
 /// The queue draft printing a library [file] starts from, wherever it is
