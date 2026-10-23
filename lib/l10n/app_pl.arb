@@ -3330,6 +3330,7 @@
   "controllerMoveLocked": "Osie są zablokowane podczas druku",
   "controllerTabFilament": "Filament",
   "controllerTabFiles": "Pliki",
+  "controllerTabPrints": "Wydruki",
   "controllerFileNotSliced": "Nie pocięto",
   "controllerFileReasonNotSliced": "Drukować można tylko pocięte pliki.",
   "controllerFileReasonModel": "Pocięty pod {model}. Ta drukarka go nie przyjmie.",

@@ -10,7 +10,6 @@ import '../../core/models/library_folder.dart';
 import '../../core/printers/gcode_compat.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/device_files.dart';
@@ -19,15 +18,9 @@ import '../files/library_thumbnail.dart';
 import '../stats/stats_common.dart';
 import 'controller_controls.dart';
 import 'controller_file_dialog.dart';
+import 'controller_list_parts.dart';
 import 'controller_print.dart';
 import 'controller_providers.dart';
-
-/// Height of a tile in the grid: its thumbnail and a margin, so a tile is a
-/// touch target well above the minimum whatever it says. Three rows of them
-/// fill the card on a phone.
-const _tileHeight = 82.0;
-const _thumbSize = 64.0;
-const _columns = 2;
 
 /// The Files tab: the server's file library, scoped to the controller's printer
 /// ([docs/single-printer-controller.md]). The library is the only source a print
@@ -130,7 +123,11 @@ class _ControllerFilesState extends ConsumerState<ControllerFiles> {
             // keeps the listing it came from as `valueOrNull`, and showing that
             // would leave the user looking at the old folder with no word.
             child: switch ((state, async)) {
-              (_, AsyncError(:final error)) => _Failure(error: error),
+              (_, AsyncError(:final error)) => ControllerListFailure(
+                error: error,
+                retryId: 'controller.files.retry',
+                onRetry: () => ref.invalidate(fileManagerProvider),
+              ),
               (final s?, _) => _Grid(
                 state: s,
                 printerId: widget.printerId,
@@ -210,7 +207,7 @@ class _HeaderState extends ConsumerState<_Header> {
         (folder.isExternal || folder.externalReadonly || !folder.canWrite);
     return Row(
       children: [
-        _HeaderButton(
+        ControllerHeaderButton(
           id: 'controller.files.up',
           tooltip: l10n.pfmUp,
           icon: Icons.arrow_upward_rounded,
@@ -238,14 +235,14 @@ class _HeaderState extends ConsumerState<_Header> {
                 ),
         ),
         const SizedBox(width: DashSpace.sm),
-        _HeaderButton(
+        ControllerHeaderButton(
           id: 'controller.files.search',
           tooltip: l10n.fmSearchHint,
           icon: Icons.search_rounded,
           onPressed: s == null || locked || _editing ? null : _openSearch,
         ),
         const SizedBox(width: DashSpace.sm),
-        _HeaderButton(
+        ControllerHeaderButton(
           id: 'controller.files.sort',
           tooltip: l10n.fmSortBy,
           icon: Icons.sort_rounded,
@@ -258,7 +255,7 @@ class _HeaderState extends ConsumerState<_Header> {
                 ),
         ),
         const SizedBox(width: DashSpace.sm),
-        _HeaderButton(
+        ControllerHeaderButton(
           id: 'controller.files.upload',
           // A disabled button has no label of its own, so the tooltip says why.
           tooltip: readOnly ? l10n.controllerFilesReadOnly : l10n.fmUpload,
@@ -268,7 +265,7 @@ class _HeaderState extends ConsumerState<_Header> {
               : widget.onUpload,
         ),
         const SizedBox(width: DashSpace.sm),
-        _HeaderButton(
+        ControllerHeaderButton(
           id: 'controller.files.refresh',
           tooltip: l10n.pfmRefreshTooltip,
           icon: Icons.refresh_rounded,
@@ -299,61 +296,22 @@ class _PathCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final t = DashTokens.of(context);
     final s = state;
     final path = [
       l10n.fmRoot,
       for (final f in s?.breadcrumb ?? const []) f.name,
     ];
-    return Container(
-      height: controllerButtonHeight,
-      alignment: Alignment.centerLeft,
-      decoration: t.cardBox,
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        alignment: Alignment.centerLeft,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: DashSpace.lg),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    path.join('  /  '),
-                    style: t.titleSm,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (s != null && s.isSearching) ...[
-                  const SizedBox(width: DashSpace.md),
-                  Flexible(
-                    child: _QueryChip(
-                      query: s.query.trim(),
-                      onTap: onClearQuery,
-                    ),
-                  ),
-                ],
-                if (s != null) ...[
-                  const SizedBox(width: DashSpace.md),
-                  Text(
-                    _sortLabel(l10n, s.sort),
-                    style: t.monoLabel,
-                    maxLines: 1,
-                  ),
-                ],
-              ],
-            ),
+    return ControllerHeaderCard(
+      title: path.join('  /  '),
+      extras: [
+        if (s != null && s.isSearching)
+          Flexible(
+            child: _QueryChip(query: s.query.trim(), onTap: onClearQuery),
           ),
-          if (uploading)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: LinearProgressIndicator(value: progress, minHeight: 4),
-            ),
-        ],
-      ),
+      ],
+      fact: s == null ? null : _sortLabel(l10n, s.sort),
+      busy: uploading,
+      progress: progress,
     );
   }
 }
@@ -476,40 +434,6 @@ String _sortLabel(AppLocalizations l10n, FileSort sort) => switch (sort) {
   FileSort.sizeAsc => l10n.fmSortSizeSmallest,
 };
 
-class _HeaderButton extends StatelessWidget {
-  const _HeaderButton({
-    required this.id,
-    required this.tooltip,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  final String id;
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Tooltip(
-      message: tooltip,
-      child: logTag(
-        id,
-        FilledButton(
-          style: controllerButtonStyle(
-            t,
-            minimumSize: const Size.square(controllerButtonHeight),
-            padding: EdgeInsets.zero,
-          ),
-          onPressed: onPressed,
-          child: Icon(icon),
-        ),
-      ),
-    );
-  }
-}
-
 /// Folders first, then files; what the library screen would list, in the
 /// controller's tiles.
 class _Grid extends ConsumerWidget {
@@ -548,7 +472,7 @@ class _Grid extends ConsumerWidget {
     if (folders.isEmpty && files.isEmpty) {
       final failed =
           state.fetchFailed && (state.isSearching || state.isTagFiltering);
-      return _Message(
+      return ControllerListMessage(
         icon: failed ? Icons.cloud_off_rounded : Icons.folder_open_outlined,
         text: failed
             ? l10n.connectFailed
@@ -564,12 +488,7 @@ class _Grid extends ConsumerWidget {
         if (refreshing) const LinearProgressIndicator(),
         Expanded(
           child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: _columns,
-              mainAxisExtent: _tileHeight,
-              mainAxisSpacing: DashSpace.sm,
-              crossAxisSpacing: DashSpace.sm,
-            ),
+            gridDelegate: controllerTileGrid,
             itemCount: folders.length + files.length,
             itemBuilder: (context, i) => i < folders.length
                 ? _FolderTile(
@@ -617,65 +536,6 @@ class _Grid extends ConsumerWidget {
   }
 }
 
-/// The frame of every tile: the app's sub-card, with a thumbnail slot.
-class _TileFrame extends StatelessWidget {
-  const _TileFrame({
-    required this.id,
-    required this.onTap,
-    required this.leading,
-    required this.children,
-    this.dimmed = false,
-  });
-
-  final String id;
-  final VoidCallback? onTap;
-  final Widget leading;
-  final List<Widget> children;
-
-  /// A file that cannot be printed here is quieter, and still opens: its
-  /// dialog says why.
-  final bool dimmed;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final radius = BorderRadius.circular(DashSpace.md);
-    return Opacity(
-      opacity: dimmed ? 0.62 : 1,
-      child: Material(
-        color: t.subCard,
-        shape: RoundedRectangleBorder(
-          borderRadius: radius,
-          side: BorderSide(color: t.subCardBorder),
-        ),
-        child: logTag(
-          id,
-          InkWell(
-            borderRadius: radius,
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.all(DashSpace.sm),
-              child: Row(
-                children: [
-                  leading,
-                  const SizedBox(width: DashSpace.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: children,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _FolderTile extends StatelessWidget {
   const _FolderTile({required this.folder, required this.onTap});
 
@@ -686,12 +546,12 @@ class _FolderTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    return _TileFrame(
+    return ControllerTileFrame(
       id: 'controller.files.folder',
       onTap: onTap,
       leading: Container(
-        width: _thumbSize,
-        height: _thumbSize,
+        width: controllerThumbSize,
+        height: controllerThumbSize,
         decoration: BoxDecoration(
           color: t.warning.withValues(alpha: 0.14),
           borderRadius: BorderRadius.circular(DashSpace.md),
@@ -739,7 +599,7 @@ class _FileTile extends StatelessWidget {
             if (file.filamentUsedGrams case final g?) fmtGrams(g),
           ]
         : [file.fileType.toUpperCase()];
-    return _TileFrame(
+    return ControllerTileFrame(
       id: 'controller.files.file',
       onTap: onTap,
       dimmed: !printable || !compatible,
@@ -748,7 +608,7 @@ class _FileTile extends StatelessWidget {
         child: LibraryThumbnail(
           fileId: file.id,
           hasThumbnail: file.thumbnailPath != null,
-          size: _thumbSize,
+          size: controllerThumbSize,
         ),
       ),
       children: [
@@ -774,119 +634,25 @@ class _FileTile extends StatelessWidget {
             if (!printable) ...[
               const SizedBox(width: DashSpace.sm),
               Flexible(
-                child: _Chip(label: l10n.controllerFileNotSliced, warn: true),
+                child: ControllerChip(
+                  label: l10n.controllerFileNotSliced,
+                  ink: t.warningInk,
+                  icon: Icons.warning_amber_rounded,
+                ),
               ),
             ] else if (file.slicedForModel case final model?) ...[
               const SizedBox(width: DashSpace.sm),
               Flexible(
-                child: _Chip(label: model, warn: !compatible),
+                child: ControllerChip(
+                  label: model,
+                  ink: compatible ? t.accentInk : t.warningInk,
+                  icon: compatible ? null : Icons.warning_amber_rounded,
+                ),
               ),
             ],
           ],
         ),
       ],
-    );
-  }
-}
-
-/// The model a file was sliced for, in the colour that says whether this
-/// printer can take it.
-class _Chip extends StatelessWidget {
-  const _Chip({required this.label, required this.warn});
-
-  final String label;
-  final bool warn;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final ink = warn ? t.warningInk : t.accentInk;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
-      decoration: BoxDecoration(
-        color: ink.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(DashSpace.sm),
-        border: Border.all(color: ink.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (warn) ...[
-            Icon(Icons.warning_amber_rounded, size: DashSpace.md, color: ink),
-            const SizedBox(width: DashSpace.xs),
-          ],
-          Flexible(
-            child: Text(
-              label,
-              style: t.monoLabel.copyWith(color: ink),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A listing that could not be had: the server refused it, or was not there.
-class _Failure extends ConsumerWidget {
-  const _Failure({required this.error});
-
-  final Object error;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final refused =
-        error is AppApiException &&
-        (error as AppApiException).code == AppErrorCode.forbidden;
-    return _Message(
-      icon: refused ? Icons.lock_outline_rounded : Icons.cloud_off_rounded,
-      text: refused
-          ? (error as AppApiException).localized(l10n)
-          : l10n.connectFailed,
-      // Nothing to retry for a refusal: the account has to change first.
-      action: refused
-          ? null
-          : logTag(
-              'controller.files.retry',
-              FilledButton(
-                style: controllerButtonStyle(
-                  DashTokens.of(context),
-                  minimumSize: const Size(0, controllerButtonHeight),
-                ),
-                onPressed: () => ref.invalidate(fileManagerProvider),
-                child: Text(l10n.retry),
-              ),
-            ),
-    );
-  }
-}
-
-class _Message extends StatelessWidget {
-  const _Message({required this.icon, required this.text, this.action});
-
-  final IconData icon;
-  final String text;
-  final Widget? action;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: DashSpace.xxl, color: t.textTertiary),
-          const SizedBox(height: DashSpace.md),
-          Text(text, style: t.bodySoft, textAlign: TextAlign.center),
-          if (action != null) ...[
-            const SizedBox(height: DashSpace.lg),
-            action!,
-          ],
-        ],
-      ),
     );
   }
 }

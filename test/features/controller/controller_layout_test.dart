@@ -67,10 +67,8 @@ void main() {
     double textScale = 1,
     PrinterStatus status = _printing,
   }) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = size;
+    useLogicalWindow(tester, size);
     tester.platformDispatcher.textScaleFactorTestValue = textScale;
-    addTearDown(tester.view.reset);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     SharedPreferences.setMockInitialValues({});
     final sp = await SharedPreferences.getInstance();

@@ -4019,6 +4019,7 @@
   "controllerMoveLocked": "Les axes sont verrouillés pendant l'impression",
   "controllerTabFilament": "Filament",
   "controllerTabFiles": "Fichiers",
+  "controllerTabPrints": "Impressions",
   "controllerFileNotSliced": "Non découpé",
   "controllerFileReasonNotSliced": "Seuls les fichiers découpés peuvent être imprimés.",
   "controllerFileReasonModel": "Découpé pour {model}, que cette imprimante ne prend pas en charge.",

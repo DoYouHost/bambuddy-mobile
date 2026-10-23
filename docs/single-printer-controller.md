@@ -39,7 +39,7 @@ that opens the fault view, the printer's state) over one tab at a time.
 | Heat | nozzle(s), bed and chamber targets with −/+ and a typed value, the three fans |
 | Move | X/Y pad, Z, extrude and retract, step and length, home. Locked while a print is running |
 | Filament | AMS units, slots with their remaining amount, edit, load and unload, dry |
-| Files | the server's library (folders, files, six sorts), an inline search, upload into the open folder, and a file dialog that prints it on this printer or deletes it (§7) |
+| Prints | a rail of three views: Files — the server's library (folders, files, six sorts), an inline search, upload into the open folder, and a file dialog that prints it on this printer or deletes it (§7); Queue and Archive — this printer's jobs and history (§8) |
 | Settings | the controller's own settings (§4) |
 
 ### Size and layout

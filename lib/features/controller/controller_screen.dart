@@ -15,12 +15,12 @@ import '../dashboard/ws_providers.dart';
 import '../files/file_manager_providers.dart';
 import '../wall/wall_providers.dart';
 import 'controller_filament.dart';
-import 'controller_files.dart';
 import 'controller_heat.dart';
 import 'controller_move.dart';
 import 'controller_overview.dart';
 import 'controller_picker.dart';
 import 'controller_faults.dart';
+import 'controller_prints.dart';
 import 'controller_providers.dart';
 import 'controller_saver.dart';
 import 'controller_settings.dart';
@@ -45,7 +45,7 @@ enum ControllerTab {
   heat,
   move,
   filament,
-  files,
+  prints,
   settings;
 
   String label(AppLocalizations l10n) => switch (this) {
@@ -53,7 +53,7 @@ enum ControllerTab {
     ControllerTab.heat => l10n.controllerTabHeat,
     ControllerTab.move => l10n.ctrlMove,
     ControllerTab.filament => l10n.controllerTabFilament,
-    ControllerTab.files => l10n.controllerTabFiles,
+    ControllerTab.prints => l10n.controllerTabPrints,
     ControllerTab.settings => l10n.controllerTabSettings,
   };
 
@@ -63,7 +63,7 @@ enum ControllerTab {
     ControllerTab.heat => 'controller.tab_heat',
     ControllerTab.move => 'controller.tab_move',
     ControllerTab.filament => 'controller.tab_filament',
-    ControllerTab.files => 'controller.tab_files',
+    ControllerTab.prints => 'controller.tab_prints',
     ControllerTab.settings => 'controller.tab_settings',
   };
 }
@@ -91,18 +91,29 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
   late final _OpenScreens _open;
   final _debounce = OfflineDebounce();
   ControllerTab _tab = ControllerTab.overview;
+  ControllerPrintsView _printsView = ControllerPrintsView.files;
 
-  /// Keeps the library's folder and search state while another tab is showing:
-  /// the provider is autoDispose, and the user would otherwise land at the root
-  /// each time they came back. Opened by the first visit to Files, so nothing is
-  /// fetched for someone who never looks; the state closes it with the screen.
+  /// Keeps the library's folder and search state while another tab or view is
+  /// showing: the provider is autoDispose, and the user would otherwise land at
+  /// the root each time they came back. Opened by the first visit to Files, so
+  /// nothing is fetched for someone who never looks; the state closes it with
+  /// the screen.
   ProviderSubscription<AsyncValue<FileManagerState>>? _library;
 
-  void _selectTab(ControllerTab tab) {
-    if (tab == ControllerTab.files) {
+  void _keepLibraryWhenShown(ControllerTab tab, ControllerPrintsView view) {
+    if (tab == ControllerTab.prints && view == ControllerPrintsView.files) {
       _library ??= ref.listenManual(fileManagerProvider, (_, _) {});
     }
+  }
+
+  void _selectTab(ControllerTab tab) {
+    _keepLibraryWhenShown(tab, _printsView);
     setState(() => _tab = tab);
+  }
+
+  void _selectPrintsView(ControllerPrintsView view) {
+    _keepLibraryWhenShown(_tab, view);
+    setState(() => _printsView = view);
   }
 
   // No status at all is a roster without a frame: unreachable, as the printer
@@ -232,8 +243,10 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
                               ControllerTab.filament => ControllerFilament(
                                 printerId: widget.printerId,
                               ),
-                              ControllerTab.files => ControllerFiles(
+                              ControllerTab.prints => ControllerPrints(
                                 printerId: widget.printerId,
+                                view: _printsView,
+                                onView: _selectPrintsView,
                               ),
                               ControllerTab.settings =>
                                 const ControllerSettings(),

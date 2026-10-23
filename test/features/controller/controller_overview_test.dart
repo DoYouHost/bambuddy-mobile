@@ -42,9 +42,7 @@ void main() {
     PrinterStatus status, {
     Map<String, Object> prefs = const {},
   }) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = _phone;
-    addTearDown(tester.view.reset);
+    useLogicalWindow(tester, _phone);
     commands = RecordingCommands();
     SharedPreferences.setMockInitialValues(prefs);
     final sp = await SharedPreferences.getInstance();

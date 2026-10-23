@@ -164,6 +164,42 @@ Future<ProviderContainer> pumpWear(
 Widget wearShapeBuilder(BuildContext context, Widget? child) =>
     WearShapeScope(child: child!);
 
+/// A window of [size] logical pixels at density 1, given back with the test.
+void useLogicalWindow(WidgetTester tester, Size size) {
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = size;
+  addTearDown(tester.view.reset);
+}
+
+/// The phones a landscape screen (the controller, wall mode) is designed for:
+/// the reporter's Redmi 9T Pro and a 20:9 Pixel-class phone, in dp.
+const landscapeRedmi = Size(891, 411);
+const landscapePixel = Size(915, 412);
+
+/// Answers what a landscape screen asks the platform on entry and exit — the
+/// window's keep-screen-on and `SystemChrome` — and hands each call to
+/// [onWindow] / [onPlatform] for a test that checks them.
+void mockImmersiveChannels(
+  WidgetTester tester, {
+  void Function(MethodCall call)? onWindow,
+  void Function(MethodCall call)? onPlatform,
+}) {
+  const window = MethodChannel('page.codeberg.morganmlgman.bambuddy/window');
+  final messenger = tester.binding.defaultBinaryMessenger;
+  messenger.setMockMethodCallHandler(window, (call) async {
+    onWindow?.call(call);
+    return null;
+  });
+  messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+    onPlatform?.call(call);
+    return null;
+  });
+  addTearDown(() {
+    messenger.setMockMethodCallHandler(window, null);
+    messenger.setMockMethodCallHandler(SystemChannels.platform, null);
+  });
+}
+
 /// The two round faces worth testing against, in physical pixels at density 2;
 /// the small one is the default (see docs/test-harness.md).
 const wearFaceSmall = Size(384, 384);

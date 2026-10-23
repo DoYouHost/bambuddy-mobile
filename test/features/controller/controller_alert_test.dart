@@ -52,9 +52,7 @@ void main() {
     List<HmsError> atOpen = const [],
     String stateAtOpen = 'RUNNING',
   }) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(844, 390);
-    addTearDown(tester.view.reset);
+    useLogicalWindow(tester, const Size(844, 390));
     statuses = _Statuses({
       1: _status(1, state: stateAtOpen, errors: atOpen),
       2: _status(2),

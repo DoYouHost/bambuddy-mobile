@@ -7957,6 +7957,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controllerTabFiles => 'Files';
 
   @override
+  String get controllerTabPrints => 'Prints';
+
+  @override
   String get controllerFileNotSliced => 'Not sliced';
 
   @override

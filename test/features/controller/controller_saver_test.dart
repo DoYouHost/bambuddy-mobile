@@ -104,9 +104,7 @@ void main() {
         state: 'IDLE',
       ),
     }) async {
-      tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = const Size(844, 390);
-      addTearDown(tester.view.reset);
+      useLogicalWindow(tester, const Size(844, 390));
       taps = 0;
       backlight = [];
       final messenger =

@@ -13358,6 +13358,12 @@ abstract class AppLocalizations {
   /// **'Files'**
   String get controllerTabFiles;
 
+  /// Controller tab that holds the printer's prints: the file library, this printer's queue and its archive, chosen on a rail at its left
+  ///
+  /// In en, this message translates to:
+  /// **'Prints'**
+  String get controllerTabPrints;
+
   /// Chip on a file tile in the controller's Files tab: the file is a model, not sliced G-code, so it cannot be printed as it is
   ///
   /// In en, this message translates to:

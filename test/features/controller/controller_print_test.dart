@@ -149,9 +149,7 @@ void main() {
     PrinterStatus? status,
     Size size = const Size(844, 390),
   }) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = size;
-    addTearDown(tester.view.reset);
+    useLogicalWindow(tester, size);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

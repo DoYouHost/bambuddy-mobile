@@ -95,9 +95,7 @@ void main() {
     PrinterStatus status, {
     SmartPlugsState? plugState,
   }) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = _phone;
-    addTearDown(tester.view.reset);
+    useLogicalWindow(tester, _phone);
     commands = RecordingCommands();
     plugs = _Plugs(plugState ?? const SmartPlugsState());
     SharedPreferences.setMockInitialValues({});

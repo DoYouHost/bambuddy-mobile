@@ -8095,6 +8095,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get controllerTabFiles => 'Pliki';
 
   @override
+  String get controllerTabPrints => 'Wydruki';
+
+  @override
   String get controllerFileNotSliced => 'Nie pocięto';
 
   @override

@@ -4019,6 +4019,7 @@
   "controllerMoveLocked": "Die Achsen sind während des Drucks gesperrt",
   "controllerTabFilament": "Filament",
   "controllerTabFiles": "Dateien",
+  "controllerTabPrints": "Drucke",
   "controllerFileNotSliced": "Nicht geslict",
   "controllerFileReasonNotSliced": "Nur geslicte Dateien lassen sich drucken.",
   "controllerFileReasonModel": "Für {model} geslict, das dieser Drucker nicht annimmt.",

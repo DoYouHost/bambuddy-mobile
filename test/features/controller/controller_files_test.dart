@@ -18,14 +18,11 @@ import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
-
-const _window = MethodChannel('page.codeberg.morganmlgman.bambuddy/window');
 
 /// A library the test drives: a fixed tree, and a record of what was asked of it.
 class _Library extends FileManagerNotifier {
@@ -233,18 +230,8 @@ void main() {
     Size size = const Size(844, 390),
     List<Override> extra = const [],
   }) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = size;
-    addTearDown(tester.view.reset);
-    final messenger = tester.binding.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(_window, (call) async => null);
-    messenger.setMockMethodCallHandler(SystemChannels.platform, (_) async {
-      return null;
-    });
-    addTearDown(() {
-      messenger.setMockMethodCallHandler(_window, null);
-      messenger.setMockMethodCallHandler(SystemChannels.platform, null);
-    });
+    useLogicalWindow(tester, size);
+    mockImmersiveChannels(tester);
     library = lib ?? _Library();
     SharedPreferences.setMockInitialValues({});
     final sp = await SharedPreferences.getInstance();
@@ -282,23 +269,24 @@ void main() {
     await settle(tester);
   }
 
+  /// The Prints tab opens on its Files view.
   Future<void> openFiles(WidgetTester tester) =>
-      select(tester, ControllerTab.files);
+      select(tester, ControllerTab.prints);
 
   group('the tab', () {
-    testWidgets('Files sits between Filament and Settings', (tester) async {
+    testWidgets('Prints sits between Filament and Settings', (tester) async {
       await pump(tester);
 
       final tabs = ControllerTab.values;
       expect(
-        tabs.indexOf(ControllerTab.files),
+        tabs.indexOf(ControllerTab.prints),
         tabs.indexOf(ControllerTab.filament) + 1,
       );
       expect(
         tabs.indexOf(ControllerTab.settings),
-        tabs.indexOf(ControllerTab.files) + 1,
+        tabs.indexOf(ControllerTab.prints) + 1,
       );
-      expect(find.text(pl.controllerTabFiles), findsOneWidget);
+      expect(find.text(pl.controllerTabPrints), findsOneWidget);
       expect(find.byType(ControllerFiles), findsNothing);
 
       await openFiles(tester);
@@ -706,7 +694,7 @@ void main() {
     testWidgets('it shows a spinner while the library loads', (tester) async {
       final gate = Completer<void>();
       await pump(tester, lib: _Library(gate: gate));
-      await tester.tap(byLogId(ControllerTab.files.logId));
+      await tester.tap(byLogId(ControllerTab.prints.logId));
       await tester.pump();
       await tester.pump();
 

@@ -8054,6 +8054,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get controllerTabFiles => 'Archivos';
 
   @override
+  String get controllerTabPrints => 'Impresiones';
+
+  @override
   String get controllerFileNotSliced => 'Sin laminar';
 
   @override

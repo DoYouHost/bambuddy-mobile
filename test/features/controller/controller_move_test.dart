@@ -43,9 +43,7 @@ void main() {
     BedJogConvention? convention,
     Size size = _phone,
   }) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = size;
-    addTearDown(tester.view.reset);
+    useLogicalWindow(tester, size);
     commands = RecordingCommands();
     SharedPreferences.setMockInitialValues({});
     final sp = await SharedPreferences.getInstance();

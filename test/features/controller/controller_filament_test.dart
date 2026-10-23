@@ -88,9 +88,7 @@ void main() {
     String? serial,
     InventoryState? inventory,
   }) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = size;
-    addTearDown(tester.view.reset);
+    useLogicalWindow(tester, size);
     commands = RecordingCommands();
     statuses = _Statuses();
     SharedPreferences.setMockInitialValues({});

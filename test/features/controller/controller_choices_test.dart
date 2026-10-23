@@ -37,9 +37,7 @@ void main() {
           'the preset buttons of $screen are one size, none cut short, '
           'in ${locale.languageCode} at ${size.width.round()}x${size.height.round()}',
           (tester) async {
-            tester.view.devicePixelRatio = 1;
-            tester.view.physicalSize = size;
-            addTearDown(tester.view.reset);
+            useLogicalWindow(tester, size);
             SharedPreferences.setMockInitialValues({});
             final sp = await SharedPreferences.getInstance();
             await tester.pumpWidget(

@@ -54,9 +54,7 @@ void main() {
     Size size = _phone,
     bool refused = false,
   }) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = size;
-    addTearDown(tester.view.reset);
+    useLogicalWindow(tester, size);
     commands = RecordingCommands();
     SharedPreferences.setMockInitialValues({});
     final sp = await SharedPreferences.getInstance();
@@ -748,9 +746,7 @@ void main() {
   testWidgets('a keypad left open under a field that goes away still works', (
     tester,
   ) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = _phone;
-    addTearDown(tester.view.reset);
+    useLogicalWindow(tester, _phone);
     SharedPreferences.setMockInitialValues({});
     final sp = await SharedPreferences.getInstance();
     final commands = RecordingCommands();

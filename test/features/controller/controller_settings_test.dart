@@ -24,9 +24,7 @@ void main() {
     WidgetTester tester, {
     Size size = const Size(844, 390),
   }) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = size;
-    addTearDown(tester.view.reset);
+    useLogicalWindow(tester, size);
     SharedPreferences.setMockInitialValues({});
     sp = await SharedPreferences.getInstance();
     await pumpPhone(

@@ -18,7 +18,6 @@ import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -146,31 +145,14 @@ void main() {
     String name = 'Pracownia X1C numer dwa',
     List<Override> extra = const [],
   }) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = size;
+    useLogicalWindow(tester, size);
     tester.platformDispatcher.textScaleFactorTestValue = textScale;
-    addTearDown(tester.view.reset);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     SharedPreferences.setMockInitialValues({
       'controller_prefs': '{"saver_after_minutes":1,"keep_awake":true}',
     });
     final sp = await SharedPreferences.getInstance();
-    final messenger = tester.binding.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(
-      const MethodChannel('page.codeberg.morganmlgman.bambuddy/window'),
-      (call) async => null,
-    );
-    messenger.setMockMethodCallHandler(
-      SystemChannels.platform,
-      (call) async => null,
-    );
-    addTearDown(() {
-      messenger.setMockMethodCallHandler(
-        const MethodChannel('page.codeberg.morganmlgman.bambuddy/window'),
-        null,
-      );
-      messenger.setMockMethodCallHandler(SystemChannels.platform, null);
-    });
+    mockImmersiveChannels(tester);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

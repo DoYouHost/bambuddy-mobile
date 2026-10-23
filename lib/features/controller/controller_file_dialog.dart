@@ -1,6 +1,3 @@
-import 'dart:math' as math;
-
-import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,9 +15,8 @@ import '../common/api_failure_snack.dart';
 import '../files/file_manager_providers.dart';
 import '../files/library_thumbnail.dart';
 import '../stats/stats_common.dart';
-import 'controller_controls.dart';
+import 'controller_detail_dialog.dart';
 import 'controller_providers.dart';
-import 'scale_to_fit.dart';
 
 /// What the dialog closed with: the user asked to print the file. Anything else
 /// (closing, a finished delete) closes with null.
@@ -58,11 +54,9 @@ Future<ControllerFileChoice?> showControllerFileDialog(
   required int printerId,
   required LibraryFile file,
 }) {
-  // Read here, under the body: the dialog's route is not.
-  final scale = ControllerScale.of(context);
-  return showDialog<ControllerFileChoice>(
-    context: context,
-    builder: (_) => _FileDialog(scale: scale, printerId: printerId, file: file),
+  return showControllerDetailDialog(
+    context,
+    (scale) => _FileDialog(scale: scale, printerId: printerId, file: file),
   );
 }
 
@@ -82,12 +76,6 @@ class _FileDialog extends ConsumerStatefulWidget {
 }
 
 class _FileDialogState extends ConsumerState<_FileDialog> {
-  /// The size the content is laid out for, before the whole is scaled to the
-  /// room the screen gives it.
-  static const _width = 560.0;
-  static const _height = 260.0;
-  static const _thumb = 148.0;
-
   /// A delete is under way: nothing else on the dialog answers meanwhile.
   bool _deleting = false;
 
@@ -146,217 +134,62 @@ class _FileDialogState extends ConsumerState<_FileDialog> {
     final folder = folders?.where((f) => f.id == _file.folderId).firstOrNull;
     final mayDelete = mayDeleteLibraryFile(_file, folder);
     final formats = DateTimeFormats.of(context);
-    final facts = <_Fact>[
-      _Fact(Icons.sd_storage_outlined, formatBytes(_file.fileSize)),
-      if (_file.slicedForModel case final model?)
-        _Fact(
-          Icons.print_outlined,
-          model,
-          warn: block == FilePrintBlock.wrongModel,
-        ),
-      if (_file.printTimeSeconds case final s?)
-        _Fact(Icons.schedule_rounded, formatSeconds(l10n, s)),
-      if (_file.filamentUsedGrams case final g?)
-        _Fact(Icons.scale_outlined, fmtGrams(g)),
-      if (_file.createdAt case final at?)
-        _Fact(Icons.event_outlined, formats.dateTime(at.toLocal())),
-    ];
-    return Dialog(
-      insetPadding: const EdgeInsets.all(DashSpace.md),
-      child: LayoutBuilder(
-        builder: (context, box) => SizedBox(
-          width: math.min(_width * widget.scale, box.maxWidth),
-          height: math.min(_height * widget.scale, box.maxHeight),
-          child: ScaleToFit(
-            minSize: const Size(_width, _height),
-            child: Padding(
-              padding: const EdgeInsets.all(DashSpace.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(DashSpace.md),
-                          child: LibraryThumbnail(
-                            fileId: _file.id,
-                            hasThumbnail: _file.thumbnailPath != null,
-                            size: _thumb,
-                          ),
-                        ),
-                        const SizedBox(width: DashSpace.lg),
-                        Expanded(child: _details(t, facts)),
-                      ],
-                    ),
-                  ),
-                  if (block != null) ...[
-                    Text(
-                      switch (block) {
-                        FilePrintBlock.printerGone =>
-                          l10n.controllerPrinterGone,
-                        FilePrintBlock.notSliced =>
-                          l10n.controllerFileReasonNotSliced,
-                        FilePrintBlock.wrongModel =>
-                          l10n.controllerFileReasonModel(
-                            _file.slicedForModel ?? '',
-                          ),
-                      },
-                      style: t.bodySoft.copyWith(color: t.warningInk),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: DashSpace.sm),
-                  ],
-                  _buttons(
-                    t,
-                    l10n,
-                    canPrint: block == null,
-                    mayDelete: mayDelete,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+    final wrongModel = block == FilePrintBlock.wrongModel;
+    return ControllerDetailDialog(
+      scale: widget.scale,
+      closeId: 'controller.files.dialog.close',
+      busy: _deleting,
+      thumbnail: LibraryThumbnail(
+        fileId: _file.id,
+        hasThumbnail: _file.thumbnailPath != null,
+        size: ControllerDetailDialog.thumbSize,
       ),
-    );
-  }
-
-  Widget _details(DashTokens t, List<_Fact> facts) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Text(
-                _file.displayName,
-                style: t.titleMd,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            logTag(
-              'controller.files.dialog.close',
-              IconButton(
-                tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-                color: t.textPrimary,
-                icon: const Icon(Icons.close_rounded),
-                onPressed: _deleting ? null : () => Navigator.of(context).pop(),
-              ),
-            ),
-          ],
+      title: _file.displayName,
+      facts: [
+        ControllerFact(Icons.sd_storage_outlined, formatBytes(_file.fileSize)),
+        if (_file.slicedForModel case final model?)
+          ControllerFact(
+            Icons.print_outlined,
+            model,
+            ink: wrongModel ? t.warningInk : null,
+            fill: wrongModel ? t.warning : null,
+          ),
+        if (_file.printTimeSeconds case final s?)
+          ControllerFact(Icons.schedule_rounded, formatSeconds(l10n, s)),
+        if (_file.filamentUsedGrams case final g?)
+          ControllerFact(Icons.scale_outlined, fmtGrams(g)),
+        if (_file.createdAt case final at?)
+          ControllerFact(Icons.event_outlined, formats.dateTime(at.toLocal())),
+      ],
+      reason: switch (block) {
+        null => null,
+        FilePrintBlock.printerGone => l10n.controllerPrinterGone,
+        FilePrintBlock.notSliced => l10n.controllerFileReasonNotSliced,
+        FilePrintBlock.wrongModel => l10n.controllerFileReasonModel(
+          _file.slicedForModel ?? '',
         ),
-        const SizedBox(height: DashSpace.sm),
-        Wrap(
-          spacing: DashSpace.sm,
-          runSpacing: DashSpace.sm,
-          children: [for (final fact in facts) _FactPill(fact)],
+      },
+      actions: [
+        if (mayDelete)
+          ControllerDialogAction(
+            id: 'controller.files.dialog.delete',
+            icon: Icons.delete_outline_rounded,
+            label: l10n.fmDelete,
+            tone: t.danger,
+            ink: t.dangerInk,
+            onPressed: _deleting ? null : _delete,
+          ),
+        ControllerDialogAction(
+          id: 'controller.files.dialog.print',
+          icon: Icons.print_rounded,
+          label: l10n.fmPrint,
+          tone: t.accentGreen,
+          ink: t.accentGreenInk,
+          onPressed: block == null && !_deleting
+              ? () => Navigator.of(context).pop(ControllerFileChoice.print)
+              : null,
         ),
       ],
-    );
-  }
-
-  Widget _buttons(
-    DashTokens t,
-    AppLocalizations l10n, {
-    required bool canPrint,
-    required bool mayDelete,
-  }) {
-    final style = controllerButtonStyle(
-      t,
-      minimumSize: const Size(0, controllerButtonHeight),
-    );
-    return Row(
-      children: [
-        if (mayDelete) ...[
-          Expanded(
-            child: logTag(
-              'controller.files.dialog.delete',
-              FilledButton.icon(
-                style: controllerButtonStyle(
-                  t,
-                  minimumSize: const Size(0, controllerButtonHeight),
-                  tone: t.danger,
-                  ink: t.dangerInk,
-                ),
-                onPressed: _deleting ? null : _delete,
-                icon: const Icon(Icons.delete_outline_rounded),
-                label: Text(l10n.fmDelete),
-              ),
-            ),
-          ),
-          const SizedBox(width: DashSpace.md),
-        ],
-        Expanded(
-          child: logTag(
-            'controller.files.dialog.print',
-            FilledButton.icon(
-              style: canPrint
-                  ? controllerButtonStyle(
-                      t,
-                      minimumSize: const Size(0, controllerButtonHeight),
-                      tone: t.accentGreen,
-                      ink: t.accentGreenInk,
-                    )
-                  : style,
-              onPressed: canPrint && !_deleting
-                  ? () => Navigator.of(context).pop(ControllerFileChoice.print)
-                  : null,
-              icon: const Icon(Icons.print_rounded),
-              label: Text(l10n.fmPrint),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// One thing known of the file: what it is told by, and its value.
-class _Fact {
-  const _Fact(this.icon, this.text, {this.warn = false});
-
-  final IconData icon;
-  final String text;
-
-  /// The model this printer cannot take, in the colour the tile's chip has.
-  final bool warn;
-}
-
-class _FactPill extends StatelessWidget {
-  const _FactPill(this.fact);
-
-  final _Fact fact;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final ink = fact.warn ? t.warningInk : t.textSecondary;
-    final radius = BorderRadius.circular(DashSpace.sm);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: DashSpace.sm,
-        vertical: DashSpace.xs,
-      ),
-      decoration: BoxDecoration(
-        color: fact.warn ? t.warning.withValues(alpha: 0.14) : t.subCard,
-        borderRadius: radius,
-        border: Border.all(
-          color: fact.warn ? t.warning.withValues(alpha: 0.5) : t.subCardBorder,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(fact.icon, size: DashSpace.lg, color: ink),
-          const SizedBox(width: DashSpace.xs),
-          Text(fact.text, style: t.monoLabel.copyWith(color: ink)),
-        ],
-      ),
     );
   }
 }
