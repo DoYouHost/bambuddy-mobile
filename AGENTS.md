@@ -373,6 +373,12 @@ do not stay silent because it was not part of the task.
   release), mirroring `.github/workflows/contract-tests.yml` and
   `tool/ci/seed_bambuddy.sh`. Write them to pass on both generations; use your
   own container names. Mocks only prove your reading of the contract.
+- **A button that writes to the server is proven by tests, not by a device
+  checklist.** Its widget test taps it with the real notifier and repository and
+  records the writes (`expectSentAsRecorded` in
+  [sent_writes.dart](test/contract/sent_writes.dart)); a contract test replays that
+  recording on the docker server and reads back what was stored. Mutate both sides
+  to watch each fail. Leave for the device only what a host test cannot see.
 - **The demo shows every feature.** A new gate or route family gets its demo
   routes and seed data in `lib/core/demo/demo_backend.dart` in the same branch,
   and the demo's reported server version must never be what hides a feature. Read
