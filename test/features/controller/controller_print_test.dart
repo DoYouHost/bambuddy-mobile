@@ -32,6 +32,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../contract/sent_writes.dart';
 import '../../helpers.dart';
 import '../queue/queue_form_harness.dart';
 
@@ -1648,6 +1649,40 @@ void main() {
 
       expect(find.text(pl.queueCostCenterLoadFailed), findsNothing);
       expect(submitButton(tester).onPressed, isNotNull);
+    });
+
+    // Recorded for `controller_prints_contract_test.dart` to replay on a live
+    // server: plate 2 of an archive that asked for its outcome, on a
+    // dual-nozzle printer, booked to a centre.
+    testWidgets('an archive reprinted from the controller sends this', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        printer: _h2d,
+        plates: _threePlates,
+        draft: archiveQueueDraft(
+          const Archive(
+            id: 77,
+            filename: 'cube.gcode.3mf',
+            status: 'completed',
+            printName: 'Cube',
+            slicedForModel: 'H2D',
+            plateId: 2,
+            confirmRequested: true,
+          ),
+        ),
+        extra: [
+          ...billing(() => [alice, workshop]),
+          queueOutcomeProvider.overrideWithValue(const AsyncData(true)),
+        ],
+      );
+      await send(tester);
+
+      expectSentAsRecorded(
+        'controller_reprint_archive',
+        writesOf(sentRequests),
+      );
     });
   });
 

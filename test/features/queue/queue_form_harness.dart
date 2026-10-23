@@ -52,6 +52,9 @@ Map<String, dynamic>? get capturedBody {
       : written.last.data as Map<String, dynamic>?;
 }
 
+/// Every request the form's repository sent, oldest first.
+List<RequestOptions> get sentRequests => _sent?.requests ?? const [];
+
 /// Preferences the form reads its remembered print options from, and writes
 /// them back to. Valid from [setUpQueueForm] onwards.
 late SharedPreferences queueFormPrefs;

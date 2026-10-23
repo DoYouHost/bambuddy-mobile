@@ -22,6 +22,7 @@ void main() {
     late ArchiveRepository archives;
     late int adminId;
     late int archiveId;
+    late List<int> probe;
 
     setUpAll(() async {
       admin = await authenticatedDio();
@@ -30,14 +31,14 @@ void main() {
       final file = (await LibraryRepository(
         admin,
       ).listFiles()).firstWhere((f) => f.filename == 'contract-probe.3mf');
-      final bytes = (await admin.get<List<int>>(
+      probe = (await admin.get<List<int>>(
         '${Endpoints.libraryFile(file.id)}/download',
         options: Options(responseType: ResponseType.bytes),
       )).data!;
       final uploaded = await admin.post<Map<String, dynamic>>(
         '${Endpoints.archives}upload',
         data: FormData.fromMap({
-          'file': MultipartFile.fromBytes(bytes, filename: 'reprint.3mf'),
+          'file': MultipartFile.fromBytes(probe, filename: 'reprint.3mf'),
         }),
       );
       archiveId = uploaded.data!['id'] as int;
@@ -109,6 +110,46 @@ void main() {
       );
       expect(status, 403);
       expect(block, ArchiveReprintBlock.noQueue);
+    });
+
+    test('reprint-own covers a print of one\'s own', () async {
+      final user = await contractUser(admin, [
+        Permissions.queueCreate,
+        Permissions.archivesReprintOwn,
+        'archives:create',
+        'archives:read_own',
+      ]);
+      final own =
+          (await user.dio.post<Map<String, dynamic>>(
+                '${Endpoints.archives}upload',
+                data: FormData.fromMap({
+                  'file': MultipartFile.fromBytes(probe, filename: 'own.3mf'),
+                }),
+              )).data!['id']
+              as int;
+      addTearDown(() => archives.delete(own, purgeStats: true));
+      // Read as the user sees it: the list the controller's Archive view shows.
+      final listed = (await ArchiveRepository(
+        user.dio,
+      ).list(limit: 50)).firstWhere((a) => a.id == own);
+      expect(listed.createdById, user.me.id);
+
+      final container = ProviderContainer(
+        overrides: [currentUserOverride(user.me)],
+      );
+      addTearDown(container.dispose);
+      await container.read(currentUserProvider.future);
+      expect(
+        container.read(archiveReprintBlockProvider(listed.createdById)),
+        isNull,
+      );
+      final res = await user.dio.post<Map<String, dynamic>>(
+        Endpoints.queue,
+        data: {'archive_id': own, 'manual_start': true},
+        options: Options(validateStatus: (_) => true),
+      );
+      expect(res.statusCode, 200, reason: '${res.data}');
+      await admin.delete<dynamic>(Endpoints.queueItem(res.data!['id'] as int));
     });
 
     test('queue:create with reprint-all is let through', () async {

@@ -1,8 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:bambuddy_mobile/core/ams/color_names.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
+import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
+import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
+import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:bambuddy_mobile/data/queue_repository.dart';
+import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/features/controller/controller_prints.dart';
 import 'package:bambuddy_mobile/features/controller/controller_queue.dart';
 import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
@@ -13,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../contract/sent_writes.dart';
 import '../../helpers.dart';
 import '../queue/queue_fakes.dart';
 import 'controller_harness.dart';
@@ -24,7 +33,25 @@ QueueItem _job(
   String status = 'pending',
   List<Map<String, Object?>> variants = const [],
   int? createdById,
-}) => QueueItem.fromJson({
+}) => QueueItem.fromJson(
+  _jobJson(
+    id,
+    printerId: printerId,
+    targetModel: targetModel,
+    status: status,
+    variants: variants,
+    createdById: createdById,
+  ),
+);
+
+Map<String, dynamic> _jobJson(
+  int id, {
+  int? printerId = controllerTestPrinterId,
+  String? targetModel,
+  String status = 'pending',
+  List<Map<String, Object?>> variants = const [],
+  int? createdById,
+}) => {
   ...readFixture('queue_item.json') as Map<String, dynamic>,
   'id': id,
   'archive_name': 'Job $id',
@@ -33,7 +60,7 @@ QueueItem _job(
   'status': status,
   'variants': variants,
   'created_by_id': createdById,
-});
+};
 
 const _alternatives = [
   {
@@ -315,6 +342,92 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(writing.refreshes, 1);
       expect(find.text('Job 11'), findsOneWidget);
+    });
+  });
+
+  /// The requests Start really sends, through the app's own queue notifier and
+  /// repository, recorded for `controller_prints_contract_test.dart` to replay
+  /// on a live server.
+  group('what Start sends', () {
+    Future<void> start(
+      WidgetTester tester,
+      Map<String, dynamic> job,
+      String name,
+    ) async {
+      final dio = testDio();
+      final log = captureRequests(dio);
+      dio.httpClientAdapter = ScriptedAdapter(
+        (o) => ResponseBody.fromString(
+          jsonEncode(
+            o.method == 'GET' && o.path == Endpoints.queue
+                ? (o.queryParameters['status'] == 'pending' ? [job] : const [])
+                : const <String, Object?>{},
+          ),
+          200,
+          headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType],
+          },
+        ),
+      );
+      await pumpControllerScreen(
+        tester,
+        model: 'X1C',
+        overrides: [
+          fakeServerProfileOverride(),
+          queueRepositoryProvider.overrideWithValue(QueueRepository(dio)),
+          requirePlateClearProvider.overrideWithValue(const AsyncData(false)),
+          printRequirementsProvider.overrideWith(
+            (ref, key) async => const [
+              FilamentRequirement(slotId: 1, type: 'PLA', color: '#FF0000'),
+            ],
+          ),
+          mappingStatusProvider.overrideWith(
+            (ref, printerId) async => const PrinterStatus(
+              id: controllerTestPrinterId,
+              ams: [
+                AmsUnit(
+                  id: 0,
+                  trays: [
+                    AmsTray(id: 0, trayType: 'PETG', trayColor: '00FF00FF'),
+                    AmsTray(id: 1, trayType: 'PLA', trayColor: 'FF0000FF'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          mappingInventoryRemainProvider.overrideWith(
+            (ref, printerId) async => (
+              grams: const <int, double>{},
+              spools: const <int, SlotSpool>{},
+            ),
+          ),
+          mappingColorCatalogProvider.overrideWith(
+            (ref) async => ColorCatalog.empty,
+          ),
+          mappingFilamentNamesProvider.overrideWith((ref) async => const {}),
+        ],
+      );
+      await openPrintsView(tester, ControllerPrintsView.queue);
+      await tester.tap(find.text('Job ${job['id']}'));
+      await settle(tester);
+      await tester.tap(byLogId('controller.queue.dialog.start'));
+      await settle(tester);
+      await tester.tap(byLogId('queue_mapping.confirm'));
+      await settle(tester);
+
+      expectSentAsRecorded(name, writesOf(log.requests));
+    }
+
+    testWidgets('a job pinned here', (tester) async {
+      await start(tester, _jobJson(11), 'controller_start_pinned');
+    });
+
+    testWidgets('a job for this model', (tester) async {
+      await start(
+        tester,
+        _jobJson(12, printerId: null, targetModel: 'X1C'),
+        'controller_start_for_model',
+      );
     });
   });
 }

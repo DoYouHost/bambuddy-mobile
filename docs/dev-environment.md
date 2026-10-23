@@ -133,6 +133,13 @@ publishing `FINISH`. A test that moves the seeded printer is named to sort last
 (`ws_…`), since the files run in name order. Prove a new test bites: invert the
 detection it relies on and watch it fail.
 
+What a button sends is checked end to end without a device: its widget test
+records the writes into `test/fixtures/sent/<name>.json` through
+[sent_writes.dart](../test/contract/sent_writes.dart) (`flutter test
+--update-goldens` rewrites the file), and a contract test replays that file on the
+docker server and reads back what the server stored. A screen that starts sending
+something else fails its widget test until the file is rewritten and replayed.
+
 ## The server reference clone
 
 `reference/bambuddy` is a shallow clone of the server, excluded through
