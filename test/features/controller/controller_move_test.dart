@@ -401,9 +401,7 @@ void main() {
       await pump(tester, _status(state: 'RUNNING'));
 
       for (final id in ['controller.jog_x_plus', 'controller.jog_z_up']) {
-        final button = tester.widget<FilledButton>(
-          find.descendant(of: byLogId(id), matching: find.byType(FilledButton)),
-        );
+        final button = buttonAt(tester, id);
         expect(button.onPressed, isNull, reason: '$id is locked in a print');
         final fill = button.style?.backgroundColor?.resolve({
           WidgetState.disabled,

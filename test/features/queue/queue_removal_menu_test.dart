@@ -1,4 +1,3 @@
-import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
@@ -10,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import 'queue_fakes.dart';
 
 /// The queue's one removal button, and which of the server's three routes it
 /// sends the user down.
@@ -26,7 +26,7 @@ void main() {
     'status': 'printing',
   });
 
-  Widget screen(_RecordingQueue queue, {required String printerState}) =>
+  Widget screen(FakeQueue queue, {required String printerState}) =>
       ProviderScope(
         overrides: [
           queueProvider.overrideWith(() => queue),
@@ -45,7 +45,7 @@ void main() {
     tester,
   ) async {
     // Exactly the reporter's state: item `printing`, printer FAILED.
-    final queue = _RecordingQueue([printingItem()]);
+    final queue = FakeQueue([printingItem()]);
     await tester.pumpWidget(screen(queue, printerState: 'FAILED'));
     await tester.pumpAndSettle();
 
@@ -75,7 +75,7 @@ void main() {
   testWidgets('a print actually running warns that it will be aborted', (
     tester,
   ) async {
-    final queue = _RecordingQueue([printingItem()]);
+    final queue = FakeQueue([printingItem()]);
     await tester.pumpWidget(screen(queue, printerState: 'RUNNING'));
     await tester.pumpAndSettle();
 
@@ -94,7 +94,7 @@ void main() {
   });
 
   testWidgets('backing out of the confirmation sends nothing', (tester) async {
-    final queue = _RecordingQueue([printingItem()]);
+    final queue = FakeQueue([printingItem()]);
     await tester.pumpWidget(screen(queue, printerState: 'RUNNING'));
     await tester.pumpAndSettle();
 
@@ -116,7 +116,7 @@ void main() {
       ...readFixture('queue_item.json') as Map<String, dynamic>,
       'status': 'pending',
     });
-    final queue = _RecordingQueue([pending]);
+    final queue = FakeQueue([pending]);
     await tester.pumpWidget(screen(queue, printerState: 'IDLE'));
     await tester.pumpAndSettle();
 
@@ -132,7 +132,7 @@ void main() {
     tester,
   ) async {
     // What the reporter saw was "server returned error 400", twice.
-    final queue = _RecordingQueue([printingItem()])
+    final queue = FakeQueue([printingItem()])
       ..stopFailure = const ApiException(
         AppErrorCode.badResponse,
         statusCode: 400,
@@ -152,41 +152,6 @@ void main() {
     expect(find.textContaining(pl.queueRemovalStatusChanged), findsOneWidget);
     expect(find.textContaining('400'), findsNothing);
   });
-}
-
-/// Queue that records which route the screen chose instead of sending one.
-class _RecordingQueue extends QueueNotifier {
-  _RecordingQueue(this._items);
-
-  final List<QueueItem> _items;
-  final List<int> stopped = [];
-  final List<int> cancelled = [];
-  final List<int> deleted = [];
-
-  /// What `/stop` comes back with, when a test wants it refused.
-  AppApiException? stopFailure;
-
-  @override
-  Future<List<QueueItem>> build() async => _items;
-
-  @override
-  Future<ActionOutcome> stop(int itemId) async {
-    stopped.add(itemId);
-    final failure = stopFailure;
-    return failure == null ? ActionOutcome.ok : ActionOutcome.failed(failure);
-  }
-
-  @override
-  Future<ActionOutcome> cancel(int itemId) async {
-    cancelled.add(itemId);
-    return ActionOutcome.ok;
-  }
-
-  @override
-  Future<ActionOutcome> delete(int itemId, {String logId = ''}) async {
-    deleted.add(itemId);
-    return ActionOutcome.ok;
-  }
 }
 
 /// One printer whose live state the test dictates — the half of the decision

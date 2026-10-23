@@ -2568,6 +2568,22 @@ class DemoBackend {
       slicedForModel: 'P1S',
       errorMessage: kPreviousFailureGate,
     ),
+    // For any X1C: no printer on it until the scheduler picks one, so the
+    // controller's Queue view lists it beside the X1 Carbon's own job.
+    _queueItem(
+      id: 107,
+      printerId: null,
+      targetModel: 'X1C',
+      position: 7,
+      name: 'Cable chain links ×20',
+      status: 'pending',
+      timeSec: 3300,
+      grams: 18.6,
+      type: 'PLA',
+      color: '#2C7FE0',
+      createdDaysAgo: 0,
+      libraryFileId: 5,
+    ),
   ];
 
   /// Demo filaments "loaded on other printers of the model" — options for the
@@ -2607,6 +2623,7 @@ class DemoBackend {
   Map<String, dynamic> _queueItem({
     required int id,
     required int? printerId,
+    String? targetModel,
     required int position,
     required String name,
     required String status,
@@ -2634,6 +2651,7 @@ class DemoBackend {
     'batch_id': batchId,
     'batch_name': batchName,
     'printer_id': printerId,
+    'target_model': targetModel,
     'archive_id': null,
     'library_file_id': libraryFileId,
     'position': position,

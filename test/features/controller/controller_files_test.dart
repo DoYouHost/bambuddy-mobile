@@ -5,24 +5,20 @@ import 'package:bambuddy_mobile/core/format/duration_format.dart';
 import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_folder.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
-import 'package:bambuddy_mobile/core/models/printer.dart';
-import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/library_repository.dart';
-import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_file_dialog.dart';
 import 'package:bambuddy_mobile/features/controller/controller_files.dart';
 import 'package:bambuddy_mobile/features/controller/controller_print.dart';
 import 'package:bambuddy_mobile/features/controller/controller_screen.dart';
-import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'controller_harness.dart';
 
 /// A library the test drives: a fixed tree, and a record of what was asked of it.
 class _Library extends FileManagerNotifier {
@@ -230,38 +226,13 @@ void main() {
     Size size = const Size(844, 390),
     List<Override> extra = const [],
   }) async {
-    useLogicalWindow(tester, size);
-    mockImmersiveChannels(tester);
     library = lib ?? _Library();
-    SharedPreferences.setMockInitialValues({});
-    final sp = await SharedPreferences.getInstance();
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(sp),
-          fixedDashboardOverride(
-            DashboardState(
-              printers: [
-                PrinterWithStatus(
-                  printer: Printer(id: 1, name: 'X1C Warsztat', model: model),
-                  status: const PrinterStatus(
-                    id: 1,
-                    connected: true,
-                    state: 'IDLE',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          inertStatusesOverride,
-          inertSmartPlugsOverride,
-          fileManagerProvider.overrideWith(() => library),
-          ...extra,
-        ],
-        child: plApp(const ControllerScreen(printerId: 1)),
-      ),
+    await pumpControllerScreen(
+      tester,
+      model: model,
+      size: size,
+      overrides: [fileManagerProvider.overrideWith(() => library), ...extra],
     );
-    await settle(tester);
   }
 
   Future<void> select(WidgetTester tester, ControllerTab tab) async {
@@ -577,11 +548,6 @@ void main() {
       refreshGate: refreshGate,
     );
 
-    FilledButton button(WidgetTester tester, String id) =>
-        tester.widget<FilledButton>(
-          find.descendant(of: byLogId(id), matching: find.byType(FilledButton)),
-        );
-
     testWidgets('a failed step into a folder says so, not the old folder', (
       tester,
     ) async {
@@ -608,7 +574,7 @@ void main() {
       await tester.pump();
 
       expect(library.calls, ['open 1']);
-      expect(button(tester, 'controller.files.up').onPressed, isNull);
+      expect(buttonAt(tester, 'controller.files.up').onPressed, isNull);
 
       gate.complete();
       await settle(tester);
@@ -633,7 +599,7 @@ void main() {
 
       await tester.tap(byLogId('controller.files.up'));
       await tester.pump();
-      expect(button(tester, 'controller.files.up').onPressed, isNull);
+      expect(buttonAt(tester, 'controller.files.up').onPressed, isNull);
       await tester.tap(byLogId('controller.files.up'), warnIfMissed: false);
       await tester.pump();
 
@@ -651,7 +617,7 @@ void main() {
       await pump(tester, lib: _Library(startFolderId: 7));
       await openFiles(tester);
 
-      expect(button(tester, 'controller.files.up').onPressed, isNotNull);
+      expect(buttonAt(tester, 'controller.files.up').onPressed, isNotNull);
 
       await tester.tap(byLogId('controller.files.up'));
       await settle(tester);
@@ -663,7 +629,7 @@ void main() {
       await pump(tester, lib: _Library(failWith: Exception('down')));
       await openFiles(tester);
 
-      expect(button(tester, 'controller.files.refresh').onPressed, isNull);
+      expect(buttonAt(tester, 'controller.files.refresh').onPressed, isNull);
     });
 
     testWidgets('a refresh shows its progress and then is over', (
@@ -678,7 +644,7 @@ void main() {
       await tester.pump();
 
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
-      expect(button(tester, 'controller.files.refresh').onPressed, isNull);
+      expect(buttonAt(tester, 'controller.files.refresh').onPressed, isNull);
       // The listing stays while it is refreshed.
       expect(find.text('benchy.gcode.3mf'), findsOneWidget);
 
@@ -686,7 +652,7 @@ void main() {
       await settle(tester);
 
       expect(find.byType(LinearProgressIndicator), findsNothing);
-      expect(button(tester, 'controller.files.refresh').onPressed, isNotNull);
+      expect(buttonAt(tester, 'controller.files.refresh').onPressed, isNotNull);
     });
   });
 
@@ -1217,11 +1183,6 @@ void main() {
       };
     });
 
-    FilledButton button(WidgetTester tester, String id) =>
-        tester.widget<FilledButton>(
-          find.descendant(of: byLogId(id), matching: find.byType(FilledButton)),
-        );
-
     Future<void> tapUpload(WidgetTester tester) async {
       await tester.tap(byLogId('controller.files.upload'));
       await settle(tester);
@@ -1292,7 +1253,7 @@ void main() {
         'controller.files.upload',
         'controller.files.refresh',
       ]) {
-        expect(button(tester, id).onPressed, isNull, reason: id);
+        expect(buttonAt(tester, id).onPressed, isNull, reason: id);
       }
       // Nor does a file or a folder open under the bar.
       await tester.tap(find.text('benchy.gcode.3mf'), warnIfMissed: false);
@@ -1303,7 +1264,7 @@ void main() {
       await settle(tester);
 
       expect(find.byType(LinearProgressIndicator), findsNothing);
-      expect(button(tester, 'controller.files.upload').onPressed, isNotNull);
+      expect(buttonAt(tester, 'controller.files.upload').onPressed, isNotNull);
     });
 
     testWidgets('a second tap while the picker is open starts no second '
@@ -1332,7 +1293,7 @@ void main() {
 
       expect(repo.uploads, isEmpty);
       expect(library.calls, isNot(contains('refresh')));
-      expect(button(tester, 'controller.files.upload').onPressed, isNotNull);
+      expect(buttonAt(tester, 'controller.files.upload').onPressed, isNotNull);
     });
 
     testWidgets('a refused upload says so, unlocks and refreshes nothing', (
@@ -1349,7 +1310,7 @@ void main() {
       expect(find.byType(SnackBar), findsOneWidget);
       expect(library.calls, isNot(contains('refresh')));
       expect(find.byType(LinearProgressIndicator), findsNothing);
-      expect(button(tester, 'controller.files.upload').onPressed, isNotNull);
+      expect(buttonAt(tester, 'controller.files.upload').onPressed, isNotNull);
     });
 
     for (final (name, folder) in const [
@@ -1378,7 +1339,7 @@ void main() {
           ),
         );
 
-        expect(button(tester, 'controller.files.upload').onPressed, isNull);
+        expect(buttonAt(tester, 'controller.files.upload').onPressed, isNull);
         expect(find.byTooltip(pl.controllerFilesReadOnly), findsOneWidget);
         expect(picker.opened, 0);
       });

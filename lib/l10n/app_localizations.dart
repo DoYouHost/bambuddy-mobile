@@ -13364,6 +13364,30 @@ abstract class AppLocalizations {
   /// **'Prints'**
   String get controllerTabPrints;
 
+  /// Header of the controller's Queue view: how many jobs this printer's queue holds
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No jobs} =1{1 job} other{{count} jobs}}'**
+  String controllerQueueCount(int count);
+
+  /// The controller's Queue view when nothing is queued for this printer, neither pinned to it nor for any printer of its model
+  ///
+  /// In en, this message translates to:
+  /// **'No jobs wait for this printer'**
+  String get controllerQueueEmpty;
+
+  /// Why Start is off in a queued job's dialog in the controller: the job has printer alternatives, so the server picks the printer when it dispatches
+  ///
+  /// In en, this message translates to:
+  /// **'This job has printer alternatives and starts on the first free one.'**
+  String get controllerQueueCrossModel;
+
+  /// Why Start is off in a queued job's dialog in the controller: the account may not start this job
+  ///
+  /// In en, this message translates to:
+  /// **'Your account cannot start this job.'**
+  String get controllerQueueNoStart;
+
   /// Chip on a file tile in the controller's Files tab: the file is a model, not sliced G-code, so it cannot be printed as it is
   ///
   /// In en, this message translates to:

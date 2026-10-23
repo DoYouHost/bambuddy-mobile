@@ -154,10 +154,16 @@ class ControllerDetailDialog extends StatelessWidget {
           ],
         ),
         const SizedBox(height: DashSpace.sm),
-        Wrap(
-          spacing: DashSpace.sm,
-          runSpacing: DashSpace.sm,
-          children: [for (final fact in facts) _FactPill(fact)],
+        // The room left under the title, scrolled when a job carries more
+        // facts than it holds beside a two-line reason.
+        Expanded(
+          child: SingleChildScrollView(
+            child: Wrap(
+              spacing: DashSpace.sm,
+              runSpacing: DashSpace.sm,
+              children: [for (final fact in facts) _FactPill(fact)],
+            ),
+          ),
         ),
       ],
     );

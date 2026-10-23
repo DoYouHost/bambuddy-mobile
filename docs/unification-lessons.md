@@ -44,6 +44,10 @@ is the map and the decisions.
 | `dateTimeFromJson`: server times are converted with `toLocal()` once, here, and nowhere else | [json_utils.dart](../lib/core/models/json_utils.dart) |
 | `detachFrom`, the handles of a flow that outlives its widget | [app_context.dart](../lib/core/app_context.dart), see [riverpod-traps.md](riverpod-traps.md) §6 |
 | `TimerFactory`, the injectable timer | [offline_debounce.dart](../lib/core/printers/offline_debounce.dart) |
+| `startQueueItem`, `removeFromQueue`: a job's Start and Remove, from the queue screen and the controller alike | [queue_actions.dart](../lib/features/queue/queue_actions.dart) |
+| `QueueThumbnail`, `queueStatusLabel`, `queueStagedLabel`, `queueTargetLabel`; `pollQueue` (in `queue_providers.dart`) for a screen that shows the queue outside its tab | [queue_item_view.dart](../lib/features/queue/queue_item_view.dart) |
+| The controller's list tiles, header, chip and failure message; the frame of an item's dialog | [controller_list_parts.dart](../lib/features/controller/controller_list_parts.dart), [controller_detail_dialog.dart](../lib/features/controller/controller_detail_dialog.dart) |
+| `buttonAt`, `useLogicalWindow`, `mockImmersiveChannels`, `landscapeRedmi` / `landscapePixel`; `FakeQueue`; `pumpControllerScreen` | [test/helpers.dart](../test/helpers.dart), [queue_fakes.dart](../test/features/queue/queue_fakes.dart), [controller_harness.dart](../test/features/controller/controller_harness.dart) |
 
 ## Traps that cost real debugging
 

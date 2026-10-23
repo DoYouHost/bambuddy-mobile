@@ -8131,6 +8131,29 @@ class AppLocalizationsFr extends AppLocalizations {
   String get controllerTabPrints => 'Impressions';
 
   @override
+  String controllerQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tâches',
+      one: '1 tâche',
+      zero: 'Aucune tâche',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerQueueEmpty => 'Aucune tâche n\'attend cette imprimante';
+
+  @override
+  String get controllerQueueCrossModel =>
+      'Cette tâche a des imprimantes alternatives et démarre sur la première libre.';
+
+  @override
+  String get controllerQueueNoStart =>
+      'Votre compte ne peut pas démarrer cette tâche.';
+
+  @override
   String get controllerFileNotSliced => 'Non découpé';
 
   @override

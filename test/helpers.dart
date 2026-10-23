@@ -164,6 +164,16 @@ Future<ProviderContainer> pumpWear(
 Widget wearShapeBuilder(BuildContext context, Widget? child) =>
     WearShapeScope(child: child!);
 
+/// The button the diagnostic [id] tags, of any [ButtonStyleButton] kind — a
+/// `FilledButton.icon` included, whose private type `find.byType(FilledButton)`
+/// does not match.
+ButtonStyleButton buttonAt(WidgetTester tester, String id) => tester.widget(
+  find.descendant(
+    of: byLogId(id),
+    matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+  ),
+);
+
 /// A window of [size] logical pixels at density 1, given back with the test.
 void useLogicalWindow(WidgetTester tester, Size size) {
   tester.view.devicePixelRatio = 1;

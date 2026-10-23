@@ -118,7 +118,7 @@ and the list rebuilds on every WebSocket refresh.
   `ScaffoldMessengerState`; the container outlives every screen, and each
   `providers.read(...)` stays fresh at the point of use, where a snapshot taken
   before the sheet would be stale. Used by the queue start flow
-  (`_startQueueItem`, [queue_screen.dart](../lib/features/queue/queue_screen.dart))
+  (`startQueueItem`, [queue_actions.dart](../lib/features/queue/queue_actions.dart))
   and the other detached flows; do not "fix" one back to `ref`.
 - **A helper called after the request returns takes the object, not `ref`**:
   `recordPlateClearRefusal(OfflinePlateClearNotifier, String?)` in

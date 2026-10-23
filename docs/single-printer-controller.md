@@ -246,3 +246,36 @@ Open points:
 - **Device check.** Nothing here was checked on a phone: the maintainer should try the
   file dialog, a search, an upload, and Print on a billing server, a multi-plate file,
   a dual-nozzle printer and a manual filament mapping.
+
+## 8. Queue and Archive views
+
+The Prints tab's other two views. Editing, reordering and picking several jobs,
+and an archive's delete, favourite, verdict, media, search and filters, stay on the
+phone screens and the web: they are not things done at the printer (maintainer,
+2026-10-23).
+
+### Queue
+
+- **What is listed** is what the server's own per-printer filter returns
+  (`print_queue.py::list_queue`): jobs pinned to this printer, and jobs with no
+  printer whose `target_model` is its model, compared case-insensitively. A
+  cross-model job (#671) matches by its first candidate only, which the server
+  mirrors onto `target_model`; one whose first candidate is another model is not
+  listed, as on the printer card. `queueForPrinter` in `controller_queue.dart`.
+- **The number on a tile** is its place in this printer's list. The server's
+  `position` numbers the whole queue and defaults to 1.
+- **Refreshed** every 10 s while the view is shown, as the queue screen is, and
+  once the view has been built (`pollQueue`: a refresh writes the provider before
+  it awaits, and the view opens mid-build).
+- **Start and Remove** are the queue screen's flows (`queue_actions.dart`). Start
+  puts this printer on a job that has none, so the printer picker never opens; the
+  mapping dialog takes the body's scale. Remove follows `queueRemovalFor`:
+  cancelling a waiting job goes straight through, as on the queue screen.
+- **Start is off, with the reason**, for a printer gone from the roster, for a
+  cross-model job (the server refuses a printer on it, and a bare start would let
+  the scheduler run it elsewhere), and where `mayStartQueueItemProvider` says no.
+  That gate is fed the job's own printer, never this one: an ownerless job for the
+  model is one an update-own user may not put a printer on (403), so it is not
+  theirs to start.
+- The job on the plate offers no actions: Stop is on Overview.
+

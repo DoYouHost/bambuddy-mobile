@@ -5,7 +5,6 @@ import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_screen.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -136,14 +135,6 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    ButtonStyleButton button(WidgetTester tester, String label) =>
-        tester.widget<ButtonStyleButton>(
-          find.ancestor(
-            of: find.text(label),
-            matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
-          ),
-        );
-
     testWidgets('someone else\'s print is off for a reprint-own user, '
         'and says why', (tester) async {
       await openSheet(
@@ -151,8 +142,8 @@ void main() {
         user({Permissions.queueCreate, Permissions.archivesReprintOwn}),
       );
 
-      expect(button(tester, pl.archiveReprint).onPressed, isNull);
-      expect(button(tester, pl.archiveAddToQueue).onPressed, isNull);
+      expect(buttonAt(tester, 'archive.reprint').onPressed, isNull);
+      expect(buttonAt(tester, 'archive.add_to_queue').onPressed, isNull);
       expect(find.text(pl.archiveReprintNotAllowed), findsOneWidget);
     });
 
@@ -164,8 +155,8 @@ void main() {
         user({Permissions.queueCreate, Permissions.archivesReprintAll}),
       );
 
-      expect(button(tester, pl.archiveReprint).onPressed, isNotNull);
-      expect(button(tester, pl.archiveAddToQueue).onPressed, isNotNull);
+      expect(buttonAt(tester, 'archive.reprint').onPressed, isNotNull);
+      expect(buttonAt(tester, 'archive.add_to_queue').onPressed, isNotNull);
       expect(find.text(pl.archiveReprintNotAllowed), findsNothing);
       expect(find.text(pl.archiveReprintNoQueue), findsNothing);
     });

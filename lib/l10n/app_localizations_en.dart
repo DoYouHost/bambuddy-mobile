@@ -7960,6 +7960,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controllerTabPrints => 'Prints';
 
   @override
+  String controllerQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jobs',
+      one: '1 job',
+      zero: 'No jobs',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerQueueEmpty => 'No jobs wait for this printer';
+
+  @override
+  String get controllerQueueCrossModel =>
+      'This job has printer alternatives and starts on the first free one.';
+
+  @override
+  String get controllerQueueNoStart => 'Your account cannot start this job.';
+
+  @override
   String get controllerFileNotSliced => 'Not sliced';
 
   @override

@@ -5,6 +5,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'controller_controls.dart';
 import 'controller_files.dart';
+import 'controller_queue.dart';
 
 /// The three views of the Prints tab, chosen on its rail.
 enum ControllerPrintsView {
@@ -64,7 +65,7 @@ class ControllerPrints extends StatelessWidget {
         Expanded(
           child: switch (view) {
             ControllerPrintsView.files => ControllerFiles(printerId: printerId),
-            ControllerPrintsView.queue ||
+            ControllerPrintsView.queue => ControllerQueue(printerId: printerId),
             ControllerPrintsView.archive => const SizedBox.shrink(),
           },
         ),

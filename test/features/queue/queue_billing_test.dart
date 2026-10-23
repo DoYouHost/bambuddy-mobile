@@ -148,10 +148,6 @@ void main() {
     'cost_center_id': costCenter,
   });
 
-  FilledButton submit(WidgetTester tester, String id) => tester.widget(
-    find.descendant(of: byLogId(id), matching: find.byType(FilledButton)),
-  );
-
   Future<void> pick(WidgetTester tester, String name) async {
     await tester.ensureVisible(_costCenterField);
     await tester.tap(_costCenterField);
@@ -391,7 +387,7 @@ void main() {
 
       expect(find.text(pl.queueBillingCostCentersRefused), findsOneWidget);
       expect(_costCenterField, findsNothing);
-      expect(submit(tester, 'queue_create.save').onPressed, isNull);
+      expect(buttonAt(tester, 'queue_create.save').onPressed, isNull);
     });
 
     testWidgets('a user with no printable center is told to ask', (
@@ -400,7 +396,7 @@ void main() {
       await pump(tester, centers: () => const []);
 
       expect(find.text(pl.queueBillingNoCostCenter), findsOneWidget);
-      expect(submit(tester, 'queue_create.save').onPressed, isNull);
+      expect(buttonAt(tester, 'queue_create.save').onPressed, isNull);
     });
 
     testWidgets('an item that has a center still saves, without resending it', (
@@ -409,7 +405,7 @@ void main() {
       await pump(tester, item: queued(costCenter: 3), centers: () => null);
 
       expect(find.text(pl.queueBillingCostCentersRefused), findsNothing);
-      expect(submit(tester, 'queue_edit.save').onPressed, isNotNull);
+      expect(buttonAt(tester, 'queue_edit.save').onPressed, isNotNull);
 
       await submitQueueForm(tester, edit: true);
 
@@ -420,7 +416,7 @@ void main() {
       await pump(tester, item: queued(), centers: () => null);
 
       expect(find.text(pl.queueBillingCostCentersRefused), findsOneWidget);
-      expect(submit(tester, 'queue_edit.save').onPressed, isNull);
+      expect(buttonAt(tester, 'queue_edit.save').onPressed, isNull);
     });
 
     testWidgets('a failed read offers to try again', (tester) async {
@@ -434,13 +430,13 @@ void main() {
       );
 
       expect(find.text(pl.queueCostCenterLoadFailed), findsOneWidget);
-      expect(submit(tester, 'queue_create.save').onPressed, isNull);
+      expect(buttonAt(tester, 'queue_create.save').onPressed, isNull);
 
       await tester.tap(byLogId('queue_edit.cost_center_retry'));
       await tester.pumpAndSettle();
 
       expect(_costCenterField, findsOneWidget);
-      expect(submit(tester, 'queue_create.save').onPressed, isNotNull);
+      expect(buttonAt(tester, 'queue_create.save').onPressed, isNotNull);
     });
   });
 
@@ -462,13 +458,13 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(submit(tester, 'queue_create.save').onPressed, isNull);
+    expect(buttonAt(tester, 'queue_create.save').onPressed, isNull);
     expect(find.text(pl.queueBillingNoCostCenter), findsNothing);
     expect(find.text(pl.queueBillingCostCentersRefused), findsNothing);
 
     list.complete([alice]);
     await tester.pumpAndSettle();
-    expect(submit(tester, 'queue_create.save').onPressed, isNotNull);
+    expect(buttonAt(tester, 'queue_create.save').onPressed, isNotNull);
   });
 
   testWidgets('a server without UI flags waits for its settings', (
@@ -490,13 +486,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(submit(tester, 'queue_create.save').onPressed, isNull);
+    expect(buttonAt(tester, 'queue_create.save').onPressed, isNull);
 
     settings.complete({'billing_enabled': true});
     await tester.pumpAndSettle();
 
     expect(_costCenterField, findsOneWidget);
-    expect(submit(tester, 'queue_create.save').onPressed, isNotNull);
+    expect(buttonAt(tester, 'queue_create.save').onPressed, isNotNull);
   });
 
   testWidgets('submit waits for the flag, without flashing the note', (
@@ -511,13 +507,13 @@ void main() {
     );
     await tester.pump();
 
-    expect(submit(tester, 'queue_create.save').onPressed, isNull);
+    expect(buttonAt(tester, 'queue_create.save').onPressed, isNull);
     expect(find.text(pl.queueBillingNoCostCenter), findsNothing);
     expect(find.text(pl.queueBillingCostCentersRefused), findsNothing);
 
     flags.complete({'billing_enabled': false});
     await tester.pumpAndSettle();
-    expect(submit(tester, 'queue_create.save').onPressed, isNotNull);
+    expect(buttonAt(tester, 'queue_create.save').onPressed, isNotNull);
   });
 
   testWidgets('a job with a cost center does not wait for the flag', (
@@ -536,7 +532,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(submit(tester, 'queue_edit.save').onPressed, isNotNull);
+    expect(buttonAt(tester, 'queue_edit.save').onPressed, isNotNull);
   });
 
   test('an action outside a build waits for the answer', () async {

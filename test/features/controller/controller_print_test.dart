@@ -457,15 +457,11 @@ void main() {
     testWidgets('the plate row stops at both ends', (tester) async {
       await pump(tester, plates: _threePlates);
 
-      FilledButton button(String id) => tester.widget<FilledButton>(
-        find.descendant(of: byLogId(id), matching: find.byType(FilledButton)),
-      );
-
-      expect(button('controller.print.plate.less').onPressed, isNull);
+      expect(buttonAt(tester, 'controller.print.plate.less').onPressed, isNull);
       await tester.tap(byLogId('controller.print.plate.more'));
       await tester.tap(byLogId('controller.print.plate.more'));
       await tester.pump();
-      expect(button('controller.print.plate.more').onPressed, isNull);
+      expect(buttonAt(tester, 'controller.print.plate.more').onPressed, isNull);
     });
 
     testWidgets('a gap in the plate numbers is stepped over', (tester) async {

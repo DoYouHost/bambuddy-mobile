@@ -1,0 +1,274 @@
+import 'package:bambuddy_mobile/core/models/current_user.dart';
+import 'package:bambuddy_mobile/core/models/queue_item.dart';
+import 'package:bambuddy_mobile/features/controller/controller_prints.dart';
+import 'package:bambuddy_mobile/features/controller/controller_queue.dart';
+import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
+import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
+import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
+import 'package:bambuddy_mobile/providers.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../../helpers.dart';
+import '../queue/queue_fakes.dart';
+import 'controller_harness.dart';
+
+QueueItem _job(
+  int id, {
+  int? printerId = controllerTestPrinterId,
+  String? targetModel,
+  String status = 'pending',
+  List<Map<String, Object?>> variants = const [],
+  int? createdById,
+}) => QueueItem.fromJson({
+  ...readFixture('queue_item.json') as Map<String, dynamic>,
+  'id': id,
+  'archive_name': 'Job $id',
+  'printer_id': printerId,
+  'target_model': targetModel,
+  'status': status,
+  'variants': variants,
+  'created_by_id': createdById,
+});
+
+const _alternatives = [
+  {
+    'library_file_id': 1,
+    'filename': 'a.3mf',
+    'target_model': 'P1S',
+    'position': 0,
+  },
+  {
+    'library_file_id': 2,
+    'filename': 'b.3mf',
+    'target_model': 'X1C',
+    'position': 1,
+  },
+];
+
+void main() {
+  group('queueForPrinter', () {
+    List<int> ids(List<QueueItem> items, {String? model = 'P1S'}) => [
+      for (final i in queueForPrinter(items, printerId: 1, model: model)) i.id,
+    ];
+
+    test('keeps the jobs pinned to it and those for its model', () {
+      expect(
+        ids([
+          _job(1),
+          _job(2, printerId: null, targetModel: 'P1S'),
+          _job(3, printerId: 2),
+          _job(4, printerId: null, targetModel: 'X1C'),
+        ]),
+        [1, 2],
+      );
+    });
+
+    test('matches the model in any case, as the server does', () {
+      expect(ids([_job(1, printerId: null, targetModel: 'p1s')]), [1]);
+    });
+
+    test('with no model known, only the pinned jobs', () {
+      expect(
+        ids([
+          _job(1),
+          _job(2, printerId: null, targetModel: 'P1S'),
+        ], model: null),
+        [1],
+      );
+    });
+
+    test('a job for no printer and no model is not this printer\'s', () {
+      expect(ids([_job(1, printerId: null)]), isEmpty);
+    });
+
+    test('a cross-model job is matched by its first candidate only', () {
+      // The server mirrors the first candidate onto `target_model` and filters
+      // on that alone (`print_queue.py::list_queue`).
+      expect(
+        ids([
+          _job(1, printerId: null, targetModel: 'P1S', variants: _alternatives),
+        ]),
+        [1],
+      );
+      expect(
+        ids([
+          _job(1, printerId: null, targetModel: 'P1S', variants: _alternatives),
+        ], model: 'X1C'),
+        isEmpty,
+      );
+    });
+
+    test('an empty queue is empty', () {
+      expect(ids(const []), isEmpty);
+    });
+  });
+
+  group('the Queue view', () {
+    late FakeQueue queue;
+
+    Future<void> open(
+      WidgetTester tester,
+      List<QueueItem> items, {
+      CurrentUser? user,
+      FakeQueue? fake,
+      bool warm = false,
+    }) async {
+      queue = fake ?? FakeQueue(items);
+      await pumpControllerScreen(
+        tester,
+        overrides: [
+          queueProvider.overrideWith(() => queue),
+          requirePlateClearProvider.overrideWithValue(const AsyncData(false)),
+          // The mapping step with nothing to map: one confirm button.
+          printRequirementsProvider.overrideWith((ref, key) async => const []),
+          mappingStatusProvider.overrideWith((ref, printerId) async => null),
+          if (user != null) currentUserOverride(user),
+        ],
+      );
+      if (warm) {
+        // Loaded before the view opens, as the nav badge keeps it in the app.
+        ProviderScope.containerOf(
+          tester.element(find.byType(MaterialApp)),
+        ).listen(queueProvider, (_, _) {});
+        await settle(tester);
+      }
+      await openPrintsView(tester, ControllerPrintsView.queue);
+    }
+
+    Future<void> openJob(WidgetTester tester, int id) async {
+      await tester.tap(find.text('Job $id'));
+      await settle(tester);
+    }
+
+    testWidgets('lists this printer\'s jobs and the ones for its model', (
+      tester,
+    ) async {
+      await open(tester, [
+        _job(10, status: 'printing'),
+        _job(11),
+        _job(12, printerId: null, targetModel: 'P1S'),
+        _job(13, printerId: 2),
+        _job(14, printerId: null, targetModel: 'X1C'),
+      ]);
+
+      expect(find.text('Job 10'), findsOneWidget);
+      expect(find.text('Job 11'), findsOneWidget);
+      expect(find.text('Job 12'), findsOneWidget);
+      expect(find.text('Job 13'), findsNothing);
+      expect(find.text('Job 14'), findsNothing);
+      expect(find.text(pl.controllerQueueCount(3)), findsOneWidget);
+    });
+
+    testWidgets('nothing queued for it says so', (tester) async {
+      await open(tester, [_job(13, printerId: 2)]);
+
+      expect(find.text(pl.controllerQueueEmpty), findsOneWidget);
+    });
+
+    testWidgets('a job for its model starts here, with no printer picker', (
+      tester,
+    ) async {
+      await open(tester, [_job(12, printerId: null, targetModel: 'P1S')]);
+      await openJob(tester, 12);
+
+      await tester.tap(byLogId('controller.queue.dialog.start'));
+      await settle(tester);
+      expect(find.text(pl.pickPrinterTitle), findsNothing);
+      // The mapping step, confirmed as it stands.
+      await tester.tap(find.widgetWithText(FilledButton, pl.queueStart).last);
+      await settle(tester);
+
+      expect(queue.started, [(item: 12, printer: controllerTestPrinterId)]);
+    });
+
+    testWidgets('Remove takes a waiting job out without asking twice', (
+      tester,
+    ) async {
+      await open(tester, [_job(11)]);
+      await openJob(tester, 11);
+
+      await tester.tap(byLogId('controller.queue.dialog.remove'));
+      await settle(tester);
+
+      expect(queue.cancelled, [11]);
+      expect(find.byType(Dialog), findsNothing);
+    });
+
+    testWidgets('a job with alternatives is not started here, and says why', (
+      tester,
+    ) async {
+      await open(tester, [
+        _job(15, printerId: null, targetModel: 'P1S', variants: _alternatives),
+      ]);
+      await openJob(tester, 15);
+
+      expect(
+        buttonAt(tester, 'controller.queue.dialog.start').onPressed,
+        isNull,
+      );
+      expect(find.text(pl.controllerQueueCrossModel), findsOneWidget);
+    });
+
+    testWidgets('an ownerless job for its model is not an update-own user\'s '
+        'to start', (tester) async {
+      // Putting this printer on it is a PATCH the server refuses them (403).
+      await open(
+        tester,
+        [_job(12, printerId: null, targetModel: 'P1S')],
+        user: const CurrentUser(
+          id: 7,
+          username: 'op',
+          isAdmin: false,
+          permissions: {
+            Permissions.queueUpdateOwn,
+            Permissions.queueStartUnreviewed,
+          },
+        ),
+      );
+      await openJob(tester, 12);
+
+      expect(
+        buttonAt(tester, 'controller.queue.dialog.start').onPressed,
+        isNull,
+      );
+      expect(find.text(pl.controllerQueueNoStart), findsOneWidget);
+    });
+
+    testWidgets('the job on the plate offers nothing to do', (tester) async {
+      await open(tester, [_job(10, status: 'printing')]);
+      await openJob(tester, 10);
+
+      expect(byLogId('controller.queue.dialog.start'), findsNothing);
+      expect(byLogId('controller.queue.dialog.remove'), findsNothing);
+    });
+
+    testWidgets('opening the view refreshes the queue once it is built', (
+      tester,
+    ) async {
+      // A refresh writes the provider before it awaits, and a write while the
+      // tree builds throws: the view opens from a tab tap, mid-build.
+      final writing = _WritingQueue([_job(11)]);
+      await open(tester, const [], fake: writing, warm: true);
+
+      expect(tester.takeException(), isNull);
+      expect(writing.refreshes, 1);
+      expect(find.text('Job 11'), findsOneWidget);
+    });
+  });
+}
+
+/// A queue whose refresh writes its state at once, as the real one does.
+class _WritingQueue extends FakeQueue {
+  _WritingQueue(super.items);
+
+  int refreshes = 0;
+
+  @override
+  Future<void> refresh() async {
+    refreshes++;
+    state = const AsyncLoading<List<QueueItem>>().copyWithPrevious(state);
+    state = AsyncData(await build());
+  }
+}

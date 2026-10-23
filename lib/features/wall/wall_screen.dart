@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../../core/models/queue_item.dart';
 import '../dashboard/ws_providers.dart';
+import '../queue/queue_item_view.dart';
 import '../queue/queue_providers.dart';
 import 'wall_faults.dart';
 import 'wall_layout.dart';
@@ -99,15 +100,9 @@ class _WallScreenState extends ConsumerState<WallScreen> {
 
   void _startQueuePoll() {
     _queuePoll?.cancel();
-    // The queue provider outlives this screen (the nav badge keeps it), so
-    // what it holds may be old: refresh on entry, then on the poll. One that
-    // is still loading its first answer needs no second request beside it.
-    if (ref.read(queueProvider).hasValue) {
-      unawaited(ref.read(queueProvider.notifier).refresh());
-    }
-    _queuePoll = Timer.periodic(
+    _queuePoll = pollQueue(
+      ProviderScope.containerOf(context, listen: false),
       WallScreen.queuePoll,
-      (_) => unawaited(ref.read(queueProvider.notifier).refresh()),
     );
   }
 
@@ -556,17 +551,7 @@ class _QueueRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final model = item.targetModel;
-    // Where the job will run, worded as the queue screen words it.
-    final target =
-        item.printerName ??
-        (item.isCrossModel
-            ? l10n.queueAnyOfModels(
-                [for (final v in item.variants) v.targetModel].join(', '),
-              )
-            : model != null
-            ? l10n.queueEditAnyModel(model)
-            : l10n.printLogAnyPrinter);
+    final target = item.printerName ?? queueTargetLabel(l10n, item);
     final waiting = item.waitingReason;
     return _PanelItem(
       children: [

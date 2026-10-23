@@ -268,12 +268,7 @@ void main() {
 
     await tapText(tester, pl.outcomeReject);
 
-    final again = tester.widget<ButtonStyleButton>(
-      find.ancestor(
-        of: find.text(pl.outcomeRejectAndReprint),
-        matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
-      ),
-    );
+    final again = buttonAt(tester, 'outcome.reject_reprint');
     expect(again.onPressed, isNull);
     expect(find.text(pl.archiveReprintNotAllowed), findsOneWidget);
     expect(find.text(pl.outcomeSaveReject), findsOneWidget);

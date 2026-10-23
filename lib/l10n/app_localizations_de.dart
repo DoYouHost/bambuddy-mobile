@@ -8037,6 +8037,29 @@ class AppLocalizationsDe extends AppLocalizations {
   String get controllerTabPrints => 'Drucke';
 
   @override
+  String controllerQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Aufträge',
+      one: '1 Auftrag',
+      zero: 'Keine Aufträge',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerQueueEmpty => 'Für diesen Drucker wartet kein Auftrag';
+
+  @override
+  String get controllerQueueCrossModel =>
+      'Dieser Auftrag hat Druckeralternativen und startet auf dem ersten freien Drucker.';
+
+  @override
+  String get controllerQueueNoStart =>
+      'Ihr Konto kann diesen Auftrag nicht starten.';
+
+  @override
   String get controllerFileNotSliced => 'Nicht geslict';
 
   @override

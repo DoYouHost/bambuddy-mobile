@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
@@ -18,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import 'queue_fakes.dart';
 
 /// Fake notifier — returns the given list without touching the repository/network.
 class _FakeQueueNotifier extends QueueNotifier {
@@ -193,7 +193,7 @@ void main() {
       'printer_id': 1,
       'created_by_id': null,
     });
-    final queue = _MutableQueueNotifier([ownerless]);
+    final queue = FakeQueue([ownerless]);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -251,7 +251,7 @@ void main() {
         },
       ],
     });
-    final queue = _MutableQueueNotifier([crossModel]);
+    final queue = FakeQueue([crossModel]);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -301,11 +301,11 @@ void main() {
       'started_at': null,
     });
 
-    late _MutableQueueNotifier queue;
+    late FakeQueue queue;
     late _HeldCommands commands;
 
     Widget screen({AsyncValue<bool> gate = const AsyncValue.data(true)}) {
-      queue = _MutableQueueNotifier([pending]);
+      queue = FakeQueue([pending]);
       commands = _HeldCommands();
       return ProviderScope(
         overrides: [
@@ -413,42 +413,6 @@ void main() {
       expect(queue.started, isEmpty, reason: 'a held gate starts nothing');
     });
   });
-}
-
-/// Queue whose list a test can change under the screen, and which records the
-/// starts it was asked for instead of talking to a server.
-class _MutableQueueNotifier extends QueueNotifier {
-  _MutableQueueNotifier(this._items);
-
-  List<QueueItem> _items;
-  final List<({int item, int printer})> started = [];
-
-  /// Items started straight through `/start`, with no assignment or mapping.
-  final List<int> startedAsIs = [];
-
-  @override
-  Future<ActionOutcome> start(int itemId) async {
-    startedAsIs.add(itemId);
-    return ActionOutcome.ok;
-  }
-
-  @override
-  Future<List<QueueItem>> build() async => _items;
-
-  void replace(List<QueueItem> items) {
-    _items = items;
-    state = AsyncData(items);
-  }
-
-  @override
-  Future<ActionOutcome> startOnPrinter(
-    QueueItem item,
-    int printerId, {
-    List<int>? amsMapping,
-  }) async {
-    started.add((item: item.id, printer: printerId));
-    return ActionOutcome.ok;
-  }
 }
 
 /// A plate the scheduler is waiting on, on a printer that is not reachable.

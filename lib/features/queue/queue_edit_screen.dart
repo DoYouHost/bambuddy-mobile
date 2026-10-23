@@ -21,8 +21,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/print_thumbnail.dart';
-import '../files/library_thumbnail.dart';
 import '../slicer/slice_providers.dart';
 import '../common/dash_async.dart';
 import '../orders/orders_providers.dart';
@@ -30,6 +28,7 @@ import 'job_cost_providers.dart';
 import 'queue_cost_center_state.dart';
 import 'queue_create_service.dart';
 import 'queue_form_parts.dart';
+import 'queue_item_view.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_plate_sheet.dart';
 import 'queue_providers.dart';
@@ -357,13 +356,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: it.archiveId == null && it.libraryFileId != null
-              ? LibraryThumbnail(
-                  fileId: it.libraryFileId!,
-                  hasThumbnail: it.libraryFileThumbnail != null,
-                  size: 52,
-                )
-              : PrintThumbnail(archiveId: it.archiveId, size: 52),
+          child: QueueThumbnail(item: it, size: 52),
         ),
         const SizedBox(width: DashSpace.md),
         Expanded(
