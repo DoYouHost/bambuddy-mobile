@@ -901,6 +901,7 @@
   },
   "hmsDismissAll": "Odrzuć wszystkie",
   "hmsDismissed": "Błędy wyczyszczone na drukarce",
+  "hmsStillReported": "{count, plural, =1{Drukarka nadal zgłasza 1 błąd} few{Drukarka nadal zgłasza {count} błędy} many{Drukarka nadal zgłasza {count} błędów} other{Drukarka nadal zgłasza {count} błędu}}",
   "hmsActionSent": "Wysłano do drukarki",
   "hmsActionNotAcknowledged": "Drukarka nie potwierdziła akcji — sprawdź jej ekran",
   "hmsStopConfirmTitle": "Zatrzymać wydruk?",

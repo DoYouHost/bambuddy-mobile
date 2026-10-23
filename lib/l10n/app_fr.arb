@@ -1261,6 +1261,7 @@
   },
   "hmsDismissAll": "Tout ignorer",
   "hmsDismissed": "Erreurs effacées sur l'imprimante",
+  "hmsStillReported": "{count, plural, =1{L'imprimante signale toujours 1 erreur} other{L'imprimante signale toujours {count} erreurs}}",
   "hmsActionSent": "Envoyé à l'imprimante",
   "hmsActionNotAcknowledged": "L'imprimante n'a pas confirmé l'action — vérifiez son écran",
   "hmsStopConfirmTitle": "Arrêter l'impression ?",

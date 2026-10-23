@@ -2368,6 +2368,17 @@ class AppLocalizationsDe extends AppLocalizations {
   String get hmsDismissed => 'Fehler auf dem Drucker gelöscht';
 
   @override
+  String hmsStillReported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Der Drucker meldet weiterhin $count Fehler',
+      one: 'Der Drucker meldet weiterhin 1 Fehler',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get hmsActionSent => 'An den Drucker gesendet';
 
   @override

@@ -108,6 +108,29 @@ zone-independent assertion is `isUtc, isFalse`.
   `DELETE` everything but printing), and a filament type list does not pair with its
   colour list by index: both in [queue-and-pipelines.md](queue-and-pipelines.md).
 
+## Clearing HMS errors does not clear a standing fault
+
+`POST /printers/{id}/hms/clear` answers `200 {"success": true}` once the command is
+**published**. The server sends `clean_print_error` (the on-screen dialog, the 8-char
+`print_error` channel) and empties its own `state.hms_errors`, but rebuilds that list from
+every report that carries an `hms` array (`bambu_mqtt.py`, the `"hms" in data` branch). A
+16-char `hms[]` fault whose cause is still there is reported again within a second or two,
+so the 200 proves nothing. Pinned by `test/contract/hms_clear_contract_test.dart`
+(issue #56: AMS feed resistance, three clears, three 200s, the fault never left).
+
+Nothing marks a fault as standing or one-off: `actions` says which buttons the printer's
+screen offers, `severity` what the fault stops, and neither says whether it will return.
+The one reliable split is the channel. So the app does not predict: the clear also asks the
+printer to republish (`PrinterCommandsRepository.clearHmsErrors`), then
+`hmsStillReported` (`lib/core/printers/hms_readback.dart`) reads the status back up to
+three times 1.5 s apart and the toast says how many faults are still listed. The phone
+reads it with `fetchStatus` (`ControlsNotifier.clearHmsErrors`), the watch with its own
+`getFleet` (`WearActions.clearHmsErrors`) — the relay protocol is unchanged, and a
+cached fleet counts as unreadable.
+
+REST, not the socket, because a change in faults alone moves no field of the server's
+`status_key` (`main.py`), so an idle printer broadcasts nothing for it.
+
 ## An unknown route answers 404 **or** 405
 
 The SPA catch-all is declared as `@app.get("/{full_path:path}")` (`main.py::serve_spa`).
@@ -199,3 +222,6 @@ maintainer. Add to the list instead of deviating silently.
   center, an empty budget amount means no budget, the ledger pages with "load more"
   instead of page buttons, and the personal center's edit sends only the budget. See
   [billing.md](billing.md).
+- **"Dismiss all" reads the status back** and says "the printer still reports N errors"
+  when the fault returned; the web shows its "cleared" toast on the 200 alone.
+  Phone and watch. [The section above](#clearing-hms-errors-does-not-clear-a-standing-fault).

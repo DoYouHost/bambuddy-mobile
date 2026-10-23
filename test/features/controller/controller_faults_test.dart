@@ -1,5 +1,7 @@
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/printers/hms_readback.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_faults.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
@@ -44,13 +46,16 @@ void main() {
 
   late RecordingCommands commands;
   late _Statuses statuses;
+  late StatusReadBack readBack;
 
   /// Printer 1's controller, with printer 2 in the roster beside it.
   Future<void> pump(
     WidgetTester tester, {
     List<HmsError> mine = const [],
     List<HmsError> other = const [],
+    List<PrinterStatus?>? readBackAs,
   }) async {
+    readBack = StatusReadBack(readBackAs ?? [_status(1)]);
     useLogicalWindow(tester, const Size(844, 390));
     commands = RecordingCommands();
     statuses = _Statuses({
@@ -66,6 +71,7 @@ void main() {
         sharedPreferencesProvider.overrideWithValue(sp),
         noServerProfileOverride,
         printerCommandsRepositoryProvider.overrideWithValue(commands),
+        printersRepositoryProvider.overrideWithValue(readBack),
         fixedDashboardOverride(
           DashboardState(
             printers: [
@@ -140,14 +146,102 @@ void main() {
       expect(commands.calls, ['hmsAction:1:03008004:STOP_PRINTING:746795586']);
     });
 
-    testWidgets('dismisses every fault at once', (tester) async {
-      await pump(tester, mine: const [_runout]);
-      await open(tester);
+    group('dismissing every fault', () {
+      /// The tap, then enough time for every read-back the notifier may make.
+      Future<void> dismiss(WidgetTester tester) async {
+        await tester.tap(byLogId('controller.faults_dismiss_all'));
+        await tester.pump();
+        await tester.pump(hmsRecheckEvery * hmsRecheckAttempts);
+      }
 
-      await tester.tap(byLogId('controller.faults_dismiss_all'));
-      await settle(tester);
+      testWidgets('sends the clear', (tester) async {
+        await pump(tester, mine: const [_runout]);
+        await open(tester);
 
-      expect(commands.calls, ['hmsClear:1']);
+        await dismiss(tester);
+
+        expect(commands.calls, ['hmsClear:1']);
+      });
+
+      testWidgets('says they are gone when the status comes back empty', (
+        tester,
+      ) async {
+        await pump(tester, mine: const [_runout]);
+        await open(tester);
+
+        await dismiss(tester);
+
+        expect(find.text(pl.hmsDismissed), findsOneWidget);
+        expect(
+          readBack.reads,
+          hmsRecheckAttempts,
+          reason: 'an empty read is not trusted until the window is over',
+        );
+      });
+
+      testWidgets('says the printer still reports a fault that comes back', (
+        tester,
+      ) async {
+        await pump(
+          tester,
+          mine: const [_runout],
+          readBackAs: [
+            _status(1, errors: const [_runout]),
+          ],
+        );
+        await open(tester);
+
+        await dismiss(tester);
+
+        expect(find.text(pl.hmsStillReported(1)), findsOneWidget);
+        expect(find.text(pl.hmsDismissed), findsNothing);
+        expect(readBack.reads, 1, reason: 'the first fault ends the wait');
+      });
+
+      testWidgets('catches a fault the printer reports a beat late', (
+        tester,
+      ) async {
+        await pump(
+          tester,
+          mine: const [_runout],
+          readBackAs: [
+            _status(1),
+            _status(1, errors: const [_runout, _runout]),
+          ],
+        );
+        await open(tester);
+
+        await dismiss(tester);
+
+        expect(find.text(pl.hmsStillReported(2)), findsOneWidget);
+        expect(readBack.reads, 2);
+      });
+
+      testWidgets('falls back to the plain confirmation when the status '
+          'cannot be read', (tester) async {
+        await pump(tester, mine: const [_runout], readBackAs: [null]);
+        await open(tester);
+
+        await dismiss(tester);
+
+        expect(find.text(pl.hmsDismissed), findsOneWidget);
+        expect(readBack.reads, 1);
+      });
+
+      testWidgets('reads nothing back when the clear itself is refused', (
+        tester,
+      ) async {
+        await pump(tester, mine: const [_runout]);
+        commands.errors['hmsClear'] = const ApiException(
+          AppErrorCode.badResponse,
+        );
+        await open(tester);
+
+        await dismiss(tester);
+
+        expect(find.text(pl.hmsDismissed), findsNothing);
+        expect(readBack.reads, 0);
+      });
     });
 
     testWidgets('closes itself once the last fault clears', (tester) async {

@@ -7,6 +7,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_actions.dart';
 import '../../core/notifications/hms_catalog.dart';
+import '../../core/printers/hms_readback.dart';
 import '../../data/printers_repository.dart';
 import '../../features/common/plate_clear.dart';
 import '../../l10n/app_localizations.dart';
@@ -225,6 +226,8 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
 
     final actions = ref.read(wearActionsProvider);
     final id = widget.printerId;
+    // What "dismiss all" found when it read the printer back; the toast words it.
+    int? stillReported;
     return [
       for (final fault in faults)
         Padding(
@@ -250,8 +253,8 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
         child: _btn(
           l10n.hmsDismissAll,
           Icons.done_all,
-          () => actions.clearHmsErrors(id),
-          okMsg: l10n.hmsDismissed,
+          () async => stillReported = await actions.clearHmsErrors(id),
+          okText: () => hmsDismissedMessage(l10n, stillReported),
         ),
       ),
     ];
@@ -376,12 +379,13 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
     IconData icon,
     Future<void> Function() action, {
     String? okMsg,
+    String Function()? okText,
     Color? color,
     _WearFailureText? errMsg,
   }) => FilledButton.icon(
     onPressed: busy || _stale
         ? null
-        : () => _run(action, okMsg: okMsg, errMsg: errMsg),
+        : () => _run(action, okMsg: okMsg, okText: okText, errMsg: errMsg),
     icon: Icon(icon),
     label: _label(label),
     style: color != null
@@ -441,6 +445,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
   Future<void> _run(
     Future<void> Function() action, {
     String? okMsg,
+    String Function()? okText,
     _WearFailureText? errMsg,
   }) async {
     // The buttons are already disabled while [_stale]; this is the backstop for
@@ -453,8 +458,10 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
         await ref.read(wearFleetProvider.notifier).refresh();
       },
       onDone: () {
-        if (okMsg != null) {
-          wearToast(context, okMsg, tone: WearToastTone.success);
+        // [okText] for a sentence that depends on what the action found out.
+        final text = okText?.call() ?? okMsg;
+        if (text != null) {
+          wearToast(context, text, tone: WearToastTone.success);
         }
       },
       onError: (error) => wearToast(

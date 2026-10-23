@@ -1,6 +1,7 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
+import 'package:bambuddy_mobile/core/printers/hms_readback.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/screens/wear_printer_control_screen.dart';
@@ -56,9 +57,11 @@ Future<FakeWearTransport> _pumpControl(
   WidgetTester tester,
   List<HmsError> errors, {
   bool connected = true,
+  bool clearsOnDismiss = false,
 }) async {
   final transport = FakeWearTransport(
     fleet: _fleetWith(errors, connected: connected),
+    fleetAfterClear: clearsOnDismiss ? _fleetWith(const []) : null,
   );
   await pumpWear(
     tester,
@@ -163,12 +166,34 @@ void main() {
     ]);
   });
 
-  testWidgets('dismiss-all clears the printer', (tester) async {
+  /// The tap, then [reads] read-backs — the toast comes up right after the
+  /// last one and does not outlive a long wait.
+  Future<void> dismissAll(WidgetTester tester, {required int reads}) async {
+    await tapOnWatch(tester, find.text(pl.hmsDismissAll));
+    await tester.pump(hmsRecheckEvery * reads);
+    await tester.pump();
+  }
+
+  testWidgets('dismiss-all clears the printer, then says what is still there', (
+    tester,
+  ) async {
     final transport = await _pumpControl(tester, const [_runout]);
 
-    await tapOnWatch(tester, find.text(pl.hmsDismissAll));
-    await tester.pumpAndSettle();
+    await dismissAll(tester, reads: 1);
 
     expect(transport.commands, ['clearHmsErrors:7']);
+    expect(find.text(pl.hmsStillReported(1)), findsOneWidget);
+    expect(find.text(pl.hmsDismissed), findsNothing);
+  });
+
+  testWidgets('dismiss-all says the errors are gone when the fleet agrees', (
+    tester,
+  ) async {
+    await _pumpControl(tester, const [_runout], clearsOnDismiss: true);
+
+    await dismissAll(tester, reads: hmsRecheckAttempts);
+
+    expect(find.text(pl.hmsDismissed), findsOneWidget);
+    expect(find.text(pl.hmsStillReported(1)), findsNothing);
   });
 }

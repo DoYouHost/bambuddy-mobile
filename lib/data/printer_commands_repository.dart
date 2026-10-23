@@ -176,8 +176,14 @@ class PrinterCommandsRepository {
   /// Clear the printer's active error dialog. Printer-wide by nature: the
   /// firmware command behind it (`clean_print_error`) takes no code and drops
   /// whatever is on screen, so there is no per-error variant to offer.
-  Future<void> clearHmsErrors(int printerId) =>
-      _post(Endpoints.hmsClear(printerId));
+  ///
+  /// Also asks the printer to republish, so a fault that is still there is back
+  /// in the status within a second and "did it work" can be read off it
+  /// (`hmsStillReported`) instead of waiting on the printer's own schedule.
+  Future<void> clearHmsErrors(int printerId) async {
+    await _post(Endpoints.hmsClear(printerId));
+    nudgeRepublish([printerId]);
+  }
 
   /// Run one of the firmware's remediation actions for a fault.
   ///

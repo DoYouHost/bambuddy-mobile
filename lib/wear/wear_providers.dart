@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/api/api_exceptions.dart';
 import '../core/notifications/ongoing_text.dart';
+import '../core/printers/hms_readback.dart';
 import '../core/watch/watch_config_sync.dart';
 import '../providers.dart';
 import 'wear_fleet_cache.dart';
@@ -303,9 +305,32 @@ class WearActions {
   Future<void> startNext(int printerId) => _transport.startNext(printerId);
 
   /// Clear the printer's active error dialog — one command for the printer, not
-  /// per fault, exactly as on the phone.
-  Future<void> clearHmsErrors(int printerId) =>
-      _transport.clearHmsErrors(printerId);
+  /// per fault, exactly as on the phone — and report how many faults it still
+  /// lists once it has had time to answer (`null` when the fleet could not be
+  /// read). The server's 200 only says the command went out; a fault that is
+  /// still there comes straight back.
+  Future<int?> clearHmsErrors(int printerId) async {
+    await _transport.clearHmsErrors(printerId);
+    return hmsStillReported(() async {
+      try {
+        final fleet = await _transport.getFleet();
+        // A cached fleet is from before the clear: it would say "still there".
+        if (fleet.stale) return null;
+        return fleet.printers
+            .where((p) => p.printer.id == printerId)
+            .firstOrNull
+            ?.status;
+      } on WearRelayUnreachable {
+        return null;
+      } on WearRelayTimeout {
+        return null;
+      } on WearRelayRemoteError {
+        return null;
+      } on AppApiException {
+        return null;
+      }
+    });
+  }
 
   /// Run one of the firmware's remediation actions. [printError] is the fault's
   /// `full_code`, passed through untouched all the way to the printer.

@@ -18,6 +18,7 @@ import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/admin/users_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
@@ -413,12 +414,18 @@ class _FixedArchiveList extends ArchiveNotifier {
 class FakeWearTransport implements WearTransport {
   FakeWearTransport({
     this.fleet = const WearFleet(printers: []),
+    this.fleetAfterClear,
     this.error,
     this.serverVersion,
   });
 
   /// What every `getFleet` answers.
   final WearFleet fleet;
+
+  /// What `getFleet` answers once `clearHmsErrors` has run — the printer that
+  /// stopped reporting its fault. Null keeps [fleet]: a fault that stayed.
+  final WearFleet? fleetAfterClear;
+  bool _cleared = false;
 
   /// Thrown by every call when set — the phone refusing, or out of reach.
   final Exception? error;
@@ -448,7 +455,8 @@ class FakeWearTransport implements WearTransport {
   }
 
   @override
-  Future<WearFleet> getFleet() => _log('getFleet', fleet);
+  Future<WearFleet> getFleet() =>
+      _log('getFleet', _cleared ? fleetAfterClear ?? fleet : fleet);
 
   @override
   Future<String?> getServerVersion() => _log('getServerVersion', serverVersion);
@@ -469,8 +477,10 @@ class FakeWearTransport implements WearTransport {
   Future<void> startNext(int printerId) => _log('startNext:$printerId', null);
 
   @override
-  Future<void> clearHmsErrors(int printerId) =>
-      _log('clearHmsErrors:$printerId', null);
+  Future<void> clearHmsErrors(int printerId) {
+    _cleared = true;
+    return _log('clearHmsErrors:$printerId', null);
+  }
 
   @override
   Future<void> executeHmsAction(
@@ -838,4 +848,17 @@ Future<void> loadAppFonts() async {
     }
     await loader.load();
   }
+}
+
+/// The status REST hands back after a clear: one answer per read, the last one
+/// repeated. A `null` is a status the app could not read.
+class StatusReadBack extends PrintersRepository {
+  StatusReadBack(this._answers) : super(Dio());
+
+  final List<PrinterStatus?> _answers;
+  int reads = 0;
+
+  @override
+  Future<PrinterStatus?> fetchStatus(int printerId) async =>
+      _answers[reads++ < _answers.length ? reads - 1 : _answers.length - 1];
 }

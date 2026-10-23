@@ -2377,6 +2377,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get hmsDismissed => 'Erreurs effacées sur l\'imprimante';
 
   @override
+  String hmsStillReported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'L\'imprimante signale toujours $count erreurs',
+      one: 'L\'imprimante signale toujours 1 erreur',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get hmsActionSent => 'Envoyé à l\'imprimante';
 
   @override
