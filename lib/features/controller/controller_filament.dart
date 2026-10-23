@@ -577,21 +577,26 @@ class _SlotCard extends StatelessWidget {
       padding: number == null && named
           ? const EdgeInsets.symmetric(horizontal: DashSpace.md)
           : EdgeInsets.zero,
-      alignment: Alignment.center,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(_chip / 2),
         color: active ? t.accent : t.textPrimary.withValues(alpha: 0.12),
       ),
-      child: named
-          ? Text(
-              label,
-              style: number == null
-                  ? t.bodyStrong.copyWith(color: ink)
-                  : t.monoValue.copyWith(color: ink),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            )
-          : Icon(Icons.check, size: DashSpace.lg + DashSpace.xs, color: ink),
+      // Not the Container's `alignment`: that stretches the chip across the
+      // whole row the Positioned gives it, and a number becomes a long pill.
+      child: Center(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: named
+            ? Text(
+                label,
+                style: number == null
+                    ? t.bodyStrong.copyWith(color: ink)
+                    : t.monoValue.copyWith(color: ink),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              )
+            : Icon(Icons.check, size: DashSpace.lg + DashSpace.xs, color: ink),
+      ),
     );
     return active ? Tooltip(message: l10n.ctrlNozzleActive, child: chip) : chip;
   }

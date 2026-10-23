@@ -233,6 +233,19 @@ void main() {
       expect(find.byTooltip(pl.ctrlNozzleActive), findsOneWidget);
     });
 
+    testWidgets('a slot number sits in a round chip, active or not', (
+      tester,
+    ) async {
+      await pump(tester, _status(trayNow: 1));
+
+      for (final number in ['1', '2']) {
+        final chip = find
+            .ancestor(of: find.text(number), matching: find.byType(Container))
+            .first;
+        expect(tester.getSize(chip), const Size(32, 32), reason: number);
+      }
+    });
+
     testWidgets('marks nothing when nothing is loaded', (tester) async {
       await pump(tester, _status());
 
@@ -489,6 +502,16 @@ void main() {
       await tester.pump();
 
       expect(find.byTooltip(pl.ctrlNozzleActive), findsOneWidget);
+      // With no name to show, a tick in a round chip.
+      expect(
+        tester.getSize(
+          find.descendant(
+            of: find.byTooltip(pl.ctrlNozzleActive),
+            matching: find.byType(Container),
+          ),
+        ),
+        const Size(32, 32),
+      );
     });
 
     testWidgets('is not marked while another slot feeds the print', (
@@ -580,6 +603,43 @@ void main() {
       );
       expect(find.text(pl.extruderRight), findsNothing);
     });
+
+    testWidgets(
+      'name an external spool\'s side in a pill as wide as the name',
+      (tester) async {
+        await pump(
+          tester,
+          _status(
+            external: [
+              _tray(254, 'TPU', '2E6FD8FF'),
+              _tray(255, 'PLA', 'FF8A3DFF'),
+            ],
+          ),
+          nozzleCount: 2,
+        );
+        await tester.tap(byLogId('controller.filament_unit').last);
+        await tester.pump();
+
+        final names = find.descendant(
+          of: slots(),
+          matching: find.byWidgetPredicate(
+            (w) =>
+                w is Text &&
+                (w.data == pl.extruderLeft || w.data == pl.extruderRight),
+          ),
+        );
+        expect(names, findsNWidgets(2));
+        for (var i = 0; i < 2; i++) {
+          final pill = find
+              .ancestor(of: names.at(i), matching: find.byType(Container))
+              .first;
+          expect(
+            tester.getSize(pill).width,
+            tester.getSize(names.at(i)).width + 2 * DashSpace.md,
+          );
+        }
+      },
+    );
 
     testWidgets('say nothing of sides on one nozzle', (tester) async {
       await pump(tester, _status(sides: {0: 1}));
