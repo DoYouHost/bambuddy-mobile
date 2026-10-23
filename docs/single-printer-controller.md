@@ -44,9 +44,15 @@ that opens the fault view, the printer's state) over one tab at a time.
 
 ### Size and layout
 
+- **Designed for a phone in landscape.** The target is an ordinary smartphone
+  held sideways, about 890–915 × 410 dp (the reporter's Redmi 9T Pro is
+  891×411 dp); after the top bar the body is about 860×345 dp. A layout is
+  checked against that. The touch panel whose look the controller borrows is
+  800×360, and that size is only the floor the body is laid out in
+  (`controllerBodySize`), never the screen to design for.
 - **One scale for the whole body.** Every tab is laid out in a box no smaller
-  than the design size of the small touch panel (`controllerBodySize`, 800×360) and scaled uniformly to
-  fill the screen (`ScaleToFit`). Nothing inside scales on its own; a card that
+  than `controllerBodySize` and scaled uniformly to fill the screen
+  (`ScaleToFit`). Nothing inside scales on its own; a card that
   sized its own content made the same chip 44 in one card and 56 in the next.
 - **No text is scaled to fit, anywhere.** Equal things are one size: a
   `FittedBox` around a label made each one a size of its own, so where text did

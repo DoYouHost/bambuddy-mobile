@@ -24,7 +24,7 @@ import 'controller_providers.dart';
 
 /// Height of a tile in the grid: its thumbnail and a margin, so a tile is a
 /// touch target well above the minimum whatever it says. Three rows of them
-/// fill the card of the 800x360 body.
+/// fill the card on a phone.
 const _tileHeight = 82.0;
 const _thumbSize = 64.0;
 const _columns = 2;

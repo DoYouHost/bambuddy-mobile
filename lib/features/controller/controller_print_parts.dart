@@ -142,7 +142,7 @@ class PrintOptionRow extends StatelessWidget {
   }
 }
 
-/// Three of these and a fourth for the time fill the card of the 800x360 body.
+/// Three of these and a fourth for the time fill the card on a phone.
 const printOptionHeight = 48.0;
 
 /// Auto, On, Off round again where the server can keep `auto`; On and Off where

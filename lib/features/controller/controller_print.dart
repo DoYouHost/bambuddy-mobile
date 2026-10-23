@@ -40,8 +40,7 @@ import 'scale_to_fit.dart';
 /// The print screen of the single-printer controller
 /// ([docs/single-printer-controller.md]): a library file, aimed at the
 /// controller's printer and at no other. Everything the queue form asks is here
-/// or one tap away, laid out for the 800x360 body instead of a phone held
-/// upright.
+/// or one tap away, laid out for a phone held sideways instead of upright.
 ///
 /// Pushed over the controller, never replacing it, and answers true when a job
 /// was created.

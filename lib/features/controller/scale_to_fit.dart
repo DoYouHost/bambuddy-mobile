@@ -2,10 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// The controller's body area on the screen it is designed for, a small
-/// landscape touch panel (after the bar and the insets). Below it the whole body
-/// shrinks, above it the whole body grows — one factor for every tab, so a
-/// button, a font or a gap is the same size wherever it appears.
+/// The smallest box the controller's body is laid out in: the body area of the
+/// touch panel whose look the controller borrows. A floor, not the target — the
+/// screens are designed for a phone in landscape
+/// ([docs/single-printer-controller.md]). Below it the whole body shrinks, above
+/// it the whole body grows — one factor for every tab, so a button, a font or a
+/// gap is the same size wherever it appears.
 const controllerBodySize = Size(800, 360);
 
 /// Scales [child] uniformly to fill the room it is given: the factor is the
