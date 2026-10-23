@@ -42,8 +42,36 @@ void main() {
         final searchResults = await archiveRepo.search('test', limit: 5);
         expect(searchResults, isA<List<Archive>>());
 
-        if (archives.isNotEmpty) {
-          final a = archives.first;
+        // The detail routes on an archive of its own: the newest one on the
+        // server may be a print another file drove over MQTT, which has no 3MF
+        // and answers 404 to `/capabilities` and `/plates` — which file ran
+        // first decides that, and it is not always the same.
+        final file = (await LibraryRepository(
+          dio,
+        ).listFiles()).firstWhere((f) => f.filename == 'contract-probe.3mf');
+        final bytes = (await dio.get<List<int>>(
+          '${Endpoints.libraryFile(file.id)}/download',
+          options: Options(responseType: ResponseType.bytes),
+        )).data!;
+        final ownId =
+            (await dio.post<Map<String, dynamic>>(
+                  '${Endpoints.archives}upload',
+                  data: FormData.fromMap({
+                    'file': MultipartFile.fromBytes(
+                      bytes,
+                      filename: 'decode.3mf',
+                    ),
+                  }),
+                )).data!['id']
+                as int;
+        addTearDown(() => archiveRepo.delete(ownId, purgeStats: true));
+        final own = (await archiveRepo.list(
+          limit: 10,
+        )).where((a) => a.id == ownId);
+        expect(own, hasLength(1), reason: 'the list decodes the new row');
+
+        {
+          final a = own.single;
           expect(a.id, greaterThan(0));
           expect(a.filename, isNotEmpty);
           expect(a.status, isNotEmpty);
