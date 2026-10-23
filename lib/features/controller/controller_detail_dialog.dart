@@ -243,7 +243,16 @@ class _FactPill extends StatelessWidget {
         children: [
           Icon(fact.icon, size: DashSpace.lg, color: ink),
           const SizedBox(width: DashSpace.xs),
-          Text(fact.text, style: t.monoLabel.copyWith(color: ink)),
+          // A server's waiting reason or a long user name is wider than the
+          // pill can grow.
+          Flexible(
+            child: Text(
+              fact.text,
+              style: t.monoLabel.copyWith(color: ink),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );

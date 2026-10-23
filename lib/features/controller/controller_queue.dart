@@ -324,6 +324,8 @@ class _QueueTile extends ConsumerWidget {
           overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: DashSpace.xs),
+        // One row under the title, as a file's tile has: a third line does not
+        // fit the tile's height at a large system font.
         Row(
           children: [
             Flexible(
@@ -350,17 +352,19 @@ class _QueueTile extends ConsumerWidget {
                 ),
               ),
             ],
+            if (meta.isNotEmpty) ...[
+              const SizedBox(width: DashSpace.sm),
+              Flexible(
+                child: Text(
+                  meta.join(' · '),
+                  style: t.monoLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ],
         ),
-        if (meta.isNotEmpty) ...[
-          const SizedBox(height: DashSpace.xs),
-          Text(
-            meta.join(' · '),
-            style: t.monoLabel,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
       ],
     );
   }

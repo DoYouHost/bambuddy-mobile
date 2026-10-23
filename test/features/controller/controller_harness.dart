@@ -66,6 +66,9 @@ Future<void> openPrintsView(
   WidgetTester tester,
   ControllerPrintsView view,
 ) async {
+  // The tabs scroll where a short phone or a large font leaves them no room.
+  await tester.ensureVisible(byLogId(ControllerTab.prints.logId));
+  await settle(tester);
   await tester.tap(byLogId(ControllerTab.prints.logId));
   await settle(tester);
   await tester.tap(byLogId(view.logId));
