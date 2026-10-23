@@ -181,7 +181,10 @@ class _Grid extends ConsumerWidget {
           child: GridView.builder(
             gridDelegate: controllerTileGrid,
             itemCount: items.length,
-            itemBuilder: (context, i) => _QueueTile(
+            // The grid's context, not the tile's: a refresh while the dialog
+            // is open may take the tile away, and the choice must still land
+            // where it is checked again.
+            itemBuilder: (_, i) => _QueueTile(
               item: items[i],
               place: i + 1,
               onTap: () => _open(context, ref, items[i], i + 1),

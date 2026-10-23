@@ -265,15 +265,10 @@ void main() {
     testWidgets('a job put on another printer meanwhile is not started here', (
       tester,
     ) async {
-      // Another job takes the tile's place, so the tile the dialog came from
-      // stays on screen and the choice still arrives.
-      await open(tester, [
-        _job(12, printerId: null, targetModel: 'P1S'),
-        _job(11),
-      ]);
+      await open(tester, [_job(12, printerId: null, targetModel: 'P1S')]);
       await openJob(tester, 12);
 
-      queue.replace([_job(12, printerId: 2), _job(11)]);
+      queue.replace([_job(12, printerId: 2)]);
       await tester.pump();
       await tester.tap(byLogId('controller.queue.dialog.start'));
       await settle(tester);
