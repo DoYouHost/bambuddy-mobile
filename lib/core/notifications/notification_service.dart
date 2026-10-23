@@ -43,7 +43,7 @@ class AlertPicture {
   /// Full-size shot, shown when the notification is expanded.
   final String photoPath;
 
-  /// Small square shown while the notification is collapsed.
+  /// Small copy of the photo, same aspect ratio, shown while collapsed.
   final String? thumbnailPath;
 }
 

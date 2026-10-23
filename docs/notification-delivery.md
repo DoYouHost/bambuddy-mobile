@@ -201,6 +201,20 @@ Riverpod or the UI.
   misleading traps: after `adb root` the call fails with `NameNotFoundException: root`
   (use `adb unroot`), and `file:///data/local/tmp/…` fails under SELinux and is
   reported as "not a bitmap". Wear OS 5 renders the picture only once expanded.
+  Two more: `adb shell` joins its arguments and splits them again on the watch, so
+  a title with a space must go inside one quoted string
+  (`adb shell "cmd notification post -t 'A b' -S bigpicture --picture … tag 'text'"`),
+  and `--picture` has to follow `-S bigpicture` directly, with `-t` before `-S`.
+- **The huge gaps around the photo are Samsung's.** On a Galaxy Watch (SM-R910,
+  Wear OS 6, One UI Watch) the detail screen puts about 200 px between the text, the
+  photo and the buttons; stock Wear OS 6 on a paired emulator renders the same
+  notification as one compact card (title, photo, text, one button). The
+  notification is identical on both, so there is nothing to fix on our side short
+  of dropping the big picture, which was decided against: the photo stays.
+- **A mobile-flavor build installed on the watch itself shows nothing.** Wear
+  services hide every notification of such an app ("hidden because of 14", the
+  foreground service's included) while a `cmd notification post` from `shell` is
+  shown. Only an alert mirrored from a phone is testable on a real watch.
 
 ## The system 12/24 h setting
 

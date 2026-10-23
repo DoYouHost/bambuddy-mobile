@@ -48,7 +48,7 @@ than a bump.
 
 `just emu-list`, `just emu-boot [avd=…]`, `just run`, `just run-wear` and
 `just test-device` drive them; the default phone AVD is `pixel35` (Pixel 7, API 35,
-Google APIs, x86_64). Hardware acceleration needs `/dev/kvm` to be usable by your
+Google Play, x86_64). Hardware acceleration needs `/dev/kvm` to be usable by your
 user (`emulator -accel-check`).
 
 `emu-boot` kills a boot that has not finished in `EMU_BOOT_TIMEOUT` seconds (180 by
@@ -78,6 +78,30 @@ save one. An emulator that was already hung before `emu-boot` ran is not found b
   the splash screen, which the window manager draws from resources before Dart
   starts, and for nothing else; test the watch UI on API 34 or newer. Raise the
   AVD's RAM to 1536 MB — the profile's 512 MB stopped the boot early.
+
+- **Pairing the phone and watch emulators works without Android Studio**, which is
+  what tests the real notification bridge (a mirrored alert, its photo, its buttons).
+  The Google companion app (now named "Google Pixel Watch", package
+  `com.google.android.apps.wear.companion`) only scans for physical watches, so the
+  steps below are the ones Studio's pairing assistant runs. The phone AVD must be a
+  Google Play image signed in to a Google account (`pixel35` is
+  `google_apis_playstore`), the watch a signed one (`wear6_round`).
+
+  ```sh
+  adb -s <phone> forward tcp:5601 tcp:5601
+  for d in <watch> <phone>; do adb -s $d shell "am broadcast -a com.google.android.gms.wearable.EMULATOR --es operation refresh-emulator-connection"; done
+  adb -s <watch> shell "dumpsys activity service WearableService | grep 'local:'"   # the node id
+  adb -s <phone> shell "am start -n com.google.android.apps.wear.companion/.EmulatorActivity --es emulator-name wear6_round --es emulator-id <node id>"
+  ```
+
+  Accept the Google terms on the phone by hand; `logcat` then prints
+  `[EMULATOR_PAIRING:SUCCESS]`. The companion's own wizard keeps spinning on an
+  emulator and never asks for notification access, so grant it, or no alert is
+  mirrored: `adb -s <phone> shell cmd notification allow_listener
+  com.google.android.apps.wear.companion/com.google.android.libraries.wear.companion.notification.service.CompanionNotificationListenerService`.
+  A watch emulator that was killed has to be paired again from the first step.
+  Run `adb forward` once per phone boot, and run `fake_bambuddy` with the app in
+  the background (see [notification-delivery.md](notification-delivery.md#testing-an-alert-without-printing)).
 
 ## On-device tests
 

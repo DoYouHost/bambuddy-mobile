@@ -13,7 +13,8 @@ import 'notification_service.dart';
 /// Pulls a print's finish photo down to files a notification can be built from.
 ///
 /// Two sizes, because a notification shows two: a full frame when expanded and a
-/// square thumbnail while collapsed. Both are scaled down here — the bitmaps
+/// thumbnail while collapsed. Both keep the photo's aspect ratio (the thumbnail is
+/// not cropped to a square) and are scaled down here — the bitmaps
 /// travel inside the notification, which is mirrored to a paired watch over
 /// Bluetooth. [photoWidth] is sized for the phone, the larger of the two screens
 /// showing it: a watch fits it into 450–512 px, while on a phone the expanded
