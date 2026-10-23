@@ -221,7 +221,7 @@ class _Grid extends ConsumerWidget {
           child: CustomScrollView(
             slivers: [
               SliverGrid.builder(
-                gridDelegate: controllerTileGrid,
+                gridDelegate: controllerTileGrid(context),
                 itemCount: page.items.length,
                 // The grid's context, not the tile's: a refresh while the
                 // dialog is open may take the tile away.

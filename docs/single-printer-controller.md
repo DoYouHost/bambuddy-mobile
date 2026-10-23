@@ -57,8 +57,8 @@ that opens the fault view, the printer's state) over one tab at a time.
 - **No text is scaled to fit, anywhere.** Equal things are one size: a
   `FittedBox` around a label made each one a size of its own, so where text did
   not fit the layout gives way instead — the Overview tiles drop the target at
-  four readings, the tabs scroll, the saver's box grows with the system font,
-  the keypad takes the body's scale. `controller_text_size_test.dart` scans for
+  four readings, the tabs scroll, the saver's box and the Prints tiles grow with
+  the system font, the keypad takes the body's scale. `controller_text_size_test.dart` scans for
   a `FittedBox` outside `scale_to_fit.dart` and the keypad, and measures the
   Overview and Heat texts with the app's real fonts (`loadAppFonts`) in every
   language: the test font is as wide as it is tall and would show overflows

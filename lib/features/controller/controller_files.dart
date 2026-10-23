@@ -489,7 +489,7 @@ class _Grid extends ConsumerWidget {
         if (refreshing) const LinearProgressIndicator(),
         Expanded(
           child: GridView.builder(
-            gridDelegate: controllerTileGrid,
+            gridDelegate: controllerTileGrid(context),
             itemCount: folders.length + files.length,
             itemBuilder: (context, i) => i < folders.length
                 ? _FolderTile(

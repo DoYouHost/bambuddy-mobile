@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
 
@@ -14,13 +16,18 @@ const controllerTileHeight = 82.0;
 const controllerThumbSize = 64.0;
 const controllerGridColumns = 2;
 
-/// The grid every Prints view lays its tiles in.
-const controllerTileGrid = SliverGridDelegateWithFixedCrossAxisCount(
-  crossAxisCount: controllerGridColumns,
-  mainAxisExtent: controllerTileHeight,
-  mainAxisSpacing: DashSpace.sm,
-  crossAxisSpacing: DashSpace.sm,
-);
+/// The grid every Prints view lays its tiles in. A tile grows with the system
+/// font, as the body's box does (`ScaleToFit`): two lines of title and a row of
+/// facts outgrow a fixed height at a large one.
+SliverGridDelegate controllerTileGrid(BuildContext context) =>
+    SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: controllerGridColumns,
+      mainAxisExtent:
+          controllerTileHeight *
+          math.max(1.0, MediaQuery.textScalerOf(context).scale(1)),
+      mainAxisSpacing: DashSpace.sm,
+      crossAxisSpacing: DashSpace.sm,
+    );
 
 /// A square icon button of a Prints view's header.
 class ControllerHeaderButton extends StatelessWidget {

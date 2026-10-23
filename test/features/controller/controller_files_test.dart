@@ -1401,38 +1401,48 @@ void main() {
     });
   });
 
-  group('on a small screen', () {
-    testWidgets('long names in a narrow window overflow nothing', (
-      tester,
-    ) async {
-      await pump(
-        tester,
-        size: const Size(740, 320),
-        lib: _Library(
-          folders: const [
-            LibraryFolder(
-              id: 1,
-              name:
-                  'Bardzo długa nazwa folderu, która nie mieści się w kafelku',
-              fileCount: 12,
-            ),
-          ],
-          filesByFolder: {
-            null: [
-              _file(
-                1,
-                'ogromny_model_z_bardzo_dluga_nazwa_pliku_dla_drukarki.gcode.3mf',
-                model: 'Bambu Lab X1 Carbon',
-                seconds: 360000,
-                grams: 1234,
-              ),
-            ],
-          },
+  group('on every phone', () {
+    _Library longNames() => _Library(
+      folders: const [
+        LibraryFolder(
+          id: 1,
+          name: 'Bardzo długa nazwa folderu, która nie mieści się w kafelku',
+          fileCount: 12,
         ),
-      );
-      await openFiles(tester);
+      ],
+      filesByFolder: {
+        null: [
+          _file(
+            1,
+            'ogromny_model_z_bardzo_dluga_nazwa_pliku_dla_drukarki.gcode.3mf',
+            model: 'Bambu Lab X1 Carbon',
+            seconds: 360000,
+            grams: 1234,
+          ),
+        ],
+      },
+    );
 
-      expect(tester.takeException(), isNull);
-    });
+    // The rail beside the Files view takes width the grid used to have.
+    for (final size in const [
+      landscapeRedmi,
+      landscapePixel,
+      Size(740, 320),
+      Size(1280, 800),
+    ]) {
+      for (final textScale in const [1.0, 1.3]) {
+        testWidgets('long names overflow nothing at '
+            '${size.width.round()}x${size.height.round()}, text x$textScale', (
+          tester,
+        ) async {
+          tester.platformDispatcher.textScaleFactorTestValue = textScale;
+          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+          await pump(tester, size: size, lib: longNames());
+          await openFiles(tester);
+
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
   });
 }

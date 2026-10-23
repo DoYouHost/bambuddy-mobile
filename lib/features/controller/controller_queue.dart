@@ -179,7 +179,7 @@ class _Grid extends ConsumerWidget {
         if (refreshing) const LinearProgressIndicator(),
         Expanded(
           child: GridView.builder(
-            gridDelegate: controllerTileGrid,
+            gridDelegate: controllerTileGrid(context),
             itemCount: items.length,
             // The grid's context, not the tile's: a refresh while the dialog
             // is open may take the tile away, and the choice must still land
