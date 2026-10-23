@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
@@ -137,6 +139,35 @@ void main() {
 
       expect(now(c).items, hasLength(100));
       expect(now(c).moreFailed, isNull);
+    });
+
+    test('a page that lands after a refresh is dropped', () async {
+      final c = container(_prints(120));
+      await first(c);
+      final notifier = c.read(controllerArchiveProvider(1).notifier);
+      final held = repo.listHeld = Completer<void>();
+
+      final more = notifier.loadMore();
+      await notifier.refresh();
+      held.complete();
+      await more;
+
+      expect(now(c).items, hasLength(50), reason: 'the refreshed first page');
+      expect(now(c).fetched, 50);
+    });
+
+    test('a listing rebuilt from scratch still refreshes and pages', () async {
+      final c = container(_prints(120));
+      await first(c);
+
+      // What a change of server does: a dispose, then a build on the same
+      // notifier.
+      c.invalidate(controllerArchiveProvider(1));
+      await first(c);
+      repo.rows = _prints(120, from: 500);
+      await c.read(controllerArchiveProvider(1).notifier).refresh();
+
+      expect(now(c).items.first.id, 500);
     });
 
     test('a refresh starts from the newest again', () async {

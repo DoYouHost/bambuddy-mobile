@@ -144,6 +144,7 @@ void main() {
     LibraryFile? file,
     QueueItem? draft,
     List<Object>? asked,
+    bool inRoster = true,
     List<FilamentRequirement> requirements = _threeFilaments,
     Map<int, PrinterStatus>? live,
     PlateList plates = PlateList.none,
@@ -175,16 +176,17 @@ void main() {
           fixedDashboardOverride(
             DashboardState(
               printers: [
-                PrinterWithStatus(
-                  printer: printer,
-                  status:
-                      status ??
-                      const PrinterStatus(
-                        id: 1,
-                        connected: true,
-                        state: 'IDLE',
-                      ),
-                ),
+                if (inRoster)
+                  PrinterWithStatus(
+                    printer: printer,
+                    status:
+                        status ??
+                        const PrinterStatus(
+                          id: 1,
+                          connected: true,
+                          state: 'IDLE',
+                        ),
+                  ),
               ],
             ),
           ),
@@ -966,6 +968,13 @@ void main() {
       isAdmin: false,
       permissions: {Permissions.queueCreate, Permissions.archivesReprintOwn},
     );
+
+    testWidgets('a printer gone from the roster says so', (tester) async {
+      await pump(tester, inRoster: false);
+
+      expect(submitButton(tester).onPressed, isNull);
+      expect(find.text(pl.controllerPrinterGone), findsOneWidget);
+    });
 
     testWidgets('a reprint-own user prints their own print again', (
       tester,

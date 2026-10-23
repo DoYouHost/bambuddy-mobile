@@ -661,7 +661,9 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
         : ArchiveReprintBlock.noQueue;
     final String note;
     var warn = true;
-    if (refused != null) {
+    if (item == null) {
+      note = l10n.controllerPrinterGone;
+    } else if (refused != null) {
       note = refused.reason(l10n);
     } else if (!compatible) {
       note = l10n.controllerPrintWrongModel(

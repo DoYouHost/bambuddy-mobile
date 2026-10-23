@@ -21,6 +21,9 @@ class FakeArchives implements ArchiveRepository {
   /// What the next [list] call fails with; cleared once thrown.
   AppApiException? listError;
 
+  /// Holds the next [list] call until completed; later calls answer at once.
+  Completer<void>? listHeld;
+
   /// Whether the server stored a verdict, and what it refuses it with.
   bool applied = true;
   AppApiException? error;
@@ -37,6 +40,9 @@ class FakeArchives implements ArchiveRepository {
     int? printerId,
   }) async {
     listed.add((printerId: printerId, limit: limit, offset: offset));
+    final hold = listHeld;
+    listHeld = null;
+    if (hold != null) await hold.future;
     final failure = listError;
     if (failure != null) {
       listError = null;

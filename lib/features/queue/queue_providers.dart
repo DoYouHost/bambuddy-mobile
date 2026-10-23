@@ -294,10 +294,14 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
 /// Not at once: the callers start it from `initState`, where a provider write
 /// throws ([docs/riverpod-traps.md] §2), and `refresh` writes before it awaits.
 Timer pollQueue(ProviderContainer providers, Duration every) {
-  void refresh() => unawaited(providers.read(queueProvider.notifier).refresh());
+  void refresh() {
+    if (providers.read(queueProvider).isLoading) return;
+    unawaited(providers.read(queueProvider.notifier).refresh());
+  }
+
   final timer = Timer.periodic(every, (_) => refresh());
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (timer.isActive && !providers.read(queueProvider).isLoading) refresh();
+    if (timer.isActive) refresh();
   });
   return timer;
 }

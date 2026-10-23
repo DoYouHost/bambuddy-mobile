@@ -57,12 +57,16 @@ final controllerArchiveProvider = AsyncNotifierProvider.autoDispose
 
 class ControllerArchiveNotifier
     extends AutoDisposeFamilyAsyncNotifier<ControllerArchivePage, int> {
-  bool _alive = true;
+  /// Bumped by every build, refresh and dispose: an answer that comes back
+  /// under another generation describes a listing no longer on screen. A flag
+  /// would not do — a rebuild runs on this same instance after its dispose.
+  int _generation = 0;
 
   @override
   Future<ControllerArchivePage> build(int printerId) async {
     ref.watch(serverProfileProvider);
-    ref.onDispose(() => _alive = false);
+    _generation++;
+    ref.onDispose(() => _generation++);
     return _first();
   }
 
@@ -83,7 +87,13 @@ class ControllerArchiveNotifier
   /// row down by one, so the new page can repeat the last row read: kept once.
   Future<void> loadMore() async {
     final current = state.valueOrNull;
-    if (current == null || !current.hasMore || current.loadingMore) return;
+    if (state.isLoading ||
+        current == null ||
+        !current.hasMore ||
+        current.loadingMore) {
+      return;
+    }
+    final generation = _generation;
     state = AsyncData(
       ControllerArchivePage(
         items: current.items,
@@ -94,7 +104,7 @@ class ControllerArchiveNotifier
     );
     try {
       final rows = await _page(current.fetched);
-      if (!_alive) return;
+      if (generation != _generation) return;
       final seen = {for (final a in current.items) a.id};
       state = AsyncData(
         ControllerArchivePage(
@@ -108,7 +118,7 @@ class ControllerArchiveNotifier
         ),
       );
     } on AppApiException catch (e) {
-      if (!_alive) return;
+      if (generation != _generation) return;
       state = AsyncData(
         ControllerArchivePage(
           items: current.items,
@@ -122,9 +132,10 @@ class ControllerArchiveNotifier
 
   /// From the newest again.
   Future<void> refresh() async {
+    final generation = ++_generation;
     state = const AsyncLoading<ControllerArchivePage>().copyWithPrevious(state);
     final next = await AsyncValue.guard(_first);
-    if (_alive) state = next;
+    if (generation == _generation) state = next;
   }
 }
 

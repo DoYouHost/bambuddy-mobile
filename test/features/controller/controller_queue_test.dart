@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
@@ -279,6 +281,19 @@ void main() {
       expect(queue.startedAsIs, isEmpty);
     });
 
+    testWidgets('the poll asks nothing while an answer is still coming', (
+      tester,
+    ) async {
+      final slow = _SlowQueue([_job(11)]);
+      await open(tester, const [], fake: slow, warm: true);
+      expect(slow.refreshes, 1);
+
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pump(const Duration(seconds: 10));
+
+      expect(slow.refreshes, 1);
+    });
+
     testWidgets('a queue that failed before is asked again on entry', (
       tester,
     ) async {
@@ -331,5 +346,19 @@ class _FailsFirstQueue extends _WritingQueue {
       throw const ApiException(AppErrorCode.connectionError);
     }
     return super.build();
+  }
+}
+
+/// A queue whose refresh never answers, as on a connection that hangs.
+class _SlowQueue extends FakeQueue {
+  _SlowQueue(super.items);
+
+  int refreshes = 0;
+
+  @override
+  Future<void> refresh() {
+    refreshes++;
+    state = const AsyncLoading<List<QueueItem>>().copyWithPrevious(state);
+    return Completer<void>().future;
   }
 }
