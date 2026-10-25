@@ -50,6 +50,11 @@ the real one. This file keeps the reasons; the code keeps one line each.
   measured a layout the app never draws: the controller saver's clock wrapped in
   it from 10:00 on and the test went red twice a day. Not a per-file `setUpAll`,
   which is how one was forgotten.
+- **`test/contract/` has its own `flutter_test_config.dart`**, without that
+  font loading: loading fonts needs `TestWidgetsFlutterBinding`, which answers
+  every HTTP request with a 400, and the contract tests talk to a real server.
+  Every one of them failed in its `setUpAll` the day the fonts went global, and
+  locally nothing showed it, because without a server they skip.
 - **No profile, no widget.** A widget that reads the server profile builds its
   API client from it; without one that throws `UnimplementedError` into an
   unbounded `ErrorWidget`, and the 100000 px overflow that follows buries what
