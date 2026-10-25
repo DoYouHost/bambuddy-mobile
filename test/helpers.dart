@@ -11,6 +11,8 @@ import 'package:bambuddy_mobile/core/api/media_auth.dart';
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
+import 'package:bambuddy_mobile/core/notifications/background_monitor.dart';
+import 'package:bambuddy_mobile/core/notifications/background_sync.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
@@ -617,6 +619,22 @@ final inertStatusesOverride = printerStatusesProvider.overrideWith(
 class _InertStatuses extends PrinterStatusesNotifier {
   @override
   Map<int, PrinterStatus> build() => const {};
+}
+
+/// A background monitor that never runs: the dashboard touches it on its first
+/// frame, and the real one reaches for a platform channel.
+final inertBackgroundMonitorOverride = backgroundMonitorProvider
+    .overrideWithValue(_InertBackgroundMonitor());
+
+class _InertBackgroundMonitor implements BackgroundMonitor {
+  @override
+  Future<bool> start() async => false;
+  @override
+  Future<bool> stop() async => false;
+  @override
+  Future<bool> isRunning() async => false;
+  @override
+  void sync(BackgroundSync what) {}
 }
 
 /// No smart plugs, so the card's power row stays out of the way and its 5 s
