@@ -69,13 +69,23 @@ all of `http_probe_test`.
 Other extraction candidates: `docs/candidates.md` in the shared repo (lubelogger has
 not yet adopted `app_report_client` — 1265 lines of copy).
 
+- **Since v0.14.0 every UI package is on Google's standalone `material_ui`**, and
+  so is this app (`dart fix --apply --code=migrate_design_widgets`). Material's
+  localizations come from `material_ui`'s `GlobalMaterialLocalizations.delegates`,
+  never from a generated `*.localizationsDelegates`: `gen-l10n` still fills that
+  list from `flutter_localizations`, whose in-framework `MaterialLocalizations` no
+  `material_ui` widget finds — "No MaterialLocalizations found" at runtime, nothing
+  at analysis.
+
 ## What else the shared repo ships
 
 `app_guards` (source-scan guards and bundled scripts run as
 `dart run app_guards:<tool>`, with per-app TOML configs in `tool/`:
 `l10n_language.toml`, `log_coverage.toml`, `play.toml`), `app_test_kit` (the generic
 half of `test/helpers.dart`, re-exported there), and `dash_kit` / `dash_ui` /
-`app_util` (widgets and helpers formerly in this repo).
+`app_util` (widgets and helpers formerly in this repo). A brand can be generated
+with `DashBrand.fromSchemes` from a Material `ColorScheme` pair; how the app uses it
+is in [appearance.md](appearance.md).
 
 ## Verifying against unreleased packages
 

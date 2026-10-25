@@ -259,6 +259,10 @@ do not stay silent because it was not part of the task.
   **Read it before touching `lib/features/inventory/` or slot addressing.**
 - [docs/library-and-projects.md](docs/library-and-projects.md) — library tags,
   projects and model sources (MakerWorld, Manyfold): what the contract hides.
+- [docs/appearance.md](docs/appearance.md) — the accent colour and light/dark
+  choice: the three accent sources and why "System" falls back, why the grounds
+  belong to the brand, what is deliberately not themed. **Read it before touching
+  `lib/core/theme/` or the appearance settings.**
 - [docs/screens.md](docs/screens.md) — decisions behind the dashboard printer
   status and smart plugs, maintenance, statistics, two-factor login and printer
   locations.
