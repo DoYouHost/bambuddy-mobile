@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/ams/filament_naming.dart';
+import '../../common/spool_colour_wheel.dart';
 import '../../../core/ams/filament_preset_catalog.dart';
 import '../../../core/ams/k_profile_match.dart';
 import '../../../core/ams/preset_colours.dart';
@@ -962,18 +962,7 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
               ),
               _label(t, l10n.amsSlotConfigColourCustom),
             ],
-            ColorPicker(
-              pickerColor: _picked,
-              onColorChanged: _onWheel,
-              // The printer has no use for a transparent filament: a zero alpha
-              // is how it reports an *empty* slot, so the picker never offers
-              // it.
-              enableAlpha: false,
-              hexInputBar: true,
-              labelTypes: const [],
-              portraitOnly: true,
-              pickerAreaHeightPercent: 0.7,
-            ),
+            SpoolColourWheel(color: _picked, onChanged: _onWheel),
           ],
         ),
       ),

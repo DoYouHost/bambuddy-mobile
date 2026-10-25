@@ -7,7 +7,7 @@ import 'package:bambuddy_mobile/features/archive/timelapse_format.dart';
 import 'package:bambuddy_mobile/features/archive/timelapse_providers.dart';
 import 'package:bambuddy_mobile/features/archive/timelapse_editor_screen.dart';
 import 'package:bambuddy_mobile/features/archive/timelapse_trim_strip.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';

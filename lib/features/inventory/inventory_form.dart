@@ -1017,7 +1017,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     );
     if (picked != null && mounted) {
       setState(() {
-        _c['rgba']!.text = colorToHex(picked, enableAlpha: false) + alphaHex;
+        _c['rgba']!.text = picked.hex + alphaHex;
       });
     }
   }
@@ -1663,15 +1663,7 @@ Future<Color?> _pickSpoolColor(
       title: Text(l10n.inventoryColorPickTitle),
       contentPadding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
       content: SingleChildScrollView(
-        child: ColorPicker(
-          pickerColor: picked,
-          onColorChanged: (c) => picked = c,
-          enableAlpha: false,
-          hexInputBar: true,
-          labelTypes: const [],
-          portraitOnly: true,
-          pickerAreaHeightPercent: 0.7,
-        ),
+        child: SpoolColourWheel(color: picked, onChanged: (c) => picked = c),
       ),
       actions: [
         logTag(

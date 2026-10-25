@@ -6,7 +6,7 @@ import 'package:bambuddy_mobile/features/settings/demo_printers_provider.dart';
 import 'package:bambuddy_mobile/features/settings/app_settings_screen.dart';
 import 'package:bambuddy_mobile/features/wall/wall_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';

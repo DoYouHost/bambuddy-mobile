@@ -1,6 +1,6 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:clock/clock.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../core/format/duration_format.dart';
 import '../../core/models/printer_status.dart';

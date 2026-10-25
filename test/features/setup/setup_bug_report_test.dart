@@ -3,7 +3,7 @@ import 'package:app_report_ui/app_report_ui.dart';
 import 'package:bambuddy_mobile/features/bug_report/report_wiring.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/router.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';

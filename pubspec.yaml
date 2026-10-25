@@ -16,6 +16,8 @@ dependencies:
   # (`wearTheme`). Already in the tree through Flutter, which pins it; `any`
   # leaves that pin in charge.
   material_color_utilities: any
+  # The system's Material You palette (Android 12+) for the "System" accent.
+  dynamic_color: 2.1.0
   # Report transport, outbox and redaction, shared with lubelogger-mobile.
   # Pinned to a tag, the way the OpenTofu modules are: a moving ref would let a
   # change over there reach a release from here without a commit in this repo.
@@ -33,14 +35,14 @@ dependencies:
   app_diagnostics:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.13.2
+      ref: v0.14.0
       path: packages/app_diagnostics
   # The report screens — the guided flow, the recording bar and the review —
   # shared with lubelogger-mobile.
   app_report_ui:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.13.2
+      ref: v0.14.0
       path: packages/app_report_ui
   # The design system and the widgets that name themselves in the diagnostic
   # log, shared with lubelogger-mobile. `dash_kit` re-exports `dash_ui`, so this
@@ -49,14 +51,14 @@ dependencies:
   dash_kit:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.13.2
+      ref: v0.14.0
       path: packages/dash_kit
   # JSON coercion, user-typed numbers, the demo adapter, the server address and
   # the request-failure classification, shared with lubelogger-mobile.
   app_util:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.13.2
+      ref: v0.14.0
       path: packages/app_util
   clock: ^1.1.2
   collection: ^1.19.0
@@ -77,7 +79,6 @@ dependencies:
   url_launcher: ^6.3.0
   flutter_svg: ^2.3.0
   mobile_scanner: ^7.2.0
-  flutter_colorpicker: ^1.1.0
   fl_chart: ^1.2.0
   package_info_plus: ^9.0.1
   home_widget: ^0.10.0
@@ -92,6 +93,8 @@ dependencies:
   flutter_file_dialog: ^3.3.2
   image_picker: ^1.2.3
   nsd: ^5.0.1
+  material_ui: ^1.8.0
+  flex_color_picker: 4.0.0
 
 dev_dependencies:
   flutter_test:
@@ -102,14 +105,14 @@ dev_dependencies:
   app_guards:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.13.2
+      ref: v0.14.0
       path: packages/app_guards
   # The harness pieces test/helpers.dart re-exports: the request log, the
   # exact-body mock server, the scripted adapter, the clock and timer fakes.
   app_test_kit:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.13.2
+      ref: v0.14.0
       path: packages/app_test_kit
   # On-device tests (`just test-device`). A mocked adapter never performs a real
   # read off a socket, which is exactly what the camera stream is.
@@ -133,6 +136,7 @@ dev_dependencies:
   # will not let a test import what the pubspec does not list.
   path_provider_platform_interface: ^2.1.2
 
+  test_api: any
 flutter:
   uses-material-design: true
   generate: true

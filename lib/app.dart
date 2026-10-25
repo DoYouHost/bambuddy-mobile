@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -254,9 +254,13 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
       // App follows system setting; dark theme like PWA.
       themeMode: ThemeMode.system,
       // Locale auto-detected from system; en = fallback.
-      localizationsDelegates: [
-        ...AppLocalizations.localizationsDelegates,
+      // Not AppLocalizations.localizationsDelegates: gen-l10n still fills it
+      // from flutter_localizations, whose Material strings material_ui
+      // widgets do not find.
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
         ReportLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,

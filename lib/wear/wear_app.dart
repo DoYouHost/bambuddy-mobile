@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:clock/clock.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_context.dart';
@@ -182,7 +182,10 @@ class _WearAppState extends ConsumerState<WearApp> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
       theme: wearTheme(),
       // Follow the watch's system language (same l10n set as the phone app).
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
       supportedLocales: AppLocalizations.supportedLocales,
       // Above the navigator, so routes *and* dialogs read the same shape: the
       // round face is what every layout under here insets itself against.

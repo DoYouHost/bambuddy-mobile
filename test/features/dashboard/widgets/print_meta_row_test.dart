@@ -1,5 +1,5 @@
 import 'package:bambuddy_mobile/features/dashboard/widgets/print_meta_row.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// The real trio, with the ETA on a 12-hour clock — the one that made the line

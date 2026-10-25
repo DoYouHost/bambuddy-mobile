@@ -7,7 +7,7 @@ import 'package:bambuddy_mobile/wear/screens/wear_settings_screen.dart';
 import 'package:bambuddy_mobile/wear/wear_providers.dart';
 import 'package:bambuddy_mobile/wear/wear_theme.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -6,7 +6,7 @@ import 'package:bambuddy_mobile/data/finance_repository.dart';
 import 'package:bambuddy_mobile/features/finance/finance_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';

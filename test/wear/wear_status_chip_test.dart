@@ -1,6 +1,6 @@
 import 'package:bambuddy_mobile/wear/wear_status.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_status_chip.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';

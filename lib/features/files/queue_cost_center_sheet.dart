@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/cost_center.dart';

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' show ThemeMode;
+import 'package:material_ui/material_ui.dart' show ThemeMode;
 
 /// Where the accent comes from. Wire values are the enum names.
 enum AccentSource { bambuddy, system, blue, purple, orange, pink, graphite }
