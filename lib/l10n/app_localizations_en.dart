@@ -6124,9 +6124,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wearSettingsTitle => 'Settings';
 
   @override
-  String get wearFaceColours => 'Watch face colours';
-
-  @override
   String get wearFromPhone => 'From your phone';
 
   @override
@@ -7454,6 +7451,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appearanceModeDark => 'Dark';
+
+  @override
+  String get appSettingsPhone => 'Phone';
+
+  @override
+  String get appSettingsLabelPrinter => 'Printer';
+
+  @override
+  String get watchSettingsTitle => 'Watch';
+
+  @override
+  String get watchThemeFromFace => 'Theme from the watch face';
+
+  @override
+  String get watchThemeFromFaceDesc =>
+      'Wear OS 6 or later. When the face gives no colours, the watch takes the phone\'s theme.';
+
+  @override
+  String get watchThemeFromPhone => 'Theme from the phone';
+
+  @override
+  String get watchThemeFromPhoneDesc => 'The same accent colour as this app.';
 
   @override
   String get appSettingsNotificationsSubtitle =>
@@ -8872,10 +8891,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get labelPrinterTitle => 'Label printer';
-
-  @override
-  String get labelPrinterEntrySubtitle =>
-      'Print spool labels on a Brother QL print server on your network';
 
   @override
   String get labelPrinterIntro =>

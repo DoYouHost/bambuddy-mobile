@@ -6200,9 +6200,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get wearSettingsTitle => 'Ajustes';
 
   @override
-  String get wearFaceColours => 'Colores de la esfera';
-
-  @override
   String get wearFromPhone => 'Desde tu teléfono';
 
   @override
@@ -7542,6 +7539,29 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get appearanceModeDark => 'Oscuro';
+
+  @override
+  String get appSettingsPhone => 'Teléfono';
+
+  @override
+  String get appSettingsLabelPrinter => 'Impresora';
+
+  @override
+  String get watchSettingsTitle => 'Reloj';
+
+  @override
+  String get watchThemeFromFace => 'Tema de la esfera';
+
+  @override
+  String get watchThemeFromFaceDesc =>
+      'Wear OS 6 o posterior. Si la esfera no da colores, el reloj usa el tema del teléfono.';
+
+  @override
+  String get watchThemeFromPhone => 'Tema del teléfono';
+
+  @override
+  String get watchThemeFromPhoneDesc =>
+      'El mismo color de acento que en esta app.';
 
   @override
   String get appSettingsNotificationsSubtitle =>
@@ -8985,10 +9005,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get labelPrinterTitle => 'Impresora de etiquetas';
-
-  @override
-  String get labelPrinterEntrySubtitle =>
-      'Imprime etiquetas de bobinas en un servidor de impresión Brother QL de tu red';
 
   @override
   String get labelPrinterIntro =>

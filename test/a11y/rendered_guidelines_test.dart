@@ -83,6 +83,30 @@ void main() {
         handle.dispose();
       });
 
+      // Each section of the screen, as the segments switch it.
+      for (final section in ['watch', 'labelPrinter']) {
+        testWidgets('app settings, $section: $name', (tester) async {
+          final handle = tester.ensureSemantics();
+          await pumpThemed(
+            tester,
+            const AppSettingsScreen(),
+            accent,
+            brightness,
+          );
+          await tester.tap(
+            find.descendant(
+              of: byLogId('app_settings.section'),
+              matching: find.byIcon(
+                section == 'watch' ? Icons.watch_outlined : Icons.label_outline,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await meetsAll(tester);
+          handle.dispose();
+        });
+      }
+
       testWidgets('dashboard: $name', (tester) async {
         final handle = tester.ensureSemantics();
         await pumpThemed(

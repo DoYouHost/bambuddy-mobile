@@ -63,7 +63,8 @@ ColorScheme watchFaceScheme(Map<String, int> roles) {
   );
 }
 
-/// Whether the watch takes its colours from its face; off, from the phone.
+/// Whether the phone chose the watch face's colours (`watchFace` in the
+/// config); off, the accent it sent.
 final wearFaceColoursProvider = NotifierProvider<WearFaceColours, bool>(
   WearFaceColours.new,
 );
@@ -85,7 +86,8 @@ class WearFaceColours extends Notifier<bool> {
   }
 }
 
-/// The accent the phone last sent; null is the green brand.
+/// The accent the phone last sent — its own or a preset chosen for the
+/// watch; null is the green brand.
 final wearPhoneAccentProvider =
     NotifierProvider<WearPhoneAccent, AccentPreset?>(WearPhoneAccent.new);
 
@@ -107,18 +109,18 @@ class WearPhoneAccent extends Notifier<AccentPreset?> {
   }
 }
 
-/// The face's colours when chosen and on offer, otherwise the phone's accent,
-/// otherwise green.
+/// The face's colours when chosen and on offer, otherwise the accent the
+/// phone sent, otherwise green.
 ColorScheme wearColorScheme({
   required bool faceColours,
   ColorScheme? face,
-  AccentPreset? phone,
-}) => (faceColours ? face : null) ?? wearSeedScheme(phone ?? wearGreen);
+  AccentPreset? accent,
+}) => (faceColours ? face : null) ?? wearSeedScheme(accent ?? wearGreen);
 
 final wearColorSchemeProvider = Provider<ColorScheme>(
   (ref) => wearColorScheme(
     faceColours: ref.watch(wearFaceColoursProvider),
     face: ref.watch(systemSchemesProvider)?.dark,
-    phone: ref.watch(wearPhoneAccentProvider),
+    accent: ref.watch(wearPhoneAccentProvider),
   ),
 );

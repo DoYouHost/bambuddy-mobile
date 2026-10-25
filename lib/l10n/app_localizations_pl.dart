@@ -6233,9 +6233,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wearSettingsTitle => 'Ustawienia';
 
   @override
-  String get wearFaceColours => 'Kolory z tarczy';
-
-  @override
   String get wearFromPhone => 'Z telefonu';
 
   @override
@@ -7587,6 +7584,29 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get appearanceModeDark => 'Ciemny';
+
+  @override
+  String get appSettingsPhone => 'Telefon';
+
+  @override
+  String get appSettingsLabelPrinter => 'Drukarka';
+
+  @override
+  String get watchSettingsTitle => 'Zegarek';
+
+  @override
+  String get watchThemeFromFace => 'Motyw z tarczy';
+
+  @override
+  String get watchThemeFromFaceDesc =>
+      'Wear OS 6 lub nowszy. Gdy tarcza nie daje kolorów, zegarek bierze motyw z telefonu.';
+
+  @override
+  String get watchThemeFromPhone => 'Motyw z telefonu';
+
+  @override
+  String get watchThemeFromPhoneDesc =>
+      'Ten sam kolor akcentu co w tej aplikacji.';
 
   @override
   String get appSettingsNotificationsSubtitle =>
@@ -9024,10 +9044,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get labelPrinterTitle => 'Drukarka etykiet';
-
-  @override
-  String get labelPrinterEntrySubtitle =>
-      'Drukuj etykiety szpul na serwerze druku Brother QL w sieci';
 
   @override
   String get labelPrinterIntro =>

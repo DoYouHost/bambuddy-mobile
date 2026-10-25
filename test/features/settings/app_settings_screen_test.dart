@@ -295,4 +295,59 @@ void main() {
       );
     });
   });
+
+  group('sections', () {
+    Future<void> open(WidgetTester tester, IconData icon) async {
+      await tester.tap(
+        find.descendant(
+          of: byLogId('app_settings.section'),
+          matching: find.byIcon(icon),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('opens on the phone', (tester) async {
+      await pumpScreen(tester);
+      expect(find.text(pl.appearanceTitle.toUpperCase()), findsOneWidget);
+      expect(byLogId('watch_settings.from_phone'), findsNothing);
+    });
+
+    testWidgets('the watch segment shows only the watch', (tester) async {
+      await pumpScreen(tester);
+      await open(tester, Icons.watch_outlined);
+
+      expect(byLogId('watch_settings.from_phone'), findsOneWidget);
+      expect(byLogId('app_settings.accent'), findsNothing);
+    });
+
+    // The segments used to rebuild their section, which threw away an address
+    // typed in and not yet saved.
+    testWidgets('a section keeps what was typed while another is open', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+      await open(tester, Icons.label_outline);
+      await tester.enterText(
+        find.descendant(
+          of: byLogId('label_printer.address'),
+          matching: find.byType(TextField),
+        ),
+        '192.168.1.40',
+      );
+
+      await open(tester, Icons.smartphone_outlined);
+      await open(tester, Icons.label_outline);
+
+      expect(find.text('192.168.1.40'), findsOneWidget);
+    });
+
+    testWidgets('the printer segment shows the label printer', (tester) async {
+      await pumpScreen(tester);
+      await open(tester, Icons.label_outline);
+
+      expect(find.text(pl.labelPrinterIntro), findsOneWidget);
+      expect(byLogId('app_settings.accent'), findsNothing);
+    });
+  });
 }

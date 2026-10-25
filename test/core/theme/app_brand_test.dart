@@ -86,4 +86,47 @@ void main() {
       );
     });
   });
+
+  group('watchTheme', () {
+    test('the phone source sends the phone accent', () {
+      expect(watchTheme(const WatchAppearance(), AccentSource.purple, null), (
+        accent: accentPresets[AccentSource.purple],
+        face: false,
+      ));
+    });
+
+    test('the face source still sends the phone accent to fall back on', () {
+      expect(
+        watchTheme(
+          const WatchAppearance(source: WatchThemeSource.face),
+          AccentSource.purple,
+          null,
+        ),
+        (accent: accentPresets[AccentSource.purple], face: true),
+      );
+    });
+
+    test('the preset source sends the preset, whatever the phone wears', () {
+      expect(
+        watchTheme(
+          const WatchAppearance(
+            source: WatchThemeSource.preset,
+            preset: AccentSource.orange,
+          ),
+          AccentSource.purple,
+          null,
+        ),
+        (accent: accentPresets[AccentSource.orange], face: false),
+      );
+      expect(
+        watchTheme(
+          const WatchAppearance(source: WatchThemeSource.preset),
+          AccentSource.purple,
+          null,
+        ),
+        (accent: null, face: false),
+        reason: 'the green preset is what the watch draws untold',
+      );
+    });
+  });
 }

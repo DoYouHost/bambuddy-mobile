@@ -1,11 +1,9 @@
 import 'dart:async';
 
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
-import 'package:bambuddy_mobile/core/theme/appearance_providers.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/screens/wear_settings_screen.dart';
-import 'package:bambuddy_mobile/wear/wear_colours.dart';
 import 'package:bambuddy_mobile/wear/wear_providers.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_confirm_dialog.dart';
 import 'package:material_ui/material_ui.dart';
@@ -65,7 +63,6 @@ void main() {
     WidgetTester tester, {
     WatchConfig? offered,
     String? serverVersion,
-    ColorScheme? face,
   }) async {
     final container = await pumpWear(
       tester,
@@ -77,11 +74,6 @@ void main() {
         // that is not there, and the screen's own tests would wait out its
         // timeout.
         wearServerVersionProvider.overrideWith((ref) => serverVersion),
-        if (face != null)
-          initialSystemSchemesProvider.overrideWithValue((
-            light: face,
-            dark: face,
-          )),
       ],
     );
     if (offered != null) {
@@ -254,53 +246,5 @@ void main() {
       await revealOnWatch(tester, find.text(line));
       expectOnGlass(tester, find.text(line), reason: line);
     }
-  });
-
-  group('face colours', () {
-    final face = ColorScheme.fromSeed(
-      seedColor: const Color(0xFFD81B60),
-      brightness: Brightness.dark,
-    );
-
-    testWidgets('are not offered where the face has none', (tester) async {
-      await pumpSettings(tester);
-      expect(find.text(pl.wearFaceColours), findsNothing);
-    });
-
-    testWidgets('a tap switches them on and is kept', (tester) async {
-      final container = await pumpSettings(tester, face: face);
-      await revealOnWatch(tester, find.text(pl.wearFaceColours));
-      expect(
-        tester.getSemantics(find.text(pl.wearFaceColours)),
-        matchesSemantics(
-          label: pl.wearFaceColours,
-          hasToggledState: true,
-          isToggled: false,
-          hasTapAction: true,
-          hasFocusAction: true,
-          isFocusable: true,
-        ),
-      );
-
-      await tapOnWatch(tester, find.text(pl.wearFaceColours));
-      await tester.pumpAndSettle();
-
-      expect(container.read(wearFaceColoursProvider), isTrue);
-      expect(
-        container.read(settingsRepositoryProvider).loadWearFaceColours(),
-        isTrue,
-      );
-    });
-
-    // Dynamic theming switched off after the choice: the switch has to stay
-    // reachable, or the choice could never be undone.
-    testWidgets('a choice made stays offered without a face', (tester) async {
-      final container = await pumpSettings(tester);
-      await container.read(wearFaceColoursProvider.notifier).set(true);
-      await tester.pumpAndSettle();
-
-      await revealOnWatch(tester, find.text(pl.wearFaceColours));
-      expect(find.text(pl.wearFaceColours), findsOneWidget);
-    });
   });
 }

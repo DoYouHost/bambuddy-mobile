@@ -59,7 +59,25 @@ DashBrand _fromPreset(AccentPreset preset) {
   );
 }
 
-/// What the watch is told to colour itself with: null for the green brand, which
+/// What the phone tells the watch: an accent, and whether the face's colours
+/// come first. The accent is still sent with [face], for a watch whose face
+/// gives none.
+typedef WatchTheme = ({AccentPreset? accent, bool face});
+
+WatchTheme watchTheme(
+  WatchAppearance watch,
+  AccentSource phone,
+  SystemSchemes? system,
+) => switch (watch.source) {
+  WatchThemeSource.face => (accent: watchAccent(phone, system), face: true),
+  WatchThemeSource.phone => (accent: watchAccent(phone, system), face: false),
+  WatchThemeSource.preset => (
+    accent: watchAccent(watch.preset, null),
+    face: false,
+  ),
+};
+
+/// The accent the watch is told to colour itself with: null for the green brand, which
 /// the watch already draws without being told, and for a "System" with no
 /// palette behind it. `System` sends the seed `toColorScheme` derives the
 /// phone's scheme from, so the watch lands on the same hue.

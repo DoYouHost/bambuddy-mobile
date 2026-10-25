@@ -162,8 +162,9 @@ class _WearAppState extends ConsumerState<WearApp> with WidgetsBindingObserver {
   /// that was working, with nothing on screen to say so.
   Future<void> _routeConfig(WatchConfig config) async {
     if (!mounted) return;
-    // The colour is the phone's to set whichever server the config names.
+    // The colours are the phone's to set whichever server the config names.
     unawaited(ref.read(wearPhoneAccentProvider.notifier).set(config.accent));
+    unawaited(ref.read(wearFaceColoursProvider.notifier).set(config.watchFace));
     if (config.isSameServerAs(ref.read(serverProfileProvider))) {
       await _applyConfig(config);
       return;

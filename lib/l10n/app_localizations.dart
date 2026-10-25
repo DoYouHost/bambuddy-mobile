@@ -10280,12 +10280,6 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get wearSettingsTitle;
 
-  /// No description provided for @wearFaceColours.
-  ///
-  /// In en, this message translates to:
-  /// **'Watch face colours'**
-  String get wearFaceColours;
-
   /// No description provided for @wearFromPhone.
   ///
   /// In en, this message translates to:
@@ -12523,6 +12517,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dark'**
   String get appearanceModeDark;
+
+  /// No description provided for @appSettingsPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get appSettingsPhone;
+
+  /// No description provided for @appSettingsLabelPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get appSettingsLabelPrinter;
+
+  /// No description provided for @watchSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch'**
+  String get watchSettingsTitle;
+
+  /// No description provided for @watchThemeFromFace.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme from the watch face'**
+  String get watchThemeFromFace;
+
+  /// No description provided for @watchThemeFromFaceDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Wear OS 6 or later. When the face gives no colours, the watch takes the phone\'s theme.'**
+  String get watchThemeFromFaceDesc;
+
+  /// No description provided for @watchThemeFromPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme from the phone'**
+  String get watchThemeFromPhone;
+
+  /// No description provided for @watchThemeFromPhoneDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'The same accent colour as this app.'**
+  String get watchThemeFromPhoneDesc;
 
   /// No description provided for @appSettingsNotificationsSubtitle.
   ///
@@ -14857,12 +14893,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Label printer'**
   String get labelPrinterTitle;
-
-  /// No description provided for @labelPrinterEntrySubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Print spool labels on a Brother QL print server on your network'**
-  String get labelPrinterEntrySubtitle;
 
   /// No description provided for @labelPrinterIntro.
   ///

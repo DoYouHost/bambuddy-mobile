@@ -198,6 +198,26 @@ void main() {
       expect(sync.applied.single.apiKey, 'bb_new');
     });
 
+    testWidgets('the face choice comes with it, and goes with it', (
+      tester,
+    ) async {
+      final container = await pumpApp(tester, profile: _workshop);
+      sync.pushes.add(
+        WatchConfig(
+          profile: _workshop,
+          apiKey: 'bb_secret',
+          accent: blue,
+          watchFace: true,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(container.read(wearFaceColoursProvider), isTrue);
+
+      sync.pushes.add(_configFor(_workshop));
+      await tester.pumpAndSettle();
+      expect(container.read(wearFaceColoursProvider), isFalse);
+    });
+
     testWidgets('goes back to green when the phone does', (tester) async {
       final container = await pumpApp(tester, profile: _workshop);
       sync.pushes.add(

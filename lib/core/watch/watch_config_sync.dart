@@ -8,7 +8,7 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 import '../auth/credentials_store.dart';
 import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
-import '../theme/app_brand.dart' show AccentPreset;
+import '../theme/app_brand.dart' show AccentPreset, WatchTheme;
 
 /// Decoded phone→watch handoff: the server profile plus whichever secret backs
 /// its auth mode. Secrets travel over the Wear Data Layer (encrypted bridge
@@ -21,6 +21,7 @@ class WatchConfig {
     this.username,
     this.password,
     this.accent,
+    this.watchFace = false,
   });
 
   final ServerProfile profile;
@@ -29,9 +30,13 @@ class WatchConfig {
   final String? username;
   final String? password;
 
-  /// The phone's accent; null for the green brand, and from a phone too old
-  /// to send one.
+  /// The accent the phone chose for the watch — its own, or a preset — and the
+  /// fallback under [watchFace]; null for the green brand, and from a phone
+  /// too old to send one.
   final AccentPreset? accent;
+
+  /// Whether the phone chose the watch face's colours over [accent].
+  final bool watchFace;
 
   /// Whether [current] already points at this server in this auth mode.
   ///
@@ -61,6 +66,7 @@ class WatchConfigCodec {
   static const _kPassword = 'password';
   static const _kAccentSeed = 'accentSeed';
   static const _kAccentVariant = 'accentVariant';
+  static const _kWatchFace = 'watchFace';
 
   /// Build the context map. Only non-null keys are included — the Data Layer
   /// rejects null values in the map.
@@ -69,7 +75,7 @@ class WatchConfigCodec {
     String? apiKey,
     String? jwt,
     ({String username, String password})? login,
-    AccentPreset? accent,
+    WatchTheme? theme,
   }) => <String, dynamic>{
     _kVersion: version,
     _kBaseUrl: profile.baseUrl,
@@ -81,10 +87,11 @@ class WatchConfigCodec {
       _kUsername: login.username,
       _kPassword: login.password,
     },
-    if (accent != null) ...{
+    if (theme?.accent case final accent?) ...{
       _kAccentSeed: accent.seed.toARGB32(),
       _kAccentVariant: accent.variant.name,
     },
+    if (theme?.face ?? false) _kWatchFace: true,
   };
 
   /// Parse an incoming context. Returns null for empty/foreign/malformed maps
@@ -115,6 +122,7 @@ class WatchConfigCodec {
         ),
         _ => null,
       },
+      watchFace: map[_kWatchFace] == true,
     );
   }
 }
@@ -137,10 +145,10 @@ class WatchConfigSync {
   final CredentialsStore _credentials;
   final SettingsRepository? _settings;
 
-  /// PHONE side: push [profile], its backing secret and the [accent] to the
+  /// PHONE side: push [profile], its backing secret and the [theme] to the
   /// watch. Best-effort — silently no-ops when no watch is paired/reachable, so
-  /// it's safe to call unconditionally on every profile or accent change.
-  Future<void> push(ServerProfile profile, {AccentPreset? accent}) async {
+  /// it's safe to call unconditionally on every profile or theme change.
+  Future<void> push(ServerProfile profile, {WatchTheme? theme}) async {
     try {
       final map = WatchConfigCodec.encode(
         profile: profile,
@@ -153,7 +161,7 @@ class WatchConfigSync {
         login: profile.authMode == AuthMode.jwt
             ? await _credentials.readRememberedLogin()
             : null,
-        accent: accent,
+        theme: theme,
       );
       await _watch.updateApplicationContext(map);
     } catch (_) {

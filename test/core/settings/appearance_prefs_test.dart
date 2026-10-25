@@ -83,4 +83,30 @@ void main() {
       },
     );
   });
+
+  group('WatchAppearance', () {
+    test('round-trips', () {
+      const value = WatchAppearance(
+        source: WatchThemeSource.preset,
+        preset: AccentSource.pink,
+      );
+      expect(WatchAppearance.fromJson(value.toJson()), value);
+    });
+
+    test('unknown or missing fields read as the phone theme and green', () {
+      expect(
+        WatchAppearance.fromJson({'source': 'moon', 'preset': 7}),
+        const WatchAppearance(),
+      );
+      expect(WatchAppearance.fromJson({}), const WatchAppearance());
+    });
+
+    // "System" is the face switch's job; as a preset it would mean nothing.
+    test('a System preset reads as green', () {
+      expect(
+        WatchAppearance.fromJson({'source': 'preset', 'preset': 'system'}),
+        const WatchAppearance(source: WatchThemeSource.preset),
+      );
+    });
+  });
 }

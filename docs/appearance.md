@@ -36,26 +36,30 @@ cold start would flash green.
 
 ## The watch
 
-A switch in the watch's settings, "Watch face colours", picks between two
-sources; off is the default.
+The watch's colours are chosen on the phone, under App settings → Watch: a watch
+screen is a poor place for settings. Two switches that exclude each other —
+"Theme from the watch face" and "Theme from the phone" (the default) — and with
+both off a preset picked from the phone's list without "System".
+`WatchAppearance` (`watch_appearance`) holds the choice, and `watchTheme` turns
+it into what is sent: an accent and a `watchFace` flag.
 
-- **Off: the phone's accent.** The phone sends it with the server config
-  (`WatchConfigCodec`, optional `accentSeed` and `accentVariant`), on launch and
-  whenever the accent or the profile changes. `watchAccent` sends nothing for the
-  green brand and for a "System" without a palette, and for "System" sends the
-  palette's primary, the seed `dynamic_color` builds the phone scheme from. The
-  watch takes the accent from every push, also one for another server that it
-  only offers: the colour is the phone's to set whichever server is chosen. It is
-  stored (`wear_phone_accent`) so the first frame already wears it. A watch or a
-  phone without these keys keeps the green both always drew.
-- **On: the watch face**, Google's own source on Wear OS 6 (Wear Material 3
+- **The accent** goes with the server config (`WatchConfigCodec`, optional
+  `accentSeed` and `accentVariant`), on launch and whenever the theme or the
+  profile changes. `watchAccent` sends nothing for the green brand and for a
+  "System" without a palette, and for "System" sends the palette's primary, the
+  seed `dynamic_color` builds the phone scheme from. With the face switch on the
+  phone's accent is still sent, for a watch whose face gives none. The watch takes
+  both from every push, also one for another server that it only offers: the
+  colour is the phone's to set whichever server is chosen. It stores them
+  (`wear_phone_accent`, `wear_face_colours`) so the first frame already wears
+  them. A watch or a phone without these keys keeps the green both always drew.
+- **The face**, Google's own source on Wear OS 6 (Wear Material 3
   `dynamicColorScheme`). `WatchFaceColours.kt` reads the roles the way that
   function does: Android 15 or later, and only with `Settings.Global`
   `dynamic_color_theme_enabled` set — without it the system colour resources still
   answer, with defaults unrelated to the face, which is also why the watch does
-  not use `dynamic_color`. Where the face gives nothing the watch falls back to the
-  phone's accent, and the switch is shown only where the face has colours, or
-  while it is on, so it can be turned off again.
+  not use `dynamic_color`. The phone cannot tell whether the face has colours, so
+  the switch is always offered and the watch falls back to the accent.
 
 The face is read before `runApp` and on every resume through the phone's
 `systemSchemesProvider` with the reader overridden in `main_wear.dart`. That

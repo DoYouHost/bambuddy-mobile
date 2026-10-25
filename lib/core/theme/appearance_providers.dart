@@ -109,9 +109,34 @@ final appBrandProvider = Provider<DashBrand>(
   ),
 );
 
-/// The accent a paired watch is pushed; re-pushed when it changes.
-final watchAccentProvider = Provider<AccentPreset?>(
-  (ref) => watchAccent(
+/// What a paired watch is told to colour itself with, chosen on the phone.
+final watchAppearanceProvider =
+    NotifierProvider<WatchAppearanceNotifier, WatchAppearance>(
+      WatchAppearanceNotifier.new,
+    );
+
+class WatchAppearanceNotifier extends Notifier<WatchAppearance> {
+  @override
+  WatchAppearance build() =>
+      ref.watch(settingsRepositoryProvider).loadWatchAppearance();
+
+  Future<void> set(WatchAppearance value) async {
+    if (value == state) return;
+    state = value;
+    final settings = ref.read(settingsRepositoryProvider);
+    try {
+      await settings.saveWatchAppearance(value);
+    } catch (_) {
+      if (state == value) state = settings.loadWatchAppearance();
+      rethrow;
+    }
+  }
+}
+
+/// The theme a paired watch is pushed; re-pushed when it changes.
+final watchThemeProvider = Provider<WatchTheme>(
+  (ref) => watchTheme(
+    ref.watch(watchAppearanceProvider),
     ref.watch(appearanceProvider.select((p) => p.accent)),
     ref.watch(systemSchemesProvider),
   ),

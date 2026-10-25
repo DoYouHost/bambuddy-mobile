@@ -6259,9 +6259,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get wearSettingsTitle => 'Paramètres';
 
   @override
-  String get wearFaceColours => 'Couleurs du cadran';
-
-  @override
   String get wearFromPhone => 'Depuis le téléphone';
 
   @override
@@ -7613,6 +7610,29 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get appearanceModeDark => 'Sombre';
+
+  @override
+  String get appSettingsPhone => 'Téléphone';
+
+  @override
+  String get appSettingsLabelPrinter => 'Imprimante';
+
+  @override
+  String get watchSettingsTitle => 'Montre';
+
+  @override
+  String get watchThemeFromFace => 'Thème du cadran';
+
+  @override
+  String get watchThemeFromFaceDesc =>
+      'Wear OS 6 ou ultérieur. Si le cadran ne fournit pas de couleurs, la montre prend le thème du téléphone.';
+
+  @override
+  String get watchThemeFromPhone => 'Thème du téléphone';
+
+  @override
+  String get watchThemeFromPhoneDesc =>
+      'La même couleur d\'accent que dans cette app.';
 
   @override
   String get appSettingsNotificationsSubtitle =>
@@ -9063,10 +9083,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get labelPrinterTitle => 'Imprimante d\'étiquettes';
-
-  @override
-  String get labelPrinterEntrySubtitle =>
-      'Imprimez les étiquettes de bobines sur un serveur d\'impression Brother QL de votre réseau';
 
   @override
   String get labelPrinterIntro =>

@@ -6186,9 +6186,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get wearSettingsTitle => 'Einstellungen';
 
   @override
-  String get wearFaceColours => 'Farben vom Zifferblatt';
-
-  @override
   String get wearFromPhone => 'Vom Smartphone';
 
   @override
@@ -7528,6 +7525,29 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get appearanceModeDark => 'Dunkel';
+
+  @override
+  String get appSettingsPhone => 'Telefon';
+
+  @override
+  String get appSettingsLabelPrinter => 'Drucker';
+
+  @override
+  String get watchSettingsTitle => 'Uhr';
+
+  @override
+  String get watchThemeFromFace => 'Design vom Zifferblatt';
+
+  @override
+  String get watchThemeFromFaceDesc =>
+      'Wear OS 6 oder neuer. Liefert das Zifferblatt keine Farben, übernimmt die Uhr das Design des Telefons.';
+
+  @override
+  String get watchThemeFromPhone => 'Design vom Telefon';
+
+  @override
+  String get watchThemeFromPhoneDesc =>
+      'Dieselbe Akzentfarbe wie in dieser App.';
 
   @override
   String get appSettingsNotificationsSubtitle =>
@@ -8962,10 +8982,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get labelPrinterTitle => 'Etikettendrucker';
-
-  @override
-  String get labelPrinterEntrySubtitle =>
-      'Spulenetiketten über einen Brother-QL-Druckserver im Netzwerk drucken';
 
   @override
   String get labelPrinterIntro =>

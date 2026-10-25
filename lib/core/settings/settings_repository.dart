@@ -47,6 +47,7 @@ class SettingsRepository {
   static const _wallHiddenPrintersKey = 'wall_hidden_printer_ids';
   static const _controllerPrefsKey = 'controller_prefs';
   static const _appearancePrefsKey = 'appearance_prefs';
+  static const _watchAppearanceKey = 'watch_appearance';
   static const _wearFaceColoursKey = 'wear_face_colours';
   static const _wearPhoneAccentKey = 'wear_phone_accent';
   static const _tourSeenKey = 'tour_seen';
@@ -275,8 +276,22 @@ class SettingsRepository {
   Future<void> saveAppearancePrefs(AppearancePrefs prefs) =>
       _prefs.setString(_appearancePrefsKey, jsonEncode(prefs.toJson()));
 
-  /// WATCH side: whether the watch takes its colours from its face rather
-  /// than from the phone.
+  /// PHONE side: what a paired watch is told to colour itself with.
+  WatchAppearance loadWatchAppearance() {
+    final raw = _prefs.getString(_watchAppearanceKey);
+    if (raw == null) return const WatchAppearance();
+    try {
+      return WatchAppearance.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } on Object {
+      return const WatchAppearance();
+    }
+  }
+
+  Future<void> saveWatchAppearance(WatchAppearance value) =>
+      _prefs.setString(_watchAppearanceKey, jsonEncode(value.toJson()));
+
+  /// WATCH side: whether the phone told the watch to take its colours from
+  /// its face.
   bool loadWearFaceColours() => _prefs.getBool(_wearFaceColoursKey) ?? false;
 
   Future<void> saveWearFaceColours(bool value) =>

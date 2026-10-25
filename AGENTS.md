@@ -260,8 +260,8 @@ do not stay silent because it was not part of the task.
 - [docs/library-and-projects.md](docs/library-and-projects.md) — library tags,
   projects and model sources (MakerWorld, Manyfold): what the contract hides.
 - [docs/appearance.md](docs/appearance.md) — the accent colour and light/dark
-  choice: the three accent sources and why "System" falls back, the watch's phone
-  or face colours, why the grounds belong to the brand, what is deliberately not
+  choice: the three accent sources and why "System" falls back, the watch's colours
+  chosen on the phone, why the grounds belong to the brand, what is deliberately not
   themed. **Read it before touching `lib/core/theme/`, `lib/wear/wear_colours.dart`
   or the appearance settings.**
 - [docs/screens.md](docs/screens.md) — decisions behind the dashboard printer

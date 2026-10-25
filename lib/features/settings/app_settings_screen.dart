@@ -13,15 +13,32 @@ import '../../providers.dart';
 import '../dashboard/card_collapse_providers.dart';
 import '../tour/tour_beacon.dart';
 import '../wall/wall_providers.dart';
+import '../label_printer/label_printer_screen.dart';
 import 'demo_printers_provider.dart';
+import 'watch_settings.dart';
+
+enum _Section { phone, watch, labelPrinter }
 
 /// What this app does on this phone, as opposed to [ServerSettingsScreen],
-/// whose settings every user of the server shares.
-class AppSettingsScreen extends ConsumerWidget {
+/// whose settings every user of the server shares — split by the device each
+/// part is about: the phone, a paired watch, the label printer.
+class AppSettingsScreen extends ConsumerStatefulWidget {
   const AppSettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppSettingsScreen> createState() => _AppSettingsScreenState();
+}
+
+class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
+  var _section = _Section.phone;
+
+  /// Sections opened so far. Each is built the first time it is chosen, so the
+  /// screen does not ask the label printer anything until that tab is open,
+  /// and kept alive after, so switching away loses no half-typed address.
+  final _opened = {_Section.phone};
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
     return DashBackground(
@@ -31,91 +48,129 @@ class AppSettingsScreen extends ConsumerWidget {
         body: ListView(
           padding: screenListPadding(context),
           children: [
-            SettingsSectionHeader(l10n.appearanceTitle),
-            const _AppearanceCard(),
-            const SizedBox(height: DashSpace.xl),
-            SettingsSectionHeader(l10n.navDashboard),
-            SettingsCard(
-              rows: [
-                SettingsSwitchRow(
-                  tag: 'app_settings.collapse_printer_cards',
-                  title: l10n.collapsePrinterCardsTitle,
-                  subtitle: l10n.collapsePrinterCardsDesc,
-                  value: ref.watch(printerCardsCollapsedByDefaultProvider),
-                  onChanged: ref
-                      .read(printerCardsCollapsedByDefaultProvider.notifier)
-                      .set,
-                ),
-              ],
-            ),
-            const SizedBox(height: DashSpace.xl),
-            SettingsSectionHeader(l10n.wallModeTitle),
-            SettingsCard(
-              rows: [
-                SettingsSwitchRow(
-                  tag: 'app_settings.wall_keep_awake',
-                  title: l10n.wallKeepAwakeTitle,
-                  subtitle: l10n.wallKeepAwakeDesc,
-                  value: ref.watch(wallKeepAwakeProvider),
-                  onChanged: ref.read(wallKeepAwakeProvider.notifier).set,
-                ),
-              ],
-            ),
-            // Demo only: on a real server the number of printing machines is
-            // the server's business, and this row would be a lie.
-            if (ref.watch(serverProfileProvider)?.isDemo ?? false) ...[
-              const SizedBox(height: DashSpace.xl),
-              SettingsSectionHeader(l10n.demoSettingsSection),
-              SettingsCard(
-                rows: [
-                  SettingsSlider(
-                    tag: 'app_settings.demo_printing_count',
-                    label: l10n.demoPrintingCountTitle,
-                    subtitle: l10n.demoPrintingCountDesc,
-                    value: ref.watch(demoPrintingCountProvider),
-                    min: 0,
-                    max: DemoBackend.maxPrintingPrinters,
-                    enabled: true,
-                    onChanged: (v) =>
-                        ref.read(demoPrintingCountProvider.notifier).preview(v),
-                    onChangeEnd: (v) =>
-                        ref.read(demoPrintingCountProvider.notifier).set(v),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<_Section>(
+                segments: [
+                  ButtonSegment(
+                    value: _Section.phone,
+                    icon: const Icon(Icons.smartphone_outlined, size: 16),
+                    label: Text(l10n.appSettingsPhone),
+                  ),
+                  ButtonSegment(
+                    value: _Section.watch,
+                    icon: const Icon(Icons.watch_outlined, size: 16),
+                    label: Text(l10n.watchSettingsTitle),
+                  ),
+                  ButtonSegment(
+                    value: _Section.labelPrinter,
+                    icon: const Icon(Icons.label_outline, size: 16),
+                    label: Text(l10n.appSettingsLabelPrinter),
                   ),
                 ],
+                selected: {_section},
+                showSelectedIcon: false,
+                onSelectionChanged: (picked) =>
+                    setState(() => _opened.add(_section = picked.first)),
               ),
-            ],
+            ).tagged('app_settings.section'),
             const SizedBox(height: DashSpace.xl),
-            SettingsEntryTile(
-              icon: Icons.label_outline,
-              title: l10n.labelPrinterTitle,
-              subtitle: l10n.labelPrinterEntrySubtitle,
-              onTap: () => context.push('/settings/label-printer'),
-              id: 'app_settings.label_printer',
-            ),
-            const SizedBox(height: DashSpace.xl),
-            SettingsSectionHeader(l10n.notifSettingsTitle),
-            SettingsEntryTile(
-              icon: Icons.tune_rounded,
-              title: l10n.notifEventsMenu,
-              subtitle: l10n.appSettingsNotificationsSubtitle,
-              onTap: () => context.push('/settings/notifications'),
-              id: 'app_settings.notifications',
-            ),
-            // The tour's own copy of this screen would start a tour in a tour.
-            if (ref.watch(tourBeaconProvider) == null) ...[
-              const SizedBox(height: DashSpace.xl),
-              SettingsEntryTile(
-                icon: Icons.lightbulb_outline_rounded,
-                title: l10n.tipsTitle,
-                subtitle: l10n.tipsSubtitle,
-                onTap: () => context.push('/settings/tips'),
-                id: 'app_settings.tips',
+            for (final section in _opened)
+              Visibility(
+                visible: section == _section,
+                maintainState: true,
+                child: switch (section) {
+                  _Section.phone => Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: _phone(context),
+                  ),
+                  _Section.watch => const WatchSettings(),
+                  _Section.labelPrinter => const LabelPrinterSettings(),
+                },
               ),
-            ],
           ],
         ),
       ),
     );
+  }
+
+  List<Widget> _phone(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      SettingsSectionHeader(l10n.appearanceTitle),
+      const _AppearanceCard(),
+      const SizedBox(height: DashSpace.xl),
+      SettingsSectionHeader(l10n.navDashboard),
+      SettingsCard(
+        rows: [
+          SettingsSwitchRow(
+            tag: 'app_settings.collapse_printer_cards',
+            title: l10n.collapsePrinterCardsTitle,
+            subtitle: l10n.collapsePrinterCardsDesc,
+            value: ref.watch(printerCardsCollapsedByDefaultProvider),
+            onChanged: ref
+                .read(printerCardsCollapsedByDefaultProvider.notifier)
+                .set,
+          ),
+        ],
+      ),
+      const SizedBox(height: DashSpace.xl),
+      SettingsSectionHeader(l10n.wallModeTitle),
+      SettingsCard(
+        rows: [
+          SettingsSwitchRow(
+            tag: 'app_settings.wall_keep_awake',
+            title: l10n.wallKeepAwakeTitle,
+            subtitle: l10n.wallKeepAwakeDesc,
+            value: ref.watch(wallKeepAwakeProvider),
+            onChanged: ref.read(wallKeepAwakeProvider.notifier).set,
+          ),
+        ],
+      ),
+      // Demo only: on a real server the number of printing machines is
+      // the server's business, and this row would be a lie.
+      if (ref.watch(serverProfileProvider)?.isDemo ?? false) ...[
+        const SizedBox(height: DashSpace.xl),
+        SettingsSectionHeader(l10n.demoSettingsSection),
+        SettingsCard(
+          rows: [
+            SettingsSlider(
+              tag: 'app_settings.demo_printing_count',
+              label: l10n.demoPrintingCountTitle,
+              subtitle: l10n.demoPrintingCountDesc,
+              value: ref.watch(demoPrintingCountProvider),
+              min: 0,
+              max: DemoBackend.maxPrintingPrinters,
+              enabled: true,
+              onChanged: (v) =>
+                  ref.read(demoPrintingCountProvider.notifier).preview(v),
+              onChangeEnd: (v) =>
+                  ref.read(demoPrintingCountProvider.notifier).set(v),
+            ),
+          ],
+        ),
+      ],
+      const SizedBox(height: DashSpace.xl),
+      SettingsSectionHeader(l10n.notifSettingsTitle),
+      SettingsEntryTile(
+        icon: Icons.tune_rounded,
+        title: l10n.notifEventsMenu,
+        subtitle: l10n.appSettingsNotificationsSubtitle,
+        onTap: () => context.push('/settings/notifications'),
+        id: 'app_settings.notifications',
+      ),
+      // The tour's own copy of this screen would start a tour in a tour.
+      if (ref.watch(tourBeaconProvider) == null) ...[
+        const SizedBox(height: DashSpace.xl),
+        SettingsEntryTile(
+          icon: Icons.lightbulb_outline_rounded,
+          title: l10n.tipsTitle,
+          subtitle: l10n.tipsSubtitle,
+          onTap: () => context.push('/settings/tips'),
+          id: 'app_settings.tips',
+        ),
+      ],
+    ];
   }
 }
 
@@ -158,13 +213,13 @@ class _AppearanceCard extends ConsumerWidget {
               for (final a in accents)
                 DropdownMenuEntry(
                   value: a,
-                  label: _accentLabel(l10n, a),
-                  leadingIcon: _AccentDot(
+                  label: accentLabel(l10n, a),
+                  leadingIcon: AccentDot(
                     resolveBrand(a, system).of(t.brightness).fill,
                   ),
                   labelWidget: logTag(
                     _accentIds[a]!,
-                    Text(_accentLabel(l10n, a)),
+                    Text(accentLabel(l10n, a)),
                   ),
                 ),
             ],
@@ -197,8 +252,9 @@ class _AppearanceCard extends ConsumerWidget {
   }
 }
 
-class _AccentDot extends StatelessWidget {
-  const _AccentDot(this.color);
+/// An accent's colour beside its name in a select.
+class AccentDot extends StatelessWidget {
+  const AccentDot(this.color, {super.key});
 
   final Color color;
 
@@ -210,7 +266,7 @@ class _AccentDot extends StatelessWidget {
   );
 }
 
-String _accentLabel(AppLocalizations l10n, AccentSource a) => switch (a) {
+String accentLabel(AppLocalizations l10n, AccentSource a) => switch (a) {
   AccentSource.bambuddy => l10n.appearanceAccentBambuddy,
   AccentSource.system => l10n.appearanceAccentSystem,
   AccentSource.blue => l10n.appearanceAccentBlue,

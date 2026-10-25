@@ -94,12 +94,15 @@ void main() {
 
   group('wearColorScheme', () {
     test('the face, when chosen and on offer', () {
-      expect(wearColorScheme(faceColours: true, face: face, phone: blue), face);
+      expect(
+        wearColorScheme(faceColours: true, face: face, accent: blue),
+        face,
+      );
     });
 
     test('the phone, when the face is not chosen', () {
       expect(
-        wearColorScheme(faceColours: false, face: face, phone: blue),
+        wearColorScheme(faceColours: false, face: face, accent: blue),
         wearSeedScheme(blue),
       );
     });
@@ -107,7 +110,7 @@ void main() {
     // Dynamic theming switched off after the choice was made.
     test('the phone, when the face is chosen but has nothing to give', () {
       expect(
-        wearColorScheme(faceColours: true, phone: blue),
+        wearColorScheme(faceColours: true, accent: blue),
         wearSeedScheme(blue),
       );
     });
