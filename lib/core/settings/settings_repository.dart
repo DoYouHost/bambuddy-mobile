@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../demo/demo_backend.dart';
 import '../models/swatch_code.dart';
 import '../notifications/notification_prefs.dart';
+import 'appearance_prefs.dart';
 import 'controller_prefs.dart';
 import 'label_print_prefs.dart';
 import 'print_options.dart';
@@ -43,6 +44,7 @@ class SettingsRepository {
   static const _labelPrinterNameKey = 'label_printer_name';
   static const _wallHiddenPrintersKey = 'wall_hidden_printer_ids';
   static const _controllerPrefsKey = 'controller_prefs';
+  static const _appearancePrefsKey = 'appearance_prefs';
   static const _tourSeenKey = 'tour_seen';
 
   final SharedPreferences _prefs;
@@ -253,6 +255,21 @@ class SettingsRepository {
 
   Future<void> saveControllerPrefs(ControllerPrefs prefs) =>
       _prefs.setString(_controllerPrefsKey, jsonEncode(prefs.toJson()));
+
+  /// The accent and light/dark choice; absent or unreadable reads as the
+  /// defaults, which are the look the app had before the choice existed.
+  AppearancePrefs loadAppearancePrefs() {
+    final raw = _prefs.getString(_appearancePrefsKey);
+    if (raw == null) return const AppearancePrefs();
+    try {
+      return AppearancePrefs.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } on Object {
+      return const AppearancePrefs();
+    }
+  }
+
+  Future<void> saveAppearancePrefs(AppearancePrefs prefs) =>
+      _prefs.setString(_appearancePrefsKey, jsonEncode(prefs.toJson()));
 
   /// The slice form's two filters (#3172), remembered on this device as the
   /// web remembers them per browser. Absent reads as off, as there.
