@@ -102,6 +102,13 @@ save one. An emulator that was already hung before `emu-boot` ran is not found b
   A watch emulator that was killed has to be paired again from the first step.
   Run `adb forward` once per phone boot, and run `fake_bambuddy` with the app in
   the background (see [notification-delivery.md](notification-delivery.md#testing-an-alert-without-printing)).
+  **Pairing breaks the watch tests.** A paired watch, and any other watch AVD on
+  the same Google account, keeps reaching the phone through the account's cloud
+  node with the forward removed and even with the phone emulator shut down, so
+  WO-P6 ("no install without a phone") fails in `patrol_test/`. Clearing the
+  companion does not drop it; Play services holds the pairing. Before
+  `just test` / `ship-dev`, cold-boot each watch AVD the tests use with
+  `-wipe-data`, which also signs the watch out of the account.
 
 ## On-device tests
 
