@@ -35,9 +35,11 @@ extension WearStateView on WearState {
     WearState.idle => l10n.widgetStatusIdle,
   };
 
-  Color get color => switch (this) {
+  /// Printing wears the accent, as the phone's status chip does; the rest are
+  /// states to tell apart, not branding, and keep their own colours.
+  Color colorIn(ColorScheme scheme) => switch (this) {
     WearState.offline => const Color(0xFF9E9E9E),
-    WearState.printing => const Color(0xFF4CAF50),
+    WearState.printing => scheme.primary,
     WearState.paused => const Color(0xFFFFB300),
     WearState.finished => const Color(0xFF42A5F5),
     WearState.failed => const Color(0xFFEF5350),

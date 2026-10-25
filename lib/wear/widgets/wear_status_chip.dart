@@ -6,7 +6,7 @@ import '../wear_status.dart';
 import '../wear_theme.dart';
 
 /// Printer state as a pill, using the same per-state palette as the phone app
-/// ([WearState.color]). Tinted fill + matching border/text so the state reads
+/// ([WearState.colorIn]). Tinted fill + matching border/text so the state reads
 /// at a glance on the OLED black, echoing the dashboard's status chip.
 class WearStatusChip extends StatelessWidget {
   const WearStatusChip({super.key, required this.state});
@@ -15,7 +15,7 @@ class WearStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = state.color;
+    final color = state.colorIn(Theme.of(context).colorScheme);
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: DashSpace.md,
