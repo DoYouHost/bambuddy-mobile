@@ -3,7 +3,7 @@ import 'package:bambuddy_mobile/wear/widgets/wear_header.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_scaling_list.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_scroll_indicator.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_scroll_view.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 

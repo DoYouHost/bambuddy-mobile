@@ -7488,6 +7488,68 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appSettingsTitle => 'App-Einstellungen';
 
   @override
+  String get appearanceTitle => 'Darstellung';
+
+  @override
+  String get appearanceAccent => 'Akzentfarbe';
+
+  @override
+  String get appearanceAccentBambuddy => 'Bambuddy-Grün';
+
+  @override
+  String get appearanceAccentSystem => 'System (Material You)';
+
+  @override
+  String get appearanceAccentBlue => 'Blau';
+
+  @override
+  String get appearanceAccentPurple => 'Lila';
+
+  @override
+  String get appearanceAccentOrange => 'Orange';
+
+  @override
+  String get appearanceAccentPink => 'Pink';
+
+  @override
+  String get appearanceAccentGraphite => 'Grafit';
+
+  @override
+  String get appearanceMode => 'Design';
+
+  @override
+  String get appearanceModeSystem => 'System';
+
+  @override
+  String get appearanceModeLight => 'Hell';
+
+  @override
+  String get appearanceModeDark => 'Dunkel';
+
+  @override
+  String get appSettingsPhone => 'Telefon';
+
+  @override
+  String get appSettingsLabelPrinter => 'Drucker';
+
+  @override
+  String get watchSettingsTitle => 'Uhr';
+
+  @override
+  String get watchThemeFromFace => 'Design vom Zifferblatt';
+
+  @override
+  String get watchThemeFromFaceDesc =>
+      'Wear OS 6 oder neuer. Liefert das Zifferblatt keine Farben, übernimmt die Uhr das Design des Telefons.';
+
+  @override
+  String get watchThemeFromPhone => 'Design vom Telefon';
+
+  @override
+  String get watchThemeFromPhoneDesc =>
+      'Dieselbe Akzentfarbe wie in dieser App.';
+
+  @override
   String get appSettingsNotificationsSubtitle =>
       'Welche Ereignisse eine Benachrichtigung senden und ab welchen Schwellenwerten';
 
@@ -8920,10 +8982,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get labelPrinterTitle => 'Etikettendrucker';
-
-  @override
-  String get labelPrinterEntrySubtitle =>
-      'Spulenetiketten über einen Brother-QL-Druckserver im Netzwerk drucken';
 
   @override
   String get labelPrinterIntro =>

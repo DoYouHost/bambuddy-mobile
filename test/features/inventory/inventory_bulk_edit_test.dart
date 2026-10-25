@@ -6,7 +6,7 @@ import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -155,7 +155,18 @@ void main() {
   ) async {
     final fake = await openSheet(tester);
     final colorField = byLogId('bulk_edit.color');
-    await tester.ensureVisible(colorField);
+    // openSheet scrolls down to Apply, past the field, which a lazy list then
+    // no longer builds: back up to it.
+    await tester.scrollUntilVisible(
+      colorField,
+      -100,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView).last,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await settle(tester);
     await tester.tap(colorField);
     await settle(tester);

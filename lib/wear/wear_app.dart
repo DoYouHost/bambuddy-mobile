@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:clock/clock.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_context.dart';
@@ -11,6 +11,7 @@ import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import 'screens/wear_home.dart';
 import 'screens/wear_setup_screen.dart';
+import 'wear_colours.dart';
 import 'wear_ongoing.dart';
 import 'wear_providers.dart';
 import 'wear_shape.dart';
@@ -39,15 +40,20 @@ class _WearAppState extends ConsumerState<WearApp> with WidgetsBindingObserver {
   /// Live while the app is in the background with a print running.
   ProviderSubscription<AsyncValue<WearFleet>>? _ongoingSub;
 
+  /// Set by the first live push, which is newer than anything latched.
+  var _livePushSeen = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _ingestPendingConfig();
-    _configSub = ref
-        .read(watchConfigSyncProvider)
-        .configStream()
-        .listen(_routeConfig);
+    _configSub = ref.read(watchConfigSyncProvider).configStream().listen((
+      config,
+    ) {
+      _livePushSeen = true;
+      _routeConfig(config);
+    });
   }
 
   @override
@@ -140,10 +146,11 @@ class _WearAppState extends ConsumerState<WearApp> with WidgetsBindingObserver {
   }
 
   /// Cold start: the phone may have pushed while the watch app was closed, so
-  /// read the latest latched context and route it the same way a live push goes.
+  /// read the latest latched context and route it the same way a live push goes
+  /// — unless a live push landed while it was being read.
   Future<void> _ingestPendingConfig() async {
     final config = await ref.read(watchConfigSyncProvider).latestPending();
-    if (config != null) await _routeConfig(config);
+    if (config != null && !_livePushSeen) await _routeConfig(config);
   }
 
   /// Decides what an incoming config is allowed to do on its own.
@@ -154,11 +161,14 @@ class _WearAppState extends ConsumerState<WearApp> with WidgetsBindingObserver {
   /// pushes on every launch, and this app used to let those overwrite a watch
   /// that was working, with nothing on screen to say so.
   Future<void> _routeConfig(WatchConfig config) async {
+    if (!mounted) return;
+    // The colours are the phone's to set whichever server the config names.
+    unawaited(ref.read(wearPhoneAccentProvider.notifier).set(config.accent));
+    unawaited(ref.read(wearFaceColoursProvider.notifier).set(config.watchFace));
     if (config.isSameServerAs(ref.read(serverProfileProvider))) {
       await _applyConfig(config);
       return;
     }
-    if (!mounted) return;
     ref.read(pendingWatchConfigProvider.notifier).offer(config);
   }
 
@@ -180,9 +190,12 @@ class _WearAppState extends ConsumerState<WearApp> with WidgetsBindingObserver {
     return MaterialApp(
       title: 'Bambuddy Watch',
       debugShowCheckedModeBanner: false,
-      theme: wearTheme(),
+      theme: wearTheme(ref.watch(wearColorSchemeProvider)),
       // Follow the watch's system language (same l10n set as the phone app).
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
       supportedLocales: AppLocalizations.supportedLocales,
       // Above the navigator, so routes *and* dialogs read the same shape: the
       // round face is what every layout under here insets itself against.

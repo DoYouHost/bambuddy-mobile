@@ -259,6 +259,11 @@ do not stay silent because it was not part of the task.
   **Read it before touching `lib/features/inventory/` or slot addressing.**
 - [docs/library-and-projects.md](docs/library-and-projects.md) — library tags,
   projects and model sources (MakerWorld, Manyfold): what the contract hides.
+- [docs/appearance.md](docs/appearance.md) — the accent colour and light/dark
+  choice: the three accent sources and why "System" falls back, the watch's colours
+  chosen on the phone, why the grounds belong to the brand, what is deliberately not
+  themed. **Read it before touching `lib/core/theme/`, `lib/wear/wear_colours.dart`
+  or the appearance settings.**
 - [docs/screens.md](docs/screens.md) — decisions behind the dashboard printer
   status and smart plugs, maintenance, statistics, two-factor login and printer
   locations.
@@ -343,6 +348,18 @@ do not stay silent because it was not part of the task.
 - **Every function that parses user input** gets tests for the basic path, missing
   input and odd input, written with it; extract the logic into a pure function. Why:
   [docs/conventions.md](docs/conventions.md#tests).
+
+## Platform guidance first
+
+- **Google's developer documentation and its samples are the default** for anything
+  Android, Flutter or Material does — colour (Material Color Utilities, HCT, dynamic
+  colour), accessibility, layout, lifecycle, notifications. Before proposing a
+  solution, read what Google recommends and how its samples do it (context7 or the
+  official docs), and cite it.
+- **A custom solution has to earn its place.** Propose one only after showing that
+  what we need clearly departs from Google's recommendation, and why we want to depart
+  from it at all. "It already works with our own rule" is not a reason: when our rule
+  and Google's disagree, our rule is the suspect.
 
 ## Server contract and web parity
 

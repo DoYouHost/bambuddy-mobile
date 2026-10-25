@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -294,7 +294,10 @@ class _ControllerSaverState extends ConsumerState<ControllerSaver>
       // The saver is black whatever the app's theme is, so its text is read in
       // the dark one: in the light theme the tokens are dark ink on this ground.
       child: Theme(
-        data: buildDashThemeData(Brightness.dark, brand: bambuddyBrand),
+        data: buildDashThemeData(
+          Brightness.dark,
+          brand: DashTokens.of(context).brand,
+        ),
         // A Material, not a bare colour: the saver is an overlay entry above the
         // screen's own Material, and text without one gets Flutter's yellow
         // underlined fallback style.

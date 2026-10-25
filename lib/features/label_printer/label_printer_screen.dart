@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/label_printer.dart';
@@ -11,16 +11,37 @@ import '../../data/label_printer_repository.dart';
 import '../../l10n/app_localizations.dart';
 import 'label_printer_providers.dart';
 
-/// Where spool labels are printed: the user's own label print server, found on
-/// the LAN or typed in. Nothing here touches the bambuddy server.
-class LabelPrinterScreen extends ConsumerStatefulWidget {
+/// [LabelPrinterSettings] on a screen of its own, for the inventory's way in.
+class LabelPrinterScreen extends StatelessWidget {
   const LabelPrinterScreen({super.key});
 
   @override
-  ConsumerState<LabelPrinterScreen> createState() => _LabelPrinterScreenState();
+  Widget build(BuildContext context) => DashBackground(
+    child: Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: dashAppBar(
+        context,
+        title: AppLocalizations.of(context).labelPrinterTitle,
+      ),
+      body: ListView(
+        padding: screenListPadding(context),
+        children: const [LabelPrinterSettings()],
+      ),
+    ),
+  );
 }
 
-class _LabelPrinterScreenState extends ConsumerState<LabelPrinterScreen> {
+/// Where spool labels are printed: the user's own label print server, found on
+/// the LAN or typed in. Nothing here touches the bambuddy server.
+class LabelPrinterSettings extends ConsumerStatefulWidget {
+  const LabelPrinterSettings({super.key});
+
+  @override
+  ConsumerState<LabelPrinterSettings> createState() =>
+      _LabelPrinterSettingsState();
+}
+
+class _LabelPrinterSettingsState extends ConsumerState<LabelPrinterSettings> {
   final _address = TextEditingController();
   StreamSubscription<List<DiscoveredLabelPrinter>>? _scan;
   List<DiscoveredLabelPrinter> _found = const [];
@@ -100,67 +121,58 @@ class _LabelPrinterScreenState extends ConsumerState<LabelPrinterScreen> {
     final l10n = AppLocalizations.of(context);
     final saved = ref.watch(labelPrinterUrlProvider);
 
-    return DashBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: dashAppBar(context, title: l10n.labelPrinterTitle),
-        body: ListView(
-          padding: screenListPadding(context),
-          children: [
-            Text(l10n.labelPrinterIntro, style: t.bodyPlain),
-            const SizedBox(height: DashSpace.lg),
-            SettingsCard(rows: [_status(context, saved)]),
-            const SizedBox(height: DashSpace.xl),
-            OutlinedButton.icon(
-              onPressed: _scanning ? null : _search,
-              icon: _scanning
-                  ? const DashSpinner(size: 16)
-                  : const Icon(Icons.search),
-              label: Text(
-                _scanning
-                    ? l10n.labelPrinterSearching
-                    : l10n.labelPrinterSearch,
-              ),
-            ).tagged('label_printer.search'),
-            if (_discoveryFailed)
-              InlineNote(l10n.labelPrinterDiscoveryFailed, urgent: true)
-            else if (!_scanning && _found.isEmpty && _scan != null)
-              InlineNote(l10n.labelPrinterNoneFound, icon: Icons.info_outline),
-            for (final p in _found)
-              SettingsEntryTile(
-                icon: Icons.print_outlined,
-                title: p.name,
-                subtitle: p.baseUrl,
-                onTap: _checking ? () {} : () => _use(p.baseUrl, name: p.name),
-                id: 'label_printer.found',
-              ),
-            const SizedBox(height: DashSpace.xl),
-            TextField(
-              controller: _address,
-              enabled: !_checking,
-              autocorrect: false,
-              keyboardType: TextInputType.url,
-              style: t.bodyStrong,
-              decoration: dashFieldDecoration(
-                t,
-                labelText: l10n.labelPrinterAddress,
-                hintText: '192.168.1.40:$labelPrinterDefaultPort',
-              ),
-              onSubmitted: _use,
-            ).tagged('label_printer.address'),
-            InlineNote(l10n.labelPrinterVlanNote, icon: Icons.info_outline),
-            if (_notAServer)
-              InlineNote(l10n.labelPrinterNotAServer, urgent: true),
-            const SizedBox(height: DashSpace.md),
-            FilledButton(
-              onPressed: _checking ? null : () => _use(_address.text),
-              child: _checking
-                  ? const DashSpinner(size: 16)
-                  : Text(l10n.labelPrinterSave),
-            ).tagged('label_printer.save'),
-          ],
-        ),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(l10n.labelPrinterIntro, style: t.bodyPlain),
+        const SizedBox(height: DashSpace.lg),
+        SettingsCard(rows: [_status(context, saved)]),
+        const SizedBox(height: DashSpace.xl),
+        OutlinedButton.icon(
+          onPressed: _scanning ? null : _search,
+          icon: _scanning
+              ? const DashSpinner(size: 16)
+              : const Icon(Icons.search),
+          label: Text(
+            _scanning ? l10n.labelPrinterSearching : l10n.labelPrinterSearch,
+          ),
+        ).tagged('label_printer.search'),
+        if (_discoveryFailed)
+          InlineNote(l10n.labelPrinterDiscoveryFailed, urgent: true)
+        else if (!_scanning && _found.isEmpty && _scan != null)
+          InlineNote(l10n.labelPrinterNoneFound, icon: Icons.info_outline),
+        for (final p in _found)
+          SettingsEntryTile(
+            icon: Icons.print_outlined,
+            title: p.name,
+            subtitle: p.baseUrl,
+            onTap: _checking ? () {} : () => _use(p.baseUrl, name: p.name),
+            id: 'label_printer.found',
+          ),
+        const SizedBox(height: DashSpace.xl),
+        TextField(
+          controller: _address,
+          enabled: !_checking,
+          autocorrect: false,
+          keyboardType: TextInputType.url,
+          style: t.bodyStrong,
+          decoration: dashFieldDecoration(
+            t,
+            labelText: l10n.labelPrinterAddress,
+            hintText: '192.168.1.40:$labelPrinterDefaultPort',
+          ),
+          onSubmitted: _use,
+        ).tagged('label_printer.address'),
+        InlineNote(l10n.labelPrinterVlanNote, icon: Icons.info_outline),
+        if (_notAServer) InlineNote(l10n.labelPrinterNotAServer, urgent: true),
+        const SizedBox(height: DashSpace.md),
+        FilledButton(
+          onPressed: _checking ? null : () => _use(_address.text),
+          child: _checking
+              ? const DashSpinner(size: 16)
+              : Text(l10n.labelPrinterSave),
+        ).tagged('label_printer.save'),
+      ],
     );
   }
 

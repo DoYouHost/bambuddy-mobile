@@ -5,7 +5,7 @@ import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_saver.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:bambuddy_mobile/core/settings/controller_prefs.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,8 +17,6 @@ const _room = Size(800, 400);
 const _box = Size(300, 150);
 
 void main() {
-  setUpAll(loadAppFonts);
-
   group('the bounce', () {
     Bounce at(Offset p, Offset v) => (position: p, velocity: v, hue: 100);
 

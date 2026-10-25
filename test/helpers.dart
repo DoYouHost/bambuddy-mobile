@@ -11,6 +11,8 @@ import 'package:bambuddy_mobile/core/api/media_auth.dart';
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
+import 'package:bambuddy_mobile/core/notifications/background_monitor.dart';
+import 'package:bambuddy_mobile/core/notifications/background_sync.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
@@ -35,7 +37,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/wear_shape.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -108,8 +110,9 @@ Widget plRouterApp(
 );
 
 final _plDelegates = [
-  ...AppLocalizations.localizationsDelegates,
+  AppLocalizations.delegate,
   ReportLocalizations.delegate,
+  ...GlobalMaterialLocalizations.delegates,
 ];
 
 /// Pumps a phone widget inside a `ProviderScope` and [plApp]. Almost every caller
@@ -292,6 +295,7 @@ class FakeWatchConfigSync extends WatchConfigSync {
     StreamController<WatchConfig>? pushes,
     this.failsToApply = false,
     this.applyGate,
+    this.pendingGate,
   }) : pushes = pushes ?? StreamController<WatchConfig>.broadcast(),
        super(
          watch: WatchConnectivity(),
@@ -312,11 +316,18 @@ class FakeWatchConfigSync extends WatchConfigSync {
   /// a write still in flight is held open while the screen goes away.
   final Completer<void>? applyGate;
 
+  /// When set, [latestPending] does not answer until the test completes it —
+  /// the cold-start read still on its way while a live push lands.
+  final Completer<void>? pendingGate;
+
   /// Every config [apply] was asked to persist, in order.
   final applied = <WatchConfig>[];
 
   @override
-  Future<WatchConfig?> latestPending() async => pending;
+  Future<WatchConfig?> latestPending() async {
+    await pendingGate?.future;
+    return pending;
+  }
 
   @override
   Stream<WatchConfig> configStream() => pushes.stream;
@@ -618,6 +629,22 @@ class _InertStatuses extends PrinterStatusesNotifier {
   Map<int, PrinterStatus> build() => const {};
 }
 
+/// A background monitor that never runs: the dashboard touches it on its first
+/// frame, and the real one reaches for a platform channel.
+final inertBackgroundMonitorOverride = backgroundMonitorProvider
+    .overrideWithValue(_InertBackgroundMonitor());
+
+class _InertBackgroundMonitor implements BackgroundMonitor {
+  @override
+  Future<bool> start() async => false;
+  @override
+  Future<bool> stop() async => false;
+  @override
+  Future<bool> isRunning() async => false;
+  @override
+  void sync(BackgroundSync what) {}
+}
+
 /// No smart plugs, so the card's power row stays out of the way and its 5 s
 /// poll never starts — a live one outlives the test and trips the pending-timer
 /// check.
@@ -814,40 +841,6 @@ class FixedDashboard extends DashboardNotifier {
 
   /// What a poll does when the session is rejected and cannot be renewed.
   void expire() => state = const DashboardState(authExpired: true);
-}
-
-/// Loads the app's own fonts, Manrope and JetBrains Mono, for a test file that
-/// measures text. Without it every glyph is a square as wide as it is tall, about
-/// twice what the real fonts take, so a label that fits on a phone looks too
-/// wide and a check on how text sits proves nothing. Call it from `setUpAll`.
-Future<void> loadAppFonts() async {
-  for (final (family, files) in [
-    (
-      'JetBrainsMono',
-      [
-        'JetBrainsMono-400.ttf',
-        'JetBrainsMono-600.ttf',
-        'JetBrainsMono-700.ttf',
-        'JetBrainsMono-800.ttf',
-      ],
-    ),
-    (
-      'Manrope',
-      [
-        'Manrope-400.ttf',
-        'Manrope-500.ttf',
-        'Manrope-600.ttf',
-        'Manrope-700.ttf',
-        'Manrope-800.ttf',
-      ],
-    ),
-  ]) {
-    final loader = FontLoader(family);
-    for (final file in files) {
-      loader.addFont(rootBundle.load('assets/fonts/$file'));
-    }
-    await loader.load();
-  }
 }
 
 /// The status REST hands back after a clear: one answer per read, the last one

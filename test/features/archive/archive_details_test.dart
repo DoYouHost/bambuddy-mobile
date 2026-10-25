@@ -5,7 +5,7 @@ import 'package:bambuddy_mobile/features/archive/archive_details.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/print_outcome.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -121,8 +121,13 @@ void main() {
         return tester.renderObject<RenderParagraph>(facts);
       }
 
-      final oneLine = (await factsAt(1000)).size.height;
-      final narrow = await factsAt(330);
+      final wide = await factsAt(1000);
+      final oneLine = wide.size.height;
+      // Two thirds of what the facts take on one line: the row has to wrap,
+      // whatever font measures them, and two lines (its limit) hold them.
+      final narrow = await factsAt(
+        wide.getMaxIntrinsicWidth(double.infinity) * 2 / 3,
+      );
 
       expect(narrow.size.height, greaterThan(oneLine * 1.5));
       expect(narrow.didExceedMaxLines, isFalse);

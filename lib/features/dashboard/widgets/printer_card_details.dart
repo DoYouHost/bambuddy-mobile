@@ -474,6 +474,10 @@ class _DetailsToggle extends StatelessWidget {
           InkWell(
             onTap: onTap,
             child: Container(
+              constraints: const BoxConstraints(
+                minHeight: kMinInteractiveDimension,
+              ),
+              alignment: Alignment.center,
               padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),

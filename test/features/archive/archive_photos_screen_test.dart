@@ -1,7 +1,7 @@
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/features/archive/archive_photos_screen.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 

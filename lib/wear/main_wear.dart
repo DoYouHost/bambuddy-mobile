@@ -1,11 +1,13 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/notifications/hms_catalog.dart';
 import '../core/app_context.dart';
+import '../core/theme/appearance_providers.dart';
 import '../providers.dart';
 import 'wear_app.dart';
+import 'wear_colours.dart';
 
 /// Entry point for the Wear OS build: no WebSocket, no alerts of its own, no
 /// home widget — a thin on-demand REST client over `core/` and `data/`. Its one
@@ -25,11 +27,16 @@ Future<void> main() async {
   // Still awaited, rather than left running: an unnamed fault is hidden, so
   // without the catalogue the watch's error panel never appears at all.
   final catalog = HmsCatalog.instance.load(systemLocale());
+  final face = readWatchFaceSchemes();
   final prefs = await SharedPreferences.getInstance();
   await catalog;
   runApp(
     ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        initialSystemSchemesProvider.overrideWithValue(await face),
+        systemSchemesReaderProvider.overrideWithValue(readWatchFaceSchemes),
+      ],
       child: const WearApp(),
     ),
   );

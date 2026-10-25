@@ -21,17 +21,17 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_diagnostics"
-      ref: "v0.13.2"
-      resolved-ref: a8495ca787d53964a47939531d6fe30f8eaf8d4a
+      ref: "v0.14.3"
+      resolved-ref: "664eede14271f5565101fcec960e1ed4eb4d98ee"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.3.1"
+    version: "0.4.0"
   app_guards:
     dependency: "direct dev"
     description:
       path: "packages/app_guards"
-      ref: "v0.13.2"
-      resolved-ref: a8495ca787d53964a47939531d6fe30f8eaf8d4a
+      ref: "v0.14.3"
+      resolved-ref: "664eede14271f5565101fcec960e1ed4eb4d98ee"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.1.2"
@@ -48,29 +48,29 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_report_ui"
-      ref: "v0.13.2"
-      resolved-ref: a8495ca787d53964a47939531d6fe30f8eaf8d4a
+      ref: "v0.14.3"
+      resolved-ref: "664eede14271f5565101fcec960e1ed4eb4d98ee"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.1.5"
+    version: "0.2.0"
   app_test_kit:
     dependency: "direct dev"
     description:
       path: "packages/app_test_kit"
-      ref: "v0.13.2"
-      resolved-ref: a8495ca787d53964a47939531d6fe30f8eaf8d4a
+      ref: "v0.14.3"
+      resolved-ref: "664eede14271f5565101fcec960e1ed4eb4d98ee"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.1.0"
+    version: "0.2.0"
   app_util:
     dependency: "direct main"
     description:
       path: "packages/app_util"
-      ref: "v0.13.2"
-      resolved-ref: a8495ca787d53964a47939531d6fe30f8eaf8d4a
+      ref: "v0.14.3"
+      resolved-ref: "664eede14271f5565101fcec960e1ed4eb4d98ee"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.2.4"
+    version: "0.3.0"
   archive:
     dependency: transitive
     description:
@@ -283,20 +283,20 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/dash_kit"
-      ref: "v0.13.2"
-      resolved-ref: a8495ca787d53964a47939531d6fe30f8eaf8d4a
+      ref: "v0.14.3"
+      resolved-ref: "664eede14271f5565101fcec960e1ed4eb4d98ee"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.1.5"
+    version: "0.2.2"
   dash_ui:
     dependency: transitive
     description:
       path: "packages/dash_ui"
-      ref: "v0.13.2"
-      resolved-ref: a8495ca787d53964a47939531d6fe30f8eaf8d4a
+      ref: "v0.14.3"
+      resolved-ref: "664eede14271f5565101fcec960e1ed4eb4d98ee"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.4.0"
+    version: "0.5.2"
   dbus:
     dependency: transitive
     description:
@@ -342,6 +342,14 @@ packages:
     description:
       name: dispose_scope
       sha256: "48ec38ca2631c53c4f8fa96b294c801e55c335db5e3fb9f82cede150cfe5a2af"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
+  dynamic_color:
+    dependency: "direct main"
+    description:
+      name: dynamic_color
+      sha256: "869b3bce0100eb519768ecd71c0111f0b5ea679f5f62e1f59c49d80067e730c5"
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
@@ -433,19 +441,27 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
+  flex_color_picker:
+    dependency: "direct main"
+    description:
+      name: flex_color_picker
+      sha256: f3cac22c1d5af8b355faa9a8146ae81b441664d499475c7a2690c933cf1c673e
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.0"
+  flex_seed_scheme:
+    dependency: transitive
+    description:
+      name: flex_seed_scheme
+      sha256: "08f9ee11f9a08c2dee76d0a07ea824c8a09ea4db9456e32ac4f6dfb34d28392c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.0.1"
   flutter:
     dependency: "direct main"
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_colorpicker:
-    dependency: "direct main"
-    description:
-      name: flutter_colorpicker
-      sha256: "969de5f6f9e2a570ac660fb7b501551451ea2a1ab9e2097e89475f60e07816ea"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.0"
   flutter_driver:
     dependency: transitive
     description: flutter
@@ -901,13 +917,13 @@ packages:
     source: hosted
     version: "0.13.0"
   material_ui:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: material_ui
-      sha256: "98ab9eda579ecae623e4b376c603035c5def78ce706f735f30bd632af5814695"
+      sha256: e4031746f96c8316864d9b92bce375f1320a36ed56e166307e1e1bda9d90b4ab
       url: "https://pub.dev"
     source: hosted
-    version: "1.6.0"
+    version: "1.8.0"
   meta:
     dependency: transitive
     description:
@@ -1410,7 +1426,7 @@ packages:
     source: hosted
     version: "1.2.2"
   test_api:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: test_api
       sha256: "2a122cbe059f8b610d3a5415f42e255b6c17b1f21eee1d960f31080237fb4f11"

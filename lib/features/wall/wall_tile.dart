@@ -1,6 +1,6 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:clock/clock.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../core/format/duration_format.dart';
 import '../../core/models/printer_status.dart';
@@ -177,7 +177,10 @@ class _WallTileState extends State<WallTile> {
             ),
           ),
           child: Theme(
-            data: buildDashThemeData(Brightness.dark, brand: bambuddyBrand),
+            data: buildDashThemeData(
+              Brightness.dark,
+              brand: DashTokens.of(context).brand,
+            ),
             child: Builder(
               builder: (context) {
                 final t = DashTokens.of(context);

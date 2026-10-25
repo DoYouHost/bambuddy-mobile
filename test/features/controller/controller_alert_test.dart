@@ -6,7 +6,7 @@ import 'package:bambuddy_mobile/features/controller/controller_saver.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -41,8 +41,6 @@ class _Statuses extends PrinterStatusesNotifier {
 }
 
 void main() {
-  setUpAll(loadAppFonts);
-
   late _Statuses statuses;
 
   /// Printer 1's controller with a one-minute saver, printer 2 beside it.

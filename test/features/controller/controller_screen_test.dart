@@ -5,7 +5,7 @@ import 'package:bambuddy_mobile/features/controller/controller_picker.dart';
 import 'package:bambuddy_mobile/features/controller/controller_screen.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -28,8 +28,6 @@ PrinterWithStatus _printer(
 );
 
 void main() {
-  setUpAll(loadAppFonts);
-
   /// Every `keepScreenOn` the screen asked for, in order.
   late List<bool> awake;
   late List<Object?> orientations;

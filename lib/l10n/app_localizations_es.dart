@@ -7502,6 +7502,68 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appSettingsTitle => 'Ajustes de la app';
 
   @override
+  String get appearanceTitle => 'Apariencia';
+
+  @override
+  String get appearanceAccent => 'Color de acento';
+
+  @override
+  String get appearanceAccentBambuddy => 'Verde Bambuddy';
+
+  @override
+  String get appearanceAccentSystem => 'Sistema (Material You)';
+
+  @override
+  String get appearanceAccentBlue => 'Azul';
+
+  @override
+  String get appearanceAccentPurple => 'Morado';
+
+  @override
+  String get appearanceAccentOrange => 'Naranja';
+
+  @override
+  String get appearanceAccentPink => 'Rosa';
+
+  @override
+  String get appearanceAccentGraphite => 'Grafito';
+
+  @override
+  String get appearanceMode => 'Tema';
+
+  @override
+  String get appearanceModeSystem => 'Sistema';
+
+  @override
+  String get appearanceModeLight => 'Claro';
+
+  @override
+  String get appearanceModeDark => 'Oscuro';
+
+  @override
+  String get appSettingsPhone => 'Teléfono';
+
+  @override
+  String get appSettingsLabelPrinter => 'Impresora';
+
+  @override
+  String get watchSettingsTitle => 'Reloj';
+
+  @override
+  String get watchThemeFromFace => 'Tema de la esfera';
+
+  @override
+  String get watchThemeFromFaceDesc =>
+      'Wear OS 6 o posterior. Si la esfera no da colores, el reloj usa el tema del teléfono.';
+
+  @override
+  String get watchThemeFromPhone => 'Tema del teléfono';
+
+  @override
+  String get watchThemeFromPhoneDesc =>
+      'El mismo color de acento que en esta app.';
+
+  @override
   String get appSettingsNotificationsSubtitle =>
       'Qué eventos envían una notificación y con qué umbrales';
 
@@ -8943,10 +9005,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get labelPrinterTitle => 'Impresora de etiquetas';
-
-  @override
-  String get labelPrinterEntrySubtitle =>
-      'Imprime etiquetas de bobinas en un servidor de impresión Brother QL de tu red';
 
   @override
   String get labelPrinterIntro =>

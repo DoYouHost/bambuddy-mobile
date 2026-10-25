@@ -7414,6 +7414,67 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appSettingsTitle => 'App settings';
 
   @override
+  String get appearanceTitle => 'Appearance';
+
+  @override
+  String get appearanceAccent => 'Accent colour';
+
+  @override
+  String get appearanceAccentBambuddy => 'Bambuddy green';
+
+  @override
+  String get appearanceAccentSystem => 'System (Material You)';
+
+  @override
+  String get appearanceAccentBlue => 'Blue';
+
+  @override
+  String get appearanceAccentPurple => 'Purple';
+
+  @override
+  String get appearanceAccentOrange => 'Orange';
+
+  @override
+  String get appearanceAccentPink => 'Pink';
+
+  @override
+  String get appearanceAccentGraphite => 'Graphite';
+
+  @override
+  String get appearanceMode => 'Theme';
+
+  @override
+  String get appearanceModeSystem => 'System';
+
+  @override
+  String get appearanceModeLight => 'Light';
+
+  @override
+  String get appearanceModeDark => 'Dark';
+
+  @override
+  String get appSettingsPhone => 'Phone';
+
+  @override
+  String get appSettingsLabelPrinter => 'Printer';
+
+  @override
+  String get watchSettingsTitle => 'Watch';
+
+  @override
+  String get watchThemeFromFace => 'Theme from the watch face';
+
+  @override
+  String get watchThemeFromFaceDesc =>
+      'Wear OS 6 or later. When the face gives no colours, the watch takes the phone\'s theme.';
+
+  @override
+  String get watchThemeFromPhone => 'Theme from the phone';
+
+  @override
+  String get watchThemeFromPhoneDesc => 'The same accent colour as this app.';
+
+  @override
   String get appSettingsNotificationsSubtitle =>
       'Which events send a notification, and at what thresholds';
 
@@ -8830,10 +8891,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get labelPrinterTitle => 'Label printer';
-
-  @override
-  String get labelPrinterEntrySubtitle =>
-      'Print spool labels on a Brother QL print server on your network';
 
   @override
   String get labelPrinterIntro =>

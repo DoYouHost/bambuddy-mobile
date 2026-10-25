@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:bambuddy_mobile/wear/wear_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Keeps the watch type scale in one place.

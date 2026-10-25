@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/dash_theme.dart';
@@ -48,7 +48,9 @@ class WearPrinterListBody extends ConsumerWidget {
               stateLabel: wearStateOf(
                 p.status,
               ).label(AppLocalizations.of(context)),
-              stateColor: wearStateOf(p.status).color,
+              stateColor: wearStateOf(
+                p.status,
+              ).colorIn(Theme.of(context).colorScheme),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) =>

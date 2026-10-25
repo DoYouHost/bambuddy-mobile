@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:material_color_utilities/material_color_utilities.dart';
 
+import '../core/theme/app_brand.dart' show AccentPreset;
 import '../core/theme/dash_theme.dart';
 
 /// Design tokens and the app theme for the watch, the counterpart of the phone's
@@ -119,8 +120,8 @@ const wearButtonSecondaryLabel = TextStyle(
 /// Buttons and input labels take their type from here so the screens stop
 /// repeating it. No snackbar theme: a bar pinned to the bottom of a
 /// round face is mostly off the glass, and the watch uses `WearToast`.
-ThemeData wearTheme() {
-  final scheme = _wearColorScheme(Colors.green);
+ThemeData wearTheme([ColorScheme? colorScheme]) {
+  final scheme = colorScheme ?? wearSeedScheme(wearGreen);
   return ThemeData(
     colorScheme: scheme,
     scaffoldBackgroundColor: Colors.black,
@@ -169,17 +170,24 @@ TextStyle wearErrorStyle(BuildContext context) =>
 String wearShortText(String text, {required int max}) =>
     text.length > max ? '${text.substring(0, max)}…' : text;
 
+/// The watch's own accent, drawn when neither the phone nor the face gives one.
+const AccentPreset wearGreen = (
+  seed: Colors.green,
+  variant: DynamicSchemeVariant.tonalSpot,
+);
+
 /// Wear Material 3's dark colour roles (compose-material3 1.7.1 `ColorTokens`)
-/// on the tonal palettes of [seed]. The phone's `ColorScheme.fromSeed` puts the
-/// roles on other tones — a filled button's label on tone 20 rather than 10,
-/// which on the watch read as green text instead of a dark one.
-ColorScheme _wearColorScheme(Color seed) {
+/// on the tonal palettes of [accent]. The phone's `ColorScheme.fromSeed` puts
+/// the roles on other tones — a filled button's label on tone 20 rather than
+/// 10, which on the watch read as green text instead of a dark one.
+ColorScheme wearSeedScheme(AccentPreset accent) {
   // The palettes `ColorScheme.fromSeed` draws from; only the tones differ.
-  final scheme = SchemeTonalSpot(
-    sourceColorHct: Hct.fromInt(seed.toARGB32()),
-    isDark: true,
-    contrastLevel: 0,
-  );
+  final source = Hct.fromInt(accent.seed.toARGB32());
+  // The phone sends only these two (`accentPresets`, and tonalSpot for
+  // "System"); anything else draws as tonalSpot.
+  final scheme = accent.variant == DynamicSchemeVariant.monochrome
+      ? SchemeMonochrome(sourceColorHct: source, isDark: true, contrastLevel: 0)
+      : SchemeTonalSpot(sourceColorHct: source, isDark: true, contrastLevel: 0);
   Color tone(TonalPalette p, int t) => Color(p.get(t));
   return ColorScheme(
     brightness: Brightness.dark,

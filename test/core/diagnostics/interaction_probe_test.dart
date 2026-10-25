@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/filament_material.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// What bambuddy encodes in a `Semantics(identifier:)` beyond the id, and what

@@ -1,7 +1,7 @@
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/wear/main_wear.dart' as wear;
 import 'package:bambuddy_mobile/wear/wear_ongoing.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
 

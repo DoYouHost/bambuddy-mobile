@@ -1,11 +1,12 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
 import 'core/demo/demo_backend.dart';
+import 'core/theme/appearance_providers.dart';
 import 'core/theme/dash_theme.dart';
 import 'core/notifications/hms_catalog.dart';
 import 'core/notifications/notification_service.dart';
@@ -63,10 +64,15 @@ Future<void> main() async {
     ),
   );
 
+  // Before runApp, so the first frame already wears the "System" accent; a
+  // platform without a palette answers null.
+  final systemSchemes = await readSystemSchemes();
+
   runApp(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        initialSystemSchemesProvider.overrideWithValue(systemSchemes),
         notificationServiceProvider.overrideWithValue(notifications),
         reportBindingsOverride,
       ],

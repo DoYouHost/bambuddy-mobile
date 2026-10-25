@@ -12440,6 +12440,126 @@ abstract class AppLocalizations {
   /// **'App settings'**
   String get appSettingsTitle;
 
+  /// No description provided for @appearanceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get appearanceTitle;
+
+  /// No description provided for @appearanceAccent.
+  ///
+  /// In en, this message translates to:
+  /// **'Accent colour'**
+  String get appearanceAccent;
+
+  /// No description provided for @appearanceAccentBambuddy.
+  ///
+  /// In en, this message translates to:
+  /// **'Bambuddy green'**
+  String get appearanceAccentBambuddy;
+
+  /// No description provided for @appearanceAccentSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System (Material You)'**
+  String get appearanceAccentSystem;
+
+  /// No description provided for @appearanceAccentBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get appearanceAccentBlue;
+
+  /// No description provided for @appearanceAccentPurple.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get appearanceAccentPurple;
+
+  /// No description provided for @appearanceAccentOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get appearanceAccentOrange;
+
+  /// No description provided for @appearanceAccentPink.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get appearanceAccentPink;
+
+  /// No description provided for @appearanceAccentGraphite.
+  ///
+  /// In en, this message translates to:
+  /// **'Graphite'**
+  String get appearanceAccentGraphite;
+
+  /// No description provided for @appearanceMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get appearanceMode;
+
+  /// No description provided for @appearanceModeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get appearanceModeSystem;
+
+  /// No description provided for @appearanceModeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get appearanceModeLight;
+
+  /// No description provided for @appearanceModeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get appearanceModeDark;
+
+  /// No description provided for @appSettingsPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get appSettingsPhone;
+
+  /// No description provided for @appSettingsLabelPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get appSettingsLabelPrinter;
+
+  /// No description provided for @watchSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch'**
+  String get watchSettingsTitle;
+
+  /// No description provided for @watchThemeFromFace.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme from the watch face'**
+  String get watchThemeFromFace;
+
+  /// No description provided for @watchThemeFromFaceDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Wear OS 6 or later. When the face gives no colours, the watch takes the phone\'s theme.'**
+  String get watchThemeFromFaceDesc;
+
+  /// No description provided for @watchThemeFromPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme from the phone'**
+  String get watchThemeFromPhone;
+
+  /// No description provided for @watchThemeFromPhoneDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'The same accent colour as this app.'**
+  String get watchThemeFromPhoneDesc;
+
   /// No description provided for @appSettingsNotificationsSubtitle.
   ///
   /// In en, this message translates to:
@@ -14773,12 +14893,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Label printer'**
   String get labelPrinterTitle;
-
-  /// No description provided for @labelPrinterEntrySubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Print spool labels on a Brother QL print server on your network'**
-  String get labelPrinterEntrySubtitle;
 
   /// No description provided for @labelPrinterIntro.
   ///

@@ -7547,6 +7547,68 @@ class AppLocalizationsPl extends AppLocalizations {
   String get appSettingsTitle => 'Ustawienia aplikacji';
 
   @override
+  String get appearanceTitle => 'Wygląd';
+
+  @override
+  String get appearanceAccent => 'Kolor akcentu';
+
+  @override
+  String get appearanceAccentBambuddy => 'Zieleń Bambuddy';
+
+  @override
+  String get appearanceAccentSystem => 'Systemowy (Material You)';
+
+  @override
+  String get appearanceAccentBlue => 'Niebieski';
+
+  @override
+  String get appearanceAccentPurple => 'Fioletowy';
+
+  @override
+  String get appearanceAccentOrange => 'Pomarańczowy';
+
+  @override
+  String get appearanceAccentPink => 'Różowy';
+
+  @override
+  String get appearanceAccentGraphite => 'Grafitowy';
+
+  @override
+  String get appearanceMode => 'Motyw';
+
+  @override
+  String get appearanceModeSystem => 'Systemowy';
+
+  @override
+  String get appearanceModeLight => 'Jasny';
+
+  @override
+  String get appearanceModeDark => 'Ciemny';
+
+  @override
+  String get appSettingsPhone => 'Telefon';
+
+  @override
+  String get appSettingsLabelPrinter => 'Drukarka';
+
+  @override
+  String get watchSettingsTitle => 'Zegarek';
+
+  @override
+  String get watchThemeFromFace => 'Motyw z tarczy';
+
+  @override
+  String get watchThemeFromFaceDesc =>
+      'Wear OS 6 lub nowszy. Gdy tarcza nie daje kolorów, zegarek bierze motyw z telefonu.';
+
+  @override
+  String get watchThemeFromPhone => 'Motyw z telefonu';
+
+  @override
+  String get watchThemeFromPhoneDesc =>
+      'Ten sam kolor akcentu co w tej aplikacji.';
+
+  @override
   String get appSettingsNotificationsSubtitle =>
       'Które zdarzenia wysyłają powiadomienie i przy jakich progach';
 
@@ -8982,10 +9044,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get labelPrinterTitle => 'Drukarka etykiet';
-
-  @override
-  String get labelPrinterEntrySubtitle =>
-      'Drukuj etykiety szpul na serwerze druku Brother QL w sieci';
 
   @override
   String get labelPrinterIntro =>

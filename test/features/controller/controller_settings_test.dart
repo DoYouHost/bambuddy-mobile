@@ -8,7 +8,7 @@ import 'package:bambuddy_mobile/features/controller/controller_settings.dart';
 import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,8 +16,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../helpers.dart';
 
 void main() {
-  setUpAll(loadAppFonts);
-
   late SharedPreferences sp;
 
   Future<void> pump(

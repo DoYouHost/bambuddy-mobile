@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/features/common/api_failure_snack.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

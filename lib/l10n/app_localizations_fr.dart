@@ -7573,6 +7573,68 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appSettingsTitle => 'Paramètres de l\'application';
 
   @override
+  String get appearanceTitle => 'Apparence';
+
+  @override
+  String get appearanceAccent => 'Couleur d\'accent';
+
+  @override
+  String get appearanceAccentBambuddy => 'Vert Bambuddy';
+
+  @override
+  String get appearanceAccentSystem => 'Système (Material You)';
+
+  @override
+  String get appearanceAccentBlue => 'Bleu';
+
+  @override
+  String get appearanceAccentPurple => 'Violet';
+
+  @override
+  String get appearanceAccentOrange => 'Orange';
+
+  @override
+  String get appearanceAccentPink => 'Rose';
+
+  @override
+  String get appearanceAccentGraphite => 'Graphite';
+
+  @override
+  String get appearanceMode => 'Thème';
+
+  @override
+  String get appearanceModeSystem => 'Système';
+
+  @override
+  String get appearanceModeLight => 'Clair';
+
+  @override
+  String get appearanceModeDark => 'Sombre';
+
+  @override
+  String get appSettingsPhone => 'Téléphone';
+
+  @override
+  String get appSettingsLabelPrinter => 'Imprimante';
+
+  @override
+  String get watchSettingsTitle => 'Montre';
+
+  @override
+  String get watchThemeFromFace => 'Thème du cadran';
+
+  @override
+  String get watchThemeFromFaceDesc =>
+      'Wear OS 6 ou ultérieur. Si le cadran ne fournit pas de couleurs, la montre prend le thème du téléphone.';
+
+  @override
+  String get watchThemeFromPhone => 'Thème du téléphone';
+
+  @override
+  String get watchThemeFromPhoneDesc =>
+      'La même couleur d\'accent que dans cette app.';
+
+  @override
   String get appSettingsNotificationsSubtitle =>
       'Quels événements envoient une notification, et à partir de quels seuils';
 
@@ -9021,10 +9083,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get labelPrinterTitle => 'Imprimante d\'étiquettes';
-
-  @override
-  String get labelPrinterEntrySubtitle =>
-      'Imprimez les étiquettes de bobines sur un serveur d\'impression Brother QL de votre réseau';
 
   @override
   String get labelPrinterIntro =>

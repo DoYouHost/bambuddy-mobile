@@ -11,7 +11,7 @@ import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -75,8 +75,6 @@ Finder slots() => find.byWidgetPredicate((w) {
 });
 
 void main() {
-  setUpAll(loadAppFonts);
-
   late RecordingCommands commands;
   late _Statuses statuses;
 

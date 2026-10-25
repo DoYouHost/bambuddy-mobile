@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The smallest box the controller's body is laid out in: the body area of the
 /// touch panel whose look the controller borrows. A floor, not the target — the
