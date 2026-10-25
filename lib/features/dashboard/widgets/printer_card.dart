@@ -497,12 +497,16 @@ class _HeaderLine extends StatelessWidget {
   final String? afterName;
   final Widget? belowName;
 
-  /// The glyph square, and with it the height the line starts at.
-  ///
-  /// Also the width [build] reserves for the leading square when it hands the
-  /// rest to the name and the buttons — so a square built to any other number
-  /// spends the name's guaranteed [_minNameWidth] without saying so.
+  /// The glyph square. Also the width [build] reserves for the leading square
+  /// when it hands the rest to the name and the buttons — so a square built to
+  /// any other number spends the name's guaranteed [_minNameWidth] without
+  /// saying so.
   static const glyphSquare = 36.0;
+
+  /// The height the line starts at: the touch target of the buttons on it and
+  /// of the name's long press, so both looks of the card keep the name where
+  /// it was when one is swapped for the other.
+  static const _lineHeight = kMinInteractiveDimension;
 
   static const _minNameWidth = 48.0;
   static const _afterNameGap = 8.0;
@@ -516,7 +520,7 @@ class _HeaderLine extends StatelessWidget {
     // A minimum rather than a fixed height: at a large system text size the
     // name is taller than the glyph, and a fixed line would overflow.
     Widget line(Widget child) => ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: glyphSquare),
+      constraints: const BoxConstraints(minHeight: _lineHeight),
       child: child,
     );
     final belowName = this.belowName;
@@ -534,7 +538,10 @@ class _HeaderLine extends StatelessWidget {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            leading,
+            SizedBox(
+              height: _lineHeight,
+              child: Center(child: leading),
+            ),
             const SizedBox(width: _leadingGap),
             Expanded(
               child: Column(
@@ -576,7 +583,7 @@ class _HeaderLine extends StatelessWidget {
             ConstrainedBox(
               constraints: BoxConstraints(
                 maxWidth: trailingMaxWidth,
-                minHeight: glyphSquare,
+                minHeight: _lineHeight,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -625,7 +632,16 @@ class _EditableName extends ConsumerWidget {
             ),
           );
         },
-        child: child,
+        // As tall as a touch target, not as the line of text it holds.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
+          ),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: child,
+          ),
+        ),
       ).tagged('printer.edit').tourTarget('printer.edit.${printer.id}'),
     );
   }

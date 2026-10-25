@@ -298,8 +298,9 @@ class _HeaderIconButton extends StatelessWidget {
         tooltip: tooltip,
         onPressed: onPressed,
         icon: Icon(icon, size: 18),
-        visualDensity: VisualDensity.compact,
+        // The 34 dp box is the look; the target around it is Material's 48.
         style: IconButton.styleFrom(
+          tapTargetSize: MaterialTapTargetSize.padded,
           backgroundColor: t.subCard,
           foregroundColor: fg,
           disabledForegroundColor: fg.withValues(alpha: 0.4),
@@ -392,6 +393,10 @@ class _LifecycleButton extends StatelessWidget {
         InkWell(
           onTap: busy ? null : onPressed,
           child: Container(
+            constraints: const BoxConstraints(
+              minHeight: kMinInteractiveDimension,
+            ),
+            alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(
               vertical: DashSpace.md,
               horizontal: DashSpace.md,
