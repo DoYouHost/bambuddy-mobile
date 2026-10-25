@@ -121,8 +121,13 @@ void main() {
         return tester.renderObject<RenderParagraph>(facts);
       }
 
-      final oneLine = (await factsAt(1000)).size.height;
-      final narrow = await factsAt(330);
+      final wide = await factsAt(1000);
+      final oneLine = wide.size.height;
+      // Two thirds of what the facts take on one line: the row has to wrap,
+      // whatever font measures them, and two lines (its limit) hold them.
+      final narrow = await factsAt(
+        wide.getMaxIntrinsicWidth(double.infinity) * 2 / 3,
+      );
 
       expect(narrow.size.height, greaterThan(oneLine * 1.5));
       expect(narrow.didExceedMaxLines, isFalse);

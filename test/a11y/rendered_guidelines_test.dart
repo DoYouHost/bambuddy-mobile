@@ -23,8 +23,6 @@ import '../helpers.dart';
 /// paints: the token audit cannot see a colour typed into a widget or text
 /// over a picture. The app-wide coverage plan is docs/plans/a11y-guideline-tests.md.
 void main() {
-  setUpAll(loadAppFonts);
-
   // The default, the lightest preset fill, and the exact-grey path.
   const accents = [
     AccentSource.bambuddy,

@@ -41,8 +41,6 @@ class _Statuses extends PrinterStatusesNotifier {
 }
 
 void main() {
-  setUpAll(loadAppFonts);
-
   late _Statuses statuses;
 
   /// Printer 1's controller with a one-minute saver, printer 2 beside it.

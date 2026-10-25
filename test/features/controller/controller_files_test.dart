@@ -215,8 +215,6 @@ LibraryFile _file(
 );
 
 void main() {
-  setUpAll(loadAppFonts);
-
   late _Library library;
 
   Future<void> pump(

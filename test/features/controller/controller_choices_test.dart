@@ -21,8 +21,6 @@ import '../../helpers.dart';
 /// fonts: the test font is as wide as it is tall, so with it a label that fits
 /// on a phone looks too wide, and the check would prove nothing.
 void main() {
-  setUpAll(loadAppFonts);
-
   const rows = [
     'controller.step_preset',
     'controller.length_preset',

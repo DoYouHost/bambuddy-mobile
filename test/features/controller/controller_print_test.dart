@@ -134,7 +134,6 @@ PlateList _platesAt(List<int> indexes) => PlateList.fromJson({
 });
 
 void main() {
-  setUpAll(loadAppFonts);
   setUp(setUpQueueForm);
 
   /// The print screen on [printer], over a landscape phone.

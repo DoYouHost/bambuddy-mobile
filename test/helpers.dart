@@ -843,40 +843,6 @@ class FixedDashboard extends DashboardNotifier {
   void expire() => state = const DashboardState(authExpired: true);
 }
 
-/// Loads the app's own fonts, Manrope and JetBrains Mono, for a test file that
-/// measures text. Without it every glyph is a square as wide as it is tall, about
-/// twice what the real fonts take, so a label that fits on a phone looks too
-/// wide and a check on how text sits proves nothing. Call it from `setUpAll`.
-Future<void> loadAppFonts() async {
-  for (final (family, files) in [
-    (
-      'JetBrainsMono',
-      [
-        'JetBrainsMono-400.ttf',
-        'JetBrainsMono-600.ttf',
-        'JetBrainsMono-700.ttf',
-        'JetBrainsMono-800.ttf',
-      ],
-    ),
-    (
-      'Manrope',
-      [
-        'Manrope-400.ttf',
-        'Manrope-500.ttf',
-        'Manrope-600.ttf',
-        'Manrope-700.ttf',
-        'Manrope-800.ttf',
-      ],
-    ),
-  ]) {
-    final loader = FontLoader(family);
-    for (final file in files) {
-      loader.addFont(rootBundle.load('assets/fonts/$file'));
-    }
-    await loader.load();
-  }
-}
-
 /// The status REST hands back after a clear: one answer per read, the last one
 /// repeated. A `null` is a status the app could not read.
 class StatusReadBack extends PrintersRepository {

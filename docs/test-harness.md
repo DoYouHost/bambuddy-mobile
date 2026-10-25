@@ -44,6 +44,12 @@ the real one. This file keeps the reasons; the code keeps one line each.
 
 ## Widget tests
 
+- **Every test runs in the app's fonts**, loaded by `test/flutter_test_config.dart`
+  before each file. The test font draws every glyph as a square as wide as it is
+  tall, about twice the real width, and a test that forgot to load the real ones
+  measured a layout the app never draws: the controller saver's clock wrapped in
+  it from 10:00 on and the test went red twice a day. Not a per-file `setUpAll`,
+  which is how one was forgotten.
 - **No profile, no widget.** A widget that reads the server profile builds its
   API client from it; without one that throws `UnimplementedError` into an
   unbounded `ErrorWidget`, and the 100000 px overflow that follows buries what

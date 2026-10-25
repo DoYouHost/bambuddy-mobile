@@ -28,8 +28,6 @@ PrinterWithStatus _printer(
 );
 
 void main() {
-  setUpAll(loadAppFonts);
-
   /// Every `keepScreenOn` the screen asked for, in order.
   late List<bool> awake;
   late List<Object?> orientations;

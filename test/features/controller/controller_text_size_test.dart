@@ -105,8 +105,6 @@ class _FixedLibrary extends FileManagerNotifier {
 }
 
 void main() {
-  setUpAll(loadAppFonts);
-
   test('only the screen\'s own scale and the keypad\'s scale a FittedBox', () {
     // A FittedBox shrinks whatever is in it to fit, so two things of one kind
     // can end up two sizes. The body is scaled as a whole by `ScaleToFit`, and

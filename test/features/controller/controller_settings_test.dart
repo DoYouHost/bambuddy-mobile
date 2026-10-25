@@ -16,8 +16,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../helpers.dart';
 
 void main() {
-  setUpAll(loadAppFonts);
-
   late SharedPreferences sp;
 
   Future<void> pump(
