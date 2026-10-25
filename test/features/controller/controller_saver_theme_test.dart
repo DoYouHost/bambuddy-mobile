@@ -4,6 +4,7 @@ import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_saver.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
+import 'package:clock/clock.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -20,26 +21,31 @@ void main() {
       light: DashAccent(fill: Color(0xFF4A7FD0), ink: Color(0xFF2A5AA0)),
       onAccent: Color(0xFF0A1830),
     );
-    await pumpPhone(
-      tester,
-      Theme(
-        data: buildDashThemeData(Brightness.light, brand: blue),
-        child: const ControllerSaver(printerId: 1),
-      ),
-      overrides: [
-        noServerProfileOverride,
-        fixedDashboardOverride(
-          const DashboardState(
-            printers: [
-              PrinterWithStatus(
-                printer: Printer(id: 1, name: 'X1C', model: 'X1C'),
-                status: PrinterStatus(id: 1, connected: true, state: 'IDLE'),
-              ),
-            ],
-          ),
+    // The idle box shows the time, which in the 64 px test font fits on one
+    // line only up to 9:59; from 10:00 it wrapped and overflowed the box.
+    await withClock(
+      Clock.fixed(DateTime(2026, 1, 1, 9, 41)),
+      () => pumpPhone(
+        tester,
+        Theme(
+          data: buildDashThemeData(Brightness.light, brand: blue),
+          child: const ControllerSaver(printerId: 1),
         ),
-        inertStatusesOverride,
-      ],
+        overrides: [
+          noServerProfileOverride,
+          fixedDashboardOverride(
+            const DashboardState(
+              printers: [
+                PrinterWithStatus(
+                  printer: Printer(id: 1, name: 'X1C', model: 'X1C'),
+                  status: PrinterStatus(id: 1, connected: true, state: 'IDLE'),
+                ),
+              ],
+            ),
+          ),
+          inertStatusesOverride,
+        ],
+      ),
     );
 
     final inside = tester.element(

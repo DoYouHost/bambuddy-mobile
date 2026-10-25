@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:clock/clock.dart';
 import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/scheduler.dart';
@@ -352,7 +353,7 @@ class _SaverBox extends ConsumerWidget {
     final status = item?.status;
     final job = status != null && (status.isPrinting || status.isPaused);
     // Rebuilt every frame by the bounce, so the clock keeps itself current.
-    final now = DateTime.now();
+    final now = clock.now();
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(DashSpace.xl),
