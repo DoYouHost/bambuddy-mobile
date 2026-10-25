@@ -13,6 +13,7 @@ import 'core/notifications/hms_actions.dart';
 import 'core/notifications/hms_stop_request.dart';
 import 'core/notifications/launch_relay.dart';
 import 'core/models/current_user.dart';
+import 'core/theme/appearance_providers.dart';
 import 'core/theme/dash_theme.dart';
 import 'features/archive/outcome_sheet.dart';
 import 'features/dashboard/controls_providers.dart';
@@ -247,12 +248,12 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     // Notifications handled ONLY by background isolate (foreground service);
     // foreground status shown by UI itself, so no monitor here.
     final router = ref.watch(routerProvider);
+    final brand = ref.watch(appBrandProvider);
     return MaterialApp.router(
       title: 'Bambuddy',
-      theme: _theme(Brightness.light),
-      darkTheme: _theme(Brightness.dark),
-      // App follows system setting; dark theme like PWA.
-      themeMode: ThemeMode.system,
+      theme: buildDashThemeData(Brightness.light, brand: brand),
+      darkTheme: buildDashThemeData(Brightness.dark, brand: brand),
+      themeMode: ref.watch(appearanceProvider.select((p) => p.mode)),
       // Locale auto-detected from system; en = fallback.
       // Not AppLocalizations.localizationsDelegates: gen-l10n still fills it
       // from flutter_localizations, whose Material strings material_ui
@@ -279,6 +280,3 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     );
   }
 }
-
-ThemeData _theme(Brightness brightness) =>
-    buildDashThemeData(brightness, brand: bambuddyBrand);

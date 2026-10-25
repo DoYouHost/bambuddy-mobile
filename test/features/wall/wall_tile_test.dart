@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
 import 'package:bambuddy_mobile/features/wall/wall_camera.dart';
@@ -568,5 +569,46 @@ void main() {
       expect(byLogId('wall.tile'), findsNothing);
       expect(find.text(pl.statusOffline), findsOneWidget);
     });
+  });
+
+  // A camera tile re-themes itself dark over its picture; it must keep the brand the
+  // user chose rather than fall back to the green one.
+  testWidgets('the tile keeps the chosen brand in its dark theme', (
+    tester,
+  ) async {
+    const blue = DashBrand(
+      dark: DashAccent(fill: Color(0xFF9FC5FF), ink: Color(0xFF9FC5FF)),
+      light: DashAccent(fill: Color(0xFF4A7FD0), ink: Color(0xFF2A5AA0)),
+      onAccent: Color(0xFF0A1830),
+    );
+    await pumpPhone(
+      tester,
+      Theme(
+        data: buildDashThemeData(Brightness.light, brand: blue),
+        child: Center(
+          child: SizedBox(
+            width: 260,
+            height: 170,
+            child: WallTile(
+              item: const PrinterWithStatus(
+                printer: _printer,
+                status: _printing,
+              ),
+              camera: true,
+            ),
+          ),
+        ),
+      ),
+      overrides: [
+        fakeServerProfileOverride(),
+        cameraTokenProvider.overrideWith((ref) async => 'tok'),
+      ],
+    );
+
+    await tester.pump();
+
+    final t = DashTokens.of(tester.element(find.text('X1C-01')));
+    expect(t.brightness, Brightness.dark);
+    expect(t.brand, blue);
   });
 }

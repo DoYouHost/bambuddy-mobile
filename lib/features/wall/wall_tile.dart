@@ -177,7 +177,10 @@ class _WallTileState extends State<WallTile> {
             ),
           ),
           child: Theme(
-            data: buildDashThemeData(Brightness.dark, brand: bambuddyBrand),
+            data: buildDashThemeData(
+              Brightness.dark,
+              brand: DashTokens.of(context).brand,
+            ),
             child: Builder(
               builder: (context) {
                 final t = DashTokens.of(context);
