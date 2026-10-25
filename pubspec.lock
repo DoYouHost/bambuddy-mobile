@@ -21,8 +21,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_diagnostics"
-      ref: "v0.14.0"
-      resolved-ref: "84e629a2c1fec977a600c7010ed7d2fff936db79"
+      ref: "v0.14.2"
+      resolved-ref: e11a2afe1a3ba7eb99769ea243f86a600e968a04
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.4.0"
@@ -30,8 +30,8 @@ packages:
     dependency: "direct dev"
     description:
       path: "packages/app_guards"
-      ref: "v0.14.0"
-      resolved-ref: "84e629a2c1fec977a600c7010ed7d2fff936db79"
+      ref: "v0.14.2"
+      resolved-ref: e11a2afe1a3ba7eb99769ea243f86a600e968a04
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.1.2"
@@ -48,8 +48,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_report_ui"
-      ref: "v0.14.0"
-      resolved-ref: "84e629a2c1fec977a600c7010ed7d2fff936db79"
+      ref: "v0.14.2"
+      resolved-ref: e11a2afe1a3ba7eb99769ea243f86a600e968a04
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.2.0"
@@ -57,8 +57,8 @@ packages:
     dependency: "direct dev"
     description:
       path: "packages/app_test_kit"
-      ref: "v0.14.0"
-      resolved-ref: "84e629a2c1fec977a600c7010ed7d2fff936db79"
+      ref: "v0.14.2"
+      resolved-ref: e11a2afe1a3ba7eb99769ea243f86a600e968a04
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.2.0"
@@ -66,8 +66,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_util"
-      ref: "v0.14.0"
-      resolved-ref: "84e629a2c1fec977a600c7010ed7d2fff936db79"
+      ref: "v0.14.2"
+      resolved-ref: e11a2afe1a3ba7eb99769ea243f86a600e968a04
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.3.0"
@@ -283,20 +283,20 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/dash_kit"
-      ref: "v0.14.0"
-      resolved-ref: "84e629a2c1fec977a600c7010ed7d2fff936db79"
+      ref: "v0.14.2"
+      resolved-ref: e11a2afe1a3ba7eb99769ea243f86a600e968a04
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.2.0"
+    version: "0.2.1"
   dash_ui:
     dependency: transitive
     description:
       path: "packages/dash_ui"
-      ref: "v0.14.0"
-      resolved-ref: "84e629a2c1fec977a600c7010ed7d2fff936db79"
+      ref: "v0.14.2"
+      resolved-ref: e11a2afe1a3ba7eb99769ea243f86a600e968a04
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.5.0"
+    version: "0.5.1"
   dbus:
     dependency: transitive
     description:
