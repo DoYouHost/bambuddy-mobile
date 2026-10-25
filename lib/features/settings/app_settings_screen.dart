@@ -150,7 +150,9 @@ class _AppearanceCard extends ConsumerWidget {
             label: Text(l10n.appearanceAccent),
             initialSelection: prefs.accent,
             onSelected: (a) {
-              if (a != null) notifier.set(prefs.copyWith(accent: a));
+              if (a != null) {
+                notifier.set(ref.read(appearanceProvider).copyWith(accent: a));
+              }
             },
             entries: [
               for (final a in accents)
@@ -176,7 +178,9 @@ class _AppearanceCard extends ConsumerWidget {
             label: Text(l10n.appearanceMode),
             initialSelection: prefs.mode,
             onSelected: (m) {
-              if (m != null) notifier.set(prefs.copyWith(mode: m));
+              if (m != null) {
+                notifier.set(ref.read(appearanceProvider).copyWith(mode: m));
+              }
             },
             entries: [
               for (final m in ThemeMode.values)

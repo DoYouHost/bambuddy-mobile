@@ -12,10 +12,14 @@ class _CountingRepository extends SettingsRepository {
   _CountingRepository(super.prefs);
 
   var saves = 0;
+  var failures = 0;
 
   @override
-  Future<void> saveAppearancePrefs(AppearancePrefs prefs) {
+  Future<void> saveAppearancePrefs(AppearancePrefs prefs) async {
     saves++;
+    if (failures-- > 0) throw StateError('disk full');
+    // A write that has not landed yet when an earlier one fails.
+    await Future<void>.delayed(Duration.zero);
     return super.saveAppearancePrefs(prefs);
   }
 }
@@ -68,6 +72,95 @@ void main() {
     expect(repo.saves, 1);
   });
 
+  test('a second choice made while the first saves keeps both', () async {
+    final c = ProviderContainer(
+      overrides: [settingsRepositoryProvider.overrideWithValue(repo)],
+    );
+    addTearDown(c.dispose);
+    final notifier = c.read(appearanceProvider.notifier);
+
+    final first = notifier.set(
+      c.read(appearanceProvider).copyWith(accent: AccentSource.orange),
+    );
+    final second = notifier.set(
+      c.read(appearanceProvider).copyWith(mode: ThemeMode.dark),
+    );
+    await (first, second).wait;
+
+    const both = AppearancePrefs(
+      accent: AccentSource.orange,
+      mode: ThemeMode.dark,
+    );
+    expect(c.read(appearanceProvider), both);
+    expect(repo.loadAppearancePrefs(), both);
+  });
+
+  test('a failed save puts the previous choice back', () async {
+    final c = ProviderContainer(
+      overrides: [settingsRepositoryProvider.overrideWithValue(repo)],
+    );
+    addTearDown(c.dispose);
+    repo.failures = 1;
+
+    await expectLater(
+      c
+          .read(appearanceProvider.notifier)
+          .set(const AppearancePrefs(accent: AccentSource.pink)),
+      throwsStateError,
+    );
+
+    expect(c.read(appearanceProvider), const AppearancePrefs());
+  });
+
+  test('a failed save does not undo a later choice', () async {
+    final c = ProviderContainer(
+      overrides: [settingsRepositoryProvider.overrideWithValue(repo)],
+    );
+    addTearDown(c.dispose);
+    final notifier = c.read(appearanceProvider.notifier);
+    repo.failures = 1;
+
+    final first = notifier.set(
+      const AppearancePrefs(accent: AccentSource.orange),
+    );
+    final second = notifier.set(
+      const AppearancePrefs(accent: AccentSource.orange, mode: ThemeMode.dark),
+    );
+    await expectLater(first, throwsStateError);
+    await second;
+
+    const later = AppearancePrefs(
+      accent: AccentSource.orange,
+      mode: ThemeMode.dark,
+    );
+    expect(c.read(appearanceProvider), later);
+    expect(repo.loadAppearancePrefs(), later);
+  });
+
+  test(
+    'a failed save does not undo a later return to the same choice',
+    () async {
+      final c = ProviderContainer(
+        overrides: [settingsRepositoryProvider.overrideWithValue(repo)],
+      );
+      addTearDown(c.dispose);
+      final notifier = c.read(appearanceProvider.notifier);
+      repo.failures = 1;
+      const orange = AppearancePrefs(accent: AccentSource.orange);
+
+      final first = notifier.set(orange);
+      final second = notifier.set(
+        const AppearancePrefs(accent: AccentSource.purple),
+      );
+      final third = notifier.set(orange);
+      await expectLater(first, throwsStateError);
+      await (second, third).wait;
+
+      expect(c.read(appearanceProvider), orange);
+      expect(repo.loadAppearancePrefs(), orange);
+    },
+  );
+
   test('the brand follows the accent', () async {
     final c = ProviderContainer(
       overrides: [settingsRepositoryProvider.overrideWithValue(repo)],
@@ -116,6 +209,33 @@ void main() {
 
     expect(reads, 1);
     expect(c.read(systemSchemesProvider), later);
+  });
+
+  testWidgets('a failed read on resume keeps the palette', (tester) async {
+    final initial = schemesOf(const Color(0xFF2E7DD7));
+    final c = ProviderContainer(
+      overrides: [
+        settingsRepositoryProvider.overrideWithValue(repo),
+        initialSystemSchemesProvider.overrideWithValue(initial),
+        systemSchemesReaderProvider.overrideWithValue(() async => null),
+      ],
+    );
+    addTearDown(c.dispose);
+    expect(c.read(systemSchemesProvider), initial);
+
+    for (final state in const [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.paused,
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+    await tester.pump();
+
+    expect(c.read(systemSchemesProvider), initial);
   });
 
   // No plugin answers in a host test, which is what a platform without

@@ -15,14 +15,27 @@ final appearanceProvider =
     );
 
 class AppearanceNotifier extends Notifier<AppearancePrefs> {
+  var _latest = 0;
+
   @override
   AppearancePrefs build() =>
       ref.watch(settingsRepositoryProvider).loadAppearancePrefs();
 
+  /// Applied before the write, so a second choice made while the first is
+  /// still saving starts from it instead of undoing it. A failed write falls
+  /// back to what is stored, unless a later choice has already replaced it.
   Future<void> set(AppearancePrefs prefs) async {
     if (prefs == state) return;
-    await ref.read(settingsRepositoryProvider).saveAppearancePrefs(prefs);
     state = prefs;
+    final call = ++_latest;
+    try {
+      await ref.read(settingsRepositoryProvider).saveAppearancePrefs(prefs);
+    } catch (_) {
+      if (call == _latest) {
+        state = ref.read(settingsRepositoryProvider).loadAppearancePrefs();
+      }
+      rethrow;
+    }
   }
 }
 
@@ -79,9 +92,11 @@ class SystemSchemesNotifier extends Notifier<SystemSchemes?> {
     return ref.watch(initialSystemSchemesProvider);
   }
 
+  // A palette does not go away while the app runs, so a null here is a
+  // failed read; keeping the last palette keeps a chosen "System" accent.
   Future<void> _reread() async {
     final schemes = await ref.read(systemSchemesReaderProvider)();
-    if (!_disposed) state = schemes;
+    if (!_disposed && schemes != null) state = schemes;
   }
 }
 
