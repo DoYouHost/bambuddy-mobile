@@ -7488,6 +7488,45 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appSettingsTitle => 'App-Einstellungen';
 
   @override
+  String get appearanceTitle => 'Darstellung';
+
+  @override
+  String get appearanceAccent => 'Akzentfarbe';
+
+  @override
+  String get appearanceAccentBambuddy => 'Bambuddy-Grün';
+
+  @override
+  String get appearanceAccentSystem => 'System (Material You)';
+
+  @override
+  String get appearanceAccentBlue => 'Blau';
+
+  @override
+  String get appearanceAccentPurple => 'Lila';
+
+  @override
+  String get appearanceAccentOrange => 'Orange';
+
+  @override
+  String get appearanceAccentPink => 'Pink';
+
+  @override
+  String get appearanceAccentGraphite => 'Grafit';
+
+  @override
+  String get appearanceMode => 'Design';
+
+  @override
+  String get appearanceModeSystem => 'System';
+
+  @override
+  String get appearanceModeLight => 'Hell';
+
+  @override
+  String get appearanceModeDark => 'Dunkel';
+
+  @override
   String get appSettingsNotificationsSubtitle =>
       'Welche Ereignisse eine Benachrichtigung senden und ab welchen Schwellenwerten';
 
