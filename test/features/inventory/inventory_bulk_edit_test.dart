@@ -155,7 +155,18 @@ void main() {
   ) async {
     final fake = await openSheet(tester);
     final colorField = byLogId('bulk_edit.color');
-    await tester.ensureVisible(colorField);
+    // openSheet scrolls down to Apply, past the field, which a lazy list then
+    // no longer builds: back up to it.
+    await tester.scrollUntilVisible(
+      colorField,
+      -100,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView).last,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await settle(tester);
     await tester.tap(colorField);
     await settle(tester);
