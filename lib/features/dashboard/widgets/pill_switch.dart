@@ -16,7 +16,7 @@ class PillSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final knobColor = tokens.isDark
-        ? const Color(0xFF0A0C08)
+        ? tokens.onAccent
         : (on ? Colors.white : const Color(0xFFFFFFFF));
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
