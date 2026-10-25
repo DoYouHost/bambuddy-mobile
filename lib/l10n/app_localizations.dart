@@ -10280,6 +10280,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get wearSettingsTitle;
 
+  /// No description provided for @wearFaceColours.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch face colours'**
+  String get wearFaceColours;
+
   /// No description provided for @wearFromPhone.
   ///
   /// In en, this message translates to:

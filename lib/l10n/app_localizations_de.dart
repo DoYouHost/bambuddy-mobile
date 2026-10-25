@@ -6186,6 +6186,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get wearSettingsTitle => 'Einstellungen';
 
   @override
+  String get wearFaceColours => 'Farben vom Zifferblatt';
+
+  @override
   String get wearFromPhone => 'Vom Smartphone';
 
   @override

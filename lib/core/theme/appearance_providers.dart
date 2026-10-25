@@ -108,3 +108,11 @@ final appBrandProvider = Provider<DashBrand>(
     ref.watch(systemSchemesProvider),
   ),
 );
+
+/// The accent a paired watch is pushed; re-pushed when it changes.
+final watchAccentProvider = Provider<AccentPreset?>(
+  (ref) => watchAccent(
+    ref.watch(appearanceProvider.select((p) => p.accent)),
+    ref.watch(systemSchemesProvider),
+  ),
+);

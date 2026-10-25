@@ -4117,6 +4117,7 @@
     "description": "Watch setup: one tap into demo mode, no typing. Short by necessity — the phone's 'Try the demo' does not fit a line on a watch."
   },
   "wearSettingsTitle": "Settings",
+  "wearFaceColours": "Watch face colours",
   "wearFromPhone": "From your phone",
   "wearFromPhoneUse": "Use this server",
   "wearFromPhoneLater": "Not now",

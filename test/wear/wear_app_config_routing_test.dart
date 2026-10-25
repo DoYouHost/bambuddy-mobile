@@ -1,11 +1,16 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/wear_app.dart';
+import 'package:bambuddy_mobile/wear/wear_colours.dart';
+import 'package:bambuddy_mobile/wear/wear_theme.dart';
 import 'package:bambuddy_mobile/wear/wear_providers.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../helpers.dart';
 
@@ -149,5 +154,62 @@ void main() {
     // rather than the `plApp` harness the other wear tests wrap widgets in.
     await revealOnWatch(tester, find.text('Use this server'));
     expect(find.text('Use this server'), findsOneWidget);
+  });
+
+  group("the phone's accent", () {
+    const blue = (
+      seed: Color(0xFF2E7DD7),
+      variant: DynamicSchemeVariant.tonalSpot,
+    );
+    Color primary(WidgetTester tester) => Theme.of(
+      tester.element(find.byType(Scaffold).first),
+    ).colorScheme.primary;
+
+    testWidgets('is taken from a push that is only offered', (tester) async {
+      final container = await pumpApp(tester, profile: _workshop);
+
+      sync.pushes.add(
+        WatchConfig(profile: _garage, apiKey: 'bb_secret', accent: blue),
+      );
+      await tester.pumpAndSettle();
+
+      expect(sync.applied, isEmpty);
+      expect(container.read(wearPhoneAccentProvider), blue);
+      expect(primary(tester), wearSeedScheme(blue).primary);
+    });
+
+    testWidgets('a live push beats the latched one read at cold start', (
+      tester,
+    ) async {
+      final gate = Completer<void>();
+      sync = FakeWatchConfigSync(
+        pending: WatchConfig(profile: _garage, apiKey: 'bb_old', accent: blue),
+        pendingGate: gate,
+      );
+      final container = await pumpApp(tester, profile: _workshop);
+
+      sync.pushes.add(_configFor(_workshop, key: 'bb_new'));
+      await tester.pumpAndSettle();
+      gate.complete();
+      await tester.pumpAndSettle();
+
+      expect(container.read(wearPhoneAccentProvider), isNull);
+      expect(container.read(pendingWatchConfigProvider), isNull);
+      expect(sync.applied.single.apiKey, 'bb_new');
+    });
+
+    testWidgets('goes back to green when the phone does', (tester) async {
+      final container = await pumpApp(tester, profile: _workshop);
+      sync.pushes.add(
+        WatchConfig(profile: _workshop, apiKey: 'bb_secret', accent: blue),
+      );
+      await tester.pumpAndSettle();
+
+      sync.pushes.add(_configFor(_workshop));
+      await tester.pumpAndSettle();
+
+      expect(container.read(wearPhoneAccentProvider), isNull);
+      expect(primary(tester), wearTheme().colorScheme.primary);
+    });
   });
 }

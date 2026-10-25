@@ -57,4 +57,33 @@ void main() {
       expect(c.r == c.g && c.g == c.b, isTrue, reason: '$c');
     }
   });
+
+  group('watchAccent', () {
+    test('the green brand and a System without a palette send nothing', () {
+      expect(watchAccent(AccentSource.bambuddy, null), isNull);
+      expect(watchAccent(AccentSource.system, null), isNull);
+    });
+
+    test('a preset sends itself', () {
+      for (final MapEntry(key: accent, value: preset)
+          in accentPresets.entries) {
+        expect(watchAccent(accent, null), preset, reason: accent.name);
+      }
+    });
+
+    // dynamic_color seeds the phone's scheme with the palette's primary, so
+    // the same seed gives the watch the phone's primary palette.
+    test('System sends the seed of the phone scheme', () {
+      final palette = schemes(
+        const Color(0xFFB3261E),
+        DynamicSchemeVariant.tonalSpot,
+      );
+      final accent = watchAccent(AccentSource.system, palette)!;
+      expect(accent.variant, DynamicSchemeVariant.tonalSpot);
+      expect(
+        ColorScheme.fromSeed(seedColor: accent.seed).primary,
+        palette.light.primary,
+      );
+    });
+  });
 }

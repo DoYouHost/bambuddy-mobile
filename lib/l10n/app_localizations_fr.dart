@@ -6259,6 +6259,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get wearSettingsTitle => 'Paramètres';
 
   @override
+  String get wearFaceColours => 'Couleurs du cadran';
+
+  @override
   String get wearFromPhone => 'Depuis le téléphone';
 
   @override

@@ -6124,6 +6124,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wearSettingsTitle => 'Settings';
 
   @override
+  String get wearFaceColours => 'Watch face colours';
+
+  @override
   String get wearFromPhone => 'From your phone';
 
   @override

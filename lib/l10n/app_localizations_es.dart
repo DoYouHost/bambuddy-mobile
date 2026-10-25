@@ -6200,6 +6200,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get wearSettingsTitle => 'Ajustes';
 
   @override
+  String get wearFaceColours => 'Colores de la esfera';
+
+  @override
   String get wearFromPhone => 'Desde tu teléfono';
 
   @override

@@ -1,8 +1,8 @@
 # Appearance: accent colour, Material You, light and dark
 
-What the phone app lets a user change about its look, and the reasons behind each
-piece. The watch and the home-screen widgets do not follow the choice yet (see the
-end).
+What the phone app and the watch let a user change about their look, and the
+reasons behind each piece. The home-screen widgets do not follow the choice yet
+(see the end).
 
 ## The three accent sources
 
@@ -33,6 +33,37 @@ measured on one. `DynamicColorBuilder` is not used: wrapping `MaterialApp.router
 in it only for "System" would change the tree above the router and drop the user
 on the dashboard when the accent changes, and its first frame is null, so every
 cold start would flash green.
+
+## The watch
+
+A switch in the watch's settings, "Watch face colours", picks between two
+sources; off is the default.
+
+- **Off: the phone's accent.** The phone sends it with the server config
+  (`WatchConfigCodec`, optional `accentSeed` and `accentVariant`), on launch and
+  whenever the accent or the profile changes. `watchAccent` sends nothing for the
+  green brand and for a "System" without a palette, and for "System" sends the
+  palette's primary, the seed `dynamic_color` builds the phone scheme from. The
+  watch takes the accent from every push, also one for another server that it
+  only offers: the colour is the phone's to set whichever server is chosen. It is
+  stored (`wear_phone_accent`) so the first frame already wears it. A watch or a
+  phone without these keys keeps the green both always drew.
+- **On: the watch face**, Google's own source on Wear OS 6 (Wear Material 3
+  `dynamicColorScheme`). `WatchFaceColours.kt` reads the roles the way that
+  function does: Android 15 or later, and only with `Settings.Global`
+  `dynamic_color_theme_enabled` set — without it the system colour resources still
+  answer, with defaults unrelated to the face, which is also why the watch does
+  not use `dynamic_color`. Where the face gives nothing the watch falls back to the
+  phone's accent, and the switch is shown only where the face has colours, or
+  while it is on, so it can be turned off again.
+
+The face is read before `runApp` and on every resume through the phone's
+`systemSchemesProvider` with the reader overridden in `main_wear.dart`. That
+re-read keeps the last palette when a read comes back empty (a failed read must
+not drop a chosen "System" on the phone), so on the watch switching dynamic
+theming off while the app is open is seen only at the next start. The watch draws
+on black whatever the source (WO-V13), and roles come from Wear Material 3's
+tones, not the phone's (`wearSeedScheme`).
 
 ## Why the grounds belong to the brand
 
@@ -69,9 +100,6 @@ theming with.
 
 ## Later stages
 
-- **Watch:** `WatchConfigCodec` gets an optional `accentSeed`; the phone pushes it
-  on profile and appearance change, and `wearTheme(seed)` replaces the fixed green.
-  A missing key means green, so old and new phone/watch pairs keep working.
 - **Widgets:** the Dart publisher writes the resolved palette through `home_widget`
   and Kotlin reads it, with `R.color.*` as the fallback. The FGS isolate publishes
   too, so it must read `appearance_prefs` in its own `onStart`.

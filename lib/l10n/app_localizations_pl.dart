@@ -6233,6 +6233,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wearSettingsTitle => 'Ustawienia';
 
   @override
+  String get wearFaceColours => 'Kolory z tarczy';
+
+  @override
   String get wearFromPhone => 'Z telefonu';
 
   @override

@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:material_ui/material_ui.dart' show Color, DynamicSchemeVariant;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../demo/demo_backend.dart';
 import '../models/swatch_code.dart';
 import '../notifications/notification_prefs.dart';
+import '../theme/app_brand.dart' show AccentPreset;
 import 'appearance_prefs.dart';
 import 'controller_prefs.dart';
 import 'label_print_prefs.dart';
@@ -45,6 +47,8 @@ class SettingsRepository {
   static const _wallHiddenPrintersKey = 'wall_hidden_printer_ids';
   static const _controllerPrefsKey = 'controller_prefs';
   static const _appearancePrefsKey = 'appearance_prefs';
+  static const _wearFaceColoursKey = 'wear_face_colours';
+  static const _wearPhoneAccentKey = 'wear_phone_accent';
   static const _tourSeenKey = 'tour_seen';
 
   final SharedPreferences _prefs;
@@ -270,6 +274,42 @@ class SettingsRepository {
 
   Future<void> saveAppearancePrefs(AppearancePrefs prefs) =>
       _prefs.setString(_appearancePrefsKey, jsonEncode(prefs.toJson()));
+
+  /// WATCH side: whether the watch takes its colours from its face rather
+  /// than from the phone.
+  bool loadWearFaceColours() => _prefs.getBool(_wearFaceColoursKey) ?? false;
+
+  Future<void> saveWearFaceColours(bool value) =>
+      _prefs.setBool(_wearFaceColoursKey, value);
+
+  /// WATCH side: the accent the phone last sent, kept so the first frame
+  /// already wears it. Null, also for a damaged entry, is the green brand.
+  AccentPreset? loadWearPhoneAccent() {
+    final raw = _prefs.getString(_wearPhoneAccentKey);
+    if (raw == null) return null;
+    try {
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+      return (
+        seed: Color(json['seed'] as int),
+        // As the codec reads it: an unknown variant still draws the seed.
+        variant:
+            DynamicSchemeVariant.values.asNameMap()[json['variant']] ??
+            DynamicSchemeVariant.tonalSpot,
+      );
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<void> saveWearPhoneAccent(AccentPreset? accent) => accent == null
+      ? _prefs.remove(_wearPhoneAccentKey)
+      : _prefs.setString(
+          _wearPhoneAccentKey,
+          jsonEncode({
+            'seed': accent.seed.toARGB32(),
+            'variant': accent.variant.name,
+          }),
+        );
 
   /// The slice form's two filters (#3172), remembered on this device as the
   /// web remembers them per browser. Absent reads as off, as there.

@@ -2,12 +2,14 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/settings/server_profile.dart';
+import '../../core/theme/appearance_providers.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../core/watch/watch_config_sync.dart';
 import '../../core/app_context.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../wear_action.dart';
+import '../wear_colours.dart';
 import '../wear_providers.dart';
 import '../wear_theme.dart';
 import '../widgets/wear_confirm_dialog.dart';
@@ -15,6 +17,7 @@ import '../widgets/wear_header.dart';
 import '../widgets/wear_screen.dart';
 import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_spinner.dart';
+import '../widgets/wear_switch_button.dart';
 
 /// The watch's only settings screen, and the only way off a server once it is
 /// configured: before this, a watch that had connected once was married to that
@@ -44,6 +47,10 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
     final l10n = AppLocalizations.of(context);
     final profile = ref.watch(serverProfileProvider);
     final offered = ref.watch(pendingWatchConfigProvider);
+    final faceColours = ref.watch(wearFaceColoursProvider);
+    // Offered only where the face has colours to give; a choice already made
+    // stays visible so it can be undone.
+    final faceOnOffer = ref.watch(systemSchemesProvider) != null;
 
     return WearScreen(
       child: WearScrollView(
@@ -97,6 +104,14 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
               l10n.changeServerWarning,
               textAlign: TextAlign.center,
               style: WearText.body.copyWith(color: wearMuted),
+            ),
+          ],
+          if (faceOnOffer || faceColours) ...[
+            const SizedBox(height: DashSpace.lg),
+            WearSwitchButton(
+              label: l10n.wearFaceColours,
+              value: faceColours,
+              onChanged: ref.read(wearFaceColoursProvider.notifier).set,
             ),
           ],
           const SizedBox(height: DashSpace.lg),

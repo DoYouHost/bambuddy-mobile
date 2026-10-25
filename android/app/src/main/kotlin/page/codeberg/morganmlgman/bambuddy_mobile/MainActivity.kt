@@ -69,6 +69,7 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         flutterEngine.serveWearOngoing(this)
         flutterEngine.serveWearPhoneApp(this)
+        flutterEngine.serveWatchFaceColours(this)
         flutterEngine.serve(
             BATTERY_CHANNEL,
             mapOf<String, MethodHandler>(

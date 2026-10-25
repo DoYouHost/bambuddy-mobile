@@ -295,6 +295,7 @@ class FakeWatchConfigSync extends WatchConfigSync {
     StreamController<WatchConfig>? pushes,
     this.failsToApply = false,
     this.applyGate,
+    this.pendingGate,
   }) : pushes = pushes ?? StreamController<WatchConfig>.broadcast(),
        super(
          watch: WatchConnectivity(),
@@ -315,11 +316,18 @@ class FakeWatchConfigSync extends WatchConfigSync {
   /// a write still in flight is held open while the screen goes away.
   final Completer<void>? applyGate;
 
+  /// When set, [latestPending] does not answer until the test completes it —
+  /// the cold-start read still on its way while a live push lands.
+  final Completer<void>? pendingGate;
+
   /// Every config [apply] was asked to persist, in order.
   final applied = <WatchConfig>[];
 
   @override
-  Future<WatchConfig?> latestPending() async => pending;
+  Future<WatchConfig?> latestPending() async {
+    await pendingGate?.future;
+    return pending;
+  }
 
   @override
   Stream<WatchConfig> configStream() => pushes.stream;

@@ -58,3 +58,20 @@ DashBrand _fromPreset(AccentPreset preset) {
     dark: scheme(Brightness.dark),
   );
 }
+
+/// What the watch is told to colour itself with: null for the green brand, which
+/// the watch already draws without being told, and for a "System" with no
+/// palette behind it. `System` sends the seed `toColorScheme` derives the
+/// phone's scheme from, so the watch lands on the same hue.
+AccentPreset? watchAccent(AccentSource accent, SystemSchemes? system) =>
+    switch (accent) {
+      AccentSource.bambuddy => null,
+      AccentSource.system =>
+        system == null
+            ? null
+            : (
+                seed: system.light.primary,
+                variant: DynamicSchemeVariant.tonalSpot,
+              ),
+      _ => accentPresets[accent],
+    };
