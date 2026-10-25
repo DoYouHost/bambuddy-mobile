@@ -344,6 +344,18 @@ do not stay silent because it was not part of the task.
   input and odd input, written with it; extract the logic into a pure function. Why:
   [docs/conventions.md](docs/conventions.md#tests).
 
+## Platform guidance first
+
+- **Google's developer documentation and its samples are the default** for anything
+  Android, Flutter or Material does — colour (Material Color Utilities, HCT, dynamic
+  colour), accessibility, layout, lifecycle, notifications. Before proposing a
+  solution, read what Google recommends and how its samples do it (context7 or the
+  official docs), and cite it.
+- **A custom solution has to earn its place.** Propose one only after showing that
+  what we need clearly departs from Google's recommendation, and why we want to depart
+  from it at all. "It already works with our own rule" is not a reason: when our rule
+  and Google's disagree, our rule is the suspect.
+
 ## Server contract and web parity
 
 - **The bambuddy web UI is the default.** Where the web already decides something
