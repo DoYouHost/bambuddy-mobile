@@ -6,6 +6,7 @@ import '../core/api/endpoints.dart';
 import '../core/models/archive_slim.dart';
 import '../core/models/archive_stats.dart';
 import '../core/models/failure_analysis.dart';
+import '../core/format/system_clock_sync.dart';
 
 /// REST data source for archive stats (`GET /archives/stats`).
 ///
@@ -39,7 +40,7 @@ class StatsRepository {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
         Endpoints.archivesStats,
-        queryParameters: query,
+        queryParameters: await withDayZone(query),
       );
       return ArchiveStats.fromJson(res.data ?? const {});
     } on DioException catch (e) {
@@ -69,7 +70,7 @@ class StatsRepository {
       try {
         final res = await _dio.get<List<dynamic>>(
           Endpoints.archivesSlim,
-          queryParameters: query,
+          queryParameters: await withDayZone(query),
         );
         body = res.data ?? const [];
       } on DioException catch (e) {
@@ -107,7 +108,7 @@ class StatsRepository {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
         Endpoints.archivesFailures,
-        queryParameters: query,
+        queryParameters: await withDayZone(query),
       );
       return FailureAnalysis.fromJson(res.data ?? const {});
     } on DioException catch (e) {
