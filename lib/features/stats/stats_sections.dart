@@ -44,7 +44,6 @@ class FailureAnalysisCard extends ConsumerWidget {
         IconButton(
           icon: const Icon(Icons.receipt_long_outlined, size: 20),
           tooltip: l10n.printLogTitle,
-          visualDensity: VisualDensity.compact,
           onPressed: () => context.push('/print-log'),
         ),
       ),

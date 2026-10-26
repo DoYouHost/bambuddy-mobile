@@ -82,8 +82,7 @@ class MetricToggle extends StatelessWidget {
     return SegmentedButton<StatMetric>(
       showSelectedIcon: false,
       style: const ButtonStyle(
-        visualDensity: VisualDensity.compact,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        minimumSize: WidgetStatePropertyAll(Size(0, 48)),
       ),
       segments: [
         for (final m in StatMetric.values)
