@@ -185,21 +185,35 @@ void main() {
     });
   });
 
+  /// Width and height of every PNG under the screenshots folder [dir].
+  List<(String, int, int)> sizes(String dir) => [
+    for (final f in Directory(
+      'docs/store-assets/screenshots/$dir',
+    ).listSync(recursive: true))
+      if (f is File && f.path.endsWith('.png'))
+        // PNG: width and height are the two big-endian words at byte 16.
+        switch (ByteData.sublistView(f.readAsBytesSync(), 16, 24)) {
+          final h => (f.path, h.getUint32(0), h.getUint32(4)),
+        },
+  ];
+
   test('the Wear screenshots are square (WO-G5)', () {
-    final shots = Directory('docs/store-assets/screenshots/wear')
-        .listSync()
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.png'))
-        .toList();
+    final shots = sizes('wear');
     expect(shots, isNotEmpty, reason: 'Play needs at least one');
-    for (final shot in shots) {
-      // PNG: width and height are the two big-endian words at byte 16.
-      final header = ByteData.sublistView(shot.readAsBytesSync(), 16, 24);
-      expect(
-        header.getUint32(0),
-        header.getUint32(4),
-        reason: '${shot.path} is not 1:1',
-      );
+    for (final (path, w, h) in shots) {
+      expect(w, h, reason: '$path is not 1:1');
+    }
+  });
+
+  test('no screenshot is longer than twice its width, as Play requires', () {
+    // "Add preview assets": 320-3840 px, the long side at most twice the short.
+    final shots = sizes('');
+    expect(shots, isNotEmpty);
+    for (final (path, w, h) in shots) {
+      final (short, long) = w < h ? (w, h) : (h, w);
+      expect(long, lessThanOrEqualTo(2 * short), reason: '$path is $w x $h');
+      expect(short, greaterThanOrEqualTo(320), reason: path);
+      expect(long, lessThanOrEqualTo(3840), reason: path);
     }
   });
 }

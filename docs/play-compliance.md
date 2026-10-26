@@ -114,6 +114,7 @@ asset rows are n/a.
 |---|---|---|
 | Foreground service declaration | manual | Play Console declares `connectedDevice` with a video; the watch now runs one too (WO-V4) — the video may need the watch. |
 | Battery optimisation exemption | test | Not requested (#53). `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` is allowed only for messaging without FCM, safety, task automation or a peripheral companion keeping a device online — a print monitor is none of them. The app opens its own settings page and the user sets battery use to unrestricted; an exemption granted before stays across the update. `compliance_test.dart` refuses the permission in the manifest. |
+| Store screenshots | test + manual | `compliance_test.dart`: 320–3840 px and the long side at most twice the short ([Add preview assets](https://support.google.com/googleplay/android-developer/answer/9866151)); retaken by `tool/store_screenshots.sh` (docs/release.md). At most 8 per device type is picked at upload. |
 | Data safety form | manual | `docs/privacy-policy.md`; the bug report sends a log only on the user's tap. |
 | Account deletion | n/a | the app creates no accounts; they live on the user's own server. |
 | Target API deadline | test | see above |
