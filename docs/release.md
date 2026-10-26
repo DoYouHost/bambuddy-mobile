@@ -52,6 +52,22 @@ is not newer than the last tag, and an unpushed HEAD. `just purge-dev-tags [5]`
 cleans up. A bug report's log header carries `0.12.1-dev.7+1200007`, so an issue
 from a dev build points at a commit.
 
+## Store screenshots
+
+`tool/store_screenshots.sh [phone|tablet7|tablet10|wear|all] [--no-build]` retakes
+`docs/store-assets/screenshots/` from release builds (no DEBUG banner) on the AVDs
+the set was taken on: `pixel35`, `tablet7`, `tablet10` turned to portrait, and
+`wear_round`. It reaches screens through Flutter's built-in deep links (an explicit
+intent with `-d bambuddy://open/<route>`; no `intent-filter` declares them, so only
+adb or another app's explicit intent can send one) and taps the rest by label from
+`uiautomator dump`. A screen that moves or is renamed breaks the step that names it.
+
+Play's limits ([Add preview assets](https://support.google.com/googleplay/android-developer/answer/9866151)):
+a long side at most twice the short one, so the phone runs at `wm size 1080x1920`
+for the shots (the Pixel's 1080x2400 is refused; 9:16 is also what promotion asks
+for); and at most 8 screenshots per device type, so the script takes more than one
+listing can hold and the upload picks.
+
 ## Frozen `applicationId`
 
 `page.codeberg.morganmlgman.bambuddy_mobile` stays **forever**, together with the
