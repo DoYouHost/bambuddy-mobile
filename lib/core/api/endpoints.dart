@@ -429,6 +429,15 @@ abstract final class Endpoints {
   // and `/queue` (without slash) returns 404 for authenticated requests.
   static const queue = '$apiPrefix/queue/';
   static const queueReorder = '$apiPrefix/queue/reorder';
+
+  /// One page of the finished, failed, skipped and cancelled runs, server-sorted
+  /// (`sort_by` date/name/printer, `reverse`, `limit`), as `{items, total,
+  /// locations}`; `items` is the page followed by the other runs of its batches.
+  /// Newer servers only (#2960): an older one reads `history` as an item id, 422.
+  static const queueHistory = '$apiPrefix/queue/history';
+
+  /// Clears that history in one request, `{cleared, kept}`; same generation.
+  static const queueHistoryClear = '$apiPrefix/queue/history/clear';
   static String queueItem(int itemId) => '$apiPrefix/queue/$itemId';
   static String queueItemStart(int itemId) => '$apiPrefix/queue/$itemId/start';
   static String queueItemCancel(int itemId) =>
@@ -449,6 +458,15 @@ abstract final class Endpoints {
   /// needs a skipped row the gate wrote.
   static String queuePrinterResume(int printerId) =>
       '$apiPrefix/queue/printer/$printerId/resume';
+
+  /// The same gate cleared on every printer of [model] the caller may use, for
+  /// "any model" jobs that wait behind it; answers `{acknowledged, printers}`.
+  /// Newer servers only, but reached only from a banner that needs the waiting
+  /// reason those servers write.
+  static String queueModelResume(String model) {
+    final name = Uri.encodeComponent(model);
+    return '$apiPrefix/queue/model/$name/resume';
+  }
 
   /// The only route a `printing` item accepts: `/cancel` takes `pending` alone
   /// and `DELETE` refuses anything currently printing, so without this a row

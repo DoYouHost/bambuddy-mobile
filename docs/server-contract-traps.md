@@ -25,6 +25,12 @@ offset and a `Z` together, which `DateTime.tryParse` rejects (null). The same va
 on `GET` is fine. Timezone tests only bite with a non-zero offset; the
 zone-independent assertion is `isUtc, isFalse`.
 
+A `date_from`/`date_to` that is a calendar day (`YYYY-MM-DD`: archive stats, slim,
+failures, supplier and material-number stats) is a day in the server's own `TZ`
+unless the request carries `tz`, an IANA zone (server `day_zone`, `local_time.py`).
+Every such read goes through `withDayZone`; older servers ignore the parameter. The
+print log takes instants instead and needs no zone.
+
 ## WebSocket
 
 - Path `wss://host/api/v1/ws` — one multiplexed connection for all printers.

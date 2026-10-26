@@ -33,6 +33,19 @@ the row changed under them, reload.
 - An API key passes `require_ownership_permission` with scope `can_queue` and counts as
   `can_modify_all`, so a 400 here proves authorisation **succeeded**.
 
+## The history: one page from the server, or everything from an older one
+
+`GET /queue/history` (#2960) sorts (`sort_by` date/name/printer, `reverse`) and pages
+on the server; `items` is the page followed by the other runs of the batches on it,
+so a batch row still counts all of them. "Show more" asks for a longer first page,
+as the web does, not the next one. An older server reads the path as
+`/queue/{item_id}` and answers 422; `QueueRepository.fetchHistoryPage` then falls back
+to the four `?status=` reads for good and the screen sorts and pages them itself
+(`serverOrdered: false`), without asking again on a new order. Clearing follows the
+same latch: `POST /queue/history/clear` once the route has answered, else one
+`DELETE` per row. The contract test reads both generations and replays the clear
+button's recorded write on `daily`.
+
 ## A queue item's filament type and colour do not pair by index
 
 `filament_type` and `filament_color` on a queue item are comma-joined lists the server

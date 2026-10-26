@@ -420,3 +420,33 @@ List<GateBlockedPrinter> gateBlockedPrinters(
       (printerId: e.key, name: e.value.name, skipped: e.value.count),
   ]..sort((a, b) => compareIgnoringCase(a.name, b.name));
 }
+
+/// What the scheduler writes into `waiting_reason` of an "any model" job held
+/// because the last print failed on every free printer of the model
+/// (`MODEL_GATE_WAIT_REASON`, `print_scheduler.py`). Such a job waits instead of
+/// being skipped, so [gateBlockedPrinters] never sees it.
+const kModelGateWaitReason =
+    'The last print failed on every free matching printer';
+
+/// A printer model whose "any printer" jobs wait behind [kModelGateWaitReason].
+typedef GateBlockedModel = ({String model, int waiting});
+
+/// The models [items] show as held by [kModelGateWaitReason] — the web's
+/// `gateBlockedModels` (`QueuePage.tsx`), branch by branch: pending, no printer
+/// yet, a target model.
+List<GateBlockedModel> gateBlockedModels(Iterable<QueueItem> items) {
+  final counts = <String, int>{};
+  for (final item in items) {
+    final model = item.targetModel;
+    if (item.statusKind != QueueItemStatusKind.pending ||
+        item.printerId != null ||
+        model == null ||
+        model.isEmpty ||
+        item.waitingReason != kModelGateWaitReason) {
+      continue;
+    }
+    counts[model] = (counts[model] ?? 0) + 1;
+  }
+  return [for (final e in counts.entries) (model: e.key, waiting: e.value)]
+    ..sort((a, b) => compareIgnoringCase(a.model, b.model));
+}

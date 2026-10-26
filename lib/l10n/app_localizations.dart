@@ -1550,6 +1550,18 @@ abstract class AppLocalizations {
   /// **'{printer}: {count, plural, =1{1 job skipped} other{{count} jobs skipped}} after a failed print'**
   String queueResumeBanner(String printer, int count);
 
+  /// Banner over the queue: jobs for any printer of a model wait because the last print failed on every free one
+  ///
+  /// In en, this message translates to:
+  /// **'Any {model}: {count, plural, =1{1 job waits} other{{count} jobs wait}} after a failed print'**
+  String queueResumeModelBanner(String model, int count);
+
+  /// Confirm dialog body before clearing the failed-print gate on every printer of a model
+  ///
+  /// In en, this message translates to:
+  /// **'The waiting jobs start on the next free {model}. Are the printers ready?'**
+  String queueResumeModelConfirmBody(String model);
+
   /// Button on the resume banner
   ///
   /// In en, this message translates to:
@@ -14755,6 +14767,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save'**
   String get financeSave;
+
+  /// A ledger row whose user was deleted, or a print on a server with auth off that never had one.
+  ///
+  /// In en, this message translates to:
+  /// **'No user'**
+  String get financeNoUser;
+
+  /// The owner line of a private cost center whose owner was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted user'**
+  String get financeDeletedUser;
 
   /// A shared cost center's owner line.
   ///

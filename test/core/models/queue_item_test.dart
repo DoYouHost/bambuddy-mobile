@@ -192,4 +192,46 @@ void main() {
       );
     });
   });
+
+  group('gateBlockedModels', () {
+    QueueItem job(
+      int id, {
+      String status = 'pending',
+      int? printerId,
+      String? model = 'X1C',
+      String? reason = kModelGateWaitReason,
+    }) => QueueItem.fromJson({
+      'id': id,
+      'position': id,
+      'status': status,
+      'printer_id': printerId,
+      'target_model': model,
+      'waiting_reason': reason,
+    });
+
+    test('counts the waiting jobs per model, sorted by name', () {
+      expect(gateBlockedModels([job(1), job(2, model: 'A1 mini'), job(3)]), [
+        (model: 'A1 mini', waiting: 1),
+        (model: 'X1C', waiting: 2),
+      ]);
+    });
+
+    test('only a pending job with no printer, a model and the gate reason', () {
+      expect(
+        gateBlockedModels([
+          job(1, status: 'printing'),
+          job(2, printerId: 3),
+          job(3, model: null),
+          job(4, model: ''),
+          job(5, reason: 'All matching printers are busy'),
+          job(6, reason: null),
+        ]),
+        isEmpty,
+      );
+    });
+
+    test('nothing in, nothing out', () {
+      expect(gateBlockedModels(const []), isEmpty);
+    });
+  });
 }

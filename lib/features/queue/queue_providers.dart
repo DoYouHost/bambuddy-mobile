@@ -245,6 +245,14 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     return (outcome: outcome, restored: restored);
   }
 
+  /// Clear the previous-print gate on every printer of [model]
+  /// (`POST /queue/model/{model}/resume`); the waiting jobs it held then start
+  /// on the next free one.
+  Future<ActionOutcome> resumeModelAfterFailure(String model) => _serverAction(
+    () => ref.read(queueRepositoryProvider).resumeModelAfterFailure(model),
+    'queue.resume_model',
+  );
+
   /// Persist a filament→AMS-slot mapping without starting (e.g. for items the
   /// queue may auto-dispatch later). On success, refresh list.
   Future<ActionOutcome> saveMapping(int itemId, List<int> mapping) =>

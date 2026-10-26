@@ -67,10 +67,10 @@ final _partialTag = RegExp(
 class WalletTransaction {
   const WalletTransaction({
     required this.id,
-    required this.userId,
     required this.type,
     required this.amount,
     this.typeWire = '',
+    this.userId,
     this.costCenterId,
     this.balanceAfter,
     this.description,
@@ -80,7 +80,7 @@ class WalletTransaction {
   factory WalletTransaction.fromJson(Map<String, dynamic> json) =>
       WalletTransaction(
         id: toInt(json['id']),
-        userId: toInt(json['user_id']),
+        userId: toIntOrNull(json['user_id']),
         type: WalletTransactionType.parse(json['transaction_type']),
         typeWire: toStringOrNull(json['transaction_type']) ?? '',
         amount: toDouble(json['amount']),
@@ -91,7 +91,10 @@ class WalletTransaction {
       );
 
   final int id;
-  final int userId;
+
+  /// Null once the user is deleted (the row stays, so a shared centre keeps
+  /// its spend), and on a server with auth off, where a print never had one.
+  final int? userId;
   final WalletTransactionType type;
 
   /// The server's own name for the kind, which is all there is to show for one

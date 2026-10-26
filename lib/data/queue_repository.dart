@@ -247,6 +247,16 @@ typedef QueueBulkResult = ({int updated, int skipped});
 /// again. Both zero means there was nothing to clear.
 typedef QueueResumeResult = ({int acknowledged, int restored});
 
+/// A page of the queue history: [total] rows match in all. Not [serverOrdered]
+/// when an older server sent the whole history, unsorted.
+typedef QueueHistoryPage = ({
+  List<QueueItem> items,
+  int total,
+  bool serverOrdered,
+});
+
+typedef QueueHistoryCleared = ({int cleared, int kept});
+
 /// REST data source for print queue (M5).
 ///
 /// Auth adds [AuthInterceptor] to the shared Dio.
@@ -367,9 +377,86 @@ class QueueRepository {
     return !(body is Map && body['deleted'] == false);
   });
 
-  /// The queue's history as the web's History tab lists it: every item that
-  /// completed, failed, was skipped or was cancelled — one request per status,
-  /// as the server filters on one at a time.
+  /// Whether the server has [Endpoints.queueHistory]; null until asked.
+  bool? _hasHistoryRoute;
+
+  /// An older server reads `GET /queue/history` as `/queue/{item_id}` and
+  /// refuses "history" as an int. A 403 is left out: the route is there, and
+  /// the fallback would be refused the same.
+  static const _historyRouteMissing = {404, 405, 422};
+
+  /// The first [limit] rows of the history in the server's order, from
+  /// [Endpoints.queueHistory]; on an older server the whole history from
+  /// [fetchHistory], for the caller to sort ([QueueHistoryPage.serverOrdered]).
+  /// [sortBy] and [reverse] are the route's own: date/name/printer, and newest
+  /// first, A to Z unless reversed.
+  Future<QueueHistoryPage> fetchHistoryPage({
+    required String sortBy,
+    required bool reverse,
+    required int limit,
+  }) async {
+    if (_hasHistoryRoute != false) {
+      try {
+        final res = await _dio.get<Map<String, dynamic>>(
+          Endpoints.queueHistory,
+          queryParameters: {
+            'sort_by': sortBy,
+            'reverse': reverse,
+            'limit': limit,
+          },
+        );
+        _hasHistoryRoute = true;
+        final body = res.data ?? const <String, dynamic>{};
+        final rows = body['items'] is List ? body['items'] as List : const [];
+        _observeCalibrationWire(rows);
+        return (
+          items: parseJsonList(rows, QueueItem.fromJson),
+          total: toInt(body['total']),
+          serverOrdered: true,
+        );
+      } on DioException catch (e) {
+        // Once the route has answered, a failure is a failure, not an old server.
+        if (_hasHistoryRoute == true ||
+            !_historyRouteMissing.contains(e.response?.statusCode)) {
+          throw mapDioException(e);
+        }
+        _hasHistoryRoute = false;
+      }
+    }
+    final items = await fetchHistory();
+    return (items: items, total: items.length, serverOrdered: false);
+  }
+
+  /// Clears the history: one [Endpoints.queueHistoryClear] where the server
+  /// has it, else one `DELETE` per row of [shown], which is then the whole
+  /// history. Counts the runs a batch order kept as cancelled instead.
+  Future<QueueHistoryCleared> clearHistory(List<QueueItem> shown) async {
+    if (_hasHistoryRoute == true) {
+      return guard(() async {
+        final res = await _dio.post<dynamic>(Endpoints.queueHistoryClear);
+        final data = res.data;
+        return (
+          cleared: data is Map ? toIntOrNull(data['cleared']) ?? 0 : 0,
+          kept: data is Map ? toIntOrNull(data['kept']) ?? 0 : 0,
+        );
+      });
+    }
+    var cleared = 0;
+    var kept = 0;
+    for (final item in shown) {
+      if (await delete(item.id)) {
+        cleared++;
+      } else {
+        kept++;
+      }
+    }
+    return (cleared: cleared, kept: kept);
+  }
+
+  /// The queue's history as the web's History tab listed it before
+  /// [Endpoints.queueHistory]: every item that completed, failed, was skipped or
+  /// was cancelled — one request per status, as the server filters on one at a
+  /// time.
   ///
   /// Fetched only while the history is on screen: it is the bulk of an
   /// unfiltered queue (see [fetchActive]).
@@ -518,6 +605,15 @@ class QueueRepository {
       );
     },
   );
+
+  /// POST /queue/model/{model}/resume — [resumeAfterFailure] for "any [model]"
+  /// jobs: the gate is cleared on each of its printers, and there is nothing
+  /// skipped to restore. Answers how many failures were acknowledged.
+  Future<int> resumeModelAfterFailure(String model) => guard(() async {
+    final res = await _dio.post<dynamic>(Endpoints.queueModelResume(model));
+    final data = res.data;
+    return data is Map ? toIntOrNull(data['acknowledged']) ?? 0 : 0;
+  });
 
   /// POST /queue/{id}/start — manually start item.
   ///

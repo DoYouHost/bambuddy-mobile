@@ -12,6 +12,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.util.TimeZone
 
 /** What one channel method does; it answers [MethodChannel.Result] itself. */
 private typealias MethodHandler = (MethodCall, MethodChannel.Result) -> Unit
@@ -90,6 +91,10 @@ class MainActivity : FlutterActivity() {
                 // would have pushed as `alwaysUse24HourFormat` had it pushed anything.
                 "is24HourFormat" to { _, result ->
                     result.success(DateFormat.is24HourFormat(this))
+                },
+                // The IANA id Dart cannot name: `DateTime.timeZoneName` is "CET".
+                "timeZone" to { _, result ->
+                    result.success(TimeZone.getDefault().id)
                 }
             )
         )

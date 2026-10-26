@@ -7,7 +7,8 @@ import 'package:app_util/app_util.dart';
 import '../models/json_utils.dart';
 import '../models/pipeline_run.dart';
 import '../models/print_run.dart';
-import '../models/queue_item.dart' show kPreviousFailureGate;
+import '../models/queue_item.dart'
+    show kModelGateWaitReason, kPreviousFailureGate;
 import '../models/spool_label.dart';
 import '../app_context.dart';
 import 'demo_labels.dart';
@@ -2584,6 +2585,25 @@ class DemoBackend {
       createdDaysAgo: 0,
       libraryFileId: 5,
     ),
+    // For any P1S, held by the failed print above: the only P1S is the one it
+    // failed on, so the job waits instead of being skipped, which is what
+    // puts the model's "Resume" banner over the queue.
+    _queueItem(
+      id: 108,
+      printerId: null,
+      targetModel: 'P1S',
+      position: 8,
+      name: 'Spool holder arm',
+      status: 'pending',
+      timeSec: 4200,
+      grams: 44.0,
+      type: 'PETG',
+      color: '#FFFFFF',
+      createdDaysAgo: 0,
+      libraryFileId: 4,
+      slicedForModel: 'P1S',
+      waitingReason: kModelGateWaitReason,
+    ),
   ];
 
   /// Demo filaments "loaded on other printers of the model" — options for the
@@ -2644,9 +2664,11 @@ class DemoBackend {
     int? libraryFileId,
     int? costCenterId = 1,
     String? errorMessage,
+    String? waitingReason,
   }) => {
     'id': id,
     'error_message': errorMessage,
+    'waiting_reason': waitingReason,
     'cost_center_id': costCenterId,
     'batch_id': batchId,
     'batch_name': batchName,
@@ -2853,11 +2875,22 @@ class DemoBackend {
         return _ok(_queue[first]);
       }
     }
+    if (s.length == 2 && s[1] == 'history' && m == 'GET') {
+      return _ok(_queueHistory(q));
+    }
+    if (s.length == 3 && s[1] == 'history' && s[2] == 'clear' && m == 'POST') {
+      final cleared = _queue.where(_inHistory).length;
+      _queue.removeWhere(_inHistory);
+      return _ok({'cleared': cleared, 'kept': 0});
+    }
     if (s.length == 2 && s[1] == 'bulk' && m == 'PATCH') {
       return _bulkUpdate(body);
     }
     if (s.length == 4 && s[1] == 'printer' && s[3] == 'resume' && m == 'POST') {
       return _resumeAfterFailure(int.tryParse(s[2]));
+    }
+    if (s.length == 4 && s[1] == 'model' && s[3] == 'resume' && m == 'POST') {
+      return _resumeModelAfterFailure(Uri.decodeComponent(s[2]));
     }
     if (s.length >= 2 && s[1] == 'reorder') {
       final items = body['items'];
@@ -3005,6 +3038,61 @@ class DemoBackend {
     });
   }
 
+  static const _historyStatuses = {
+    'completed',
+    'failed',
+    'skipped',
+    'cancelled',
+  };
+
+  static bool _inHistory(Map<String, dynamic> item) =>
+      _historyStatuses.contains(item['status']);
+
+  /// `GET /queue/history` as `list_queue_history` shapes it: the page in
+  /// `sort_by` order, then the other runs of the batches on it.
+  Map<String, dynamic> _queueHistory(Map<String, String> q) {
+    final reverse = q['reverse'] == 'true';
+    final limit = int.tryParse(q['limit'] ?? '') ?? 50;
+    String text(Map<String, dynamic> i, String key) =>
+        ((i[key] ?? '') as String).toLowerCase();
+    String when(Map<String, dynamic> i) =>
+        (i['completed_at'] ?? i['created_at'] ?? '') as String;
+    final all = _queue.where(_inHistory).toList()
+      ..sort((a, b) {
+        final cmp = switch (q['sort_by']) {
+          'name' =>
+            text(
+              a,
+              a['archive_name'] == null ? 'library_file_name' : 'archive_name',
+            ).compareTo(
+              text(
+                b,
+                b['archive_name'] == null
+                    ? 'library_file_name'
+                    : 'archive_name',
+              ),
+            ),
+          'printer' => text(
+            a,
+            'printer_name',
+          ).compareTo(text(b, 'printer_name')),
+          _ => when(b).compareTo(when(a)),
+        };
+        return reverse ? -cmp : cmp;
+      });
+    final page = all.take(limit).toList();
+    final batches = {for (final i in page) ?i['batch_id']};
+    return {
+      'items': [
+        ...page,
+        for (final i in all.skip(limit))
+          if (batches.contains(i['batch_id'])) i,
+      ],
+      'total': all.length,
+      'locations': const <String>[],
+    };
+  }
+
   /// `POST /queue/printer/{id}/resume`: the failed prints behind the gate stop
   /// holding it, and what it skipped goes back to `pending` — the two things
   /// `resume_queue_after_failure` does, counted as it counts them.
@@ -3028,6 +3116,32 @@ class DemoBackend {
       }
     }
     return _ok({'acknowledged': acknowledged, 'restored': restored});
+  }
+
+  /// `POST /queue/model/{model}/resume`: the gate cleared on every printer of
+  /// [model], as `resume_model_queue_after_failure` counts it. The server's next
+  /// scheduler pass drops the waiting reason; the demo has none, so it does that
+  /// here.
+  DemoResult _resumeModelAfterFailure(String model) {
+    final ids = {
+      for (final p in _printers)
+        if (p['model'] == model) p['id'],
+    };
+    var acknowledged = 0;
+    for (final item in _queue) {
+      final status = item['status'];
+      if (ids.contains(item['printer_id']) &&
+          (status == 'failed' || status == 'aborted') &&
+          item['gate_acknowledged'] != true) {
+        item['gate_acknowledged'] = true;
+        acknowledged++;
+      }
+      if (item['target_model'] == model &&
+          item['waiting_reason'] == kModelGateWaitReason) {
+        item['waiting_reason'] = null;
+      }
+    }
+    return _ok({'acknowledged': acknowledged, 'printers': ids.length});
   }
 
   // --- Batches and orders (#342) ---

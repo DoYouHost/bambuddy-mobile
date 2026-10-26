@@ -11,6 +11,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'contract_harness.dart';
+import 'sent_writes.dart';
 
 void main() {
   group('queue contract', skip: contractSkipReason, () {
@@ -294,6 +295,59 @@ void main() {
 
         expect(await queue.delete(id), isTrue);
         expect((await queue.fetchHistory()).any((i) => i.id == id), isFalse);
+      },
+    );
+
+    test(
+      'the paged history lists it, and the clear button empties it',
+      () async {
+        final file = (await LibraryRepository(
+          dio,
+        ).listFiles()).firstWhere((f) => f.filename == 'contract-probe.3mf');
+        final before = {for (final i in await queue.fetch()) i.id};
+        await queue.addFromLibraryFile(
+          file.id,
+          options: const QueueCreateOptions(manualStart: true),
+        );
+        final id = (await queue.fetch())
+            .firstWhere((i) => !before.contains(i.id))
+            .id;
+        await queue.cancel(id);
+
+        // A repository of its own: the route latch starts unknown.
+        final paged = QueueRepository(dio);
+        final page = await paged.fetchHistoryPage(
+          sortBy: 'date',
+          reverse: false,
+          limit: 1000,
+        );
+        expect(page.items.map((i) => i.id), contains(id));
+        expect(page.total, greaterThanOrEqualTo(1));
+        if (!page.serverOrdered) {
+          markTestSkipped(
+            'no GET /queue/history here; the four reads stand in',
+          );
+          expect(await queue.delete(id), isTrue);
+          return;
+        }
+        expect(page.total, page.items.length);
+
+        final res = (await replayWrites(
+          dio,
+          recordedWrites('queue_history_clear'),
+        )).single;
+
+        expect(res.statusCode, 200);
+        expect(res.data, {
+          'cleared': greaterThanOrEqualTo(1),
+          'kept': isA<int>(),
+        });
+        final after = await paged.fetchHistoryPage(
+          sortBy: 'date',
+          reverse: false,
+          limit: 1000,
+        );
+        expect(after.items.map((i) => i.id), isNot(contains(id)));
       },
     );
   });

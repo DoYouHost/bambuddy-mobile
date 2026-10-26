@@ -847,6 +847,22 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String queueResumeModelBanner(String model, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count trabajos esperan',
+      one: '1 trabajo espera',
+    );
+    return 'Cualquier $model: $_temp0 tras una impresión fallida';
+  }
+
+  @override
+  String queueResumeModelConfirmBody(String model) {
+    return 'Los trabajos en espera empezarán en la próxima impresora libre del modelo $model. ¿Están listas las impresoras?';
+  }
+
+  @override
   String get queueResumeButton => 'Reanudar';
 
   @override
@@ -8918,6 +8934,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get financeSave => 'Guardar';
+
+  @override
+  String get financeNoUser => 'Sin usuario';
+
+  @override
+  String get financeDeletedUser => 'Usuario eliminado';
 
   @override
   String get financeShared => 'Compartido';

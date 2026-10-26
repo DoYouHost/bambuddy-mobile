@@ -504,6 +504,27 @@
       }
     }
   },
+  "queueResumeModelBanner": "Any {model}: {count, plural, =1{1 job waits} other{{count} jobs wait}} after a failed print",
+  "@queueResumeModelBanner": {
+    "description": "Banner over the queue: jobs for any printer of a model wait because the last print failed on every free one",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueResumeModelConfirmBody": "The waiting jobs start on the next free {model}. Are the printers ready?",
+  "@queueResumeModelConfirmBody": {
+    "description": "Confirm dialog body before clearing the failed-print gate on every printer of a model",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "queueResumeButton": "Resume",
   "@queueResumeButton": {
     "description": "Button on the resume banner"
@@ -6211,6 +6232,14 @@
   "financeSave": "Save",
   "@financeSave": {
     "description": "Button that saves an edit."
+  },
+  "financeNoUser": "No user",
+  "@financeNoUser": {
+    "description": "A ledger row whose user was deleted, or a print on a server with auth off that never had one."
+  },
+  "financeDeletedUser": "Deleted user",
+  "@financeDeletedUser": {
+    "description": "The owner line of a private cost center whose owner was deleted."
   },
   "financeShared": "Shared",
   "@financeShared": {

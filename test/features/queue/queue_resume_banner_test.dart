@@ -5,12 +5,14 @@ import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_removal.dart';
+import 'package:bambuddy_mobile/features/queue/queue_resume_banner.dart';
 import 'package:bambuddy_mobile/features/queue/queue_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../contract/sent_writes.dart';
 import '../../helpers.dart';
 
 /// The "Resume after failure" banner (server #1818): a failed print behind a
@@ -154,6 +156,115 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  group('any-model jobs held by a failed print', () {
+    Map<String, Object?> waiting(int id, {String? reason, int? printerId}) => {
+      'id': id,
+      'position': id,
+      'status': 'pending',
+      'printer_id': printerId,
+      'target_model': 'X1C',
+      'waiting_reason': reason,
+    };
+
+    /// The banner alone over the real notifier and repository; returns what
+    /// was sent.
+    Future<RequestLog> pump(
+      WidgetTester tester,
+      List<Map<String, Object?>> pending, {
+      CurrentUser? me,
+    }) async {
+      final dio = testDio();
+      final adapter = mockServer(dio);
+      for (final (status, rows) in [
+        ('pending', pending),
+        ('printing', const <Object>[]),
+        ('skipped', const <Object>[]),
+      ]) {
+        adapter.onGet(
+          '/api/v1/queue/',
+          (server) => server.reply(200, rows),
+          queryParameters: {'status': status},
+        );
+      }
+      adapter.onPost(
+        '/api/v1/queue/model/X1C/resume',
+        (server) => server.reply(200, {'acknowledged': 1, 'printers': 2}),
+      );
+      final log = captureRequests(dio);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            fakeServerProfileOverride(),
+            if (me != null) currentUserOverride(me),
+            queueRepositoryProvider.overrideWithValue(QueueRepository(dio)),
+          ],
+          child: plApp(const Scaffold(body: QueueResumeBanners())),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return log;
+    }
+
+    testWidgets('one banner per model, counting the jobs that wait', (
+      tester,
+    ) async {
+      await pump(tester, [
+        waiting(1, reason: kModelGateWaitReason),
+        waiting(2, reason: kModelGateWaitReason),
+        waiting(3, reason: 'All matching printers are busy'),
+      ]);
+
+      expect(byLogId('queue.resume_banner'), findsOneWidget);
+      expect(find.text(pl.queueResumeModelBanner('X1C', 2)), findsOneWidget);
+    });
+
+    testWidgets('a job that already has its printer is not one', (
+      tester,
+    ) async {
+      await pump(tester, [
+        waiting(1, reason: kModelGateWaitReason, printerId: 4),
+      ]);
+
+      expect(byLogId('queue.resume_banner'), findsNothing);
+    });
+
+    testWidgets('not for a user the route would refuse', (tester) async {
+      await pump(
+        tester,
+        [waiting(1, reason: kModelGateWaitReason)],
+        me: CurrentUser(
+          id: 7,
+          username: 'u',
+          isAdmin: false,
+          permissions: const {Permissions.queueUpdateOwn},
+        ),
+      );
+
+      expect(byLogId('queue.resume_banner'), findsNothing);
+    });
+
+    testWidgets('confirming clears the gate on the model, and only then', (
+      tester,
+    ) async {
+      final log = await pump(tester, [
+        waiting(1, reason: kModelGateWaitReason),
+      ]);
+
+      await tester.tap(byLogId('queue.resume'));
+      await tester.pumpAndSettle();
+      expect(find.text(pl.queueResumeModelConfirmBody('X1C')), findsOneWidget);
+      expect(writesOf(log.requests), isEmpty);
+
+      await tester.tap(
+        find.widgetWithText(FilledButton, pl.queueResumeButton).last,
+      );
+      await tester.pumpAndSettle();
+
+      expectSentAsRecorded('queue_resume_model', writesOf(log.requests));
+      expect(find.text(pl.queueResumed(0)), findsOneWidget);
+    });
   });
 
   group('queueSkippedProvider', () {
