@@ -59,21 +59,84 @@ class QueueHistoryOrderNotifier extends Notifier<QueueHistoryOrder> {
   }
 }
 
+/// What the History tab draws: [items] in [serverOrdered] order (or to be
+/// sorted here, from an older server), the first [limit] of [total] shown.
+typedef QueueHistoryState = ({
+  List<QueueItem> items,
+  int total,
+  bool serverOrdered,
+  int limit,
+});
+
 final queueHistoryProvider =
-    AsyncNotifierProvider.autoDispose<QueueHistoryNotifier, List<QueueItem>>(
+    AsyncNotifierProvider.autoDispose<QueueHistoryNotifier, QueueHistoryState>(
       QueueHistoryNotifier.new,
     );
 
-class QueueHistoryNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
+/// The history a page at a time, as the web reads it since #2960: "show more"
+/// asks for a longer first page rather than the next one, so a batch on it
+/// keeps every run. An older server sends everything and is paged here.
+class QueueHistoryNotifier extends AutoDisposeAsyncNotifier<QueueHistoryState> {
+  int _limit = QueueHistoryView.pageSize;
+
   @override
-  Future<List<QueueItem>> build() =>
-      ref.watch(queueRepositoryProvider).fetchHistory();
+  Future<QueueHistoryState> build() {
+    ref.watch(queueRepositoryProvider);
+    _limit = QueueHistoryView.pageSize;
+    // A new order starts again from one page (#2682 on the web). Only the
+    // server's own order needs a new answer; an older server's is sorted here.
+    ref.listen(queueHistoryOrderProvider, (_, _) {
+      _limit = QueueHistoryView.pageSize;
+      final shown = state.valueOrNull;
+      if (shown == null || shown.serverOrdered) {
+        refresh();
+      } else {
+        state = AsyncData(_withLimit(shown));
+      }
+    });
+    return _load();
+  }
 
   /// Keeps the rows on screen while the new answer is out.
   Future<void> refresh() async {
-    state = const AsyncValue<List<QueueItem>>.loading().copyWithPrevious(state);
-    state = await AsyncValue.guard(
-      ref.read(queueRepositoryProvider).fetchHistory,
+    state = const AsyncValue<QueueHistoryState>.loading().copyWithPrevious(
+      state,
+    );
+    state = await AsyncValue.guard(_load);
+  }
+
+  /// One more page.
+  Future<void> showMore() async {
+    _limit += QueueHistoryView.pageSize;
+    final shown = state.valueOrNull;
+    if (shown != null && !shown.serverOrdered) {
+      state = AsyncData(_withLimit(shown));
+      return;
+    }
+    await refresh();
+  }
+
+  QueueHistoryState _withLimit(QueueHistoryState s) => (
+    items: s.items,
+    total: s.total,
+    serverOrdered: s.serverOrdered,
+    limit: _limit,
+  );
+
+  Future<QueueHistoryState> _load() async {
+    final order = ref.read(queueHistoryOrderProvider);
+    final page = await ref
+        .read(queueRepositoryProvider)
+        .fetchHistoryPage(
+          sortBy: order.by.name,
+          reverse: order.ascending,
+          limit: _limit,
+        );
+    return (
+      items: page.items,
+      total: page.total,
+      serverOrdered: page.serverOrdered,
+      limit: _limit,
     );
   }
 }
@@ -166,8 +229,6 @@ class QueueHistoryView extends ConsumerStatefulWidget {
 }
 
 class _QueueHistoryViewState extends ConsumerState<QueueHistoryView> {
-  int _visible = QueueHistoryView.pageSize;
-
   /// Batches start folded, as on the web.
   final Set<int> _expanded = {};
 
@@ -175,19 +236,16 @@ class _QueueHistoryViewState extends ConsumerState<QueueHistoryView> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(queueHistoryProvider);
-    // A new order starts again from one page (#2682 on the web).
-    ref.listen(queueHistoryOrderProvider, (_, _) {
-      setState(() => _visible = QueueHistoryView.pageSize);
-    });
     final order = ref.watch(queueHistoryOrderProvider);
-    Future<void> refresh() => ref.read(queueHistoryProvider.notifier).refresh();
+    final notifier = ref.read(queueHistoryProvider.notifier);
+    Future<void> refresh() => notifier.refresh();
 
     return dashAsync(
       context,
       async,
       onRetry: refresh,
-      data: (items) {
-        if (items.isEmpty) {
+      data: (history) {
+        if (history.items.isEmpty) {
           return RefreshIndicator(
             onRefresh: refresh,
             child: EmptyStateView(
@@ -196,8 +254,10 @@ class _QueueHistoryViewState extends ConsumerState<QueueHistoryView> {
             ),
           );
         }
-        final sorted = sortQueueHistory(items, order);
-        final rows = queueHistoryRows(sorted, _visible);
+        final sorted = history.serverOrdered
+            ? history.items
+            : sortQueueHistory(history.items, order);
+        final rows = queueHistoryRows(sorted, history.limit);
         return RefreshIndicator(
           onRefresh: refresh,
           child: ListView(
@@ -209,7 +269,7 @@ class _QueueHistoryViewState extends ConsumerState<QueueHistoryView> {
               DashSpace.xxl,
             ),
             children: [
-              _Header(items: sorted),
+              _Header(items: sorted, total: history.total),
               const SizedBox(height: DashSpace.md),
               for (final row in rows)
                 Padding(
@@ -226,12 +286,11 @@ class _QueueHistoryViewState extends ConsumerState<QueueHistoryView> {
                           }),
                         ),
                 ),
-              if (sorted.length > _visible) ...[
+              if (history.total > history.limit) ...[
                 const SizedBox(height: DashSpace.sm),
                 Center(
                   child: OutlinedButton(
-                    onPressed: () =>
-                        setState(() => _visible += QueueHistoryView.pageSize),
+                    onPressed: notifier.showMore,
                     child: Text(l10n.queueHistoryShowMore),
                   ).tagged('queue_history.show_more'),
                 ),
@@ -239,7 +298,7 @@ class _QueueHistoryViewState extends ConsumerState<QueueHistoryView> {
                 Center(
                   child: Text(
                     // Only drawn while there are more, so every visible row is shown.
-                    l10n.queueHistoryShowing(_visible, sorted.length),
+                    l10n.queueHistoryShowing(history.limit, history.total),
                     style: DashTokens.of(context).micro,
                   ),
                 ),
@@ -254,9 +313,12 @@ class _QueueHistoryViewState extends ConsumerState<QueueHistoryView> {
 
 /// "History (12 items)", the order, and clearing it all.
 class _Header extends ConsumerWidget {
-  const _Header({required this.items});
+  const _Header({required this.items, required this.total});
 
+  /// What is loaded: the whole history from an older server, which then
+  /// clears it row by row.
   final List<QueueItem> items;
+  final int total;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -276,7 +338,7 @@ class _Header extends ConsumerWidget {
                   style: t.titleMd,
                   children: [
                     TextSpan(
-                      text: '  ${l10n.queueItemCount(items.length)}',
+                      text: '  ${l10n.queueItemCount(total)}',
                       style: t.micro.copyWith(color: t.textTertiary),
                     ),
                   ],
@@ -301,8 +363,8 @@ class _Header extends ConsumerWidget {
     );
   }
 
-  /// `clearHistoryMutation`: every history item, one `DELETE` each, counting
-  /// the ones the server keeps for a batch order rather than deletes.
+  /// `clearHistoryMutation`: the whole history, counting the rows the server
+  /// keeps for a batch order rather than deletes.
   Future<void> _clear(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -310,22 +372,15 @@ class _Header extends ConsumerWidget {
       context,
       id: 'queue_history.clear_confirm',
       title: l10n.queueHistoryClearTitle,
-      message: l10n.queueHistoryClearMessage(items.length),
+      message: l10n.queueHistoryClearMessage(total),
       confirmLabel: l10n.queueHistoryClear,
       destructive: true,
     );
     if (!ok) return;
-    final repo = ref.read(queueRepositoryProvider);
-    var cleared = 0;
-    var kept = 0;
     try {
-      for (final item in items) {
-        if (await repo.delete(item.id)) {
-          cleared++;
-        } else {
-          kept++;
-        }
-      }
+      final (:cleared, :kept) = await ref
+          .read(queueRepositoryProvider)
+          .clearHistory(items);
       messenger.snack(
         kept > 0
             ? '${l10n.queueHistoryCleared(cleared)} '

@@ -2875,6 +2875,14 @@ class DemoBackend {
         return _ok(_queue[first]);
       }
     }
+    if (s.length == 2 && s[1] == 'history' && m == 'GET') {
+      return _ok(_queueHistory(q));
+    }
+    if (s.length == 3 && s[1] == 'history' && s[2] == 'clear' && m == 'POST') {
+      final cleared = _queue.where(_inHistory).length;
+      _queue.removeWhere(_inHistory);
+      return _ok({'cleared': cleared, 'kept': 0});
+    }
     if (s.length == 2 && s[1] == 'bulk' && m == 'PATCH') {
       return _bulkUpdate(body);
     }
@@ -3028,6 +3036,61 @@ class DemoBackend {
       'skipped_count': skipped,
       'message': 'Updated $updated items',
     });
+  }
+
+  static const _historyStatuses = {
+    'completed',
+    'failed',
+    'skipped',
+    'cancelled',
+  };
+
+  static bool _inHistory(Map<String, dynamic> item) =>
+      _historyStatuses.contains(item['status']);
+
+  /// `GET /queue/history` as `list_queue_history` shapes it: the page in
+  /// `sort_by` order, then the other runs of the batches on it.
+  Map<String, dynamic> _queueHistory(Map<String, String> q) {
+    final reverse = q['reverse'] == 'true';
+    final limit = int.tryParse(q['limit'] ?? '') ?? 50;
+    String text(Map<String, dynamic> i, String key) =>
+        ((i[key] ?? '') as String).toLowerCase();
+    String when(Map<String, dynamic> i) =>
+        (i['completed_at'] ?? i['created_at'] ?? '') as String;
+    final all = _queue.where(_inHistory).toList()
+      ..sort((a, b) {
+        final cmp = switch (q['sort_by']) {
+          'name' =>
+            text(
+              a,
+              a['archive_name'] == null ? 'library_file_name' : 'archive_name',
+            ).compareTo(
+              text(
+                b,
+                b['archive_name'] == null
+                    ? 'library_file_name'
+                    : 'archive_name',
+              ),
+            ),
+          'printer' => text(
+            a,
+            'printer_name',
+          ).compareTo(text(b, 'printer_name')),
+          _ => when(b).compareTo(when(a)),
+        };
+        return reverse ? -cmp : cmp;
+      });
+    final page = all.take(limit).toList();
+    final batches = {for (final i in page) ?i['batch_id']};
+    return {
+      'items': [
+        ...page,
+        for (final i in all.skip(limit))
+          if (batches.contains(i['batch_id'])) i,
+      ],
+      'total': all.length,
+      'locations': const <String>[],
+    };
   }
 
   /// `POST /queue/printer/{id}/resume`: the failed prints behind the gate stop

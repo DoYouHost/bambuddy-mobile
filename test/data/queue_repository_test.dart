@@ -951,6 +951,120 @@ void main() {
       );
     });
 
+    group('the paged route (#2960)', () {
+      const history = '/api/v1/queue/history';
+      const page = {'sort_by': 'name', 'reverse': true, 'limit': 50};
+
+      void olderServer() {
+        // `/queue/{item_id}` takes the path there, and "history" is no int.
+        adapter.onGet(
+          history,
+          (server) => server.reply(422, {'detail': 'not an int'}),
+          queryParameters: page,
+        );
+        for (final (id, status) in const [
+          (1, 'completed'),
+          (2, 'failed'),
+          (3, 'skipped'),
+          (4, 'cancelled'),
+        ]) {
+          adapter.onGet(
+            '/api/v1/queue/',
+            (server) => server.reply(200, [
+              {'id': id, 'position': 1, 'status': status},
+            ]),
+            queryParameters: {'status': status},
+          );
+        }
+      }
+
+      Future<QueueHistoryPage> read() =>
+          repo.fetchHistoryPage(sortBy: 'name', reverse: true, limit: 50);
+
+      test('one request, in the server\'s order, with the total', () async {
+        adapter.onGet(
+          history,
+          (server) => server.reply(200, {
+            'items': [
+              {'id': 2, 'position': 1, 'status': 'failed'},
+              {'id': 1, 'position': 1, 'status': 'completed'},
+            ],
+            'total': 230,
+            'locations': <String>[],
+          }),
+          queryParameters: page,
+        );
+        final sent = captureRequests(dio);
+
+        final got = await read();
+
+        expect(sent.calls, ['GET $history']);
+        expect(got.items.map((i) => i.id), [2, 1]);
+        expect(got.total, 230);
+        expect(got.serverOrdered, isTrue);
+      });
+
+      test(
+        'an older server: the whole history, asked once per server',
+        () async {
+          olderServer();
+          final sent = captureRequests(dio);
+
+          final got = await read();
+          expect(got.serverOrdered, isFalse);
+          expect(got.items, hasLength(4));
+          expect(got.total, 4);
+
+          sent.requests.clear();
+          await read();
+          expect(sent.paths, isNot(contains(history)));
+        },
+      );
+
+      test('a 500 says nothing about the route', () async {
+        adapter.onGet(
+          history,
+          (server) => server.reply(500, {'detail': 'boom'}),
+          queryParameters: page,
+        );
+
+        await expectLater(read(), throwsA(isA<AppApiException>()));
+      });
+
+      test('clearing goes through the route once it has answered', () async {
+        adapter
+          ..onGet(
+            history,
+            (server) => server.reply(200, {'items': [], 'total': 0}),
+            queryParameters: page,
+          )
+          ..onPost(
+            '$history/clear',
+            (server) => server.reply(200, {'cleared': 5, 'kept': 1}),
+          );
+        await read();
+        final sent = captureRequests(dio);
+
+        expect(await repo.clearHistory(const []), (cleared: 5, kept: 1));
+        expect(sent.calls, ['POST $history/clear']);
+      });
+
+      test('on an older server, one DELETE per row shown', () async {
+        olderServer();
+        final shown = (await read()).items;
+        for (final item in shown) {
+          adapter.onDelete(
+            '/api/v1/queue/${item.id}',
+            (server) => server.reply(200, {'message': 'Queue item deleted'}),
+          );
+        }
+        final sent = captureRequests(dio);
+
+        expect(await repo.clearHistory(shown), (cleared: 4, kept: 0));
+        expect(sent.calls, everyElement(startsWith('DELETE')));
+      });
+    });
+
     test('a delete the server turned into a cancel says so', () async {
       adapter
         ..onDelete(

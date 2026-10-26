@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../contract/sent_writes.dart';
 import '../../helpers.dart';
 
 /// The queue's History tab, against the web's `HistorySection` and
@@ -43,19 +44,55 @@ QueueItem _item(
   createdById: createdById,
 );
 
+/// A history on an older server, which sends all of it unsorted; [paged] is
+/// one with `GET /queue/history`, which sorts and pages it (#2960).
 class _History extends QueueRepository {
-  _History(this.items, {this.kept = const {}}) : super(Dio());
+  _History(this.items, {this.kept = const {}, this.paged = false})
+    : super(Dio());
 
   List<QueueItem> items;
   final Set<int> kept;
+  final bool paged;
   final deleted = <int>[];
 
   int historyReads = 0;
+
+  /// What a [paged] server was asked for: sort_by, reverse, limit.
+  final pages = <(String, bool, int)>[];
+  int clears = 0;
 
   @override
   Future<List<QueueItem>> fetchHistory() async {
     historyReads++;
     return items;
+  }
+
+  @override
+  Future<QueueHistoryPage> fetchHistoryPage({
+    required String sortBy,
+    required bool reverse,
+    required int limit,
+  }) async {
+    if (!paged) {
+      final all = await fetchHistory();
+      return (items: all, total: all.length, serverOrdered: false);
+    }
+    historyReads++;
+    pages.add((sortBy, reverse, limit));
+    return (
+      items: items.take(limit).toList(),
+      total: items.length,
+      serverOrdered: true,
+    );
+  }
+
+  @override
+  Future<QueueHistoryCleared> clearHistory(List<QueueItem> shown) async {
+    if (!paged) return super.clearHistory(shown);
+    clears++;
+    final cleared = items.length;
+    items = const [];
+    return (cleared: cleared, kept: 0);
   }
 
   @override
@@ -311,6 +348,140 @@ void main() {
       scrollable: list,
     );
     expect(find.text('part-51.3mf'), findsOneWidget);
+  });
+
+  group('a server that pages the history', () {
+    testWidgets('sends the order and one page, and a longer one on request', (
+      tester,
+    ) async {
+      final repo = _History([
+        for (var i = 1; i <= 120; i++) _item(i),
+      ], paged: true);
+      await _openHistory(tester, repo);
+
+      // Read twice on the way in: by the tab's build and by its switch.
+      expect(repo.pages.toSet(), {('date', false, 50)});
+      expect(find.textContaining(pl.queueItemCount(120)), findsOneWidget);
+      await tester.scrollUntilVisible(
+        byLogId('queue_history.show_more'),
+        400,
+        scrollable: find
+            .descendant(
+              of: find.byType(QueueHistoryView),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      expect(find.text(pl.queueHistoryShowing(50, 120)), findsOneWidget);
+      await tester.tap(byLogId('queue_history.show_more'));
+      await tester.pumpAndSettle();
+
+      expect(repo.pages.last, ('date', false, 100));
+    });
+
+    testWidgets('a new order is asked of the server, from one page', (
+      tester,
+    ) async {
+      final repo = _History([
+        for (var i = 1; i <= 60; i++) _item(i),
+      ], paged: true);
+      await _openHistory(tester, repo);
+
+      await tester.tap(byLogId('queue_history.sort'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.ancestor(
+          of: byLogId('queue_history.sort.printer'),
+          matching: find.byType(CheckedPopupMenuItem<String>),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(repo.pages.last, ('printer', false, 50));
+    });
+
+    testWidgets('what clearing sends, recorded for the contract test', (
+      tester,
+    ) async {
+      final dio = testDio();
+      mockServer(dio)
+        ..onGet(
+          '/api/v1/queue/history',
+          (server) => server.reply(200, {
+            'items': [
+              {'id': 1, 'position': 1, 'status': 'completed'},
+            ],
+            'total': 1,
+            'locations': <String>[],
+          }),
+          queryParameters: {'sort_by': 'date', 'reverse': false, 'limit': 50},
+        )
+        ..onPost(
+          '/api/v1/queue/history/clear',
+          (server) => server.reply(200, {'cleared': 1, 'kept': 0}),
+        );
+      final log = captureRequests(dio);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            queueRepositoryProvider.overrideWithValue(QueueRepository(dio)),
+            queueProvider.overrideWith(_NoQueue.new),
+            sharedPreferencesProvider.overrideWithValue(await _prefs()),
+            currentUserOverride(null),
+            noServerProfileOverride,
+          ],
+          child: plApp(const Scaffold(body: QueueHistoryView())),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(byLogId('queue_history.clear'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('queue_history.clear_confirm.confirm'));
+      await tester.pumpAndSettle();
+
+      expectSentAsRecorded('queue_history_clear', writesOf(log.requests));
+      expect(find.text(pl.queueHistoryCleared(1)), findsOneWidget);
+    });
+
+    testWidgets('clearing is one request, not one per row', (tester) async {
+      final repo = _History([_item(1), _item(2)], paged: true);
+      await _openHistory(tester, repo);
+
+      await tester.tap(byLogId('queue_history.clear'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('queue_history.clear_confirm.confirm'));
+      await tester.pumpAndSettle();
+
+      expect(repo.clears, 1);
+      expect(repo.deleted, isEmpty);
+      expect(find.text(pl.queueHistoryCleared(2)), findsOneWidget);
+    });
+  });
+
+  testWidgets('an older server is not asked again for a new order', (
+    tester,
+  ) async {
+    final repo = _History([_item(1, name: 'b'), _item(2, name: 'a')]);
+    await _openHistory(tester, repo);
+    final reads = repo.historyReads;
+
+    await tester.tap(byLogId('queue_history.sort'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.ancestor(
+        of: byLogId('queue_history.sort.name'),
+        matching: find.byType(CheckedPopupMenuItem<String>),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repo.historyReads, reads);
+    expect(
+      tester.getTopLeft(find.text('a')).dy,
+      lessThan(tester.getTopLeft(find.text('b')).dy),
+      reason: 'sorted here instead',
+    );
   });
 
   testWidgets('a batch folds into one row until opened', (tester) async {

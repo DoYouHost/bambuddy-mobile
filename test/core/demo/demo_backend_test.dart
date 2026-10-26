@@ -244,6 +244,41 @@ void main() {
       ), reason: 'a second resume has nothing left to clear');
     });
 
+    test('the history is paged and cleared as the newer server does', () async {
+      final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        );
+      final repo = QueueRepository(own);
+      final all = await repo.fetchHistoryPage(
+        sortBy: 'date',
+        reverse: false,
+        limit: 1000,
+      );
+      expect(all.serverOrdered, isTrue);
+      expect(all.total, greaterThan(1));
+
+      final one = await repo.fetchHistoryPage(
+        sortBy: 'date',
+        reverse: false,
+        limit: 1,
+      );
+      expect(one.total, all.total);
+      expect(one.items.first.id, all.items.first.id);
+
+      final cleared = await repo.clearHistory(const []);
+      expect(cleared.cleared, all.total);
+      expect(
+        (await repo.fetchHistoryPage(
+          sortBy: 'date',
+          reverse: false,
+          limit: 50,
+        )).items,
+        isEmpty,
+      );
+    });
+
     test(
       'an any-model job waits behind the gate, and resume clears it',
       () async {
