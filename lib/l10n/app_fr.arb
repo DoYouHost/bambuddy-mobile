@@ -372,6 +372,8 @@
   "queueRemoved": "Retiré de la file d'attente",
   "queueRemovalStatusChanged": "Cet élément n'est plus dans l'état affiché. Actualisez la file d'attente et réessayez.",
   "queueResumeBanner": "{printer} : {count, plural, =1{1 tâche ignorée} other{{count} tâches ignorées}} après un échec d'impression",
+  "queueResumeModelBanner": "N'importe quelle {model} : {count, plural, =1{1 tâche attend} other{{count} tâches attendent}} après une impression échouée",
+  "queueResumeModelConfirmBody": "Les tâches en attente démarreront sur la prochaine imprimante {model} libre. Les imprimantes sont-elles prêtes ?",
   "queueResumeButton": "Reprendre",
   "queueResumeConfirmTitle": "Reprendre la file après un échec ?",
   "queueResumeConfirmBody": "{count, plural, =1{1 tâche ignorée revient} other{{count} tâches ignorées reviennent}} dans la file de {printer}. L'imprimante est-elle prête ?",

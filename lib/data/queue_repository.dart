@@ -519,6 +519,15 @@ class QueueRepository {
     },
   );
 
+  /// POST /queue/model/{model}/resume — [resumeAfterFailure] for "any [model]"
+  /// jobs: the gate is cleared on each of its printers, and there is nothing
+  /// skipped to restore. Answers how many failures were acknowledged.
+  Future<int> resumeModelAfterFailure(String model) => guard(() async {
+    final res = await _dio.post<dynamic>(Endpoints.queueModelResume(model));
+    final data = res.data;
+    return data is Map ? toIntOrNull(data['acknowledged']) ?? 0 : 0;
+  });
+
   /// POST /queue/{id}/start — manually start item.
   ///
   /// Keeps the detail: "Can only start pending items" names the status the

@@ -450,6 +450,13 @@ abstract final class Endpoints {
   static String queuePrinterResume(int printerId) =>
       '$apiPrefix/queue/printer/$printerId/resume';
 
+  /// The same gate cleared on every printer of [model] the caller may use, for
+  /// "any model" jobs that wait behind it; answers `{acknowledged, printers}`.
+  /// Newer servers only, but reached only from a banner that needs the waiting
+  /// reason those servers write.
+  static String queueModelResume(String model) =>
+      '$apiPrefix/queue/model/${Uri.encodeComponent(model)}/resume';
+
   /// The only route a `printing` item accepts: `/cancel` takes `pending` alone
   /// and `DELETE` refuses anything currently printing, so without this a row
   /// the server holds as printing has no way out of the queue at all

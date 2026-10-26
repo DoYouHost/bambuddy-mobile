@@ -372,6 +372,8 @@
   "queueRemoved": "Aus Warteschlange entfernt",
   "queueRemovalStatusChanged": "Dieser Eintrag befindet sich nicht mehr im angezeigten Status. Aktualisiere die Warteschlange und versuche es erneut.",
   "queueResumeBanner": "{printer}: {count, plural, =1{1 Auftrag übersprungen} other{{count} Aufträge übersprungen}} nach fehlgeschlagenem Druck",
+  "queueResumeModelBanner": "Beliebiger {model}: {count, plural, =1{1 Auftrag wartet} other{{count} Aufträge warten}} nach einem fehlgeschlagenen Druck",
+  "queueResumeModelConfirmBody": "Die wartenden Aufträge starten auf dem nächsten freien {model}. Sind die Drucker bereit?",
   "queueResumeButton": "Fortsetzen",
   "queueResumeConfirmTitle": "Warteschlange nach einem Fehler fortsetzen?",
   "queueResumeConfirmBody": "{count, plural, =1{1 übersprungener Auftrag kommt} other{{count} übersprungene Aufträge kommen}} zurück in die Warteschlange von {printer}. Ist der Drucker bereit?",

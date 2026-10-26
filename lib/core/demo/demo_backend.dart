@@ -7,7 +7,8 @@ import 'package:app_util/app_util.dart';
 import '../models/json_utils.dart';
 import '../models/pipeline_run.dart';
 import '../models/print_run.dart';
-import '../models/queue_item.dart' show kPreviousFailureGate;
+import '../models/queue_item.dart'
+    show kModelGateWaitReason, kPreviousFailureGate;
 import '../models/spool_label.dart';
 import '../app_context.dart';
 import 'demo_labels.dart';
@@ -2584,6 +2585,25 @@ class DemoBackend {
       createdDaysAgo: 0,
       libraryFileId: 5,
     ),
+    // For any P1S, held by the failed print above: the only P1S is the one it
+    // failed on, so the job waits instead of being skipped, which is what
+    // puts the model's "Resume" banner over the queue.
+    _queueItem(
+      id: 108,
+      printerId: null,
+      targetModel: 'P1S',
+      position: 8,
+      name: 'Spool holder arm',
+      status: 'pending',
+      timeSec: 4200,
+      grams: 44.0,
+      type: 'PETG',
+      color: '#FFFFFF',
+      createdDaysAgo: 0,
+      libraryFileId: 4,
+      slicedForModel: 'P1S',
+      waitingReason: kModelGateWaitReason,
+    ),
   ];
 
   /// Demo filaments "loaded on other printers of the model" — options for the
@@ -2644,9 +2664,11 @@ class DemoBackend {
     int? libraryFileId,
     int? costCenterId = 1,
     String? errorMessage,
+    String? waitingReason,
   }) => {
     'id': id,
     'error_message': errorMessage,
+    'waiting_reason': waitingReason,
     'cost_center_id': costCenterId,
     'batch_id': batchId,
     'batch_name': batchName,
@@ -2859,6 +2881,9 @@ class DemoBackend {
     if (s.length == 4 && s[1] == 'printer' && s[3] == 'resume' && m == 'POST') {
       return _resumeAfterFailure(int.tryParse(s[2]));
     }
+    if (s.length == 4 && s[1] == 'model' && s[3] == 'resume' && m == 'POST') {
+      return _resumeModelAfterFailure(Uri.decodeComponent(s[2]));
+    }
     if (s.length >= 2 && s[1] == 'reorder') {
       final items = body['items'];
       if (items is List) {
@@ -3028,6 +3053,32 @@ class DemoBackend {
       }
     }
     return _ok({'acknowledged': acknowledged, 'restored': restored});
+  }
+
+  /// `POST /queue/model/{model}/resume`: the gate cleared on every printer of
+  /// [model], as `resume_model_queue_after_failure` counts it. The server's next
+  /// scheduler pass drops the waiting reason; the demo has none, so it does that
+  /// here.
+  DemoResult _resumeModelAfterFailure(String model) {
+    final ids = {
+      for (final p in _printers)
+        if (p['model'] == model) p['id'],
+    };
+    var acknowledged = 0;
+    for (final item in _queue) {
+      final status = item['status'];
+      if (ids.contains(item['printer_id']) &&
+          (status == 'failed' || status == 'aborted') &&
+          item['gate_acknowledged'] != true) {
+        item['gate_acknowledged'] = true;
+        acknowledged++;
+      }
+      if (item['target_model'] == model &&
+          item['waiting_reason'] == kModelGateWaitReason) {
+        item['waiting_reason'] = null;
+      }
+    }
+    return _ok({'acknowledged': acknowledged, 'printers': ids.length});
   }
 
   // --- Batches and orders (#342) ---

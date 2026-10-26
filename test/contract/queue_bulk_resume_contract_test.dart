@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'contract_harness.dart';
+import 'sent_writes.dart';
 
 /// `PATCH /queue/bulk` and `POST /queue/printer/{id}/resume` against a real
 /// server: what the route does with the keys it gets, and how it counts the rows
@@ -231,6 +232,33 @@ void main() {
               AppErrorCode.forbidden,
             ),
           ),
+        );
+      });
+
+      test('the model banner\'s write clears the gate on every X1C', () async {
+        // Probed by hand, not by the replay: a recording with a wrong path
+        // would otherwise pass as "older server". The seeded printer is an X1C.
+        final probe = await admin.post<dynamic>(
+          '/api/v1/queue/model/X1C/resume',
+          options: Options(validateStatus: (_) => true),
+        );
+        if (probe.statusCode == 404 || probe.statusCode == 405) {
+          // Such a server never writes the waiting reason the banner reads.
+          markTestSkipped('no POST /queue/model/{model}/resume here');
+          return;
+        }
+        // Recorded by the banner's widget test.
+        final res = (await replayWrites(
+          admin,
+          recordedWrites('queue_resume_model'),
+        )).single;
+
+        expect(res.statusCode, 200);
+        expect(res.data, {'acknowledged': isA<int>(), 'printers': 1});
+        expect(
+          await queue.resumeModelAfterFailure('X1C'),
+          0,
+          reason: 'the replay left nothing to clear',
         );
       });
 

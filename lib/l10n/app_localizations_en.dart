@@ -831,6 +831,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String queueResumeModelBanner(String model, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jobs wait',
+      one: '1 job waits',
+    );
+    return 'Any $model: $_temp0 after a failed print';
+  }
+
+  @override
+  String queueResumeModelConfirmBody(String model) {
+    return 'The waiting jobs start on the next free $model. Are the printers ready?';
+  }
+
+  @override
   String get queueResumeButton => 'Resume';
 
   @override

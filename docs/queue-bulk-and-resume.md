@@ -71,3 +71,15 @@ Testing: the contract test checks the shape, the 403 for `update_own`, the 404 f
 missing printer and the idempotence, but cannot create a real gate — that needs the
 scheduler to skip a job behind a print that fails over FTP. The demo seeds one on the
 P1S (items 104–106) so the banner can be seen and the route exercised.
+
+**An "any model" job is not skipped, it waits.** The scheduler passes over a printer
+of the model whose last print failed and tries the next; when every free one is
+held, the job stays `pending` with `waiting_reason == kModelGateWaitReason`
+(`MODEL_GATE_WAIT_REASON`). It never reaches `queueSkippedProvider`, so
+`gateBlockedModels` reads the active queue instead — the web's branches: pending, no
+printer, a target model, that exact reason. Its banner calls
+`POST /queue/model/{model}/resume`, which acknowledges the failures on every printer
+of the model the caller may use and restores nothing; the toast is the plain "Queue
+resumed". A server older than the route never writes the reason, so the banner and
+the route arrive together. The demo's item 108 (any P1S) waits behind the same failed
+print; the contract test replays the banner's recorded write on the seeded X1C.
