@@ -353,6 +353,15 @@ aab-show *paths:
 play-tracks:
     @dart run app_guards:play tracks
 
+# Read-only without the flag. With --send-for-review it replaces the listing's
+# screenshots with tool/play.toml's [screenshots] and sends the listing to Google
+# review: Play refuses to hold a listing change back, so that flag is the
+# maintainer's decision (AGENTS.md).
+[doc('show or replace the Play listing screenshots (tool/play.toml)')]
+[group('3-build')]
+play-screenshots *flags:
+    @dart run app_guards:play screenshots {{flags}}
+
 [doc('delete local build outputs')]
 [group('3-build')]
 clean:

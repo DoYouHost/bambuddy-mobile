@@ -66,7 +66,7 @@ Play's limits ([Add preview assets](https://support.google.com/googleplay/androi
 a long side at most twice the short one, so the phone runs at `wm size 1080x1920`
 for the shots (the Pixel's 1080x2400 is refused; 9:16 is also what promotion asks
 for); and at most 8 screenshots per device type, so the script takes more than one
-listing can hold and the upload picks.
+listing can hold, and `[screenshots]` in `tool/play.toml` names the ones that go.
 
 ## Frozen `applicationId`
 
@@ -85,10 +85,12 @@ are replaced.
   `tool/play.toml`). `just play-tracks` is read-only; `just play-internal
   [--dry-run]` uploads both AABs to internal testing in one edit
   (`dart run app_guards:play internal`, which skips versionCodes already on a
-  track). The key can also write listing images; only `en-US` holds images and the
-  other listings inherit them. `app_guards:play` has no images or listing command,
-  so such a change is a one-off API edit. Every commit passes `changesNotSentForReview=true`
-  (see AGENTS.md).
+  track). `just play-screenshots` shows what the listing holds next to
+  `tool/play.toml`'s `[screenshots]`; `--send-for-review` replaces them. Only
+  `en-US` holds images and the other listings inherit them. Every commit passes
+  `changesNotSentForReview=true` (see AGENTS.md), except a listing change: Play
+  refuses the flag for it ("must not be set"), so a screenshots commit goes to
+  review, and the flag that sends it is the maintainer's to give.
 - **Store page and privacy policy** are served by GitHub Pages from `site/` on
   `master` (`.github/workflows/pages.yml`):
   `https://doyouhost.github.io/bambuddy-mobile/privacy.html`. Pages does not work

@@ -17,3 +17,46 @@ track = "internal"
 [[bands]]
 from = 1_000_000_000
 track = "wear:internal"
+
+# What `just play-screenshots` puts on the en-US listing (the other languages
+# inherit it), in order: Play takes 8 per device type, so the dashboard's
+# details and maintenance stay in the repo only. Retaken by
+# tool/store_screenshots.sh.
+[screenshots]
+language = "en-US"
+phone = [
+  "docs/store-assets/screenshots/phone/phone-01-dashboard.png",
+  "docs/store-assets/screenshots/phone/phone-03-queue.png",
+  "docs/store-assets/screenshots/phone/phone-04-filaments.png",
+  "docs/store-assets/screenshots/phone/phone-05-spool-details.png",
+  "docs/store-assets/screenshots/phone/phone-07-statistics.png",
+  "docs/store-assets/screenshots/phone/phone-08-library.png",
+  "docs/store-assets/screenshots/phone/phone-09-appearance.png",
+  "docs/store-assets/screenshots/phone/phone-10-controller.png",
+]
+tablet7 = [
+  "docs/store-assets/screenshots/tablet7/tablet7-01-dashboard.png",
+  "docs/store-assets/screenshots/tablet7/tablet7-03-queue.png",
+  "docs/store-assets/screenshots/tablet7/tablet7-04-filaments.png",
+  "docs/store-assets/screenshots/tablet7/tablet7-05-spool-details.png",
+  "docs/store-assets/screenshots/tablet7/tablet7-07-statistics.png",
+  "docs/store-assets/screenshots/tablet7/tablet7-08-library.png",
+  "docs/store-assets/screenshots/tablet7/tablet7-09-appearance.png",
+  "docs/store-assets/screenshots/tablet7/tablet7-10-controller.png",
+]
+tablet10 = [
+  "docs/store-assets/screenshots/tablet10/tablet10-01-dashboard.png",
+  "docs/store-assets/screenshots/tablet10/tablet10-03-queue.png",
+  "docs/store-assets/screenshots/tablet10/tablet10-04-filaments.png",
+  "docs/store-assets/screenshots/tablet10/tablet10-05-spool-details.png",
+  "docs/store-assets/screenshots/tablet10/tablet10-07-statistics.png",
+  "docs/store-assets/screenshots/tablet10/tablet10-08-library.png",
+  "docs/store-assets/screenshots/tablet10/tablet10-09-appearance.png",
+  "docs/store-assets/screenshots/tablet10/tablet10-10-controller.png",
+]
+wear = [
+  "docs/store-assets/screenshots/wear/wear-01-printers.png",
+  "docs/store-assets/screenshots/wear/wear-02-printing.png",
+  "docs/store-assets/screenshots/wear/wear-03-idle.png",
+  "docs/store-assets/screenshots/wear/wear-04-stop-confirm.png",
+]
