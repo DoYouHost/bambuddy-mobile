@@ -8960,6 +8960,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get financeSave => 'Zapisz';
 
   @override
+  String get financeNoUser => 'Brak użytkownika';
+
+  @override
+  String get financeDeletedUser => 'Usunięty użytkownik';
+
+  @override
   String get financeShared => 'Wspólne';
 
   @override

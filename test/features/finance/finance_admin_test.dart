@@ -342,6 +342,27 @@ void main() {
       },
     );
 
+    testWidgets(
+      'a deleted user leaves a row with no user and a center with no owner',
+      (tester) async {
+        final server = _Server()
+          ..centers = const [CostCenter(id: 1, name: 'Alice', isPrivate: true)]
+          ..ledger = [
+            const WalletTransaction(
+              id: 10,
+              type: WalletTransactionType.printCharge,
+              typeWire: 'print_charge',
+              amount: -3,
+            ),
+          ];
+        await pump(tester, server);
+
+        expect(find.textContaining(pl.financeNoUser), findsOneWidget);
+        expect(find.text(pl.financeDeletedUser), findsOneWidget);
+        expect(find.textContaining(pl.financeUserWithId(0)), findsNothing);
+      },
+    );
+
     testWidgets('without read_all the ledger stays the user\'s own', (
       tester,
     ) async {

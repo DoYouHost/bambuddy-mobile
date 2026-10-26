@@ -14756,6 +14756,18 @@ abstract class AppLocalizations {
   /// **'Save'**
   String get financeSave;
 
+  /// A ledger row whose user was deleted, or a print on a server with auth off that never had one.
+  ///
+  /// In en, this message translates to:
+  /// **'No user'**
+  String get financeNoUser;
+
+  /// The owner line of a private cost center whose owner was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted user'**
+  String get financeDeletedUser;
+
   /// A shared cost center's owner line.
   ///
   /// In en, this message translates to:

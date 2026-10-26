@@ -208,10 +208,11 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                 center: c,
                                 owner: admin
                                     ? (c.isPrivate
-                                          ? names[c.ownerUserId] ??
-                                                l10n.financeUserWithId(
-                                                  c.ownerUserId ?? 0,
-                                                )
+                                          ? _privateOwner(
+                                              l10n,
+                                              names,
+                                              c.ownerUserId,
+                                            )
                                           : l10n.financeShared)
                                     : null,
                                 canModify: admin && canModify,
@@ -312,7 +313,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
               centerName: centers[tx.costCenterId]?.name,
               userName: userNames == null
                   ? null
-                  : userNames[tx.userId] ?? l10n.financeUserWithId(tx.userId),
+                  : _ledgerUser(l10n, userNames, tx.userId),
               canModify: canModify,
             ),
         const SizedBox(height: DashSpace.md),
@@ -731,3 +732,14 @@ String _partialLabel(AppLocalizations l10n, PartialPrint partial) =>
       PartialPrint.failed => l10n.financePartialFailed,
       PartialPrint.cancelled => l10n.financePartialCancelled,
     };
+
+// Labels after FinancePage.tsx (getPrivateOwnerLabel and the ledger's txUser):
+// a private centre is always created with an owner, so none means deleted; a
+// ledger row without one may also be a print from a server with auth off.
+String _privateOwner(AppLocalizations l10n, Map<int, String> names, int? id) =>
+    id == null
+    ? l10n.financeDeletedUser
+    : names[id] ?? l10n.financeUserWithId(id);
+
+String _ledgerUser(AppLocalizations l10n, Map<int, String> names, int? id) =>
+    id == null ? l10n.financeNoUser : names[id] ?? l10n.financeUserWithId(id);

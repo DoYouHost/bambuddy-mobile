@@ -3563,6 +3563,8 @@
   "financePrivateBudgetOnly": "Osobiste centrum kosztów zachowuje nazwę; zmienić można tylko jego budżet. Ustaw 0, żeby zablokować drukowanie.",
   "financeRemoveMember": "Usuń członka",
   "financeSave": "Zapisz",
+  "financeNoUser": "Brak użytkownika",
+  "financeDeletedUser": "Usunięty użytkownik",
   "financeShared": "Wspólne",
   "financeTransactionDeleted": "Usunięto transakcję",
   "financeTransactionEdited": "Zaktualizowano transakcję, księga przeliczona",

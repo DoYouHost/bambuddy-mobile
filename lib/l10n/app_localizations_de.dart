@@ -8897,6 +8897,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get financeSave => 'Speichern';
 
   @override
+  String get financeNoUser => 'Kein Benutzer';
+
+  @override
+  String get financeDeletedUser => 'Gelöschter Benutzer';
+
+  @override
   String get financeShared => 'Geteilt';
 
   @override

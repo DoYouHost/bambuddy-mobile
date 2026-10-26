@@ -4252,6 +4252,8 @@
   "financePrivateBudgetOnly": "Eine persönliche Kostenstelle behält ihren Namen; nur das Budget lässt sich ändern. Mit 0 wird das Drucken gesperrt.",
   "financeRemoveMember": "Mitglied entfernen",
   "financeSave": "Speichern",
+  "financeNoUser": "Kein Benutzer",
+  "financeDeletedUser": "Gelöschter Benutzer",
   "financeShared": "Geteilt",
   "financeTransactionDeleted": "Transaktion gelöscht",
   "financeTransactionEdited": "Transaktion aktualisiert und Buch neu berechnet",

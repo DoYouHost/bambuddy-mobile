@@ -4252,6 +4252,8 @@
   "financePrivateBudgetOnly": "Un centre de coûts personnel garde son nom ; seul son budget peut changer. Mettez 0 pour l’empêcher d’imprimer.",
   "financeRemoveMember": "Retirer le membre",
   "financeSave": "Enregistrer",
+  "financeNoUser": "Aucun utilisateur",
+  "financeDeletedUser": "Utilisateur supprimé",
   "financeShared": "Partagé",
   "financeTransactionDeleted": "Transaction supprimée",
   "financeTransactionEdited": "Transaction mise à jour et registre recalculé",

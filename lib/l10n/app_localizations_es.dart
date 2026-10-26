@@ -8920,6 +8920,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get financeSave => 'Guardar';
 
   @override
+  String get financeNoUser => 'Sin usuario';
+
+  @override
+  String get financeDeletedUser => 'Usuario eliminado';
+
+  @override
   String get financeShared => 'Compartido';
 
   @override

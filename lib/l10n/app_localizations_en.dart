@@ -8809,6 +8809,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get financeSave => 'Save';
 
   @override
+  String get financeNoUser => 'No user';
+
+  @override
+  String get financeDeletedUser => 'Deleted user';
+
+  @override
   String get financeShared => 'Shared';
 
   @override

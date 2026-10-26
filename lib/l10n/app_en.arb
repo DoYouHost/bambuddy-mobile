@@ -6212,6 +6212,14 @@
   "@financeSave": {
     "description": "Button that saves an edit."
   },
+  "financeNoUser": "No user",
+  "@financeNoUser": {
+    "description": "A ledger row whose user was deleted, or a print on a server with auth off that never had one."
+  },
+  "financeDeletedUser": "Deleted user",
+  "@financeDeletedUser": {
+    "description": "The owner line of a private cost center whose owner was deleted."
+  },
   "financeShared": "Shared",
   "@financeShared": {
     "description": "A shared cost center's owner line."

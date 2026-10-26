@@ -73,6 +73,17 @@ void main() {
       expect(tx.balanceAfter, isNull);
     });
 
+    test('a row whose user was deleted has none, not user 0', () {
+      final tx = WalletTransaction.fromJson({
+        'id': 1,
+        'user_id': null,
+        'transaction_type': 'print_charge',
+        'amount': -1,
+      });
+
+      expect(tx.userId, isNull);
+    });
+
     test('a page carries the total beside the rows', () {
       final page = WalletTransactionPage.fromJson({
         'items': [
