@@ -48,8 +48,7 @@ const _navIds = [
 /// What the dashboard needs that the demo backend cannot answer: the platform
 /// notification service, the foreground service and the credential store.
 final _appOverrides = [
-  notificationServiceProvider.overrideWithValue(RecordingNotifications()),
-  inertBackgroundMonitorOverride,
+  ...a11yPlatformOverrides,
   credentialsStoreProvider.overrideWithValue(InMemoryCredentialsStore()),
 ];
 

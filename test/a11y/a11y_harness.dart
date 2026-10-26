@@ -43,6 +43,19 @@ const a11yDemoProfile = ServerProfile(
 /// [a11yDemoProfile] as an override, for the few callers that build their own scope.
 final a11yDemoProfileOverride = serverProfileOverride(a11yDemoProfile);
 
+/// The platform notification plugin has no platform to ask in a test; this one
+/// records what it is given and answers nothing.
+final a11yQuietNotifications = notificationServiceProvider.overrideWithValue(
+  RecordingNotifications(),
+);
+
+/// What a screen touches on its first frame that the demo backend cannot
+/// answer: the notification plugin and the foreground service.
+final a11yPlatformOverrides = [
+  a11yQuietNotifications,
+  inertBackgroundMonitorOverride,
+];
+
 /// Pumps [home] under [accent] and [brightness] in Polish, then lets it settle.
 ///
 /// Not `pumpAndSettle`: the demo is timed (a poll, a simulated print) and never

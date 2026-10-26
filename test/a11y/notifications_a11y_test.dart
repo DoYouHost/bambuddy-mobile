@@ -16,7 +16,7 @@ void main() {
   a11ySurface(
     'notification settings',
     demo: false,
-    overrides: [noServerProfileOverride, _quiet],
+    overrides: [noServerProfileOverride, a11yQuietNotifications],
     home: () => const NotificationSettingsScreen(),
     shows: find.text(pl.notifMasterTitle),
   );
@@ -24,7 +24,7 @@ void main() {
   a11ySurface(
     'notification settings, master off',
     demo: false,
-    overrides: [noServerProfileOverride, _quiet],
+    overrides: [noServerProfileOverride, a11yQuietNotifications],
     home: () => const NotificationSettingsScreen(),
     arrange: (tester) async {
       // The master row and the event rows share one id; the master is first.
@@ -50,10 +50,6 @@ void main() {
     shows: find.text(pl.notificationsBlocked),
   );
 }
-
-final _quiet = notificationServiceProvider.overrideWithValue(
-  RecordingNotifications(),
-);
 
 /// A real [LocalNotificationService] whose permission query says "refused": the
 /// screen only draws its banner for that type, and the plugin behind it has no

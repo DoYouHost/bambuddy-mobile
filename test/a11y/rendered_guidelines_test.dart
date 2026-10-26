@@ -7,7 +7,6 @@ import 'package:bambuddy_mobile/features/dashboard/dashboard_screen.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/features/settings/app_settings_screen.dart';
-import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -97,8 +96,7 @@ final _dashboardOverrides = [
   inertFirmwareOverride,
   inertAnnouncementsOverride,
   inertTotalPrintHoursOverride,
-  inertBackgroundMonitorOverride,
-  notificationServiceProvider.overrideWithValue(RecordingNotifications()),
+  ...a11yPlatformOverrides,
   wsConnectionStateProvider.overrideWith(
     (ref) => Stream.value(WsConnectionState.connected),
   ),

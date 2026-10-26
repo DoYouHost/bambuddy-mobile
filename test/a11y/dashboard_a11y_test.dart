@@ -472,9 +472,8 @@ void main() {
 /// What the dashboard touches on its first frame: the background service
 /// (a platform channel) and the notification plugin.
 final List<Override> _dashboard = [
-  inertBackgroundMonitorOverride,
+  ...a11yPlatformOverrides,
   wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
-  notificationServiceProvider.overrideWithValue(RecordingNotifications()),
 ];
 
 const _empty = DashboardState(printers: []);
