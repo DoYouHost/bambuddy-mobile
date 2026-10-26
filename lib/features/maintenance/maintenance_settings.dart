@@ -696,7 +696,6 @@ class _IntervalEditDialogState extends State<_IntervalEditDialog> {
             child: Text(l10n.maintenanceResetInterval),
           ),
         ),
-        const Spacer(),
         logTag(
           'interval_edit.cancel',
           TextButton(
