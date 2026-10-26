@@ -2,162 +2,76 @@ import 'package:bambuddy_mobile/core/api/ws_client.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/features/dashboard/dashboard_screen.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
-import 'package:bambuddy_mobile/core/settings/appearance_prefs.dart';
-import 'package:bambuddy_mobile/core/theme/app_brand.dart';
-import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/features/settings/app_settings_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/semantics.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers.dart';
+import 'a11y_harness.dart';
 
 /// Rendered contrast and touch targets, measured on the pixels a screen
 /// paints: the token audit cannot see a colour typed into a widget or text
-/// over a picture. The app-wide coverage plan is docs/plans/a11y-guideline-tests.md.
+/// over a picture. The app-wide coverage plan is docs/plans/a11y-guideline-tests.md;
+/// the harness is a11y_harness.dart, the other surfaces live in `<feature>_a11y_test.dart`.
 void main() {
-  // The default, the lightest preset fill, and the exact-grey path.
-  const accents = [
-    AccentSource.bambuddy,
-    AccentSource.orange,
-    AccentSource.graphite,
-  ];
+  a11ySurface(
+    'app settings',
+    demo: false,
+    home: () => const AppSettingsScreen(),
+  );
 
-  Future<void> pumpThemed(
-    WidgetTester tester,
-    Widget home,
-    AccentSource accent,
-    Brightness brightness, {
-    List<Override> overrides = const [],
-  }) async {
-    useLogicalWindow(tester, const Size(411, 2000));
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          ...overrides.isEmpty ? [noServerProfileOverride] : overrides,
-        ],
-        child: MaterialApp(
-          theme: buildDashThemeData(
-            brightness,
-            brand: resolveBrand(accent, null),
+  // Each section of the screen, as the segments switch it.
+  for (final (section, icon) in [
+    ('watch', Icons.watch_outlined),
+    ('labelPrinter', Icons.label_outline),
+  ]) {
+    a11ySurface(
+      'app settings, $section',
+      demo: false,
+      home: () => const AppSettingsScreen(),
+      arrange: (tester) async {
+        await tester.tap(
+          find.descendant(
+            of: byLogId('app_settings.section'),
+            matching: find.byIcon(icon),
           ),
-          locale: const Locale('pl'),
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            ...GlobalMaterialLocalizations.delegates,
-          ],
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: home,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-  }
-
-  Future<void> meetsAll(WidgetTester tester) async {
-    await expectLater(tester, meetsGuideline(const _ContrastBesideMisreads()));
-    await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
-    await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
-  }
-
-  for (final accent in accents) {
-    for (final brightness in Brightness.values) {
-      final name = '${accent.name}, ${brightness.name}';
-
-      testWidgets('app settings: $name', (tester) async {
-        final handle = tester.ensureSemantics();
-        await pumpThemed(tester, const AppSettingsScreen(), accent, brightness);
-        await meetsAll(tester);
-        handle.dispose();
-      });
-
-      // Each section of the screen, as the segments switch it.
-      for (final section in ['watch', 'labelPrinter']) {
-        testWidgets('app settings, $section: $name', (tester) async {
-          final handle = tester.ensureSemantics();
-          await pumpThemed(
-            tester,
-            const AppSettingsScreen(),
-            accent,
-            brightness,
-          );
-          await tester.tap(
-            find.descendant(
-              of: byLogId('app_settings.section'),
-              matching: find.byIcon(
-                section == 'watch' ? Icons.watch_outlined : Icons.label_outline,
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-          await meetsAll(tester);
-          handle.dispose();
-        });
-      }
-
-      testWidgets('dashboard: $name', (tester) async {
-        final handle = tester.ensureSemantics();
-        await pumpThemed(
-          tester,
-          const DashboardScreen(),
-          accent,
-          brightness,
-          overrides: _dashboardOverrides,
         );
-        await meetsAll(tester);
-        handle.dispose();
-      });
-
-      testWidgets('bottom sheet: $name', (tester) async {
-        final handle = tester.ensureSemantics();
-        await pumpThemed(tester, const _Launcher(), accent, brightness);
-        await tester.tap(find.text('sheet'));
         await tester.pumpAndSettle();
-        await meetsAll(tester);
-        handle.dispose();
-      });
-
-      testWidgets('confirm dialog: $name', (tester) async {
-        final handle = tester.ensureSemantics();
-        await pumpThemed(tester, const _Launcher(), accent, brightness);
-        await tester.tap(find.text('dialog'));
-        await tester.pumpAndSettle();
-        await meetsAll(tester);
-        handle.dispose();
-      });
-    }
+      },
+    );
   }
-}
 
-/// [textContrastGuideline] minus two nodes it misreads. It takes the text
-/// colour from the commonest light and dark pixels of the node's whole rect,
-/// and both of these fool it:
-///
-/// * a section header: a short label ("WYGLĄD") in a full-width row leaves too
-///   few text pixels — 1.11:1 for the short label, a pass for the same header
-///   with a long one. Its ink is `accentInk`, which `dashContrastAudit` holds
-///   at 4.5:1 on every ground;
-/// * the dashboard's "next available" line: 12 px grey on a grey ground, where
-///   the anti-aliased edges outnumber the glyph cores — 3.82:1 read, 8.39:1
-///   between its brightest glyph pixel and the ground (graphite, dark).
-class _ContrastBesideMisreads extends MinimumTextContrastGuideline {
-  const _ContrastBesideMisreads();
+  a11ySurface(
+    'dashboard',
+    demo: false,
+    overrides: _dashboardOverrides,
+    home: () => const DashboardScreen(),
+  );
 
-  @override
-  bool shouldSkipNode(SemanticsData data) =>
-      super.shouldSkipNode(data) ||
-      data.flagsCollection.isHeader ||
-      data.label.startsWith(pl.nextAvailableLabel);
+  a11ySurface(
+    'bottom sheet',
+    demo: false,
+    home: () => const _Launcher(),
+    arrange: (tester) async {
+      await tester.tap(find.text('sheet'));
+      await tester.pumpAndSettle();
+    },
+  );
+
+  a11ySurface(
+    'confirm dialog',
+    demo: false,
+    home: () => const _Launcher(),
+    arrange: (tester) async {
+      await tester.tap(find.text('dialog'));
+      await tester.pumpAndSettle();
+    },
+  );
 }
 
 final _dashboardOverrides = [
