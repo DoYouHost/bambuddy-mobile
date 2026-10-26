@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
@@ -61,9 +63,16 @@ class _History extends QueueRepository {
   final pages = <(String, bool, int)>[];
   int clears = 0;
 
+  /// When set, holds back the answer to each page read in its own completer.
+  List<Completer<void>>? gates;
+
+  /// When set, every older-server read waits for it.
+  Future<void>? hold;
+
   @override
   Future<List<QueueItem>> fetchHistory() async {
     historyReads++;
+    await hold;
     return items;
   }
 
@@ -79,8 +88,16 @@ class _History extends QueueRepository {
     }
     historyReads++;
     pages.add((sortBy, reverse, limit));
+    if (gates case final gates?) {
+      final gate = Completer<void>();
+      gates.add(gate);
+      await gate.future;
+    }
+    final sorted = sortBy == 'name'
+        ? ([...items]..sort((a, b) => a.archiveName!.compareTo(b.archiveName!)))
+        : items;
     return (
-      items: items.take(limit).toList(),
+      items: sorted.take(limit).toList(),
       total: items.length,
       serverOrdered: true,
     );
@@ -444,6 +461,83 @@ void main() {
       expect(find.text(pl.queueHistoryCleared(1)), findsOneWidget);
     });
 
+    testWidgets('an order picked while the first page loads wins', (
+      tester,
+    ) async {
+      final repo = _History([
+        _item(1, name: 'b'),
+        _item(2, name: 'a'),
+      ], paged: true)..gates = [];
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            queueRepositoryProvider.overrideWithValue(repo),
+            queueProvider.overrideWith(_NoQueue.new),
+            sharedPreferencesProvider.overrideWithValue(await _prefs()),
+            currentUserOverride(null),
+            noServerProfileOverride,
+          ],
+          child: plApp(const Scaffold(body: QueueHistoryView())),
+        ),
+      );
+      await tester.pump();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(QueueHistoryView)),
+      );
+      container.read(queueHistoryOrderProvider.notifier).set((
+        by: QueueHistorySort.name,
+        ascending: false,
+      ));
+      await tester.pump();
+
+      // The name order answers first, the date order it replaced after it.
+      expect(repo.pages.map((p) => p.$1), ['date', 'name']);
+      repo.gates![1].complete();
+      await tester.pump();
+      repo.gates![0].complete();
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getTopLeft(find.text('a')).dy,
+        lessThan(tester.getTopLeft(find.text('b')).dy),
+      );
+    });
+
+    testWidgets('a slower poll does not undo a longer page', (tester) async {
+      final repo = _History([
+        for (var i = 1; i <= 120; i++) _item(i),
+      ], paged: true);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            queueRepositoryProvider.overrideWithValue(repo),
+            queueProvider.overrideWith(_NoQueue.new),
+            sharedPreferencesProvider.overrideWithValue(await _prefs()),
+            currentUserOverride(null),
+            noServerProfileOverride,
+          ],
+          child: plApp(const Scaffold(body: QueueHistoryView())),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(QueueHistoryView)),
+      );
+      final notifier = container.read(queueHistoryProvider.notifier);
+      repo.gates = [];
+
+      final poll = notifier.refresh();
+      final more = notifier.showMore();
+      await tester.pump();
+      repo.gates![1].complete();
+      await more;
+      repo.gates![0].complete();
+      await poll;
+
+      final shown = container.read(queueHistoryProvider).value!;
+      expect((shown.limit, shown.items.length), (100, 100));
+    });
+
     testWidgets('clearing is one request, not one per row', (tester) async {
       final repo = _History([_item(1), _item(2)], paged: true);
       await _openHistory(tester, repo);
@@ -457,6 +551,26 @@ void main() {
       expect(repo.deleted, isEmpty);
       expect(find.text(pl.queueHistoryCleared(2)), findsOneWidget);
     });
+  });
+
+  testWidgets('on an older server, a poll still out does not undo more rows', (
+    tester,
+  ) async {
+    final repo = _History([for (var i = 1; i <= 120; i++) _item(i)]);
+    await _openHistory(tester, repo);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(QueueHistoryView)),
+    );
+    final notifier = container.read(queueHistoryProvider.notifier);
+    final gate = Completer<void>();
+    repo.hold = gate.future;
+
+    final poll = notifier.refresh();
+    await notifier.showMore();
+    gate.complete();
+    await poll;
+
+    expect(container.read(queueHistoryProvider).value?.limit, 100);
   });
 
   testWidgets('an older server is not asked again for a new order', (

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/app_context.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/format/relative_time.dart';
@@ -79,19 +80,25 @@ final queueHistoryProvider =
 class QueueHistoryNotifier extends AutoDisposeAsyncNotifier<QueueHistoryState> {
   int _limit = QueueHistoryView.pageSize;
 
+  /// Bumped by every load, so an answer overtaken by a newer one is dropped.
+  int _generation = 0;
+
   @override
   Future<QueueHistoryState> build() {
     ref.watch(queueRepositoryProvider);
     _limit = QueueHistoryView.pageSize;
+    _generation++;
     // A new order starts again from one page (#2682 on the web). Only the
     // server's own order needs a new answer; an older server's is sorted here.
+    // A rebuild, not a refresh: the build still out for the old order would
+    // otherwise land after the new answer and replace it.
     ref.listen(queueHistoryOrderProvider, (_, _) {
-      _limit = QueueHistoryView.pageSize;
       final shown = state.valueOrNull;
-      if (shown == null || shown.serverOrdered) {
-        refresh();
-      } else {
+      if (shown != null && !shown.serverOrdered) {
+        _limit = QueueHistoryView.pageSize;
         state = AsyncData(_withLimit(shown));
+      } else {
+        ref.invalidateSelf();
       }
     });
     return _load();
@@ -99,10 +106,12 @@ class QueueHistoryNotifier extends AutoDisposeAsyncNotifier<QueueHistoryState> {
 
   /// Keeps the rows on screen while the new answer is out.
   Future<void> refresh() async {
+    final generation = ++_generation;
     state = const AsyncValue<QueueHistoryState>.loading().copyWithPrevious(
       state,
     );
-    state = await AsyncValue.guard(_load);
+    final next = await AsyncValue.guard(_load);
+    if (generation == _generation) state = next;
   }
 
   /// One more page.
@@ -116,27 +125,34 @@ class QueueHistoryNotifier extends AutoDisposeAsyncNotifier<QueueHistoryState> {
     await refresh();
   }
 
-  QueueHistoryState _withLimit(QueueHistoryState s) => (
-    items: s.items,
-    total: s.total,
-    serverOrdered: s.serverOrdered,
-    limit: _limit,
-  );
+  /// [s] with the current limit, from an older server's rows already here; an
+  /// answer still out was asked with the old limit and no longer counts.
+  QueueHistoryState _withLimit(QueueHistoryState s) {
+    _generation++;
+    return (
+      items: s.items,
+      total: s.total,
+      serverOrdered: s.serverOrdered,
+      limit: _limit,
+    );
+  }
 
   Future<QueueHistoryState> _load() async {
     final order = ref.read(queueHistoryOrderProvider);
+    // Taken before the await: the answer is for the page that was asked for.
+    final limit = _limit;
     final page = await ref
         .read(queueRepositoryProvider)
         .fetchHistoryPage(
           sortBy: order.by.name,
           reverse: order.ascending,
-          limit: _limit,
+          limit: limit,
         );
     return (
       items: page.items,
       total: page.total,
       serverOrdered: page.serverOrdered,
-      limit: _limit,
+      limit: limit,
     );
   }
 }
@@ -355,7 +371,7 @@ class _Header extends ConsumerWidget {
             child: TextButton.icon(
               icon: const Icon(Icons.delete_sweep_outlined),
               label: Text(l10n.queueHistoryClear),
-              onPressed: canClear ? () => _clear(context, ref) : null,
+              onPressed: canClear ? () => _clear(context) : null,
             ).tagged('queue_history.clear'),
           ),
         ),
@@ -365,9 +381,10 @@ class _Header extends ConsumerWidget {
 
   /// `clearHistoryMutation`: the whole history, counting the rows the server
   /// keeps for a batch order rather than deletes.
-  Future<void> _clear(BuildContext context, WidgetRef ref) async {
+  Future<void> _clear(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    // The flow outlives the header: a poll that empties the history drops it.
+    final (:providers, :messenger) = detachFrom(context);
     final ok = await confirmDialog(
       context,
       id: 'queue_history.clear_confirm',
@@ -378,7 +395,7 @@ class _Header extends ConsumerWidget {
     );
     if (!ok) return;
     try {
-      final (:cleared, :kept) = await ref
+      final (:cleared, :kept) = await providers
           .read(queueRepositoryProvider)
           .clearHistory(items);
       messenger.snack(
@@ -391,7 +408,7 @@ class _Header extends ConsumerWidget {
       ActionOutcome.failed(e, action: 'queue_history.clear');
       messenger.snack(l10n.queueHistoryClearFailed);
     } finally {
-      await ref.read(queueHistoryProvider.notifier).refresh();
+      await providers.read(queueHistoryProvider.notifier).refresh();
     }
   }
 }
