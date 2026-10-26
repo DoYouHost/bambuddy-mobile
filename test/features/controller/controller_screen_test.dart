@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_picker.dart';
 import 'package:bambuddy_mobile/features/controller/controller_screen.dart';
@@ -234,10 +235,72 @@ void main() {
     final first = tester.getRect(byLogId(ControllerTab.values.first.logId));
     final state = tester.getRect(find.text('PREPARE'));
     expect(name.right, lessThanOrEqualTo(first.left));
+    // The bar's frame ends between the two, whole: only the tabs scroll.
+    final frame = tester.getRect(
+      find
+          .ancestor(
+            of: byLogId(ControllerTab.values.first.logId),
+            matching: find.byWidgetPredicate(
+              (w) =>
+                  w is Container &&
+                  w.decoration is BoxDecoration &&
+                  (w.decoration! as BoxDecoration).border != null,
+            ),
+          )
+          .first,
+    );
+    expect(frame.left, greaterThanOrEqualTo(name.right));
+    expect(frame.right, lessThanOrEqualTo(state.left));
     await tester.ensureVisible(byLogId(ControllerTab.values.last.logId));
     await tester.pump();
     final last = tester.getRect(byLogId(ControllerTab.values.last.logId));
     expect(last.right, lessThanOrEqualTo(state.left));
+  });
+
+  testWidgets('a short name leaves the rest of the bar to the tabs', (
+    tester,
+  ) async {
+    await pumpController(
+      tester,
+      printers: [_printer(1, 'X1C', model: 'X1C', state: 'RUNNING')],
+    );
+    tester.view.physicalSize = const Size(600, 320);
+
+    await open(tester);
+
+    // The tabs do not fit, so the bar takes all the name leaves it: its frame
+    // starts where the name ends, not where the name's cap would.
+    final name = tester.getRect(find.text('X1C').first);
+    final frame = tester.getRect(
+      find
+          .ancestor(
+            of: byLogId(ControllerTab.values.first.logId),
+            matching: find.byWidgetPredicate(
+              (w) =>
+                  w is Container &&
+                  w.decoration is BoxDecoration &&
+                  (w.decoration! as BoxDecoration).border != null,
+            ),
+          )
+          .first,
+    );
+    final state = tester.getRect(find.text('RUNNING'));
+    final tabs = tester.state<ScrollableState>(
+      find
+          .ancestor(
+            of: byLogId(ControllerTab.values.first.logId),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(
+      tabs.position.maxScrollExtent,
+      greaterThan(0),
+      reason: 'the case under test is tabs that overflow',
+    );
+    expect(frame.left - name.right, lessThan(DashSpace.lg));
+    // The gap before the state pill, and the pill's padding before its text.
+    expect(state.left - frame.right, lessThan(DashSpace.lg + DashSpace.sm));
   });
 
   testWidgets('a printer the server no longer has says so, and can be left', (

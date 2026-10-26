@@ -316,7 +316,10 @@ class _TopBar extends ConsumerWidget {
         maxWidth: _nameMaxWidth,
         minHeight: _barHeight,
       ),
+      // Only as wide as the name: the cap is a ceiling, and what a short name
+      // leaves is the tabs'.
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Flexible(
             child: Column(
@@ -368,20 +371,13 @@ class _TopBar extends ConsumerWidget {
               )
             : name(chevron: false),
         // The tabs keep their size. Centred when they fit; when the name, a
-        // large system font and the state leave them less than they need, they
-        // scroll, never shrink: a long printer name must not push a tab off the
-        // screen, nor make the tabs' text a size of its own.
+        // large system font and the state leave them less than they need, the
+        // bar takes what is left and the tabs scroll inside it, never shrink: a
+        // long printer name must not push a tab off the screen, nor make the
+        // tabs' text a size of its own.
         Expanded(
-          child: LayoutBuilder(
-            builder: (context, box) => SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: box.maxWidth),
-                child: Center(
-                  child: _Tabs(tab: tab, onTab: onTab),
-                ),
-              ),
-            ),
+          child: Center(
+            child: _Tabs(tab: tab, onTab: onTab),
           ),
         ),
         ControllerFaultChip(printerId: printer.id),
@@ -402,6 +398,8 @@ class _Tabs extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
+    // The frame stays whole and the tabs scroll under its rounded inside edge,
+    // so a bar too narrow for them ends on its border, not mid-tab.
     return Container(
       padding: const EdgeInsets.all(DashSpace.xs),
       decoration: BoxDecoration(
@@ -409,20 +407,26 @@ class _Tabs extends StatelessWidget {
         borderRadius: BorderRadius.circular(DashSpace.md + DashSpace.xs),
         border: Border.all(color: t.subCardBorder),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final candidate in ControllerTab.values)
-            logTag(
-              candidate.logId,
-              _TabButton(
-                label: candidate.label(l10n),
-                selected: candidate == tab,
-                onTap: () => onTab(candidate),
-              ),
-              selected: candidate == tab,
-            ),
-        ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(DashSpace.md),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final candidate in ControllerTab.values)
+                logTag(
+                  candidate.logId,
+                  _TabButton(
+                    label: candidate.label(l10n),
+                    selected: candidate == tab,
+                    onTap: () => onTab(candidate),
+                  ),
+                  selected: candidate == tab,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
