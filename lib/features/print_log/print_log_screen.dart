@@ -179,18 +179,14 @@ class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
                     ),
                   ),
                   if (state.items.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: EmptyStateView(
-                        message:
-                            filters.activeCount > 0 || filters.query.isNotEmpty
-                            ? l10n.printLogNoMatches
-                            : l10n.printLogEmpty,
-                        icon:
-                            filters.activeCount > 0 || filters.query.isNotEmpty
-                            ? Icons.search_off
-                            : Icons.receipt_long_outlined,
-                      ),
+                    SliverEmptyState(
+                      message:
+                          filters.activeCount > 0 || filters.query.isNotEmpty
+                          ? l10n.printLogNoMatches
+                          : l10n.printLogEmpty,
+                      icon: filters.activeCount > 0 || filters.query.isNotEmpty
+                          ? Icons.search_off
+                          : Icons.receipt_long_outlined,
                     )
                   else
                     SliverPadding(

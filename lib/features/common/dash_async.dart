@@ -300,3 +300,25 @@ class BusyLine extends StatelessWidget {
     ],
   );
 }
+
+/// An [EmptyStateView] filling what a sliver list leaves of the viewport.
+///
+/// Not `scrollable`: the screen's own scroll view keeps pull-to-refresh, and a
+/// viewport inside a viewport throws on layout (`SliverFillRemaining` asks its
+/// child for an intrinsic height).
+class SliverEmptyState extends StatelessWidget {
+  const SliverEmptyState({
+    super.key,
+    required this.message,
+    required this.icon,
+  });
+
+  final String message;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => SliverFillRemaining(
+    hasScrollBody: false,
+    child: EmptyStateView(message: message, icon: icon, scrollable: false),
+  );
+}

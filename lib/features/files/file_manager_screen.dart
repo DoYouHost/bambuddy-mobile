@@ -192,16 +192,13 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         child: DashLoading(),
       );
     } else if (folders.isEmpty && files.isEmpty) {
-      content = SliverFillRemaining(
-        hasScrollBody: false,
-        child: EmptyStateView(
-          message: s.fetchFailed
-              ? l10n.connectFailed
-              : s.isSearching || s.isTagFiltering || s.typeFilter != null
-              ? l10n.fmNoMatches
-              : l10n.fmEmpty,
-          icon: s.fetchFailed ? Icons.cloud_off : Icons.folder_open_outlined,
-        ),
+      content = SliverEmptyState(
+        message: s.fetchFailed
+            ? l10n.connectFailed
+            : s.isSearching || s.isTagFiltering || s.typeFilter != null
+            ? l10n.fmNoMatches
+            : l10n.fmEmpty,
+        icon: s.fetchFailed ? Icons.cloud_off : Icons.folder_open_outlined,
       );
     } else {
       final me = ref.watch(currentUserProvider).valueOrNull;

@@ -335,14 +335,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       ),
                     ),
                     if (spools.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: EmptyStateView(
-                          message: inv.spools.isEmpty
-                              ? l10n.inventoryEmpty
-                              : l10n.inventoryNoMatches,
-                          icon: Icons.inventory_2_outlined,
-                        ),
+                      SliverEmptyState(
+                        message: inv.spools.isEmpty
+                            ? l10n.inventoryEmpty
+                            : l10n.inventoryNoMatches,
+                        icon: Icons.inventory_2_outlined,
                       )
                     else
                       SliverPadding(

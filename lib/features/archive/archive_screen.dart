@@ -213,20 +213,14 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                     if (!_selectionMode)
                       const SliverToBoxAdapter(child: _No3mfBanner()),
                     if (all.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: EmptyStateView(
-                          message: l10n.archiveEmpty,
-                          icon: Icons.inventory_2_outlined,
-                        ),
+                      SliverEmptyState(
+                        message: l10n.archiveEmpty,
+                        icon: Icons.inventory_2_outlined,
                       )
                     else if (items.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: EmptyStateView(
-                          message: l10n.archiveNoMatches,
-                          icon: Icons.search_off,
-                        ),
+                      SliverEmptyState(
+                        message: l10n.archiveNoMatches,
+                        icon: Icons.search_off,
                       )
                     else
                       SliverPadding(
