@@ -32,6 +32,12 @@ const a11yAccents = [
 /// is reached by [a11ySurface]'s scroll pass.
 const a11yWindow = Size(411, 2000);
 
+/// Text scales a surface is measured at besides 100 %. Layout, overflow and
+/// tap-target findings come from the text size, not from the colours, so these run
+/// under the first accent in the light theme only: AGENTS.md asks every layout
+/// test to pass above 100 %, and this keeps it at two tests more per surface.
+const a11yTextScales = [1.5, 2.0];
+
 /// The demo backend's profile: the app's own fabricated server, so a screen
 /// shows the data the demo promises without a mock per route. A surface that
 /// needs another face of it (an API key, a labelled server) passes `profile:`
@@ -74,6 +80,7 @@ Future<void> a11yPump(
   Size window = a11yWindow,
   Duration settleFor = const Duration(seconds: 2),
   Map<String, Object> prefs = const {},
+  double textScale = 1,
 }) async {
   useLogicalWindow(tester, window);
   SharedPreferences.setMockInitialValues(prefs);
@@ -94,6 +101,12 @@ Future<void> a11yPump(
         ...GlobalMaterialLocalizations.delegates,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
       home: home,
     ),
   );
@@ -290,7 +303,10 @@ void _answerClockChannel() => TestDefaultBinaryMessengerBinding
 ///   surface is about (its title, a row the demo seeds), never a placeholder;
 /// * [profile] is the server the demo answers as (default [a11yDemoProfile]);
 /// * [prefs] seeds SharedPreferences before the screen builds;
-/// * [scroll] re-asserts after each viewport of the main list.
+/// * [scroll] re-asserts after each viewport of the main list;
+/// * [textScales] are the extra text sizes, see [a11yTextScales]. A surface that
+///   cannot hold one passes a narrower list and says why in a comment, never
+///   drops it silently.
 void a11ySurface(
   String name, {
   required Widget Function() home,
@@ -304,42 +320,51 @@ void a11ySurface(
   Finder? shows,
   Map<String, Object> prefs = const {},
   ServerProfile profile = a11yDemoProfile,
+  List<double> textScales = a11yTextScales,
 }) {
-  for (final accent in a11yAccents) {
-    for (final brightness in Brightness.values) {
-      testWidgets('$name: ${accent.name}, ${brightness.name}', (tester) async {
-        final handle = tester.ensureSemantics();
-        // Process-wide and mutable (a mute, a performed task): without a reset
-        // one surface's writes show in the next surface's data.
-        DemoBackend.instance = DemoBackend.fresh();
-        _answerClockChannel();
-        await a11yPump(
-          tester,
-          home(),
-          accent,
-          brightness,
-          overrides: [if (demo) serverProfileOverride(profile), ...overrides],
-          window: window,
-          settleFor: settleFor,
-          prefs: prefs,
-        );
-        if (arrange != null) {
-          await arrange(tester);
-          await a11ySettle(tester, const Duration(milliseconds: 500));
-        }
-        // Proves the surface was reached, so a failure below is a guideline
-        // and not a screen that never built.
-        if (shows != null) expect(shows, findsWidgets);
-        if (scroll) {
-          await a11yMeetsAllWhileScrolling(tester, skipContrast: skipContrast);
-        } else {
-          await a11yMeetsAll(tester, skipContrast: skipContrast);
-        }
-        // A request the scroll pass started would end the test in flight.
-        await a11ySettle(tester, const Duration(milliseconds: 700));
-        handle.dispose();
-      });
-    }
+  final runs = <(AccentSource, Brightness, double)>[
+    for (final accent in a11yAccents)
+      for (final brightness in Brightness.values) (accent, brightness, 1),
+    for (final scale in textScales)
+      (a11yAccents.first, Brightness.light, scale),
+  ];
+  for (final (accent, brightness, scale) in runs) {
+    final label = scale == 1 ? '' : ', text ${(scale * 100).round()}%';
+    testWidgets('$name: ${accent.name}, ${brightness.name}$label', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      // Process-wide and mutable (a mute, a performed task): without a reset
+      // one surface's writes show in the next surface's data.
+      DemoBackend.instance = DemoBackend.fresh();
+      _answerClockChannel();
+      await a11yPump(
+        tester,
+        home(),
+        accent,
+        brightness,
+        overrides: [if (demo) serverProfileOverride(profile), ...overrides],
+        window: window,
+        settleFor: settleFor,
+        prefs: prefs,
+        textScale: scale,
+      );
+      if (arrange != null) {
+        await arrange(tester);
+        await a11ySettle(tester, const Duration(milliseconds: 500));
+      }
+      // Proves the surface was reached, so a failure below is a guideline
+      // and not a screen that never built.
+      if (shows != null) expect(shows, findsWidgets);
+      if (scroll) {
+        await a11yMeetsAllWhileScrolling(tester, skipContrast: skipContrast);
+      } else {
+        await a11yMeetsAll(tester, skipContrast: skipContrast);
+      }
+      // A request the scroll pass started would end the test in flight.
+      await a11ySettle(tester, const Duration(milliseconds: 700));
+      handle.dispose();
+    });
   }
 }
 
