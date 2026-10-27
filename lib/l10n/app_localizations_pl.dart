@@ -554,16 +554,13 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlMoveStep => 'Krok';
 
   @override
-  String get ctrlMoveZ => 'Z (szczelina)';
+  String get ctrlMoveZ => 'Z';
 
   @override
   String get ctrlMoveZUp => 'W górę';
 
   @override
   String get ctrlMoveZDown => 'W dół';
-
-  @override
-  String get ctrlMoveZToolhead => 'Z (głowica)';
 
   @override
   String get ctrlMoveZUnknownDirection =>

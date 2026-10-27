@@ -315,13 +315,11 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
           );
 
     final label = Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(Icons.height, size: 16, color: t.textSecondary),
         const SizedBox(width: DashSpace.sm),
-        Text(
-          isBedSlinger(model) ? l10n.ctrlMoveZToolhead : l10n.ctrlMoveZ,
-          style: t.body.copyWith(color: t.textSecondary),
-        ),
+        Text(l10n.ctrlMoveZ, style: t.body.copyWith(color: t.textSecondary)),
       ],
     );
 
@@ -352,14 +350,25 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
       );
     }
 
-    return Row(
-      children: [
-        label,
-        const Spacer(),
-        jog('z+', Icons.keyboard_arrow_up, l10n.ctrlMoveZUp, true),
-        const SizedBox(width: DashSpace.sm),
-        jog('z-', Icons.keyboard_arrow_down, l10n.ctrlMoveZDown, false),
-      ],
+    // Equal-width buttons: beside the label they hug it, under it they span.
+    return BesideOrBelow(
+      label: label,
+      control: Row(
+        children: [
+          Expanded(
+            child: jog('z+', Icons.keyboard_arrow_up, l10n.ctrlMoveZUp, true),
+          ),
+          const SizedBox(width: DashSpace.sm),
+          Expanded(
+            child: jog(
+              'z-',
+              Icons.keyboard_arrow_down,
+              l10n.ctrlMoveZDown,
+              false,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -421,24 +430,23 @@ class _StepSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    return Row(
-      children: [
-        Text(label, style: t.body.copyWith(color: t.textSecondary)),
-        const Spacer(),
-        Wrap(
-          spacing: DashSpace.sm,
-          runSpacing: DashSpace.sm,
-          children: [
-            for (final p in presets)
-              _PresetChip(
+    return BesideOrBelow(
+      label: Text(label, style: t.body.copyWith(color: t.textSecondary)),
+      control: Row(
+        children: [
+          for (final (i, p) in presets.indexed) ...[
+            if (i > 0) const SizedBox(width: DashSpace.sm),
+            Expanded(
+              child: _PresetChip(
                 label: l10n.ctrlMoveMm(p),
                 id: '${id}_preset',
                 selected: value == p,
                 onTap: () => onChanged(p),
               ),
+            ),
           ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -517,15 +525,20 @@ class _JogAction extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: t.subCardBorder),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              busy
-                  ? const DashSpinner(size: 16)
-                  : Icon(icon, size: 16, color: fg),
-              const SizedBox(width: DashSpace.sm),
-              Text(label, style: t.bodyBold.copyWith(color: fg)),
-            ],
+          // widthFactor: as wide as its content on its own, centred when a
+          // parent gives it the whole width.
+          child: Center(
+            widthFactor: 1,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                busy
+                    ? const DashSpinner(size: 16)
+                    : Icon(icon, size: 16, color: fg),
+                const SizedBox(width: DashSpace.sm),
+                Text(label, style: t.bodyBold.copyWith(color: fg)),
+              ],
+            ),
           ),
         ),
       ),

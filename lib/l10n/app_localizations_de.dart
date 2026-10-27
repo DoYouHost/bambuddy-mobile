@@ -560,16 +560,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlMoveStep => 'Schritt';
 
   @override
-  String get ctrlMoveZ => 'Z (Bettabstand)';
+  String get ctrlMoveZ => 'Z';
 
   @override
   String get ctrlMoveZUp => 'Hoch';
 
   @override
   String get ctrlMoveZDown => 'Runter';
-
-  @override
-  String get ctrlMoveZToolhead => 'Z (Druckkopf)';
 
   @override
   String get ctrlMoveZUnknownDirection =>

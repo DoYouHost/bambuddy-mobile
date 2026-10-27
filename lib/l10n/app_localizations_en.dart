@@ -548,16 +548,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlMoveStep => 'Step';
 
   @override
-  String get ctrlMoveZ => 'Z (bed gap)';
+  String get ctrlMoveZ => 'Z';
 
   @override
   String get ctrlMoveZUp => 'Up';
 
   @override
   String get ctrlMoveZDown => 'Down';
-
-  @override
-  String get ctrlMoveZToolhead => 'Z (toolhead)';
 
   @override
   String get ctrlMoveZUnknownDirection =>

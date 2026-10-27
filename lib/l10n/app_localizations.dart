@@ -1103,7 +1103,7 @@ abstract class AppLocalizations {
   /// No description provided for @ctrlMoveZ.
   ///
   /// In en, this message translates to:
-  /// **'Z (bed gap)'**
+  /// **'Z'**
   String get ctrlMoveZ;
 
   /// No description provided for @ctrlMoveZUp.
@@ -1117,12 +1117,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Down'**
   String get ctrlMoveZDown;
-
-  /// No description provided for @ctrlMoveZToolhead.
-  ///
-  /// In en, this message translates to:
-  /// **'Z (toolhead)'**
-  String get ctrlMoveZToolhead;
 
   /// No description provided for @ctrlMoveZUnknownDirection.
   ///

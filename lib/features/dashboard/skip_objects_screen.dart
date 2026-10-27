@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_util/app_util.dart';
 import '../../core/models/printable_object.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -372,35 +373,64 @@ class _InfoBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: t.accentBlue.withValues(alpha: 0.3)),
       ),
-      child: Row(
-        children: [
-          Icon(Icons.desktop_windows_outlined, size: 20, color: t.accentBlue),
-          const SizedBox(width: DashSpace.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.skipObjectsMatchInfo,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final counter = l10n.skipObjectsCounter(
+            data.skippedCount,
+            data.total,
+          );
+          final counterStyle = TextStyle(fontSize: 12, color: t.textSecondary);
+          // Beside the texts while it leaves them room; under them at large
+          // text, where it would squeeze the hint into a sliver.
+          final measured = DefaultTextStyle.of(
+            context,
+          ).style.merge(counterStyle);
+          final inline =
+              textWidth(context, counter, measured) <= box.maxWidth * 0.4;
+          final counterText = Text(counter, style: counterStyle);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.desktop_windows_outlined,
+                    size: 20,
+                    color: t.accentBlue,
                   ),
-                ),
-                Text(
-                  l10n.skipObjectsMatchHint,
-                  style: TextStyle(fontSize: 11, color: t.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: DashSpace.sm),
-          Text(
-            l10n.skipObjectsCounter(data.skippedCount, data.total),
-            style: TextStyle(fontSize: 12, color: t.textSecondary),
-          ),
-        ],
+                  const SizedBox(width: DashSpace.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.skipObjectsMatchInfo,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: t.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          l10n.skipObjectsMatchHint,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: t.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (inline) ...[
+                    const SizedBox(width: DashSpace.sm),
+                    counterText,
+                  ],
+                ],
+              ),
+              if (!inline) counterText,
+            ],
+          );
+        },
       ),
     );
   }
@@ -1036,15 +1066,15 @@ class _ObjectTile extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 46,
-                height: 46,
-                alignment: Alignment.center,
+                constraints: const BoxConstraints(minWidth: 46, minHeight: 46),
+                padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
                 decoration: BoxDecoration(
                   color: accentBg,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: accent.withValues(alpha: 0.4)),
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(

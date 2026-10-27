@@ -564,16 +564,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get ctrlMoveStep => 'Pas';
 
   @override
-  String get ctrlMoveZ => 'Z (écart du plateau)';
+  String get ctrlMoveZ => 'Z';
 
   @override
   String get ctrlMoveZUp => 'Haut';
 
   @override
   String get ctrlMoveZDown => 'Bas';
-
-  @override
-  String get ctrlMoveZToolhead => 'Z (tête)';
 
   @override
   String get ctrlMoveZUnknownDirection =>

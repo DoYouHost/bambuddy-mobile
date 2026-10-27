@@ -111,6 +111,7 @@ void main() {
     int layerNum = 2,
     ObjectPickMask? mask,
     Size? landscape,
+    double textScale = 1,
   }) async {
     // The test window defaults to 800×600 (wider than tall) — the square plate
     // preview (AspectRatio 1) would then claim the whole viewport height, and
@@ -134,6 +135,12 @@ void main() {
         ),
         objectPickMaskProvider(1).overrideWith((ref) async => mask),
       ],
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
     );
     await tester.pumpAndSettle();
     return repo;
@@ -201,6 +208,43 @@ void main() {
     expect(find.text(pl.skipObjectsSkip), findsNothing);
     expect(repo.skipCalls, isEmpty);
   });
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('an object row holds its id badge and name at text $scale', (
+      tester,
+    ) async {
+      await pumpScreen(tester, textScale: scale);
+      await tester.scrollUntilVisible(
+        find.text('Divider_left.stl'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(tester.takeException(), isNull);
+      final tile = tester.getRect(find.text('Divider_left.stl'));
+      final row = find.ancestor(
+        of: find.text('Divider_left.stl'),
+        matching: find.byType(InkWell),
+      );
+      final badge = tester.getRect(
+        find.descendant(of: row, matching: find.text('421')),
+      );
+      expect(
+        badge.right,
+        lessThan(tile.left),
+        reason: 'the id badge sits left of the name',
+      );
+      if (scale == 2.0) {
+        final hint = tester.getRect(find.text(pl.skipObjectsMatchHint));
+        final counter = tester.getRect(find.text(pl.skipObjectsCounter(0, 2)));
+        expect(
+          counter.top,
+          greaterThanOrEqualTo(hint.bottom),
+          reason: 'the counter drops under the texts instead of squeezing them',
+        );
+      }
+    });
+  }
 
   testWidgets('in landscape the plate and the list sit side by side', (
     tester,

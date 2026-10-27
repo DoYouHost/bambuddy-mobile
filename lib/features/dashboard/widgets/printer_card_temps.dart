@@ -825,32 +825,37 @@ class _AirductToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    return Row(
-      children: [
-        Icon(Icons.air, size: 16, color: t.textSecondary),
-        const SizedBox(width: DashSpace.sm),
-        Text(l10n.ctrlAirduct, style: t.body.copyWith(color: t.textSecondary)),
-        const Spacer(),
-        SegmentedButton<bool>(
-          showSelectedIcon: false,
-          segments: [
-            ButtonSegment(
-              value: false,
-              icon: const Icon(Icons.ac_unit, size: 16),
-              label: Text(l10n.ctrlAirductCooling),
-            ),
-            ButtonSegment(
-              value: true,
-              icon: const Icon(Icons.local_fire_department, size: 16),
-              label: Text(l10n.ctrlAirductHeating),
-            ),
-          ],
-          selected: {heating ?? false},
-          onSelectionChanged: onChanged == null
-              ? null
-              : (s) => onChanged!(s.first),
-        ).tagged('controls.airduct'),
-      ],
+    return BesideOrBelow(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.air, size: 16, color: t.textSecondary),
+          const SizedBox(width: DashSpace.sm),
+          Text(
+            l10n.ctrlAirduct,
+            style: t.body.copyWith(color: t.textSecondary),
+          ),
+        ],
+      ),
+      control: SegmentedButton<bool>(
+        showSelectedIcon: false,
+        segments: [
+          ButtonSegment(
+            value: false,
+            icon: const Icon(Icons.ac_unit, size: 16),
+            label: Text(l10n.ctrlAirductCooling),
+          ),
+          ButtonSegment(
+            value: true,
+            icon: const Icon(Icons.local_fire_department, size: 16),
+            label: Text(l10n.ctrlAirductHeating),
+          ),
+        ],
+        selected: {heating ?? false},
+        onSelectionChanged: onChanged == null
+            ? null
+            : (s) => onChanged!(s.first),
+      ).tagged('controls.airduct'),
     );
   }
 }

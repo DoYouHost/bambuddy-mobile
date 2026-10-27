@@ -9,7 +9,7 @@ Future<Size> _textSize(WidgetTester tester, double scale) async {
     const Scaffold(
       body: Align(
         alignment: Alignment.topLeft,
-        child: Text('Wydruki', style: TextStyle(fontSize: 10)),
+        child: Text('Measuring stick', style: TextStyle(fontSize: 10)),
       ),
     ),
     a11yAccents.first,
@@ -18,7 +18,7 @@ Future<Size> _textSize(WidgetTester tester, double scale) async {
     settleFor: const Duration(milliseconds: 100),
     textScale: scale,
   );
-  return tester.getSize(find.text('Wydruki'));
+  return tester.getSize(find.text('Measuring stick'));
 }
 
 void main() {
@@ -28,7 +28,7 @@ void main() {
     final normal = await _textSize(tester, 1);
     final large = await _textSize(tester, 2);
     expect(large.height, closeTo(normal.height * 2, 1));
-    expect(large.width, closeTo(normal.width * 2, 3));
+    expect(large.width, closeTo(normal.width * 2, normal.width * 0.05));
   });
 
   test('the extra scales are the two the rule names, beside 100 %', () {

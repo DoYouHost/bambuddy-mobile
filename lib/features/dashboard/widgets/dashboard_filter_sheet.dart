@@ -65,17 +65,18 @@ class _DashboardFilterSheet extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Fixed height so the header never resizes the sheet or
-                  // shifts the title when the Clear button toggles.
-                  SizedBox(
-                    height: 48,
+                  // Fixed minimum height so the header never resizes the sheet
+                  // or shifts the title when the Clear button toggles.
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 48),
                     child: Row(
                       children: [
-                        Text(
-                          l10n.dashboardFilters,
-                          style: theme.textTheme.titleLarge,
+                        Expanded(
+                          child: Text(
+                            l10n.dashboardFilters,
+                            style: theme.textTheme.titleLarge,
+                          ),
                         ),
-                        const Spacer(),
                         // Keep the button's slot laid out even when inactive,
                         // so it can't reflow the row.
                         Visibility(

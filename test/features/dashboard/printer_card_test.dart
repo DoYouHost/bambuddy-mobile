@@ -368,6 +368,7 @@ Widget _scope(
   InventoryBackend? backend = InventoryBackend.native,
   bool apiKeySession = false,
   MediaAuth media = const MediaAuth(queryToken: 'tok'),
+  TextScaler? textScaler,
 }) => ProviderScope(
   retry: neverRetry,
   overrides: layerOverrides([
@@ -388,7 +389,17 @@ Widget _scope(
     ...inertHistorySupportOverrides,
     inertSmartPlugsOverride,
   ], extra),
-  child: plApp(child),
+  // On the app, not on the card: a sheet is a route above the card and would
+  // otherwise open at 100 %.
+  child: plApp(
+    child,
+    builder: textScaler == null
+        ? null
+        : (context, app) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+            child: app!,
+          ),
+  ),
 );
 
 Widget _cardWithProviders(
@@ -2645,6 +2656,104 @@ void main() {
     });
   });
 
+  group('the sheets at large text', () {
+    const idle = PrinterWithStatus(
+      printer: Printer(id: 1, name: 'H2D'),
+      status: PrinterStatus(
+        id: 1,
+        model: 'H2D',
+        connected: true,
+        state: 'IDLE',
+        airductMode: 1,
+        temperatures: {'chamber': 40, 'chamber_target': 65},
+      ),
+    );
+
+    Future<void> pumpAt(WidgetTester tester, double scale) async {
+      tester.view.physicalSize = const Size(411, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        _scope(
+          const Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: idle)),
+          ),
+          textScaler: TextScaler.linear(scale),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the air-duct switch stays inside the temperature sheet at '
+          'text $scale', (tester) async {
+        await pumpAt(tester, scale);
+        await tester.tap(
+          byLogId('printer.temperature_chamber'),
+          warnIfMissed: false,
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        final toggle = tester.getRect(byLogId('controls.airduct'));
+        final label = tester.getRect(find.text(pl.ctrlAirduct));
+        expect(toggle.right, lessThanOrEqualTo(411));
+        expect(
+          toggle.top >= label.bottom || toggle.left >= label.right,
+          isTrue,
+          reason: 'beside the label or under it, never over it',
+        );
+        if (toggle.top >= label.bottom) {
+          expect(
+            toggle.width,
+            greaterThan(300),
+            reason: 'under the label it spans the sheet, not hugging the left',
+          );
+        }
+      });
+
+      testWidgets('the movement sheet rows hold at text $scale', (
+        tester,
+      ) async {
+        await pumpAt(tester, scale);
+        await tester.tap(byLogId('printer.details_toggle'));
+        await tester.pumpAndSettle();
+        await tester.tap(byLogId('printer.move'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(byLogId('movement.step_preset'), findsWidgets);
+        final chips = [
+          for (final chip in byLogId('movement.step_preset').evaluate())
+            tester.getRect(find.byWidget(chip.widget)),
+        ];
+        for (final chip in chips) {
+          expect(chip.right, lessThan(411));
+        }
+        // Under their label the chips share the full width evenly.
+        if (chips.first.left < 40) {
+          expect(chips.last.right, greaterThan(411 - 40));
+          for (final chip in chips) {
+            expect(chip.width, closeTo(chips.first.width, 0.5));
+          }
+        }
+        Rect button(String text) => tester.getRect(
+          find
+              .ancestor(of: find.text(text), matching: find.byType(InkWell))
+              .first,
+        );
+        final up = button(pl.ctrlMoveZUp);
+        final down = button(pl.ctrlMoveZDown);
+        expect(down.left, greaterThan(up.right), reason: 'jogs side by side');
+        expect(down.right, lessThan(411));
+        if (up.left < 40) {
+          expect(down.right, greaterThan(411 - 40));
+          expect(down.width, closeTo(up.width, 0.5));
+        }
+      });
+    }
+  });
+
   group('HMS error panel', () {
     // The panel resolves codes through the real catalog asset, in the same
     // language the card is rendered in — a stub resolver would test nothing
@@ -4505,7 +4614,7 @@ void main() {
         'A1 mini',
         BedJogConvention.direct,
       );
-      expect(find.text(pl.ctrlMoveZToolhead), findsOneWidget);
+      expect(find.text(pl.ctrlMoveZ), findsOneWidget);
 
       await tester.tap(find.text(pl.ctrlMoveZUp));
       await tester.pumpAndSettle();

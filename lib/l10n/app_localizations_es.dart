@@ -560,16 +560,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ctrlMoveStep => 'Paso';
 
   @override
-  String get ctrlMoveZ => 'Z (distancia a la cama)';
+  String get ctrlMoveZ => 'Z';
 
   @override
   String get ctrlMoveZUp => 'Subir';
 
   @override
   String get ctrlMoveZDown => 'Bajar';
-
-  @override
-  String get ctrlMoveZToolhead => 'Z (cabezal)';
 
   @override
   String get ctrlMoveZUnknownDirection =>

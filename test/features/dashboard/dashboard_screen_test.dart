@@ -758,6 +758,22 @@ void main() {
       );
     });
 
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the filter sheet header holds title and Clear at text '
+          '$scale', (tester) async {
+        await tester.pumpWidget(
+          _app(farm, textScaler: TextScaler.linear(scale)),
+        );
+        await tester.tap(byLogId('dashboard.filters'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        final title = tester.getRect(find.text(pl.dashboardFilters));
+        final clear = tester.getRect(find.text(pl.filtersClear));
+        expect(title.right, lessThanOrEqualTo(clear.left));
+      });
+    }
+
     testWidgets('the sheet picks a location and a sort', (tester) async {
       await pumpFarm(tester);
 
