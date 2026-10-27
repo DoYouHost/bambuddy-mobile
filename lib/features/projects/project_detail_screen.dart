@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -75,7 +77,8 @@ class ProjectDetailScreen extends ConsumerWidget {
                 _Header(project: project),
                 if (project.stats != null)
                   _ProgressCard(stats: project.stats!, project: project),
-                if (project.stats != null) _StatCards(stats: project.stats!),
+                if (project.stats != null)
+                  ProjectStatCards(stats: project.stats!),
                 _NotesSection(project: project),
                 ProjectFilesSection(projectId: projectId),
                 ProjectAttachmentsSection(project: project),
@@ -371,8 +374,9 @@ class _ProgressRow extends StatelessWidget {
 }
 
 /// Three headline stat cards: print jobs, print time, filament used (+ extras).
-class _StatCards extends StatelessWidget {
-  const _StatCards({required this.stats});
+@visibleForTesting
+class ProjectStatCards extends StatelessWidget {
+  const ProjectStatCards({super.key, required this.stats});
 
   final ProjectStats stats;
 
@@ -422,13 +426,11 @@ class _StatCards extends StatelessWidget {
         horizontal: DashSpace.gutter,
         vertical: DashSpace.sm,
       ),
-      child: GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        childAspectRatio: 2.6,
-        crossAxisSpacing: DashSpace.sm,
-        mainAxisSpacing: DashSpace.sm,
+      // Rows take their height from the tiles: a fixed aspect ratio overflowed
+      // at 150 % text. A tile needs about 150 dp at 100 %, more as the text grows,
+      // and the grid drops to one column when two no longer fit.
+      child: ContentGrid(
+        minTileWidth: 150 * max(1, MediaQuery.textScalerOf(context).scale(1)),
         children: [
           for (final (icon, label, value) in tiles)
             _StatTile(icon: icon, label: label, value: value),

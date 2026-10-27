@@ -156,6 +156,54 @@ void main() {
     });
   });
 
+  // A fixed tile aspect ratio overflowed the name by 20 dp at 150 % and 38 dp at
+  // 200 %: the square preview grows with the width, the name with the text. The
+  // page buttons below the grid still overflow at 320 dp and 200 %, so that
+  // combination is not asserted here.
+  for (final (width, scale, columns) in [
+    (411.0, 1.0, 2),
+    (411.0, 1.5, 2),
+    (411.0, 2.0, 2),
+    (320.0, 1.0, 2),
+  ]) {
+    testWidgets(
+      'the model tiles at $width dp and text $scale: $columns column(s), none '
+      'overflows',
+      (tester) async {
+        tester.view.physicalSize = Size(width, 2400);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        status(200, {'configured': true, 'url': 'http://mf'});
+        listing();
+        await pumpPhone(
+          tester,
+          const ModelSourcesScreen(),
+          overrides: layerOverrides(
+            [...overrides],
+            [currentUserOverride(user({}))],
+          ),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(scale)),
+            child: child!,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(pl.manyfoldTitle));
+        await tester.pumpAndSettle();
+
+        final tiles = [
+          for (final e in byLogId('manyfold.model').evaluate())
+            tester.getRect(find.byWidget(e.widget)),
+        ];
+        expect(tiles, hasLength(2));
+        expect({for (final r in tiles) r.left.round()}, hasLength(columns));
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets('a search asks Manyfold once the typing pauses', (tester) async {
     status(200, {'configured': true, 'url': 'http://mf'});
     listing();

@@ -250,13 +250,14 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
         ),
       ],
       const SizedBox(height: DashSpace.md),
-      GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        mainAxisSpacing: DashSpace.md,
-        crossAxisSpacing: DashSpace.md,
-        childAspectRatio: _tileAspect,
+      // Rows take their height from the tiles: the square preview grows with the
+      // width, the name with the text scale, and a fixed aspect ratio overflowed.
+      // The name is two lines with an ellipsis, so the text size never asks for
+      // fewer columns; one column would make the preview as wide as the screen.
+      ContentGrid(
+        minTileWidth: 120,
+        spacing: DashSpace.md,
+        runSpacing: DashSpace.md,
         children: [
           for (final model in page.models)
             _ModelTile(
@@ -282,11 +283,16 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
               icon: const Icon(Icons.chevron_left),
               label: Text(l10n.mfPrevious),
             ).tagged('manyfold.prev_page'),
+            // Centred in a box as wide as the text, not stretched across the row:
+            // the contrast guideline samples the text's own box, and a label this
+            // small in a wide one reads as background (1.04:1 for readable ink).
             Expanded(
-              child: Text(
-                l10n.mfPage(page.page),
-                textAlign: TextAlign.center,
-                style: t.monoLabel,
+              child: Center(
+                child: Text(
+                  l10n.mfPage(page.page),
+                  textAlign: TextAlign.center,
+                  style: t.monoLabel,
+                ),
               ),
             ),
             OutlinedButton.icon(
@@ -301,9 +307,6 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
       ],
     ];
   }
-
-  /// Square preview plus two lines of name.
-  static const _tileAspect = 0.78;
 }
 
 class _ModelTile extends StatelessWidget {
