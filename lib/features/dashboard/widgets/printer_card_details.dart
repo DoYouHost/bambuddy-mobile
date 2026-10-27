@@ -1654,6 +1654,7 @@ class _DrySlider extends StatelessWidget {
             _StepButton(
               icon: Icons.remove,
               id: '${id}_step_down',
+              label: '$label −1',
               onTap: () => onChanged(clamp(value - 1)),
             ),
             Expanded(
@@ -1672,6 +1673,7 @@ class _DrySlider extends StatelessWidget {
             _StepButton(
               icon: Icons.add,
               id: '${id}_step_up',
+              label: '$label +1',
               onTap: () => onChanged(clamp(value + 1)),
             ),
           ],

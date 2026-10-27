@@ -686,6 +686,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                   _StepButton(
                     icon: Icons.remove,
                     id: 'fan.step_down',
+                    label: '−1%',
                     onTap: () => _bump(-1),
                   ),
                   Expanded(
@@ -699,6 +700,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                   _StepButton(
                     icon: Icons.add,
                     id: 'fan.step_up',
+                    label: '+1%',
                     onTap: () => _bump(1),
                   ),
                 ],

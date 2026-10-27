@@ -138,7 +138,9 @@ class _GaugeTile extends ConsumerWidget {
               Text(
                 hasTarget ? '${target.toStringAsFixed(0)}°' : '-',
                 style: t.micro.copyWith(
-                  color: hasTarget ? accent : t.textTertiary,
+                  color: hasTarget
+                      ? reading.gaugeInk(t, target: target)
+                      : t.textTertiary,
                   fontFamily: DashTokens.fontMono,
                 ),
               ),
@@ -455,10 +457,10 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
         child: InkWell(
           onTap: enabled ? _switchNozzle : null,
           child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: DashSpace.md,
-              vertical: DashSpace.sm,
+            constraints: const BoxConstraints(
+              minHeight: kMinInteractiveDimension,
             ),
+            padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: t.subCardBorder),
@@ -605,7 +607,10 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
                             fontFamily: DashTokens.fontMono,
                             fontSize: 44,
                             fontWeight: FontWeight.w700,
-                            color: accent,
+                            color: _reading.gaugeInk(
+                              t,
+                              target: _target.toDouble(),
+                            ),
                           ),
                         ),
                       ),
@@ -615,6 +620,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
                           _StepButton(
                             icon: Icons.remove,
                             id: 'temperature.step_down',
+                            label: '−$step°',
                             onTap: () => _bump(-step),
                           ),
                           Expanded(
@@ -635,6 +641,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
                           _StepButton(
                             icon: Icons.add,
                             id: 'temperature.step_up',
+                            label: '+$step°',
                             onTap: () => _bump(step),
                           ),
                         ],
@@ -728,20 +735,29 @@ class _PresetChip extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: DashSpace.lg,
-            vertical: DashSpace.md,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
           ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected
-                  ? t.accentGreen.withValues(alpha: 0.5)
-                  : t.subCardBorder,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: selected
+                    ? t.accentGreen.withValues(alpha: 0.5)
+                    : t.subCardBorder,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: DashSpace.lg),
+              // widthFactor keeps the pill as wide as its label; the minimum
+              // height is only for the touch target.
+              child: Center(
+                widthFactor: 1,
+                child: Text(label, style: t.monoValue.copyWith(color: fg)),
+              ),
             ),
           ),
-          child: Text(label, style: t.monoValue.copyWith(color: fg)),
         ),
         // Which chip is the current one is otherwise painted and nothing else:
         // a reader would announce seven identical buttons.
@@ -755,10 +771,15 @@ class _StepButton extends StatelessWidget {
   const _StepButton({
     required this.icon,
     required this.id,
+    required this.label,
     required this.onTap,
   });
 
   final IconData icon;
+
+  /// The accessible name: a minus or a plus beside a slider says nothing alone.
+  /// The step and its unit, as the controller's buttons spell it.
+  final String label;
 
   /// Diagnostic identifier. Required for the same reason as on [_SheetButton]:
   /// this button is shared by the temperature, fan and drying sheets, and a tag
@@ -779,10 +800,14 @@ class _StepButton extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Icon(icon, size: 20, color: t.textPrimary),
+        child: SizedBox.square(
+          dimension: kMinInteractiveDimension,
+          child: Icon(
+            icon,
+            size: 20,
+            color: t.textPrimary,
+            semanticLabel: label,
+          ),
         ),
       ).tagged(id),
     );
@@ -862,7 +887,9 @@ class _SheetButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(

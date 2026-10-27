@@ -72,6 +72,14 @@ class TempReading {
         HeatState.heating || HeatState.atTarget => t.accentOrange,
       };
 
+  /// [gaugeColor] for text. The orange fill reads 2.77:1 on the light ground, under
+  /// the 3:1 that even a 44 px number needs, so text takes the orange ink.
+  Color gaugeInk(DashTokens t, {double? target}) =>
+      switch (heatState(target: target)) {
+        HeatState.off || HeatState.cooling => t.accentBlue,
+        HeatState.heating || HeatState.atTarget => t.accentOrangeInk,
+      };
+
   /// Where the reading stands against its setpoint, within the same tolerance
   /// as [gaugeColor]. No reading yet with a setpoint counts as heating.
   HeatState heatState({double? target}) {

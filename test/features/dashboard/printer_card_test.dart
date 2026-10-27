@@ -578,6 +578,50 @@ void main() {
     ],
   );
 
+  for (final scale in [1.0, 2.0]) {
+    testWidgets('the setting tab\'s controls are 48 dp and named at text scale '
+        '$scale', (tester) async {
+      tester.view.physicalSize = const Size(360, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+          child: historyCard(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('DYSZA'));
+      await tester.pumpAndSettle();
+
+      final controls = {
+        for (final id in ['step_down', 'step_up', 'off', 'set'])
+          'temperature.$id': byLogId('temperature.$id'),
+        for (final (i, chip) in byLogId(
+          'temperature.preset',
+        ).evaluate().indexed)
+          'preset $i': find.byWidget(chip.widget),
+      };
+      for (final MapEntry(:key, :value) in controls.entries) {
+        final size = tester.getSize(value);
+        expect(size.width, greaterThanOrEqualTo(48), reason: key);
+        expect(size.height, greaterThanOrEqualTo(48), reason: key);
+      }
+      // A preset pill is as wide as its label, not the sheet.
+      for (final chip in byLogId('temperature.preset').evaluate()) {
+        expect(tester.getSize(find.byWidget(chip.widget)).width, lessThan(100));
+      }
+      // A minus and a plus say nothing on their own.
+      expect(
+        tester.getSemantics(byLogId('temperature.step_down')).label,
+        '−1°',
+      );
+      expect(tester.getSemantics(byLogId('temperature.step_up')).label, '+1°');
+      handle.dispose();
+    });
+  }
+
   testWidgets('the tile opens one sheet with a setting tab and a history tab', (
     tester,
   ) async {
@@ -2414,6 +2458,9 @@ void main() {
       (tester) async {
         // The ceiling reads 60 until the server version lands; a sheet opened
         // before that used to clamp the printer's 65 °C to 60 and send it.
+        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
         final commands = RecordingCommands();
         await tester.pumpWidget(
           _cardWithProviders(
@@ -3026,6 +3073,10 @@ void main() {
     );
 
     Future<void> openDetails(WidgetTester tester) async {
+      // The drying sheet is taller than the default 800 x 600 dp view.
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       await tester.tap(byLogId('printer.details_toggle'));
       await tester.pumpAndSettle();
     }
