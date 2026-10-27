@@ -396,6 +396,13 @@ do not stay silent because it was not part of the task.
   [sent_writes.dart](test/contract/sent_writes.dart)); a contract test replays that
   recording on the docker server and reads back what was stored. Mutate both sides
   to watch each fail. Leave for the device only what a host test cannot see.
+- **A widget or a11y test passes at more than 100 % text, not only at the
+  default.** Layout, overflow and tap-target checks run at text scale 1.0, 1.5
+  and 2.0 (`TextScaler.linear`): a control that is 48 dp at 100 % can shrink,
+  clip or push its neighbours out at 200 %, and an overflow there is a bug in the
+  app, not an unrealistic test. Parametrise the one test over the scales instead
+  of copying it, and check the fixture really produces the widest case (the
+  longest label, the optional row, a plug) before trusting a green run.
 - **The demo shows every feature.** A new gate or route family gets its demo
   routes and seed data in `lib/core/demo/demo_backend.dart` in the same branch,
   and the demo's reported server version must never be what hides a feature. Read
