@@ -940,9 +940,8 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
                   DashSpace.xl,
                   DashSpace.lg,
                 ),
+                // No spacing: each swatch's 48 dp cell already leaves 6 dp around it.
                 child: Wrap(
-                  spacing: DashSpace.sm,
-                  runSpacing: DashSpace.sm,
                   children: [
                     for (final entry in catalogue)
                       _CatalogueSwatch(
@@ -1022,15 +1021,21 @@ class _CatalogueSwatch extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: onTap,
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: colour,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: selected ? t.accentGreen : t.subCardBorder,
-              width: selected ? 2 : 1,
+        // The swatch paints 36 dp, its touch target is the 48 dp cell around it.
+        child: SizedBox.square(
+          dimension: kMinInteractiveDimension,
+          child: Center(
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: colour,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: selected ? t.accentGreen : t.subCardBorder,
+                  width: selected ? 2 : 1,
+                ),
+              ),
             ),
           ),
         ),

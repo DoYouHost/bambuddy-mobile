@@ -508,6 +508,8 @@ class _SpeedControl extends StatelessWidget {
           ),
       ],
       child: Container(
+        constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
+        alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(
           horizontal: DashSpace.md,
           vertical: DashSpace.md,

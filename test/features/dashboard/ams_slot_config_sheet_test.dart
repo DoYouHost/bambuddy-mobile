@@ -858,6 +858,10 @@ void main() {
       );
 
       expect(find.text(pl.amsSlotConfigColourCatalogue), findsOneWidget);
+      // Each swatch paints 36 dp but is a 48 dp cell to touch.
+      final cell = tester.getSize(byLogId('ams_slot_colour.swatch').first);
+      expect(cell.width, greaterThanOrEqualTo(48));
+      expect(cell.height, greaterThanOrEqualTo(48));
       expect(find.byTooltip('Bambu Green'), findsOneWidget);
       expect(
         find.byTooltip('Grey'),

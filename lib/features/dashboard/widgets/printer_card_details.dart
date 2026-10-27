@@ -169,28 +169,34 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
         children: [
           InkWell(
             onTap: () => setState(() => _expanded = !_expanded),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  size: 18,
-                  color: scheme.error,
-                ),
-                const SizedBox(width: DashSpace.sm),
-                Expanded(
-                  child: Text(
-                    l10n.hmsErrorsCount(widget.errors.length),
-                    style: DashTokens.of(
-                      context,
-                    ).bodyBold.copyWith(color: scheme.error),
+            child: Container(
+              constraints: const BoxConstraints(
+                minHeight: kMinInteractiveDimension,
+              ),
+              alignment: Alignment.center,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 18,
+                    color: scheme.error,
                   ),
-                ),
-                Icon(
-                  _expanded ? Icons.expand_less : Icons.expand_more,
-                  size: 20,
-                  color: scheme.error,
-                ),
-              ],
+                  const SizedBox(width: DashSpace.sm),
+                  Expanded(
+                    child: Text(
+                      l10n.hmsErrorsCount(widget.errors.length),
+                      style: DashTokens.of(
+                        context,
+                      ).bodyBold.copyWith(color: scheme.error),
+                    ),
+                  ),
+                  Icon(
+                    _expanded ? Icons.expand_less : Icons.expand_more,
+                    size: 20,
+                    color: scheme.error,
+                  ),
+                ],
+              ),
             ),
           ).tagged('printer.hms_expand'),
           if (_expanded) ...[
@@ -278,6 +284,24 @@ class _HmsErrorCardState extends ConsumerState<HmsErrorCard> {
   /// reported at once; the rest is a tap away.
   bool _fullText = false;
 
+  /// Whether [text] takes more than the two lines the card gives a fault.
+  static bool _exceedsTwoLines(
+    BuildContext context,
+    String text,
+    TextStyle style,
+    double width,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 2,
+    )..layout(maxWidth: width);
+    final exceeds = painter.didExceedMaxLines;
+    painter.dispose();
+    return exceeds;
+  }
+
   Future<void> _run(String action) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -333,12 +357,26 @@ class _HmsErrorCardState extends ConsumerState<HmsErrorCard> {
     final actions = error.fullCode == null
         ? const <String>[]
         : hmsRenderableActions(error.actions);
+    final buttonText = TextStyle(
+      fontFamily: DashTokens.fontUi,
+      fontSize: widget.large ? 15 : 12.5,
+      fontWeight: FontWeight.w600,
+    );
+    final wiki = url == null
+        ? null
+        : IconButton(
+            tooltip: l10n.hmsViewInWiki,
+            onPressed: () => unawaited(openWebLink(context, url)),
+            icon: Icon(Icons.open_in_new, size: 20, color: scheme.primary),
+          ).tagged('${widget.area}.open_url');
     return Container(
       margin: const EdgeInsets.only(top: DashSpace.sm),
-      padding: const EdgeInsets.fromLTRB(
+      // The link's 48 dp icon sits in the corner, so the right edge gives its
+      // padding to the icon instead of adding to it.
+      padding: EdgeInsets.fromLTRB(
         DashSpace.md,
         DashSpace.sm,
-        DashSpace.md,
+        wiki != null ? DashSpace.xs : DashSpace.md,
         DashSpace.sm,
       ),
       decoration: BoxDecoration(
@@ -352,94 +390,132 @@ class _HmsErrorCardState extends ConsumerState<HmsErrorCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (label != null) ...[
-            InkWell(
-              onTap: () => setState(() => _fullText = !_fullText),
-              child: Text(
-                label,
-                maxLines: _fullText ? null : 2,
-                overflow: _fullText ? null : TextOverflow.ellipsis,
-                style: (widget.large ? t.bodyStrong : t.bodyPlain).copyWith(
-                  color: t.textPrimary,
-                  height: 1.25,
-                ),
-              ),
-            ).tagged('${widget.area}.hms_description'),
-            const SizedBox(height: DashSpace.xs),
-          ],
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // The code goes under the text, inside the same touch target: a
+              // cut text plus the code is already taller than 48 dp, so the
+              // target costs no extra height.
               Expanded(
-                child: Text(
-                  error.displayCode,
-                  style: widget.large ? t.monoValue : t.monoMicro,
+                child: _text(
+                  t,
+                  label,
+                  below: Text(
+                    error.displayCode,
+                    style: widget.large ? t.monoValue : t.monoMicro,
+                  ),
                 ),
               ),
-              if (url != null)
-                InkWell(
-                  onTap: () => unawaited(openWebLink(context, url)),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        l10n.hmsViewInWiki,
-                        style: t.microSoft.copyWith(color: scheme.primary),
-                      ),
-                      const SizedBox(width: DashSpace.xs),
-                      Icon(Icons.open_in_new, size: 14, color: scheme.primary),
-                    ],
-                  ),
-                ).tagged('${widget.area}.open_url'),
+              ?wiki,
             ],
           ),
-          if (actions.isNotEmpty) ...[
-            const SizedBox(height: DashSpace.sm),
-            // A row per fault, not a button per line: the labels are short
-            // enough that three fit across a phone, and Wrap still breaks
-            // rather than overflowing when a translation or a font scale makes
-            // them wider.
-            Wrap(
-              spacing: DashSpace.sm,
-              runSpacing: DashSpace.sm,
-              children: [
-                for (final action in actions)
-                  // One id per action, not one for the whole row: the log has
-                  // to tell "resumed" from "stopped the print". Safe to
-                  // interpolate — the key comes from `hmsEffectiveActions`, a
-                  // fixed vocabulary, never from anything the user typed.
-                  logTag(
-                    '${widget.area}.hms_${action.toLowerCase()}',
-                    FilledButton.tonal(
-                      onPressed: widget.busy ? null : () => _run(action),
-                      style: FilledButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: DashSpace.lg,
+          if (actions.isNotEmpty)
+            // The buttons share the tile's width evenly, side by side while the
+            // widest label fits its half and one under the other when it does
+            // not; a Wrap left them at their own width, against the left edge.
+            Padding(
+              padding: EdgeInsets.only(
+                top: DashSpace.sm,
+                right: wiki != null ? DashSpace.sm : 0,
+              ),
+              child: ContentGrid(
+                maxColumns: actions.length,
+                minTileWidth:
+                    actions
+                        .map(
+                          (a) => textWidth(
+                            context,
+                            hmsActionLabel(l10n, a),
+                            buttonText,
+                          ),
+                        )
+                        .fold<double>(0, max) +
+                    2 * DashSpace.lg,
+                children: [
+                  for (final action in actions)
+                    // One id per action, not one for the whole row: the log has
+                    // to tell "resumed" from "stopped the print". Safe to
+                    // interpolate — the key comes from `hmsEffectiveActions`, a
+                    // fixed vocabulary, never from anything the user typed.
+                    logTag(
+                      '${widget.area}.hms_${action.toLowerCase()}',
+                      FilledButton.tonal(
+                        onPressed: widget.busy ? null : () => _run(action),
+                        style: FilledButton.styleFrom(
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: DashSpace.lg,
+                          ),
+                          minimumSize: Size(
+                            0,
+                            widget.large
+                                ? _largeHeight
+                                : kMinInteractiveDimension,
+                          ),
+                          textStyle: TextStyle(
+                            fontFamily: DashTokens.fontUi,
+                            fontSize: widget.large ? 15 : 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          backgroundColor: action == hmsStopAction
+                              ? scheme.errorContainer
+                              : null,
+                          foregroundColor: action == hmsStopAction
+                              ? scheme.onErrorContainer
+                              : null,
                         ),
-                        minimumSize: Size(0, widget.large ? _largeHeight : 34),
-                        textStyle: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: widget.large ? 15 : 12.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        backgroundColor: action == hmsStopAction
-                            ? scheme.errorContainer
-                            : null,
-                        foregroundColor: action == hmsStopAction
-                            ? scheme.onErrorContainer
-                            : null,
+                        child: _pending == action
+                            ? const DashSpinner(size: 14)
+                            : Text(hmsActionLabel(l10n, action)),
                       ),
-                      child: _pending == action
-                          ? const DashSpinner(size: 14)
-                          : Text(hmsActionLabel(l10n, action)),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ],
         ],
       ),
+    );
+  }
+
+  /// The fault's text, two lines until tapped; a cut text is a 48 dp button
+  /// (with [below] inside it, so a short text plus the code needs no padding).
+  Widget _text(DashTokens t, String? label, {Widget? below}) {
+    if (label == null) return below ?? const SizedBox.shrink();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final style = (widget.large ? t.bodyStrong : t.bodyPlain).copyWith(
+          color: t.textPrimary,
+          height: 1.25,
+        );
+        final text = Text(
+          label,
+          maxLines: _fullText ? null : 2,
+          overflow: _fullText ? null : TextOverflow.ellipsis,
+          style: style,
+        );
+        final column = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            text,
+            if (below != null) ...[const SizedBox(height: DashSpace.xs), below],
+          ],
+        );
+        final cut =
+            _fullText ||
+            _exceedsTwoLines(context, label, style, constraints.maxWidth);
+        if (!cut) return column;
+        return InkWell(
+          onTap: () => setState(() => _fullText = !_fullText),
+          child: Container(
+            constraints: const BoxConstraints(
+              minHeight: kMinInteractiveDimension,
+            ),
+            alignment: AlignmentDirectional.centerStart,
+            child: column,
+          ),
+        ).tagged('${widget.area}.hms_description');
+      },
     );
   }
 }
@@ -1020,35 +1096,63 @@ class _FilamentRow extends StatelessWidget {
 
     final textColor = active ? t.accentGreenInk : t.textSecondary;
 
-    final row = Padding(
-      padding: const EdgeInsets.only(bottom: DashSpace.sm),
-      child: Row(
+    // The row, its rule and the gap under it make the slot's touch target: 48 dp
+    // in all. The last row has no gap, so it takes the whole 48 itself. The extra
+    // height carries the level bar rather than empty space.
+    final row = Container(
+      constraints: BoxConstraints(
+        minHeight: last
+            ? kMinInteractiveDimension
+            : kMinInteractiveDimension - 1 - DashSpace.sm,
+      ),
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _ColorDot(color: dotColor, size: 9),
-          const SizedBox(width: DashSpace.sm),
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 12,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-                color: textColor,
+          Row(
+            children: [
+              _ColorDot(color: dotColor, size: 9),
+              const SizedBox(width: DashSpace.sm),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontMono,
+                    fontSize: 12,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
               ),
-            ),
+              if (trailing.isNotEmpty) ...[
+                const SizedBox(width: DashSpace.sm),
+                Text(
+                  trailing,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontMono,
+                    fontSize: 12,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+                    color: active ? t.accentGreenInk : t.textSecondary,
+                  ),
+                ),
+              ],
+            ],
           ),
-          if (trailing.isNotEmpty)
-            Text(
-              trailing,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 12,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-                color: active ? t.accentGreenInk : t.textSecondary,
+          if (percent != null) ...[
+            const SizedBox(height: DashSpace.xs),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: percent / 100,
+                minHeight: 4,
+                color: active ? t.accentGreen : t.textTertiary,
+                backgroundColor: t.gaugeTrack,
               ),
             ),
+          ],
         ],
       ),
     );

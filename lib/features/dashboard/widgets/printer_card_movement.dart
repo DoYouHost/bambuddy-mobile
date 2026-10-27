@@ -33,6 +33,10 @@ class _MovementTile extends ConsumerWidget {
                   _MovementSheet(printerId: printerId, model: model),
             ),
             child: Container(
+              constraints: const BoxConstraints(
+                minHeight: kMinInteractiveDimension,
+              ),
+              alignment: Alignment.center,
               padding: const EdgeInsets.symmetric(
                 horizontal: DashSpace.lg,
                 vertical: DashSpace.md,

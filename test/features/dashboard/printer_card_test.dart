@@ -867,6 +867,24 @@ void main() {
         // wide as its content unless it is given the whole line.
         if (doorBesideWifi) expect(door.left - wifi.right, greaterThan(40));
 
+        // The speed picker and a filament slot's row.
+        final slot = find.byWidgetPredicate(
+          (w) =>
+              w is Semantics &&
+              (w.properties.identifier ?? '').startsWith('printer.ams_slot'),
+        );
+        expect(slot, findsWidgets);
+        for (final MapEntry(:key, :value) in {
+          'speed': byLogId('controls.speed').first,
+          'slot': slot.first,
+        }.entries) {
+          expect(
+            tester.getSize(value).height,
+            greaterThanOrEqualTo(48),
+            reason: key,
+          );
+        }
+
         // The readings open their history and the control the drying sheet:
         // touch targets, however small they paint.
         for (final id in ['printer.ams_meta', 'printer.drying']) {
@@ -886,6 +904,38 @@ void main() {
         }
       });
     }
+
+    testWidgets('a slot with a fill shows its level as a bar in the row', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(411, 3000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.text(pl.detailsShow));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      // The 48 dp the touch target needs is spent on the bar, not on air.
+      final row = find.ancestor(
+        of: find.text('PLA Basic'),
+        matching: find.byType(InkWell),
+      );
+      expect(
+        find.descendant(
+          of: row.first,
+          matching: find.byType(LinearProgressIndicator),
+        ),
+        findsOneWidget,
+      );
+    });
 
     testWidgets('a lone 254 holder on a two-nozzle printer is the left one', (
       tester,
@@ -2715,6 +2765,105 @@ void main() {
       expect(find.textContaining('Asystent'), findsNothing);
     });
 
+    for (final scale in [1.0, 2.0]) {
+      testWidgets('the fault panel is made of 48 dp targets at text scale '
+          '$scale', (tester) async {
+        tester.view.physicalSize = const Size(411, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MediaQuery(
+            data: MediaQueryData(
+              textScaler: TextScaler.linear(scale),
+              size: const Size(411, 3000),
+            ),
+            child: _cardWithProviders(itemWith(const [_runoutWithActions])),
+          ),
+        );
+        await tester.tap(find.text(pl.hmsErrorsCount(1)));
+        await tester.pumpAndSettle();
+
+        // The header that folds the panel, the wiki link and the action buttons.
+        final targets = {
+          'header': byLogId('printer.hms_expand').first,
+          'wiki link': byLogId('printer.open_url').first,
+          'resume': find.widgetWithText(FilledButton, pl.ctrlResume),
+        };
+        for (final MapEntry(:key, :value) in targets.entries) {
+          expect(
+            tester.getSize(value).height,
+            greaterThanOrEqualTo(48),
+            reason: key,
+          );
+        }
+      });
+    }
+
+    // The buttons share the tile's width evenly instead of sitting at their own
+    // width against the left edge: side by side while the widest label fits its
+    // half, one under the other when it does not.
+    for (final (scale, columns) in [(1.0, 2), (2.0, 1)]) {
+      testWidgets('the fault buttons share the width in $columns column(s) at '
+          'text scale $scale', (tester) async {
+        tester.view.physicalSize = const Size(411, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MediaQuery(
+            data: MediaQueryData(
+              textScaler: TextScaler.linear(scale),
+              size: const Size(411, 3000),
+            ),
+            child: _cardWithProviders(itemWith(const [_runoutWithActions])),
+          ),
+        );
+        await tester.tap(find.text(pl.hmsErrorsCount(1)));
+        await tester.pumpAndSettle();
+
+        final resume = tester.getRect(
+          find.widgetWithText(FilledButton, pl.ctrlResume),
+        );
+        final stop = tester.getRect(
+          find.widgetWithText(FilledButton, pl.hmsActionStopPrinting),
+        );
+        expect(stop.width, closeTo(resume.width, 0.5));
+        expect(stop.top == resume.top, columns == 2);
+        if (columns == 2) {
+          expect(stop.left - resume.right, 8); // DashSpace.sm
+        } else {
+          // Stacked, each takes the whole width of the tile.
+          expect(stop.left, resume.left);
+          expect(resume.width, greaterThan(250));
+        }
+      });
+    }
+
+    testWidgets('a lone fault button takes the whole width of the tile', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(411, 3000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      const single = HmsError(
+        code: '0x7777',
+        attr: 0x03007777,
+        module: 3,
+        severity: 3,
+        fullCode: '03007777',
+        jobId: '1',
+        // A short label, so two columns would fit: the cap is what widens it.
+        actions: ['RESUME_PRINTING'],
+        // Uncatalogued faults are shown only with a sentence of their own.
+        description: 'Short fault with one action.',
+      );
+      await tester.pumpWidget(_cardWithProviders(itemWith(const [single])));
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
+      await tester.pumpAndSettle();
+
+      // Half a row of room is not a reason to leave it at half the width.
+      expect(tester.getSize(find.byType(FilledButton)).width, greaterThan(250));
+    });
+
     testWidgets('an action sends the full code verbatim, with its job id', (
       tester,
     ) async {
@@ -2819,25 +2968,49 @@ void main() {
     testWidgets('a long description is cut to two lines until tapped', (
       tester,
     ) async {
-      // 0300_8016 is one of the wordy ones. Three faults each spending five
-      // lines on prose is how the card ran off the screen.
-      final clog = HmsError.fromJson(const {
-        'code': '0x8016',
-        'attr': 0x03008016,
-        'full_code': '03008016',
-      });
-      await tester.pumpWidget(_cardWithProviders(itemWith([clog])));
+      // Bambu's prose runs past 100 characters; this one takes four lines at
+      // phone width. Three faults each spending that many lines is how the card
+      // ran off the screen.
+      const wordy = HmsError(
+        code: '0x9999',
+        attr: 0x03009999,
+        module: 3,
+        severity: 3,
+        fullCode: '03009999',
+        description:
+            'Wordy fault. The nozzle is clogged and the printer cannot continue: '
+            'clean the nozzle and the extruder gears, check the filament path for '
+            'a break, then confirm on the printer screen before resuming the job.',
+      );
+      // A phone: on the default 800 dp window the text fits in two lines and
+      // there is nothing to expand.
+      tester.view.physicalSize = const Size(411, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(_cardWithProviders(itemWith(const [wordy])));
       await tester.tap(find.text(pl.hmsErrorsCount(1)));
       await tester.pumpAndSettle();
 
-      final description = find.textContaining(
-        pl.tempNozzleNumbered('jest zatkana'),
-      );
+      final description = find.textContaining('Wordy fault');
       expect(tester.widget<Text>(description).maxLines, 2);
+      // The cut text is the button, and a 48 dp one.
+      expect(
+        tester.getSize(byLogId('printer.hms_description').first).height,
+        greaterThanOrEqualTo(48),
+      );
 
       await tester.tap(description);
       await tester.pumpAndSettle();
       expect(tester.widget<Text>(description).maxLines, isNull);
+    });
+
+    testWidgets('a description that fits is not a button', (tester) async {
+      // Nothing to expand, so no touch target of its own to add height for.
+      await tester.pumpWidget(_cardWithProviders(itemWith(const [_runout])));
+      await tester.tap(find.text(pl.hmsErrorsCount(1)));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('printer.hms_description'), findsNothing);
     });
 
     testWidgets('the description no longer names the button below it', (
@@ -4288,6 +4461,18 @@ void main() {
       printer: Printer(id: 3, name: 'Slinger', model: model),
       status: const PrinterStatus(id: 3, connected: true, state: 'IDLE'),
     );
+
+    testWidgets('the movement button is a 48 dp target', (tester) async {
+      await tester.pumpWidget(_cardWithProviders(idle('A1')));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('printer.details_toggle'));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getSize(byLogId('printer.move').first).height,
+        greaterThanOrEqualTo(48),
+      );
+    });
 
     Future<_JogRecorder> openMovement(
       WidgetTester tester,
