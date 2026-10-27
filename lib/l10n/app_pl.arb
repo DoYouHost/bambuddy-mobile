@@ -706,7 +706,6 @@
   "sensorHistoryError": "Nie udało się wczytać historii",
   "amsHistoryRecordingInfo": "Zapisywane co 5 minut, gdy drukarka jest połączona",
   "heaterHistoryTitle": "Historia temperatur",
-  "heaterHistoryOpen": "Historia temperatur",
   "heaterHistoryReading": "Odczyt",
   "heaterHistoryTarget": "Zadana",
   "heaterHistoryRecordingInfo": "Zapisywane co minutę, gdy drukarka jest połączona",

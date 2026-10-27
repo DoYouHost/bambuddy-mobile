@@ -1101,7 +1101,6 @@
   "sensorHistoryError": "Couldn't load history",
   "amsHistoryRecordingInfo": "Recorded every 5 minutes while the printer is connected",
   "heaterHistoryTitle": "Temperature history",
-  "heaterHistoryOpen": "Temperature history",
   "heaterHistoryReading": "Reading",
   "heaterHistoryTarget": "Target",
   "heaterHistoryRecordingInfo": "Recorded every minute while the printer is connected",

@@ -841,7 +841,6 @@
   "sensorHistoryError": "Verlauf konnte nicht geladen werden",
   "amsHistoryRecordingInfo": "Wird alle 5 Minuten aufgezeichnet, während der Drucker verbunden ist",
   "heaterHistoryTitle": "Temperaturverlauf",
-  "heaterHistoryOpen": "Temperaturverlauf",
   "heaterHistoryReading": "Messwert",
   "heaterHistoryTarget": "Zielwert",
   "heaterHistoryRecordingInfo": "Wird jede Minute aufgezeichnet, während der Drucker verbunden ist",

@@ -5,6 +5,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../helpers.dart';
 
@@ -61,13 +62,17 @@ HeaterHistory _history({List<HeaterHistoryPoint>? nozzle}) => HeaterHistory(
 );
 
 void main() {
-  Future<void> pumpSheet(WidgetTester tester, _StubRepo repo) async {
+  Future<void> pumpSheet(
+    WidgetTester tester,
+    _StubRepo repo, {
+    String kind = 'nozzle',
+  }) async {
     await pumpPhone(
       tester,
-      const HeaterHistorySheet(
-        printerId: 3,
-        kinds: [(kind: 'nozzle', label: 'Dysza'), (kind: 'bed', label: 'Stół')],
-        initialKind: 'nozzle',
+      Scaffold(
+        body: SingleChildScrollView(
+          child: HeaterHistoryPanel(printerId: 3, kind: kind),
+        ),
       ),
       overrides: [heaterHistoryRepositoryProvider.overrideWithValue(repo)],
     );
@@ -96,7 +101,7 @@ void main() {
     expect(find.text('220.4°C'), findsOneWidget);
   });
 
-  testWidgets('changing sensor and range re-queries', (tester) async {
+  testWidgets('changing the range re-queries', (tester) async {
     final repo = _StubRepo(history: _history());
 
     await pumpSheet(tester, repo);
@@ -104,11 +109,16 @@ void main() {
     await tester.tap(find.text(pl.sensorHistoryRange6h));
     await tester.pumpAndSettle();
     expect(repo.lastHours, 6);
+  });
 
-    // Bed has no points — empty state instead of a chart.
-    await tester.tap(find.text(pl.tempBed));
-    await tester.pumpAndSettle();
-    expect(repo.lastKinds, ['bed']); // new sensor = new query
+  testWidgets('a sensor with no points shows the empty state, not a chart', (
+    tester,
+  ) async {
+    final repo = _StubRepo(history: _history());
+
+    await pumpSheet(tester, repo, kind: 'bed');
+
+    expect(repo.lastKinds, ['bed']);
     expect(find.text(pl.sensorHistoryEmpty), findsOneWidget);
     expect(find.byType(LineChart), findsNothing);
   });

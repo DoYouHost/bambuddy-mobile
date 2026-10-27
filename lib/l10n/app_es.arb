@@ -841,7 +841,6 @@
   "sensorHistoryError": "No se pudo cargar el historial",
   "amsHistoryRecordingInfo": "Se registra cada 5 minutos mientras la impresora está conectada",
   "heaterHistoryTitle": "Historial de temperatura",
-  "heaterHistoryOpen": "Historial de temperatura",
   "heaterHistoryReading": "Lectura",
   "heaterHistoryTarget": "Objetivo",
   "heaterHistoryRecordingInfo": "Se registra cada minuto mientras la impresora está conectada",

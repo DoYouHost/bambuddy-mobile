@@ -59,7 +59,6 @@ import '../../../core/theme/dash_theme.dart';
 import 'ams_slot_config_sheet.dart';
 import 'ams_history_sheet.dart';
 import 'heater_history_sheet.dart';
-import 'temp_gauge.dart';
 import '../../../core/diagnostics/filament_material.dart';
 import '../../tour/tour_beacon.dart';
 

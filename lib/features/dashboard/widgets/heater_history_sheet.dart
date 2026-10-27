@@ -13,10 +13,6 @@ import '../../../providers.dart';
 import '../../common/dash_async.dart';
 import 'history_chart_parts.dart';
 
-/// One selectable sensor: the server's key plus the label the card already
-/// shows for that tile, so the sheet doesn't translate sensor names twice.
-typedef HeaterKindOption = ({String kind, String label});
-
 /// Query key for [heaterHistoryDataProvider]: which sensor over which window.
 typedef HeaterHistoryQuery = ({int printerId, int hours, String kind});
 
@@ -36,132 +32,93 @@ final heaterHistoryDataProvider = FutureProvider.autoDispose
           );
     });
 
-/// Whether the temperature tiles offer their chart shortcut at all: the server
-/// has the route and this session may read it. A 404 or a 403 inside the sheet
-/// takes the icon away as soon as the latch records it.
+/// Whether the temperature sheet offers its history at all: the server has the
+/// route and this session may read it. A 404 or a 403 inside the panel closes
+/// the gate as soon as the latch records it.
 final heaterHistorySupportedProvider = capabilityGate(
   (ref) => ref.watch(heaterHistoryRepositoryProvider).historyCapability,
 );
 
-/// Opens the heater history chart (nozzle / bed / chamber) as a bottom sheet.
-/// [kinds] are the sensors this printer actually shows, [initialKind] the tile
-/// the chart icon was tapped on.
-Future<void> showHeaterHistorySheet(
-  BuildContext context, {
-  required int printerId,
-  required List<HeaterKindOption> kinds,
-  required String initialKind,
-}) {
-  return dashSheet<void>(
-    context,
-    builder: (_) => HeaterHistorySheet(
-      printerId: printerId,
-      kinds: kinds,
-      initialKind: initialKind,
-    ),
-  );
-}
-
-class HeaterHistorySheet extends ConsumerStatefulWidget {
-  const HeaterHistorySheet({
+/// The heater history of one sensor: the window selector, the stats and the
+/// chart. It is the "Historia temperatur" tab of the temperature sheet, and the
+/// whole body of that sheet for a tile that cannot be set — one panel for both.
+class HeaterHistoryPanel extends ConsumerStatefulWidget {
+  const HeaterHistoryPanel({
     super.key,
     required this.printerId,
-    required this.kinds,
-    required this.initialKind,
+    required this.kind,
   });
 
   final int printerId;
-  final List<HeaterKindOption> kinds;
-  final String initialKind;
+
+  /// The server's sensor key: `nozzle`, `nozzle_2`, `bed` or `chamber`.
+  final String kind;
 
   @override
-  ConsumerState<HeaterHistorySheet> createState() => _HeaterHistorySheetState();
+  ConsumerState<HeaterHistoryPanel> createState() => _HeaterHistoryPanelState();
 }
 
-class _HeaterHistorySheetState extends ConsumerState<HeaterHistorySheet> {
+class _HeaterHistoryPanelState extends ConsumerState<HeaterHistoryPanel> {
   static const _ranges = [6, 24, 48, 168];
 
-  late String _kind = widget.kinds.any((k) => k.kind == widget.initialKind)
-      ? widget.initialKind
-      : widget.kinds.first.kind;
   int _hours = 24;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final query = (printerId: widget.printerId, hours: _hours, kind: _kind);
+    final query = (
+      printerId: widget.printerId,
+      hours: _hours,
+      kind: widget.kind,
+    );
     final async = ref.watch(heaterHistoryDataProvider(query));
 
     return logTag(
       'sheet.heater_history',
-      SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            DashSpace.gutter,
-            0,
-            DashSpace.gutter,
-            DashSpace.lg,
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          HistoryRangeSelector(
+            ranges: _ranges,
+            selected: _hours,
+            labelOf: (h) => sensorRangeLabel(l10n, h),
+            onChanged: (h) => setState(() => _hours = h),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(l10n.heaterHistoryTitle, style: theme.textTheme.titleMedium),
-              const SizedBox(height: DashSpace.md),
-              if (widget.kinds.length > 1) ...[
-                SegmentedButton<String>(
-                  showSelectedIcon: false,
-                  segments: [
-                    for (final k in widget.kinds)
-                      ButtonSegment(value: k.kind, label: Text(k.label)),
-                  ],
-                  selected: {_kind},
-                  onSelectionChanged: (s) => setState(() => _kind = s.first),
-                ),
-                const SizedBox(height: DashSpace.sm),
-              ],
-              HistoryRangeSelector(
-                ranges: _ranges,
-                selected: _hours,
-                labelOf: (h) => sensorRangeLabel(l10n, h),
-                onChanged: (h) => setState(() => _hours = h),
-              ),
-              const SizedBox(height: DashSpace.lg),
-              dashAsyncStrip(
-                context,
-                async,
-                height: 260,
-                failureMessage: l10n.sensorHistoryError,
-                data: (history) => _Content(
-                  series: history.seriesFor(_kind),
-                  color: _kindColor(_kind),
-                  hours: _hours,
-                ),
-              ),
-              const SizedBox(height: DashSpace.md),
-              Text(
-                l10n.heaterHistoryRecordingInfo,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+          const SizedBox(height: DashSpace.lg),
+          dashAsyncStrip(
+            context,
+            async,
+            height: 260,
+            failureMessage: l10n.sensorHistoryError,
+            data: (history) => _Content(
+              series: history.seriesFor(widget.kind),
+              color: _kindColor(widget.kind),
+              hours: _hours,
+            ),
           ),
-        ),
+          const SizedBox(height: DashSpace.md),
+          Text(
+            l10n.heaterHistoryRecordingInfo,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
     );
   }
-
-  /// Same hue per sensor as the live tile reads: hot end orange, bed blue,
-  /// chamber green.
-  static Color _kindColor(String kind) => switch (kind) {
-    'bed' => const Color(0xFF3B82F6),
-    'chamber' => const Color(0xFF10B981),
-    _ => const Color(0xFFF97316),
-  };
 }
+
+/// Same hue per sensor as the live tile reads: hot end orange, bed blue,
+/// chamber green.
+Color _kindColor(String kind) => switch (kind) {
+  'bed' => const Color(0xFF3B82F6),
+  'chamber' => const Color(0xFF10B981),
+  _ => const Color(0xFFF97316),
+};
 
 class _Content extends StatelessWidget {
   const _Content({

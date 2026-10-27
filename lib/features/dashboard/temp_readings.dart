@@ -35,10 +35,6 @@ class TempReading {
   /// identifier falls back to the bare tile name rather than going in verbatim.
   String get logId => _logId('printer.temperature');
 
-  /// Identifier of the tile's history shortcut, sensor by sensor for the same
-  /// reason [logId] is.
-  String get historyLogId => _logId('printer.temperature_history');
-
   String _logId(String base) =>
       RegExp(r'^\w+$').hasMatch(raw) ? '${base}_$raw' : base;
 

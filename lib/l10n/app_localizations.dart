@@ -2996,12 +2996,6 @@ abstract class AppLocalizations {
   /// **'Temperature history'**
   String get heaterHistoryTitle;
 
-  /// No description provided for @heaterHistoryOpen.
-  ///
-  /// In en, this message translates to:
-  /// **'Temperature history'**
-  String get heaterHistoryOpen;
-
   /// No description provided for @heaterHistoryReading.
   ///
   /// In en, this message translates to:

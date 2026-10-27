@@ -183,23 +183,29 @@ void main() {
   );
 
   // --- heater history -------------------------------------------------------------
+  // A tab of the temperature sheet, and the whole sheet of a tile that cannot be
+  // set.
+
+  Future<void> openHistoryTab(WidgetTester tester, String tile) async {
+    await a11yTap(tester, byLogId(tile));
+    await a11yTap(tester, byLogId('temperature.tab_history'));
+    await a11yRealTime(tester, real: const Duration(milliseconds: 300));
+    // The chart's own timer starts when the answer lands.
+    await a11ySettle(tester, const Duration(milliseconds: 500));
+  }
 
   _card(
     'heater history',
     status: _status(6, _idle),
-    arrange: (tester) async {
-      await a11yTap(tester, byLogId('printer.temperature_history_chamber'));
-      await a11yRealTime(tester, real: const Duration(milliseconds: 300));
-    },
+    arrange: (tester) => openHistoryTab(tester, 'printer.temperature_chamber'),
     shows: byLogId('sheet.heater_history'),
   );
   _card(
-    'heater history, other sensor and a week',
+    'heater history, a week',
     status: _status(6, _idle),
     arrange: (tester) async {
-      await a11yTap(tester, byLogId('printer.temperature_history_nozzle'));
-      await _tapSegment<String>(tester, 1);
-      await _tapSegment<int>(tester, 3);
+      await openHistoryTab(tester, 'printer.temperature_nozzle');
+      await a11yTap(tester, find.text(pl.sensorHistoryRange7d));
       await a11yRealTime(tester, real: const Duration(milliseconds: 300));
     },
     shows: byLogId('sheet.heater_history'),
@@ -213,8 +219,7 @@ void main() {
       ),
     ],
     status: _status(6, _idle),
-    arrange: (tester) =>
-        a11yTap(tester, byLogId('printer.temperature_history_nozzle')),
+    arrange: (tester) => openHistoryTab(tester, 'printer.temperature_nozzle'),
     shows: find.text(pl.sensorHistoryEmpty),
   );
   _card(
@@ -227,9 +232,20 @@ void main() {
       ),
     ],
     status: _status(6, _idle),
-    arrange: (tester) =>
-        a11yTap(tester, byLogId('printer.temperature_history_nozzle')),
+    arrange: (tester) => openHistoryTab(tester, 'printer.temperature_nozzle'),
     shows: find.text(pl.sensorHistoryError),
+  );
+  _card(
+    'heater history, a tile that cannot be set',
+    status: _status(6, _idle),
+    overrides: [
+      controlRefusedProvider(ControlPermission.control).overrideWithValue(true),
+    ],
+    arrange: (tester) async {
+      await a11yTap(tester, byLogId('printer.temperature_chamber'));
+      await a11yRealTime(tester, real: const Duration(milliseconds: 300));
+    },
+    shows: byLogId('sheet.heater_history'),
   );
 
   // --- fan and movement sheets ----------------------------------------------------

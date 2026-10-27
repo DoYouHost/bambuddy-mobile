@@ -1798,9 +1798,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get heaterHistoryTitle => 'Historial de temperatura';
 
   @override
-  String get heaterHistoryOpen => 'Historial de temperatura';
-
-  @override
   String get heaterHistoryReading => 'Lectura';
 
   @override

@@ -469,7 +469,11 @@ void main() {
     expect(find.text('220°'), findsOneWidget);
     expect(find.text(pl.tempBed.toUpperCase()), findsOneWidget);
     expect(find.text('60°'), findsOneWidget);
-    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    // The print's progress, and the bar of every temperature tile (each has
+    // one arrow for its setpoint).
+    final tiles = find.byIcon(Icons.arrow_forward).evaluate().length;
+    expect(tiles, greaterThanOrEqualTo(2));
+    expect(find.byType(LinearProgressIndicator), findsNWidgets(tiles + 1));
   });
 
   testWidgets('controls bar: fans, speed and light from fixture', (
@@ -558,42 +562,46 @@ void main() {
     expect(find.text('12°'), findsOneWidget);
   });
 
-  testWidgets('chart icon on tile opens temperature history', (tester) async {
-    await tester.pumpWidget(
-      _cardWithProviders(
-        const PrinterWithStatus(
-          printer: Printer(id: 3, name: 'X2D'),
-          status: PrinterStatus(
-            id: 3,
-            connected: true,
-            state: 'IDLE',
-            temperatures: {'nozzle': 244, 'bed': 70},
-          ),
-        ),
-        extra: [
-          heaterHistoryRepositoryProvider.overrideWithValue(
-            _EmptyHeaterHistory(),
-          ),
-        ],
+  Widget historyCard({List<Override> extra = const []}) => _cardWithProviders(
+    const PrinterWithStatus(
+      printer: Printer(id: 3, name: 'X2D'),
+      status: PrinterStatus(
+        id: 3,
+        connected: true,
+        state: 'IDLE',
+        temperatures: {'nozzle': 244, 'bed': 70},
       ),
-    );
+    ),
+    extra: [
+      heaterHistoryRepositoryProvider.overrideWithValue(_EmptyHeaterHistory()),
+      ...extra,
+    ],
+  );
+
+  testWidgets('the tile opens one sheet with a setting tab and a history tab', (
+    tester,
+  ) async {
+    await tester.pumpWidget(historyCard());
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      byLogId('printer.temperature_history_nozzle'),
-      warnIfMissed: false,
-    );
+    await tester.tap(find.text('DYSZA'));
     await tester.pumpAndSettle();
 
-    expect(find.text(pl.heaterHistoryTitle), findsOneWidget);
-    // Sheet switches between this printer's sensors (tile labels).
-    expect(find.text(pl.tempNozzle), findsOneWidget);
-    expect(find.text(pl.tempBed), findsOneWidget);
+    // Opens on the setting tab.
+    expect(find.text(pl.ctrlSet), findsWidgets);
+    expect(byLogId('temperature.set'), findsOneWidget);
+    expect(byLogId('sheet.heater_history'), findsNothing);
+
+    await tester.tap(byLogId('temperature.tab_history'));
+    await tester.pumpAndSettle();
+
+    expect(byLogId('sheet.heater_history'), findsOneWidget);
+    expect(byLogId('temperature.set'), findsNothing);
+    // The sensor is the tile's own: no switcher between sensors any more.
+    expect(find.text(pl.tempBed), findsNothing);
   });
 
-  /// The icon itself is a 22px target inside the tile's InkWell: a miss
-  /// opened the temperature-setting sheet. The whole label bar is clickable.
-  testWidgets('sensor label opens history, not the setting sheet', (
+  testWidgets('a tile shows the reading, its setpoint and a bar', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -604,13 +612,30 @@ void main() {
             id: 3,
             connected: true,
             state: 'IDLE',
-            temperatures: {'nozzle': 244, 'bed': 70},
+            temperatures: {'nozzle': 244, 'nozzle_target': 250, 'bed': 70},
           ),
         ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('244°'), findsOneWidget);
+    expect(find.text('250°'), findsOneWidget); // the setpoint
+    expect(find.text('-'), findsOneWidget); // the bed has none
+    expect(find.byIcon(Icons.arrow_forward), findsNWidgets(2));
+    expect(find.byType(LinearProgressIndicator), findsNWidgets(2));
+  });
+
+  testWidgets('a tile that cannot be set opens the history alone', (
+    tester,
+  ) async {
+    // The server refused the control gate: the tile is read-only.
+    await tester.pumpWidget(
+      historyCard(
         extra: [
-          heaterHistoryRepositoryProvider.overrideWithValue(
-            _EmptyHeaterHistory(),
-          ),
+          controlRefusedProvider(
+            ControlPermission.control,
+          ).overrideWithValue(true),
         ],
       ),
     );
@@ -619,24 +644,16 @@ void main() {
     await tester.tap(find.text('DYSZA'));
     await tester.pumpAndSettle();
 
-    expect(find.text(pl.heaterHistoryTitle), findsOneWidget);
-    expect(find.text(pl.ctrlSet), findsNothing); // setting sheet did not open
+    expect(byLogId('sheet.heater_history'), findsOneWidget);
+    expect(byLogId('temperature.tab_history'), findsNothing); // nothing to tab
+    expect(byLogId('temperature.set'), findsNothing);
   });
 
-  testWidgets('server without heater history: tiles without chart icon', (
+  testWidgets('server without heater history: tiles set, with no history tab', (
     tester,
   ) async {
     await tester.pumpWidget(
-      _cardWithProviders(
-        const PrinterWithStatus(
-          printer: Printer(id: 3, name: 'X2D'),
-          status: PrinterStatus(
-            id: 3,
-            connected: true,
-            state: 'IDLE',
-            temperatures: {'nozzle': 244, 'bed': 70},
-          ),
-        ),
+      historyCard(
         extra: [
           heaterHistorySupportedProvider.overrideWithValue(
             const AsyncData(false),
@@ -646,8 +663,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('DYSZA'));
+    await tester.pumpAndSettle();
+
+    expect(byLogId('temperature.set'), findsOneWidget);
+    expect(byLogId('temperature.tab_history'), findsNothing);
     expect(find.byIcon(Icons.show_chart), findsNothing);
-    expect(find.text('DYSZA'), findsOneWidget); // the tile itself remains
   });
 
   testWidgets('card without status collapses to header with OFFLINE label', (
@@ -2388,39 +2409,6 @@ void main() {
       );
     });
 
-    testWidgets('history shortcut has its own identifier per sensor', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _cardWithProviders(
-          const PrinterWithStatus(
-            printer: Printer(id: 1, name: 'X2D'),
-            status: PrinterStatus(
-              id: 1,
-              connected: true,
-              temperatures: {'nozzle': 220, 'bed': 55, 'unknownthing': 12},
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final ids = identifiersIn(tester).toSet();
-      expect(
-        ids,
-        containsAll(<String>{
-          'printer.temperature_history_nozzle',
-          'printer.temperature_history_bed',
-        }),
-      );
-      // A sensor the server doesn't report gets no chart icon —
-      // the chart would be empty.
-      expect(
-        ids.where((i) => i.startsWith('printer.temperature_history')),
-        hasLength(2),
-      );
-    });
-
     testWidgets(
       'a chamber target above the ceiling still read is applied as it is',
       (tester) async {
@@ -3769,6 +3757,140 @@ void main() {
           button: 'Zwiń kartę',
         ),
       );
+    });
+
+    group('the temperature tiles on a narrow phone', () {
+      // The widest readings a tile gets: three-digit nozzles and bed, and the
+      // chamber with its air-duct glyph before the digits. Any overflow fails
+      // the test on its own; the geometry below is what an overflow-free layout
+      // can still get wrong.
+      const hot = PrinterWithStatus(
+        printer: Printer(id: 1, name: 'X2D', model: 'X2D'),
+        status: PrinterStatus(
+          id: 1,
+          connected: true,
+          state: 'IDLE',
+          airductMode: 1,
+          temperatures: {
+            'nozzle': 300,
+            'nozzle_target': 300,
+            'nozzle_2': 288,
+            'nozzle_2_target': 290,
+            'bed': 120,
+            'bed_target': 120,
+            'chamber': 65,
+            'chamber_target': 65,
+          },
+        ),
+      );
+
+      // Width, text scale, columns the grid must pick, tile height measured.
+      for (final (width, scale, columns, height) in [
+        (320.0, 1.0, 2, 106.0),
+        (320.0, 1.3, 2, 122.0),
+        (360.0, 2.0, 1, 162.0),
+      ]) {
+        testWidgets(
+          '${width.round()} dp at text scale $scale: $columns column(s), the '
+          'digits whole and inside the tile',
+          (tester) async {
+            tester.view.physicalSize = Size(width, 2400);
+            tester.view.devicePixelRatio = 1;
+            addTearDown(tester.view.reset);
+            await tester.pumpWidget(
+              _scope(
+                Builder(
+                  builder: (context) => MediaQuery(
+                    data: MediaQuery.of(
+                      context,
+                    ).copyWith(textScaler: TextScaler.linear(scale)),
+                    child: const Scaffold(
+                      body: SingleChildScrollView(
+                        child: PrinterCard(item: hot),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+            await tester.pumpAndSettle();
+            expect(tester.takeException(), isNull);
+
+            final bars = find.byType(LinearProgressIndicator);
+            expect(bars, findsNWidgets(4));
+            final tileRects = [
+              for (final bar in bars.evaluate())
+                tester.getRect(
+                  find
+                      .ancestor(
+                        of: find.byWidget(bar.widget),
+                        matching: find.byType(Container),
+                      )
+                      .first,
+                ),
+            ];
+            // Same width and height everywhere, so a row stays level.
+            for (final r in tileRects) {
+              expect(r.width, closeTo(tileRects.first.width, 0.5));
+              expect(r.height, closeTo(height, 2.0));
+            }
+            final distinctLefts = {for (final r in tileRects) r.left.round()};
+            expect(distinctLefts, hasLength(columns));
+
+            // The digits keep 26 dp times the text scale, and sit in their tile.
+            final digitTexts = find.byWidgetPredicate(
+              (w) => w is Text && w.style?.fontSize == 26,
+            );
+            expect(digitTexts, findsNWidgets(4));
+            for (final text in digitTexts.evaluate()) {
+              final rect = tester.getRect(find.byWidget(text.widget));
+              expect(rect.height, closeTo(26 * scale, 0.6));
+              final tile = tileRects.firstWhere((r) => r.contains(rect.center));
+              expect(rect.left, greaterThanOrEqualTo(tile.left));
+              expect(rect.right, lessThanOrEqualTo(tile.right));
+              expect(rect.bottom, lessThanOrEqualTo(tile.bottom));
+            }
+
+            // The chamber's glyph stops before its digits, inside the tile.
+            final glyph = find.byIcon(Icons.local_fire_department);
+            expect(glyph, findsOneWidget);
+            final glyphRect = tester.getRect(glyph);
+            final chamberDigits = tester.getRect(
+              find.ancestor(of: glyph, matching: find.byType(Row)).first,
+            );
+            final chamberTile = tileRects.firstWhere(
+              (r) => r.contains(glyphRect.center),
+            );
+            expect(glyphRect.left, greaterThanOrEqualTo(chamberTile.left));
+            expect(chamberDigits.right, lessThanOrEqualTo(chamberTile.right));
+          },
+        );
+      }
+
+      test('the grid is one column exactly where the digits would not fit', () {
+        const digits = TextStyle(
+          fontFamily: 'JetBrainsMono',
+          fontSize: 26,
+          fontWeight: FontWeight.w500,
+          height: 1.0,
+        );
+        int columns(double width, double scale, {bool glyph = false}) =>
+            tempGridColumns(
+              width: width,
+              digits: digits,
+              scaler: TextScaler.linear(scale),
+              textDirection: TextDirection.ltr,
+              airductGlyph: glyph,
+            );
+
+        expect(columns(254, 1.0), 2);
+        expect(columns(254, 1.3), 2);
+        expect(columns(294, 2.0), 1);
+        expect(columns(150, 1.0), 1);
+        // The air-duct glyph alone tips a width the nozzle's digits still fit.
+        expect(columns(226, 1.3), 2);
+        expect(columns(226, 1.3, glyph: true), 1);
+      });
     });
 
     group('at the largest text size on a 360 dp phone', () {

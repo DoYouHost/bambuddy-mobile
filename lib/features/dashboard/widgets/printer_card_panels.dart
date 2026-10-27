@@ -340,7 +340,42 @@ class _CoverThumbnail extends StatelessWidget {
   }
 }
 
-/// 2-column grid of temperature gauge tiles. Tiles are tappable to set targets
+/// Two columns, or one when a tile of the two-column grid could not hold its
+/// digits at this text size: the digits keep their full size, so it is the grid
+/// that gives way. The widest reading is measured, not the one on screen, so the
+/// layout does not jump between one column and two when a nozzle passes 100 °C:
+/// `000°` for a nozzle or the bed, and for the chamber `00°` after its air-duct
+/// glyph (the server's ceiling is 65 °C).
+int tempGridColumns({
+  required double width,
+  required TextStyle digits,
+  required TextScaler scaler,
+  required TextDirection textDirection,
+  required bool airductGlyph,
+}) {
+  const spacing = 8.0;
+  double measure(String text) => (TextPainter(
+    text: TextSpan(text: text, style: digits),
+    textDirection: textDirection,
+    textScaler: scaler,
+  )..layout()).width;
+  final glyph = 20.0 + DashSpace.xs;
+  final widest = airductGlyph
+      ? [
+          measure('000°'),
+          glyph + measure('00°'),
+        ].reduce((a, b) => a > b ? a : b)
+      : measure('000°');
+  final inner = (width - spacing) / 2 - tileChrome;
+  return widest > inner ? 1 : 2;
+}
+
+/// Padding and border a temperature tile spends sideways: 12 dp of padding and
+/// 1 dp of border on each side.
+const tileChrome = 2 * (DashSpace.md + 1);
+
+/// Grid of temperature tiles, two columns where the digits fit (see
+/// [tempGridColumns]). Tiles are tappable to set targets
 /// (see [_GaugeTile]); [printerId]/[model] are threaded down for the command
 /// and capability gating.
 class _TempGrid extends StatelessWidget {
@@ -367,17 +402,20 @@ class _TempGrid extends StatelessWidget {
     final hasSecondNozzle = readings.any(
       (r) => r.kind == TempKind.nozzle && r.index != null,
     );
-    // Built once for the whole grid: every tile's chart glyph opens the same
-    // sheet, which switches between all of this printer's recorded sensors.
-    final historyKinds = _heaterKindOptions(
-      readings,
-      AppLocalizations.of(context),
-    );
-
+    final digits = DashTokens.of(context).monoDisplay.copyWith(height: 1.0);
+    final airduct = readings.any((r) => r.kind == TempKind.chamber);
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = 8.0;
-        final tileWidth = (constraints.maxWidth - spacing) / 2;
+        final columns = tempGridColumns(
+          width: constraints.maxWidth,
+          digits: digits,
+          scaler: MediaQuery.textScalerOf(context),
+          textDirection: Directionality.of(context),
+          airductGlyph: airduct,
+        );
+        final tileWidth =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
@@ -395,7 +433,6 @@ class _TempGrid extends StatelessWidget {
                   dualNozzle: hasSecondNozzle,
                   activeExtruder: activeExtruder,
                   printing: printing,
-                  historyKinds: historyKinds,
                 ),
               ),
           ],

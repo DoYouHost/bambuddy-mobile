@@ -1811,9 +1811,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get heaterHistoryTitle => 'Historique des températures';
 
   @override
-  String get heaterHistoryOpen => 'Historique des températures';
-
-  @override
   String get heaterHistoryReading => 'Mesure';
 
   @override
