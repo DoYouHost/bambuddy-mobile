@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/features/setup/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,7 +29,10 @@ void main() {
   late List<Override> overrides;
 
   ProviderContainer buildContainer([List<Override> extra = const []]) {
-    final built = ProviderContainer(overrides: [...overrides, ...extra]);
+    final built = ProviderContainer(
+      retry: neverRetry,
+      overrides: layerOverrides([...overrides], extra),
+    );
     // AutoDispose provider: keep the controller alive across the awaits.
     built.listen(setupControllerProvider, (_, _) {});
     addTearDown(built.dispose);

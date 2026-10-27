@@ -153,7 +153,7 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
     final canImport = ref.watch(permissionProvider(Permissions.manyfoldImport));
     final key = (_query, _page);
     final listing = ref.watch(manyfoldModelsProvider(key));
-    if (listing.valueOrNull case final page?) _shown = page;
+    if (listing.value case final page?) _shown = page;
     final busy = _progress != null;
 
     return ListView(

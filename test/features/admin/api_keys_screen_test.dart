@@ -77,6 +77,7 @@ const _reader = CurrentUser(
 
 Widget _app(Widget child, {required _FakeKeys repo, CurrentUser? signedInAs}) =>
     ProviderScope(
+      retry: neverRetry,
       overrides: [
         apiKeysRepositoryProvider.overrideWithValue(repo),
         currentUserOverride(signedInAs),

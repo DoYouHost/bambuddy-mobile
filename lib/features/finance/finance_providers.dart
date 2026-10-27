@@ -38,17 +38,15 @@ class FinanceTransactions {
 }
 
 final financeTransactionsProvider =
-    AutoDisposeAsyncNotifierProvider<
-      FinanceTransactionsNotifier,
-      FinanceTransactions
-    >(FinanceTransactionsNotifier.new);
+    AsyncNotifierProvider<FinanceTransactionsNotifier, FinanceTransactions>(
+      FinanceTransactionsNotifier.new,
+    );
 
 /// Every user's ledger — the administrator's view.
 final adminTransactionsProvider =
-    AutoDisposeAsyncNotifierProvider<
-      AdminTransactionsNotifier,
-      FinanceTransactions
-    >(AdminTransactionsNotifier.new);
+    AsyncNotifierProvider<AdminTransactionsNotifier, FinanceTransactions>(
+      AdminTransactionsNotifier.new,
+    );
 
 /// Every center, private ones and closed ones included (the administrator's list).
 final allCostCentersProvider = FutureProvider.autoDispose<List<CostCenter>>(
@@ -77,8 +75,7 @@ class AdminTransactionsNotifier extends LedgerNotifier {
 
 /// A ledger, one page at a time. What the page is *of* — one user's rows or
 /// everyone's — is the subclass's.
-abstract class LedgerNotifier
-    extends AutoDisposeAsyncNotifier<FinanceTransactions> {
+abstract class LedgerNotifier extends AsyncNotifier<FinanceTransactions> {
   Future<WalletTransactionPage> fetchPage({
     required int limit,
     required int offset,
@@ -112,9 +109,7 @@ abstract class LedgerNotifier
   Future<void> refresh() async {
     // Bumped here too: a page still in flight belongs to the list this replaces.
     final epoch = ++_epoch;
-    state = const AsyncValue<FinanceTransactions>.loading().copyWithPrevious(
-      state,
-    );
+    state = const AsyncLoading<FinanceTransactions>();
     final next = await AsyncValue.guard(() => _page(offset: 0));
     if (epoch != _epoch) return;
     state = next;
@@ -124,7 +119,7 @@ abstract class LedgerNotifier
   /// user asks again by scrolling; anything else is left to the app's
   /// uncaught-error probe, with the list freed on the way past.
   Future<void> loadMore() async {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null ||
         state.isLoading ||
         current.loadingMore ||
@@ -149,7 +144,7 @@ abstract class LedgerNotifier
     } on AppApiException {
       // See above.
     } finally {
-      final now = state.valueOrNull;
+      final now = state.value;
       if (epoch == _epoch && now != null && now.loadingMore) {
         state = AsyncValue.data(
           FinanceTransactions(items: now.items, total: now.total),

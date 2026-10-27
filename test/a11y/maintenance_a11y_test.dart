@@ -4,7 +4,7 @@ import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart'
 import 'package:bambuddy_mobile/l10n/error_messages.dart';
 import 'package:bambuddy_mobile/features/maintenance/maintenance_screen.dart';
 import 'package:bambuddy_mobile/features/maintenance/maintenance_settings.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';

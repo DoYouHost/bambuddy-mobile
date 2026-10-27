@@ -47,6 +47,7 @@ class DemoPrintingCountNotifier extends Notifier<int> {
   Future<void> set(int count) async {
     preview(count);
     await ref.read(settingsRepositoryProvider).saveDemoPrintingCount(count);
+    if (!ref.mounted) return;
     ref.read(backgroundMonitorProvider).sync(BackgroundSync.demoPrinters);
   }
 }

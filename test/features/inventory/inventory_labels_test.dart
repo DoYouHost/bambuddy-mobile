@@ -20,6 +20,7 @@ import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:go_router/go_router.dart';
@@ -397,6 +398,7 @@ void main() {
       );
       await tester.pumpWidget(
         ProviderScope(
+          retry: neverRetry,
           overrides: [
             inventoryProvider.overrideWith(_CapturingInventory.new),
             serverProfileProvider.overrideWith(_NullProfile.new),

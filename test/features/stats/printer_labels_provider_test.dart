@@ -2,6 +2,7 @@ import 'package:bambuddy_mobile/core/models/archive_stats.dart';
 import 'package:bambuddy_mobile/features/stats/stats_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:bambuddy_mobile/providers.dart';
 
 /// How a per-printer breakdown gets its labels. Two sources answer the same
 /// question and disagree on purpose: the live printer list knows the current
@@ -23,6 +24,7 @@ void main() {
     required Map<int, String> live,
   }) async {
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         statsProvider.overrideWith(
           () => _FakeStatsNotifier(ArchiveStats(printerNames: recorded)),
@@ -97,6 +99,7 @@ void main() {
     // half never resolves. The recorded names are the whole label then —
     // without them every bar on the screen reads as a bare `#id`.
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         statsProvider.overrideWith(
           () => _FakeStatsNotifier(

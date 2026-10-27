@@ -140,7 +140,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
 
     // Pending prints (excluding currently printing) — "start next" button
     // visibility depends on their presence.
-    final items = async.valueOrNull ?? const <QueueItem>[];
+    final items = async.value ?? const <QueueItem>[];
     final queued = [
       for (final i in items)
         if (i.statusKind != QueueItemStatusKind.printing) i,
@@ -280,7 +280,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
   /// are dropped only once something was applied: a refused edit keeps them, so
   /// the user can change one setting and send it again.
   Future<void> _bulkEdit(Set<int> picked) async {
-    final items = ref.read(queueProvider).valueOrNull ?? const <QueueItem>[];
+    final items = ref.read(queueProvider).value ?? const <QueueItem>[];
     final ids = [
       for (final i in items)
         if (picked.contains(i.id)) i.id,

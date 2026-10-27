@@ -234,7 +234,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
   // --- Job ---
 
   PlateList get _plates =>
-      ref.read(plateListProvider((_isArchive, _sourceId))).valueOrNull ??
+      ref.read(plateListProvider((_isArchive, _sourceId))).value ??
       PlateList.none;
 
   /// The plate the job prints. A file lists the plates it holds, and they need
@@ -271,7 +271,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
   Widget _jobCard(AppLocalizations l10n) {
     final t = DashTokens.of(context);
     final plates =
-        ref.watch(plateListProvider((_isArchive, _sourceId))).valueOrNull ??
+        ref.watch(plateListProvider((_isArchive, _sourceId))).value ??
         PlateList.none;
     final copiesOffered = ref.watch(batchListingProvider).orFalse;
     final position = plates.plates.indexWhere((p) => p.index == _plate);
@@ -369,16 +369,13 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     final t = DashTokens.of(context);
     final reqs = ref.watch(printRequirementsProvider(_plateSource));
     final status = ref.watch(mappingStatusProvider(_printer.id));
-    final remain = ref
-        .watch(mappingInventoryRemainProvider(_printer.id))
-        .valueOrNull;
-    final preferLowest = ref.watch(preferLowestFilamentProvider).valueOrNull;
+    final remain = ref.watch(mappingInventoryRemainProvider(_printer.id)).value;
+    final preferLowest = ref.watch(preferLowestFilamentProvider).value;
     final catalog =
-        ref.watch(mappingColorCatalogProvider).valueOrNull ??
-        ColorCatalog.empty;
+        ref.watch(mappingColorCatalogProvider).value ?? ColorCatalog.empty;
     final comparison = queueMappingComparison(
-      requirements: reqs.valueOrNull ?? const [],
-      status: status.valueOrNull,
+      requirements: reqs.value ?? const [],
+      status: status.value,
       startFrom: _manualMapping,
       remain: remain?.grams,
       preferLowestSetting: preferLowest,
@@ -424,8 +421,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
                     itemBuilder: (context, i) => _FilamentRow(
                       comparison: comparison[i],
                       catalog: catalog,
-                      dualExternal:
-                          (status.valueOrNull?.vtTray?.length ?? 0) > 1,
+                      dualExternal: (status.value?.vtTray?.length ?? 0) > 1,
                       onTap: () => _editMapping(),
                     ),
                   ),
@@ -439,7 +435,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
   /// The job's estimated cost and, while billing is on, the centre it is booked
   /// to. A tap on the centre opens the dialog where it is changed.
   Widget? _costFooter(AppLocalizations l10n, DashTokens t) {
-    final cost = ref.watch(jobCostProvider(_costKey)).valueOrNull;
+    final cost = ref.watch(jobCostProvider(_costKey)).value;
     final billing = costCenterStateOf(ref.watch);
     final selected = billing.step == CostCenterStep.pick
         ? selectedCostCenter(billing.centers, _extras.costCenterId)
@@ -644,10 +640,10 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
       _source.slicedForModel,
       _printer.model,
     );
-    final reqs = ref.watch(printRequirementsProvider(_plateSource)).valueOrNull;
+    final reqs = ref.watch(printRequirementsProvider(_plateSource)).value;
     final comparison = queueMappingComparison(
       requirements: reqs ?? const [],
-      status: ref.watch(mappingStatusProvider(_printer.id)).valueOrNull,
+      status: ref.watch(mappingStatusProvider(_printer.id)).value,
       startFrom: _manualMapping,
     );
     final unmapped = comparison.where((c) => c.loaded == null).length;
@@ -839,7 +835,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
 
   /// Only while the server holds snippets: the flag does nothing without them.
   bool? get _injectionPayload =>
-      (ref.read(gcodeSnippetModelsProvider).valueOrNull ?? const {}).isEmpty
+      (ref.read(gcodeSnippetModelsProvider).value ?? const {}).isEmpty
       ? null
       : _options.gcodeInjection;
 
@@ -855,7 +851,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
         printers: ref.read(printersRepositoryProvider),
         printerId: _printer.id,
         startFrom: _manualMapping ?? const [],
-        preferLowestSetting: ref.read(preferLowestFilamentProvider).valueOrNull,
+        preferLowestSetting: ref.read(preferLowestFilamentProvider).value,
       );
     } on Object {
       // A lost session surfaces on the write itself; the mapping only rides

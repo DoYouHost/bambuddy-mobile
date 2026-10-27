@@ -219,6 +219,7 @@ void main() {
       List<StorageLocation> catalog = const [shelfA, dryBox],
     }) async {
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           locationSensorsRepositoryProvider.overrideWithValue(sensors),
           locationCatalogProvider.overrideWith((ref) async => catalog),

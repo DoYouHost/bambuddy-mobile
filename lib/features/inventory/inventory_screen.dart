@@ -105,7 +105,7 @@ Future<void> showSpoolDetail(
   final messenger = ScaffoldMessenger.of(context);
 
   Spool? findSpool() {
-    final spools = ref.read(inventoryProvider).valueOrNull?.spools ?? const [];
+    final spools = ref.read(inventoryProvider).value?.spools ?? const [];
     for (final s in spools) {
       if (s.id == id) return s;
     }
@@ -122,10 +122,7 @@ Future<void> showSpoolDetail(
     messenger.snack(l10n.inventoryScanNotFound(id));
     return;
   }
-  final assignment = ref
-      .read(inventoryProvider)
-      .valueOrNull
-      ?.assignmentFor(spool.id);
+  final assignment = ref.read(inventoryProvider).value?.assignmentFor(spool.id);
   dashSurfaceSheet<void>(
     context,
     builder: (_) => _SpoolDetailSheet(spool: spool!, assignment: assignment),
@@ -198,11 +195,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     });
     final filters = ref.watch(inventoryFiltersProvider);
     final consumedTotal = ref.watch(inventoryConsumedTotalProvider);
-    final climates = ref.watch(locationClimateProvider).valueOrNull ?? const {};
+    final climates = ref.watch(locationClimateProvider).value ?? const {};
     final climateAlerting = climates.values.any((c) => c.alerting);
     final suppliersSupported = ref.watch(suppliersSupportedProvider).orFalse;
     final visible = sortSpools(
-      _filter(async.valueOrNull?.spools ?? const [], query, filters),
+      _filter(async.value?.spools ?? const [], query, filters),
       filters.sort,
       descending: filters.descending,
     );

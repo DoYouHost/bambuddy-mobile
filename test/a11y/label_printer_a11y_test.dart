@@ -3,7 +3,7 @@ import 'package:bambuddy_mobile/core/models/label_printer.dart';
 import 'package:bambuddy_mobile/core/network/label_printer_discovery.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_providers.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_screen.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';

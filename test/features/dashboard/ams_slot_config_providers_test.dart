@@ -64,6 +64,7 @@ class _FakeRepo implements AmsSlotConfigRepository {
 
 ProviderContainer _container(_FakeRepo repo) {
   final c = ProviderContainer(
+    retry: neverRetry,
     overrides: [amsSlotConfigRepositoryProvider.overrideWithValue(repo)],
   );
   addTearDown(c.dispose);

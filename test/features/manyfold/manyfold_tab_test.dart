@@ -11,7 +11,7 @@ import 'package:bambuddy_mobile/features/model_sources/model_sources_screen.dart
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
@@ -114,7 +114,7 @@ void main() {
       pumpPhone(
         tester,
         const ModelSourcesScreen(),
-        overrides: [...overrides, ...extra],
+        overrides: layerOverrides([...overrides], extra),
       ).then((_) => tester.pumpAndSettle());
 
   group('the Manyfold tab', () {
@@ -177,7 +177,10 @@ void main() {
     await tester.enterText(find.byType(TextField), 'gear');
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Dragon'), findsOneWidget);
-    await tester.pumpAndSettle(const Duration(milliseconds: 500));
+    // The debounce fires and the new key's request starts in this pump; its
+    // answer is delivered by the next one.
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
 
     expect(find.text(pl.mfNoModels), findsOneWidget);
   });

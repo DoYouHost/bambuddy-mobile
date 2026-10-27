@@ -39,6 +39,7 @@ Widget _app(
     libraryFiles: 7,
   ),
 }) => ProviderScope(
+  retry: neverRetry,
   overrides: [
     usersListOverride(users),
     currentUserOverride(signedInAs),
@@ -171,6 +172,7 @@ void main() {
       AuthMode authMode = AuthMode.jwt,
     }) {
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           currentUserOverride(user),
           fakeServerProfileOverride(authMode: authMode),

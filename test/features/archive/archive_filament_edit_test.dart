@@ -170,6 +170,7 @@ void main() {
     late _FakeArchives repository;
 
     Widget row(Archive archive) => ProviderScope(
+      retry: neverRetry,
       overrides: [
         archiveListOverride([archive]),
         archiveRepositoryProvider.overrideWithValue(repository),
@@ -387,6 +388,7 @@ void main() {
   ) async {
     final repository = _FakeArchives()..held = Completer<void>();
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         archiveListOverride([
           const Archive(

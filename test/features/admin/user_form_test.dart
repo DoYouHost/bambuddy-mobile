@@ -73,6 +73,7 @@ Widget _app(
     GroupSummary(id: 1, name: 'Administrators', isSystem: true),
   ],
 }) => ProviderScope(
+  retry: neverRetry,
   overrides: [
     usersRepositoryProvider.overrideWithValue(repo),
     advancedAuthStatusProvider.overrideWith((ref) async => advanced),

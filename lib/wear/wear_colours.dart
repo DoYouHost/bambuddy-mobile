@@ -80,7 +80,7 @@ class WearFaceColours extends Notifier<bool> {
     try {
       await settings.saveWearFaceColours(value);
     } catch (_) {
-      state = settings.loadWearFaceColours();
+      if (ref.mounted) state = settings.loadWearFaceColours();
       rethrow;
     }
   }
@@ -103,7 +103,7 @@ class WearPhoneAccent extends Notifier<AccentPreset?> {
     try {
       await settings.saveWearPhoneAccent(accent);
     } catch (_) {
-      state = settings.loadWearPhoneAccent();
+      if (ref.mounted) state = settings.loadWearPhoneAccent();
       rethrow;
     }
   }

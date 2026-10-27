@@ -43,9 +43,7 @@ class _UserDeleteDialogState extends ConsumerState<_UserDeleteDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final counts = ref
-        .watch(userItemsCountProvider(widget.user.id))
-        .valueOrNull;
+    final counts = ref.watch(userItemsCountProvider(widget.user.id)).value;
     final total = counts?.total ?? 0;
 
     return AlertDialog(

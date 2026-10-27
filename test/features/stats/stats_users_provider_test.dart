@@ -23,6 +23,7 @@ void main() {
 
   ProviderContainer container() {
     final c = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         noServerProfileOverride,
         statsRepositoryProvider.overrideWithValue(StatsRepository(dio)),

@@ -25,7 +25,7 @@ class LabelPrinterUrlNotifier extends Notifier<String?> {
     final settings = ref.read(settingsRepositoryProvider);
     await settings.saveLabelPrinterUrl(url);
     await settings.saveLabelPrinterName(url == null ? null : name);
-    state = url;
+    if (ref.mounted) state = url;
   }
 
   /// Follows a server that moved: when the saved address no longer answers and

@@ -55,15 +55,18 @@ final controllerArchiveProvider = AsyncNotifierProvider.autoDispose
       ControllerArchiveNotifier.new,
     );
 
-class ControllerArchiveNotifier
-    extends AutoDisposeFamilyAsyncNotifier<ControllerArchivePage, int> {
+class ControllerArchiveNotifier extends AsyncNotifier<ControllerArchivePage> {
+  ControllerArchiveNotifier(this.arg);
+
+  final int arg;
+
   /// Bumped by every build, refresh and dispose: an answer that comes back
   /// under another generation describes a listing no longer on screen. A flag
   /// would not do — a rebuild runs on this same instance after its dispose.
   int _generation = 0;
 
   @override
-  Future<ControllerArchivePage> build(int printerId) async {
+  Future<ControllerArchivePage> build() async {
     ref.watch(serverProfileProvider);
     _generation++;
     ref.onDispose(() => _generation++);
@@ -86,7 +89,7 @@ class ControllerArchiveNotifier
   /// The next page, one at a time. A print that finished meanwhile moves every
   /// row down by one, so the new page can repeat the last row read: kept once.
   Future<void> loadMore() async {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (state.isLoading ||
         current == null ||
         !current.hasMore ||
@@ -133,7 +136,7 @@ class ControllerArchiveNotifier
   /// From the newest again.
   Future<void> refresh() async {
     final generation = ++_generation;
-    state = const AsyncLoading<ControllerArchivePage>().copyWithPrevious(state);
+    state = const AsyncLoading<ControllerArchivePage>();
     final next = await AsyncValue.guard(_first);
     if (generation == _generation) state = next;
   }
@@ -152,7 +155,7 @@ class ControllerArchive extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final provider = controllerArchiveProvider(printerId);
     final async = ref.watch(provider);
-    final page = async.valueOrNull;
+    final page = async.value;
     final notifier = ref.read(provider.notifier);
     return RefreshWhenShown(
       onRefresh: notifier.refresh,

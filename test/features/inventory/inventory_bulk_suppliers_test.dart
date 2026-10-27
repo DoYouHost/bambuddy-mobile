@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -144,6 +145,7 @@ void main() {
       );
       suppliers ??= FakeSuppliers();
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           fakeServerProfileOverride(),
           backend ?? inventoryBackendOverride(),

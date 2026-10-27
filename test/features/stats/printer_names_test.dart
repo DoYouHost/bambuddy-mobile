@@ -29,6 +29,7 @@ class _RefusingPrintersRepo extends PrintersRepository {
 void main() {
   ProviderContainer containerWith(PrintersRepository repo) {
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [printersRepositoryProvider.overrideWithValue(repo)],
     );
     addTearDown(container.dispose);
@@ -64,6 +65,6 @@ void main() {
       container.read(livePrinterNamesProvider.future),
       throwsStateError,
     );
-    expect(container.read(livePrinterNamesProvider).valueOrNull, isNull);
+    expect(container.read(livePrinterNamesProvider).value, isNull);
   });
 }

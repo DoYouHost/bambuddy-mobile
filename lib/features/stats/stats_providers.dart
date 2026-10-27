@@ -103,12 +103,11 @@ class StatsFilterNotifier extends Notifier<StatsFilter> {
 /// Fetched statistics for active [statsFilterProvider]. We compute `from`/`to`
 /// dates from chosen range and delegate to repository. Relative dates anchored to
 /// [now] computed once per build (no clock in state).
-final statsProvider =
-    AutoDisposeAsyncNotifierProvider<StatsNotifier, ArchiveStats>(
-      StatsNotifier.new,
-    );
+final statsProvider = AsyncNotifierProvider<StatsNotifier, ArchiveStats>(
+  StatsNotifier.new,
+);
 
-class StatsNotifier extends AutoDisposeAsyncNotifier<ArchiveStats> {
+class StatsNotifier extends AsyncNotifier<ArchiveStats> {
   @override
   Future<ArchiveStats> build() async {
     ref.watch(serverProfileProvider);
@@ -121,14 +120,16 @@ class StatsNotifier extends AutoDisposeAsyncNotifier<ArchiveStats> {
 
   /// Pull-to-refresh: refetch for current filter.
   Future<void> refresh() async {
-    state = const AsyncValue<ArchiveStats>.loading().copyWithPrevious(state);
+    state = const AsyncLoading<ArchiveStats>();
     final filter = ref.read(statsFilterProvider);
     final (from, to) = _resolveDates(filter);
-    state = await AsyncValue.guard(
+    final next = await AsyncValue.guard(
       () => ref
           .read(statsRepositoryProvider)
           .fetch(from: from, to: to, createdById: filter.createdById),
     );
+    if (!ref.mounted) return;
+    state = next;
   }
 
   /// Convert [StatsRange] to concrete `from`/`to`. `allTime` → both `null`
@@ -164,7 +165,7 @@ class StatsNotifier extends AutoDisposeAsyncNotifier<ArchiveStats> {
 ///
 /// Errors are not caught: a key that may read archives but not `/printers`
 /// leaves this in its error state, and the merge below reads it through
-/// `valueOrNull`, so the labels fall back to what the print log recorded.
+/// `value`, so the labels fall back to what the print log recorded.
 final livePrinterNamesProvider = FutureProvider.autoDispose<Map<int, String>>((
   ref,
 ) async {
@@ -178,9 +179,8 @@ final livePrinterNamesProvider = FutureProvider.autoDispose<Map<int, String>>((
 /// a printer that has since been deleted — the live list has no row for it,
 /// which is why its history used to read as a bare `#id`.
 final printerLabelsProvider = Provider.autoDispose<Map<int, String>>((ref) {
-  final live = ref.watch(livePrinterNamesProvider).valueOrNull ?? const {};
-  final recorded =
-      ref.watch(statsProvider).valueOrNull?.printerNames ?? const {};
+  final live = ref.watch(livePrinterNamesProvider).value ?? const {};
+  final recorded = ref.watch(statsProvider).value?.printerNames ?? const {};
   final labels = <int, String>{};
 
   // A blank name is dropped rather than stored, on both sides. Two reasons it
@@ -237,7 +237,7 @@ final supplierStatsProvider = FutureProvider.autoDispose<List<SupplierStats>>((
       InventoryBackend.native) {
     return const [];
   }
-  if (!(ref.watch(suppliersSupportedProvider).valueOrNull ?? false)) {
+  if (!(ref.watch(suppliersSupportedProvider).value ?? false)) {
     return const [];
   }
   final (from, to) = StatsNotifier._resolveDates(
@@ -255,7 +255,7 @@ final materialNumberStatsProvider =
       ref.watch(serverProfileProvider);
       final repo = ref.watch(inventoryRepositoryProvider);
       if (await repo.backend() != InventoryBackend.native) return const [];
-      if (!(ref.watch(materialNumberSupportedProvider).valueOrNull ?? false)) {
+      if (!(ref.watch(materialNumberSupportedProvider).value ?? false)) {
         return const [];
       }
       final (from, to) = StatsNotifier._resolveDates(
@@ -305,12 +305,11 @@ final failureAnalysisCacheProvider = Provider<FailureAnalysisCache>(
 /// For "all time" instead of no dates (server would guess 30 days), anchor `from`
 /// in far past to cover entire archive.
 final failureAnalysisProvider =
-    AutoDisposeAsyncNotifierProvider<FailureAnalysisNotifier, FailureAnalysis>(
+    AsyncNotifierProvider<FailureAnalysisNotifier, FailureAnalysis>(
       FailureAnalysisNotifier.new,
     );
 
-class FailureAnalysisNotifier
-    extends AutoDisposeAsyncNotifier<FailureAnalysis> {
+class FailureAnalysisNotifier extends AsyncNotifier<FailureAnalysis> {
   var _disposed = false;
 
   @override

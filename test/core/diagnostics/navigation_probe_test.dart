@@ -16,6 +16,7 @@ void main() {
 
   test('the app router reports every tab navigator to the probe', () async {
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         sharedPreferencesProvider.overrideWithValue(
           await SharedPreferences.getInstance(),

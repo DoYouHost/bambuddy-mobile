@@ -10,11 +10,11 @@ import '../../providers.dart';
 /// The account list behind the administration screen. Rebuilt on a profile
 /// change like every other server-backed list.
 final usersListProvider =
-    AutoDisposeAsyncNotifierProvider<UsersListNotifier, List<CurrentUser>>(
+    AsyncNotifierProvider<UsersListNotifier, List<CurrentUser>>(
       UsersListNotifier.new,
     );
 
-class UsersListNotifier extends AutoDisposeAsyncNotifier<List<CurrentUser>> {
+class UsersListNotifier extends AsyncNotifier<List<CurrentUser>> {
   @override
   Future<List<CurrentUser>> build() async {
     ref.watch(serverProfileProvider);
@@ -22,12 +22,12 @@ class UsersListNotifier extends AutoDisposeAsyncNotifier<List<CurrentUser>> {
   }
 
   Future<void> refresh() async {
-    state = const AsyncValue<List<CurrentUser>>.loading().copyWithPrevious(
-      state,
-    );
-    state = await AsyncValue.guard(
+    state = const AsyncLoading<List<CurrentUser>>();
+    final next = await AsyncValue.guard(
       () => ref.read(usersRepositoryProvider).list(),
     );
+    if (!ref.mounted) return;
+    state = next;
   }
 }
 
@@ -52,7 +52,7 @@ final canReadUsersProvider = Provider<bool>(
 /// stays separate ([canReadUsersProvider]).
 final canManageUsersProvider = Provider<bool>((ref) {
   if (!ref.watch(canReadUsersProvider)) return false;
-  return ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? false;
+  return ref.watch(currentUserProvider).value?.isAdmin ?? false;
 });
 
 /// The groups an account can be put in. Failure degrades to an empty list:

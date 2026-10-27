@@ -193,7 +193,7 @@ class _LabelPrinterSettingsState extends ConsumerState<LabelPrinterSettings> {
         _ => l10n.labelPrinterReady(i.model ?? '?', i.labelId ?? '?'),
       },
     );
-    final stock = info.valueOrNull;
+    final stock = info.value;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         DashSpace.md,

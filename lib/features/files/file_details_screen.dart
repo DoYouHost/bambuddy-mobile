@@ -378,7 +378,7 @@ class _FilePhotosScreenState extends ConsumerState<FilePhotosScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final detail = ref.watch(libraryFileDetailProvider(widget.fileId));
-    final photos = detail.valueOrNull?.photos ?? const <String>[];
+    final photos = detail.value?.photos ?? const <String>[];
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: photoViewerAppBar(

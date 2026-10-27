@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_catalog.dart';

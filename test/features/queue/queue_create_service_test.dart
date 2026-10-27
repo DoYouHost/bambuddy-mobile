@@ -34,6 +34,7 @@ void main() {
       ),
     );
     final c = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         batchRepositoryProvider.overrideWithValue(BatchRepository(dio)),
         batchOrdersProvider.overrideWithValue(const AsyncData(true)),

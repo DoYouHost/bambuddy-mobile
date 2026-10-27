@@ -162,11 +162,9 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     final sources = ref.watch(slotPresetSourcesProvider);
     final saved = ref.watch(slotPresetProvider(target.key));
 
-    _savedPresetId = saved.valueOrNull?.presetId;
+    _savedPresetId = saved.value?.presetId;
 
-    final view = sources.valueOrNull == null
-        ? null
-        : _view(sources.requireValue);
+    final view = sources.value == null ? null : _view(sources.requireValue);
 
     // After `_view`, which is where the preset gets preselected: the profiles
     // on offer are the ones that fit whatever is picked.
@@ -177,7 +175,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
             nozzleDiameter: target.effectiveNozzleDiameter,
           )),
         )
-        .valueOrNull;
+        .value;
     final choices = table == null ? null : _kProfileChoices(table.profiles);
     // Three bands, and only the middle one scrolls: what the slot is and what
     // is being searched stay put, the catalogue moves under them, and the
@@ -921,7 +919,7 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
     final catalogue = preset == null
         ? const <ColorEntry>[]
         : presetColours(
-            ref.watch(colorCatalogProvider).valueOrNull ?? const [],
+            ref.watch(colorCatalogProvider).value ?? const [],
             preset,
           );
 

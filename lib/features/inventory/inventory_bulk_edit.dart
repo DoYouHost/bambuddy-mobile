@@ -176,11 +176,10 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final native =
-        ref.watch(inventoryBackendProvider).valueOrNull ==
-        InventoryBackend.native;
+        ref.watch(inventoryBackendProvider).value == InventoryBackend.native;
     // Every selected spool has to have brought its list along: the write
     // merges into it, and a spool without one cannot be merged into.
-    final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+    final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
     final listed = {
       for (final s in spools)
         if (s.suppliers != null) s.id,

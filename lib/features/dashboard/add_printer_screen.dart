@@ -560,7 +560,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
     final names = {
       if (managed)
         for (final l
-            in ref.watch(printerLocationsProvider).valueOrNull ??
+            in ref.watch(printerLocationsProvider).value ??
                 const <PrinterLocation>[])
           l.name,
       ...printerLocationsOf([

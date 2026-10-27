@@ -150,30 +150,29 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final theme = Theme.of(context);
     final presetsAsync = ref.watch(slicerPresetsProvider);
     final ownedCodesAsync = ref.watch(ownedPrinterCodesProvider);
-    final ownedCodes = ownedCodesAsync.valueOrNull ?? const <String>{};
+    final ownedCodes = ownedCodesAsync.value ?? const <String>{};
     final owned =
-        ref.watch(ownedFilamentsProvider).valueOrNull ??
-        const <OwnedFilament>[];
+        ref.watch(ownedFilamentsProvider).value ?? const <OwnedFilament>[];
     final reqsAsync = ref.watch(filamentRequirementsProvider(_filamentKey));
-    final reqs = reqsAsync.valueOrNull ?? const <FilamentRequirement>[];
+    final reqs = reqsAsync.value ?? const <FilamentRequirement>[];
     // A plate just picked has no slots yet. Rows filled against nothing would
     // keep a material the plate never asked for once its slots arrive, so they
     // wait, and so does the button — the web's `filamentReqsQuery.isSuccess`.
     // A read that failed still lets the form go on with one plain row.
     final reqsPending = reqsAsync.isLoading && !reqsAsync.hasValue;
     final embeddedAsync = ref.watch(embeddedSettingsProvider(_sourceKey));
-    final embedded = embeddedAsync.valueOrNull ?? EmbeddedSettings.none;
+    final embedded = embeddedAsync.value ?? EmbeddedSettings.none;
     // Watched here, not where the cards are built: those only exist once the
     // presets have loaded, and the schema behind the first one takes its own
     // time to decode — asked now, both answer during the presets spinner.
     final processSettings = ref.watch(processSettingsAvailableProvider).orFalse;
     final layoutOptions = ref.watch(sliceLayoutOptionsProvider).orFalse;
-    final loadedPrinters = ref.watch(loadedSpoolsProvider).valueOrNull;
+    final loadedPrinters = ref.watch(loadedSpoolsProvider).value;
     final facets =
-        ref.watch(ownedSpoolFacetsProvider).valueOrNull ??
+        ref.watch(ownedSpoolFacetsProvider).value ??
         (materials: const <String>{}, brands: const <String>{});
     final registry = _registry =
-        ref.watch(printerModelRegistryProvider).valueOrNull ??
+        ref.watch(printerModelRegistryProvider).value ??
         const <String, String>{};
 
     return Scaffold(
@@ -194,7 +193,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
             // marked unused then — the web sets `used_in_plate` on all of them.
             final discriminated = !_allPlates && anyUnused(reqs);
             final plates =
-                ref.watch(plateListProvider(_sourceKey)).valueOrNull ??
+                ref.watch(plateListProvider(_sourceKey)).value ??
                 PlateList.none;
 
             final online = loadedPrinters ?? const <LoadedSpoolPrinter>[];
@@ -291,10 +290,10 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
             // answers; the same family key the settings screen uses, so opening
             // it costs no second request.
             final processRef = _processRef;
-            final schema = ref.watch(processSchemaProvider).valueOrNull?.schema;
+            final schema = ref.watch(processSchemaProvider).value?.schema;
             final presetValues = processRef == null
                 ? null
-                : ref.watch(presetValuesProvider(processRef)).valueOrNull;
+                : ref.watch(presetValuesProvider(processRef)).value;
             final overrides = _overridesFrom(schema, presetValues);
 
             return Column(
@@ -913,7 +912,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       selected: _plate,
     );
     if (picked == null || picked == _plate || !mounted) return;
-    final schema = ref.read(processSchemaProvider).valueOrNull?.schema;
+    final schema = ref.read(processSchemaProvider).value?.schema;
     setState(() {
       _plate = picked;
       _filaments = List.filled(_filaments.length, null);
@@ -1005,7 +1004,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   /// reach the request.
   bool get _asDesigned {
     if (!_useEmbedded) return false;
-    final embedded = ref.read(embeddedSettingsProvider(_sourceKey)).valueOrNull;
+    final embedded = ref.read(embeddedSettingsProvider(_sourceKey)).value;
     return embedded?.matchesPrinter(_printer?.name) ?? false;
   }
 
@@ -1219,21 +1218,19 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
             picked: _filaments,
             overrides: [for (final o in _spoolOrigins) o?.colour],
             owned:
-                ref.read(ownedFilamentsProvider).valueOrNull ??
+                ref.read(ownedFilamentsProvider).value ??
                 const <OwnedFilament>[],
             requirements:
-                ref
-                    .read(filamentRequirementsProvider(_filamentKey))
-                    .valueOrNull ??
+                ref.read(filamentRequirementsProvider(_filamentKey)).value ??
                 const <FilamentRequirement>[],
           );
     final overrides = asDesigned
         ? const <String, Object>{}
         : _overridesFrom(
-            ref.read(processSchemaProvider).valueOrNull?.schema,
+            ref.read(processSchemaProvider).value?.schema,
             _processRef == null
                 ? null
-                : ref.read(presetValuesProvider(_processRef!)).valueOrNull,
+                : ref.read(presetValuesProvider(_processRef!)).value,
           );
     final body = <String, dynamic>{
       'printer_preset': _printer!.toRef(),

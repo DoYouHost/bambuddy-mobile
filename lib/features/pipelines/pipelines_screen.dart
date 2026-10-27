@@ -96,7 +96,7 @@ class _PipelineCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final catalog = ref.watch(slicerPresetsProvider).valueOrNull;
+    final catalog = ref.watch(slicerPresetsProvider).value;
     final canWrite = ref.watch(canWritePipelinesProvider).orFalse;
 
     return Card(
@@ -223,7 +223,7 @@ class _PipelineCard extends ConsumerWidget {
             _targetLine(
               theme,
               l10n,
-              ref.watch(pipelineTargetPrintersProvider).valueOrNull,
+              ref.watch(pipelineTargetPrintersProvider).value,
             ),
           ],
         ),

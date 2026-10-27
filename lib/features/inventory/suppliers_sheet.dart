@@ -107,7 +107,7 @@ class _SupplierRow extends ConsumerWidget {
     // server's number includes archived spools (and Spoolman rows in native
     // mode), so "3 spools" opened onto a list of 2. Each count here is exactly
     // what its link shows.
-    final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+    final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
     final here = [
       for (final s in spools)
         if (_suppliedBy(s)) s,

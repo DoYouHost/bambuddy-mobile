@@ -6,7 +6,7 @@ import '../../data/maintenance_repository.dart';
 import '../../providers.dart';
 
 final maintenanceOverviewProvider =
-    AutoDisposeAsyncNotifierProvider<
+    AsyncNotifierProvider<
       MaintenanceOverviewNotifier,
       List<PrinterMaintenanceOverview>
     >(MaintenanceOverviewNotifier.new);
@@ -15,7 +15,7 @@ final maintenanceOverviewProvider =
 /// comes straight from server; "perform" (mark done) resets counter server-side,
 /// so on success we fetch fresh state instead of guessing.
 class MaintenanceOverviewNotifier
-    extends AutoDisposeAsyncNotifier<List<PrinterMaintenanceOverview>> {
+    extends AsyncNotifier<List<PrinterMaintenanceOverview>> {
   @override
   Future<List<PrinterMaintenanceOverview>> build() async {
     // Rebuild on server profile change (different key/permissions). No profile
@@ -31,11 +31,12 @@ class MaintenanceOverviewNotifier
   Future<void> refresh() async {
     // No profile (mid server-change) → nothing to fetch; mirrors [build].
     if (ref.read(serverProfileProvider) == null) return;
-    state = const AsyncValue<List<PrinterMaintenanceOverview>>.loading()
-        .copyWithPrevious(state);
-    state = await AsyncValue.guard(
+    state = const AsyncLoading<List<PrinterMaintenanceOverview>>();
+    final next = await AsyncValue.guard(
       () => ref.read(maintenanceRepositoryProvider).fetchOverview(),
     );
+    if (!ref.mounted) return;
+    state = next;
   }
 
   /// Marks task as done (reset counter). On success, refresh list (state changes server-side).
@@ -75,16 +76,14 @@ class MaintenanceOverviewNotifier
 }
 
 final maintenanceTypesProvider =
-    AutoDisposeAsyncNotifierProvider<
-      MaintenanceTypesNotifier,
-      List<MaintenanceType>
-    >(MaintenanceTypesNotifier.new);
+    AsyncNotifierProvider<MaintenanceTypesNotifier, List<MaintenanceType>>(
+      MaintenanceTypesNotifier.new,
+    );
 
 /// Maintenance types catalog (Settings tab): system defaults + custom tasks.
 /// CRUD mutates server-side and refreshes; type changes affect per-printer
 /// status too, so those actions also invalidate [maintenanceOverviewProvider].
-class MaintenanceTypesNotifier
-    extends AutoDisposeAsyncNotifier<List<MaintenanceType>> {
+class MaintenanceTypesNotifier extends AsyncNotifier<List<MaintenanceType>> {
   @override
   Future<List<MaintenanceType>> build() async {
     final profile = ref.watch(serverProfileProvider);
@@ -94,12 +93,12 @@ class MaintenanceTypesNotifier
 
   Future<void> refresh() async {
     if (ref.read(serverProfileProvider) == null) return;
-    state = const AsyncValue<List<MaintenanceType>>.loading().copyWithPrevious(
-      state,
-    );
-    state = await AsyncValue.guard(
+    state = const AsyncLoading<List<MaintenanceType>>();
+    final next = await AsyncValue.guard(
       () => ref.read(maintenanceRepositoryProvider).fetchTypes(),
     );
+    if (!ref.mounted) return;
+    state = next;
   }
 
   /// Creates a custom type and assigns it to [printerIds] (custom types only
@@ -153,7 +152,7 @@ class MaintenanceTypesNotifier
 /// dashboard card to show after collapse. Null = no data/not loaded yet (UI hides row).
 final printerTotalPrintHoursProvider = Provider.autoDispose
     .family<double?, int>((ref, printerId) {
-      final overview = ref.watch(maintenanceOverviewProvider).valueOrNull;
+      final overview = ref.watch(maintenanceOverviewProvider).value;
       if (overview == null) return null;
       for (final p in overview) {
         if (p.printerId == printerId) return p.totalPrintHours;

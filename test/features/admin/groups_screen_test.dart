@@ -113,6 +113,7 @@ Widget _app(
   required _FakeGroups repo,
   CurrentUser? signedInAs,
 }) => ProviderScope(
+  retry: neverRetry,
   overrides: [
     groupsRepositoryProvider.overrideWithValue(repo),
     currentUserOverride(signedInAs),
@@ -461,11 +462,10 @@ void main() {
       AuthMode mode = AuthMode.jwt,
     }) {
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           currentUserOverride(user),
-          fakeServerProfileOverride(authMode: AuthMode.jwt),
-          if (mode == AuthMode.apiKey)
-            fakeServerProfileOverride(authMode: AuthMode.apiKey),
+          fakeServerProfileOverride(authMode: mode),
         ],
       );
       addTearDown(container.dispose);

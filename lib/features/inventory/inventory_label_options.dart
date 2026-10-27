@@ -25,8 +25,7 @@ class _LabelOptionsSheet extends ConsumerWidget {
     // Unknown while `/info` is out, and then not "fits": the default stays the
     // print dialog until the printer has said which stock it holds.
     final printerFits =
-        ref.watch(labelPrinterInfoProvider).valueOrNull?.takes(template) ??
-        false;
+        ref.watch(labelPrinterInfoProvider).value?.takes(template) ?? false;
     final destination = prefs.resolveDestination(
       printerSet: printerSet,
       printerFits: printerFits,

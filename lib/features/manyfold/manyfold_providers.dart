@@ -16,7 +16,7 @@ final manyfoldStatusProvider = FutureProvider.autoDispose<ManyfoldStatus?>(
 /// once connected — and before that only to whoever may connect it. False
 /// while the status is out, so the tab arrives rather than flickers away.
 final manyfoldTabShownProvider = Provider.autoDispose<bool>((ref) {
-  final status = ref.watch(manyfoldStatusProvider).valueOrNull;
+  final status = ref.watch(manyfoldStatusProvider).value;
   if (status == null) return false;
   return status.configured || ref.watch(canConfigureManyfoldProvider);
 });

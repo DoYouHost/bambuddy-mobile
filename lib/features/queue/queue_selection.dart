@@ -20,14 +20,14 @@ final queueSelectionProvider =
       QueueSelectionNotifier.new,
     );
 
-class QueueSelectionNotifier extends AutoDisposeNotifier<Set<int>> {
+class QueueSelectionNotifier extends Notifier<Set<int>> {
   @override
   Set<int> build() {
     // A picked item that starts printing, is removed or is cancelled elsewhere
     // leaves the selection: it could not be edited any more, and the count in
     // the bar would promise more than the edit can touch.
     ref.listen(queueProvider, (_, next) {
-      final items = next.valueOrNull;
+      final items = next.value;
       if (items == null || state.isEmpty) return;
       final live = {
         for (final item in items)

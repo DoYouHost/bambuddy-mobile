@@ -25,6 +25,7 @@ void main() {
   /// in, where every route but setup is redirected away.
   Future<GoRouter> pumpApp(WidgetTester tester) async {
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         diagnosticRecorderProvider.overrideWith(

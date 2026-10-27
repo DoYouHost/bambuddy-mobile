@@ -19,7 +19,8 @@ void main() {
     // cannot go stale while it is on screen: a server that changed version has
     // restarted, which drops the connection under us anyway.
     test('a refresh keeps it rather than blanking to an ellipsis', () {
-      final refreshing = const AsyncLoading<String?>().copyWithPrevious(
+      final refreshing = reportedOver(
+        const AsyncLoading<String?>(),
         const AsyncData<String?>('1.2.6'),
       );
 
@@ -27,10 +28,10 @@ void main() {
     });
 
     test('a failed refresh keeps it rather than forgetting it', () {
-      final failed = AsyncError<String?>(
-        Exception('unreachable'),
-        StackTrace.empty,
-      ).copyWithPrevious(const AsyncData<String?>('1.2.6'));
+      final failed = reportedOver(
+        AsyncError<String?>(Exception('unreachable'), StackTrace.empty),
+        const AsyncData<String?>('1.2.6'),
+      );
 
       expect(serverVersionText(en, failed), 'Server 1.2.6');
     });

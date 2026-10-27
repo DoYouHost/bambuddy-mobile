@@ -323,14 +323,14 @@ void main() {
 
   a11ySurface(
     'library, every row variant',
-    overrides: [..._sinkListing, ..._withTags],
+    overrides: layerOverrides([..._sinkListing], _withTags),
     home: () => const FileManagerScreen(),
     shows: find.text('Mounted share'),
   );
 
   a11ySurface(
     'library file sheet, variants, tags, photos and a link',
-    overrides: [..._sinkListing, ..._withTags],
+    overrides: layerOverrides([..._sinkListing], _withTags),
     home: () => const FileManagerScreen(),
     arrange: (tester) => a11yTap(tester, find.text(_sinkPlate12)),
     shows: byLogId('file_actions.queue_variants'),
@@ -672,7 +672,7 @@ void main() {
 
   a11ySurface(
     'file tags sheet',
-    overrides: [..._sinkListing, ..._withTags],
+    overrides: layerOverrides([..._sinkListing], _withTags),
     home: () => const FileManagerScreen(),
     arrange: (tester) async {
       await a11yTap(tester, find.text(_sinkPlate12));

@@ -86,7 +86,7 @@ class _UserCard extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final isSelf = ref.watch(
-      currentUserProvider.select((u) => u.valueOrNull?.id == user.id),
+      currentUserProvider.select((u) => u.value?.id == user.id),
     );
 
     return TappableCard(
@@ -318,7 +318,7 @@ class _SheetActions extends ConsumerWidget {
     // (`users.py::delete_user`); bambuddy's own UI leaves the button out rather
     // than offer it and explain afterwards.
     final isSelf = ref.watch(
-      currentUserProvider.select((u) => u.valueOrNull?.id == user.id),
+      currentUserProvider.select((u) => u.value?.id == user.id),
     );
     return Row(
       children: [

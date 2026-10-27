@@ -200,12 +200,12 @@ class FileManagerState {
 }
 
 final fileManagerProvider =
-    AutoDisposeAsyncNotifierProvider<FileManagerNotifier, FileManagerState>(
+    AsyncNotifierProvider<FileManagerNotifier, FileManagerState>(
       FileManagerNotifier.new,
     );
 
 /// File manager: folder navigation, file list, filters, and actions.
-class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
+class FileManagerNotifier extends AsyncNotifier<FileManagerState> {
   @override
   Future<FileManagerState> build() async {
     ref.watch(serverProfileProvider);
@@ -219,12 +219,10 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
   /// Clears selection, search and the tag filter — picking a folder is the
   /// opposite request to "show me this tag wherever it lives".
   Future<void> openFolder(int? folderId) async {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null) return;
-    state = const AsyncValue<FileManagerState>.loading().copyWithPrevious(
-      state,
-    );
-    state = await AsyncValue.guard(() async {
+    state = const AsyncLoading<FileManagerState>();
+    final next = await AsyncValue.guard(() async {
       final repo = ref.read(libraryRepositoryProvider);
       final files = await repo.listFiles(folderId: folderId);
       return current.copyWith(
@@ -241,6 +239,8 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
         selectionMode: false,
       );
     });
+    if (!ref.mounted) return;
+    state = next;
   }
 
   /// Refreshes current folder and folder tree (after mutations).
@@ -249,13 +249,11 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
   /// itself a mutation, and dropping the filter here would throw the user back
   /// to the folder they happened to be standing in the moment they saved.
   Future<void> refresh() async {
-    final current = state.valueOrNull;
+    final current = state.value;
     final folderId = current?.currentFolderId;
     final tagFilter = current?.tagFilter ?? const <int>{};
-    state = const AsyncValue<FileManagerState>.loading().copyWithPrevious(
-      state,
-    );
-    state = await AsyncValue.guard(() async {
+    state = const AsyncLoading<FileManagerState>();
+    final next = await AsyncValue.guard(() async {
       final repo = ref.read(libraryRepositoryProvider);
       final folders = await repo.listFolders();
       final files = await repo.listFiles(folderId: folderId);
@@ -273,6 +271,8 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
             : await repo.listFilesByTags(tagFilter.toList()),
       );
     });
+    if (!ref.mounted) return;
+    state = next;
   }
 
   /// Whether a [listAllFiles] fetch is currently in flight — guards against
@@ -284,7 +284,7 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
   /// (cache [FileManagerState.allFiles]) — search is global (all folders),
   /// not just current.
   Future<void> setQuery(String q) async {
-    var current = state.valueOrNull;
+    var current = state.value;
     if (current == null) return;
     final needsFetch =
         q.trim().isNotEmpty && current.allFiles == null && !_fetchingAllFiles;
@@ -295,13 +295,15 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
     _fetchingAllFiles = true;
     try {
       final all = await ref.read(libraryRepositoryProvider).listAllFiles();
-      current = state.valueOrNull;
+      if (!ref.mounted) return;
+      current = state.value;
       if (current == null) return;
       state = AsyncValue.data(
         current.copyWith(allFiles: all, searching: false, fetchFailed: false),
       );
     } on Object {
-      current = state.valueOrNull;
+      if (!ref.mounted) return;
+      current = state.value;
       if (current != null) {
         state = AsyncValue.data(
           current.copyWith(searching: false, fetchFailed: true),
@@ -319,7 +321,7 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
   /// server owns the AND semantics and the library-wide scope, and the folder
   /// listing we hold locally is only a slice of the library.
   Future<void> setTagFilter(Set<int> tagIds) async {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null) return;
     if (tagIds.isEmpty) {
       state = AsyncValue.data(
@@ -344,7 +346,8 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
       final files = await ref
           .read(libraryRepositoryProvider)
           .listFilesByTags(tagIds.toList());
-      final now = state.valueOrNull;
+      if (!ref.mounted) return;
+      final now = state.value;
       // A selection changed while this was in flight — the newer call owns the
       // state, so drop this answer instead of showing the previous filter's
       // files under the current chips.
@@ -353,7 +356,8 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
         now.copyWith(tagFiles: files, searching: false, fetchFailed: false),
       );
     } on Object {
-      final now = state.valueOrNull;
+      if (!ref.mounted) return;
+      final now = state.value;
       if (now == null || !_sameTags(now.tagFilter, tagIds)) return;
       state = AsyncValue.data(
         now.copyWith(searching: false, fetchFailed: true),
@@ -380,7 +384,7 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
       _update((s) => s.copyWith(selected: const {}, selectionMode: false));
 
   void _update(FileManagerState Function(FileManagerState) fn) {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null) return;
     state = AsyncValue.data(fn(current));
   }

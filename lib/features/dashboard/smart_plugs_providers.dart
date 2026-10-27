@@ -94,14 +94,14 @@ class SmartPlugsState {
 }
 
 final smartPlugsProvider =
-    AutoDisposeNotifierProvider<SmartPlugsNotifier, SmartPlugsState>(
+    NotifierProvider<SmartPlugsNotifier, SmartPlugsState>(
       SmartPlugsNotifier.new,
     );
 
 /// Fetches plug list and polls statuses in loop (5s), and sends on/off
 /// commands with optimistic override and rollback (pattern like [ControlsNotifier]).
 /// Auto-dispose: lives only when dashboard observes it.
-class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
+class SmartPlugsNotifier extends Notifier<SmartPlugsState> {
   Timer? _timer;
   int _generation = 0;
 
@@ -178,7 +178,7 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
     } on AppApiException {
       return; // transient network error — keep last known state
     }
-    if (generation != _generation) return;
+    if (!ref.mounted || generation != _generation) return;
 
     // Poll statuses for enabled plugs (power into farm total), in parallel.
     // Unreachable return null → skip in map. [fetchStatus] rethrows
@@ -192,7 +192,7 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
     } on AppApiException {
       return;
     }
-    if (generation != _generation) return;
+    if (!ref.mounted || generation != _generation) return;
 
     final statuses = <int, SmartPlugStatus>{};
     for (var i = 0; i < enabled.length; i++) {
@@ -224,6 +224,9 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
 
     try {
       await ref.read(smartPlugsRepositoryProvider).control(plugId, action);
+      // The container can go while the command is out (the tour's does): nothing
+      // is left to unlock, and writing state would throw.
+      if (!ref.mounted) return ActionOutcome.ok;
       _clearInFlight(plugId);
       _scheduleClearOptimistic(plugId);
       unawaited(_poll(_generation)); // pull real state + power
@@ -231,21 +234,25 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
     } catch (e) {
       // Rollback override to pre-action state, on any failure: the in-flight
       // mark would otherwise keep the switch locked for as long as this lives.
-      final opt = {...state.optimistic};
-      if (before == null) {
-        opt.remove(plugId);
-      } else {
-        opt[plugId] = before;
+      if (ref.mounted) {
+        final opt = {...state.optimistic};
+        if (before == null) {
+          opt.remove(plugId);
+        } else {
+          opt[plugId] = before;
+        }
+        state = state.copyWith(
+          optimistic: opt,
+          inFlight: {...state.inFlight}..remove(plugId),
+        );
       }
-      state = state.copyWith(
-        optimistic: opt,
-        inFlight: {...state.inFlight}..remove(plugId),
-      );
       if (e is! AppApiException) rethrow;
       final outcome = ActionOutcome.failed(e, action: 'plug.${action.name}');
       // Sticky, like the printer controls: one refusal stops offering the
       // switch rather than letting every tap fail the same way.
-      if (outcome.isForbidden) state = state.copyWith(forbidden: true);
+      if (ref.mounted && outcome.isForbidden) {
+        state = state.copyWith(forbidden: true);
+      }
       return outcome;
     }
   }

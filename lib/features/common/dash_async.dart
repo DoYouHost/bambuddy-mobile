@@ -13,7 +13,7 @@ import '../../l10n/error_messages.dart';
 /// state"). A gate that would rather show its control while loading belongs in
 /// `ObservedCapability.whenUnknown`.
 extension AsyncFlag on AsyncValue<bool> {
-  bool get orFalse => valueOrNull ?? false;
+  bool get orFalse => value ?? false;
 
   /// [orFalse] for a control that would rather be disabled than missing while
   /// the server has not answered. See [ControlOffer].

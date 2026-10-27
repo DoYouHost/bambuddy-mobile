@@ -151,7 +151,7 @@ class _TagList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(libraryTagsProvider);
-    final tags = async.valueOrNull;
+    final tags = async.value;
 
     if (async.isLoading && tags == null) {
       return const Padding(
@@ -261,7 +261,7 @@ class _TagFilterSheet extends ConsumerStatefulWidget {
 class _TagFilterSheetState extends ConsumerState<_TagFilterSheet>
     with _TagSheetActions {
   late final Set<int> _selected = {
-    ...?ref.read(fileManagerProvider).valueOrNull?.tagFilter,
+    ...?ref.read(fileManagerProvider).value?.tagFilter,
   };
 
   void _apply(Set<int> tags) {
@@ -587,7 +587,7 @@ class _TagManageSheetState extends ConsumerState<_TagManageSheet>
       // A deleted tag may be the one being filtered by — drop it from the
       // filter, otherwise the listing keeps asking for an id that is gone.
       final notifier = ref.read(fileManagerProvider.notifier);
-      final filter = ref.read(fileManagerProvider).valueOrNull?.tagFilter;
+      final filter = ref.read(fileManagerProvider).value?.tagFilter;
       if (filter != null && filter.contains(tag.id)) {
         await notifier.setTagFilter(filter.difference({tag.id}));
       } else {
@@ -602,13 +602,13 @@ class _TagManageSheetState extends ConsumerState<_TagManageSheet>
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(libraryTagsProvider);
-    final tags = async.valueOrNull ?? const <LibraryTag>[];
+    final tags = async.value ?? const <LibraryTag>[];
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           _SheetHeader(title: l10n.fmTagsManage),
-          if (async.isLoading && async.valueOrNull == null)
+          if (async.isLoading && async.value == null)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: DashSpace.xxl),
               child: DashLoading(),

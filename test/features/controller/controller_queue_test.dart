@@ -466,7 +466,7 @@ class _WritingQueue extends FakeQueue {
   @override
   Future<void> refresh() async {
     refreshes++;
-    state = const AsyncLoading<List<QueueItem>>().copyWithPrevious(state);
+    state = const AsyncLoading<List<QueueItem>>();
     state = AsyncData(await build());
   }
 }
@@ -496,7 +496,7 @@ class _SlowQueue extends FakeQueue {
   @override
   Future<void> refresh() {
     refreshes++;
-    state = const AsyncLoading<List<QueueItem>>().copyWithPrevious(state);
+    state = const AsyncLoading<List<QueueItem>>();
     return Completer<void>().future;
   }
 }

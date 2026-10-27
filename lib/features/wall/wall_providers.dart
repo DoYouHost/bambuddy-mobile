@@ -44,6 +44,7 @@ class WallKeepAwakeNotifier extends Notifier<bool> {
 
   Future<void> set(bool on) async {
     await ref.read(settingsRepositoryProvider).saveWallKeepAwake(on);
+    if (!ref.mounted) return;
     state = on;
   }
 }
@@ -62,6 +63,7 @@ class WallPanelExpandedNotifier extends Notifier<bool?> {
 
   Future<void> set(bool expanded) async {
     await ref.read(settingsRepositoryProvider).saveWallPanelExpanded(expanded);
+    if (!ref.mounted) return;
     state = expanded;
   }
 }
@@ -77,6 +79,7 @@ class WallLiveCameraNotifier extends Notifier<bool> {
 
   Future<void> set(bool on) async {
     await ref.read(settingsRepositoryProvider).saveWallLiveCamera(on);
+    if (!ref.mounted) return;
     state = on;
   }
 }

@@ -78,7 +78,7 @@ class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final filters = ref.read(printLogFiltersProvider);
     final narrowed = filters.activeCount > 0 || filters.query.isNotEmpty;
-    final total = ref.read(printLogProvider).valueOrNull?.total ?? 0;
+    final total = ref.read(printLogProvider).value?.total ?? 0;
     final confirmed = await confirmDialog(
       context,
       title: l10n.printLogClearTitle,
@@ -510,12 +510,11 @@ class _PrintLogFilterSheet extends ConsumerWidget {
     final theme = Theme.of(context);
     final filters = ref.watch(printLogFiltersProvider);
     final notifier = ref.read(printLogFiltersProvider.notifier);
-    final printers =
-        ref.watch(printersForPickerProvider).valueOrNull ?? const [];
+    final printers = ref.watch(printersForPickerProvider).value ?? const [];
     // Empty (including on 403) hides the picker, mirroring the Stats screen:
     // the server decides who may list users, and the app has no permission
     // model of its own to ask.
-    final users = ref.watch(statsUsersProvider).valueOrNull ?? const [];
+    final users = ref.watch(statsUsersProvider).value ?? const [];
 
     return logTag(
       'sheet.print_log_filters',

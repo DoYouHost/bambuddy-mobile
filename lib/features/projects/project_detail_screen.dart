@@ -38,7 +38,7 @@ class ProjectDetailScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(
           context,
-          title: async.valueOrNull?.name ?? l10n.projectsTitle,
+          title: async.value?.name ?? l10n.projectsTitle,
           actions: [
             if (async.hasValue) ...[
               IconButton(
@@ -317,10 +317,8 @@ class _ProgressCard extends ConsumerWidget {
     final target = project.targetSets;
     if (target == null || target <= 0) return const [];
 
-    final progress = ref
-        .watch(projectFileProgressProvider(project.id))
-        .valueOrNull;
-    final files = ref.watch(projectFilesProvider(project.id)).valueOrNull;
+    final progress = ref.watch(projectFileProgressProvider(project.id)).value;
+    final files = ref.watch(projectFilesProvider(project.id)).value;
     if (progress == null || files == null || files.isEmpty) return const [];
 
     final complete = completeSetsFor([for (final f in files) f.id], progress);

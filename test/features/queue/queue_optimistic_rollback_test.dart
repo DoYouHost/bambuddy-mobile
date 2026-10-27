@@ -47,6 +47,7 @@ List<int> ids(ProviderContainer container) => [
 Future<(_HeldDeletes, ProviderContainer)> open() async {
   final repository = _HeldDeletes();
   final container = ProviderContainer(
+    retry: neverRetry,
     overrides: [
       queueRepositoryProvider.overrideWithValue(repository),
       fakeServerProfileOverride(),

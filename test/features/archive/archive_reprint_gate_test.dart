@@ -29,6 +29,7 @@ void main() {
   group('archiveReprintBlockProvider', () {
     Future<ArchiveReprintBlock?> settled(CurrentUser? who, int? owner) async {
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [currentUserOverride(who)],
       );
       addTearDown(container.dispose);

@@ -122,7 +122,7 @@ class ManyfoldPreview extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final bytes = ref.watch(manyfoldPreviewProvider(modelId));
-    final image = bytes.valueOrNull;
+    final image = bytes.value;
     final Widget child = image != null
         ? Image.memory(image, fit: BoxFit.contain, gaplessPlayback: true)
         : Center(
@@ -160,8 +160,7 @@ class ManyfoldFolderCombo extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final folders =
-        ref.watch(manyfoldImportFoldersProvider).valueOrNull ?? const [];
+    final folders = ref.watch(manyfoldImportFoldersProvider).value ?? const [];
     return dashCombo<int?>(
       context,
       id: 'manyfold.import_folder',

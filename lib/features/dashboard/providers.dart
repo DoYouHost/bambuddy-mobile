@@ -32,14 +32,13 @@ class DashboardState {
   bool get stale => printers != null && error != null;
 }
 
-final dashboardProvider =
-    AutoDisposeNotifierProvider<DashboardNotifier, DashboardState>(
-      DashboardNotifier.new,
-    );
+final dashboardProvider = NotifierProvider<DashboardNotifier, DashboardState>(
+  DashboardNotifier.new,
+);
 
 /// REST polling every 5s. This pattern remains from M2 as backfill after
 /// app resume and fallback when WebSocket fails.
-class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
+class DashboardNotifier extends Notifier<DashboardState> {
   Timer? _timer;
   int _generation = 0;
 
@@ -62,7 +61,7 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
     // State stays, only timer interval changes.
     ref.listen(
       wsConnectionStateProvider.select(
-        (s) => s.valueOrNull == WsConnectionState.connected,
+        (s) => s.value == WsConnectionState.connected,
       ),
       (_, connected) => _retune(connected: connected, generation: generation),
     );
@@ -74,8 +73,7 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
   }
 
   bool _wsConnectedNow() =>
-      ref.read(wsConnectionStateProvider).valueOrNull ==
-      WsConnectionState.connected;
+      ref.read(wsConnectionStateProvider).value == WsConnectionState.connected;
 
   void _arm({required bool connected, required int generation}) {
     _timer?.cancel();
@@ -146,6 +144,7 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
     final repo = ref.read(printersRepositoryProvider);
     try {
       final data = await repo.fetchAll();
+      if (!ref.mounted) return;
       if (generation != _generation) return; // result from previous life
       // Hook into shared statuses map: polling feeds same provider as WS,
       // so PrintMonitor catches changes also on REST fallback (not just live

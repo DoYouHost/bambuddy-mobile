@@ -21,7 +21,7 @@ class ConnectionModeChip extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final live =
-        ref.watch(wsConnectionStateProvider).valueOrNull ==
+        ref.watch(wsConnectionStateProvider).value ==
         WsConnectionState.connected;
 
     final accent = live ? t.accentGreen : t.accentOrange;

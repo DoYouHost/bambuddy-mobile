@@ -19,7 +19,7 @@ String? archivePrinterLabel(Archive archive, Map<int, String> names) =>
 
 final archivePrinterNamesProvider = Provider.autoDispose<Map<int, String>>(
   (ref) => {
-    for (final p in ref.watch(printersForPickerProvider).valueOrNull ?? [])
+    for (final p in ref.watch(printersForPickerProvider).value ?? [])
       p.id: p.name,
   },
 );

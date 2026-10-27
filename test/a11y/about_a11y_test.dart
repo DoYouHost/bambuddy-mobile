@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/features/announcements/announcements_screen.dart
 import 'package:bambuddy_mobile/features/bug_report/report_wiring.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:package_info_plus/package_info_plus.dart';

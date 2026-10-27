@@ -13,6 +13,7 @@ ProviderContainer _containerFor(
   AuthMode authMode = AuthMode.jwt,
 }) {
   final container = ProviderContainer(
+    retry: neverRetry,
     overrides: [
       currentUserOverride(user),
       fakeServerProfileOverride(authMode: authMode),

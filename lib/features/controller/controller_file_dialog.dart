@@ -116,7 +116,7 @@ class _FileDialogState extends ConsumerState<_FileDialog> {
       printerModel: printer?.model,
     );
     final folders = ref.watch(
-      fileManagerProvider.select((s) => s.valueOrNull?.allFolders),
+      fileManagerProvider.select((s) => s.value?.allFolders),
     );
     final folder = folders?.where((f) => f.id == _file.folderId).firstOrNull;
     final mayDelete = mayDeleteLibraryFile(_file, folder);

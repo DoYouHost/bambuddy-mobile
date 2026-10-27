@@ -84,7 +84,7 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
     _poll?.cancel();
     _poll = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!mounted) return;
-      final view = ref.read(pipelineRunsProvider).valueOrNull;
+      final view = ref.read(pipelineRunsProvider).value;
       final live = view?.runs.any((r) => !r.status.isTerminal) ?? false;
       if (live) {
         unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());

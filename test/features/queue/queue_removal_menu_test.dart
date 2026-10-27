@@ -7,6 +7,7 @@ import 'package:bambuddy_mobile/features/queue/queue_screen.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:bambuddy_mobile/providers.dart';
 
 import '../../helpers.dart';
 import 'queue_fakes.dart';
@@ -28,6 +29,7 @@ void main() {
 
   Widget screen(FakeQueue queue, {required String printerState}) =>
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           queueProvider.overrideWith(() => queue),
           noServerProfileOverride,

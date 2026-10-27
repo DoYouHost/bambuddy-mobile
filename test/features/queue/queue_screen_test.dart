@@ -30,6 +30,7 @@ class _FakeQueueNotifier extends QueueNotifier {
 }
 
 Widget _screen(List<QueueItem> items) => ProviderScope(
+  retry: neverRetry,
   overrides: [
     queueProvider.overrideWith(() => _FakeQueueNotifier(items)),
     noServerProfileOverride,
@@ -73,6 +74,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           queueProvider.overrideWith(() => _FakeQueueNotifier([item])),
           noServerProfileOverride,
@@ -95,6 +97,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           queueProvider.overrideWith(() => _FakeQueueNotifier(const [])),
           noServerProfileOverride,
@@ -146,6 +149,7 @@ void main() {
     });
 
     Widget screen({required bool held}) => ProviderScope(
+      retry: neverRetry,
       overrides: [
         queueProvider.overrideWith(() => _FakeQueueNotifier([waiting])),
         noServerProfileOverride,
@@ -196,6 +200,7 @@ void main() {
     final queue = FakeQueue([ownerless]);
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           queueProvider.overrideWith(() => queue),
           noServerProfileOverride,
@@ -254,6 +259,7 @@ void main() {
     final queue = FakeQueue([crossModel]);
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           queueProvider.overrideWith(() => queue),
           noServerProfileOverride,
@@ -308,6 +314,7 @@ void main() {
       queue = FakeQueue([pending]);
       commands = _HeldCommands();
       return ProviderScope(
+        retry: neverRetry,
         overrides: [
           queueProvider.overrideWith(() => queue),
           noServerProfileOverride,

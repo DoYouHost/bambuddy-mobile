@@ -39,6 +39,7 @@ import 'package:bambuddy_mobile/router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:go_router/go_router.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -322,6 +323,7 @@ SmartPlugsState _plugState() => SmartPlugsState(
 
 Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
     ProviderScope(
+      retry: neverRetry,
       overrides: [
         fakeServerProfileOverride(),
         mediaAuthOverride(),
@@ -367,7 +369,8 @@ Widget _scope(
   bool apiKeySession = false,
   MediaAuth media = const MediaAuth(queryToken: 'tok'),
 }) => ProviderScope(
-  overrides: [
+  retry: neverRetry,
+  overrides: layerOverrides([
     fakeServerProfileOverride(
       authMode: apiKeySession ? AuthMode.apiKey : AuthMode.none,
     ),
@@ -384,8 +387,7 @@ Widget _scope(
     inertChamberMaxOverride,
     ...inertHistorySupportOverrides,
     inertSmartPlugsOverride,
-    ...extra,
-  ],
+  ], extra),
   child: plApp(child),
 );
 
@@ -411,6 +413,7 @@ Widget _cardSwap(
   ValueNotifier<PrinterWithStatus> item, {
   DateTime? inTouchSince,
 }) => ProviderScope(
+  retry: neverRetry,
   overrides: [
     fakeServerProfileOverride(),
     mediaAuthOverride(),
@@ -1381,6 +1384,7 @@ void main() {
         ],
       );
       return ProviderScope(
+        retry: neverRetry,
         overrides: [
           fakeServerProfileOverride(),
           mediaAuthOverride(),
@@ -2263,6 +2267,7 @@ void main() {
 
   group('firmware under printer name', () {
     Widget cardWithFirmware(FirmwareUpdateInfo info) => ProviderScope(
+      retry: neverRetry,
       overrides: [
         fakeServerProfileOverride(),
         mediaAuthOverride(),
@@ -2333,15 +2338,14 @@ void main() {
             ),
           ),
         ),
-        overrides: [
+        overrides: layerOverrides([
           fakeServerProfileOverride(),
           mediaAuthOverride(),
           inertSmartPlugsOverride,
           inertFirmwareOverride, // returns null
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,
-          ...inertHistorySupportOverrides,
-        ],
+        ], inertHistorySupportOverrides),
       );
       await tester.pumpAndSettle();
 

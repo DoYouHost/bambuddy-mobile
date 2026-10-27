@@ -72,10 +72,9 @@ class SetupState {
   );
 }
 
-final setupControllerProvider =
-    AutoDisposeNotifierProvider<SetupController, SetupState>(
-      SetupController.new,
-    );
+final setupControllerProvider = NotifierProvider<SetupController, SetupState>(
+  SetupController.new,
+);
 
 /// How long the controller leaves the code step up before declaring the
 /// challenge stale. Overridden in tests to keep them off the clock.
@@ -83,7 +82,7 @@ final twoFactorLifetimeProvider = Provider<Duration>(
   (ref) => TwoFactorChallenge.lifetime,
 );
 
-class SetupController extends AutoDisposeNotifier<SetupState> {
+class SetupController extends Notifier<SetupState> {
   /// Counts down the pre-auth token so an untouched code step gives way to the
   /// password form on its own, instead of waiting for the user to type a
   /// perfectly good code into a challenge the server forgot minutes ago.
@@ -138,6 +137,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
     state = const SetupState(busy: true);
     try {
       final probe = await ref.read(authServiceProvider).probeAuthStatus(url);
+      if (!ref.mounted) return;
       // Only a server that has neither finished setup NOR got auth turned on is
       // genuinely unusable — that's also the sole case the web UI redirects to
       // /setup for. `requires_setup` alone stays true forever on installs whose
@@ -157,6 +157,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
       }
       state = SetupState(probe: probe, baseUrl: effectiveUrl);
     } on AppApiException catch (e) {
+      if (!ref.mounted) return;
       state = SetupState(error: e);
     }
   }
@@ -174,6 +175,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
       // succeeds regardless of which auth tab they pick.
       if (apiKey.trim() == DemoConfig.password) {
         await _saveDemoProfile();
+        if (!ref.mounted) return;
       } else {
         state = state.copyWith(
           busy: false,
@@ -188,6 +190,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
           .verifyAndStoreApiKey(baseUrl: url, apiKey: apiKey.trim());
       await _saveProfile(url, AuthMode.apiKey);
     } on AppApiException catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(busy: false, error: e);
     }
   }
@@ -207,6 +210,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
     if (url == DemoConfig.baseUrl) {
       if (username == DemoConfig.username && password == DemoConfig.password) {
         await _saveDemoProfile();
+        if (!ref.mounted) return;
       } else {
         state = state.copyWith(
           busy: false,
@@ -226,9 +230,11 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
           );
       switch (result) {
         case LoginCompleted(:final user):
+          if (!ref.mounted) return;
           _adopt(user);
           await _saveProfile(url, AuthMode.jwt);
         case LoginNeedsTwoFactor(:final challenge):
+          if (!ref.mounted) return;
           state = state.copyWith(busy: false, twoFactor: challenge);
           _armTwoFactorExpiry();
           // An account whose only factor is e-mail has nothing to type until a
@@ -241,6 +247,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
           }
       }
     } on AppApiException catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(busy: false, error: e);
     }
   }
@@ -256,6 +263,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
       final refreshed = await ref
           .read(authServiceProvider)
           .sendEmailOtp(baseUrl: url, challenge: challenge);
+      if (!ref.mounted) return;
       state = state.copyWith(
         busy: false,
         twoFactor: refreshed,
@@ -264,6 +272,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
       // The server issued a new token with it, so the clock starts over.
       _armTwoFactorExpiry();
     } on AppApiException catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(busy: false, error: e);
     }
   }
@@ -293,10 +302,12 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
             method: method,
             code: code,
           );
+      if (!ref.mounted) return;
       _adopt(completed.user);
       _cancelTwoFactorExpiry();
       await _saveProfile(url, AuthMode.jwt);
     } on AppApiException catch (e) {
+      if (!ref.mounted) return;
       final expired = e.code == AppErrorCode.twoFactorChallengeExpired;
       if (expired) _cancelTwoFactorExpiry();
       state = state.copyWith(busy: false, error: e, clearTwoFactor: expired);

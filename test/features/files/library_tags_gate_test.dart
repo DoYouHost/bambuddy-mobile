@@ -18,6 +18,7 @@ void main() {
     final dio = testDio();
     adapter = mockServer(dio);
     container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         libraryRepositoryProvider.overrideWithValue(LibraryRepository(dio)),
       ],

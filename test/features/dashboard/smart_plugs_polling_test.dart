@@ -34,6 +34,7 @@ void main() {
 
   ProviderContainer makeContainer() {
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         smartPlugsRepositoryProvider.overrideWithValue(repo),
         fakeServerProfileOverride(),

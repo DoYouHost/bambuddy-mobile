@@ -16,6 +16,7 @@ Widget _screen(
   bool supported = true,
   CurrentUser? user,
 }) => ProviderScope(
+  retry: neverRetry,
   overrides: [
     if (user != null) currentUserOverride(user),
     archiveListOverride(items),

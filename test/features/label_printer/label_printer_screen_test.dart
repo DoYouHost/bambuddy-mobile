@@ -18,6 +18,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           labelPrinterInfoProvider.overrideWith((ref) async => info),

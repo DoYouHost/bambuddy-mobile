@@ -4,6 +4,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/features/common/media_image.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -28,6 +29,7 @@ void main() {
   }) async {
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [profile ?? fakeServerProfileOverride(), auth],
         child: plApp(
           MediaImage(
@@ -78,6 +80,7 @@ void main() {
   testWidgets('a path that already has a query keeps it', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [fakeServerProfileOverride(), mediaAuthOverride()],
         child: plApp(
           MediaImage(
@@ -139,6 +142,7 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         ProviderScope(
+          retry: neverRetry,
           overrides: [fakeServerProfileOverride(), mediaAuthOverride()],
           child: plApp(
             MediaImage(
@@ -166,6 +170,7 @@ void main() {
     // nonsense target.
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [fakeServerProfileOverride(), mediaAuthOverride()],
         child: plApp(
           MediaImage(

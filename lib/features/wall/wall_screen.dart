@@ -405,7 +405,7 @@ class _WallFarm extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final faults = ref.watch(wallFaultsProvider);
-    final queue = ref.watch(queueProvider).valueOrNull ?? const <QueueItem>[];
+    final queue = ref.watch(queueProvider).value ?? const <QueueItem>[];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -669,7 +669,7 @@ class _WallRail extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final faults = ref.watch(wallFaultsProvider).length;
-    final queued = ref.watch(queueProvider).valueOrNull?.length ?? 0;
+    final queued = ref.watch(queueProvider).value?.length ?? 0;
     return Container(
       width: WallScreen.railWidth,
       decoration: t.cardBox,

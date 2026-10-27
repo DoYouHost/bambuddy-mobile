@@ -14,6 +14,7 @@ import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -699,7 +700,7 @@ Future<void> main() async {
   a11ySurface(
     'rack mapping',
     demo: false,
-    overrides: [noServerProfileOverride, ...rackForm],
+    overrides: layerOverrides([noServerProfileOverride], rackForm),
     home: () => QueueEditScreen(
       item: archiveDraft(model: 'H2C'),
       mode: QueueEditMode.create,
@@ -711,7 +712,7 @@ Future<void> main() async {
   a11ySurface(
     'rack mapping, position picker',
     demo: false,
-    overrides: [noServerProfileOverride, ...rackForm],
+    overrides: layerOverrides([noServerProfileOverride], rackForm),
     home: () => QueueEditScreen(
       item: archiveDraft(model: 'H2C'),
       mode: QueueEditMode.create,

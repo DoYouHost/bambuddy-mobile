@@ -65,8 +65,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final printers =
-        ref.watch(apiKeyPrinterOptionsProvider).valueOrNull ?? const [];
+    final printers = ref.watch(apiKeyPrinterOptionsProvider).value ?? const [];
     final fmt = DateTimeFormats.of(context);
     // A key that already holds the flag keeps its switch, so it can be taken
     // away again whatever the gate says. Read off the key as it was loaded,

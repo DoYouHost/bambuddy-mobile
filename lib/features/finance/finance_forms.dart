@@ -196,8 +196,7 @@ Widget _userPicker(
 }) {
   final l10n = AppLocalizations.of(context);
   final users = [
-    for (final u
-        in ref.watch(statsUsersProvider).valueOrNull ?? <UserSummary>[])
+    for (final u in ref.watch(statsUsersProvider).value ?? <UserSummary>[])
       if (!except.contains(u.id)) u,
   ];
   return dashCombo<int>(
@@ -489,7 +488,7 @@ class _WalletAdjustFormState extends ConsumerState<_WalletAdjustForm> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final centers = ref.watch(allCostCentersProvider).valueOrNull ?? const [];
+    final centers = ref.watch(allCostCentersProvider).value ?? const [];
     return _formSheet(
       id: 'sheet.wallet_adjust',
       title: l10n.financeAdjustWallet,
@@ -630,7 +629,7 @@ class _ManualPrintFormState extends ConsumerState<_ManualPrintForm> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final centers = ref.watch(allCostCentersProvider).valueOrNull ?? const [];
+    final centers = ref.watch(allCostCentersProvider).value ?? const [];
     return _formSheet(
       id: 'sheet.manual_print',
       title: l10n.financeAddManualPrint,
@@ -761,7 +760,7 @@ class _TransactionEditFormState extends ConsumerState<_TransactionEditForm> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final centers = ref.watch(allCostCentersProvider).valueOrNull ?? const [];
+    final centers = ref.watch(allCostCentersProvider).value ?? const [];
     final t = DashTokens.of(context);
     return _formSheet(
       id: 'sheet.transaction_edit',
@@ -876,11 +875,10 @@ class _MembersSheetState extends ConsumerState<_MembersSheet> {
     final id = widget.center.id;
     final detail = ref.watch(costCenterDetailProvider(id));
     final names = {
-      for (final u
-          in ref.watch(statsUsersProvider).valueOrNull ?? <UserSummary>[])
+      for (final u in ref.watch(statsUsersProvider).value ?? <UserSummary>[])
         u.id: u.username,
     };
-    final members = detail.valueOrNull?.members ?? const <CostCenterMember>[];
+    final members = detail.value?.members ?? const <CostCenterMember>[];
     return _formSheet(
       id: 'sheet.cost_center_members',
       title: widget.center.name,

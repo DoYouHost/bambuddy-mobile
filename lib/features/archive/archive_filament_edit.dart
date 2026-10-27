@@ -111,7 +111,7 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
     // The list is the screen's copy of this print, and the save writes the
     // stored row back into it — so the value here follows the edit without the
     // sheet being reopened.
-    final live = _live(ref.watch(archiveProvider).valueOrNull);
+    final live = _live(ref.watch(archiveProvider).value);
     final grams = live.filamentUsedGrams;
     final actual = filamentActualCaption(live, l10n);
 
@@ -217,7 +217,7 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
     final (:providers, :messenger) = detachFrom(context);
     final repository = providers.read(archiveRepositoryProvider);
     final archiveId = widget.archive.id;
-    final stored = _live(providers.read(archiveProvider).valueOrNull);
+    final stored = _live(providers.read(archiveProvider).value);
 
     final answer = await showDialog<({double? grams})>(
       context: context,

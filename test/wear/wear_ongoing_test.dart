@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/wear/screens/wear_home.dart';
 import 'package:bambuddy_mobile/wear/wear_app.dart';
 import 'package:bambuddy_mobile/wear/wear_fleet_cache.dart';
 import 'package:bambuddy_mobile/wear/wear_ongoing.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/wear_providers.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:fake_async/fake_async.dart';
@@ -100,6 +101,7 @@ void main() {
 
     ProviderContainer start({WearFleetCache cache = const _NoCache()}) {
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           fakeServerProfileOverride(),
           wearFleetCacheProvider.overrideWithValue(cache),

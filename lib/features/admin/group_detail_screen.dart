@@ -37,7 +37,7 @@ class GroupDetailScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(
           context,
-          title: async.valueOrNull?.name ?? l10n.groupsTitle,
+          title: async.value?.name ?? l10n.groupsTitle,
           actions: [
             if (canManage && async.hasValue) _GroupMenu(group: async.value!),
           ],

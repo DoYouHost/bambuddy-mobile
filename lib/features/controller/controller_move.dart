@@ -220,7 +220,7 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
         ? BedJogConvention.unknown
         : convention.isLoading
         ? null
-        : convention.valueOrNull;
+        : convention.value;
     double? distance(bool up) => settled == null
         ? null
         : bedJogDistance(

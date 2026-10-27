@@ -38,6 +38,7 @@ void main() {
     final dio = Dio();
     adapter = mockServer(dio);
     container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         credentialsStoreProvider.overrideWithValue(InMemoryCredentialsStore()),

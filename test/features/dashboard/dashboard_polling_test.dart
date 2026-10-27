@@ -35,6 +35,7 @@ void main() {
 
   ProviderContainer makeContainer() {
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         fakeServerProfileOverride(),
         inertStatusesOverride,

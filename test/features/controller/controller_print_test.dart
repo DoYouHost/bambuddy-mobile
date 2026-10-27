@@ -29,6 +29,7 @@ import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../contract/sent_writes.dart';
@@ -160,7 +161,8 @@ void main() {
     useLogicalWindow(tester, size);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        retry: neverRetry,
+        overrides: layerOverrides([
           noServerProfileOverride,
           ...queueFormOverrides(
             triState: triState,
@@ -200,8 +202,7 @@ void main() {
             (ref) async => ColorCatalog.empty,
           ),
           awaitingReviewProvider.overrideWithValue(held),
-          ...extra,
-        ],
+        ], extra),
         child: locale == null
             ? plApp(const SizedBox())
             : MaterialApp(

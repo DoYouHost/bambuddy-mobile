@@ -245,7 +245,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final async = watch
         ? ref.watch(gcodeSnippetModelsProvider)
         : ref.read(gcodeSnippetModelsProvider);
-    return async.valueOrNull ?? const {};
+    return async.value ?? const {};
   }
 
   /// Whether the form may offer G-code injection at all.
@@ -260,7 +260,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final async = watch
         ? ref.watch(allPrintersProvider)
         : ref.read(allPrintersProvider);
-    for (final p in async.valueOrNull ?? const []) {
+    for (final p in async.value ?? const []) {
       if (p.id == _printerId) return p.model;
     }
     return null;
@@ -380,7 +380,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   // --- Target: Specific Printer / Any <model> ---
   Widget _targetSection(AppLocalizations l10n, DashTokens t) {
-    final printers = ref.watch(allPrintersProvider).valueOrNull ?? const [];
+    final printers = ref.watch(allPrintersProvider).value ?? const [];
     final models = distinctPrinterModels(printers);
     final locations = <String>{
       for (final p in printers)
@@ -683,7 +683,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             mapping: mappingKey(_amsMapping),
           )),
         )
-        .valueOrNull;
+        .value;
   }
 
   int get _costCopies => widget._isCreate ? _copies : 1;
@@ -722,7 +722,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// Name of the printer picked in the Target section, for messages that would
   /// otherwise quote the item's stored (or, on a draft, missing) printer.
   String? _selectedPrinterName(int printerId) {
-    for (final p in ref.read(allPrintersProvider).valueOrNull ?? const []) {
+    for (final p in ref.read(allPrintersProvider).value ?? const []) {
       if (p.id == printerId) return p.name;
     }
     return null;
@@ -809,8 +809,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Widget? _plateSection(AppLocalizations l10n, DashTokens t) {
     final source = _plateSource;
     if (source == null) return null;
-    final plates =
-        ref.watch(plateListProvider(source)).valueOrNull ?? PlateList.none;
+    final plates = ref.watch(plateListProvider(source)).value ?? PlateList.none;
     if (!plates.isMultiPlate) return null;
 
     final current = plates.byIndex(_plateId);
@@ -984,7 +983,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   plate: _plateId ?? 1,
                 )),
               )
-              .valueOrNull ??
+              .value ??
           const [];
     }
     if (it.libraryFileId != null) {
@@ -996,7 +995,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   plate: _plateId ?? 1,
                 )),
               )
-              .valueOrNull ??
+              .value ??
           const [];
     }
     return const [];
@@ -1065,7 +1064,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   .watch(
                     availableFilamentsProvider((model, _targetLocation ?? '')),
                   )
-                  .valueOrNull ??
+                  .value ??
               const <AvailableFilament>[]);
     final reqs = _requirements();
     return QueueSectionCard(
@@ -1188,7 +1187,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   List<Map<String, dynamic>>? _buildFilamentOverrides() {
     final catalog =
-        ref.read(mappingColorCatalogProvider).valueOrNull ?? ColorCatalog.empty;
+        ref.read(mappingColorCatalogProvider).value ?? ColorCatalog.empty;
     final entries = <Map<String, dynamic>>[];
     for (final r in _requirements()) {
       final ov = _overrides[r.slotId];
@@ -1578,7 +1577,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         printers: ref.read(printersRepositoryProvider),
         printerId: printerId,
         startFrom: _amsMapping ?? const [],
-        preferLowestSetting: ref.read(preferLowestFilamentProvider).valueOrNull,
+        preferLowestSetting: ref.read(preferLowestFilamentProvider).value,
       );
     } on Object {
       // A lost session surfaces on the write itself; the mapping only rides
@@ -1611,7 +1610,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final server = watch
         ? ref.watch(defaultConfirmOutcomeProvider)
         : ref.read(defaultConfirmOutcomeProvider);
-    return server.valueOrNull ?? false;
+    return server.value ?? false;
   }
 
   bool get _confirmOutcomeUnanswered =>
@@ -1624,7 +1623,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// rewrite what another client set meanwhile.
   bool? get _confirmOutcomeUpdate {
     final choice = _confirmOutcomeChoice;
-    if (ref.read(queueOutcomeProvider).valueOrNull == false) return null;
+    if (ref.read(queueOutcomeProvider).value == false) return null;
     return choice == widget.item.confirmOutcome ? null : choice;
   }
 

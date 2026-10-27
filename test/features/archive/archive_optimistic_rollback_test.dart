@@ -43,6 +43,7 @@ void main() {
   setUp(() async {
     repository = _HeldWrites();
     container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         archiveListOverride([_row(1), _row(2), _row(3)]),
         archiveRepositoryProvider.overrideWithValue(repository),

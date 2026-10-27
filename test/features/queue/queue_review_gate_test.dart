@@ -7,6 +7,7 @@ import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -51,6 +52,7 @@ void main() {
   group('awaitingReviewProvider', () {
     Future<bool> held(CurrentUser? me, {bool gate = true}) async {
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           currentUserOverride(me),
           queueReviewGateProvider.overrideWithValue(AsyncData(gate)),
@@ -99,6 +101,7 @@ void main() {
       AuthMode authMode = AuthMode.jwt,
     }) async {
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           fakeServerProfileOverride(authMode: authMode),
           currentUserOverride(
@@ -167,6 +170,7 @@ void main() {
       ]);
     });
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         printersRepositoryProvider.overrideWithValue(PrintersRepository(dio)),
       ],
@@ -174,7 +178,7 @@ void main() {
     addTearDown(container.dispose);
     container.listen(queueReviewGateProvider, (_, _) {});
     await pumpEventQueue();
-    expect(container.read(queueReviewGateProvider).valueOrNull, isTrue);
+    expect(container.read(queueReviewGateProvider).value, isTrue);
     expect(listed, 1);
   });
 

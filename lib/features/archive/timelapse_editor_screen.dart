@@ -439,7 +439,7 @@ class _TrimStrip extends ConsumerWidget {
     final strip = ref.watch(timelapseFilmstripProvider(archiveId));
 
     Widget build(double? position) => TimelapseTrimStrip(
-      frames: strip.valueOrNull?.frames ?? const [],
+      frames: strip.value?.frames ?? const [],
       loading: strip.isLoading,
       duration: duration,
       trim: trim,

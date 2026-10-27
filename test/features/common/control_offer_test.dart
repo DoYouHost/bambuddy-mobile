@@ -2,6 +2,8 @@ import 'package:bambuddy_mobile/features/common/dash_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers.dart';
+
 /// The rule two screens share for a control gated on an answer from the
 /// server: the archive's slice button and the dashboard's plate-clear
 /// acknowledgement.
@@ -33,9 +35,11 @@ void main() {
   });
 
   test('a refresh keeps the answer it already had', () {
-    // Riverpod reports a reload as data carrying `isLoading`. Reading that as
-    // "not answered" would disable a working control on every settings write.
-    final refreshing = const AsyncValue<bool>.loading().copyWithPrevious(
+    // Riverpod reports a reload as loading that still carries the old value.
+    // Reading that as "not answered" would disable a working control on every
+    // settings write.
+    final refreshing = reportedOver(
+      const AsyncValue<bool>.loading(),
       const AsyncValue.data(true),
     );
 

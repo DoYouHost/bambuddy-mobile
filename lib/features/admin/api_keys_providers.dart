@@ -8,11 +8,11 @@ import '../../providers.dart';
 
 /// The keys issued on this server.
 final apiKeysListProvider =
-    AutoDisposeAsyncNotifierProvider<ApiKeysListNotifier, List<ApiKey>>(
+    AsyncNotifierProvider<ApiKeysListNotifier, List<ApiKey>>(
       ApiKeysListNotifier.new,
     );
 
-class ApiKeysListNotifier extends AutoDisposeAsyncNotifier<List<ApiKey>> {
+class ApiKeysListNotifier extends AsyncNotifier<List<ApiKey>> {
   @override
   Future<List<ApiKey>> build() async {
     ref.watch(serverProfileProvider);
@@ -20,10 +20,12 @@ class ApiKeysListNotifier extends AutoDisposeAsyncNotifier<List<ApiKey>> {
   }
 
   Future<void> refresh() async {
-    state = const AsyncValue<List<ApiKey>>.loading().copyWithPrevious(state);
-    state = await AsyncValue.guard(
+    state = const AsyncLoading<List<ApiKey>>();
+    final next = await AsyncValue.guard(
       () => ref.read(apiKeysRepositoryProvider).list(),
     );
+    if (!ref.mounted) return;
+    state = next;
   }
 }
 

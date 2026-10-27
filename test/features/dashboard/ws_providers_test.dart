@@ -51,6 +51,7 @@ class _PushConn implements WsConnection {
 
 ProviderContainer _container() {
   final c = ProviderContainer(
+    retry: neverRetry,
     overrides: [
       fakeServerProfileOverride(),
       wsClientProvider.overrideWith((ref) {
@@ -273,6 +274,7 @@ void main() {
       // stayed invisible until the user pulled the list down.
       late _PushConn conn;
       final c = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           fakeServerProfileOverride(),
           wsClientProvider.overrideWith((ref) {
@@ -300,6 +302,7 @@ void main() {
     test('an archive frame does the same for the archive', () async {
       late _PushConn conn;
       final c = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           fakeServerProfileOverride(),
           wsClientProvider.overrideWith((ref) {

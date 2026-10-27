@@ -10,11 +10,11 @@ import '../../providers.dart';
 /// the groups, so a refusal belongs on screen rather than degrading to an
 /// empty list the way the picker does.
 final groupsListProvider =
-    AutoDisposeAsyncNotifierProvider<GroupsListNotifier, List<GroupSummary>>(
+    AsyncNotifierProvider<GroupsListNotifier, List<GroupSummary>>(
       GroupsListNotifier.new,
     );
 
-class GroupsListNotifier extends AutoDisposeAsyncNotifier<List<GroupSummary>> {
+class GroupsListNotifier extends AsyncNotifier<List<GroupSummary>> {
   @override
   Future<List<GroupSummary>> build() async {
     ref.watch(serverProfileProvider);
@@ -22,38 +22,38 @@ class GroupsListNotifier extends AutoDisposeAsyncNotifier<List<GroupSummary>> {
   }
 
   Future<void> refresh() async {
-    state = const AsyncValue<List<GroupSummary>>.loading().copyWithPrevious(
-      state,
-    );
-    state = await AsyncValue.guard(
+    state = const AsyncLoading<List<GroupSummary>>();
+    final next = await AsyncValue.guard(
       () => ref.read(groupsRepositoryProvider).list(),
     );
+    if (!ref.mounted) return;
+    state = next;
   }
 }
 
-final groupDetailProvider =
-    AutoDisposeAsyncNotifierProviderFamily<
-      GroupDetailNotifier,
-      GroupDetail,
-      int
-    >(GroupDetailNotifier.new);
+final groupDetailProvider = AsyncNotifierProvider.autoDispose
+    .family<GroupDetailNotifier, GroupDetail, int>(GroupDetailNotifier.new);
 
 /// One group with its members, keyed by id. Membership changes refresh this
 /// and the list (which carries `user_count`), and the account list too — the
 /// same membership is what its group chips show.
-class GroupDetailNotifier
-    extends AutoDisposeFamilyAsyncNotifier<GroupDetail, int> {
+class GroupDetailNotifier extends AsyncNotifier<GroupDetail> {
+  GroupDetailNotifier(this.arg);
+
+  final int arg;
   @override
-  Future<GroupDetail> build(int arg) async {
+  Future<GroupDetail> build() async {
     ref.watch(serverProfileProvider);
     return ref.read(groupsRepositoryProvider).get(arg);
   }
 
   Future<void> refresh() async {
-    state = const AsyncValue<GroupDetail>.loading().copyWithPrevious(state);
-    state = await AsyncValue.guard(
+    state = const AsyncLoading<GroupDetail>();
+    final next = await AsyncValue.guard(
       () => ref.read(groupsRepositoryProvider).get(arg),
     );
+    if (!ref.mounted) return;
+    state = next;
   }
 }
 
@@ -78,5 +78,5 @@ final canReadGroupsProvider = Provider<bool>(
 /// decides.
 final canManageGroupsProvider = Provider<bool>((ref) {
   if (!ref.watch(canReadGroupsProvider)) return false;
-  return ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? false;
+  return ref.watch(currentUserProvider).value?.isAdmin ?? false;
 });

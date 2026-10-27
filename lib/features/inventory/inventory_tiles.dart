@@ -411,7 +411,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final usage = ref.watch(spoolUsageProvider(spool.id));
     final climate = climateOfSpool(
-      ref.watch(locationClimateProvider).valueOrNull ?? const {},
+      ref.watch(locationClimateProvider).value ?? const {},
       spool,
     );
 

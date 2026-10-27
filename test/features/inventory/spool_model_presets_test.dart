@@ -10,6 +10,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -364,6 +365,7 @@ void main() {
       ).thenAnswer((_) async => const []);
       final gate = StateProvider<AsyncValue<bool>>((_) => const AsyncLoading());
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           inventoryRepositoryProvider.overrideWithValue(repo),
           presetOverridesSupportedProvider.overrideWith(
@@ -391,6 +393,7 @@ void main() {
     // completes would leave it waiting instead.
     final repo = _MockRepo();
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         inventoryRepositoryProvider.overrideWithValue(repo),
         presetOverridesSupportedProvider.overrideWithValue(

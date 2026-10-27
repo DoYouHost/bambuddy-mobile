@@ -57,6 +57,7 @@ void main() {
     adapter = mockServer(dio);
     repo = PipelinesRepository(dio);
     container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         pipelinesRepositoryProvider.overrideWithValue(repo),
         // The notifier subscribes to `pipelineRunUpdates` in build(). The stream

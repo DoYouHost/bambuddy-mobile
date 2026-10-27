@@ -36,8 +36,7 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final typesAsync = ref.watch(maintenanceTypesProvider);
-    final overview =
-        ref.watch(maintenanceOverviewProvider).valueOrNull ?? const [];
+    final overview = ref.watch(maintenanceOverviewProvider).value ?? const [];
 
     return DashBackground(
       child: Scaffold(
@@ -431,8 +430,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
 
   /// Printers available as assignment targets, from the loaded status overview.
   List<({int id, String name})> _availablePrinters() {
-    final overview =
-        ref.read(maintenanceOverviewProvider).valueOrNull ?? const [];
+    final overview = ref.read(maintenanceOverviewProvider).value ?? const [];
     return [for (final p in overview) (id: p.printerId, name: p.printerName)];
   }
 

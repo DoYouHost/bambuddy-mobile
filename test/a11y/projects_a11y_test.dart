@@ -147,7 +147,7 @@ void main() {
     home: () => const ProjectDetailScreen(projectId: 1),
     overrides: [
       fakeServerProfileOverride(),
-      projectDetailProvider.overrideWith(_FailingDetail.new),
+      projectDetailProvider.overrideWith2(_FailingDetail.new),
     ],
     shows: find.text(pl.retry),
   );
@@ -156,7 +156,7 @@ void main() {
   // children, link, tags, attachments, a linked folder with a printable file,
   // a timeline and a sets target.
   final richOverrides = [
-    projectDetailProvider.overrideWith(() => _DetailOf(_richProject)),
+    projectDetailProvider.overrideWith2((arg) => _DetailOf(_richProject, arg)),
     projectFoldersProvider.overrideWith((ref, id) async => _folders),
     projectFilesProvider.overrideWith((ref, id) async => _files),
     projectFileProgressProvider.overrideWith(
@@ -361,12 +361,12 @@ const _timeline = [
 
 /// Hands the detail screen a fixed project instead of asking the demo.
 class _DetailOf extends ProjectDetailNotifier {
-  _DetailOf(this.project);
+  _DetailOf(this.project, super.arg);
 
   final ProjectResponse project;
 
   @override
-  Future<ProjectResponse> build(int arg) async {
+  Future<ProjectResponse> build() async {
     // The sections below read the API client; creating it for the first time
     // while one of them builds notifies the reachability listeners mid-build.
     // The real screen always has the client by the time it has a project.
@@ -376,8 +376,10 @@ class _DetailOf extends ProjectDetailNotifier {
 }
 
 class _FailingDetail extends ProjectDetailNotifier {
+  _FailingDetail(super.arg);
+
   @override
-  Future<ProjectResponse> build(int arg) async =>
+  Future<ProjectResponse> build() async =>
       throw const ApiException(AppErrorCode.malformedResponse);
 }
 

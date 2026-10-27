@@ -15,6 +15,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -82,13 +83,10 @@ class _Library extends FileManagerNotifier {
     calls.add('open $folderId');
     final before = state;
     if (openGate != null || openFailsWith != null) {
-      state = const AsyncLoading<FileManagerState>().copyWithPrevious(before);
+      state = const AsyncLoading<FileManagerState>();
       await openGate?.future;
       if (openFailsWith != null) {
-        state = AsyncError<FileManagerState>(
-          openFailsWith!,
-          StackTrace.empty,
-        ).copyWithPrevious(before);
+        state = AsyncError<FileManagerState>(openFailsWith!, StackTrace.empty);
         return;
       }
     }
@@ -118,7 +116,7 @@ class _Library extends FileManagerNotifier {
     final gate = refreshGate;
     if (gate == null) return;
     final before = state;
-    state = const AsyncLoading<FileManagerState>().copyWithPrevious(before);
+    state = const AsyncLoading<FileManagerState>();
     await gate.future;
     state = before;
   }
@@ -229,7 +227,9 @@ void main() {
       tester,
       model: model,
       size: size,
-      overrides: [fileManagerProvider.overrideWith(() => library), ...extra],
+      overrides: layerOverrides([
+        fileManagerProvider.overrideWith(() => library),
+      ], extra),
     );
   }
 

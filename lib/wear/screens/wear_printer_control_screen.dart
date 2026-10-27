@@ -78,7 +78,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
   ///
   /// One-way: `refresh` only ever replaces the state with a live fleet or keeps
   /// the one it has, so a screen that has gone live never goes back.
-  bool get _stale => ref.read(wearFleetProvider).valueOrNull?.stale ?? false;
+  bool get _stale => ref.read(wearFleetProvider).value?.stale ?? false;
 
   @override
   Widget build(BuildContext context) {

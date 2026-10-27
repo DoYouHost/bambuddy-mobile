@@ -97,7 +97,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
-    final catalog = ref.watch(processSchemaProvider).valueOrNull;
+    final catalog = ref.watch(processSchemaProvider).value;
     final presetValues = ref.watch(presetValuesProvider(widget.preset));
 
     // Both have to be in hand before the first field is drawn: a field seeded

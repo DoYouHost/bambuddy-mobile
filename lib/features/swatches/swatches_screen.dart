@@ -915,7 +915,7 @@ class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final colors = ref.watch(colorCatalogProvider).valueOrNull ?? const [];
+    final colors = ref.watch(colorCatalogProvider).value ?? const [];
     final q = _query.trim().toLowerCase();
 
     final List<ColorEntry> shown;

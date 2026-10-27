@@ -94,7 +94,7 @@ final pipelineRunFilterProvider =
       dependencies: [pipelineRunFilterSeedProvider],
     );
 
-class PipelineRunFilterNotifier extends AutoDisposeNotifier<PipelineRunFilter> {
+class PipelineRunFilterNotifier extends Notifier<PipelineRunFilter> {
   @override
   PipelineRunFilter build() => ref.watch(pipelineRunFilterSeedProvider);
 
@@ -142,7 +142,7 @@ final pipelineRunsProvider =
       dependencies: [pipelineRunFilterProvider],
     );
 
-class PipelineRunsNotifier extends AutoDisposeAsyncNotifier<PipelineRunsView> {
+class PipelineRunsNotifier extends AsyncNotifier<PipelineRunsView> {
   @override
   Future<PipelineRunsView> build() async {
     // Watched, not read: changing a filter has to start the list over, since
@@ -174,7 +174,7 @@ class PipelineRunsNotifier extends AutoDisposeAsyncNotifier<PipelineRunsView> {
   /// Append the next page. A no-op while one is in flight or everything is
   /// loaded, so a scroll notification firing twice cannot ask twice.
   Future<void> loadMore() async {
-    final view = state.valueOrNull;
+    final view = state.value;
     if (view == null || view.loadingMore || !view.hasMore) return;
     state = AsyncData(view.copyWith(loadingMore: true));
     try {
@@ -184,6 +184,7 @@ class PipelineRunsNotifier extends AutoDisposeAsyncNotifier<PipelineRunsView> {
             offset: view.runs.length,
             filter: ref.read(pipelineRunFilterProvider),
           );
+      if (!ref.mounted) return;
       // `total` from the same query, so runs cleared between the two requests
       // shrink the count instead of stranding the footer.
       state = AsyncData(
@@ -192,7 +193,7 @@ class PipelineRunsNotifier extends AutoDisposeAsyncNotifier<PipelineRunsView> {
     } on AppApiException {
       // Only the spinner goes: a failed page must not empty the list the user
       // was reading. Thrown on, because a press deserves an answer.
-      state = AsyncData(view.copyWith(loadingMore: false));
+      if (ref.mounted) state = AsyncData(view.copyWith(loadingMore: false));
       rethrow;
     }
   }
@@ -207,7 +208,7 @@ class PipelineRunsNotifier extends AutoDisposeAsyncNotifier<PipelineRunsView> {
   /// unhandled async error with nothing waiting to show it. Answers `false`
   /// instead, leaves the rows alone, and the next tick tries again.
   Future<bool> refreshLoaded() async {
-    final loaded = state.valueOrNull?.runs.length ?? 0;
+    final loaded = state.value?.runs.length ?? 0;
     try {
       final page = await ref
           .read(pipelinesRepositoryProvider)
@@ -219,6 +220,7 @@ class PipelineRunsNotifier extends AutoDisposeAsyncNotifier<PipelineRunsView> {
             offset: 0,
             filter: ref.read(pipelineRunFilterProvider),
           );
+      if (!ref.mounted) return false;
       state = AsyncData(PipelineRunsView(runs: page.runs, total: page.total));
       return true;
     } on AppApiException {
@@ -230,7 +232,7 @@ class PipelineRunsNotifier extends AutoDisposeAsyncNotifier<PipelineRunsView> {
   /// run the page does not hold is ignored rather than prepended: where it
   /// belongs depends on the filter, which one frame cannot answer.
   void patch(PipelineRun run) {
-    final view = state.valueOrNull;
+    final view = state.value;
     if (view == null) return;
     final at = view.runs.indexWhere((r) => r.id == run.id);
     if (at < 0) return;

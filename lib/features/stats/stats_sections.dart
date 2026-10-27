@@ -518,7 +518,7 @@ class _StockStatsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final rows = stats.valueOrNull ?? const <StockStats>[];
+    final rows = stats.value ?? const <StockStats>[];
     if (!stats.hasError && rows.isEmpty) return const SizedBox.shrink();
     final heaviest = rows.fold<double>(
       1,

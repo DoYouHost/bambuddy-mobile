@@ -34,6 +34,7 @@ Future<void> _openDialog(WidgetTester tester, _HeldPreviews repository) async {
   final prefs = await SharedPreferences.getInstance();
   await tester.pumpWidget(
     ProviderScope(
+      retry: neverRetry,
       overrides: [
         archiveListOverride(const [
           Archive(id: 1, filename: 'a.gcode.3mf', status: 'completed'),

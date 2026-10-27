@@ -124,7 +124,7 @@ class _PrinterLocationsScreenState
     final l10n = AppLocalizations.of(context);
     final byName = {
       for (final l
-          in ref.read(printerLocationsProvider).valueOrNull ??
+          in ref.read(printerLocationsProvider).value ??
               const <PrinterLocation>[])
         l.name: l.printerCount,
     };
@@ -271,7 +271,7 @@ class _PrinterLocationsScreenState
         busy: _busy,
         onAction: () => _move([
           ..._pickedPrinters,
-        ], ref.read(printerLocationsProvider).valueOrNull ?? const []),
+        ], ref.read(printerLocationsProvider).value ?? const []),
         onCancel: () => setState(_pickedPrinters.clear),
       );
     }

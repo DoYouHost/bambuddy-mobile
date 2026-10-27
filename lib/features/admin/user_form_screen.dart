@@ -72,9 +72,9 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final advanced =
-        ref.watch(advancedAuthStatusProvider).valueOrNull ??
+        ref.watch(advancedAuthStatusProvider).value ??
         AdvancedAuthStatus.legacy;
-    final groups = ref.watch(groupOptionsProvider).valueOrNull ?? const [];
+    final groups = ref.watch(groupOptionsProvider).value ?? const [];
     final fieldStyle = t.bodyStrong;
     // With advanced authentication on, the server picks the password itself and
     // mails it — an admin neither sets nor sees one (`users.py::create_user`).
@@ -302,7 +302,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     // what the app offers you — re-read the identity rather than keep the one
     // from before the edit.
     if (result.isOk && existing != null) {
-      final self = ref.read(currentUserProvider).valueOrNull;
+      final self = ref.read(currentUserProvider).value;
       if (self != null && self.id == existing.id) {
         await ref.read(currentUserProvider.notifier).refresh();
       }

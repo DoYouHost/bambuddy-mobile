@@ -77,7 +77,7 @@ final queueHistoryProvider =
 /// The history a page at a time, as the web reads it since #2960: "show more"
 /// asks for a longer first page rather than the next one, so a batch on it
 /// keeps every run. An older server sends everything and is paged here.
-class QueueHistoryNotifier extends AutoDisposeAsyncNotifier<QueueHistoryState> {
+class QueueHistoryNotifier extends AsyncNotifier<QueueHistoryState> {
   int _limit = QueueHistoryView.pageSize;
 
   /// Bumped by every load, so an answer overtaken by a newer one is dropped.
@@ -93,7 +93,7 @@ class QueueHistoryNotifier extends AutoDisposeAsyncNotifier<QueueHistoryState> {
     // A rebuild, not a refresh: the build still out for the old order would
     // otherwise land after the new answer and replace it.
     ref.listen(queueHistoryOrderProvider, (_, _) {
-      final shown = state.valueOrNull;
+      final shown = state.value;
       if (shown != null && !shown.serverOrdered) {
         _limit = QueueHistoryView.pageSize;
         state = AsyncData(_withLimit(shown));
@@ -107,17 +107,15 @@ class QueueHistoryNotifier extends AutoDisposeAsyncNotifier<QueueHistoryState> {
   /// Keeps the rows on screen while the new answer is out.
   Future<void> refresh() async {
     final generation = ++_generation;
-    state = const AsyncValue<QueueHistoryState>.loading().copyWithPrevious(
-      state,
-    );
+    state = const AsyncLoading<QueueHistoryState>();
     final next = await AsyncValue.guard(_load);
-    if (generation == _generation) state = next;
+    if (ref.mounted && generation == _generation) state = next;
   }
 
   /// One more page.
   Future<void> showMore() async {
     _limit += QueueHistoryView.pageSize;
-    final shown = state.valueOrNull;
+    final shown = state.value;
     if (shown != null && !shown.serverOrdered) {
       state = AsyncData(_withLimit(shown));
       return;
@@ -523,7 +521,7 @@ class _HistoryRow extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final (icon, ink) = _statusLook(t, item.statusKind);
-    final me = ref.watch(currentUserProvider).valueOrNull;
+    final me = ref.watch(currentUserProvider).value;
     final canRequeue = ref.watch(permissionProvider(Permissions.queueCreate));
     final canRemove = canModifyOwned(
       me,

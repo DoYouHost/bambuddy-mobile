@@ -42,6 +42,7 @@ void main() {
     ProviderContainer container(List<Archive> rows) {
       repo = FakeArchives(rows: rows);
       final c = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           noServerProfileOverride,
           archiveRepositoryProvider.overrideWithValue(repo),

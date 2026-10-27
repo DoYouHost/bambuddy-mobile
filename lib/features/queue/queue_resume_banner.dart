@@ -27,13 +27,13 @@ class QueueResumeBanners extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final skipped = ref.watch(queueSkippedProvider).valueOrNull ?? const [];
+    final skipped = ref.watch(queueSkippedProvider).value ?? const [];
     final printers = gateBlockedPrinters(
       skipped,
       fallbackName: (id) => l10n.statsPrinterFallback('$id'),
     );
     final models = ref.watch(permissionProvider(Permissions.queueUpdateAll))
-        ? gateBlockedModels(ref.watch(queueProvider).valueOrNull ?? const [])
+        ? gateBlockedModels(ref.watch(queueProvider).value ?? const [])
         : const <GateBlockedModel>[];
     if (printers.isEmpty && models.isEmpty) return const SizedBox.shrink();
     return Column(

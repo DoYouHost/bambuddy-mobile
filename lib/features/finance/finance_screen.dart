@@ -68,7 +68,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
         : ref.watch(myCostCentersProvider);
     final Map<int, String> names = {
       if (admin)
-        for (final u in ref.watch(statsUsersProvider).valueOrNull ?? const [])
+        for (final u in ref.watch(statsUsersProvider).value ?? const [])
           u.id: u.username,
     };
     final canPickUsers = names.isNotEmpty;
@@ -226,7 +226,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       ? l10n.financeTransactions
                       : l10n.financeRecentTransactions,
                 ),
-                _filters(l10n, centers.valueOrNull ?? const []),
+                _filters(l10n, centers.value ?? const []),
                 const SizedBox(height: DashSpace.md),
                 dashAsyncStrip(
                   context,
@@ -237,7 +237,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                     t,
                     state,
                     ledger,
-                    {for (final c in centers.valueOrNull ?? const []) c.id: c},
+                    {for (final c in centers.value ?? const []) c.id: c},
                     userNames: allLedger ? names : null,
                     canModify: admin && canModify,
                   ),

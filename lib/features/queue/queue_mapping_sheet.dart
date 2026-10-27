@@ -429,8 +429,8 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     // slots once they answer.
     final remain = ref
         .watch(mappingInventoryRemainProvider(widget.printerId))
-        .valueOrNull;
-    final preferLowest = ref.watch(preferLowestFilamentProvider).valueOrNull;
+        .value;
+    final preferLowest = ref.watch(preferLowestFilamentProvider).value;
     // Loads the shelf while the sheet is open, for the picker's grams — a
     // listen, as nothing on this sheet shows them.
     ref.listen(assignedSpoolsProvider(widget.printerId), (_, _) {});
@@ -455,10 +455,10 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
               ),
       );
     }
-    final status = statusAsync.valueOrNull;
+    final status = statusAsync.value;
     final loaded = buildLoadedFilaments(status);
     final comparison = _compare(
-      reqsAsync.valueOrNull ?? const [],
+      reqsAsync.value ?? const [],
       status,
       loaded,
       _manual,
@@ -526,10 +526,8 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
 
     final t = DashTokens.of(context);
     final catalog =
-        ref.watch(mappingColorCatalogProvider).valueOrNull ??
-        ColorCatalog.empty;
-    final names =
-        ref.watch(mappingFilamentNamesProvider).valueOrNull ?? const {};
+        ref.watch(mappingColorCatalogProvider).value ?? ColorCatalog.empty;
+    final names = ref.watch(mappingFilamentNamesProvider).value ?? const {};
     final options = _SlotOptions(
       l10n: l10n,
       catalog: catalog,
@@ -701,10 +699,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     final archiveId = widget.item.archiveId;
     final saved = archiveId == null
         ? null
-        : ref
-              .watch(mappingArchiveProvider(archiveId))
-              .valueOrNull
-              ?.slicerAmsMapping;
+        : ref.watch(mappingArchiveProvider(archiveId)).value?.slicerAmsMapping;
     final slicer = saved?.printerId == widget.printerId ? saved!.mapping : null;
     return Padding(
       padding: const EdgeInsets.only(top: DashSpace.sm),
@@ -1005,7 +1000,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                   material: _materialHint(name),
                 )),
               )
-              .valueOrNull;
+              .value;
     final required = byMaterial ?? mappingColorName(l10n, options.catalog, hex);
     final (requiredLabel, loadedLabel) = disambiguateColorNames(
       (name: required, hex: hex),
@@ -1127,7 +1122,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       scrollControlled: false,
       title: _filamentName(
         req,
-        ref.read(mappingFilamentNamesProvider).valueOrNull ?? const {},
+        ref.read(mappingFilamentNamesProvider).value ?? const {},
       ),
       builder: (ctx) =>
           // A Consumer, not the sheet's own ref: this is a route of its own,

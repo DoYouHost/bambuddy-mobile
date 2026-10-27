@@ -33,13 +33,17 @@ class _ScheduledDryingBannerState
   void didUpdateWidget(_ScheduledDryingBanner old) {
     super.didUpdateWidget(old);
     if (widget.drying && !old.drying) {
-      ref.invalidate(scheduledDryingsProvider);
+      // Not here: this runs inside the parent's build, and Riverpod 3 marks the
+      // listing's watchers dirty at once, which the framework refuses mid-build.
+      scheduleMicrotask(() {
+        if (mounted) ref.invalidate(scheduledDryingsProvider);
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final all = ref.watch(scheduledDryingsProvider).valueOrNull;
+    final all = ref.watch(scheduledDryingsProvider).value;
     if (all == null) return const SizedBox.shrink();
     final rows = scheduledDryingsFor(
       all,

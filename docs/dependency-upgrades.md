@@ -58,6 +58,22 @@ wait on the win32 knot above; `file_picker` is migrated in 13, which waits on
 its own rewrite below; `nsd_android` 2.2.0 is not migrated at all
 (sebastianhaberey/nsd#88). Once all five move, set the flag to true.
 
-## flutter_riverpod stays at 2
+## flutter_riverpod is at 3
 
-Riverpod 3 is a migration across every screen. It is a project, not a bump.
+Migrated from 2.6.1 to 3.4.3 together with `app_report_ui` in app-shared, the only
+shared package that depends on it. What the migration changed, so a later bump does not
+rediscover it:
+
+- `AutoDispose*` and `Family*` notifier bases are gone: one `AsyncNotifier` / `Notifier`,
+  `.autoDispose` stays a modifier on the provider, a family's argument comes through the
+  notifier's constructor (`GroupDetailNotifier(this.arg)`), not through `build`.
+- `valueOrNull` is `value`; `Override` and `ProviderListenable` live in
+  `package:flutter_riverpod/misc.dart`, `StateProvider` in `legacy.dart`.
+- **Automatic retry** (ten attempts, growing delay, for any `Exception`) would hold every
+  failed read on a spinner; `neverRetry` in `lib/providers.dart` is passed to every root
+  scope and container. A new root must pass it too.
+- `copyWithPrevious` is internal; see [riverpod-traps.md](riverpod-traps.md) §5.
+- Out-of-view listeners are paused (they follow `TickerMode`): a provider watched only
+  by a screen that is not on top stops until it is back.
+- A `Ref` used after an `await` in a provider that was disposed meanwhile throws
+  (`ref.mounted` guards it).

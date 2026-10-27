@@ -2193,7 +2193,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final inv = ref.watch(inventoryProvider).valueOrNull;
+    final inv = ref.watch(inventoryProvider).value;
     final spools = inv?.spools ?? const <Spool>[];
 
     Spool? current;
@@ -2395,8 +2395,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       return false;
     }
     final onSpoolman =
-        ref.watch(inventoryBackendProvider).valueOrNull ==
-        InventoryBackend.spoolman;
+        ref.watch(inventoryBackendProvider).value == InventoryBackend.spoolman;
     final keyed = ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey;
     return !(onSpoolman && keyed);
   }
@@ -2502,8 +2501,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
 
     Spool? scanned() {
       for (final s
-          in ref.read(inventoryProvider).valueOrNull?.spools ??
-              const <Spool>[]) {
+          in ref.read(inventoryProvider).value?.spools ?? const <Spool>[]) {
         if (s.id == id) return s;
       }
       return null;
@@ -2524,10 +2522,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
 
     // An archived spool is not offered in the list but is accepted here: the
     // user is holding it against the printer, which outranks a bookkeeping flag.
-    final from = ref
-        .read(inventoryProvider)
-        .valueOrNull
-        ?.assignmentFor(spool.id);
+    final from = ref.read(inventoryProvider).value?.assignmentFor(spool.id);
     if (from != null &&
         from.printerId == slot.printerId &&
         from.amsId == slot.amsId &&

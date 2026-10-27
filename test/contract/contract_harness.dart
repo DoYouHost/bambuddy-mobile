@@ -198,6 +198,7 @@ Future<void> _quietly(Future<Object?> cleanup) async {
 /// repository. Disposed with the test.
 ProviderContainer contractContainer(Dio dio) {
   final container = ProviderContainer(
+    retry: neverRetry,
     overrides: [
       fakeServerProfileOverride(),
       apiClientProvider.overrideWithValue(

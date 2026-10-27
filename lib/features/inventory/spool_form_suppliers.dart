@@ -237,7 +237,7 @@ class _SupplierPickerSheet extends ConsumerWidget {
     final theme = Theme.of(context);
     final list = ref.watch(supplierListProvider);
     final available = [
-      for (final s in list.valueOrNull ?? const <Supplier>[])
+      for (final s in list.value ?? const <Supplier>[])
         if (!taken.contains(s.id)) s,
     ];
 

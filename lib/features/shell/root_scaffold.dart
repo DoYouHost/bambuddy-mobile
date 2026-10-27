@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
@@ -88,7 +89,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
 
     // Badge count on "Queue" tab: only PENDING prints (pending/scheduled).
     final queueCount =
-        ref.watch(queueProvider).valueOrNull?.where((i) {
+        ref.watch(queueProvider).value?.where((i) {
           final k = i.statusKind;
           return k == QueueItemStatusKind.pending ||
               k == QueueItemStatusKind.scheduled;
@@ -99,7 +100,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     final maintenanceCount =
         ref
             .watch(maintenanceOverviewProvider)
-            .valueOrNull
+            .value
             ?.fold<int>(0, (sum, o) => sum + o.dueCount) ??
         0;
 

@@ -107,7 +107,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     if (ref.watch(libraryTagsSupportedProvider).orFalse) {
       ref.watch(libraryTagsProvider);
     }
-    final state = async.valueOrNull;
+    final state = async.value;
     final selectionMode = state?.selectionMode ?? false;
 
     return DashBackground(
@@ -201,7 +201,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         icon: s.fetchFailed ? Icons.cloud_off : Icons.folder_open_outlined,
       );
     } else {
-      final me = ref.watch(currentUserProvider).valueOrNull;
+      final me = ref.watch(currentUserProvider).value;
       content = SliverPadding(
         padding: const EdgeInsets.only(
           top: DashSpace.sm,
@@ -660,7 +660,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }
 
   Future<void> _moveFile(LibraryFile file) async {
-    final state = ref.read(fileManagerProvider).valueOrNull;
+    final state = ref.read(fileManagerProvider).value;
     if (state == null) return;
     final target = await _pickFolder(state, excludeFolderId: null);
     if (target == null || !mounted) return; // cancelled
@@ -1147,7 +1147,7 @@ class _StatsBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final stats = ref.watch(libraryStatsProvider).valueOrNull;
+    final stats = ref.watch(libraryStatsProvider).value;
     if (stats == null) return const SizedBox.shrink();
     final parts = <String>[
       if (stats.totalFiles != null) l10n.fmStatsFiles(stats.totalFiles!),

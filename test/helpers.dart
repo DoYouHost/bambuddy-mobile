@@ -40,6 +40,7 @@ import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
@@ -124,6 +125,7 @@ Future<void> pumpPhone(
   TransitionBuilder? builder,
 }) => tester.pumpWidget(
   ProviderScope(
+    retry: neverRetry,
     overrides: overrides,
     child: plApp(child, builder: builder),
   ),
@@ -146,6 +148,7 @@ Future<ProviderContainer> pumpWear(
   late ProviderContainer container;
   await tester.pumpWidget(
     ProviderScope(
+      retry: neverRetry,
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         credentialsStoreProvider.overrideWithValue(InMemoryCredentialsStore()),
@@ -342,6 +345,23 @@ class FakeWatchConfigSync extends WatchConfigSync {
 
 /// `inventoryBackendProvider` fixed to [backend]; the real one asks the
 /// server's `/spoolman/status`, which a test would otherwise have to mock.
+/// [base] with every provider that [top] overrides taken from [top] instead. A
+/// harness lists its defaults and lets a test replace any of them; Riverpod 2 let
+/// the later duplicate win, Riverpod 3 refuses the container
+/// ("Tried to override a provider twice").
+List<Override> layerOverrides(List<Override> base, List<Override> top) {
+  final replaced = {for (final o in top) o.origin};
+  return [...base.where((o) => !replaced.contains(o.origin)), ...top];
+}
+
+/// [next] as a notifier's `state` reports it while [previous] was showing: the
+/// framework attaches the old value itself when `state = AsyncLoading()` is
+/// assigned, but only through `copyWithPrevious`, which is internal API. A test
+/// of something that only *reads* such a state builds it here, once.
+AsyncValue<T> reportedOver<T>(AsyncValue<T> next, AsyncValue<T> previous) =>
+    // ignore: invalid_use_of_internal_member
+    next.copyWithPrevious(previous, isRefresh: false);
+
 Override inventoryBackendOverride([
   InventoryBackend backend = InventoryBackend.native,
 ]) => inventoryBackendProvider.overrideWith((ref) => backend);

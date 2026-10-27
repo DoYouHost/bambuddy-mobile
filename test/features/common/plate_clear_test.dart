@@ -5,8 +5,11 @@ import 'package:bambuddy_mobile/features/common/plate_clear.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -21,10 +24,10 @@ void main() {
   /// The latch reaches the stored profile, so a container has to have one.
   ProviderContainer containerWith([List<Override> overrides = const []]) {
     final container = ProviderContainer(
-      overrides: [
+      retry: neverRetry,
+      overrides: layerOverrides([
         sharedPreferencesProvider.overrideWithValue(prefs),
-        ...overrides,
-      ],
+      ], overrides),
     );
     addTearDown(container.dispose);
     return container;

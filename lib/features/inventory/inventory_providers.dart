@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 
 import '../../core/ams/slot_addressing.dart';
 import '../../core/api/api_exceptions.dart';
@@ -79,14 +80,14 @@ class InventoryState {
 }
 
 final inventoryProvider =
-    AutoDisposeAsyncNotifierProvider<InventoryNotifier, InventoryState>(
+    AsyncNotifierProvider<InventoryNotifier, InventoryState>(
       InventoryNotifier.new,
     );
 
 /// Fetches spools and assignments in one pass. Assignments degrade to an empty map
 /// if the endpoint fails/is unavailable — the spool list is more important than
 /// knowing which slot they occupy. Rebuilds on profile change.
-class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
+class InventoryNotifier extends AsyncNotifier<InventoryState> {
   @override
   Future<InventoryState> build() async {
     ref.watch(serverProfileProvider);
@@ -157,8 +158,9 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   /// pushed change would send for nothing.
   Future<void> refresh({bool askBackend = false}) async {
     if (askBackend) ref.invalidate(inventoryBackendProvider);
-    state = const AsyncValue<InventoryState>.loading().copyWithPrevious(state);
-    state = await AsyncValue.guard(_load);
+    state = const AsyncLoading<InventoryState>();
+    final next = await AsyncValue.guard(_load);
+    if (ref.mounted) state = next;
   }
 
   /// Executes a mutation, then reloads the list (server is source of truth —
@@ -172,7 +174,8 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     try {
       return await action(repo);
     } finally {
-      state = await AsyncValue.guard(_load);
+      final next = await AsyncValue.guard(_load);
+      if (ref.mounted) state = next;
     }
   }
 
@@ -187,7 +190,8 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     try {
       return await repo.bulkCreateSpools(draft, quantity);
     } finally {
-      state = await AsyncValue.guard(_load);
+      final next = await AsyncValue.guard(_load);
+      if (ref.mounted) state = next;
     }
   }
 
@@ -275,7 +279,8 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
       _nudgeRepublish(printerId);
       return id;
     } finally {
-      state = await AsyncValue.guard(_load);
+      final next = await AsyncValue.guard(_load);
+      if (ref.mounted) state = next;
     }
   }
 
@@ -311,7 +316,8 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
         return await _perSpoolFallback(repo, ids, perSpool);
       }
     } finally {
-      state = await AsyncValue.guard(_load);
+      final next = await AsyncValue.guard(_load);
+      if (ref.mounted) state = next;
     }
   }
 
@@ -356,8 +362,7 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     final repo = ref.read(inventoryRepositoryProvider);
     final linkWriter = ref.read(suppliersRepositoryProvider);
     final current = {
-      for (final s in state.valueOrNull?.spools ?? const <Spool>[])
-        s.id: s.suppliers,
+      for (final s in state.value?.spools ?? const <Spool>[]) s.id: s.suppliers,
     };
     try {
       final patched = patch.isEmpty
@@ -404,7 +409,8 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
         notFound: patched?.notFound ?? const [],
       );
     } finally {
-      state = await AsyncValue.guard(_load);
+      final next = await AsyncValue.guard(_load);
+      if (ref.mounted) state = next;
     }
   }
 
@@ -593,11 +599,10 @@ class AssignedSpools {
 /// hasn't loaded or failed — dashboard works without it.
 final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
   (ref, printerId) {
-    final inv = ref.watch(inventoryProvider).valueOrNull;
+    final inv = ref.watch(inventoryProvider).value;
     if (inv == null) return AssignedSpools.empty;
     final spoolman =
-        ref.watch(inventoryBackendProvider).valueOrNull ==
-        InventoryBackend.spoolman;
+        ref.watch(inventoryBackendProvider).value == InventoryBackend.spoolman;
     final spoolById = {for (final s in inv.spools) s.id: s};
     final byKey = <int, Spool>{};
     final byExtruder = <int, Spool>{};
@@ -640,7 +645,7 @@ final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
 /// A provider rather than a sum in the list header, which rebuilds on every
 /// search keystroke; this way the shelf is walked again only when it changes.
 final inventoryConsumedTotalProvider = Provider.autoDispose<double>((ref) {
-  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
   var total = 0.0;
   for (final spool in spools) {
     total += spool.consumedWeight;
@@ -862,7 +867,7 @@ final spoolPresetOverridesProvider = FutureProvider.autoDispose
 final supplierListProvider = FutureProvider.autoDispose<List<Supplier>>((
   ref,
 ) async {
-  if (!(ref.watch(suppliersSupportedProvider).valueOrNull ?? false)) {
+  if (!(ref.watch(suppliersSupportedProvider).value ?? false)) {
     return const [];
   }
   return ref.watch(suppliersRepositoryProvider).listSuppliers();
@@ -916,7 +921,7 @@ final locationClimateProvider =
       // Empty until the gate says yes, then asked again: display only, and
       // nothing seeds from it (unlike the spool presets).
       final supported = ref.watch(locationSensorsSupportedProvider);
-      if (!(supported.valueOrNull ?? false)) return const {};
+      if (!(supported.value ?? false)) return const {};
       final repo = ref.watch(locationSensorsRepositoryProvider);
 
       final bindings = await repo.listBindings();
@@ -958,8 +963,8 @@ LocationClimate? climateOfSpool(
 /// UX — the picker also keeps free text, and the backend auto-creates the
 /// catalog entry from `storage_location` on save.
 final locationOptionsProvider = Provider.autoDispose<List<String>>((ref) {
-  final catalog = ref.watch(locationCatalogProvider).valueOrNull ?? const [];
-  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  final catalog = ref.watch(locationCatalogProvider).value ?? const [];
+  final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
   final set = <String>{
     for (final l in catalog)
       if (l.name.trim().isNotEmpty) l.name.trim(),
@@ -1005,8 +1010,8 @@ const _commonSubtypes = [
 ];
 
 final materialOptionsProvider = Provider.autoDispose<List<String>>((ref) {
-  final presets = ref.watch(filamentPresetsProvider).valueOrNull ?? const [];
-  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  final presets = ref.watch(filamentPresetsProvider).value ?? const [];
+  final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
   final set = <String>{
     ..._commonMaterials,
     for (final p in presets)
@@ -1018,8 +1023,8 @@ final materialOptionsProvider = Provider.autoDispose<List<String>>((ref) {
 });
 
 final brandOptionsProvider = Provider.autoDispose<List<String>>((ref) {
-  final presets = ref.watch(filamentPresetsProvider).valueOrNull ?? const [];
-  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  final presets = ref.watch(filamentPresetsProvider).value ?? const [];
+  final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
   final set = <String>{
     for (final p in presets)
       if (p.brand != null && p.brand!.trim().isNotEmpty) p.brand!.trim(),
@@ -1032,7 +1037,7 @@ final brandOptionsProvider = Provider.autoDispose<List<String>>((ref) {
 
 /// Material numbers already in use, for the form's suggestions.
 final materialNumberOptionsProvider = Provider.autoDispose<List<String>>((ref) {
-  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
   final list = <String>{
     for (final s in spools)
       if (s.materialNumber != null) s.materialNumber!,
@@ -1041,7 +1046,7 @@ final materialNumberOptionsProvider = Provider.autoDispose<List<String>>((ref) {
 });
 
 final subtypeOptionsProvider = Provider.autoDispose<List<String>>((ref) {
-  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
   final set = <String>{
     ..._commonSubtypes,
     for (final s in spools)

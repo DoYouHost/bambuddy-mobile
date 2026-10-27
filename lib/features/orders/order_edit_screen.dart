@@ -30,7 +30,7 @@ class OrderEditScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(batchDetailProvider(batchId));
-    final batch = async.valueOrNull;
+    final batch = async.value;
     // The form seeds its fields from the batch, so it is built once, from the
     // first answer; until then the bar is all there is.
     if (batch != null) return DashBackground(child: _OrderForm(batch: batch));
@@ -171,7 +171,7 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final projects = ref.watch(orderProjectsProvider).valueOrNull;
+    final projects = ref.watch(orderProjectsProvider).value;
     // A dispatch or cancel from the list holds the batch: the save waits,
     // visibly, rather than ignore the tap.
     final busy =

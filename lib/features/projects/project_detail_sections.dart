@@ -134,7 +134,7 @@ class ProjectFilesSection extends ConsumerWidget {
           if (folders.isEmpty) {
             return _emptyHint(context, l10n.projectFilesEmpty);
           }
-          final files = filesAsync.valueOrNull ?? const <LibraryFile>[];
+          final files = filesAsync.value ?? const <LibraryFile>[];
           return Column(
             children: [
               for (final folder in folders)
@@ -166,7 +166,7 @@ class ProjectFilesSection extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
 
     final linked =
-        (ref.read(projectFoldersProvider(projectId)).valueOrNull ??
+        (ref.read(projectFoldersProvider(projectId)).value ??
                 const <LibraryFolder>[])
             .map((f) => f.id)
             .toSet();

@@ -24,6 +24,7 @@ void main() {
     final log = captureRequests(dio);
     mockServer(dio).onGet(path, (s) => s.reply(status, body));
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         authMode == null
             ? noServerProfileOverride

@@ -18,6 +18,7 @@ import '../../helpers.dart';
 late SharedPreferences _prefs;
 
 Widget _screen(List<Archive> items) => ProviderScope(
+  retry: neverRetry,
   overrides: [
     archiveListOverride(items),
     // The screen also carries the "archived without its 3MF" banner, which

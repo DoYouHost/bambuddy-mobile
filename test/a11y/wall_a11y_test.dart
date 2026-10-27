@@ -6,7 +6,7 @@ import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/wall/wall_providers.dart';
 import 'package:bambuddy_mobile/features/wall/wall_screen.dart';
 import 'package:bambuddy_mobile/features/wall/wall_tile.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../features/queue/queue_fakes.dart';

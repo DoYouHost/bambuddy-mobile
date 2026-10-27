@@ -86,7 +86,7 @@ class QueueSettingsController extends AsyncNotifier<QueueSettings> {
   /// Shows [value] without writing it, for a thumb that is still moving: a
   /// request per pixel is not a save.
   void preview(QueueSetting setting, Object value) {
-    if (state.valueOrNull case final current?) {
+    if (state.value case final current?) {
       state = AsyncValue.data(current.withValue(setting, value));
     }
   }
@@ -103,6 +103,9 @@ class QueueSettingsController extends AsyncNotifier<QueueSettings> {
     // rather than from [state], which a drag has already moved.
     final previous = confirmed.values[setting];
     preview(setting, value);
+    // Read now: the answer is adopted after a request, when this controller may
+    // be gone, and the server's word still belongs in the shared settings.
+    final serverSettings = ref.read(serverSettingsProvider.notifier);
     final outcome = await runAction(() async {
       final fresh = await ref
           .read(serverSettingsRepositoryProvider)
@@ -114,12 +117,12 @@ class QueueSettingsController extends AsyncNotifier<QueueSettings> {
       // or fail, and drop every feature gate to nothing after a save that
       // worked.
       _confirmed = QueueSettings.fromSettings(fresh);
-      ref.read(serverSettingsProvider.notifier).adopt(fresh);
+      serverSettings.adopt(fresh);
     }, logId: 'queue_settings.${setting.key}');
     if (!outcome.isOk) {
       // Only this row goes back. Reverting the whole block would undo a
       // neighbouring write that succeeded while this one was in flight.
-      final current = state.valueOrNull;
+      final current = ref.mounted ? state.value : null;
       if (previous != null && current != null) {
         state = AsyncValue.data(current.withValue(setting, previous));
       }

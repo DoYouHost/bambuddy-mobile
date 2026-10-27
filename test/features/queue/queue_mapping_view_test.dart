@@ -60,6 +60,7 @@ void main() {
   }) async {
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           fakeServerProfileOverride(),
           printersRepositoryProvider.overrideWithValue(

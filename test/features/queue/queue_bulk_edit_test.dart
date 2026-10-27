@@ -29,6 +29,7 @@ void main() {
     ],
     CurrentUser? user,
   }) => ProviderScope(
+    retry: neverRetry,
     overrides: [
       noServerProfileOverride,
       queueProvider.overrideWith(() => queue ?? _BulkQueue()),

@@ -44,7 +44,7 @@ final jobCostProvider = FutureProvider.autoDispose.family<JobCost?, JobCostKey>(
       startFrom: key.mapping.isEmpty
           ? null
           : [for (final n in key.mapping.split(',')) int.parse(n)],
-      preferLowestSetting: ref.read(preferLowestFilamentProvider).valueOrNull,
+      preferLowestSetting: ref.read(preferLowestFilamentProvider).value,
     );
     final inventory = ref.watch(inventoryRepositoryProvider);
     final prices = <int, double>{};

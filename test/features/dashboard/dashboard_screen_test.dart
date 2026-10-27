@@ -28,6 +28,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:dash_kit/dash_kit.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -171,7 +172,8 @@ Widget _app(
   List<Override> extra = const [],
   TextScaler textScaler = TextScaler.noScaling,
 }) => ProviderScope(
-  overrides: [..._overrides(state), ...extra],
+  retry: neverRetry,
+  overrides: layerOverrides([..._overrides(state)], extra),
   child: plApp(
     const DashboardScreen(),
     builder: (context, child) => MediaQuery(
@@ -194,6 +196,7 @@ Widget _routedApp(DashboardState state) {
     ],
   );
   return ProviderScope(
+    retry: neverRetry,
     overrides: _overrides(state),
     child: plRouterApp(router),
   );

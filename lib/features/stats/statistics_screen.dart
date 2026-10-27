@@ -81,7 +81,7 @@ class _UserFilterMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final users = ref.watch(statsUsersProvider).valueOrNull ?? const [];
+    final users = ref.watch(statsUsersProvider).value ?? const [];
     if (users.isEmpty) return const SizedBox.shrink();
 
     String labelFor(int? id) {

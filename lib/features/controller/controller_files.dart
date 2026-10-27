@@ -104,7 +104,7 @@ class _ControllerFilesState extends ConsumerState<ControllerFiles> {
     final t = DashTokens.of(context);
     final async = ref.watch(fileManagerProvider);
     // Kept while a refresh is under way, so the grid does not blink out.
-    final state = async.valueOrNull;
+    final state = async.value;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -121,7 +121,7 @@ class _ControllerFilesState extends ConsumerState<ControllerFiles> {
             decoration: t.cardBox,
             padding: const EdgeInsets.all(DashSpace.sm),
             // The error first: a failed refresh or a failed step into a folder
-            // keeps the listing it came from as `valueOrNull`, and showing that
+            // keeps the listing it came from as `value`, and showing that
             // would leave the user looking at the old folder with no word.
             child: switch ((state, async)) {
               (_, AsyncError(:final error)) => ControllerListFailure(

@@ -2,7 +2,7 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/auth/two_factor.dart';
 import 'package:bambuddy_mobile/features/setup/providers.dart';
 import 'package:bambuddy_mobile/features/setup/setup_screen.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';

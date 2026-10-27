@@ -49,6 +49,7 @@ void main() {
     // five-minute retry never ran, because nobody asked it a second time.
     final (dio, reads) = flakyServer();
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         fakeServerProfileOverride(),
         serverVersionServiceProvider.overrideWithValue(
@@ -85,6 +86,7 @@ void main() {
     // answer without one.
     final (dio, reads) = flakyServer();
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         fakeServerProfileOverride(),
         serverVersionServiceProvider.overrideWithValue(
@@ -112,6 +114,7 @@ void main() {
     // A success keeps its link, so the second opening has nothing to wait for.
     final (dio, reads) = flakyServer();
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         fakeServerProfileOverride(),
         serverVersionServiceProvider.overrideWithValue(
@@ -144,6 +147,7 @@ void main() {
     // without one — a guard is cheaper than trusting three routes.
     final (dio, reads) = flakyServer();
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         noServerProfileOverride,
         serverVersionServiceProvider.overrideWithValue(

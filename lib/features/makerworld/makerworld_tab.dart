@@ -71,7 +71,7 @@ class _MakerWorldTabState extends ConsumerState<MakerWorldTab> {
     MakerWorldInstance plate,
   ) async {
     // Login gate: without valid cloud token — go to login screen.
-    final status = ref.read(makerworldStatusProvider).valueOrNull;
+    final status = ref.read(makerworldStatusProvider).value;
     if (status == null || !status.canDownload) {
       _snack(_l10n.mwLoginRequired);
       await context.push('/settings/cloud');
@@ -115,7 +115,7 @@ class _MakerWorldTabState extends ConsumerState<MakerWorldTab> {
     final l10n = _l10n;
     final t = DashTokens.of(context);
     final resolveAsync = ref.watch(makerworldResolveProvider);
-    final status = ref.watch(makerworldStatusProvider).valueOrNull;
+    final status = ref.watch(makerworldStatusProvider).value;
     final canDownload = status?.canDownload ?? false;
 
     return ListView(

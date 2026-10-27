@@ -28,6 +28,7 @@ void main() {
     AuthMode authMode = AuthMode.jwt,
   }) {
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         fakeServerProfileOverride(authMode: authMode),
         pipelinesRepositoryProvider.overrideWithValue(repo),

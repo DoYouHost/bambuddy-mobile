@@ -6,7 +6,9 @@ import 'package:bambuddy_mobile/features/queue/queue_screen.dart';
 import 'package:bambuddy_mobile/features/queue/queue_selection.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:bambuddy_mobile/providers.dart';
 
 import '../../helpers.dart';
 import 'queue_fakes.dart';
@@ -24,12 +26,12 @@ void main() {
 
   Widget screen(FakeQueue queue, {List<Override> extra = const []}) =>
       ProviderScope(
-        overrides: [
+        retry: neverRetry,
+        overrides: layerOverrides([
           queueProvider.overrideWith(() => queue),
           noServerProfileOverride,
           allPrintersProvider.overrideWith((ref) async => const <Printer>[]),
-          ...extra,
-        ],
+        ], extra),
         child: plApp(const QueueScreen()),
       );
 
@@ -191,6 +193,7 @@ void main() {
     test('drops an item that left the waiting list', () async {
       final queue = FakeQueue([item(1), item(2)]);
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [queueProvider.overrideWith(() => queue)],
       );
       addTearDown(container.dispose);
@@ -207,6 +210,7 @@ void main() {
     test('is not touched by a poll that changes nothing for it', () async {
       final queue = FakeQueue([item(1)]);
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [queueProvider.overrideWith(() => queue)],
       );
       addTearDown(container.dispose);

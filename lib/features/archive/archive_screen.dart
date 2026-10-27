@@ -67,7 +67,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
 
   /// Selects every archive currently passing the filters, not the whole list.
   void _selectAllVisible() {
-    final all = ref.read(archiveProvider).valueOrNull ?? const [];
+    final all = ref.read(archiveProvider).value ?? const [];
     final filters = ref.read(archiveFiltersProvider);
     final visible = applyArchiveFilters(all, filters);
     setState(() => _selected.addAll(visible.map((a) => a.id)));
@@ -90,7 +90,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   }
 
   void _openFilters() {
-    final all = ref.read(archiveProvider).valueOrNull ?? const [];
+    final all = ref.read(archiveProvider).value ?? const [];
     dashSurfaceSheet<void>(
       context,
       builder: (_) => _ArchiveFilterSheet(archives: all),
@@ -607,7 +607,7 @@ class _No3mfBanner extends ConsumerWidget {
     // answer it already has while it recomputes, and the banner has to go the
     // moment the X is tapped.
     if (ref.watch(no3mfDismissedProvider)) return const SizedBox.shrink();
-    final warning = ref.watch(no3mfWarningProvider).valueOrNull;
+    final warning = ref.watch(no3mfWarningProvider).value;
     if (warning == null || !warning.hasFallback) return const SizedBox.shrink();
 
     final l10n = AppLocalizations.of(context);
@@ -951,7 +951,7 @@ class _ArchiveSheet extends ConsumerWidget {
     final archive =
         ref
             .watch(archiveProvider)
-            .valueOrNull
+            .value
             ?.where((a) => a.id == this.archive.id)
             .firstOrNull ??
         this.archive;
@@ -1148,7 +1148,7 @@ class _SliceArchiveButton extends ConsumerWidget {
     final caps = sidecar == ControlOffer.offered
         ? ref.watch(archiveCapabilitiesProvider(archive.id))
         : null;
-    final sliceable = caps?.valueOrNull?.sliceable;
+    final sliceable = caps?.value?.sliceable;
     final l10n = AppLocalizations.of(context);
     // The buttons are disabled in three ways, and two of them owe the user a
     // line. Silence belongs only to the answer that is still on its way.
@@ -1401,7 +1401,7 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final canDelete = _preview.valueOrNull?.isEmpty == false;
+    final canDelete = _preview.value?.isEmpty == false;
 
     return AlertDialog(
       title: Text(l10n.archivePurgeTitle),
@@ -1512,8 +1512,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
     final theme = Theme.of(context);
     final filters = ref.watch(archiveFiltersProvider);
     final notifier = ref.read(archiveFiltersProvider.notifier);
-    final printers =
-        ref.watch(printersForPickerProvider).valueOrNull ?? const [];
+    final printers = ref.watch(printersForPickerProvider).value ?? const [];
 
     final materials = <String>{
       for (final a in archives) ...filamentTypeTokens(a.filamentType),

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 
 import '../../core/ams/job_cost.dart';
 import '../../core/models/cost_center.dart';
@@ -44,8 +45,7 @@ CostCenterState costCenterStateOf(ProviderReader read) {
   // A server before 1.2.6 has no UI flags and answers them at once with
   // nothing, so billing is then the full settings' to say.
   final flags = read(serverUiFlagsProvider);
-  final flagAnswered =
-      flags.valueOrNull?.containsKey('billing_enabled') ?? false;
+  final flagAnswered = flags.value?.containsKey('billing_enabled') ?? false;
   if (flags.isLoading ||
       (!flagAnswered && read(serverSettingsProvider).isLoading)) {
     return (step: CostCenterStep.unknown, centers: const []);

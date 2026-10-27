@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'package:app_util/app_util.dart';
 
 import '../../core/models/swatch_code.dart';
@@ -27,6 +28,7 @@ class SwatchCodesNotifier extends Notifier<List<SwatchCode>> {
   Future<void> _persist(List<SwatchCode> next) async {
     final sorted = _sorted(next);
     await ref.read(settingsRepositoryProvider).saveSwatchCodes(sorted);
+    if (!ref.mounted) return;
     state = sorted;
   }
 
@@ -109,7 +111,7 @@ class SwatchCodesNotifier extends Notifier<List<SwatchCode>> {
 final uncodedFilamentsProvider = Provider.autoDispose<List<FilamentIdentity>>((
   ref,
 ) {
-  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
   final coded = {for (final c in ref.watch(swatchCodesProvider)) c.identityKey};
   final seen = <String>{};
   final out = <FilamentIdentity>[];

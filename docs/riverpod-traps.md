@@ -84,12 +84,21 @@ because autoDispose runs only on the next turn.
 
 ## 5. `AsyncLoading` and `AsyncError` carry the previous value
 
-Riverpod 2.x does `copyWithPrevious` on refresh, so `switch (v) { AsyncData(:final
+Riverpod attaches the previous value itself when a notifier assigns `state =
+const AsyncLoading<T>()` or an `AsyncError`, so `switch (v) { AsyncData(:final
 value?) => …, AsyncLoading() => '…', _ => 'unknown' }` **blanks a known value** on
 every refetch and throws it away on an error. The order must be reversed: first
-`v.valueOrNull`, then `v.isLoading`, last "don't know". The test must build the state
-with `const AsyncLoading<T>().copyWithPrevious(const AsyncData<T>(x))` — a bare
-`AsyncLoading()` passes on both variants.
+`v.value`, then `v.isLoading`, last "don't know". The test must build the state
+with `reportedOver(const AsyncLoading<T>(), const AsyncData<T>(x))`
+([test/helpers.dart](../test/helpers.dart)) — a bare `AsyncLoading()` passes on both
+variants. `copyWithPrevious` itself is internal API since Riverpod 3; production code
+never calls it, the helper holds the one suppression.
+
+The assignment reports a *reload* (loading that still holds the value), not data with
+`isLoading` set as Riverpod 2 did. `dash_async` skips the spinner for both, which is
+why the screens did not change. The two that pass `skipLoadingOnRefresh: false` on
+their own (`trash_screen`, `project_detail_screen`) used to show a spinner on every
+refresh and now keep the rows.
 
 ## Why the tests are shaped this way
 
@@ -101,8 +110,8 @@ variants.
 ## 6. `ref` dies with its widget: a flow with an `await` must not read through it
 
 `WidgetRef.read` / `watch` / `listen` call `_assertNotDisposed()`, which throws a
-plain `StateError('Cannot use "ref" after the widget was disposed.')` once
-`!context.mounted` (flutter_riverpod 2.6.1, `consumer.dart`). It is not a debug
+plain `StateError('Using "ref" when a widget is about to or has been unmounted is unsafe.')` once
+`!context.mounted` (flutter_riverpod 3.4.3, `consumer.dart`). It is not a debug
 assert, so every `ref.read` after an `await` is a crash waiting for the widget to
 leave. The realistic case is not a tab change (the tabs are an `IndexedStack`, so
 a screen stays mounted) but a **row disappearing**: queue rows are keyed by item id

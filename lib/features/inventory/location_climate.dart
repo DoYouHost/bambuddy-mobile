@@ -101,7 +101,7 @@ class _LocationClimateSheet extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final climates = ref.watch(locationClimateProvider).valueOrNull ?? const {};
+    final climates = ref.watch(locationClimateProvider).value ?? const {};
     final entries = climates.values.toList();
 
     return logTag(

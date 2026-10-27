@@ -23,7 +23,7 @@ import 'orders_screen.dart';
 final _groupableProvider = FutureProvider.autoDispose<List<QueueItem>>((
   ref,
 ) async {
-  final me = ref.watch(currentUserProvider).valueOrNull;
+  final me = ref.watch(currentUserProvider).value;
   final anyone =
       me == null || ref.watch(permissionProvider(Permissions.queueUpdateAll));
   final pending = await ref

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/print_log_entry.dart';
+import '../../data/failure_analysis_cache.dart';
 import '../../data/print_log_repository.dart';
 import '../../providers.dart';
 import '../stats/stats_providers.dart';
@@ -108,7 +109,7 @@ final printLogFiltersProvider =
       PrintLogFiltersNotifier.new,
     );
 
-class PrintLogFiltersNotifier extends AutoDisposeNotifier<PrintLogFilters> {
+class PrintLogFiltersNotifier extends Notifier<PrintLogFilters> {
   @override
   PrintLogFilters build() => const PrintLogFilters();
 
@@ -160,16 +161,15 @@ class PrintLogState {
   );
 }
 
-final printLogProvider =
-    AutoDisposeAsyncNotifierProvider<PrintLogNotifier, PrintLogState>(
-      PrintLogNotifier.new,
-    );
+final printLogProvider = AsyncNotifierProvider<PrintLogNotifier, PrintLogState>(
+  PrintLogNotifier.new,
+);
 
 /// The print log, one page at a time.
 ///
 /// Mutations here change what the Stats screen's Failure Analysis groups by, so
 /// each one drops that cache — see [_invalidateFailureViews].
-class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
+class PrintLogNotifier extends AsyncNotifier<PrintLogState> {
   /// Bumped by every rebuild and by teardown. An async write compares the value
   /// it started from against the current one, and drops its result when they
   /// differ — the answer it is holding belongs to a state that is gone.
@@ -217,8 +217,9 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
   Future<void> refresh() async {
     final filters = ref.read(printLogFiltersProvider);
     final epoch = _epoch;
-    state = const AsyncValue<PrintLogState>.loading().copyWithPrevious(state);
+    state = const AsyncLoading<PrintLogState>();
     final next = await AsyncValue.guard(() => _page(filters, offset: 0));
+    if (!ref.mounted) return;
     if (epoch != _epoch) return;
     state = next;
   }
@@ -226,7 +227,7 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
   /// Append the next page. A failure leaves what is already on screen alone —
   /// the list is still usable, and the user can ask again by scrolling.
   Future<void> loadMore() async {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null || current.loadingMore || !current.hasMore) return;
 
     final epoch = _epoch;
@@ -237,6 +238,7 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
         offset: current.items.length,
         before: current.items,
       );
+      if (!ref.mounted) return;
       if (epoch != _epoch) return;
       state = AsyncValue.data(next);
     } on AppApiException {
@@ -254,7 +256,7 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
       // taken before the request: `reclassify` patches rows without moving the
       // epoch, so reinstating `current` here undid an edit the user had just
       // made and seen succeed.
-      final now = state.valueOrNull;
+      final now = state.value;
       if (epoch == _epoch && now != null && now.loadingMore) {
         state = AsyncValue.data(now.copyWith(loadingMore: false));
       }
@@ -274,6 +276,7 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
     String? status,
   }) async {
     final epoch = _epoch;
+    final cache = ref.read(failureAnalysisCacheProvider);
     try {
       final updated = await ref
           .read(printLogRepositoryProvider)
@@ -295,7 +298,7 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
           status: updated.status,
         ),
       );
-      await _invalidateFailureViews();
+      await _invalidateFailureViews(cache);
       return null;
     } on AppApiException catch (e) {
       return e;
@@ -305,13 +308,14 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
   /// Delete one run. Returns the exception to show, or null on success.
   Future<AppApiException?> deleteEntry(int entryId) async {
     final epoch = _epoch;
+    final cache = ref.read(failureAnalysisCacheProvider);
     try {
       // The request goes first and unconditionally. Reading the list before it
       // and giving up on an empty one reported success for a delete that never
       // happened — reachable whenever the list is in its error state, which is
       // exactly when a stale row is most likely to be the one being deleted.
       await ref.read(printLogRepositoryProvider).deleteEntry(entryId);
-      final current = state.valueOrNull;
+      final current = ref.mounted ? state.value : null;
       if (epoch == _epoch && current != null) {
         state = AsyncValue.data(
           current.copyWith(
@@ -325,7 +329,7 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
           ),
         );
       }
-      await _invalidateFailureViews();
+      await _invalidateFailureViews(cache);
       return null;
     } on AppApiException catch (e) {
       return e;
@@ -336,11 +340,14 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
   /// many went, or the exception to show.
   Future<(int?, AppApiException?)> clearAll() async {
     final epoch = _epoch;
+    final cache = ref.read(failureAnalysisCacheProvider);
     try {
       final deleted = await ref.read(printLogRepositoryProvider).clearAll();
       if (epoch != _epoch) return (deleted, null);
-      state = const AsyncValue.data(PrintLogState(items: [], total: 0));
-      await _invalidateFailureViews();
+      if (ref.mounted) {
+        state = const AsyncValue.data(PrintLogState(items: [], total: 0));
+      }
+      await _invalidateFailureViews(cache);
       return (deleted, null);
     } on AppApiException catch (e) {
       return (null, e);
@@ -348,7 +355,7 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
   }
 
   void _replace(int entryId, PrintLogEntry Function(PrintLogEntry) update) {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null) return;
     state = AsyncValue.data(
       current.copyWith(
@@ -366,8 +373,12 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
   /// immediately on screen entry, and its "all time" bucket only ever appends
   /// complete days — so an invalidated provider would rebuild straight back
   /// into the pre-edit grouping.
-  Future<void> _invalidateFailureViews() async {
-    await ref.read(failureAnalysisCacheProvider).clear();
+  ///
+  /// [cache] is read by the caller before its request: the screen can be gone by
+  /// the time the request returns, and the cache still has to be cleared.
+  Future<void> _invalidateFailureViews(FailureAnalysisCache cache) async {
+    await cache.clear();
+    if (!ref.mounted) return;
     ref.invalidate(failureAnalysisProvider);
     ref.invalidate(statsProvider);
     ref.invalidate(archiveSlimProvider);

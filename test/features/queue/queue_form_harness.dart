@@ -16,6 +16,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -189,7 +190,8 @@ Widget queueFormScreen(
   Duration? platesDelay,
   List<Override> extra = const [],
 }) => ProviderScope(
-  overrides: [
+  retry: neverRetry,
+  overrides: layerOverrides([
     noServerProfileOverride,
     ...queueFormOverrides(
       triState: triState,
@@ -203,8 +205,7 @@ Widget queueFormScreen(
       createStatus: createStatus,
       platesDelay: platesDelay,
     ),
-    ...extra,
-  ],
+  ], extra),
   child: plApp(
     QueueEditScreen(item: item, mode: mode, initialSchedule: schedule),
   ),

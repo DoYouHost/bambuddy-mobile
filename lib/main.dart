@@ -70,6 +70,7 @@ Future<void> main() async {
 
   runApp(
     ProviderScope(
+      retry: neverRetry,
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         initialSystemSchemesProvider.overrideWithValue(systemSchemes),

@@ -85,6 +85,7 @@ void main() {
     );
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           sharedPreferencesProvider.overrideWithValue(sp),
           fixedDashboardOverride(

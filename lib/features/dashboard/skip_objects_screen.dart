@@ -56,7 +56,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(skipObjectsProvider(widget.printerId));
-    final pending = _pendingIn(async.valueOrNull);
+    final pending = _pendingIn(async.value);
     final status = ref.watch(
       printerStatusesProvider.select((m) => m[widget.printerId]),
     );
@@ -313,7 +313,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
 
   Future<void> _confirmSkipSelected() async {
     final l10n = AppLocalizations.of(context);
-    final data = ref.read(skipObjectsProvider(widget.printerId)).valueOrNull;
+    final data = ref.read(skipObjectsProvider(widget.printerId)).value;
     if (data == null) return;
     final objs = _pendingIn(data);
     if (objs.isEmpty) return;
@@ -518,9 +518,7 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
     // Real footprints when the slicer's object-ID mask is available; badges
     // placed from each object's centre point when it isn't, which is all
     // `/print/objects` carries.
-    final mask = ref
-        .watch(objectPickMaskProvider(widget.printerId))
-        .valueOrNull;
+    final mask = ref.watch(objectPickMaskProvider(widget.printerId)).value;
 
     Widget marker(int i) {
       final obj = data.objects[i];

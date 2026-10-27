@@ -118,20 +118,22 @@ void main() {
         queryParameters: {'printer_id': 1},
       );
       final container = ProviderContainer(
-        overrides: [
-          noServerProfileOverride,
-          ...queueFormOverrides(live: live),
-          printRequirementsProvider.overrideWith(
-            (ref, arg) async => requirements,
-          ),
-          inventoryRepositoryProvider.overrideWithValue(
-            InventoryRepository(switch (backend) {
-              InventoryBackend.native => NativeInventorySource(dio),
-              InventoryBackend.spoolman => SpoolmanInventorySource(dio),
-            }),
-          ),
-          serverSettingsOverride(const {'default_filament_cost': 10}),
-        ],
+        retry: neverRetry,
+        overrides: layerOverrides(
+          [noServerProfileOverride, ...queueFormOverrides(live: live)],
+          [
+            printRequirementsProvider.overrideWith(
+              (ref, arg) async => requirements,
+            ),
+            inventoryRepositoryProvider.overrideWithValue(
+              InventoryRepository(switch (backend) {
+                InventoryBackend.native => NativeInventorySource(dio),
+                InventoryBackend.spoolman => SpoolmanInventorySource(dio),
+              }),
+            ),
+            serverSettingsOverride(const {'default_filament_cost': 10}),
+          ],
+        ),
       );
       addTearDown(container.dispose);
       final key = (

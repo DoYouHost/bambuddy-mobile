@@ -19,6 +19,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -152,7 +153,8 @@ void main() {
     mockImmersiveChannels(tester);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        retry: neverRetry,
+        overrides: layerOverrides([
           sharedPreferencesProvider.overrideWithValue(sp),
           noServerProfileOverride,
           inertSmartPlugsOverride,
@@ -167,8 +169,7 @@ void main() {
             ),
           ),
           inertStatusesOverride,
-          ...extra,
-        ],
+        ], extra),
         child: MaterialApp(
           theme: buildDashThemeData(Brightness.dark, brand: bambuddyBrand),
           locale: locale,

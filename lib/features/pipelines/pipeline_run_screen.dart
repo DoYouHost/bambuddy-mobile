@@ -55,7 +55,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final pipelines = ref.watch(pipelinesProvider).valueOrNull ?? const [];
+    final pipelines = ref.watch(pipelinesProvider).value ?? const [];
     final maxCopies = ref.watch(pipelineMaxCopiesProvider);
     final report = _report;
 
@@ -217,7 +217,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
   Future<void> _pick(List<SlicerPipeline> pipelines) async {
     // Read before the sheet so a row can name its printer rather than its id,
     // the way the pipeline list does.
-    final printers = ref.read(pipelineTargetPrintersProvider).valueOrNull;
+    final printers = ref.read(pipelineTargetPrintersProvider).value;
     final picked = await pickPipeline(
       context,
       pipelines: pipelines,

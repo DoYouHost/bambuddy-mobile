@@ -157,7 +157,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// store it and the backend has to take a write (Spoolman's is read-only).
   bool _showsMaterialNumber(WidgetRef ref) =>
       ref.read(materialNumberSupportedProvider).orFalse &&
-      ref.read(inventoryBackendProvider).valueOrNull == InventoryBackend.native;
+      ref.read(inventoryBackendProvider).value == InventoryBackend.native;
 
   /// Whether the form offers the drying date: only on a spool that exists (the
   /// web's `showLastDried={isEditing}`), and only where the server stores it —
@@ -411,7 +411,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final brands = ref.watch(brandOptionsProvider);
     final subtypes = ref.watch(subtypeOptionsProvider);
     final locations = ref.watch(locationOptionsProvider);
-    final cores = ref.watch(coreWeightsProvider).valueOrNull ?? const [];
+    final cores = ref.watch(coreWeightsProvider).value ?? const [];
     // Per-model presets: only asked for on a server that has the routes, and
     // only for a spool that exists — a new one has no rows to read.
     final overridesGate = ref.watch(presetOverridesSupportedProvider);
@@ -422,7 +422,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         ? ref.watch(spoolPresetOverridesProvider(sourceId))
         : const AsyncValue<List<SpoolPresetOverride>>.data([]);
     if (showOverrides) {
-      final rows = stored.valueOrNull;
+      final rows = stored.value;
       if (rows != null) _seedOverrides(rows);
     }
     // A copy saved before its presets arrive would be created without them;
@@ -443,7 +443,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             // spool's.
             suppliersGate.offer == ControlOffer.pending);
     final models = showOverrides
-        ? ref.watch(printerModelsProvider).valueOrNull ?? const <String>[]
+        ? ref.watch(printerModelsProvider).value ?? const <String>[]
         : const <String>[];
 
     return DraggableSheetSurface(
@@ -1099,8 +1099,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   String? _spoolmanKeeps(String key, Object? stored, AppLocalizations l10n) =>
       stored != null &&
           _c[key]!.text.trim().isEmpty &&
-          ref.read(inventoryBackendProvider).valueOrNull ==
-              InventoryBackend.spoolman
+          ref.read(inventoryBackendProvider).value == InventoryBackend.spoolman
       ? l10n.inventorySpoolmanCannotClear
       : null;
 }
@@ -1254,7 +1253,7 @@ class _ColorPicker extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final colors = ref.watch(colorCatalogProvider).valueOrNull ?? const [];
+    final colors = ref.watch(colorCatalogProvider).value ?? const [];
     final preview = parseSpoolColor(rgba);
     final selectedHex = normalizeRgba(rgba);
 
@@ -1393,8 +1392,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
     final material = widget.material?.trim() ?? '';
     // Without the registry the model filter classifies nothing and hides
     // nothing, so the chip stays honest while it loads.
-    final registry =
-        ref.watch(printerModelRegistryProvider).valueOrNull ?? const {};
+    final registry = ref.watch(printerModelRegistryProvider).value ?? const {};
 
     return DraggableSheetSurface(
       builder: (context, controller) => Column(
@@ -1552,7 +1550,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final cores = ref.watch(coreWeightsProvider).valueOrNull ?? const [];
+    final cores = ref.watch(coreWeightsProvider).value ?? const [];
     final q = _query.trim().toLowerCase();
     final items = [
       for (final c in cores)

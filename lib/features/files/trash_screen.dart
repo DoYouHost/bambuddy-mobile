@@ -20,7 +20,7 @@ class TrashScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(libraryTrashProvider);
-    final items = async.valueOrNull ?? const <TrashFile>[];
+    final items = async.value ?? const <TrashFile>[];
 
     return DashBackground(
       child: Scaffold(

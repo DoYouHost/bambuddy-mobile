@@ -324,7 +324,7 @@ final wsConnectionStateProvider = StreamProvider<WsConnectionState>((ref) {
 /// events — a subscriber that starts watching after the client is already
 /// `connected` (e.g. `DashboardNotifier`'s `ref.listen` in its `build()`,
 /// which can run after the socket connected) would see nothing until the
-/// NEXT transition, and `wsConnectionStateProvider.select(...).valueOrNull`
+/// NEXT transition, and `wsConnectionStateProvider.select(...).value`
 /// stays `null` in the meantime — read as "not connected", keeping the
 /// dashboard on the fast 5s fallback poll instead of the slow one. Seed with
 /// the client's current state before forwarding the live stream.

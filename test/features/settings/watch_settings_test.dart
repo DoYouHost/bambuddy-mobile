@@ -20,6 +20,7 @@ void main() {
     late ProviderContainer container;
     await tester.pumpWidget(
       ProviderScope(
+        retry: neverRetry,
         overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
         child: Consumer(
           builder: (context, ref, _) {

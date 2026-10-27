@@ -205,6 +205,7 @@ void main() {
   group('inventory providers', () {
     ProviderContainer container() {
       final c = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           fakeServerProfileOverride(),
           apiClientProvider.overrideWithValue(

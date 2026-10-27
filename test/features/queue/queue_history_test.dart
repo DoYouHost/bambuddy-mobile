@@ -147,6 +147,7 @@ Future<void> _openHistory(
 }) async {
   await tester.pumpWidget(
     ProviderScope(
+      retry: neverRetry,
       overrides: [
         queueRepositoryProvider.overrideWithValue(repo),
         queueProvider.overrideWith(_NoQueue.new),
@@ -440,6 +441,7 @@ void main() {
       final log = captureRequests(dio);
       await tester.pumpWidget(
         ProviderScope(
+          retry: neverRetry,
           overrides: [
             queueRepositoryProvider.overrideWithValue(QueueRepository(dio)),
             queueProvider.overrideWith(_NoQueue.new),
@@ -470,6 +472,7 @@ void main() {
       ], paged: true)..gates = [];
       await tester.pumpWidget(
         ProviderScope(
+          retry: neverRetry,
           overrides: [
             queueRepositoryProvider.overrideWithValue(repo),
             queueProvider.overrideWith(_NoQueue.new),
@@ -509,6 +512,7 @@ void main() {
       ], paged: true);
       await tester.pumpWidget(
         ProviderScope(
+          retry: neverRetry,
           overrides: [
             queueRepositoryProvider.overrideWithValue(repo),
             queueProvider.overrideWith(_NoQueue.new),

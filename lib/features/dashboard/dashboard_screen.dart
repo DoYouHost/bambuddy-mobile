@@ -489,7 +489,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final sort = ref.watch(dashboardSortProvider);
     final collapsedGroups = ref.watch(dashboardCollapsedGroupsProvider);
     final collapse = ref.watch(printerCardCollapseProvider);
-    final wsState = ref.watch(wsConnectionStateProvider).valueOrNull;
+    final wsState = ref.watch(wsConnectionStateProvider).value;
     final t = DashTokens.of(context);
 
     // Keep proactive JWT + image-credential refresh alive while dashboard is on

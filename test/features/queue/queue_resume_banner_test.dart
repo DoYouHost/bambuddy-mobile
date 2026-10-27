@@ -35,6 +35,7 @@ void main() {
 
   Widget screen({required List<QueueItem> held, _ResumeQueue? queue}) =>
       ProviderScope(
+        retry: neverRetry,
         overrides: [
           queueProvider.overrideWith(() => queue ?? _ResumeQueue()),
           queueSkippedProvider.overrideWith(() => _FixedSkipped(held)),
@@ -195,6 +196,7 @@ void main() {
       final log = captureRequests(dio);
       await tester.pumpWidget(
         ProviderScope(
+          retry: neverRetry,
           overrides: [
             fakeServerProfileOverride(),
             if (me != null) currentUserOverride(me),
@@ -285,6 +287,7 @@ void main() {
       );
       final sent = captureRequests(dio);
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           fakeServerProfileOverride(),
           currentUserOverride(me),
@@ -325,6 +328,7 @@ void main() {
       }
       final sent = captureRequests(dio);
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [
           fakeServerProfileOverride(),
           currentUserOverride(user({Permissions.queueUpdateAll})),

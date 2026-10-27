@@ -33,6 +33,7 @@ void main() {
     // through [serverVersionProvider].
     final service = ServerVersionService(dio);
     container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         fakeServerProfileOverride(),
         serverVersionProvider.overrideWith((ref) => version.future),

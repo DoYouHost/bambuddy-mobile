@@ -17,8 +17,7 @@ class AnnouncementsDrawerButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
-    final unread =
-        ref.watch(announcementsProvider).valueOrNull?.unreadCount ?? 0;
+    final unread = ref.watch(announcementsProvider).value?.unreadCount ?? 0;
     return Badge(
       isLabelVisible: unread > 0,
       smallSize: 8,
@@ -39,7 +38,7 @@ class AnnouncementsHeaderButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final feed = ref.watch(announcementsProvider).valueOrNull;
+    final feed = ref.watch(announcementsProvider).value;
     if (feed == null || !feed.visible) return const SizedBox.shrink();
     final unread = feed.unreadCount;
     return IconButton(

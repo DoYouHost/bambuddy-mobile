@@ -275,7 +275,7 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     // Every write but cancel looks the batch up for its owner, and answers
     // someone else's with a 404 unless the caller may change all of them.
     // Unknown identity: offered, and the server decides.
-    final me = ref.watch(currentUserProvider).valueOrNull;
+    final me = ref.watch(currentUserProvider).value;
     final canTouch =
         b.createdById == null ||
         me == null ||

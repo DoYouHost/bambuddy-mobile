@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:app_report_client/app_report_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
@@ -75,6 +76,13 @@ import 'data/stats_repository.dart';
 import 'data/timelapse_repository.dart';
 import 'data/users_repository.dart';
 
+/// Riverpod 3 retries a provider that throws an `Exception` up to ten times with
+/// a growing delay, and `ApiException` is one. Here a failed read is an answer to
+/// show (an error view with a refresh button, a gate that stays closed), so it
+/// would hold every screen on a spinner for ~13 s instead. Every root scope and
+/// container passes this; nested ones inherit it.
+Duration? neverRetry(int retryCount, Object error) => null;
+
 /// Overridden in main() after SharedPreferences.getInstance().
 final sharedPreferencesProvider = Provider<SharedPreferences>(
   (ref) => throw UnimplementedError('Override in ProviderScope'),
@@ -138,6 +146,7 @@ class BgMonitoringNotifier extends Notifier<bool> {
 
   Future<void> set(bool enabled) async {
     await ref.read(settingsRepositoryProvider).saveBgMonitoringEnabled(enabled);
+    if (!ref.mounted) return;
     state = enabled;
   }
 }
@@ -157,6 +166,7 @@ class NotificationPrefsNotifier extends Notifier<NotificationPrefs> {
 
   Future<void> _save(NotificationPrefs prefs) async {
     await ref.read(settingsRepositoryProvider).saveNotificationPrefs(prefs);
+    if (!ref.mounted) return;
     state = prefs;
   }
 
@@ -332,14 +342,18 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
     // Signing in is what the warning asks for, so getting here answers it.
     await settings.saveSignInRequired(false);
     await settings.markTourDue();
-    state = profile;
+    if (ref.mounted) state = profile;
   }
 
   /// "Logout / change server": clear profile and all secrets.
   Future<void> clear() async {
-    await ref.read(settingsRepositoryProvider).clearProfile();
-    await ref.read(credentialsStoreProvider).clearAll();
-    state = null;
+    // Both stores are read first: logging out clears the secrets even if this
+    // provider is gone by the time the first write returns.
+    final settings = ref.read(settingsRepositoryProvider);
+    final credentials = ref.read(credentialsStoreProvider);
+    await settings.clearProfile();
+    await credentials.clearAll();
+    if (ref.mounted) state = null;
   }
 }
 
@@ -427,13 +441,15 @@ class CurrentUserNotifier extends AsyncNotifier<CurrentUser?> {
   /// Re-reads `GET /auth/me`. Group membership and permissions can change on
   /// the server while the app is open.
   Future<void> refresh() async {
-    state = const AsyncLoading<CurrentUser?>().copyWithPrevious(state);
-    state = await AsyncValue.guard(() async {
+    state = const AsyncLoading<CurrentUser?>();
+    final next = await AsyncValue.guard(() async {
       final profile = ref.read(serverProfileProvider);
       if (profile == null) return null;
       if (profile.authMode == AuthMode.none && !profile.isDemo) return null;
       return ref.read(accountRepositoryProvider).me();
     });
+    if (!ref.mounted) return;
+    state = next;
   }
 }
 
@@ -444,7 +460,7 @@ class CurrentUserNotifier extends AsyncNotifier<CurrentUser?> {
 /// and permissions").
 final permissionProvider = Provider.family<bool, String>(
   (ref, permission) =>
-      ref.watch(currentUserProvider).valueOrNull?.can(permission) ?? true,
+      ref.watch(currentUserProvider).value?.can(permission) ?? true,
 );
 
 /// Whether the current user is an admin. Unknown identity answers `true`, as in
@@ -452,7 +468,7 @@ final permissionProvider = Provider.family<bool, String>(
 /// refused every administrative route — pair it with
 /// [identifiedPermissionProvider].
 final isAdminProvider = Provider<bool>(
-  (ref) => ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? true,
+  (ref) => ref.watch(currentUserProvider).value?.isAdmin ?? true,
 );
 
 /// Whether a *known* identity holds [permission] — the gate on the entry points into
@@ -463,7 +479,7 @@ final identifiedPermissionProvider = Provider.family<bool, String>((ref, p) {
   if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
     return false;
   }
-  final user = ref.watch(currentUserProvider).valueOrNull;
+  final user = ref.watch(currentUserProvider).value;
   return user != null && user.can(p);
 });
 
@@ -716,8 +732,7 @@ final defaultConfirmOutcomeProvider = serverGate<bool>(
 /// before it and whenever the version is not known yet. A value, not a gate
 /// (docs/providers.md, "Versions").
 final chamberMaxTargetProvider = Provider<int>(
-  (ref) =>
-      ref.watch(serverVersionProvider).valueOrNull?.chamberMaxTargetC ?? 60,
+  (ref) => ref.watch(serverVersionProvider).value?.chamberMaxTargetC ?? 60,
 );
 
 /// Whether library files can be grouped as cross-model alternatives and queued
@@ -870,8 +885,8 @@ final serverUiFlagsProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
 /// being the only source a non-admin can read; false until either answers.
 final billingEnabledProvider = Provider.autoDispose<bool>(
   (ref) => _billingFrom(
-    ref.watch(serverUiFlagsProvider).valueOrNull,
-    ref.watch(serverSettingsProvider).valueOrNull,
+    ref.watch(serverUiFlagsProvider).value,
+    ref.watch(serverSettingsProvider).value,
   ),
 );
 
@@ -941,7 +956,8 @@ class ServerSettingsNotifier extends AsyncNotifier<Map<String, dynamic>> {
   /// only mean the read did not land (docs/providers.md, "Server settings").
   Future<void> refresh() async {
     final fresh = await ref.read(serverSettingsRepositoryProvider).fetch();
-    if (fresh.isNotEmpty || (state.valueOrNull ?? const {}).isEmpty) {
+    if (!ref.mounted) return;
+    if (fresh.isNotEmpty || (state.value ?? const {}).isEmpty) {
       state = AsyncValue.data(fresh);
     }
   }
@@ -992,7 +1008,7 @@ Provider<AsyncValue<bool>> capabilityGate(
   if (feature == null) return AsyncData(latch.whenUnknown);
   final version = ref.watch(serverVersionProvider);
   if (!version.hasValue && !version.hasError) return inFlight;
-  return AsyncData(version.valueOrNull?.supports(feature) ?? latch.whenUnknown);
+  return AsyncData(version.value?.supports(feature) ?? latch.whenUnknown);
 });
 
 extension AsyncGate on AsyncValue<bool> {
@@ -1001,7 +1017,7 @@ extension AsyncGate on AsyncValue<bool> {
   /// loading — [settledGate] would wait on that forever. Both sides are
   /// evaluated (see "Combining" in `docs/server-gates.md`).
   AsyncValue<bool> and(AsyncValue<bool> other) {
-    if (valueOrNull == false || other.valueOrNull == false) {
+    if (value == false || other.value == false) {
       return const AsyncData(false);
     }
     if (hasError) return this;
@@ -1042,7 +1058,7 @@ Future<T> settledGate<T>(
 /// is hidden while the settings are in flight (docs/providers.md, "Server settings").
 Provider<T> serverValue<T>(T Function(Map<String, dynamic>) read) =>
     Provider<T>(
-      (ref) => read(ref.watch(serverSettingsProvider).valueOrNull ?? const {}),
+      (ref) => read(ref.watch(serverSettingsProvider).value ?? const {}),
     );
 
 /// Highest `copies` a pipeline run accepts (`pipeline_max_copies`). The server

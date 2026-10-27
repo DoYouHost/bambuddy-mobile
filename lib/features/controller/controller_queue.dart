@@ -92,10 +92,10 @@ class _ControllerQueueState extends ConsumerState<ControllerQueue> {
         widget.printerId,
       ).select((p) => p.item?.printer.model),
     );
-    final items = async.valueOrNull == null
+    final items = async.value == null
         ? null
         : queueForPrinter(
-            async.valueOrNull!,
+            async.value!,
             printerId: widget.printerId,
             model: model,
           );
@@ -220,7 +220,7 @@ class _Grid extends ConsumerWidget {
     // running print and Start would start it somewhere else.
     final current = ref
         .read(queueProvider)
-        .valueOrNull
+        .value
         ?.where((i) => i.id == item.id)
         .firstOrNull;
     final model = ref

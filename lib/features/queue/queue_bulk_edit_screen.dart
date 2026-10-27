@@ -145,7 +145,7 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
   }
 
   Widget _printerSection(AppLocalizations l10n) {
-    final printers = ref.watch(allPrintersProvider).valueOrNull ?? const [];
+    final printers = ref.watch(allPrintersProvider).value ?? const [];
     return QueueSectionCard(
       tone: QueueSectionTone.target,
       title: l10n.queueEditPrinter,
@@ -190,8 +190,7 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
       permissionProvider(Permissions.printersControl),
     );
     final offersInjection =
-        (ref.watch(gcodeSnippetModelsProvider).valueOrNull ?? const {})
-            .isNotEmpty;
+        (ref.watch(gcodeSnippetModelsProvider).value ?? const {}).isNotEmpty;
     return QueueSectionCard(
       tone: QueueSectionTone.schedule,
       title: l10n.queueBulkQueueOptions,
@@ -233,8 +232,9 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
   Widget _printOptionsSection(AppLocalizations l10n) {
     final triState = ref.watch(triStateCalibrationProvider).orFalse;
     // The web shows the nozzle offset when any printer has two nozzles.
-    final hasDualNozzle = (ref.watch(allPrintersProvider).valueOrNull ?? [])
-        .any((p) => p.nozzleCount == 2);
+    final hasDualNozzle = (ref.watch(allPrintersProvider).value ?? []).any(
+      (p) => p.nozzleCount == 2,
+    );
     return QueueSectionCard(
       tone: QueueSectionTone.options,
       title: l10n.queueEditPrintOptions,
