@@ -57,6 +57,10 @@ final a11yPlatformOverrides = [
   inertBackgroundMonitorOverride,
 ];
 
+/// Horizontal paint offset of the whole app, in dp. [a11yPump] applies it; the
+/// contrast guideline moves it to re-measure a finding at another sub-pixel phase.
+final a11yPhase = ValueNotifier<double>(0);
+
 /// Pumps [home] under [accent] and [brightness] in Polish, then lets it settle.
 ///
 /// Not `pumpAndSettle`: the demo is timed (a poll, a simulated print) and never
@@ -74,27 +78,31 @@ Future<void> a11yPump(
   useLogicalWindow(tester, window);
   SharedPreferences.setMockInitialValues(prefs);
   final sharedPrefs = await SharedPreferences.getInstance();
-  await tester.pumpWidget(
-    ProviderScope(
-      retry: neverRetry,
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(sharedPrefs),
-        ...overrides.isEmpty ? [noServerProfileOverride] : overrides,
+  a11yPhase.value = 0;
+  final app = ProviderScope(
+    retry: neverRetry,
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(sharedPrefs),
+      ...overrides.isEmpty ? [noServerProfileOverride] : overrides,
+    ],
+    child: MaterialApp(
+      theme: buildDashThemeData(brightness, brand: resolveBrand(accent, null)),
+      locale: const Locale('pl'),
+      localizationsDelegates: [
+        AppLocalizations.delegate,
+        ReportLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
       ],
-      child: MaterialApp(
-        theme: buildDashThemeData(
-          brightness,
-          brand: resolveBrand(accent, null),
-        ),
-        locale: const Locale('pl'),
-        localizationsDelegates: [
-          AppLocalizations.delegate,
-          ReportLocalizations.delegate,
-          ...GlobalMaterialLocalizations.delegates,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: home,
-      ),
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: home,
+    ),
+  );
+  await tester.pumpWidget(
+    ValueListenableBuilder<double>(
+      valueListenable: a11yPhase,
+      builder: (_, dx, child) =>
+          Transform.translate(offset: Offset(dx, 0), child: child),
+      child: app,
     ),
   );
   await a11ySettle(tester, settleFor);
@@ -359,4 +367,42 @@ class _ContrastBesideMisreads extends MinimumTextContrastGuideline {
       data.flagsCollection.isHeader ||
       data.label.startsWith(pl.nextAvailableLabel) ||
       (extra?.call(data) ?? false);
+
+  /// Paint offsets, in dp, a finding is measured again at. The histogram's
+  /// "commonest dark colour" depends on where a glyph's edge falls in a pixel:
+  /// 13 px dark ink on a light chip read 1.37:1 at one x phase out of twenty and
+  /// passed at the other nineteen. A real shortfall does not depend on the phase.
+  static const phases = [0.37, 0.71];
+
+  static final _nodeId = RegExp(r'SemanticsNode#(\d+)');
+
+  /// One finding per node: a report is the nodes' messages one after another.
+  static Map<String, String> _findings(Evaluation e) => {
+    for (final part in (e.reason ?? '').split(
+      RegExp(r'(?=SemanticsNode#\d+\()'),
+    ))
+      if (_nodeId.firstMatch(part) case final m?) m.group(1)!: part,
+  };
+
+  /// Fails only the nodes that fail at the shipped position and at every phase.
+  /// Needs [a11yPhase] to move something: on a tree built without [a11yPump] the
+  /// phases measure the same pixels and the findings stand.
+  @override
+  Future<Evaluation> evaluate(WidgetTester tester) async {
+    final shipped = await super.evaluate(tester);
+    if (shipped.passed) return shipped;
+    final findings = _findings(shipped);
+    for (final phase in phases) {
+      a11yPhase.value = phase;
+      await tester.pump();
+      final again = _findings(await super.evaluate(tester));
+      findings.removeWhere((id, _) => !again.containsKey(id));
+      if (findings.isEmpty) break;
+    }
+    a11yPhase.value = 0;
+    await tester.pump();
+    return findings.isEmpty
+        ? const Evaluation.pass()
+        : Evaluation.fail(findings.values.join('\n'));
+  }
 }
