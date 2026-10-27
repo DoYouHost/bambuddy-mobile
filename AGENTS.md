@@ -406,9 +406,9 @@ do not stay silent because it was not part of the task.
 - **Parallel tests mean one `flutter test --concurrency=N`, never several
   `flutter test` processes.** Separate runs rewrite the same
   `build/test_cache` dill and corrupt it. `just test-a11y` runs the rendered a11y
-  suite three files at a time under a 12 GB scope (792 s against 1409 s serial,
-  5.1 GiB peak, the same failures); a single heavy file reaches 3.1 GB, so a higher
-  N needs a new measurement. Tests write only to `Directory.systemTemp.createTemp`
+  suite four files at a time under a 12 GB scope (726 s against 1409 s serial on
+  one laptop, about 6 GiB, the same failures); another machine will time
+  differently. Tests write only to `Directory.systemTemp.createTemp`
   paths, so files do not share state.
 - **The demo shows every feature.** A new gate or route family gets its demo
   routes and seed data in `lib/core/demo/demo_backend.dart` in the same branch,
