@@ -5,6 +5,8 @@ import 'dart:async';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
+import 'package:bambuddy_mobile/core/models/smart_plug.dart';
+import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
@@ -29,6 +31,7 @@ import 'package:dash_kit/dash_kit.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -167,6 +170,20 @@ List<Override> _overrides(DashboardState state) => [
   ),
 ];
 
+class _PluggedIn extends SmartPlugsNotifier {
+  @override
+  SmartPlugsState build() => const SmartPlugsState(
+    plugs: [SmartPlug(id: 1, name: 'Farm', printerId: 1)],
+    statuses: {
+      1: SmartPlugStatus(
+        state: 'ON',
+        reachable: true,
+        energy: SmartPlugEnergy(power: 120),
+      ),
+    },
+  );
+}
+
 Widget _app(
   DashboardState state, {
   List<Override> extra = const [],
@@ -219,6 +236,59 @@ void main() {
     await _prefs.remove('sign_in_reason');
     await _prefs.remove('dashboard_view');
   });
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets(
+      'the power chip is a 48 dp target on the full and the collapsed bar at '
+      'text scale $scale',
+      (tester) async {
+        tester.view.physicalSize = const Size(411, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          _app(
+            DashboardState(
+              printers: [
+                for (var i = 1; i <= 8; i++)
+                  PrinterWithStatus(
+                    printer: Printer(id: i, name: 'P$i'),
+                  ),
+              ],
+            ),
+            extra: [smartPlugsProvider.overrideWith(_PluggedIn.new)],
+            textScaler: TextScaler.linear(scale),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        void expectTarget(String bar) {
+          final size = tester.getSize(byLogId('dashboard.power'));
+          expect(size.height, greaterThanOrEqualTo(48), reason: bar);
+          expect(size.width, greaterThanOrEqualTo(48), reason: bar);
+        }
+
+        // Beside the chip the line keeps its room: a Flexible next to a Spacer
+        // halved it and cut the text at 100%. Larger text may ellipsise it, but
+        // never overflow (a RenderFlex error fails the test on its own).
+        if (scale == 1.0) {
+          final line = tester.renderObject<RenderParagraph>(
+            find.descendant(
+              of: find.text(pl.noActivePrints),
+              matching: find.byType(RichText),
+            ),
+          );
+          expect(line.didExceedMaxLines, isFalse);
+        }
+        expectTarget('full bar');
+        await tester.drag(
+          find.byType(CustomScrollView).first,
+          const Offset(0, -2000),
+        );
+        await tester.pumpAndSettle();
+        expectTarget('collapsed bar');
+      },
+    );
+  }
 
   testWidgets(
     'a failed poll shows the banner above the last data, not instead of it',

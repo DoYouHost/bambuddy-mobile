@@ -1370,7 +1370,7 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   // Heights carry generous slack; content is clipped, never overflowed.
   static const double _statusFull = 60;
-  static const double _statusCompact = 48;
+  static const double _statusCompact = 56;
   static const double _searchH = DashSearchBarBody.height;
 
   @override
@@ -1580,6 +1580,14 @@ class _SummaryHeader extends ConsumerWidget {
     final dotColor = active.isEmpty ? t.textTertiary : t.accentGreen;
 
     final nextOpacity = (1 - shrink * 1.8).clamp(0.0, 1.0);
+    final countText = Text(
+      active.isEmpty ? l10n.noActivePrints : l10n.printingCount(active.length),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: t.body.copyWith(
+        color: active.isEmpty ? t.textSecondary : t.textPrimary,
+      ),
+    );
     return Container(
       // The card fills the height its parent allots (which shrinks with the
       // scroll); the row stays vertically centred, so there is no vertical
@@ -1588,14 +1596,19 @@ class _SummaryHeader extends ConsumerWidget {
       // expanded the search field below provides that spacing instead).
       margin: EdgeInsets.fromLTRB(
         DashSpace.gutter,
-        DashSpace.md - DashSpace.xs * shrink,
+        DashSpace.md - DashSpace.sm * shrink,
         DashSpace.gutter,
-        DashSpace.sm * shrink,
+        DashSpace.xs * shrink,
       ),
       padding: const EdgeInsets.symmetric(horizontal: DashSpace.lg),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: t.subCard,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      // Over the content rather than in the decoration, which would inset the
+      // row by the border and leave the power chip 46 dp instead of 48.
+      foregroundDecoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: t.subCardBorder),
       ),
@@ -1607,14 +1620,11 @@ class _SummaryHeader extends ConsumerWidget {
             decoration: BoxDecoration(shape: BoxShape.circle, color: dotColor),
           ),
           const SizedBox(width: DashSpace.sm),
-          Text(
-            active.isEmpty
-                ? l10n.noActivePrints
-                : l10n.printingCount(active.length),
-            style: t.body.copyWith(
-              color: active.isEmpty ? t.textSecondary : t.textPrimary,
-            ),
-          ),
+          // Alone in the row it takes the width left of the chip and ellipsises
+          // there; beside the "next available" line that line is the one that
+          // gives way. A Flexible next to a Spacer would split the room in half
+          // and cut the text at 100%.
+          if (next == null) Expanded(child: countText) else countText,
           if (next != null) ...[
             const SizedBox(width: DashSpace.md),
             // Fades out as the card collapses (kept in the tree so its space
@@ -1641,10 +1651,7 @@ class _SummaryHeader extends ConsumerWidget {
             ),
           ],
           if (hasPlugs) ...[
-            if (next == null)
-              const Spacer()
-            else
-              const SizedBox(width: DashSpace.md),
+            if (next != null) const SizedBox(width: DashSpace.md),
             Tooltip(
               message: l10n.totalPowerTooltip,
               child: InkWell(
@@ -1660,19 +1667,25 @@ class _SummaryHeader extends ConsumerWidget {
                   ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(DashSpace.xs),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.bolt, size: 15, color: t.accentGreenInk),
-                      const SizedBox(width: DashSpace.xs),
-                      Text(
-                        l10n.powerWatts(totalPowerW.round()),
-                        style: t.monoValue.copyWith(
-                          fontFeatures: const [FontFeature.tabularFigures()],
+                  padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
+                  // The pill is 48 dp at every scroll position and this fills
+                  // it, so the chip is a full touch target; widthFactor keeps it
+                  // as wide as its text.
+                  child: Center(
+                    widthFactor: 1,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.bolt, size: 15, color: t.accentGreenInk),
+                        const SizedBox(width: DashSpace.xs),
+                        Text(
+                          l10n.powerWatts(totalPowerW.round()),
+                          style: t.monoValue.copyWith(
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
