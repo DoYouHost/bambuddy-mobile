@@ -483,7 +483,6 @@ class _SwatchTile extends StatelessWidget {
                   logTag(
                     'swatches.copy',
                     IconButton(
-                      visualDensity: VisualDensity.compact,
                       icon: Icon(Icons.copy_rounded, color: t.textSecondary),
                       tooltip: MaterialLocalizations.of(
                         context,
@@ -494,7 +493,6 @@ class _SwatchTile extends StatelessWidget {
                   logTag(
                     'swatches.delete',
                     IconButton(
-                      visualDensity: VisualDensity.compact,
                       icon: Icon(
                         Icons.delete_outline_rounded,
                         color: t.dangerInk,

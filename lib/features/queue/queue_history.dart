@@ -601,7 +601,6 @@ class _HistoryRow extends ConsumerWidget {
                   style: meta,
                 ),
                 IconButton(
-                  visualDensity: VisualDensity.compact,
                   tooltip: canRequeue
                       ? l10n.queueHistoryRequeue
                       : l10n.queueHistoryNoRequeue,
@@ -611,7 +610,6 @@ class _HistoryRow extends ConsumerWidget {
                       : null,
                 ).tagged('queue_history.requeue'),
                 IconButton(
-                  visualDensity: VisualDensity.compact,
                   tooltip: canRemove
                       ? l10n.queueHistoryRemove
                       : l10n.queueHistoryNoRemove,

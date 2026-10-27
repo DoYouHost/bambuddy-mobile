@@ -631,7 +631,6 @@ class _TourCard extends StatelessWidget {
               // where there is no overlay for a tooltip to open in.
               IconButton.outlined(
                 onPressed: onSkip,
-                visualDensity: VisualDensity.compact,
                 style: IconButton.styleFrom(
                   foregroundColor: t.dangerInk,
                   side: BorderSide(color: t.danger),

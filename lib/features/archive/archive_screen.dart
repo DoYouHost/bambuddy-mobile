@@ -695,7 +695,6 @@ class _No3mfBanner extends ConsumerWidget {
                 icon: const Icon(Icons.close, size: 18),
                 tooltip: l10n.archiveNo3mfDismiss,
                 color: t.textTertiary,
-                visualDensity: VisualDensity.compact,
                 onPressed: () =>
                     ref.read(no3mfDismissedProvider.notifier).dismiss(),
               ),
@@ -819,7 +818,6 @@ class _ArchiveCard extends StatelessWidget {
                         tooltip: archive.isFavorite
                             ? AppLocalizations.of(context).archiveUnfavorite
                             : AppLocalizations.of(context).archiveFavorite,
-                        visualDensity: VisualDensity.compact,
                         onPressed: onToggleFavorite,
                       ),
                     )

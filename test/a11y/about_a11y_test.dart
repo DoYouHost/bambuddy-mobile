@@ -56,7 +56,7 @@ void _about() {
       await tester.tap(byLogId('about.licenses'));
       await settle(tester);
     },
-    shows: find.text('Bambuddy'),
+    shows: find.text(pl.bgServiceTitle),
   );
 }
 
