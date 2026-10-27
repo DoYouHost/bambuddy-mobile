@@ -892,41 +892,36 @@ class _MembersSheetState extends ConsumerState<_MembersSheet> {
         else if (members.isEmpty)
           Text(l10n.financeNoMembers, style: t.labelSoft)
         else
+          // The name is the row's title, so a reader says whose switch it is.
           for (final m in members)
-            Padding(
-              padding: const EdgeInsets.only(bottom: DashSpace.sm),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      names[m.userId] ?? l10n.financeUserWithId(m.userId),
-                      style: t.bodyBold,
-                    ),
-                  ),
-                  Text(l10n.financeCanPrint, style: t.labelSoft),
-                  Switch(
+            Row(
+              children: [
+                Expanded(
+                  child: SettingsSwitchRow(
+                    tag: 'finance_form.member_can_print',
+                    title: names[m.userId] ?? l10n.financeUserWithId(m.userId),
+                    subtitle: l10n.financeCanPrint,
                     value: m.canPrint,
-                    activeThumbColor: t.accentGreen,
                     onChanged: _busy
                         ? null
                         : (v) => _write(
                             'finance_form.member_can_print',
                             (repo) => repo.setMember(id, m.userId, canPrint: v),
                           ),
-                  ).tagged('finance_form.member_can_print'),
-                  IconButton(
-                    tooltip: l10n.financeRemoveMember,
-                    onPressed: _busy
-                        ? null
-                        : () => _write(
-                            'finance_form.member_remove',
-                            (repo) => repo.removeMember(id, m.userId),
-                            done: l10n.financeMemberRemoved,
-                          ),
-                    icon: const Icon(Icons.person_remove_outlined),
-                  ).tagged('finance_form.member_remove'),
-                ],
-              ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: l10n.financeRemoveMember,
+                  onPressed: _busy
+                      ? null
+                      : () => _write(
+                          'finance_form.member_remove',
+                          (repo) => repo.removeMember(id, m.userId),
+                          done: l10n.financeMemberRemoved,
+                        ),
+                  icon: const Icon(Icons.person_remove_outlined),
+                ).tagged('finance_form.member_remove'),
+              ],
             ),
         const Divider(height: DashSpace.xl),
         _userPicker(

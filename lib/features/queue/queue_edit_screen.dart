@@ -816,23 +816,26 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final label = current == null
         ? l10n.queueEditPlateSelected(_plateId ?? 1)
         : plateLabel(l10n, current);
-    final row = Padding(
-      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-      child: Row(
-        children: [
-          Icon(Icons.layers_outlined, color: t.textSecondary, size: 20),
-          const SizedBox(width: DashSpace.md),
-          Expanded(
-            child: Text(
-              widget._isCreate
-                  ? label
-                  : l10n.queueEditPlateFixed(_plateId ?? 1),
-              style: t.body,
+    final row = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+        child: Row(
+          children: [
+            Icon(Icons.layers_outlined, color: t.textSecondary, size: 20),
+            const SizedBox(width: DashSpace.md),
+            Expanded(
+              child: Text(
+                widget._isCreate
+                    ? label
+                    : l10n.queueEditPlateFixed(_plateId ?? 1),
+                style: t.body,
+              ),
             ),
-          ),
-          if (widget._isCreate)
-            Icon(Icons.chevron_right, color: t.textTertiary),
-        ],
+            if (widget._isCreate)
+              Icon(Icons.chevron_right, color: t.textTertiary),
+          ],
+        ),
       ),
     );
 
@@ -933,25 +936,34 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                       setState(() => _amsMapping = mapping);
                     }
                   },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-              child: Row(
-                children: [
-                  Icon(Icons.bento_outlined, color: t.textSecondary, size: 20),
-                  const SizedBox(width: DashSpace.md),
-                  Expanded(
-                    child: Text(
-                      printerId == null
-                          ? l10n.queueEditMappingNeedsPrinter
-                          : (mapped > 0
-                                ? l10n.queueEditMappingSummary(mapped)
-                                : l10n.queueEditMappingAuto),
-                      style: t.body,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: kMinInteractiveDimension,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.bento_outlined,
+                      color: t.textSecondary,
+                      size: 20,
                     ),
-                  ),
-                  if (printerId != null)
-                    Icon(Icons.chevron_right, color: t.textTertiary),
-                ],
+                    const SizedBox(width: DashSpace.md),
+                    Expanded(
+                      child: Text(
+                        printerId == null
+                            ? l10n.queueEditMappingNeedsPrinter
+                            : (mapped > 0
+                                  ? l10n.queueEditMappingSummary(mapped)
+                                  : l10n.queueEditMappingAuto),
+                        style: t.body,
+                      ),
+                    ),
+                    if (printerId != null)
+                      Icon(Icons.chevron_right, color: t.textTertiary),
+                  ],
+                ),
               ),
             ),
           ).tagged('queue_edit.mapping'),

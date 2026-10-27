@@ -796,9 +796,11 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     );
   }
 
-  /// The row's rack picker, `R2 · 0.4`: the position the group prints from
-  /// and the nozzle sitting there.
-  Widget _rackButton(_Rack rack, int groupId, RackGroup group) {
+  /// The row's rack picker: "Rack position  `R2 · 0.4`", the position the group
+  /// prints from and the nozzle sitting there. A row of its own under the
+  /// filament, not a chip in the title line: the whole row is the target, 48 dp
+  /// tall, where the chip was 20.
+  Widget _rackRow(_Rack rack, int groupId, RackGroup group) {
     final l10n = _l10n;
     final theme = Theme.of(context);
     final position = rack.positions[groupId];
@@ -809,31 +811,42 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     return Tooltip(
       message: l10n.mappingRackPositionHint,
       child: InkWell(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         onTap: enabled ? () => _pickRackPosition(rack, groupId, group) : null,
-        child: Container(
-          padding: const EdgeInsets.only(left: DashSpace.xs),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: enabled
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.outlineVariant,
-            ),
-            borderRadius: BorderRadius.circular(6),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                [
-                  position == null ? '–' : l10n.mappingRackSlot(position),
-                  if (diameter.isNotEmpty) diameter,
-                ].join(' · '),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+              Flexible(child: Text(l10n.mappingRackPosition)),
+              const SizedBox(width: DashSpace.sm),
+              Container(
+                padding: const EdgeInsets.only(left: DashSpace.xs),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: enabled
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.outlineVariant,
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      [
+                        position == null ? '–' : l10n.mappingRackSlot(position),
+                        if (diameter.isNotEmpty) diameter,
+                      ].join(' · '),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const Icon(Icons.arrow_drop_down, size: 18),
+                  ],
                 ),
               ),
-              const Icon(Icons.arrow_drop_down, size: 18),
             ],
           ),
         ),
@@ -1027,10 +1040,13 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     // On a rack plate the group decides the badge (`FilamentMapping.tsx`): a
     // picker for a rack-bound group, `L` for one on the fixed hotend.
     final Widget? lead = switch (group) {
-      RackGroup(onRack: true) => _rackButton(rack!, groupId!, group),
+      RackGroup(onRack: true) => null,
       RackGroup() => _Badge(l10n.extruderLeftShort),
       null => nozzle == null ? null : _Badge(nozzle),
     };
+    final rackRow = group != null && group.onRack
+        ? _rackRow(rack!, groupId!, group)
+        : null;
     final rackWarning = group != null && group.onRack
         ? _rackWarning(rack!, groupId!, group, t)
         : null;
@@ -1073,6 +1089,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
             if (c.isManual) Text(l10n.mappingManual),
             if (warning != null)
               Text(warning.$1, style: TextStyle(color: warning.$2)),
+            ?rackRow,
             if (rackWarning != null)
               Text(rackWarning.$1, style: TextStyle(color: rackWarning.$2)),
             if (widget.onForceColorMatch case final onForce?

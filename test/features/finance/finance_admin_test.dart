@@ -775,6 +775,18 @@ void main() {
       expect(byLogId('finance_form.member_can_print'), findsOneWidget);
     });
 
+    testWidgets('each switch is named by whose it is', (tester) async {
+      final handle = tester.ensureSemantics();
+      await open(tester, _Server());
+
+      final label = tester
+          .getSemantics(byLogId('finance_form.member_can_print'))
+          .label;
+      expect(label, contains('bob'));
+      expect(label, contains(pl.financeCanPrint));
+      handle.dispose();
+    });
+
     testWidgets('may be switched off, and removed', (tester) async {
       final server = _Server();
       await open(tester, server);

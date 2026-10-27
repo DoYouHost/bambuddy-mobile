@@ -774,59 +774,64 @@ class _BatchRow extends StatelessWidget {
           InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: onToggle,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: DashSpace.md,
-                vertical: DashSpace.sm,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: kMinInteractiveDimension,
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    expanded ? Icons.expand_more : Icons.chevron_right,
-                    size: 18,
-                    color: t.textTertiary,
-                  ),
-                  const SizedBox(width: DashSpace.xs),
-                  Icon(
-                    expanded ? Icons.inventory_2_outlined : Icons.inventory_2,
-                    size: 18,
-                    color: t.accentBlue,
-                  ),
-                  const SizedBox(width: DashSpace.sm),
-                  Expanded(
-                    child: Text(
-                      row.batchName ?? l10n.queueHistoryBatch,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: t.body.copyWith(fontWeight: FontWeight.w600),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DashSpace.md,
+                  vertical: DashSpace.sm,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      expanded ? Icons.expand_more : Icons.chevron_right,
+                      size: 18,
+                      color: t.textTertiary,
                     ),
-                  ),
-                  for (final (kind, n) in counts)
-                    if (n > 0) ...[
-                      const SizedBox(width: DashSpace.sm),
-                      Icon(
-                        _statusLook(t, kind).$1,
-                        size: 12,
-                        color: _statusLook(t, kind).$2,
+                    const SizedBox(width: DashSpace.xs),
+                    Icon(
+                      expanded ? Icons.inventory_2_outlined : Icons.inventory_2,
+                      size: 18,
+                      color: t.accentBlue,
+                    ),
+                    const SizedBox(width: DashSpace.sm),
+                    Expanded(
+                      child: Text(
+                        row.batchName ?? l10n.queueHistoryBatch,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.body.copyWith(fontWeight: FontWeight.w600),
                       ),
-                      Text(
-                        ' $n',
-                        style: meta.copyWith(color: _statusLook(t, kind).$2),
-                      ),
-                    ],
-                  const SizedBox(width: DashSpace.sm),
-                  Text(
-                    latest == null
-                        ? ''
-                        : relativeTime(
-                            l10n,
-                            DateTimeFormats.of(context),
-                            latest,
-                            now: DateTime.now(),
-                          ),
-                    style: meta,
-                  ),
-                ],
+                    ),
+                    for (final (kind, n) in counts)
+                      if (n > 0) ...[
+                        const SizedBox(width: DashSpace.sm),
+                        Icon(
+                          _statusLook(t, kind).$1,
+                          size: 12,
+                          color: _statusLook(t, kind).$2,
+                        ),
+                        Text(
+                          ' $n',
+                          style: meta.copyWith(color: _statusLook(t, kind).$2),
+                        ),
+                      ],
+                    const SizedBox(width: DashSpace.sm),
+                    Text(
+                      latest == null
+                          ? ''
+                          : relativeTime(
+                              l10n,
+                              DateTimeFormats.of(context),
+                              latest,
+                              now: DateTime.now(),
+                            ),
+                      style: meta,
+                    ),
+                  ],
+                ),
               ),
             ),
           ).tagged('queue_history.batch', expanded: expanded),

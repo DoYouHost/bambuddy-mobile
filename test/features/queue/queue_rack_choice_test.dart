@@ -89,7 +89,13 @@ Future<void> _pick(WidgetTester tester, int position) async {
 }
 
 Future<void> _saveMapping(WidgetTester tester) async {
-  await tester.tap(find.widgetWithText(FilledButton, pl.fmSave).last);
+  // Two rack rows are taller than the window: the button is built below the fold.
+  final save = find
+      .widgetWithText(FilledButton, pl.fmSave, skipOffstage: false)
+      .last;
+  await tester.ensureVisible(save);
+  await tester.pumpAndSettle();
+  await tester.tap(save);
   await tester.pumpAndSettle();
 }
 
@@ -156,6 +162,23 @@ void main() {
 
     expect(byLogId('queue_mapping.rack'), findsOneWidget);
     expect(find.text(pl.extruderLeftShort), findsOneWidget);
+  });
+
+  testWidgets('the pick is a row of its own, 48 dp tall, tappable along it', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_form());
+    await tester.pumpAndSettle();
+    await _openMapping(tester);
+
+    final row = tester.getRect(byLogId('queue_mapping.rack').first);
+    expect(row.height, greaterThanOrEqualTo(kMinInteractiveDimension));
+
+    // On the label, well clear of the bordered chip: the whole row answers.
+    await tester.tapAt(row.centerLeft + const Offset(8, 0));
+    await tester.pumpAndSettle();
+
+    expect(byLogId('queue_mapping.rack_position_1'), findsOneWidget);
   });
 
   testWidgets('untouched, the row shows what the server will assign and '
