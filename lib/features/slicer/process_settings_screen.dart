@@ -501,19 +501,23 @@ class _OptionRow extends StatelessWidget {
     final theme = Theme.of(context);
     final modified = isModified(option, value, presetValue);
 
+    final name = Text(
+      option.label,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: enabled
+            ? theme.colorScheme.onSurface
+            : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+      ),
+    );
     final label = Row(
       children: [
         Expanded(
-          child: Text(
-            option.label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: enabled
-                  ? theme.colorScheme.onSurface
-                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-            ),
-          ),
+          // A dimmed label says so to the reader as well: it is the label of a
+          // disabled control, and an inactive component has no contrast minimum
+          // (WCAG 1.4.3, and the framework's guideline skips disabled nodes).
+          child: enabled ? name : Semantics(enabled: false, child: name),
         ),
         if (modified)
           Padding(

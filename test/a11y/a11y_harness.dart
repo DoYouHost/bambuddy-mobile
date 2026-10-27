@@ -16,6 +16,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers.dart';
+import 'a11y_contrast_report.dart';
 
 /// The shared half of the rendered-guideline tests: one surface, measured under
 /// every accent and both brightnesses. The plan and the rules are in
@@ -380,6 +381,13 @@ void a11ySurface(
 ///   the anti-aliased edges outnumber the glyph cores — 3.82:1 read, 8.39:1
 ///   between its brightest glyph pixel and the ground (graphite, dark).
 ///
+/// Beyond those two, a finding has to survive two more checks before it fails a
+/// test: it must fail at every sub-pixel phase (see [phases]), and the text's
+/// own colours must fail too ([judgeContrastFindings]). The pixel measure reads
+/// 11-14 dp semi-transparent text badly (a large share of the findings were
+/// text that passes at 5:1 by its own colours); a finding the colours back up,
+/// or cannot judge, still fails.
+///
 /// [extra] is a surface's own narrowing, reason in its file.
 class _ContrastBesideMisreads extends MinimumTextContrastGuideline {
   const _ContrastBesideMisreads([this.extra]);
@@ -401,13 +409,21 @@ class _ContrastBesideMisreads extends MinimumTextContrastGuideline {
 
   static final _nodeId = RegExp(r'SemanticsNode#(\d+)');
 
-  /// One finding per node: a report is the nodes' messages one after another.
-  static Map<String, String> _findings(Evaluation e) => {
-    for (final part in (e.reason ?? '').split(
-      RegExp(r'(?=SemanticsNode#\d+\()'),
-    ))
-      if (_nodeId.firstMatch(part) case final m?) m.group(1)!: part,
-  };
+  /// One finding per node and element: a report is the nodes' messages one
+  /// after another, and a node whose label several Texts share is reported once
+  /// per Text. The same node's findings are numbered in the order they appear,
+  /// which a re-measure of an unchanged tree keeps.
+  static Map<String, String> _findings(Evaluation e) {
+    final seen = <String, int>{};
+    return {
+      for (final part in (e.reason ?? '').split(
+        RegExp(r'(?=SemanticsNode#\d+\()'),
+      ))
+        if (_nodeId.firstMatch(part) case final m?)
+          '${m.group(1)}/${seen.update(m.group(1)!, (n) => n + 1, ifAbsent: () => 0)}':
+              part,
+    };
+  }
 
   /// Fails only the nodes that fail at the shipped position and at every phase.
   /// Needs [a11yPhase] to move something: on a tree built without [a11yPump] the
@@ -426,6 +442,14 @@ class _ContrastBesideMisreads extends MinimumTextContrastGuideline {
     }
     a11yPhase.value = 0;
     await tester.pump();
+    // The guideline reads no colour; see [ContrastVerdict]. A finding stands
+    // unless the text's own colours pass on every ground behind every paragraph
+    // of the node.
+    final judged = await judgeContrastFindings(tester, findings);
+    reportContrastFindings(judged);
+    findings.removeWhere(
+      (k, _) => judged[k]?.verdict == ContrastVerdict.artefact,
+    );
     return findings.isEmpty
         ? const Evaluation.pass()
         : Evaluation.fail(findings.values.join('\n'));

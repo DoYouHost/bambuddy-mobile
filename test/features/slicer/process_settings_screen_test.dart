@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'dart:convert';
 
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
@@ -317,6 +318,42 @@ void main() {
         isFalse,
       );
       expect(find.text(pl.processSettingsDisabledHint), findsOneWidget);
+    });
+
+    testWidgets('the greyed label is a disabled node for a screen reader too', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pump(tester, values: {'wall_loops': '0'});
+      await tester.enterText(_searchBox, 'outer wall speed');
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .getSemantics(find.text('Outer wall speed'))
+            .flagsCollection
+            .isEnabled,
+        ui.Tristate.isFalse,
+      );
+      handle.dispose();
+    });
+
+    testWidgets('an editable setting\'s label is not marked disabled', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pump(tester, values: {'wall_loops': '2'});
+      await tester.enterText(_searchBox, 'outer wall speed');
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .getSemantics(find.text('Outer wall speed'))
+            .flagsCollection
+            .isEnabled,
+        isNot(ui.Tristate.isFalse),
+      );
+      handle.dispose();
     });
 
     testWidgets('it becomes editable once the dependency is back', (
