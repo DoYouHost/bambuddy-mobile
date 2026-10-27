@@ -770,7 +770,11 @@ void main() {
         expect(tester.takeException(), isNull);
         final title = tester.getRect(find.text(pl.dashboardFilters));
         final clear = tester.getRect(find.text(pl.filtersClear));
-        expect(title.right, lessThanOrEqualTo(clear.left));
+        expect(
+          title.right <= clear.left || clear.top >= title.bottom,
+          isTrue,
+          reason: 'Clear beside the title or under it, never over it',
+        );
       });
     }
 

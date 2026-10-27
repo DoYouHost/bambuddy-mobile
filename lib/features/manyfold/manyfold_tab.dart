@@ -274,35 +274,36 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
       ),
       if (page.hasPrevious || page.hasNext) ...[
         const SizedBox(height: DashSpace.lg),
-        Row(
-          children: [
-            OutlinedButton.icon(
-              onPressed: !page.hasPrevious || loading
-                  ? null
-                  : () => setState(() => _page = page.page - 1),
-              icon: const Icon(Icons.chevron_left),
-              label: Text(l10n.mfPrevious),
-            ).tagged('manyfold.prev_page'),
-            // Centred in a box as wide as the text, not stretched across the row:
-            // the contrast guideline samples the text's own box, and a label this
-            // small in a wide one reads as background (1.04:1 for readable ink).
-            Expanded(
-              child: Center(
-                child: Text(
-                  l10n.mfPage(page.page),
-                  textAlign: TextAlign.center,
-                  style: t.monoLabel,
-                ),
-              ),
-            ),
-            OutlinedButton.icon(
-              onPressed: !page.hasNext || loading
-                  ? null
-                  : () => setState(() => _page = page.page + 1),
-              icon: const Icon(Icons.chevron_right),
-              label: Text(l10n.mfNext),
-            ).tagged('manyfold.next_page'),
-          ],
+        // The page label above the pair, as wide as its text: the contrast
+        // guideline samples the text's own box, and a label this small in a wide
+        // one reads as background (1.04:1 for readable ink). The buttons share
+        // the width, or stack when a label does not fit in half of it.
+        Center(
+          child: Text(
+            l10n.mfPage(page.page),
+            textAlign: TextAlign.center,
+            style: t.monoLabel,
+          ),
+        ),
+        const SizedBox(height: DashSpace.sm),
+        ButtonPair(
+          primaryStyle: OutlinedButtonTheme.of(context).style,
+          primaryLabel: l10n.mfPrevious,
+          secondaryLabel: l10n.mfNext,
+          primary: OutlinedButton.icon(
+            onPressed: !page.hasPrevious || loading
+                ? null
+                : () => setState(() => _page = page.page - 1),
+            icon: const Icon(Icons.chevron_left),
+            label: Text(l10n.mfPrevious),
+          ).tagged('manyfold.prev_page'),
+          secondary: OutlinedButton.icon(
+            onPressed: !page.hasNext || loading
+                ? null
+                : () => setState(() => _page = page.page + 1),
+            icon: const Icon(Icons.chevron_right),
+            label: Text(l10n.mfNext),
+          ).tagged('manyfold.next_page'),
         ),
       ],
     ];

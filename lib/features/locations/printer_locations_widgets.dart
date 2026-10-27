@@ -343,29 +343,56 @@ class LocationSelectionBar extends StatelessWidget {
             horizontal: DashSpace.gutter,
             vertical: DashSpace.md,
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.printerLocationsSelected(count),
-                  style: t.bodyStrong,
-                ),
-              ),
-              TextButton(
-                onPressed: busy ? null : onCancel,
-                child: Text(l10n.cancel),
-              ).tagged(cancelId),
-              const SizedBox(width: DashSpace.sm),
-              FilledButton.icon(
-                onPressed: busy ? null : onAction,
-                style: destructive ? dashDangerButtonStyle(t) : null,
-                icon: Icon(actionIcon),
-                label: Text(actionLabel),
-              ).tagged(id),
-            ],
-          ),
+          child: _barBody(context, t, l10n),
         ),
       ),
+    );
+  }
+
+  Widget _barBody(BuildContext context, DashTokens t, AppLocalizations l10n) {
+    final countText = Text(
+      l10n.printerLocationsSelected(count),
+      style: t.bodyStrong,
+    );
+    final cancel = TextButton(
+      onPressed: busy ? null : onCancel,
+      child: Text(l10n.cancel),
+    ).tagged(cancelId);
+    final action = FilledButton.icon(
+      onPressed: busy ? null : onAction,
+      style: destructive ? dashDangerButtonStyle(t) : null,
+      icon: Icon(actionIcon),
+      label: Text(actionLabel),
+    ).tagged(id);
+    // Count and buttons share a row until the text is large: then the count
+    // gets a line of its own and the buttons share the width, or stack when a
+    // label does not fit in half of it.
+    if (MediaQuery.textScalerOf(context).scale(1) <= 1.3) {
+      return Row(
+        children: [
+          Expanded(child: countText),
+          cancel,
+          const SizedBox(width: DashSpace.sm),
+          action,
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        countText,
+        const SizedBox(height: DashSpace.sm),
+        ButtonPair(
+          primary: cancel,
+          primaryLabel: l10n.cancel,
+          primaryStyle: TextButtonTheme.of(context).style,
+          secondary: action,
+          secondaryLabel: actionLabel,
+          secondaryStyle: destructive
+              ? dashDangerButtonStyle(t)
+              : FilledButtonTheme.of(context).style,
+        ),
+      ],
     );
   }
 }

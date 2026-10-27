@@ -332,11 +332,13 @@ class _SectionHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          SectionHeading(
-            label.toUpperCase(),
-            style: t.label.copyWith(
-              color: t.accentGreenInk,
-              letterSpacing: 0.8,
+          Flexible(
+            child: SectionHeading(
+              label.toUpperCase(),
+              style: t.label.copyWith(
+                color: t.accentGreenInk,
+                letterSpacing: 0.8,
+              ),
             ),
           ),
           const SizedBox(width: DashSpace.sm),

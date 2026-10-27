@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:dash_kit/dash_kit.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -40,11 +41,17 @@ class SectionCard extends StatelessWidget {
     required this.title,
     required this.child,
     this.trailing,
+    this.stackTrailing = false,
   });
 
   final String title;
   final Widget child;
   final Widget? trailing;
+
+  /// For a [trailing] control that fills the width it is given (a
+  /// `SegmentedButton`): at large text it goes under the title, spanning the
+  /// card, instead of squeezing the title to nothing beside it.
+  final bool stackTrailing;
 
   @override
   Widget build(BuildContext context) {
@@ -55,12 +62,18 @@ class SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(child: Text(title, style: t.titleSm)),
-              ?trailing,
-            ],
-          ),
+          if (stackTrailing && trailing != null)
+            BesideOrBelow(
+              label: Text(title, style: t.titleSm),
+              control: trailing!,
+            )
+          else
+            Row(
+              children: [
+                Expanded(child: Text(title, style: t.titleSm)),
+                ?trailing,
+              ],
+            ),
           const SizedBox(height: DashSpace.lg),
           child,
         ],

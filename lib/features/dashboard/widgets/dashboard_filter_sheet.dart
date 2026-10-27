@@ -69,28 +69,24 @@ class _DashboardFilterSheet extends ConsumerWidget {
                   // or shifts the title when the Clear button toggles.
                   ConstrainedBox(
                     constraints: const BoxConstraints(minHeight: 48),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.dashboardFilters,
-                            style: theme.textTheme.titleLarge,
-                          ),
+                    child: BesideOrBelow(
+                      label: Text(
+                        l10n.dashboardFilters,
+                        style: theme.textTheme.titleLarge,
+                      ),
+                      // Keep the button's slot laid out even when inactive,
+                      // so it can't reflow the header.
+                      control: Visibility(
+                        visible: filters.activeCount > 0,
+                        maintainSize: true,
+                        maintainAnimation: true,
+                        maintainState: true,
+                        child: TextButton(
+                          onPressed: () =>
+                              notifier.state = const DashboardFilters(),
+                          child: Text(l10n.filtersClear),
                         ),
-                        // Keep the button's slot laid out even when inactive,
-                        // so it can't reflow the row.
-                        Visibility(
-                          visible: filters.activeCount > 0,
-                          maintainSize: true,
-                          maintainAnimation: true,
-                          maintainState: true,
-                          child: TextButton(
-                            onPressed: () =>
-                                notifier.state = const DashboardFilters(),
-                            child: Text(l10n.filtersClear),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: DashSpace.sm),

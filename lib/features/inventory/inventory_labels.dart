@@ -89,19 +89,20 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     return DraggableSheetSurface(
       initialSize: 0.85,
       minSize: 0.5,
-      builder: (context, controller) => Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              DashSpace.gutter,
-              0,
-              DashSpace.gutter,
-              DashSpace.sm,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+      builder: (context, controller) {
+        final header = Padding(
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.sm,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              BesideOrBelow(
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.print_outlined,
@@ -109,125 +110,164 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                       color: t.accentGreenInk,
                     ),
                     const SizedBox(width: DashSpace.sm),
-                    Expanded(
+                    Flexible(
                       child: Text(l10n.inventoryLabelsTitle, style: t.display),
                     ),
-                    Text(
-                      l10n.inventorySelectedCount(_selected.length),
-                      style: t.monoLabel.legible,
-                    ),
                   ],
                 ),
-                const SizedBox(height: DashSpace.md),
-                DashSearchField(
-                  id: 'spool_labels.search',
-                  hintText: l10n.inventoryLabelsSearchHint,
-                  onChanged: (v) => setState(() => _query = v),
+                control: Text(
+                  l10n.inventorySelectedCount(_selected.length),
+                  style: t.monoLabel.legible,
                 ),
-                const SizedBox(height: DashSpace.md),
-                if (_materials.length > 1) ...[
-                  _ChipRow(
-                    id: 'spool_labels.material',
-                    label: l10n.inventoryLabelsMaterial,
-                    options: {
-                      null: l10n.inventoryLabelsAllMaterials,
-                      for (final m in _materials) m: m,
-                    },
-                    value: _material,
-                    onChanged: (v) => setState(() => _material = v),
-                  ),
-                  const SizedBox(height: DashSpace.sm),
-                ],
+              ),
+              const SizedBox(height: DashSpace.md),
+              DashSearchField(
+                id: 'spool_labels.search',
+                hintText: l10n.inventoryLabelsSearchHint,
+                onChanged: (v) => setState(() => _query = v),
+              ),
+              const SizedBox(height: DashSpace.md),
+              if (_materials.length > 1) ...[
                 _ChipRow(
-                  id: 'spool_labels.sort',
-                  label: l10n.inventoryLabelsSort,
+                  id: 'spool_labels.material',
+                  label: l10n.inventoryLabelsMaterial,
                   options: {
-                    _LabelSort.id: l10n.inventoryLabelsSortById,
-                    _LabelSort.color: l10n.inventoryLabelsSortByColor,
+                    null: l10n.inventoryLabelsAllMaterials,
+                    for (final m in _materials) m: m,
                   },
-                  value: _sort,
-                  onChanged: (v) => setState(() => _sort = v),
+                  value: _material,
+                  onChanged: (v) => setState(() => _material = v),
                 ),
-                const SizedBox(height: DashSpace.md),
-                Row(
+                const SizedBox(height: DashSpace.sm),
+              ],
+              _ChipRow(
+                id: 'spool_labels.sort',
+                label: l10n.inventoryLabelsSort,
+                options: {
+                  _LabelSort.id: l10n.inventoryLabelsSortById,
+                  _LabelSort.color: l10n.inventoryLabelsSortByColor,
+                },
+                value: _sort,
+                onChanged: (v) => setState(() => _sort = v),
+              ),
+              const SizedBox(height: DashSpace.md),
+              BesideOrBelow(
+                label: Text(
+                  l10n.inventoryLabelsPickSpools,
+                  style: t.labelSoft.legible.copyWith(color: t.textSecondary),
+                ),
+                control: Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        l10n.inventoryLabelsPickSpools,
-                        style: t.labelSoft.legible.copyWith(
-                          color: t.textSecondary,
-                        ),
+                      child: _TextAction(
+                        label: allVisibleChecked
+                            ? l10n.inventoryLabelsDeselectVisible
+                            : l10n.inventoryLabelsSelectVisible,
+                        onPressed: visible.isEmpty
+                            ? null
+                            : () => setState(() {
+                                final ids = visible.map((s) => s.id);
+                                if (allVisibleChecked) {
+                                  _selected.removeAll(ids);
+                                } else {
+                                  _selected.addAll(ids);
+                                }
+                              }),
                       ),
                     ),
-                    _TextAction(
-                      label: allVisibleChecked
-                          ? l10n.inventoryLabelsDeselectVisible
-                          : l10n.inventoryLabelsSelectVisible,
-                      onPressed: visible.isEmpty
-                          ? null
-                          : () => setState(() {
-                              final ids = visible.map((s) => s.id);
-                              if (allVisibleChecked) {
-                                _selected.removeAll(ids);
-                              } else {
-                                _selected.addAll(ids);
-                              }
-                            }),
-                    ),
                     const SizedBox(width: DashSpace.md),
-                    _TextAction(
-                      label: l10n.inventoryLabelsClearAll,
-                      muted: true,
-                      onPressed: _selected.isEmpty
-                          ? null
-                          : () => setState(_selected.clear),
+                    Expanded(
+                      child: _TextAction(
+                        label: l10n.inventoryLabelsClearAll,
+                        muted: true,
+                        onPressed: _selected.isEmpty
+                            ? null
+                            : () => setState(_selected.clear),
+                      ),
                     ),
                   ],
                 ),
-              ],
+              ),
+            ],
+          ),
+        );
+        final emptyNote = Center(
+          child: Padding(
+            padding: const EdgeInsets.all(DashSpace.xl),
+            child: Text(
+              l10n.inventoryLabelsNoMatches,
+              textAlign: TextAlign.center,
+              style: t.bodyPlain.copyWith(color: t.textTertiary),
             ),
           ),
+        );
+        Widget row(BuildContext context, int i) {
+          final spool = visible[i];
+          return _LabelSpoolRow(
+            spool: spool,
+            checked: _selected.contains(spool.id),
+            onTap: () => setState(() {
+              if (!_selected.remove(spool.id)) {
+                _selected.add(spool.id);
+              }
+            }),
+          );
+        }
 
-          Expanded(
-            child: visible.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(DashSpace.xl),
-                      child: Text(
-                        l10n.inventoryLabelsNoMatches,
-                        textAlign: TextAlign.center,
-                        style: t.bodyPlain.copyWith(color: t.textTertiary),
-                      ),
+        // At large text the filters alone fill the sheet, so header and list
+        // scroll as one; otherwise the filters stay put above the list.
+        final scrollTogether = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+        return Column(
+          children: [
+            Expanded(
+              child: scrollTogether
+                  ? CustomScrollView(
+                      controller: controller,
+                      slivers: [
+                        SliverToBoxAdapter(child: header),
+                        if (visible.isEmpty)
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: emptyNote,
+                          )
+                        else
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: DashSpace.sm,
+                            ),
+                            sliver: SliverList.builder(
+                              itemCount: visible.length,
+                              itemBuilder: row,
+                            ),
+                          ),
+                      ],
+                    )
+                  : Column(
+                      children: [
+                        header,
+                        Expanded(
+                          child: visible.isEmpty
+                              ? emptyNote
+                              : ListView.builder(
+                                  controller: controller,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: DashSpace.sm,
+                                  ),
+                                  itemCount: visible.length,
+                                  itemBuilder: row,
+                                ),
+                        ),
+                      ],
                     ),
-                  )
-                : ListView.builder(
-                    controller: controller,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: DashSpace.sm,
-                    ),
-                    itemCount: visible.length,
-                    itemBuilder: (context, i) {
-                      final spool = visible[i];
-                      return _LabelSpoolRow(
-                        spool: spool,
-                        checked: _selected.contains(spool.id),
-                        onTap: () => setState(() {
-                          if (!_selected.remove(spool.id)) {
-                            _selected.add(spool.id);
-                          }
-                        }),
-                      );
-                    },
-                  ),
-          ),
-
-          _LabelFooter(
-            busy: _busy,
-            count: _selected.length,
-            onPrint: _selected.isEmpty || _busy ? null : _pickTemplate,
-          ),
-        ],
-      ),
+            ),
+            _LabelFooter(
+              busy: _busy,
+              count: _selected.length,
+              onPrint: _selected.isEmpty || _busy ? null : _pickTemplate,
+            ),
+          ],
+        );
+      },
     );
   }
 

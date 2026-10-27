@@ -70,9 +70,11 @@ class FailureAnalysisCard extends ConsumerWidget {
                     style: t.monoDisplay.copyWith(color: rateColor),
                   ),
                   const SizedBox(width: DashSpace.md),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: DashSpace.xs),
-                    child: Text(rangeLabel, style: t.labelSoft),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: DashSpace.xs),
+                      child: Text(rangeLabel, style: t.labelSoft),
+                    ),
                   ),
                 ],
               ),
@@ -592,6 +594,7 @@ class _PrinterStatsCardState extends ConsumerState<PrinterStatsCard> {
 
     return SectionCard(
       title: l10n.statsByPrinter,
+      stackTrailing: true,
       trailing: MetricToggle(
         value: _metric,
         onChanged: (m) => setState(() => _metric = m),
@@ -852,6 +855,7 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
 
     return SectionCard(
       title: l10n.statsByMaterialTitle,
+      stackTrailing: true,
       trailing: MetricToggle(
         value: _metric,
         onChanged: (m) => setState(() => _metric = m),
@@ -1251,6 +1255,7 @@ class _HabitsCardState extends State<HabitsCard> {
     final labels = widget.fmt.shortWeekdaysMondayFirst;
     return SectionCard(
       title: l10n.statsPrintHabits,
+      stackTrailing: true,
       trailing: MetricToggle(
         value: _metric,
         onChanged: (m) => setState(() => _metric = m),

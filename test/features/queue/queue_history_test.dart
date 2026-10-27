@@ -144,6 +144,7 @@ Future<void> _openHistory(
   _History repo, {
   CurrentUser? user,
   SharedPreferences? prefs,
+  double textScale = 1,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -155,7 +156,15 @@ Future<void> _openHistory(
         currentUserOverride(user),
         noServerProfileOverride,
       ],
-      child: plApp(const QueueScreen()),
+      child: plApp(
+        const QueueScreen(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -325,6 +334,39 @@ void main() {
     expect(iconEnabled('queue_history.remove', 1), isFalse);
     expect(iconEnabled('queue_history.requeue', 0), isFalse);
   });
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('a history row keeps its buttons in the row at text $scale', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(411, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _openHistory(
+        tester,
+        _History([
+          _item(
+            1,
+            name: 'A long model name for a history row.3mf',
+            // Older than a week, so the time reads as a full date.
+            completedAt: DateTime.now().subtract(const Duration(days: 30)),
+          ),
+        ]),
+        textScale: scale,
+      );
+
+      expect(tester.takeException(), isNull);
+      final remove = tester.getRect(byLogId('queue_history.remove'));
+      expect(remove.right, lessThanOrEqualTo(411));
+      expect(
+        tester
+            .getSize(find.text('A long model name for a history row.3mf'))
+            .width,
+        greaterThan(60),
+        reason: 'the name keeps room to be read, not a letter and an ellipsis',
+      );
+    });
+  }
 
   testWidgets('re-queue opens the print form on the same file', (tester) async {
     await _openHistory(tester, _History([_item(1)]));

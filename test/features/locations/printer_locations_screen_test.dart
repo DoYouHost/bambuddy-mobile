@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/locations/printer_locations_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../../helpers.dart';
@@ -47,6 +48,7 @@ void main() {
     WidgetTester tester, {
     AuthMode authMode = AuthMode.none,
     CurrentUser? user,
+    double textScale = 1,
   }) async {
     final dio = testDio();
     adapter = mockServer(dio);
@@ -64,8 +66,39 @@ void main() {
         inertStatusesOverride,
         if (user != null) currentUserOverride(user),
       ],
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
     );
     await tester.pumpAndSettle();
+  }
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('the selection bar holds its count and buttons at text '
+        '$scale', (tester) async {
+      tester.view.physicalSize = const Size(411, 4000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await pumpScreen(tester, textScale: scale);
+      await tester.tap(byLogId('locations.printer_select'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final move = tester.getRect(byLogId('locations.move_selected'));
+      expect(move.right, lessThanOrEqualTo(411));
+      if (scale == 2.0) {
+        final count = tester.getRect(find.text(pl.printerLocationsSelected(1)));
+        expect(
+          move.top,
+          greaterThanOrEqualTo(count.bottom),
+          reason: 'the buttons go under the count and share the full width',
+        );
+        expect(move.width, greaterThan(411 / 2 - 40));
+      }
+    });
   }
 
   testWidgets('lists the locations with their counts and the printers '

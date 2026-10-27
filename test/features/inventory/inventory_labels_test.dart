@@ -193,6 +193,55 @@ void main() {
     return repo;
   }
 
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('the label sheet keeps its list and Print button on screen at '
+        'text $scale', (tester) async {
+      tester.view.physicalSize = const Size(411, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await pumpPhone(
+        tester,
+        const InventoryScreen(),
+        overrides: [
+          inventoryProvider.overrideWith(_CapturingInventory.new),
+          serverProfileProvider.overrideWith(_NullProfile.new),
+          labelPrinterUrlProvider.overrideWith(_NoUrl.new),
+          labelPrintPrefsProvider.overrideWith(_MemoryPrefs.new),
+          labelFieldsProvider.overrideWithValue(const AsyncData(false)),
+          inventoryRepositoryProvider.overrideWithValue(_CapturingRepository()),
+          labelStartingPositionProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
+        ],
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(scale)),
+          child: child!,
+        ),
+      );
+      await settle(tester);
+      await tester.tap(find.byTooltip(pl.inventoryLabelsPrintAll));
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(
+        tester
+            .getRect(find.textContaining(pl.inventoryLabelsPrint).last)
+            .bottom,
+        lessThanOrEqualTo(800),
+        reason: 'the footer stays on screen',
+      );
+      final pick = tester.getRect(find.text(pl.inventoryLabelsPickSpools));
+      final row = tester.getRect(find.text('PLA · Bambu').last);
+      expect(
+        row.top,
+        greaterThanOrEqualTo(pick.bottom),
+        reason: 'the list starts below the filters, never over them',
+      );
+    });
+  }
+
   /// Taps a stock card in the template sheet, scrolling it into range first:
   /// the sheet's list is lazy, and the two Avery entries sit below the fold.
   /// `hitTestable` because the list builds rows past its bottom edge, and a

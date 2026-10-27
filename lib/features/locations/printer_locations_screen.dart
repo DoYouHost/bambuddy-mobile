@@ -441,28 +441,34 @@ class _PrinterLocationsScreenState
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    l10n.printerLocationsUngrouped(ungrouped.length),
-                    style: t.bodyBold,
-                  ),
+                  child: canEdit && !_selecting
+                      ? BesideOrBelow(
+                          label: Text(
+                            l10n.printerLocationsUngrouped(ungrouped.length),
+                            style: t.bodyBold,
+                          ),
+                          control: TextButton(
+                            onPressed: () => setState(() {
+                              for (final p in ungrouped) {
+                                if (allUngroupedPicked) {
+                                  _pickedPrinters.remove(p.printer.id);
+                                } else {
+                                  _pickedPrinters.add(p.printer.id);
+                                }
+                              }
+                            }),
+                            child: Text(
+                              allUngroupedPicked
+                                  ? l10n.printerLocationsDeselectAll
+                                  : l10n.printerLocationsSelectAll,
+                            ),
+                          ).tagged('locations.ungrouped_select_all'),
+                        )
+                      : Text(
+                          l10n.printerLocationsUngrouped(ungrouped.length),
+                          style: t.bodyBold,
+                        ),
                 ),
-                if (canEdit && !_selecting)
-                  TextButton(
-                    onPressed: () => setState(() {
-                      for (final p in ungrouped) {
-                        if (allUngroupedPicked) {
-                          _pickedPrinters.remove(p.printer.id);
-                        } else {
-                          _pickedPrinters.add(p.printer.id);
-                        }
-                      }
-                    }),
-                    child: Text(
-                      allUngroupedPicked
-                          ? l10n.printerLocationsDeselectAll
-                          : l10n.printerLocationsSelectAll,
-                    ),
-                  ).tagged('locations.ungrouped_select_all'),
               ],
             ),
           ),

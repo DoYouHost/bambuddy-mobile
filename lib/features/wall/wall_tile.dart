@@ -219,41 +219,56 @@ class _WallTileState extends State<WallTile> {
                             colors: [Colors.transparent, Color(0xD9000000)],
                           ),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            DashSpace.md,
-                            DashSpace.xl,
-                            DashSpace.md,
-                            DashSpace.md,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      printer.name,
-                                      style: t.titleMd,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              DashSpace.md,
+                              DashSpace.xl,
+                              DashSpace.md,
+                              DashSpace.md,
+                            ),
+                            // A tile has a fixed size; at large text the caption
+                            // scales down to it rather than spilling over the edge.
+                            child: LayoutBuilder(
+                              builder: (context, box) => FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.bottomCenter,
+                                child: SizedBox(
+                                  width: box.maxWidth,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              printer.name,
+                                              style: t.titleMd,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const SizedBox(width: DashSpace.sm),
+                                          printerStatePill(
+                                            t,
+                                            l10n,
+                                            status,
+                                            offline: false,
+                                          ),
+                                        ],
+                                      ),
+                                      if (printing) ...[
+                                        const SizedBox(height: DashSpace.sm),
+                                        ..._progress(t, l10n, status!),
+                                      ],
+                                    ],
                                   ),
-                                  const SizedBox(width: DashSpace.sm),
-                                  printerStatePill(
-                                    t,
-                                    l10n,
-                                    status,
-                                    offline: false,
-                                  ),
-                                ],
+                                ),
                               ),
-                              if (printing) ...[
-                                const SizedBox(height: DashSpace.sm),
-                                ..._progress(t, l10n, status!),
-                              ],
-                            ],
+                            ),
                           ),
                         ),
                       ),

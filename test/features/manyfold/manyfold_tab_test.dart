@@ -50,13 +50,13 @@ void main() {
     (s) => s.reply(code, body ?? {'detail': 'Not Found'}),
   );
 
-  void listing() => server
+  void listing({bool hasNext = false}) => server
     ..onGet(
       '/api/v1/manyfold/models',
       (s) => s.reply(200, {
         'total': 2,
         'page': 1,
-        'has_next': false,
+        'has_next': hasNext,
         'has_previous': false,
         'models': [
           {'id': 'm1', 'name': 'Dragon'},
@@ -202,6 +202,46 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+  }
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('the paging buttons share the width at text $scale', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(411, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      status(200, {'configured': true, 'url': 'http://mf'});
+      listing(hasNext: true);
+      await pumpPhone(
+        tester,
+        const ModelSourcesScreen(),
+        overrides: layerOverrides(
+          [...overrides],
+          [currentUserOverride(user({}))],
+        ),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(scale)),
+          child: child!,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(pl.manyfoldTitle));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final prev = tester.getRect(byLogId('manyfold.prev_page'));
+      final next = tester.getRect(byLogId('manyfold.next_page'));
+      expect(next.right, lessThanOrEqualTo(411));
+      expect(prev.width, closeTo(next.width, 0.5), reason: 'equal shares');
+      // Beside each other they fill the row; stacked, each spans it.
+      final spans = next.left > prev.right
+          ? next.right - prev.left
+          : next.width;
+      expect(spans, greaterThan(411 - 2 * 32));
+    });
   }
 
   testWidgets('a search asks Manyfold once the typing pauses', (tester) async {

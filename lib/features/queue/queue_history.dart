@@ -571,50 +571,72 @@ class _HistoryRow extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(icon, size: _statusSize, color: ink),
-                const SizedBox(width: DashSpace.sm),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: QueueThumbnail(item: item, size: _thumbSize),
-                ),
-                const SizedBox(width: DashSpace.sm),
-                Expanded(
-                  child: Text(
-                    item.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: t.body.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                ),
-                const SizedBox(width: DashSpace.xs),
-                Text(
-                  relativeTime(
-                    l10n,
-                    DateTimeFormats.of(context),
-                    item.completedAt ?? item.createdAt,
-                    now: DateTime.now(),
-                  ),
-                  style: meta,
-                ),
-                IconButton(
-                  tooltip: canRequeue
-                      ? l10n.queueHistoryRequeue
-                      : l10n.queueHistoryNoRequeue,
-                  icon: Icon(Icons.refresh, color: t.accentGreenInk),
-                  onPressed: canRequeue && hasSource
-                      ? () => _requeue(context)
-                      : null,
-                ).tagged('queue_history.requeue'),
-                IconButton(
-                  tooltip: canRemove
-                      ? l10n.queueHistoryRemove
-                      : l10n.queueHistoryNoRemove,
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: canRemove ? () => _remove(context, ref) : null,
-                ).tagged('queue_history.remove'),
-              ],
+            LayoutBuilder(
+              builder: (context, box) {
+                final time = relativeTime(
+                  l10n,
+                  DateTimeFormats.of(context),
+                  item.completedAt ?? item.createdAt,
+                  now: DateTime.now(),
+                );
+                // Beside the name while it is short; under it at large text,
+                // where beside it would leave the name a letter and an ellipsis.
+                final timeBeside =
+                    textWidth(
+                      context,
+                      time,
+                      DefaultTextStyle.of(context).style.merge(meta),
+                    ) <=
+                    box.maxWidth * 0.35;
+                final name = Text(
+                  item.displayName,
+                  maxLines: timeBeside ? 1 : 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.body.copyWith(fontWeight: FontWeight.w600),
+                );
+                return Row(
+                  children: [
+                    Icon(icon, size: _statusSize, color: ink),
+                    const SizedBox(width: DashSpace.sm),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: QueueThumbnail(item: item, size: _thumbSize),
+                    ),
+                    const SizedBox(width: DashSpace.sm),
+                    Expanded(
+                      child: timeBeside
+                          ? name
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                name,
+                                Text(time, style: meta),
+                              ],
+                            ),
+                    ),
+                    if (timeBeside) ...[
+                      const SizedBox(width: DashSpace.xs),
+                      Text(time, style: meta),
+                    ],
+                    IconButton(
+                      tooltip: canRequeue
+                          ? l10n.queueHistoryRequeue
+                          : l10n.queueHistoryNoRequeue,
+                      icon: Icon(Icons.refresh, color: t.accentGreenInk),
+                      onPressed: canRequeue && hasSource
+                          ? () => _requeue(context)
+                          : null,
+                    ).tagged('queue_history.requeue'),
+                    IconButton(
+                      tooltip: canRemove
+                          ? l10n.queueHistoryRemove
+                          : l10n.queueHistoryNoRemove,
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: canRemove ? () => _remove(context, ref) : null,
+                    ).tagged('queue_history.remove'),
+                  ],
+                );
+              },
             ),
             Padding(
               padding: const EdgeInsets.only(left: _indent),

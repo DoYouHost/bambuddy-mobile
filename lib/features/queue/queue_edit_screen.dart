@@ -1472,20 +1472,23 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final label = _scheduledTime == null
         ? l10n.queueEditPickTime
         : DateTimeFormats.of(context).dateTime(_scheduledTime!);
-    return Row(
-      children: [
-        Icon(Icons.event_outlined, color: t.textSecondary),
-        const SizedBox(width: DashSpace.md),
-        Expanded(child: Text(label, style: t.monoValue)),
-        OutlinedButton(
-          style: OutlinedButton.styleFrom(
-            foregroundColor: t.textPrimary,
-            side: BorderSide(color: t.cardBorder),
-          ),
-          onPressed: _pickScheduledTime,
-          child: Text(l10n.queueEditPickTime),
-        ).tagged('queue_edit.pick_time'),
-      ],
+    return BesideOrBelow(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.event_outlined, color: t.textSecondary),
+          const SizedBox(width: DashSpace.md),
+          Text(label, style: t.monoValue),
+        ],
+      ),
+      control: OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: t.textPrimary,
+          side: BorderSide(color: t.cardBorder),
+        ),
+        onPressed: _pickScheduledTime,
+        child: Text(l10n.queueEditPickTime),
+      ).tagged('queue_edit.pick_time'),
     );
   }
 
