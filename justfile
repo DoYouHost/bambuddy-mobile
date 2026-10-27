@@ -86,6 +86,18 @@ _test-wear avd patrol:
 # camera view that showed a spinner forever passed a green suite. These boot the
 # AVD, serve an MJPEG stream from the device's own loopback and assert on what
 # reaches the screen.
+[doc('run the rendered a11y guideline tests, three files at a time')]
+[group('1-develop')]
+test-a11y *files='test/a11y':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Parallel only inside this one run: several `flutter test` processes rewrite
+    # the same build/test_cache dill and corrupt it. 792 s against 1409 s one file
+    # at a time, 5.1 GiB peak; one file alone reaches 3.1 GB, so more than 3
+    # workers needs a new measurement. The scope's limit covers all of them.
+    systemd-run --user --scope -q -p MemoryMax=12G -p MemorySwapMax=0 \
+        -p RuntimeMaxSec=3000 flutter test --concurrency=3 -r failures-only {{files}}
+
 [doc('run the on-device integration tests (boots the AVD first)')]
 [group('1-develop')]
 test-device avd=avd:

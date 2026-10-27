@@ -403,6 +403,13 @@ do not stay silent because it was not part of the task.
   app, not an unrealistic test. Parametrise the one test over the scales instead
   of copying it, and check the fixture really produces the widest case (the
   longest label, the optional row, a plug) before trusting a green run.
+- **Parallel tests mean one `flutter test --concurrency=N`, never several
+  `flutter test` processes.** Separate runs rewrite the same
+  `build/test_cache` dill and corrupt it. `just test-a11y` runs the rendered a11y
+  suite three files at a time under a 12 GB scope (792 s against 1409 s serial,
+  5.1 GiB peak, the same failures); a single heavy file reaches 3.1 GB, so a higher
+  N needs a new measurement. Tests write only to `Directory.systemTemp.createTemp`
+  paths, so files do not share state.
 - **The demo shows every feature.** A new gate or route family gets its demo
   routes and seed data in `lib/core/demo/demo_backend.dart` in the same branch,
   and the demo's reported server version must never be what hides a feature. Read
