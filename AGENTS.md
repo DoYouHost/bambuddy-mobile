@@ -168,6 +168,10 @@ do not stay silent because it was not part of the task.
   async helpers behave as they do: the 40 dp select arrow, the null any-row,
   "unresolved is off", restoring an optimistically removed row by neighbours.
   **Read it before building a field, a select or a loading state of your own.**
+- [docs/a11y-guideline-tests.md](docs/a11y-guideline-tests.md) — the rendered
+  accessibility suite: how `textContrastGuideline` really measures, what the harness adds
+  to it, setting up a machine, the decisions, the state and what is left. **Read it
+  before touching `test/a11y/` or fixing a guideline finding.**
 - [docs/test-harness.md](docs/test-harness.md) — the traps behind
   `test/helpers.dart`: why a mock handler cannot count requests, why a widget
   test needs a server profile, why a tap below the fold silently misses, what a
