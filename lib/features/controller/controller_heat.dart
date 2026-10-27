@@ -248,7 +248,7 @@ class _HeaterCard extends ConsumerWidget {
           textScaler: TextScaler.noScaling,
           style: t.monoDisplay.copyWith(
             fontSize: side * _readingShare,
-            color: color,
+            color: reading.gaugeInk(t, target: shown.toDouble()),
           ),
         ),
       ],

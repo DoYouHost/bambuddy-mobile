@@ -463,7 +463,11 @@ class _LayerWarning extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.skipObjectsWaitForLayer(layer),
-              style: const TextStyle(fontSize: 12, color: amber),
+              // The ink, not the swatch: the amber reads 1.9:1 as text.
+              style: TextStyle(
+                fontSize: 12,
+                color: DashTokens.of(context).warningInk,
+              ),
             ),
           ),
         ],
@@ -943,7 +947,9 @@ class _ObjectMarker extends StatelessWidget {
           child: Container(
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: bg.withValues(alpha: 0.85),
+              // Nearly opaque: over a bright plate the blend lightens the blue
+              // until black on it is under 4.5:1, over a dark one white is.
+              color: bg.withValues(alpha: 0.95),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: selected ? Colors.white : Colors.black38,

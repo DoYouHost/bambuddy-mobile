@@ -812,19 +812,18 @@ class _TextAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    final color = muted ? t.textSecondary : t.accentGreenInk;
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.all(DashSpace.xs),
-        child: Text(
-          label,
-          style: t.micro.legible.copyWith(
-            color: onPressed == null ? color.withValues(alpha: 0.4) : color,
-          ),
-        ),
+    // A TextButton: unavailable, it is a disabled node for a screen reader and
+    // draws Material's disabled colour (which has no contrast minimum), and it
+    // is a 48 dp target.
+    return TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        foregroundColor: muted ? t.textSecondary : t.accentGreenInk,
+        minimumSize: const Size(0, kMinInteractiveDimension),
+        padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
+        textStyle: t.micro.legible,
       ),
+      child: Text(label),
     ).tagged('labels.text_action');
   }
 }

@@ -348,7 +348,7 @@ class _QueueTile extends ConsumerWidget {
               Flexible(
                 child: ControllerChip(
                   label: queueTargetLabel(l10n, item),
-                  ink: t.accentBlue,
+                  ink: t.accentBlueInk,
                 ),
               ),
             ],
@@ -458,7 +458,7 @@ class _QueueDialog extends ConsumerWidget {
           ControllerFact(
             Icons.print_outlined,
             queueTargetLabel(l10n, item),
-            ink: t.accentBlue,
+            ink: t.accentBlueInk,
           ),
         if (item.printTimeSeconds case final s?)
           ControllerFact(Icons.schedule_rounded, formatSeconds(l10n, s)),

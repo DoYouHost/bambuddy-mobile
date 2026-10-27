@@ -26,6 +26,27 @@ PreferredSizeWidget photoViewerAppBar(String title, {List<Widget>? actions}) =>
       ),
     );
 
+/// The dark theme for a subtree that sits on black (the photo and video
+/// viewers): an empty or error message painted in the light theme's dark ink
+/// would be 1.1:1 on it. A transparent [Material] makes the text style follow.
+class OnBlack extends StatelessWidget {
+  const OnBlack({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = buildDashThemeData(
+      Brightness.dark,
+      brand: DashTokens.of(context).brand,
+    );
+    return Theme(
+      data: dark,
+      child: Material(type: MaterialType.transparency, child: child),
+    );
+  }
+}
+
 /// Swipeable pages, one photo each, with the position shown while there is
 /// more than one to swipe through. [paths] are media routes, served through
 /// [MediaImage].

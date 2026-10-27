@@ -150,6 +150,7 @@ class _ViewCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
+    final onDark = DashTokens.resolve(Brightness.dark, t.brand);
     final l10n = AppLocalizations.of(context);
     final liveSetting = ref.watch(
       controllerPrefsProvider.select((p) => p.liveCamera),
@@ -181,20 +182,28 @@ class _ViewCard extends ConsumerWidget {
           Positioned(
             left: DashSpace.md,
             top: DashSpace.md,
-            child: live
-                ? DashPill(
-                    label: l10n.controllerLiveBadge,
-                    accent: t.danger,
-                    accentInk: t.dangerInk,
-                    leadingDot: true,
-                    dense: true,
-                  )
-                : DashPill(
-                    label: l10n.controllerPreviewBadge,
-                    accent: t.textSecondary,
-                    icon: Icons.image_outlined,
-                    dense: true,
-                  ),
+            // On the picture, whatever it shows (a white bed too): a dark scrim and
+            // the inks the dark theme uses, whichever theme the app is in.
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: live
+                  ? DashPill(
+                      label: l10n.controllerLiveBadge,
+                      accent: onDark.danger,
+                      accentInk: onDark.dangerInk,
+                      leadingDot: true,
+                      dense: true,
+                    )
+                  : DashPill(
+                      label: l10n.controllerPreviewBadge,
+                      accent: onDark.textSecondary,
+                      icon: Icons.image_outlined,
+                      dense: true,
+                    ),
+            ),
           ),
         ],
       ),

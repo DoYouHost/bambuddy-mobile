@@ -123,7 +123,7 @@ class _ReadingTile extends ConsumerWidget {
         children: [
           TextSpan(
             text: actual == null ? '—' : '${actual.round()}°',
-            style: t.monoHeadline.copyWith(color: color),
+            style: t.monoHeadline.copyWith(color: reading.gaugeInk(t)),
           ),
           if (showTarget && target != null && target > 0)
             TextSpan(

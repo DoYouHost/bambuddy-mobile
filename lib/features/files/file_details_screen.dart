@@ -396,28 +396,31 @@ class _FilePhotosScreenState extends ConsumerState<FilePhotosScreen> {
             ),
         ],
       ),
-      body: dashAsync(
-        context,
-        detail,
-        onRetry: () => ref.invalidate(libraryFileDetailProvider(widget.fileId)),
-        data: (d) => d.photos.isEmpty
-            ? EmptyStateView(
-                message: l10n.fmPhotosEmpty,
-                icon: Icons.photo_camera_outlined,
-              )
-            : PhotoPager(
-                // A new key per list rebuilds the pager on `_page`, so the page
-                // shown and the one the delete button names never part.
-                key: ValueKey(d.photos.join('/')),
-                paths: [
-                  for (final name in d.photos)
-                    Endpoints.libraryFilePhoto(widget.fileId, name),
-                ],
-                // Kept inside the list, so a later list does not reopen past
-                // the photo that took the deleted one's place.
-                initialPage: _page = _page.clamp(0, d.photos.length - 1),
-                onPageChanged: (i) => _page = i,
-              ),
+      body: OnBlack(
+        child: dashAsync(
+          context,
+          detail,
+          onRetry: () =>
+              ref.invalidate(libraryFileDetailProvider(widget.fileId)),
+          data: (d) => d.photos.isEmpty
+              ? EmptyStateView(
+                  message: l10n.fmPhotosEmpty,
+                  icon: Icons.photo_camera_outlined,
+                )
+              : PhotoPager(
+                  // A new key per list rebuilds the pager on `_page`, so the page
+                  // shown and the one the delete button names never part.
+                  key: ValueKey(d.photos.join('/')),
+                  paths: [
+                    for (final name in d.photos)
+                      Endpoints.libraryFilePhoto(widget.fileId, name),
+                  ],
+                  // Kept inside the list, so a later list does not reopen past
+                  // the photo that took the deleted one's place.
+                  initialPage: _page = _page.clamp(0, d.photos.length - 1),
+                  onPageChanged: (i) => _page = i,
+                ),
+        ),
       ),
     );
   }

@@ -10,6 +10,7 @@ import '../../core/api/media_auth.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/photo_pager.dart';
 import '../../providers.dart';
 import 'timelapse_export.dart';
 import 'timelapse_format.dart';
@@ -412,37 +413,39 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
               : null,
         ),
       ),
-      body: _failure != null
-          ? AsyncErrorView(
-              message: _message(l10n),
-              onRetry: _retry,
-              retryLabel: l10n.retry,
-              icon: Icons.videocam_off_outlined,
-            )
-          : controller == null || !_ready
-          ? const DashLoading()
-          : SafeArea(
-              top: false,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: Center(
-                      child: AspectRatio(
-                        aspectRatio: controller.value.aspectRatio,
-                        child: logTag(
-                          'timelapse.surface',
-                          GestureDetector(
-                            onTap: _togglePlay,
-                            child: VideoPlayer(controller),
+      body: OnBlack(
+        child: _failure != null
+            ? AsyncErrorView(
+                message: _message(l10n),
+                onRetry: _retry,
+                retryLabel: l10n.retry,
+                icon: Icons.videocam_off_outlined,
+              )
+            : controller == null || !_ready
+            ? const DashLoading()
+            : SafeArea(
+                top: false,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Center(
+                        child: AspectRatio(
+                          aspectRatio: controller.value.aspectRatio,
+                          child: logTag(
+                            'timelapse.surface',
+                            GestureDetector(
+                              onTap: _togglePlay,
+                              child: VideoPlayer(controller),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  _Controls(controller: controller, onToggle: _togglePlay),
-                ],
+                    _Controls(controller: controller, onToggle: _togglePlay),
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 

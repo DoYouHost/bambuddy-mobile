@@ -547,7 +547,7 @@ class _FanCell extends ConsumerWidget {
     // Optimistic overlay until real status catches up.
     final shown = pending.fanSpeed(fan) ?? value;
     // Spinning fan gets the cool blue accent; idle stays neutral.
-    final valueColor = shown > 0 ? tokens.accentBlue : tokens.textPrimary;
+    final valueColor = shown > 0 ? tokens.accentBlueInk : tokens.textPrimary;
 
     final cell = Container(
       padding: const EdgeInsets.symmetric(

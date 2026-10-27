@@ -34,23 +34,25 @@ class ArchivePhotosScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: photoViewerAppBar(title ?? l10n.archivePhotosTitle),
-      body: dashAsync(
-        context,
-        archive,
-        onRetry: () => ref.invalidate(archiveDetailProvider(archiveId)),
-        skipLoadingOnReload: false,
-        skipLoadingOnRefresh: false,
-        data: (a) => a.hasPhotos
-            ? PhotoPager(
-                paths: [
-                  for (final name in a.photos)
-                    Endpoints.archivePhoto(a.id, name),
-                ],
-              )
-            : EmptyStateView(
-                message: l10n.archivePhotosEmpty,
-                icon: Icons.photo_camera_outlined,
-              ),
+      body: OnBlack(
+        child: dashAsync(
+          context,
+          archive,
+          onRetry: () => ref.invalidate(archiveDetailProvider(archiveId)),
+          skipLoadingOnReload: false,
+          skipLoadingOnRefresh: false,
+          data: (a) => a.hasPhotos
+              ? PhotoPager(
+                  paths: [
+                    for (final name in a.photos)
+                      Endpoints.archivePhoto(a.id, name),
+                  ],
+                )
+              : EmptyStateView(
+                  message: l10n.archivePhotosEmpty,
+                  icon: Icons.photo_camera_outlined,
+                ),
+        ),
       ),
     );
   }

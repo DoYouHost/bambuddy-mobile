@@ -411,6 +411,13 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
       value: value,
       label: label,
       enabled: enabled,
+      // A heading, not an unavailable choice: Material's disabled colour (38%)
+      // reads 2.4:1 on a light menu, so it keeps the secondary text colour.
+      style: enabled
+          ? null
+          : ButtonStyle(
+              foregroundColor: WidgetStatePropertyAll(t.textSecondary),
+            ),
       // The menu opens in a route of its own, so the field's own tag does
       // not reach it. The label is a user-chosen profile name and stays out
       // of the identifier.

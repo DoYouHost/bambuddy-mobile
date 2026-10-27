@@ -86,7 +86,7 @@ class GroupCard extends StatelessWidget {
     final accent = group.isSystem ? t.accentOrange : t.accentBlue;
     // The tile's tint and border take the vivid swatch; the icon inside it is
     // ink, and the warm one is the only accent whose vivid form fails there.
-    final accentInk = group.isSystem ? t.accentOrangeInk : t.accentBlue;
+    final accentInk = group.isSystem ? t.accentOrangeInk : t.accentBlueInk;
 
     return TappableCard(
       id: 'groups.group',

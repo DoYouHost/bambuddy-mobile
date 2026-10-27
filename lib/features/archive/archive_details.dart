@@ -44,7 +44,7 @@ String archiveMoney(String currency, double amount) =>
     return (text: text, fill: t.accentGreen, ink: t.accentGreenInk);
   }
   return accuracy > 105
-      ? (text: text, fill: t.accentBlue, ink: t.accentBlue)
+      ? (text: text, fill: t.accentBlue, ink: t.accentBlueInk)
       : (text: text, fill: t.accentOrange, ink: t.accentOrangeInk);
 }
 
@@ -176,7 +176,7 @@ class ArchiveHeaderChips extends ConsumerWidget {
             ? _Chip(text: l10n.archiveFileTypeGcode, ink: t.accentGreenInk)
             : _Chip(text: l10n.archiveFileTypeSource, ink: t.accentOrangeInk),
         if (project != null && project.isNotEmpty)
-          _Chip(text: project, ink: t.accentBlue),
+          _Chip(text: project, ink: t.accentBlueInk),
         if (archive.runCount > 1)
           _Chip(
             text: l10n.archiveRunCount(archive.runCount),

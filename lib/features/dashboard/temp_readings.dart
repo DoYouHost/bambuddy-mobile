@@ -76,7 +76,7 @@ class TempReading {
   /// the 3:1 that even a 44 px number needs, so text takes the orange ink.
   Color gaugeInk(DashTokens t, {double? target}) =>
       switch (heatState(target: target)) {
-        HeatState.off || HeatState.cooling => t.accentBlue,
+        HeatState.off || HeatState.cooling => t.accentBlueInk,
         HeatState.heating || HeatState.atTarget => t.accentOrangeInk,
       };
 

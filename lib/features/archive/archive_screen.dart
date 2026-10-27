@@ -1340,6 +1340,7 @@ class _DeleteArchiveDialogState extends State<_DeleteArchiveDialog> {
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: theme.colorScheme.error,
+              foregroundColor: theme.colorScheme.onError,
             ),
             onPressed: () => Navigator.pop(context, _purgeStats),
             child: Text(l10n.archiveDelete),
@@ -1482,6 +1483,7 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: theme.colorScheme.error,
+              foregroundColor: theme.colorScheme.onError,
             ),
             onPressed: canDelete
                 ? () => Navigator.pop(context, (
