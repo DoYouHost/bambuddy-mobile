@@ -819,6 +819,74 @@ void main() {
       expect(find.text(pl.doorClosed.toUpperCase()), findsOneWidget);
     });
 
+    // Three rows of the card overflowed at 200 % text (by 14, 49 and 63 px):
+    // the print buttons, the Wi-Fi and door line, and the AMS header. Width,
+    // text scale, columns of print buttons, and whether the door shares the
+    // Wi-Fi line.
+    for (final (scale, columns, doorBesideWifi) in [
+      (1.0, 2, true),
+      (1.5, 2, true),
+      (2.0, 1, false),
+    ]) {
+      testWidgets('the print buttons, the Wi-Fi line and the AMS header hold at '
+          'text scale $scale', (tester) async {
+        tester.view.physicalSize = const Size(411, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MediaQuery(
+            data: MediaQueryData(
+              textScaler: TextScaler.linear(scale),
+              size: const Size(411, 3000),
+            ),
+            child: _scope(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: PrinterCard(item: realItem()),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.tap(find.text(pl.detailsShow));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+        // An overflow is a FlutterError, which fails the test on its own.
+
+        final pause = tester.getRect(byLogId('controls.pause'));
+        final stop = tester.getRect(byLogId('controls.stop'));
+        expect(pause.height, greaterThanOrEqualTo(48));
+        expect(stop.height, pause.height);
+        expect(pause.top == stop.top, columns == 2);
+
+        final wifi = tester.getRect(find.textContaining('dBm'));
+        final door = tester.getRect(find.text(pl.doorClosed.toUpperCase()));
+        expect(wifi.top == door.top, doorBesideWifi);
+        // Side by side they sit at the two ends, not glued: a Wrap is only as
+        // wide as its content unless it is given the whole line.
+        if (doorBesideWifi) expect(door.left - wifi.right, greaterThan(40));
+
+        // The readings open their history and the control the drying sheet:
+        // touch targets, however small they paint.
+        for (final id in ['printer.ams_meta', 'printer.drying']) {
+          for (final e in byLogId(id).evaluate()) {
+            final size = tester.getSize(find.byWidget(e.widget));
+            expect(size.width, greaterThanOrEqualTo(48), reason: id);
+            expect(size.height, greaterThanOrEqualTo(48), reason: id);
+          }
+        }
+        // With room they stay at the end of the header, as they were; at 150 %
+        // the 48 dp chips no longer fit beside the name and take a line.
+        if (scale == 1.0) {
+          expect(
+            tester.getRect(byLogId('printer.drying')).right,
+            greaterThan(360),
+          );
+        }
+      });
+    }
+
     testWidgets('a lone 254 holder on a two-nozzle printer is the left one', (
       tester,
     ) async {

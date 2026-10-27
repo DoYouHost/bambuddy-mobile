@@ -350,7 +350,7 @@ class _Pane extends ConsumerWidget {
                       _Reading(
                         icon: Icons.thermostat_outlined,
                         color: t.accentOrange,
-                        value: '${unit!.temp!.toStringAsFixed(0)}°',
+                        value: '${unit!.temp!.toStringAsFixed(0)}°C',
                       ),
                   ],
                 ),

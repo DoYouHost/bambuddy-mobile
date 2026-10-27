@@ -823,7 +823,7 @@ class _AmsSection extends ConsumerWidget {
       metaParts.add(
         _AmsMeta(
           icon: Icons.thermostat,
-          text: '${unit.temp!.toStringAsFixed(0)}°',
+          text: '${unit.temp!.toStringAsFixed(0)}°C',
           onTap: openHistory(AmsHistoryMetric.temperature),
         ),
       );
@@ -832,39 +832,59 @@ class _AmsSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              amsUnitName(unit.id ?? unitIndex).toUpperCase(),
-              style: t.bodyBold.copyWith(
-                color: t.textPrimary,
-                letterSpacing: 0.4,
+        // Two groups in a Wrap rather than one Row with a Spacer: at 200 % text the
+        // readings no longer fit beside the name, and drop to a line of their own
+        // instead of overflowing. With room they sit at the two ends, as before.
+        SizedBox(
+          width: double.infinity,
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: DashSpace.sm,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    amsUnitName(unit.id ?? unitIndex).toUpperCase(),
+                    style: t.bodyBold.copyWith(
+                      color: t.textPrimary,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                  if (extruder != null) ...[
+                    const SizedBox(width: DashSpace.sm),
+                    _ExtruderBadge(
+                      extruder: extruder!,
+                      active: extruder == activeExtruder,
+                    ),
+                  ],
+                ],
               ),
-            ),
-            if (extruder != null) ...[
-              const SizedBox(width: DashSpace.sm),
-              _ExtruderBadge(
-                extruder: extruder!,
-                active: extruder == activeExtruder,
-              ),
+              if (metaParts.isNotEmpty || (supportsDrying && unit.canDry))
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < metaParts.length; i++) ...[
+                      if (i > 0) const SizedBox(width: DashSpace.md),
+                      metaParts[i],
+                    ],
+                    // Only AMS 2 Pro / AMS-HT modules can dry — hide the control on
+                    // regular AMS even when the printer supports drying.
+                    if (supportsDrying && unit.canDry) ...[
+                      if (metaParts.isNotEmpty)
+                        const SizedBox(width: DashSpace.md),
+                      _AmsDryControl(
+                        printerId: printerId,
+                        amsId: unit.id ?? unitIndex,
+                        amsLabel: amsUnitName(unit.id ?? unitIndex),
+                        unit: unit,
+                      ),
+                    ],
+                  ],
+                ),
             ],
-            const Spacer(),
-            for (var i = 0; i < metaParts.length; i++) ...[
-              if (i > 0) const SizedBox(width: DashSpace.md),
-              metaParts[i],
-            ],
-            // Only AMS 2 Pro / AMS-HT modules can dry — hide the control on
-            // regular AMS even when the printer supports drying.
-            if (supportsDrying && unit.canDry) ...[
-              const SizedBox(width: DashSpace.md),
-              _AmsDryControl(
-                printerId: printerId,
-                amsId: unit.id ?? unitIndex,
-                amsLabel: amsUnitName(unit.id ?? unitIndex),
-                unit: unit,
-              ),
-            ],
-          ],
+          ),
         ),
         // Under the header rather than beside the flame chip: a pending run has
         // a sentence to say (when, and what it is waiting for) and the chip is
@@ -1084,24 +1104,55 @@ class _AmsMeta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    return _AmsChip(
+      icon: icon,
+      color: t.textTertiary,
+      text: text,
+      onTap: onTap,
+    ).tagged('printer.ams_meta');
+  }
+}
+
+/// An icon and a mono label in the AMS header, shared by the readings and the
+/// drying control. It paints as small as it always did but its touch target is
+/// 48 dp both ways: the readings open their history and the control opens the
+/// drying sheet, and 45 × 24 dp is under what a thumb hits.
+class _AmsChip extends StatelessWidget {
+  const _AmsChip({
+    required this.icon,
+    required this.color,
+    required this.text,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String text;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: DashSpace.xs,
-          vertical: DashSpace.xs,
+      child: Container(
+        constraints: const BoxConstraints(
+          minWidth: kMinInteractiveDimension,
+          minHeight: kMinInteractiveDimension,
         ),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 13, color: t.textTertiary),
+            Icon(icon, size: 13, color: color),
             const SizedBox(width: DashSpace.xs),
-            Text(text, style: t.monoLabel),
+            Text(text, style: t.monoLabel.copyWith(color: color)),
           ],
         ),
       ),
-    ).tagged('printer.ams_meta');
+    );
   }
 }
 
@@ -1165,7 +1216,10 @@ class _AmsDryControl extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final look = _dryLook(unit, t, l10n, noTimer: l10n.ctrlDry);
 
-    return InkWell(
+    return _AmsChip(
+      icon: look.icon,
+      color: look.color,
+      text: look.label,
       onTap: () => showAmsDryingSheet(
         context,
         ref,
@@ -1173,21 +1227,6 @@ class _AmsDryControl extends ConsumerWidget {
         amsId: amsId,
         amsLabel: amsLabel,
         unit: unit,
-      ),
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: DashSpace.xs,
-          vertical: DashSpace.xs,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(look.icon, size: 13, color: look.color),
-            const SizedBox(width: DashSpace.xs),
-            Text(look.label, style: t.monoLabel.copyWith(color: look.color)),
-          ],
-        ),
       ),
     ).tagged('printer.drying');
   }

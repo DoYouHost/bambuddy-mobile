@@ -31,26 +31,31 @@ class _InfoRow extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: t.hairline)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          if (dbm != null)
-            item(
-              _wifiIcon(dbm),
-              '$dbm dBm',
-              _wifiColor(t, Theme.of(context).colorScheme, dbm),
-            )
-          else
-            const SizedBox.shrink(),
-          if (doorOpen != null)
-            item(
-              doorOpen ? Icons.meeting_room : Icons.meeting_room_outlined,
-              (doorOpen ? l10n.doorOpen : l10n.doorClosed).toUpperCase(),
-              doorOpen ? t.accentOrangeInk : t.textTertiary,
-            )
-          else
-            const SizedBox.shrink(),
-        ],
+      // A Wrap, not a Row: at 200 % text the two readings no longer fit side by
+      // side, and the second goes to its own line instead of overflowing. The door
+      // alone stays at the end, where the Row put it.
+      child: SizedBox(
+        width: double.infinity,
+        child: Wrap(
+          alignment: dbm == null
+              ? WrapAlignment.end
+              : WrapAlignment.spaceBetween,
+          runSpacing: DashSpace.sm,
+          children: [
+            if (dbm != null)
+              item(
+                _wifiIcon(dbm),
+                '$dbm dBm',
+                _wifiColor(t, Theme.of(context).colorScheme, dbm),
+              ),
+            if (doorOpen != null)
+              item(
+                doorOpen ? Icons.meeting_room : Icons.meeting_room_outlined,
+                (doorOpen ? l10n.doorOpen : l10n.doorClosed).toUpperCase(),
+                doorOpen ? t.accentOrangeInk : t.textTertiary,
+              ),
+          ],
+        ),
       ),
     );
   }

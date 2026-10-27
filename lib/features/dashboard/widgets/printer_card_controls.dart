@@ -49,6 +49,11 @@ class _ControlsActions extends ConsumerWidget {
 
     // Primary lifecycle only (pause/resume/stop); speed moved under "Details"
     // (see [_SpeedControlTile]). Idle → nothing to show → hide entirely.
+    final labels = [
+      if (activePrint) l10n.ctrlPause,
+      if (paused) l10n.ctrlResume,
+      if (printing) l10n.ctrlStop,
+    ];
     final buttons = <Widget>[
       if (activePrint)
         _LifecycleButton(
@@ -80,7 +85,7 @@ class _ControlsActions extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(top: DashSpace.md),
-      child: _ControlsGrid(buttons: buttons),
+      child: _ControlsGrid(buttons: buttons, labels: labels),
     );
   }
 
@@ -321,36 +326,25 @@ const _btnSpinner = DashSpinner(size: 16);
 
 /// Arranges control buttons in a 2-column grid; solo button takes full width.
 class _ControlsGrid extends StatelessWidget {
-  const _ControlsGrid({required this.buttons});
+  const _ControlsGrid({required this.buttons, required this.labels});
 
   final List<Widget> buttons;
 
+  /// What each button paints, for the measurement that decides the columns.
+  final List<String> labels;
+
   @override
   Widget build(BuildContext context) {
-    const gap = 8.0;
-    final rows = <Widget>[];
-    for (var i = 0; i < buttons.length; i += 2) {
-      final end = i + 2 > buttons.length ? buttons.length : i + 2;
-      final pair = buttons.sublist(i, end);
-      rows.add(
-        Row(
-          children: [
-            for (var j = 0; j < pair.length; j++) ...[
-              if (j > 0) const SizedBox(width: gap),
-              Expanded(child: pair[j]),
-            ],
-          ],
-        ),
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < rows.length; i++) ...[
-          if (i > 0) const SizedBox(height: gap),
-          rows[i],
-        ],
-      ],
+    final style = DashTokens.of(context).bodyBold;
+    // Side by side only while the widest label fits its button on one line;
+    // otherwise one per row, as wide as the card. A label that wraps inside half
+    // a card breaks mid-word, and an Expanded pair overflowed at 200 % text.
+    final widest = labels
+        .map((label) => textWidth(context, label, style))
+        .fold<double>(0, max);
+    return ContentGrid(
+      minTileWidth: widest + _LifecycleButton.chrome,
+      children: buttons,
     );
   }
 }
@@ -375,6 +369,10 @@ class _LifecycleButton extends StatelessWidget {
   final bool busy;
   final VoidCallback onPressed;
   final bool danger;
+
+  /// Width the button spends besides its label: the padding, the 1 dp border,
+  /// the icon and the gap after it.
+  static const chrome = 2 * DashSpace.md + 2 + 18 + DashSpace.sm;
 
   @override
   Widget build(BuildContext context) {

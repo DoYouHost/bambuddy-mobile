@@ -268,7 +268,7 @@ void main() {
         ),
       );
 
-      expect(find.text('28°'), findsOneWidget);
+      expect(find.text('28°C'), findsOneWidget);
       expect(find.byIcon(Icons.thermostat_outlined), findsOneWidget);
     });
 
