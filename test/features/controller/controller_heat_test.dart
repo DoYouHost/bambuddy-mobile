@@ -1037,6 +1037,10 @@ void main() {
       commands.calls.clear();
 
       expect(find.text(pl.ctrlForbidden), findsOneWidget);
+      // The refusal is a snack bar over the controls; let it go so the taps
+      // below reach them.
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pumpAndSettle();
       await tester.tap(byLogId('controller.heat_plus').first);
       await tester.tap(byLogId('controller.fan.part'));
       await tester.pump();

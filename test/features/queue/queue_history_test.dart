@@ -336,6 +336,34 @@ void main() {
   });
 
   for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('a batch header keeps its name and counts in the card at text '
+        '$scale', (tester) async {
+      tester.view.physicalSize = const Size(411, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final at = DateTime.now().subtract(const Duration(days: 30));
+      await _openHistory(
+        tester,
+        _History([
+          _item(1, batchId: 9, batchName: 'A long order name', completedAt: at),
+          _item(2, batchId: 9, status: 'failed', completedAt: at),
+          _item(3, batchId: 9, status: 'cancelled', completedAt: at),
+        ]),
+        textScale: scale,
+      );
+
+      expect(tester.takeException(), isNull);
+      final card = tester.getRect(byLogId('queue_history.batch'));
+      expect(card.right, lessThanOrEqualTo(411));
+      expect(
+        tester.getSize(find.text('A long order name')).width,
+        greaterThan(60),
+        reason: 'the name keeps room to be read',
+      );
+    });
+  }
+
+  for (final scale in [1.0, 1.5, 2.0]) {
     testWidgets('a history row keeps its buttons in the row at text $scale', (
       tester,
     ) async {

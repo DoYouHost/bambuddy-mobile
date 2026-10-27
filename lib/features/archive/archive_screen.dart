@@ -1674,32 +1674,31 @@ class _ArchiveFilterSheet extends ConsumerWidget {
 
             if (colors.isNotEmpty) ...[
               const SizedBox(height: DashSpace.lg),
-              Row(
-                children: [
-                  FilterGroupLabel(label: l10n.archiveFilterColors),
-                  const Spacer(),
-                  if (filters.colors.length > 1)
-                    // OR/AND only matters once several colors are picked.
-                    SegmentedButton<ColorFilterMode>(
-                      style: const ButtonStyle(
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      segments: [
-                        ButtonSegment(
-                          value: ColorFilterMode.or,
-                          label: Text(l10n.archiveColorModeAny),
-                        ),
-                        ButtonSegment(
-                          value: ColorFilterMode.and,
-                          label: Text(l10n.archiveColorModeAll),
-                        ),
-                      ],
-                      selected: {filters.colorMode},
-                      onSelectionChanged: (s) =>
-                          notifier.state = filters.copyWith(colorMode: s.first),
+              if (filters.colors.length > 1)
+                BesideOrBelow(
+                  label: FilterGroupLabel(label: l10n.archiveFilterColors),
+                  // OR/AND only matters once several colors are picked.
+                  control: SegmentedButton<ColorFilterMode>(
+                    style: const ButtonStyle(
+                      visualDensity: VisualDensity.compact,
                     ),
-                ],
-              ),
+                    segments: [
+                      ButtonSegment(
+                        value: ColorFilterMode.or,
+                        label: Text(l10n.archiveColorModeAny),
+                      ),
+                      ButtonSegment(
+                        value: ColorFilterMode.and,
+                        label: Text(l10n.archiveColorModeAll),
+                      ),
+                    ],
+                    selected: {filters.colorMode},
+                    onSelectionChanged: (s) =>
+                        notifier.state = filters.copyWith(colorMode: s.first),
+                  ),
+                )
+              else
+                FilterGroupLabel(label: l10n.archiveFilterColors),
               const SizedBox(height: DashSpace.xs),
               _ColorSwatchWrap(
                 colors: colors.toList(),

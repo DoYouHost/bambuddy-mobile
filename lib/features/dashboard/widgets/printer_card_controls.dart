@@ -446,18 +446,23 @@ class _SpeedControlTile extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(top: DashSpace.md),
-      child: Row(
-        children: [
-          Icon(Icons.speed, size: 16, color: t.textSecondary),
-          const SizedBox(width: DashSpace.sm),
-          Text(l10n.ctrlSpeed, style: t.body.copyWith(color: t.textSecondary)),
-          const Spacer(),
-          _SpeedControl(
-            level: speedLevel,
-            busy: pending.isBusy(ControlAction.speed),
-            onSelected: (mode) => _setSpeed(context, ref, mode),
-          ),
-        ],
+      child: BesideOrBelow(
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.speed, size: 16, color: t.textSecondary),
+            const SizedBox(width: DashSpace.sm),
+            Text(
+              l10n.ctrlSpeed,
+              style: t.body.copyWith(color: t.textSecondary),
+            ),
+          ],
+        ),
+        control: _SpeedControl(
+          level: speedLevel,
+          busy: pending.isBusy(ControlAction.speed),
+          onSelected: (mode) => _setSpeed(context, ref, mode),
+        ),
       ),
     );
   }

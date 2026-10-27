@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_test_kit/app_test_kit.dart';
 import 'package:app_report_ui/app_report_ui.dart';
@@ -91,6 +92,7 @@ final en = lookupAppLocalizations(const Locale('en'));
 /// assert. [builder] goes to `MaterialApp.builder`, above the navigator: the only
 /// place an inherited widget reaches a pushed route or a dialog as well as `home`.
 Widget plApp(Widget child, {TransitionBuilder? builder}) => MaterialApp(
+  theme: buildDashThemeData(Brightness.light, brand: bambuddyBrand),
   locale: const Locale('pl'),
   localizationsDelegates: _plDelegates,
   supportedLocales: AppLocalizations.supportedLocales,

@@ -242,6 +242,10 @@ void main() {
     });
 
     testWidgets('confines a key to chosen printers', (tester) async {
+      // Tall enough for the form's own height in the app theme.
+      tester.view.physicalSize = const Size(800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       await tester.pumpWidget(
         _app(const ApiKeyFormScreen(), repo: repo, signedInAs: _admin),
       );

@@ -225,6 +225,17 @@ class LocationPrinterRow extends StatelessWidget {
       _ => (t.textSecondary, t.textSecondary),
     };
     final model = printer.printer.model;
+    final pill = Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: DashPill(
+        label: statusBucketLabel(l10n, bucket),
+        accent: accent,
+        accentInk: ink,
+        leadingDot: true,
+        dense: true,
+      ),
+    );
+    final pillBelow = MediaQuery.textScalerOf(context).scale(1) > 1.3;
     return Padding(
       padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: DecoratedBox(
@@ -269,17 +280,16 @@ class LocationPrinterRow extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: t.bodyPlain,
                       ),
+                    // Under the name at large text: beside it, with three
+                    // buttons, it leaves the name nothing.
+                    if (pillBelow) ...[
+                      const SizedBox(height: DashSpace.xs),
+                      pill,
+                    ],
                   ],
                 ),
               ),
-              const SizedBox(width: DashSpace.sm),
-              DashPill(
-                label: statusBucketLabel(l10n, bucket),
-                accent: accent,
-                accentInk: ink,
-                leadingDot: true,
-                dense: true,
-              ),
+              if (!pillBelow) ...[const SizedBox(width: DashSpace.sm), pill],
               if (canEdit)
                 IconButton(
                   tooltip: l10n.printerLocationsMove,

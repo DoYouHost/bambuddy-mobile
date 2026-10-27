@@ -938,25 +938,21 @@ class _AmsSection extends ConsumerWidget {
                 ],
               ),
               if (metaParts.isNotEmpty || (supportsDrying && unit.canDry))
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                Wrap(
+                  spacing: DashSpace.md,
+                  runSpacing: DashSpace.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    for (var i = 0; i < metaParts.length; i++) ...[
-                      if (i > 0) const SizedBox(width: DashSpace.md),
-                      metaParts[i],
-                    ],
+                    ...metaParts,
                     // Only AMS 2 Pro / AMS-HT modules can dry — hide the control on
                     // regular AMS even when the printer supports drying.
-                    if (supportsDrying && unit.canDry) ...[
-                      if (metaParts.isNotEmpty)
-                        const SizedBox(width: DashSpace.md),
+                    if (supportsDrying && unit.canDry)
                       _AmsDryControl(
                         printerId: printerId,
                         amsId: unit.id ?? unitIndex,
                         amsLabel: amsUnitName(unit.id ?? unitIndex),
                         unit: unit,
                       ),
-                    ],
                   ],
                 ),
             ],

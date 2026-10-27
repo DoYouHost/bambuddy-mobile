@@ -476,14 +476,24 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
-        const SizedBox(width: DashSpace.sm),
-        SectionHeading(label, style: theme.textTheme.titleSmall),
-        const Spacer(),
-        Text(value, style: theme.textTheme.bodySmall),
-      ],
+    return SizedBox(
+      width: double.infinity,
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        runSpacing: DashSpace.xs,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+              const SizedBox(width: DashSpace.sm),
+              SectionHeading(label, style: theme.textTheme.titleSmall),
+            ],
+          ),
+          Text(value, style: theme.textTheme.bodySmall),
+        ],
+      ),
     );
   }
 }

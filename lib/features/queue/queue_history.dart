@@ -805,55 +805,7 @@ class _BatchRow extends StatelessWidget {
                   horizontal: DashSpace.md,
                   vertical: DashSpace.sm,
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      expanded ? Icons.expand_more : Icons.chevron_right,
-                      size: 18,
-                      color: t.textTertiary,
-                    ),
-                    const SizedBox(width: DashSpace.xs),
-                    Icon(
-                      expanded ? Icons.inventory_2_outlined : Icons.inventory_2,
-                      size: 18,
-                      color: t.accentBlue,
-                    ),
-                    const SizedBox(width: DashSpace.sm),
-                    Expanded(
-                      child: Text(
-                        row.batchName ?? l10n.queueHistoryBatch,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: t.body.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    for (final (kind, n) in counts)
-                      if (n > 0) ...[
-                        const SizedBox(width: DashSpace.sm),
-                        Icon(
-                          _statusLook(t, kind).$1,
-                          size: 12,
-                          color: _statusLook(t, kind).$2,
-                        ),
-                        Text(
-                          ' $n',
-                          style: meta.copyWith(color: _statusLook(t, kind).$2),
-                        ),
-                      ],
-                    const SizedBox(width: DashSpace.sm),
-                    Text(
-                      latest == null
-                          ? ''
-                          : relativeTime(
-                              l10n,
-                              DateTimeFormats.of(context),
-                              latest,
-                              now: DateTime.now(),
-                            ),
-                      style: meta,
-                    ),
-                  ],
-                ),
+                child: _batchHeader(context, t, l10n, meta, latest, counts),
               ),
             ),
           ).tagged('queue_history.batch', expanded: expanded),
@@ -877,6 +829,96 @@ class _BatchRow extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+
+  /// Name, status counts and the latest time. At large text the counts and the
+  /// time go to a line of their own, so the name keeps room to be read.
+  Widget _batchHeader(
+    BuildContext context,
+    DashTokens t,
+    AppLocalizations l10n,
+    TextStyle meta,
+    DateTime? latest,
+    List<(QueueItemStatusKind, int)> counts,
+  ) {
+    final large = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+    final countWidgets = [
+      for (final (kind, n) in counts)
+        if (n > 0)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _statusLook(t, kind).$1,
+                size: 12,
+                color: _statusLook(t, kind).$2,
+              ),
+              Text(' $n', style: meta.copyWith(color: _statusLook(t, kind).$2)),
+            ],
+          ),
+    ];
+    final time = Text(
+      latest == null
+          ? ''
+          : relativeTime(
+              l10n,
+              DateTimeFormats.of(context),
+              latest,
+              now: DateTime.now(),
+            ),
+      style: meta,
+    );
+    final name = Text(
+      row.batchName ?? l10n.queueHistoryBatch,
+      maxLines: large ? 2 : 1,
+      overflow: TextOverflow.ellipsis,
+      style: t.body.copyWith(fontWeight: FontWeight.w600),
+    );
+    final lead = [
+      Icon(
+        expanded ? Icons.expand_more : Icons.chevron_right,
+        size: 18,
+        color: t.textTertiary,
+      ),
+      const SizedBox(width: DashSpace.xs),
+      Icon(
+        expanded ? Icons.inventory_2_outlined : Icons.inventory_2,
+        size: 18,
+        color: t.accentBlue,
+      ),
+      const SizedBox(width: DashSpace.sm),
+    ];
+    if (!large) {
+      return Row(
+        children: [
+          ...lead,
+          Expanded(child: name),
+          for (final c in countWidgets) ...[
+            const SizedBox(width: DashSpace.sm),
+            c,
+          ],
+          const SizedBox(width: DashSpace.sm),
+          time,
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            ...lead,
+            Expanded(child: name),
+          ],
+        ),
+        Wrap(
+          spacing: DashSpace.sm,
+          runSpacing: DashSpace.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [...countWidgets, time],
+        ),
+      ],
     );
   }
 }

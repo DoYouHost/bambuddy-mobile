@@ -1478,7 +1478,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         children: [
           Icon(Icons.event_outlined, color: t.textSecondary),
           const SizedBox(width: DashSpace.md),
-          Text(label, style: t.monoValue),
+          Flexible(child: Text(label, style: t.monoValue)),
         ],
       ),
       control: OutlinedButton(
