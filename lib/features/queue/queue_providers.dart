@@ -443,15 +443,18 @@ final availableFilamentsProvider = FutureProvider.autoDispose
 /// + plug map fresh on each call (autoDispose) because availability changes over time.
 final availablePrintersProvider =
     FutureProvider.autoDispose<List<PrinterCandidate>>((ref) async {
+      // The start flow reads this once, so nothing listens and the provider is
+      // disposed at its first await: a `ref` use after it would throw.
+      final plugs = ref.read(smartPlugsRepositoryProvider);
       final all = await ref.watch(printersRepositoryProvider).fetchAll();
 
       // Plug assignments are optional enrichment — their absence/failure can't block
       // printer selection, so treat error as "no plugs".
       Set<int> printersWithPlug = const {};
       try {
-        final plugs = await ref.read(smartPlugsRepositoryProvider).fetchPlugs();
+        final assigned = await plugs.fetchPlugs();
         printersWithPlug = {
-          for (final plug in plugs)
+          for (final plug in assigned)
             if ((plug.enabled ?? true) && plug.printerId != null)
               plug.printerId!,
         };
