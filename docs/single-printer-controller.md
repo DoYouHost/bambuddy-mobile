@@ -385,23 +385,19 @@ commits, not pushed). Open, most useful first:
 3. **No state on the collapsed rail.** The printer's state, name and fault count
    are only in the open panel. A dot on the arrow was proposed, not decided.
 4. **The print-settings route and the file dialog are not reflowed** (they still
-   grow the box with the font): rows of 44-46 dp, "More" and "Preview", the date
-   cells and the file search chips remain among the a11y findings.
-5. **a11y**: `test/a11y/controller_a11y_test.dart` fails 146 of 504 (402 before the
-   rail). The ones left: the print screen, the airduct switch on Heat (44 dp tall,
-   the Cooling one) and part of Settings. The full `just test-a11y` has not been run
-   since the redesign (the last full run, 1018 failing of 6765, was before it).
-6. **Settings at a large size** show one card at a time behind a [Screen saver |
+   grow the box with the font). Their a11y findings and the controller's remaining
+   count are in `docs/a11y-guideline-tests.md` (Open, item 1), not here.
+5. **Settings at a large size** show one card at a time behind a [Screen saver |
    Display] choice. The maintainer disliked splits in general and did not say
    whether this one stays.
-7. **Unit temperature** is not shown on Filament at a large size; say if it should
+6. **Unit temperature** is not shown on Filament at a large size; say if it should
    come back (the row of units has room for one more number).
-8. **Tests**: the L/R mark's reader label is mutation-checked, the colour tests too;
+7. **Tests**: the L/R mark's reader label is mutation-checked, the colour tests too;
    `ControllerRailPanel`'s width test only checks the number. No contract test is
    needed (nothing new is read from the server).
-9. **Not pushed.** The local commits of this branch are ahead of origin; `pubspec.lock`
+8. **Not pushed.** The local commits of this branch are ahead of origin; `pubspec.lock`
    is modified only by the sibling `app-shared` override and is never committed.
    `PickerTile` in `app-shared` is still uncommitted there (see
    a11y-guideline-tests.md, open item 6).
-10. A second Argon round on the Filament and Move changes was not done; the first one
+9. A second Argon round on the Filament and Move changes was not done; the first one
     (the rail, `_IconScale`, `_LargeTextScroll`) found three real bugs, all fixed.

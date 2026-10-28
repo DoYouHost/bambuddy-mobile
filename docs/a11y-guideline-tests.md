@@ -182,10 +182,17 @@ the new layout.
 
 ## Open, in this order
 
-1. **Tap targets and labels of the controller screen**: dozens of 17-46 dp targets,
-   and tappable nodes with no label (32 in the three print-screen surfaces alone). The
-   pickers are done (`PickerTile`, see Decisions); the other screens have the same two
-   findings per control, so check both before counting.
+1. **The controller screen**: 146 of 504 rendered tests fail, from 402 before the rail
+   and the large-text reflow (design and rules: `docs/single-printer-controller.md`
+   §2 and §9). What is left: the print-settings route (rows of 44-46 dp, "More" and
+   "Preview", the date cells and the file search chips; it and the file dialog still
+   grow their box with the font, `ScaleToFit(reflows: false)`, and are not reflowed),
+   the airduct switch on Heat (48 × 44 dp, the Cooling one) and part of Settings;
+   tappable nodes with no label remain in the three print-screen surfaces. The other
+   screens have the same two findings per control (a target and a label), so check
+   both before counting. The pickers are done (`PickerTile`, see Decisions). **The
+   full `just test-a11y` has not been run since the redesign**: run it and replace the
+   numbers in State.
 2. Nine test-side failures left, none solved by `ensureVisible`: the "X1 Carbon" tile in
    the dashboard fold test at 150 % and 200 % (2), the new spool form's material menu at
    150 % and 200 % (2, a framework assertion `transformed == position -
