@@ -645,7 +645,7 @@ void main() {
       await tester.enterText(_input('spool_form.label_weight'), 'abc');
       await tester.enterText(_input('spool_form.cost_per_kg'), '-3');
       await scrollSheetDown(tester);
-      await tester.tap(byLogId('spool_form.save'));
+      await a11yTap(tester, byLogId('spool_form.save'));
       await settle(tester);
     },
     shows: find.text(pl.inventoryFieldRequired),
@@ -656,7 +656,7 @@ void main() {
     home: () => const InventoryScreen(),
     arrange: (tester) async {
       await _openNewSpool(tester);
-      await tester.tap(find.byTooltip(pl.inventoryQuantityMore));
+      await a11yTap(tester, find.byTooltip(pl.inventoryQuantityMore));
     },
     shows: find.text(pl.inventoryAddSpools(2)),
   );

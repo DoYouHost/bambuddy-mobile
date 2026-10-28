@@ -66,7 +66,9 @@ void _queueSettings() {
     'queue settings, masters off',
     demo: false,
     overrides: [
-      noServerProfileOverride,
+      // The notes show only on a form that can be written, and a profile without
+      // an auth mode leaves that verdict open.
+      fakeServerProfileOverride(authMode: AuthMode.none),
       serverSettingsOverride(_queueBlock(preheat: false, keepWarm: false)),
     ],
     home: () => const QueueSettingsScreen(),

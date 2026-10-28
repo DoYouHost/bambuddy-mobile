@@ -147,11 +147,15 @@ verified.
 
 ## State (2026-10-28, second machine)
 
-Failing tests in `test/a11y`: 1630 of 6765, from 1843 at the start of the day (2478 at
-the start of the work); 536 s for the whole suite. The 213 that went are all in the
-pickers and the controller (inventory 87, projects 40, maintenance 40, locations 40,
-controller 6) and nothing new fails. Overflow findings are gone everywhere except the
-`material_ui` `SnackBar` (2 tests, not our code). Contrast findings in the output: 0;
+Failing tests in `test/a11y`: 1576 of 6765, from 1843 at the start of the day (2478 at
+the start of the work); 545 s wall clock for the whole suite on the desktop. 267 went
+since the morning: the pickers and the controller (213), then the test-side groups
+(54: three demo-request timers, the queue's printer picker and rack positions, the
+finance menus, the print log, the spool form, a queue-settings note) and nothing new
+fails. Overflow findings are gone everywhere except the
+`material_ui` `SnackBar` (2 tests, not our code) and the "common, selection controls"
+test row (8 tests, a right-hand overflow of 13-77 dp inside the test's own fixture at
+`common_a11y_test.dart:603`, to check before calling it a test bug). Contrast findings in the output: 0;
 the two `genuine` rows of the report are the `65°` fixture (see Running it), nothing
 to fix.
 
@@ -165,11 +169,16 @@ admin 31 (tap targets and missing labels, in pairs wherever a control is both).
    and tappable nodes with no label (32 in the three print-screen surfaces alone). The
    pickers are done (`PickerTile`, see Decisions); the other screens have the same two
    findings per control, so check both before counting.
-2. About twelve test-side failures at large text, where the test's `arrange` does not
-   reach the control (controller keypad, "Test cube" in the print log, the "X1 Carbon"
-   tile in the dashboard fold test, the wall tile tap, the pipelines fan-out select, and
-   the new spool form's "Wymagane" and "Dodaj 2 szpule" at 150 % and 200 %: 5 tests).
-   Fix with `ensureVisible`, not in the app.
+2. Nine test-side failures left, none solved by `ensureVisible`: the "X1 Carbon" tile in
+   the dashboard fold test at 150 % and 200 % (2), the new spool form's material menu at
+   150 % and 200 % (2, a framework assertion `transformed == position -
+   childParentData.offset` in a hit test, cause not found), the wall's `wall.live_camera`
+   at 150 % and 200 % (4: the panel is not scrollable and the switch sits at y = 476 in
+   a 411 dp window, which looks like an **app defect**, not a test one), and the
+   "Timelapse" chip of the printer files at 200 % (1, `ensureVisible` does not bring it
+   into the horizontal list). The harness now pages a lazy list for `shows` and
+   `a11yTap` (`_pageUntilBuilt`) and unmounts at the end of a surface (a poll can start
+   a demo request in the last frame).
 3. No widget test yet for the swatches section header, the queue-edit schedule row,
    the archive colour-filter row and the timelapse info row (the a11y suite covers
    them), nor for the maintenance type sheet and the project form (only the a11y suite

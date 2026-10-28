@@ -89,10 +89,10 @@ Future<void> a11yPump(
   a11yPhase.value = 0;
   final app = ProviderScope(
     retry: neverRetry,
-    overrides: [
+    // A surface's own preferences win: Riverpod 3 refuses the same override twice.
+    overrides: layerOverrides([
       sharedPreferencesProvider.overrideWithValue(sharedPrefs),
-      ...overrides.isEmpty ? [noServerProfileOverride] : overrides,
-    ],
+    ], overrides.isEmpty ? [noServerProfileOverride] : overrides),
     child: MaterialApp(
       theme: buildDashThemeData(brightness, brand: resolveBrand(accent, null)),
       locale: const Locale('pl'),
@@ -178,6 +178,70 @@ Future<void> a11yMeetsAll(
   expect(result.passed, isTrue, reason: result.reason);
 }
 
+/// Whether [finder] matches now. `.first` and `.last` finders throw instead of
+/// matching nothing.
+bool _built(Finder finder) {
+  try {
+    return finder.evaluate().isNotEmpty;
+  } on StateError {
+    return false;
+  }
+}
+
+/// The list of the route on top: behind an open sheet, the first vertical
+/// scrollable in the tree is the screen underneath, not the sheet.
+ScrollPosition? _mainList() {
+  final scrollables = find.byType(Scrollable).evaluate().where((e) {
+    final state = (e as StatefulElement).state as ScrollableState;
+    return state.position.axis == Axis.vertical &&
+        (ModalRoute.of(e)?.isCurrent ?? true);
+  });
+  if (scrollables.isEmpty) return null;
+  return ((scrollables.first as StatefulElement).state as ScrollableState)
+      .position;
+}
+
+/// Pages the screen's list from the top until [finder] builds, and leaves it
+/// where it was found. A lazy list holds no element for a row past the fold, and
+/// one the list was already scrolled past is no more built than one below it.
+Future<bool> _pageUntilBuilt(
+  WidgetTester tester,
+  Finder finder, {
+  int maxPages = 12,
+}) async {
+  if (_built(finder)) return true;
+  final position = _mainList();
+  if (position == null) return false;
+  if (position.pixels > 0) {
+    position.jumpTo(0);
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  for (var page = 0; page < maxPages && !_built(finder); page++) {
+    if (position.pixels >= position.maxScrollExtent) break;
+    position.jumpTo(
+      (position.pixels + position.viewportDimension).clamp(
+        0.0,
+        position.maxScrollExtent,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  return _built(finder);
+}
+
+/// Whether [finder] builds, paging the screen's list to find out, then back to
+/// the top. At a large text size the widget that proves a surface was reached can
+/// be past the fold.
+Future<bool> _reveal(WidgetTester tester, Finder finder) async {
+  final found = await _pageUntilBuilt(tester, finder);
+  final position = _mainList();
+  if (position != null && position.pixels > 0) {
+    position.jumpTo(0);
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  return found;
+}
+
 /// Scrolls the screen's main list one viewport at a time and asserts at each
 /// stop: a guideline only sees what is built, and a lazy list builds the
 /// viewport plus a little. A screen without a vertical scrollable has nothing to do.
@@ -187,16 +251,15 @@ Future<void> a11yMeetsAllWhileScrolling(
   int maxPages = 12,
 }) async {
   await a11yMeetsAll(tester, skipContrast: skipContrast);
-  // The list of the route on top: behind an open sheet, the first vertical
-  // scrollable in the tree is the screen underneath, not the sheet.
-  final scrollables = find.byType(Scrollable).evaluate().where((e) {
-    final state = (e as StatefulElement).state as ScrollableState;
-    return state.position.axis == Axis.vertical &&
-        (ModalRoute.of(e)?.isCurrent ?? true);
-  });
-  if (scrollables.isEmpty) return;
-  final state = (scrollables.first as StatefulElement).state as ScrollableState;
-  final position = state.position;
+  final position = _mainList();
+  if (position == null) return;
+  // A tap on a target down the list leaves it scrolled; the pages above would
+  // never be measured.
+  if (position.pixels > 0) {
+    position.jumpTo(0);
+    await tester.pump(const Duration(milliseconds: 100));
+    await a11yMeetsAll(tester, skipContrast: skipContrast);
+  }
   for (var page = 0; page < maxPages; page++) {
     if (position.pixels >= position.maxScrollExtent) return;
     position.jumpTo(
@@ -217,6 +280,7 @@ Future<void> a11yTap(
   Finder finder, {
   Duration settle = const Duration(milliseconds: 700),
 }) async {
+  await _pageUntilBuilt(tester, finder);
   await tester.ensureVisible(finder.first);
   await tester.tap(finder.first);
   await a11ySettle(tester, settle);
@@ -356,7 +420,9 @@ void a11ySurface(
       }
       // Proves the surface was reached, so a failure below is a guideline
       // and not a screen that never built.
-      if (shows != null) expect(shows, findsWidgets);
+      if (shows != null && !await _reveal(tester, shows)) {
+        expect(shows, findsWidgets);
+      }
       if (scroll) {
         await a11yMeetsAllWhileScrolling(tester, skipContrast: skipContrast);
       } else {
@@ -364,6 +430,10 @@ void a11ySurface(
       }
       // A request the scroll pass started would end the test in flight.
       await a11ySettle(tester, const Duration(milliseconds: 700));
+      // A poll can start a request in the last frame; the demo answers after 120 ms
+      // of fake time, so unmounting stops the polls and 200 ms lets that one finish.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 200));
       handle.dispose();
     });
   }

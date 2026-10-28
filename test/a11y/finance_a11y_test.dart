@@ -178,7 +178,7 @@ void main() {
       home: () => const FinanceScreen(),
       arrange: (tester) async {
         await _adminView(tester);
-        await tester.tap(byLogId('finance.transaction_menu').first);
+        await a11yTap(tester, byLogId('finance.transaction_menu').first);
       },
       shows: byLogId('finance.transaction_menu.edit'),
     );
@@ -188,9 +188,9 @@ void main() {
       home: () => const FinanceScreen(),
       arrange: (tester) async {
         await _adminView(tester);
-        await tester.tap(byLogId('finance.transaction_menu').first);
+        await a11yTap(tester, byLogId('finance.transaction_menu').first);
         await tester.pumpAndSettle();
-        await tester.tap(byLogId('finance.transaction_menu.delete'));
+        await a11yTap(tester, byLogId('finance.transaction_menu.delete'));
       },
       shows: find.text(pl.financeDeleteTransaction),
     );
@@ -378,9 +378,9 @@ void main() {
       home: () => const FinanceScreen(),
       arrange: (tester) async {
         await _adminView(tester);
-        await tester.tap(byLogId('finance.transaction_menu').first);
+        await a11yTap(tester, byLogId('finance.transaction_menu').first);
         await tester.pumpAndSettle();
-        await tester.tap(byLogId('finance.transaction_menu.edit'));
+        await a11yTap(tester, byLogId('finance.transaction_menu.edit'));
       },
       shows: byLogId('sheet.transaction_edit'),
     );
@@ -390,9 +390,9 @@ void main() {
       home: () => const FinanceScreen(),
       arrange: (tester) async {
         await _adminView(tester);
-        await tester.tap(byLogId('finance.transaction_menu').first);
+        await a11yTap(tester, byLogId('finance.transaction_menu').first);
         await tester.pumpAndSettle();
-        await tester.tap(byLogId('finance.transaction_menu.edit'));
+        await a11yTap(tester, byLogId('finance.transaction_menu.edit'));
         await tester.pumpAndSettle();
         await tester.enterText(
           find.descendant(
@@ -401,7 +401,7 @@ void main() {
           ),
           'abc',
         );
-        await tester.tap(byLogId('finance_form.save_transaction'));
+        await a11yTap(tester, byLogId('finance_form.save_transaction'));
       },
       shows: find.text(pl.financeAmountInvalid),
     );
