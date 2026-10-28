@@ -242,8 +242,16 @@ class _Rail extends StatelessWidget {
                           // feeds, so the unit says it itself.
                           if (horizontal && dual && entry.unit != null)
                             switch (status.amsExtruderMap?[entry.unit!.id]) {
-                              1 => _sideMark(t, 'L', l10n.extruderLeft),
-                              0 => _sideMark(t, 'R', l10n.extruderRight),
+                              1 => _sideMark(
+                                t,
+                                l10n.extruderLeftShort,
+                                l10n.extruderLeft,
+                              ),
+                              0 => _sideMark(
+                                t,
+                                l10n.extruderRightShort,
+                                l10n.extruderRight,
+                              ),
                               _ => const SizedBox.shrink(),
                             },
                           if (entry.unit?.humidity != null) ...[
@@ -505,8 +513,8 @@ class _Pane extends ConsumerWidget {
                     // enough not to cover the spool.
                     captionMark: unit == null && dual
                         ? switch (status.extruderForExternal(tray.id)) {
-                            1 => 'L',
-                            0 => 'R',
+                            1 => l10n.extruderLeftShort,
+                            0 => l10n.extruderRightShort,
                             _ => null,
                           }
                         : null,

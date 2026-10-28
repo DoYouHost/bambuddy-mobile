@@ -688,7 +688,7 @@ void main() {
         await tester.pump();
 
         // Drawn as one letter in a round mark, which does not cover the spool.
-        for (final mark in ['L', 'R']) {
+        for (final mark in [pl.extruderLeftShort, pl.extruderRightShort]) {
           final text = find.descendant(of: slots(), matching: find.text(mark));
           expect(text, findsOneWidget, reason: mark);
           final pill = find
@@ -903,8 +903,8 @@ void main() {
           nozzleCount: 2,
         );
 
-        expect(find.text('L'), findsOneWidget);
-        expect(find.text('R'), findsOneWidget);
+        expect(find.text(pl.extruderLeftShort), findsOneWidget);
+        expect(find.text(pl.extruderRightShort), findsOneWidget);
       });
 
       testWidgets('keeps the percentage and the grams on one line at 150%', (
