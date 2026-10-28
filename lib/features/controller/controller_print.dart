@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_util/app_util.dart';
 import 'package:clock/clock.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -813,12 +816,14 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     );
-    final choices = _WhenChoices(
-      labels: [
-        l10n.controllerPrintNow,
-        l10n.queueScheduleQueue,
-        l10n.queueScheduleSchedule,
-      ],
+    final choiceLabels = [
+      l10n.controllerPrintNow,
+      l10n.queueScheduleQueue,
+      l10n.queueScheduleSchedule,
+    ];
+    Widget choices({required bool expand}) => _WhenChoices(
+      expand: expand,
+      labels: choiceLabels,
       selected: _when.index,
       onChanged: (i) => setState(() {
         _when = QueueScheduleType.values[i];
@@ -828,6 +833,11 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
         }
       }),
     );
+    final submitLabel = switch (_when) {
+      QueueScheduleType.asap => l10n.controllerPrintNowAction,
+      QueueScheduleType.queue => l10n.fmAddToQueue,
+      QueueScheduleType.scheduled => l10n.queueScheduleSchedule,
+    };
     final submit = logTag(
       'controller.print.submit',
       FilledButton(
@@ -840,11 +850,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
           padding: const EdgeInsets.symmetric(horizontal: DashSpace.xl),
         ),
         onPressed: !canPrint || _awaitingTime ? null : _submit,
-        child: Text(switch (_when) {
-          QueueScheduleType.asap => l10n.controllerPrintNowAction,
-          QueueScheduleType.queue => l10n.fmAddToQueue,
-          QueueScheduleType.scheduled => l10n.queueScheduleSchedule,
-        }),
+        child: Text(submitLabel),
       ),
     );
     // At a large text size the note and the buttons no longer fit one line. The
@@ -853,14 +859,11 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     if (controllerLargeText(context)) {
       return (
         note: note.isEmpty ? null : noteText,
-        // Wraps: three choices and the submit are wider than the body in a
-        // language with long labels.
-        bar: Wrap(
-          alignment: WrapAlignment.end,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: DashSpace.md,
-          runSpacing: DashSpace.sm,
-          children: [choices, submit],
+        bar: _BarButtons(
+          choices: choices,
+          choiceLabels: choiceLabels,
+          submit: submit,
+          submitLabel: submitLabel,
         ),
       );
     }
@@ -872,7 +875,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
           children: [
             Expanded(child: noteText),
             const SizedBox(width: DashSpace.md),
-            choices,
+            choices(expand: false),
             const SizedBox(width: DashSpace.md),
             submit,
           ],
@@ -1113,56 +1116,136 @@ class _WhenChoices extends StatelessWidget {
     required this.labels,
     required this.selected,
     required this.onChanged,
+    this.expand = false,
   });
 
   final List<String> labels;
   final int selected;
   final ValueChanged<int> onChanged;
 
+  /// Equal shares of the width given, for a row of its own: the default is each
+  /// at the width of its label.
+  final bool expand;
+
+  Widget _share(Widget child) => expand ? Expanded(child: child) : child;
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final radius = BorderRadius.circular(DashSpace.md);
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
       children: [
         for (final (i, label) in labels.indexed) ...[
           if (i > 0) const SizedBox(width: DashSpace.sm),
-          logTag(
-            'controller.print.when',
-            Material(
-              color: i == selected
-                  ? t.accent.withValues(alpha: 0.16)
-                  : t.subCard,
-              shape: RoundedRectangleBorder(
-                borderRadius: radius,
-                side: BorderSide(
-                  color: i == selected
-                      ? t.accent.withValues(alpha: 0.4)
-                      : t.subCardBorder,
+          _share(
+            logTag(
+              'controller.print.when',
+              Material(
+                color: i == selected
+                    ? t.accent.withValues(alpha: 0.16)
+                    : t.subCard,
+                shape: RoundedRectangleBorder(
+                  borderRadius: radius,
+                  side: BorderSide(
+                    color: i == selected
+                        ? t.accent.withValues(alpha: 0.4)
+                        : t.subCardBorder,
+                  ),
                 ),
-              ),
-              child: InkWell(
-                borderRadius: radius,
-                onTap: () => onChanged(i),
-                child: Container(
-                  height: controllerButtonHeight,
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    style: i == selected
-                        ? t.monoValue.copyWith(color: t.accentInk)
-                        : t.monoValue,
+                child: InkWell(
+                  borderRadius: radius,
+                  onTap: () => onChanged(i),
+                  child: Container(
+                    height: controllerButtonHeight,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DashSpace.md,
+                    ),
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      style: i == selected
+                          ? t.monoValue.copyWith(color: t.accentInk)
+                          : t.monoValue,
+                    ),
                   ),
                 ),
               ),
+              selected: i == selected,
             ),
-            selected: i == selected,
           ),
         ],
       ],
+    );
+  }
+}
+
+/// The three choices and the submit at a large text size: one line while they
+/// fit, right-aligned as at the normal size; otherwise the choices in equal
+/// shares of the whole width and the submit across it under them. Never a `Wrap`:
+/// the button that moved down would keep its content width and stand at one side.
+///
+/// What fits is measured from the labels and the styles the buttons resolve with.
+class _BarButtons extends StatelessWidget {
+  const _BarButtons({
+    required this.choices,
+    required this.choiceLabels,
+    required this.submit,
+    required this.submitLabel,
+  });
+
+  /// The choices, at their own widths for the line and in equal shares for
+  /// their own row.
+  final Widget Function({required bool expand}) choices;
+  final List<String> choiceLabels;
+  final Widget submit;
+  final String submitLabel;
+
+  /// Measurement and rendering can round apart: a pair that fits by a hair
+  /// stacks, which still looks right.
+  static const _slack = 10.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final buttonStyle = FilledButtonTheme.of(context).style;
+    final submitText =
+        (Theme.of(context).textTheme.labelLarge ?? const TextStyle()).merge(
+          buttonStyle?.textStyle?.resolve(const {}),
+        );
+    final choicesWidth =
+        DashSpace.sm * (choiceLabels.length - 1) +
+        [
+          for (final l in choiceLabels)
+            2 * DashSpace.md + textWidth(context, l, t.monoValue),
+        ].fold(0.0, (a, b) => a + b);
+    final submitWidth = math.max(
+      _submitWidth,
+      2 * DashSpace.xl + textWidth(context, submitLabel, submitText),
+    );
+    final needed = choicesWidth + DashSpace.md + submitWidth + _slack;
+    return LayoutBuilder(
+      builder: (context, box) {
+        if (!box.hasBoundedWidth || needed <= box.maxWidth) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              choices(expand: false),
+              const SizedBox(width: DashSpace.md),
+              submit,
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            choices(expand: true),
+            const SizedBox(height: DashSpace.sm),
+            submit,
+          ],
+        );
+      },
     );
   }
 }

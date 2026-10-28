@@ -744,6 +744,19 @@ void main() {
           final submit = _onScreen(tester, byLogId('controller.print.submit'));
           expect(submit.right, lessThanOrEqualTo(landscapeRedmi.width));
           expect(submit.left, greaterThanOrEqualTo(0));
+          // On a line of its own the submit spans the choices above it, not a
+          // button at one side.
+          final choiceRects = [
+            for (final c in byLogId('controller.print.when').evaluate())
+              MatrixUtils.transformRect(
+                (c.renderObject! as RenderBox).getTransformTo(null),
+                Offset.zero & (c.renderObject! as RenderBox).size,
+              ),
+          ];
+          if (submit.top >= choiceRects.first.bottom - 1) {
+            expect(submit.left, closeTo(choiceRects.first.left, 1));
+            expect(submit.right, closeTo(choiceRects.last.right, 1));
+          }
           for (final choice in byLogId('controller.print.when').evaluate()) {
             final r = MatrixUtils.transformRect(
               (choice.renderObject! as RenderBox).getTransformTo(null),

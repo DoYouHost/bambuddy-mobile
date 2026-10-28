@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_util/app_util.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/theme/dash_theme.dart';
@@ -76,6 +77,7 @@ class ControllerDetailDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    if (controllerLargeText(context)) return _large(context, t);
     return Dialog(
       insetPadding: const EdgeInsets.all(DashSpace.md),
       child: LayoutBuilder(
@@ -83,6 +85,9 @@ class ControllerDetailDialog extends StatelessWidget {
           width: math.min(width * scale, box.maxWidth),
           height: math.min(height * scale, box.maxHeight),
           child: ScaleToFit(
+            // The facts scroll, so a larger font does not need a larger box: it
+            // would be scaled down again and take the touch targets with it.
+            reflows: true,
             minSize: const Size(width, height),
             child: Padding(
               padding: const EdgeInsets.all(DashSpace.md),
@@ -129,9 +134,59 @@ class ControllerDetailDialog extends StatelessWidget {
     );
   }
 
-  Widget _details(BuildContext context, DashTokens t) {
+  /// From a large text size the dialog is not scaled to a design size: it is as
+  /// tall as its content, up to the screen, with the body scrolling and the
+  /// actions pinned under it, wrapped onto lines where they do not fit one.
+  Widget _large(BuildContext context, DashTokens t) {
+    return Dialog(
+      insetPadding: const EdgeInsets.all(DashSpace.md),
+      child: Padding(
+        padding: const EdgeInsets.all(DashSpace.md),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(DashSpace.md),
+                          child: thumbnail,
+                        ),
+                        const SizedBox(width: DashSpace.lg),
+                        Expanded(child: _details(context, t, scrolls: false)),
+                      ],
+                    ),
+                    if (reason case final why?) ...[
+                      const SizedBox(height: DashSpace.sm),
+                      Text(
+                        why,
+                        style: t.bodySoft.copyWith(color: t.warningInk),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            if (actions.isNotEmpty) ...[
+              const SizedBox(height: DashSpace.md),
+              _Actions(actions),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _details(BuildContext context, DashTokens t, {bool scrolls = true}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: scrolls ? MainAxisSize.max : MainAxisSize.min,
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,16 +213,86 @@ class ControllerDetailDialog extends StatelessWidget {
         const SizedBox(height: DashSpace.sm),
         // The room left under the title, scrolled when a job carries more
         // facts than it holds beside a two-line reason.
-        Expanded(
-          child: SingleChildScrollView(
-            child: Wrap(
-              spacing: DashSpace.sm,
-              runSpacing: DashSpace.sm,
-              children: [for (final fact in facts) _FactPill(fact)],
+        if (scrolls)
+          Expanded(
+            child: SingleChildScrollView(
+              child: Wrap(
+                spacing: DashSpace.sm,
+                runSpacing: DashSpace.sm,
+                children: [for (final fact in facts) _FactPill(fact)],
+              ),
             ),
+          )
+        else
+          Wrap(
+            spacing: DashSpace.sm,
+            runSpacing: DashSpace.sm,
+            children: [for (final fact in facts) _FactPill(fact)],
           ),
-        ),
       ],
+    );
+  }
+}
+
+/// The actions of a dialog at a large text size: side by side in equal shares
+/// while every label fits its share, one under the other across the whole width
+/// otherwise. Never a `Wrap`: stacked, it keeps each button at its content width
+/// and against the left edge, and the row stops looking like a row.
+///
+/// What fits is measured from the button's own style, as `ButtonPair` does for
+/// two; here there can be one, two or three, so it is not `ButtonPair`.
+class _Actions extends StatelessWidget {
+  const _Actions(this.actions);
+
+  final List<Widget> actions;
+
+  /// A label has to fit with room to spare: measurement and rendering can round
+  /// apart, and a label that wraps grows only its own button.
+  static const _slack = 10.0;
+
+  /// Icon box and the gap to the label of a Material `*.icon` button.
+  static const _iconWidth = 18.0 + 8.0;
+
+  double _needed(BuildContext context, Widget action) {
+    if (action is! ControllerDialogAction) return 0;
+    final style = FilledButtonTheme.of(context).style;
+    final textStyle =
+        (Theme.of(context).textTheme.labelLarge ?? const TextStyle()).merge(
+          style?.textStyle?.resolve(const {}),
+        );
+    final padding = style?.padding?.resolve(const {})?.horizontal ?? 0;
+    return padding + _iconWidth + textWidth(context, action.label, textStyle);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final needed = [for (final a in actions) _needed(context, a)];
+    return LayoutBuilder(
+      builder: (context, box) {
+        final gaps = DashSpace.md * (actions.length - 1);
+        final share = (box.maxWidth - gaps) / actions.length;
+        final sideBySide =
+            !box.hasBoundedWidth || needed.every((w) => w + _slack <= share);
+        if (sideBySide) {
+          return Row(
+            children: [
+              for (final (i, a) in actions.indexed) ...[
+                if (i > 0) const SizedBox(width: DashSpace.md),
+                Expanded(child: a),
+              ],
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final (i, a) in actions.indexed) ...[
+              if (i > 0) const SizedBox(height: DashSpace.sm),
+              a,
+            ],
+          ],
+        );
+      },
     );
   }
 }
@@ -244,6 +369,8 @@ class _FactPill extends StatelessWidget {
           Icon(
             fact.icon,
             size: controllerIconSize(context, DashSpace.lg),
+            // Already follows the text: the icon theme would scale it again.
+            applyTextScaling: false,
             color: ink,
           ),
           const SizedBox(width: DashSpace.xs),

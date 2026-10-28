@@ -106,8 +106,8 @@ touch target stays 48 dp or more at every size.
   controller screen's body) lays the tab out in `controllerBodySize` and scales to
   the screen, so the factor is about 1 at every text size; before, the box grew
   with the font and everything shrank (controls 45, 29 and 21 dp). The print-settings screen, its "More"
-  dialog and the mapping dialogs reflow too; the file dialog and the job dialog keep
-  the old behaviour (`reflows: false`) and are not reflowed yet. Reflow starts at
+  dialog, the mapping dialogs and the Prints items' dialog (`ControllerDetailDialog`:
+  file, job, archive) reflow too, so no controller screen scales with the font any more. Reflow starts at
   `controllerReflowTextScale` (1.3, `controllerLargeText(context)`).
 - **Overview, Heat and Filament scroll vertically** at a large size when the screen
   is lower than `controllerOverviewScrollHeight` / `controllerHeatScrollHeight`
@@ -387,8 +387,14 @@ commits, not pushed). Open, most useful first:
 4. ~~The print-settings route is not reflowed~~ done (2026-10-28): the factor is about
    1.07, from 1.3x text the job and its options stack on the left and the mapping gets
    the wider right side, every card is as tall as its content (`ControllerCard.single(
-   shrink: true)`) and the page scrolls with the buttons pinned. The file dialog and the
-   job dialog are still not reflowed.
+   shrink: true)`) and the page scrolls with the buttons pinned. The Prints items' dialog
+   (file, job, archive) is natural-height from 1.3x text, body scrolling and actions
+   in equal shares, or one under the other across the width where a label does not fit its share (never a `Wrap`: a stacked button would keep its content width and stand at one side). The print bar's choices and submit follow the same rule.
+   **Decided (A):** at a large text size the bar's note ("Printer is busy…", the wrong
+   model…) is at the top of the scrolling page, not pinned. After scrolling to the options
+   a disabled button has no reason on screen; pinning one line costs 30-40 dp of a window
+   that has about 200 dp at 200 %. Pin only the notes that disable the button if someone
+   reports it.
 5. **Settings at a large size** show one card at a time behind a [Screen saver |
    Display] choice. The maintainer disliked splits in general and did not say
    whether this one stays.
