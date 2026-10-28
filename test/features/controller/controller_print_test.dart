@@ -382,6 +382,33 @@ void main() {
       expect(submitButton(tester).onPressed, isNull);
     });
 
+    testWidgets('the time is asked for on a field to type into in landscape', (
+      tester,
+    ) async {
+      await pump(tester);
+
+      await tester.tap(find.text(pl.queueScheduleSchedule));
+      await tester.pump();
+      await tester.ensureVisible(byLogId('controller.print.pick_time'));
+      await tester.tap(byLogId('controller.print.pick_time'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.byType(CalendarDatePicker), findsNothing);
+    });
+
+    testWidgets('and on the calendar in portrait', (tester) async {
+      await pump(tester, size: const Size(400, 800));
+
+      await tester.tap(find.text(pl.queueScheduleSchedule));
+      await tester.pump();
+      await tester.ensureVisible(byLogId('controller.print.pick_time'));
+      await tester.tap(byLogId('controller.print.pick_time'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CalendarDatePicker), findsOneWidget);
+    });
+
     testWidgets('an account held for review always waits', (tester) async {
       await pump(tester, held: true);
       expect(find.text(pl.queueEditAwaitingReviewNote), findsOneWidget);

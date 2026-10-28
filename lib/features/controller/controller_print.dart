@@ -897,6 +897,13 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
       context,
       initial: _scheduledTime,
       firstDate: clock.now(),
+      // Flutter's calendar is 48 dp a row in portrait only; in landscape, where
+      // this screen lives, its rows are about 35 dp. The field is a full-size
+      // target, and the calendar stays one tap away on its toggle.
+      initialEntryMode:
+          MediaQuery.orientationOf(context) == Orientation.landscape
+          ? DatePickerEntryMode.input
+          : DatePickerEntryMode.calendar,
     );
     if (picked == null || !mounted) return;
     setState(() => _scheduledTime = picked);

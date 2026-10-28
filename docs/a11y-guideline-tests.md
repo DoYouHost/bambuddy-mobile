@@ -155,6 +155,14 @@ verified.
   `Tooltip` **inside** `logTag`. Use strings that already exist
   (`MaterialLocalizations.clearButtonTooltip`, the visible label); a new string is the
   maintainer's call.
+- **Date picker in landscape**: Flutter's calendar rows are 48 dp in portrait only; in
+  landscape they are 42 dp cut to the window's height over seven rows (about 35 dp, at
+  every text size; the source says "landscape mode is not specified"). The print screen
+  asks for a time through `pickDateTime(initialEntryMode: input)` when the window is
+  landscape: a field, no target under 48 dp. **The toggle to the calendar stays**, and
+  no test opens that view, by decision: the calendar is a Flutter widget that is
+  smaller than 48 dp in landscape and is reachable on purpose. Do not add a test that
+  toggles it unless the calendar is replaced.
 - Controller at large text: no scrolling and no smaller captions. The two overflows
   were fixed where the layout was rigid: the job card's percentage keeps its design
   size at any text size (`textScaler.clamp(maxScaleFactor: 1)`, it is the biggest
@@ -206,14 +214,13 @@ given from 1.3x text. The plate and chamber steppers name their buttons without 
 What was left on the print screen at 150 and 200 % was not the app: the harness paged a
 scrolling screen one viewport at a time and measured a control cut by the page edge
 (`copies.more` 4.2 dp, "More" 15 dp). Fixed in the harness (see "What the harness
-does"); the print screen now fails only on the system date picker.
+does"); the print screen now passes in full.
 
-Also left: the system date picker's day cells (34.6 dp rows in landscape), and four
-surfaces whose own arrangement fails at 150 and 200 % before the screen is reached
-(`queue, start mapping dialog`, `overview, file preview`, `file dialog, not sliced` and
-`sliced for another model`: a tap lands under the list's bottom edge, `would not
-receive pointer events`). The Prints items' dialog (`ControllerDetailDialog`, file, job
-and archive) now holds its touch targets at every size.
+Also left: four surfaces whose own arrangement fails at 150 and 200 % before the screen
+is reached (`queue, start mapping dialog`, `overview, file preview`, `file dialog, not
+sliced` and `sliced for another model`: a tap lands under the list's bottom edge, `would
+not receive pointer events`). The Prints items' dialog (`ControllerDetailDialog`, file,
+job and archive) holds its touch targets at every size.
 
 ## Open, in this order
 
@@ -250,11 +257,12 @@ and archive) now holds its touch targets at every size.
    X plus" and the like, plate and chamber steppers of the print screen still have no
    name, and neither has the spool colour wheel), the date-range picker cells, how
    many accents after a `timeit`, `°C` on the temperature tiles if wanted.
-6. **`PickerTile` and its test sit uncommitted in the `app-shared` working tree**
-   (`packages/dash_kit/lib/src/picker_tile.dart`, `test/picker_tile_test.dart`, one
-   export line in `dash_kit.dart`). This branch builds against the sibling checkout
-   only; it needs that commit, a shared release and a `pubspec.yaml` ref bump before
-   CI can go green.
+6. **`app-shared` is two commits ahead of its `origin` and has one uncommitted change.**
+   Committed locally: `PickerTile` (`fc94434`) and the search field's clear tooltip
+   (`33e3e9e`). Uncommitted: `pickDate` / `pickDateTime` take `initialEntryMode`
+   (`date_picker.dart`, with its test). This branch builds against the sibling checkout
+   only; it needs those commits pushed, a shared release and a `pubspec.yaml` ref bump
+   before CI can go green.
 
 ## How to prove a change
 
