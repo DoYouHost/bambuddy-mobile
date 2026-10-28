@@ -166,6 +166,16 @@ class _Rail extends StatelessWidget {
   static const _minHeight = 56.0;
   static const _maxHeight = 72.0;
 
+  /// The printer's own mark for a side, said in words to a reader.
+  static Widget _sideMark(DashTokens t, String mark, String words) => Padding(
+    padding: const EdgeInsets.only(right: DashSpace.sm),
+    child: Semantics(
+      label: words,
+      excludeSemantics: true,
+      child: Text(mark, style: t.bodyStrong.copyWith(color: t.textTertiary)),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
@@ -228,6 +238,14 @@ class _Rail extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          // The row has no header to say which head the unit
+                          // feeds, so the unit says it itself.
+                          if (horizontal && dual && entry.unit != null)
+                            switch (status.amsExtruderMap?[entry.unit!.id]) {
+                              1 => _sideMark(t, 'L', l10n.extruderLeft),
+                              0 => _sideMark(t, 'R', l10n.extruderRight),
+                              _ => const SizedBox.shrink(),
+                            },
                           if (entry.unit?.humidity != null) ...[
                             const SizedBox(width: DashSpace.xs),
                             Icon(
@@ -309,6 +327,7 @@ class _Pane extends ConsumerWidget {
         (s) => s.pendingFor(printerId).isBusy(ControlAction.ams),
       ),
     );
+    final large = controllerLargeText(context);
     final unit = this.unit;
     final amsId = unit == null ? externalHolderUnit : (unit.id ?? unitIndex!);
     final active = status.activeTray;
@@ -348,8 +367,8 @@ class _Pane extends ConsumerWidget {
           id: 'controller.load',
           icon: Icons.login,
           label: l10n.amsLoad,
-          tone: t.accentOrange,
-          ink: t.accentOrangeInk,
+          tone: t.accent,
+          ink: t.accentInk,
           locked: locked,
           onPressed: locked || busy ? null : () => command(true),
         ),
@@ -357,83 +376,114 @@ class _Pane extends ConsumerWidget {
           id: 'controller.unload',
           icon: Icons.logout,
           label: l10n.amsUnload,
-          tone: t.accentOrange,
-          ink: t.accentOrangeInk,
+          tone: t.accent,
+          ink: t.accentInk,
           locked: locked,
           onPressed: locked || busy ? null : () => command(false),
         ),
       ],
+      if (large && canDry && !refused)
+        logTag(
+          'controller.dry',
+          FilledButton.icon(
+            style: controllerButtonStyle(t, tone: t.accentBlue),
+            icon: const Icon(Icons.local_fire_department_outlined),
+            label: Text(
+              unit.isDrying ? l10n.ctrlDrying : l10n.ctrlDry,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            onPressed: () => showAmsDryingSheet(
+              context,
+              ref,
+              printerId: printerId,
+              amsId: amsId,
+              amsLabel: amsUnitName(amsId),
+              unit: unit,
+            ),
+          ),
+        ),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          height: _headerHeight,
-          child: Row(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        unit == null ? l10n.externalSpool : amsUnitName(amsId),
-                        style: t.titleLg,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+        // At a large text size the row of units above says all of this, and the
+        // room goes to the spools; Drying moves in with the slot's buttons.
+        if (!large) ...[
+          // At least the button height, and taller when a large text size needs
+          // it: a fixed height cut the Drying button.
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: _headerHeight),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          unit == null
+                              ? l10n.externalSpool
+                              : amsUnitName(amsId),
+                          style: t.titleLg,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    if (side == 1 || side == 0) ...[
-                      const SizedBox(width: DashSpace.md),
-                      DashPill(
-                        label: side == 1
-                            ? l10n.extruderLeft
-                            : l10n.extruderRight,
-                        accent: t.textSecondary,
-                      ),
+                      if (side == 1 || side == 0) ...[
+                        const SizedBox(width: DashSpace.md),
+                        DashPill(
+                          label: side == 1
+                              ? l10n.extruderLeft
+                              : l10n.extruderRight,
+                          accent: t.textSecondary,
+                        ),
+                      ],
+                      if (unit?.humidity != null)
+                        _Reading(
+                          icon: Icons.water_drop_outlined,
+                          color: t.accentBlue,
+                          value: '${unit!.humidity}%',
+                        ),
+                      if (unit?.temp != null)
+                        _Reading(
+                          icon: Icons.thermostat_outlined,
+                          color: t.accentOrange,
+                          value: '${unit!.temp!.toStringAsFixed(0)}°C',
+                        ),
                     ],
-                    if (unit?.humidity != null)
-                      _Reading(
-                        icon: Icons.water_drop_outlined,
-                        color: t.accentBlue,
-                        value: '${unit!.humidity}%',
-                      ),
-                    if (unit?.temp != null)
-                      _Reading(
-                        icon: Icons.thermostat_outlined,
-                        color: t.accentOrange,
-                        value: '${unit!.temp!.toStringAsFixed(0)}°C',
-                      ),
-                  ],
-                ),
-              ),
-              // Drying is the whole unit's, so it sits with the unit, not
-              // with the slot actions.
-              if (canDry && !refused)
-                logTag(
-                  'controller.dry',
-                  FilledButton.icon(
-                    style: controllerButtonStyle(
-                      t,
-                      minimumSize: const Size(0, controllerButtonHeight),
-                      tone: t.accentBlue,
-                    ),
-                    icon: const Icon(Icons.local_fire_department_outlined),
-                    label: Text(unit.isDrying ? l10n.ctrlDrying : l10n.ctrlDry),
-                    onPressed: () => showAmsDryingSheet(
-                      context,
-                      ref,
-                      printerId: printerId,
-                      amsId: amsId,
-                      amsLabel: amsUnitName(amsId),
-                      unit: unit,
-                    ),
                   ),
                 ),
-            ],
+                // Drying is the whole unit's, so it sits with the unit, not
+                // with the slot actions.
+                if (canDry && !refused)
+                  logTag(
+                    'controller.dry',
+                    FilledButton.icon(
+                      style: controllerButtonStyle(
+                        t,
+                        minimumSize: const Size(0, controllerButtonHeight),
+                        tone: t.accentBlue,
+                      ),
+                      icon: const Icon(Icons.local_fire_department_outlined),
+                      label: Text(
+                        unit.isDrying ? l10n.ctrlDrying : l10n.ctrlDry,
+                      ),
+                      onPressed: () => showAmsDryingSheet(
+                        context,
+                        ref,
+                        printerId: printerId,
+                        amsId: amsId,
+                        amsLabel: amsUnitName(amsId),
+                        unit: unit,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: DashSpace.sm),
+          const SizedBox(height: DashSpace.sm),
+        ],
         Expanded(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -447,6 +497,15 @@ class _Pane extends ConsumerWidget {
                         ? switch (status.extruderForExternal(tray.id)) {
                             1 => l10n.extruderLeft,
                             0 => l10n.extruderRight,
+                            _ => null,
+                          }
+                        : null,
+                    // The printer's own marks, like the unit names: short
+                    // enough not to cover the spool.
+                    captionMark: unit == null && dual
+                        ? switch (status.extruderForExternal(tray.id)) {
+                            1 => 'L',
+                            0 => 'R',
                             _ => null,
                           }
                         : null,
@@ -613,10 +672,16 @@ class _SlotCard extends StatelessWidget {
     required this.onTap,
     required this.onEdit,
     this.caption,
+    this.captionMark,
   });
 
   final int? number;
+
+  /// What the side is called, said to a screen reader.
   final String? caption;
+
+  /// What is drawn for [caption].
+  final String? captionMark;
   final AmsTray tray;
   final bool active;
   final bool selected;
@@ -637,13 +702,13 @@ class _SlotCard extends StatelessWidget {
   /// spool with no name that is active still gets a chip, with a tick in it;
   /// null where there is nothing to say.
   Widget? _labelChip(DashTokens t, AppLocalizations l10n) {
-    final label = number?.toString() ?? caption;
+    final label = number?.toString() ?? captionMark ?? caption;
     final named = label != null && label.isNotEmpty;
     if (!named && !active) return null;
     final ink = active ? t.onAccent : t.textPrimary;
     final chip = Container(
       constraints: const BoxConstraints(minWidth: _chip, minHeight: _chip),
-      padding: number == null && named
+      padding: number == null && named && captionMark == null
           ? const EdgeInsets.symmetric(horizontal: DashSpace.md)
           : EdgeInsets.zero,
       decoration: BoxDecoration(
@@ -667,7 +732,28 @@ class _SlotCard extends StatelessWidget {
             : Icon(Icons.check, size: DashSpace.lg + DashSpace.xs, color: ink),
       ),
     );
-    return active ? Tooltip(message: l10n.ctrlNozzleActive, child: chip) : chip;
+    // The mark is a letter; the reader is told the side in words.
+    final read = captionMark == null || caption == null
+        ? chip
+        : Semantics(label: caption, excludeSemantics: true, child: chip);
+    return active ? Tooltip(message: l10n.ctrlNozzleActive, child: read) : read;
+  }
+
+  static bool _fits(
+    BuildContext context,
+    String text,
+    TextStyle style,
+    double width,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final fits = painter.width <= width;
+    painter.dispose();
+    return fits;
   }
 
   @override
@@ -734,25 +820,47 @@ class _SlotCard extends StatelessWidget {
                       maxLines: large ? 2 : 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    // A line even where there is nothing to say, so an empty
-                    // slot's spool is the size of the others'.
-                    Text(
-                      percent == null && grams == null
-                          ? '\u00A0'
-                          : [
-                              if (percent != null) '$percent%',
-                              if (grams != null)
-                                l10n.inventoryUsageWeight(
-                                  grams.toStringAsFixed(0),
-                                ),
-                            ].join(large ? '\n' : ' · '),
-                      maxLines: large ? 2 : 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: t.monoValue.copyWith(
-                        color: percent != null && percent < _lowPercent
-                            ? t.dangerInk
-                            : t.textSecondary,
-                      ),
+                    LayoutBuilder(
+                      builder: (context, box) {
+                        final style = t.monoValue.copyWith(
+                          color: percent != null && percent < _lowPercent
+                              ? t.dangerInk
+                              : t.textSecondary,
+                        );
+                        final weight = grams == null
+                            ? null
+                            : l10n.inventoryUsageWeight(
+                                grams.toStringAsFixed(0),
+                              );
+                        final one = [
+                          if (percent != null) '$percent%',
+                          ?weight,
+                        ].join(' · ');
+                        // At a large text size the two facts take a line each
+                        // only where the fullest spool, 100% and 1000 g, would
+                        // not fit one; the same for every card of a row.
+                        final twoLines =
+                            large &&
+                            !_fits(
+                              context,
+                              '100% · ${l10n.inventoryUsageWeight('1000')}',
+                              style,
+                              box.maxWidth,
+                            );
+                        // A card with one fact has one line: the spool takes
+                        // the line that is not there, so the card is filled to
+                        // its bottom edge.
+                        if (one.isEmpty) return const SizedBox.shrink();
+                        final both = one.contains(' · ');
+                        return Text(
+                          twoLines && both
+                              ? one.replaceFirst(' · ', '\n')
+                              : one,
+                          maxLines: twoLines && both ? 2 : 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: style,
+                        );
+                      },
                     ),
                   ],
                 ),

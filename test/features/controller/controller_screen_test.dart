@@ -1,8 +1,8 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
-import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_picker.dart';
+import 'package:bambuddy_mobile/features/controller/controller_rail.dart';
 import 'package:bambuddy_mobile/features/controller/controller_screen.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -106,14 +106,24 @@ void main() {
     await settle(tester);
   }
 
+  /// The rail's arrow: the panel with the printer, its state and the way out.
+  Future<void> openPanel(WidgetTester tester) async {
+    await tester.tap(byLogId('controller.rail_open'));
+    await settle(tester);
+  }
+
   testWidgets('with one printer it opens at once, on that printer', (
     tester,
   ) async {
     await pumpController(tester);
 
     await open(tester);
-
     expect(find.byType(ControllerScreen), findsOneWidget);
+    // The name is in the panel; the rail shows only the way to it.
+    expect(find.text('X1C Warsztat'), findsNothing);
+
+    await openPanel(tester);
+
     expect(find.text('X1C Warsztat'), findsOneWidget);
     expect(find.text('X1C'), findsOneWidget);
     expect(find.text(pl.controllerTabOverview), findsOneWidget);
@@ -136,13 +146,14 @@ void main() {
 
     await open(tester);
 
-    expect(tester.getRect(byLogId('controller.exit')).left, lessThan(64));
+    expect(tester.getRect(byLogId('controller.rail_open')).left, lessThan(64));
   });
 
   testWidgets('with one printer its name is not a switcher', (tester) async {
     await pumpController(tester);
 
     await open(tester);
+    await openPanel(tester);
 
     expect(byLogId('controller.switch_printer'), findsNothing);
     expect(find.byIcon(Icons.expand_more_rounded), findsNothing);
@@ -181,8 +192,9 @@ void main() {
     (tester) async {
       await pumpController(tester);
       await open(tester);
+      await openPanel(tester);
 
-      await tester.tap(byLogId('controller.exit'));
+      await tester.tap(byLogId('controller.panel_exit'));
       await settle(tester);
 
       expect(find.text('OPEN'), findsOneWidget);
@@ -202,11 +214,12 @@ void main() {
     );
 
     await open(tester);
+    await openPanel(tester);
 
     expect(find.text('RUNNING'), findsOneWidget);
   });
 
-  testWidgets('the top bar fits a long name, every tab and a long state', (
+  testWidgets('the panel fits a long name, every tab and a long state', (
     tester,
   ) async {
     await pumpController(
@@ -223,85 +236,36 @@ void main() {
     tester.view.physicalSize = const Size(740, 320);
 
     await open(tester);
+    await openPanel(tester);
 
     expect(tester.takeException(), isNull);
-    for (final tab in ControllerTab.values) {
-      expect(byLogId(tab.logId), findsOneWidget);
-    }
-    // The tabs scroll inside what the name and the state leave them, so look at
-    // where things sit: they keep clear of the name on one side, and the last
-    // one, once scrolled to, clears the state on the other. Before the scroll
-    // its rectangle lies past the edge of the viewport, under the state.
-    final name = tester.getRect(find.text('Pracownia X1C numer dwa'));
-    final first = tester.getRect(byLogId(ControllerTab.values.first.logId));
+    final panel = tester.getRect(find.byType(ControllerRailPanel));
+    final name = tester.getRect(find.textContaining('Pracownia'));
     final state = tester.getRect(find.text('PREPARE'));
-    expect(name.right, lessThanOrEqualTo(first.left));
-    // The bar's frame ends between the two, whole: only the tabs scroll.
-    final frame = tester.getRect(
-      find
-          .ancestor(
-            of: byLogId(ControllerTab.values.first.logId),
-            matching: find.byWidgetPredicate(
-              (w) =>
-                  w is Container &&
-                  w.decoration is BoxDecoration &&
-                  (w.decoration! as BoxDecoration).border != null,
-            ),
-          )
-          .first,
-    );
-    expect(frame.left, greaterThanOrEqualTo(name.right));
-    expect(frame.right, lessThanOrEqualTo(state.left));
-    await tester.ensureVisible(byLogId(ControllerTab.values.last.logId));
+    expect(name.right, lessThanOrEqualTo(panel.right));
+    expect(state.right, lessThanOrEqualTo(panel.right));
+    // The tabs scroll inside what the header leaves them, so the last one is
+    // reached by scrolling and then lies inside the panel.
+    await tester.ensureVisible(byLogId('controller.panel_settings'));
     await tester.pump();
-    final last = tester.getRect(byLogId(ControllerTab.values.last.logId));
-    expect(last.right, lessThanOrEqualTo(state.left));
+    for (final tab in ControllerTab.values) {
+      expect(byLogId('controller.panel_${tab.name}'), findsOneWidget);
+    }
+    final last = tester.getRect(byLogId('controller.panel_settings'));
+    expect(last.bottom, lessThanOrEqualTo(panel.bottom));
   });
 
-  testWidgets('a short name leaves the rest of the bar to the tabs', (
-    tester,
-  ) async {
+  testWidgets('a short name does not narrow the panel', (tester) async {
     await pumpController(
       tester,
       printers: [_printer(1, 'X1C', model: 'X1C', state: 'RUNNING')],
     );
-    tester.view.physicalSize = const Size(600, 320);
 
     await open(tester);
+    await openPanel(tester);
 
-    // The tabs do not fit, so the bar takes all the name leaves it: its frame
-    // starts where the name ends, not where the name's cap would.
-    final name = tester.getRect(find.text('X1C').first);
-    final frame = tester.getRect(
-      find
-          .ancestor(
-            of: byLogId(ControllerTab.values.first.logId),
-            matching: find.byWidgetPredicate(
-              (w) =>
-                  w is Container &&
-                  w.decoration is BoxDecoration &&
-                  (w.decoration! as BoxDecoration).border != null,
-            ),
-          )
-          .first,
-    );
-    final state = tester.getRect(find.text('RUNNING'));
-    final tabs = tester.state<ScrollableState>(
-      find
-          .ancestor(
-            of: byLogId(ControllerTab.values.first.logId),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    expect(
-      tabs.position.maxScrollExtent,
-      greaterThan(0),
-      reason: 'the case under test is tabs that overflow',
-    );
-    expect(frame.left - name.right, lessThan(DashSpace.lg));
-    // The gap before the state pill, and the pill's padding before its text.
-    expect(state.left - frame.right, lessThan(DashSpace.lg + DashSpace.sm));
+    // The width the tab names need, not the width of what the header says.
+    expect(tester.getRect(find.byType(ControllerRailPanel)).width, 252);
   });
 
   testWidgets('a printer the server no longer has says so, and can be left', (
@@ -354,6 +318,7 @@ void main() {
 
       await tester.tap(find.text('P1S Biuro'));
       await settle(tester);
+      await openPanel(tester);
 
       expect(find.byType(ControllerScreen), findsOneWidget);
       expect(find.text('P1S'), findsOneWidget, reason: 'its model');
@@ -383,6 +348,7 @@ void main() {
       await tester.tap(find.text('X1C Warsztat'));
       await settle(tester);
 
+      await openPanel(tester);
       await tester.tap(byLogId('controller.switch_printer'));
       await settle(tester);
       await tester.tap(find.text('P1S Biuro'));
@@ -396,7 +362,8 @@ void main() {
       ]);
       expect(awake.last, isTrue);
 
-      await tester.tap(byLogId('controller.exit'));
+      await openPanel(tester);
+      await tester.tap(byLogId('controller.panel_exit'));
       await settle(tester);
 
       expect(overlays, hasLength(1), reason: 'leaving gives them back');
@@ -413,14 +380,16 @@ void main() {
       await tester.tap(find.text('X1C Warsztat'));
       await settle(tester);
 
+      await openPanel(tester);
       await tester.tap(byLogId('controller.switch_printer'));
       await settle(tester);
       await tester.tap(find.text('P1S Biuro'));
       await settle(tester);
+      await openPanel(tester);
 
       expect(find.text('P1S'), findsOneWidget);
 
-      await tester.tap(byLogId('controller.exit'));
+      await tester.tap(byLogId('controller.panel_exit'));
       await settle(tester);
 
       expect(

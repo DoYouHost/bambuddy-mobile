@@ -99,9 +99,13 @@ void main() {
     await tester.pump();
   }
 
+  /// What scrolls the tab. A text field scrolls its own text, and the speed
+  /// select is one.
   Finder scrollables() => find.descendant(
     of: find.byType(ControllerOverview),
-    matching: find.byType(Scrollable),
+    matching: find.byWidgetPredicate(
+      (w) => w is Scrollable && w.restorationId != 'editable',
+    ),
   );
 
   for (final size in _sizes) {

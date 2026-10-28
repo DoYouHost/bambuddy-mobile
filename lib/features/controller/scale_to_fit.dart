@@ -31,6 +31,10 @@ double controllerIconSize(BuildContext context, double base) =>
 const controllerOverviewScrollHeight = 440.0;
 const controllerHeatScrollHeight = 440.0;
 
+/// Filament fits the emulator-sized screen at every size, and a shorter one at
+/// the largest, where its cards need this much.
+const controllerFilamentScrollHeight = 395.0;
+
 /// Scales [child] uniformly to fill the room it is given: the factor is the
 /// largest that keeps [minSize] inside the room (capped at [maxScale]), and
 /// [child] is laid out in the room divided by that factor, so it fills the

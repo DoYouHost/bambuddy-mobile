@@ -197,6 +197,7 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
               height: switch (_tab) {
                 ControllerTab.overview => controllerOverviewScrollHeight,
                 ControllerTab.heat => controllerHeatScrollHeight,
+                ControllerTab.filament => controllerFilamentScrollHeight,
                 _ => null,
               },
               child: switch (_tab) {

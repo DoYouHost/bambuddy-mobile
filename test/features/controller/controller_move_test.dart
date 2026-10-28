@@ -4,6 +4,7 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/printers/bed_jog.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/controller/controller_move.dart';
 import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart';
@@ -80,6 +81,38 @@ void main() {
     await tester.tap(byLogId(id).at(index));
     await tester.pump();
   }
+
+  group('the buttons\' colour', () {
+    /// The wash an enabled button is filled with, resolved from its style.
+    Color? wash(WidgetTester tester, String id) => tester
+        .widget<FilledButton>(
+          find.descendant(
+            of: byLogId(id),
+            matching: find.byWidgetPredicate((w) => w is FilledButton),
+          ),
+        )
+        .style!
+        .backgroundColor!
+        .resolve({});
+
+    testWidgets('come from the theme accent, not a colour of their own', (
+      tester,
+    ) async {
+      await pump(tester, _status());
+      final t = DashTokens.of(tester.element(find.byType(ControllerMove)));
+      final accent = t.accent.withValues(alpha: 0.22);
+
+      for (final id in [
+        'controller.jog_y_plus',
+        'controller.jog_z_up',
+        'controller.home',
+        'controller.jog_extrude',
+        'controller.jog_retract',
+      ]) {
+        expect(wash(tester, id), accent, reason: id);
+      }
+    });
+  });
 
   group('the X/Y pad', () {
     testWidgets('sends a relative jog of the step in the arrow\'s direction', (

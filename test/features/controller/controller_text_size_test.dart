@@ -10,6 +10,7 @@ import 'package:bambuddy_mobile/features/controller/controller_files.dart';
 import 'package:bambuddy_mobile/features/controller/controller_heat.dart';
 import 'package:bambuddy_mobile/features/controller/controller_overview.dart';
 import 'package:bambuddy_mobile/features/controller/controller_saver.dart';
+import 'package:bambuddy_mobile/features/controller/controller_rail.dart';
 import 'package:bambuddy_mobile/features/controller/controller_screen.dart';
 import 'package:bambuddy_mobile/features/controller/scale_to_fit.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
@@ -222,29 +223,28 @@ void main() {
     }
   });
 
-  testWidgets('tabs that do not fit scroll, and the last can be reached', (
+  testWidgets('rail tabs that do not fit scroll, and the last can be reached', (
     tester,
   ) async {
     await pump(
       tester,
       locale: const Locale('de'),
-      size: const Size(520, 360),
+      size: const Size(520, 300),
       textScale: 1.3,
       child: const ControllerScreen(printerId: 1),
       status: _status(_threeHeaters),
     );
 
-    final bar = find.descendant(
-      of: find.byType(ControllerScreen),
+    final rail = find.descendant(
+      of: find.byType(ControllerRail),
       matching: find.byWidgetPredicate(
-        (w) =>
-            w is SingleChildScrollView && w.scrollDirection == Axis.horizontal,
+        (w) => w is SingleChildScrollView && w.scrollDirection == Axis.vertical,
       ),
     );
-    expect(bar, findsOneWidget);
+    expect(rail, findsOneWidget);
     final position = tester
         .state<ScrollableState>(
-          find.descendant(of: bar, matching: find.byType(Scrollable)),
+          find.descendant(of: rail, matching: find.byType(Scrollable)),
         )
         .position;
     expect(position.maxScrollExtent, greaterThan(0), reason: 'does not fit');
@@ -257,6 +257,77 @@ void main() {
     expect(position.pixels, greaterThan(0));
     expect(tester.getSize(last), before);
     expect(tester.takeException(), isNull);
+  });
+
+  group('from a large text size', () {
+    Future<void> pumpScreen(
+      WidgetTester tester,
+      double textScale, {
+      ControllerTab? tab,
+    }) async {
+      await pump(
+        tester,
+        locale: const Locale('pl'),
+        size: const Size(832, 392),
+        textScale: textScale,
+        child: const ControllerScreen(printerId: 1),
+        status: _status(_threeHeaters),
+      );
+      if (tab != null) {
+        await tester.tap(byLogId(tab.logId));
+        await tester.pump(const Duration(milliseconds: 400));
+      }
+    }
+
+    /// The scroll view the screen puts round a tab, not the rail's.
+    Finder tabScroll(Type tab) => find.ancestor(
+      of: find.byType(tab),
+      matching: find.byType(SingleChildScrollView),
+    );
+
+    for (final (tab, type) in [
+      (ControllerTab.overview, ControllerOverview),
+      (ControllerTab.heat, ControllerHeat),
+    ]) {
+      testWidgets('the ${tab.name} tab scrolls, and only from there', (
+        tester,
+      ) async {
+        await pumpScreen(tester, 1.0, tab: tab);
+        expect(tabScroll(type), findsNothing, reason: 'it fits at 100%');
+
+        await pumpScreen(tester, 1.5, tab: tab);
+
+        expect(tabScroll(type), findsOneWidget);
+        final position = tester
+            .state<ScrollableState>(
+              find
+                  .descendant(
+                    of: tabScroll(type),
+                    matching: find.byType(Scrollable),
+                  )
+                  .first,
+            )
+            .position;
+        expect(position.maxScrollExtent, greaterThan(0));
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('icons grow with the text, to 150%, and fill their buttons', (
+      tester,
+    ) async {
+      double plusSize() => tester.getSize(find.byIcon(Icons.add).first).width;
+
+      await pumpScreen(tester, 1.0, tab: ControllerTab.heat);
+      expect(plusSize(), closeTo(24, 0.5));
+
+      await pumpScreen(tester, 1.5, tab: ControllerTab.heat);
+      expect(plusSize(), closeTo(36, 0.5));
+
+      // Past the cap: the icon stops, and the button's padding does not clip it.
+      await pumpScreen(tester, 2.0, tab: ControllerTab.heat);
+      expect(plusSize(), closeTo(36, 0.5));
+    });
   });
 
   for (final locale in AppLocalizations.supportedLocales) {
@@ -344,6 +415,10 @@ void main() {
             'a_rather_long_file_name_1.gcode.3mf',
             'raw_model_file.stl',
           ]) {
+            // At a large size the tiles are one to a row, so a file may lie
+            // below the fold.
+            await tester.ensureVisible(find.text(name));
+            await tester.pump();
             await tester.tap(find.text(name));
             await tester.pump();
             await tester.pump(const Duration(milliseconds: 400));

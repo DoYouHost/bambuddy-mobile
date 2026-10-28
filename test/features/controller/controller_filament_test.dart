@@ -85,6 +85,7 @@ void main() {
     Size size = _phone,
     String? serial,
     InventoryState? inventory,
+    bool reflows = false,
   }) async {
     useLogicalWindow(tester, size);
     commands = RecordingCommands();
@@ -93,11 +94,14 @@ void main() {
     final sp = await SharedPreferences.getInstance();
     await pumpPhone(
       tester,
-      const Scaffold(
+      Scaffold(
         body: Padding(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           // Scaled as the screen scales its body.
-          child: ScaleToFit(child: ControllerFilament(printerId: 1)),
+          child: ScaleToFit(
+            reflows: reflows,
+            child: const ControllerFilament(printerId: 1),
+          ),
         ),
       ),
       overrides: [
@@ -438,7 +442,17 @@ void main() {
     testWidgets('are off while printing and say why', (tester) async {
       await pump(tester, _status(state: 'RUNNING'));
 
-      expect(find.text(pl.amsActionsWhilePrinting), findsOneWidget);
+      // A lock on each button, and the reason on its tooltip.
+      expect(find.byTooltip(pl.amsActionsWhilePrinting), findsNWidgets(2));
+      for (final id in ['controller.load', 'controller.unload']) {
+        expect(
+          find.descendant(
+            of: byLogId(id),
+            matching: find.byIcon(Icons.lock_outline),
+          ),
+          findsOneWidget,
+        );
+      }
       await tester.tap(byLogId('controller.load'));
       await tester.tap(byLogId('controller.unload'));
       await settle(tester);
@@ -446,10 +460,32 @@ void main() {
       expect(commands.calls, isEmpty);
     });
 
+    testWidgets('take the theme accent, not a colour of their own', (
+      tester,
+    ) async {
+      await pump(tester, _status(state: 'PAUSE'));
+      final t = DashTokens.of(tester.element(find.byType(ControllerFilament)));
+
+      for (final id in ['controller.load', 'controller.unload']) {
+        final fill = tester
+            .widget<FilledButton>(
+              find.descendant(
+                of: byLogId(id),
+                matching: find.byWidgetPredicate((w) => w is FilledButton),
+              ),
+            )
+            .style!
+            .backgroundColor!
+            .resolve({});
+        expect(fill, t.accent.withValues(alpha: 0.22), reason: id);
+      }
+    });
+
     testWidgets('are on again while paused, for a runout', (tester) async {
       await pump(tester, _status(state: 'PAUSE'));
 
-      expect(find.text(pl.amsActionsWhilePrinting), findsNothing);
+      expect(find.byTooltip(pl.amsActionsWhilePrinting), findsNothing);
+      expect(find.byIcon(Icons.lock_outline), findsNothing);
       await tester.tap(byLogId('controller.load'));
       await settle(tester);
 
@@ -603,8 +639,9 @@ void main() {
     });
 
     testWidgets(
-      'name an external spool\'s side in a pill as wide as the name',
+      'mark an external spool\'s side with a letter, and tell a reader in words',
       (tester) async {
+        final handle = tester.ensureSemantics();
         await pump(
           tester,
           _status(
@@ -618,24 +655,21 @@ void main() {
         await tester.tap(byLogId('controller.filament_unit').last);
         await tester.pump();
 
-        final names = find.descendant(
-          of: slots(),
-          matching: find.byWidgetPredicate(
-            (w) =>
-                w is Text &&
-                (w.data == pl.extruderLeft || w.data == pl.extruderRight),
-          ),
-        );
-        expect(names, findsNWidgets(2));
-        for (var i = 0; i < 2; i++) {
+        // Drawn as one letter in a round mark, which does not cover the spool.
+        for (final mark in ['L', 'R']) {
+          final text = find.descendant(of: slots(), matching: find.text(mark));
+          expect(text, findsOneWidget, reason: mark);
           final pill = find
-              .ancestor(of: names.at(i), matching: find.byType(Container))
+              .ancestor(of: text, matching: find.byType(Container))
               .first;
-          expect(
-            tester.getSize(pill).width,
-            tester.getSize(names.at(i)).width + 2 * DashSpace.md,
-          );
+          expect(tester.getSize(pill).width, lessThan(2 * DashSpace.xxl));
         }
+        expect(find.text(pl.extruderLeft), findsNothing);
+        expect(find.text(pl.extruderRight), findsNothing);
+        // Said as the whole word.
+        expect(find.bySemanticsLabel(RegExp(pl.extruderLeft)), findsOneWidget);
+        expect(find.bySemanticsLabel(RegExp(pl.extruderRight)), findsOneWidget);
+        handle.dispose();
       },
     );
 
@@ -678,12 +712,14 @@ void main() {
               ),
             ),
         ];
-        // One size on every card, empty one included, and never smaller than
-        // 84 dp, which reads from a stand.
-        for (final spool in spools) {
+        // One size on the cards that say the same, and never smaller than 84 dp,
+        // which reads from a stand. The empty slot has no facts line, so its
+        // spool takes that line: the card is filled to its bottom edge.
+        for (final spool in spools.take(3)) {
           expect(spool.width, closeTo(spools.first.width, 0.5));
           expect(spool.height, closeTo(spools.first.height, 0.5));
         }
+        expect(spools.last.height, greaterThan(spools.first.height));
         expect(spools.first.height, greaterThanOrEqualTo(84));
         // Nothing hangs in a corner of the card: the last line sits within a
         // small margin of its bottom.
@@ -740,5 +776,147 @@ void main() {
         expect(tester.takeException(), isNull);
       });
     }
+
+    group('a card at a large text size', () {
+      /// The facts line of every slot card: the one with the percentage.
+      Iterable<String> factLines(WidgetTester tester) => find
+          .descendant(
+            of: slots(),
+            matching: find.byWidgetPredicate(
+              (w) => w is Text && (w.data ?? '').contains('%'),
+            ),
+          )
+          .evaluate()
+          .map((e) => (e.widget as Text).data!);
+
+      Future<void> pumpLinked(WidgetTester tester, double scale, Size size) {
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        return pump(
+          tester,
+          _status(ams: [_unit(0)], trayNow: 1),
+          size: size,
+          serial: _serial,
+          // As the screen lays it out: the box does not grow with the text.
+          reflows: true,
+          inventory: InventoryState(
+            linkedTags: {
+              for (var slot = 0; slot < 4; slot++)
+                fallbackSpoolTag(_serial, 0, slot)!: const LinkedSpool(
+                  id: 7,
+                  remaining: 880,
+                  filament: 1000,
+                ),
+            },
+          ),
+        );
+      }
+
+      Future<void> pumpLarge(
+        WidgetTester tester,
+        PrinterStatus status, {
+        int? nozzleCount,
+      }) {
+        tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        return pump(
+          tester,
+          status,
+          size: const Size(891, 450),
+          reflows: true,
+          nozzleCount: nozzleCount,
+        );
+      }
+
+      testWidgets('drop the unit\'s header, the row of units says it', (
+        tester,
+      ) async {
+        await pumpLarge(tester, _status(ams: [_unit(0), _unit(1)]));
+
+        // Once, in the row; at the normal size also in the header.
+        expect(find.text('AMS-A'), findsOneWidget);
+      });
+
+      testWidgets('keep Drying, in the row with the slot\'s buttons', (
+        tester,
+      ) async {
+        await pumpLarge(
+          tester,
+          _status(ams: [_unit(0, moduleType: 'n3f')], drying: true),
+        );
+
+        final dry = byLogId('controller.dry');
+        expect(dry, findsOneWidget);
+        expect(
+          tester.getRect(dry).top,
+          closeTo(tester.getRect(byLogId('controller.load')).top, 0.5),
+        );
+      });
+
+      testWidgets('mark which head a unit feeds on the unit itself', (
+        tester,
+      ) async {
+        await pumpLarge(
+          tester,
+          _status(ams: [_unit(0), _unit(1)], sides: {0: 1, 1: 0}),
+          nozzleCount: 2,
+        );
+
+        expect(find.text('L'), findsOneWidget);
+        expect(find.text('R'), findsOneWidget);
+      });
+
+      testWidgets('keeps the percentage and the grams on one line at 150%', (
+        tester,
+      ) async {
+        await pumpLinked(tester, 1.5, _phone);
+
+        final lines = factLines(tester).toList();
+        expect(lines, isNotEmpty);
+        for (final line in lines) {
+          expect(line, isNot(contains('\n')));
+          expect(line, contains(' · '));
+        }
+      });
+
+      testWidgets('fills each card to its bottom edge, whatever it lacks', (
+        tester,
+      ) async {
+        await pumpLinked(tester, 2.0, const Size(891, 450));
+
+        for (var i = 0; i < 4; i++) {
+          final card = tester.getRect(slots().at(i));
+          // The lowest thing in the card: the facts, or the name of an empty
+          // slot. No blank line is kept under it.
+          var lowest = 0.0;
+          for (final e
+              in find
+                  .descendant(of: slots().at(i), matching: find.byType(Text))
+                  .evaluate()) {
+            final text = (e.widget as Text).data ?? '';
+            if (text.replaceAll('\u00A0', '').trim().isEmpty) continue;
+            final bottom = tester.getRect(find.byWidget(e.widget)).bottom;
+            if (bottom > lowest) lowest = bottom;
+          }
+          expect(
+            card.bottom - lowest,
+            lessThanOrEqualTo(DashSpace.lg),
+            reason: 'card $i',
+          );
+        }
+      });
+
+      testWidgets('puts them on two where the fullest spool would not fit', (
+        tester,
+      ) async {
+        await pumpLinked(tester, 2.0, const Size(891, 450));
+
+        final lines = factLines(tester).toList();
+        expect(lines, isNotEmpty);
+        for (final line in lines) {
+          expect(line, contains('\n'));
+        }
+      });
+    });
   });
 }

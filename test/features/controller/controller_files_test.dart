@@ -255,7 +255,13 @@ void main() {
         tabs.indexOf(ControllerTab.settings),
         tabs.indexOf(ControllerTab.prints) + 1,
       );
-      expect(find.text(pl.controllerTabPrints), findsOneWidget);
+      // On the rail the tabs run down in that order.
+      double top(ControllerTab tab) => tester.getRect(byLogId(tab.logId)).top;
+      expect(
+        top(ControllerTab.prints),
+        greaterThan(top(ControllerTab.filament)),
+      );
+      expect(top(ControllerTab.prints), lessThan(top(ControllerTab.settings)));
       expect(find.byType(ControllerFiles), findsNothing);
 
       await openFiles(tester);
