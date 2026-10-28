@@ -93,6 +93,25 @@ void main() {
       expect(commands.calls, ['xyJog:1:0.0:10.0', 'xyJog:1:-10.0:0.0']);
     });
 
+    testWidgets('each arrow names its axis and sign for a screen reader', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pump(tester, _status());
+
+      // Plus and minus, not left and right: which way the toolhead goes is the
+      // printer's business.
+      for (final label in [
+        pl.ctrlMoveAxisPlus('Y'),
+        pl.ctrlMoveAxisMinus('Y'),
+        pl.ctrlMoveAxisPlus('X'),
+        pl.ctrlMoveAxisMinus('X'),
+      ]) {
+        expect(find.bySemanticsLabel(label), findsOneWidget, reason: label);
+      }
+      handle.dispose();
+    });
+
     testWidgets('follows the step that was chosen', (tester) async {
       await pump(tester, _status());
 

@@ -579,6 +579,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String ctrlMoveAxisPlus(String axis) {
+    return 'Move $axis plus';
+  }
+
+  @override
+  String ctrlMoveAxisMinus(String axis) {
+    return 'Move $axis minus';
+  }
+
+  @override
   String get ctrlPause => 'Pause';
 
   @override

@@ -585,6 +585,16 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String ctrlMoveAxisPlus(String axis) {
+    return 'Ruch $axis plus';
+  }
+
+  @override
+  String ctrlMoveAxisMinus(String axis) {
+    return 'Ruch $axis minus';
+  }
+
+  @override
   String get ctrlPause => 'Pauza';
 
   @override

@@ -366,14 +366,17 @@ class _CategoryTile extends StatelessWidget {
                     color: count > 0 ? t.accentGreenInk : t.textTertiary,
                   ),
                 ),
-                Checkbox(
-                  value: all,
-                  // Neither fully on nor fully off: the header still selects
-                  // everything, and shows that some of it already is.
-                  tristate: false,
-                  onChanged: enabled
-                      ? (v) => onToggleAll(category, v ?? false)
-                      : null,
+                Semantics(
+                  label: category.name,
+                  child: Checkbox(
+                    value: all,
+                    // Neither fully on nor fully off: the header still selects
+                    // everything, and shows that some of it already is.
+                    tristate: false,
+                    onChanged: enabled
+                        ? (v) => onToggleAll(category, v ?? false)
+                        : null,
+                  ),
                 ).tagged('group_form.category_all'),
               ],
             ),

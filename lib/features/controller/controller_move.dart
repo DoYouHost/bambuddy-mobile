@@ -148,23 +148,28 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
   /// arrows in the cross and the step in use, for feedback, in the middle.
   Widget _xyPad(bool enabled) {
     final t = DashTokens.of(context);
-    Widget arrow(String id, IconData icon, {double x = 0, double y = 0}) =>
-        Expanded(
-          child: _JogButton(
-            id: 'controller.jog_$id',
-            icon: icon,
-            tone: t.accentBlue,
-            width: double.infinity,
-            height: double.infinity,
-            busy: _spin == id,
-            onTap: enabled
-                ? () => _send(
-                    id,
-                    () => _notifier.xyJog(widget.printerId, x: x, y: y),
-                  )
-                : null,
-          ),
-        );
+    final l10n = AppLocalizations.of(context);
+    Widget arrow(
+      String id,
+      IconData icon,
+      String description, {
+      double x = 0,
+      double y = 0,
+    }) => Expanded(
+      child: _JogButton(
+        id: 'controller.jog_$id',
+        icon: icon,
+        description: description,
+        tone: t.accentBlue,
+        width: double.infinity,
+        height: double.infinity,
+        busy: _spin == id,
+        onTap: enabled
+            ? () =>
+                  _send(id, () => _notifier.xyJog(widget.printerId, x: x, y: y))
+            : null,
+      ),
+    );
     const gap = SizedBox(width: DashSpace.sm, height: DashSpace.sm);
     const blank = Expanded(child: SizedBox.shrink());
     final step = _step.toDouble();
@@ -178,12 +183,22 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
       children: [
         row([
           blank,
-          arrow('y_plus', Icons.arrow_upward_rounded, y: step),
+          arrow(
+            'y_plus',
+            Icons.arrow_upward_rounded,
+            l10n.ctrlMoveAxisPlus('Y'),
+            y: step,
+          ),
           blank,
         ]),
         gap,
         row([
-          arrow('x_minus', Icons.arrow_back_rounded, x: -step),
+          arrow(
+            'x_minus',
+            Icons.arrow_back_rounded,
+            l10n.ctrlMoveAxisMinus('X'),
+            x: -step,
+          ),
           Expanded(
             child: Center(
               child: Text(
@@ -192,12 +207,22 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
               ),
             ),
           ),
-          arrow('x_plus', Icons.arrow_forward_rounded, x: step),
+          arrow(
+            'x_plus',
+            Icons.arrow_forward_rounded,
+            l10n.ctrlMoveAxisPlus('X'),
+            x: step,
+          ),
         ]),
         gap,
         row([
           blank,
-          arrow('y_minus', Icons.arrow_downward_rounded, y: -step),
+          arrow(
+            'y_minus',
+            Icons.arrow_downward_rounded,
+            l10n.ctrlMoveAxisMinus('Y'),
+            y: -step,
+          ),
           blank,
         ]),
       ],
@@ -420,6 +445,7 @@ class _JogButton extends StatelessWidget {
     required this.busy,
     required this.onTap,
     this.label,
+    this.description,
     this.width,
     this.height,
     this.tone,
@@ -431,6 +457,10 @@ class _JogButton extends StatelessWidget {
   final String id;
   final IconData icon;
   final String? label;
+
+  /// What an icon alone does, for a screen reader: a `FilledButton` takes its
+  /// name from its child, not from a `Tooltip` around it.
+  final String? description;
   final bool busy;
   final VoidCallback? onTap;
 
@@ -461,7 +491,7 @@ class _JogButton extends StatelessWidget {
         child: busy
             ? const DashSpinner()
             : label == null
-            ? Icon(icon, size: 32)
+            ? Icon(icon, size: 32, semanticLabel: description)
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

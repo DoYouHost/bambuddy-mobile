@@ -203,6 +203,22 @@
       }
     }
   },
+  "ctrlMoveAxisPlus": "Ruch {axis} plus",
+  "@ctrlMoveAxisPlus": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
+      }
+    }
+  },
+  "ctrlMoveAxisMinus": "Ruch {axis} minus",
+  "@ctrlMoveAxisMinus": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
+      }
+    }
+  },
   "ctrlPause": "Pauza",
   "ctrlResume": "Wznów",
   "ctrlStop": "Zatrzymaj",

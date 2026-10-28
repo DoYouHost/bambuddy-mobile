@@ -209,6 +209,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
 
   /// Directional X/Y pad. The center cell shows the active step for feedback.
   Widget _buildXyPad(DashTokens t, bool locked) {
+    final l10n = AppLocalizations.of(context);
     Widget spacer() => const SizedBox(width: 56, height: 56);
 
     Widget center() => SizedBox(
@@ -231,6 +232,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             spacer(),
             _JogButton(
               icon: Icons.keyboard_arrow_up,
+              label: l10n.ctrlMoveAxisPlus('Y'),
               busy: _spin == 'y+',
               enabled: !locked,
               onTap: () => _send(
@@ -247,6 +249,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
           children: [
             _JogButton(
               icon: Icons.keyboard_arrow_left,
+              label: l10n.ctrlMoveAxisMinus('X'),
               busy: _spin == 'x-',
               enabled: !locked,
               onTap: () => _send(
@@ -259,6 +262,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             const SizedBox(width: DashSpace.sm),
             _JogButton(
               icon: Icons.keyboard_arrow_right,
+              label: l10n.ctrlMoveAxisPlus('X'),
               busy: _spin == 'x+',
               enabled: !locked,
               onTap: () => _send(
@@ -275,6 +279,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             spacer(),
             _JogButton(
               icon: Icons.keyboard_arrow_down,
+              label: l10n.ctrlMoveAxisMinus('Y'),
               busy: _spin == 'y-',
               enabled: !locked,
               onTap: () => _send(
@@ -455,12 +460,16 @@ class _StepSelector extends StatelessWidget {
 class _JogButton extends StatelessWidget {
   const _JogButton({
     required this.icon,
+    required this.label,
     required this.busy,
     required this.enabled,
     required this.onTap,
   });
 
   final IconData icon;
+
+  /// What the arrow does, for a screen reader and for a long press.
+  final String label;
   final bool busy;
   final bool enabled;
   final VoidCallback onTap;
@@ -469,21 +478,24 @@ class _JogButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final fg = enabled ? t.textPrimary : t.textTertiary;
-    return Material(
-      color: t.subCard,
-      borderRadius: BorderRadius.circular(14),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: t.subCardBorder),
+    return Tooltip(
+      message: label,
+      child: Material(
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: t.subCardBorder),
+            ),
+            alignment: Alignment.center,
+            child: busy ? const DashSpinner() : Icon(icon, size: 26, color: fg),
           ),
-          alignment: Alignment.center,
-          child: busy ? const DashSpinner() : Icon(icon, size: 26, color: fg),
         ),
       ),
     );

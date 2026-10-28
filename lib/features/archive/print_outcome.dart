@@ -216,6 +216,7 @@ class _ArchiveOutcomeRowState extends ConsumerState<ArchiveOutcomeRow> {
     final button = chosen
         ? IconButton.filled(
             onPressed: onPressed,
+            tooltip: label,
             style: IconButton.styleFrom(
               backgroundColor: fill,
               foregroundColor: good ? t.onAccent : t.onDanger,
@@ -226,6 +227,7 @@ class _ArchiveOutcomeRowState extends ConsumerState<ArchiveOutcomeRow> {
           )
         : IconButton.outlined(
             onPressed: onPressed,
+            tooltip: label,
             style: IconButton.styleFrom(
               foregroundColor: ink,
               side: BorderSide(color: fill.withValues(alpha: 0.5)),
@@ -233,13 +235,9 @@ class _ArchiveOutcomeRowState extends ConsumerState<ArchiveOutcomeRow> {
             icon: Icon(icon),
           );
     return Semantics(
-      label: label,
       selected: chosen,
-      child: Tooltip(
-        message: label,
-        child: button.tagged(
-          good ? 'archive.verdict_good' : 'archive.verdict_reject',
-        ),
+      child: button.tagged(
+        good ? 'archive.verdict_good' : 'archive.verdict_reject',
       ),
     );
   }

@@ -1154,6 +1154,18 @@ abstract class AppLocalizations {
   /// **'{d} mm'**
   String ctrlMoveMm(int d);
 
+  /// No description provided for @ctrlMoveAxisPlus.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {axis} plus'**
+  String ctrlMoveAxisPlus(String axis);
+
+  /// No description provided for @ctrlMoveAxisMinus.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {axis} minus'**
+  String ctrlMoveAxisMinus(String axis);
+
   /// No description provided for @ctrlPause.
   ///
   /// In en, this message translates to:

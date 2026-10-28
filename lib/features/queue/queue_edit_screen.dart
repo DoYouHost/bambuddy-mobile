@@ -1876,35 +1876,39 @@ class _CheckRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final enabled = onChanged != null;
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: enabled ? () => onChanged!(!value) : null,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-        child: Row(
-          children: [
-            Checkbox(
-              value: value,
-              activeColor: t.accentGreen,
-              onChanged: onChanged == null
-                  ? null
-                  : (v) => onChanged!(v ?? false),
-            ),
-            Icon(
-              icon,
-              size: 18,
-              color: enabled ? t.textSecondary : t.textTertiary,
-            ),
-            const SizedBox(width: DashSpace.md),
-            Expanded(
-              child: Text(
-                label,
-                style: enabled
-                    ? t.body
-                    : t.body.copyWith(color: t.textTertiary),
+    // One node for the row: the box beside its text is otherwise a tappable
+    // node of its own with no label.
+    return MergeSemantics(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: enabled ? () => onChanged!(!value) : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+          child: Row(
+            children: [
+              Checkbox(
+                value: value,
+                activeColor: t.accentGreen,
+                onChanged: onChanged == null
+                    ? null
+                    : (v) => onChanged!(v ?? false),
               ),
-            ),
-          ],
+              Icon(
+                icon,
+                size: 18,
+                color: enabled ? t.textSecondary : t.textTertiary,
+              ),
+              const SizedBox(width: DashSpace.md),
+              Expanded(
+                child: Text(
+                  label,
+                  style: enabled
+                      ? t.body
+                      : t.body.copyWith(color: t.textTertiary),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     ).tagged(id);

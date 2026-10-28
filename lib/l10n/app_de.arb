@@ -234,6 +234,22 @@
       }
     }
   },
+  "ctrlMoveAxisPlus": "{axis} in Plus-Richtung bewegen",
+  "@ctrlMoveAxisPlus": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
+      }
+    }
+  },
+  "ctrlMoveAxisMinus": "{axis} in Minus-Richtung bewegen",
+  "@ctrlMoveAxisMinus": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
+      }
+    }
+  },
   "ctrlPause": "Pause",
   "ctrlResume": "Fortsetzen",
   "ctrlStop": "Stoppen",

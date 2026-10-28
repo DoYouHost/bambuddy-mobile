@@ -1096,12 +1096,15 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                 when req.slotId > 0)
               Row(
                 children: [
-                  Checkbox(
-                    value: _force[req.slotId] ?? false,
-                    onChanged: (v) {
-                      setState(() => _force[req.slotId] = v ?? false);
-                      onForce(req.slotId, v ?? false);
-                    },
+                  Semantics(
+                    label: l10n.queueEditForceColorMatch,
+                    child: Checkbox(
+                      value: _force[req.slotId] ?? false,
+                      onChanged: (v) {
+                        setState(() => _force[req.slotId] = v ?? false);
+                        onForce(req.slotId, v ?? false);
+                      },
+                    ),
                   ).tagged('queue_mapping.force_color'),
                   const Icon(Icons.palette_outlined, size: 16),
                   const SizedBox(width: DashSpace.xs),
