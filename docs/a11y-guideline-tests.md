@@ -138,6 +138,15 @@ verified.
   `logTag` / `.tagged`; outside it the tag's own semantics node takes the tap and
   stays unlabeled. The tooltip text is the icon key or the colour code; real names
   are new copy in five languages and wait for the maintainer.
+- **Where a tappable node gets its label from** (found fixing 1500 findings; a test
+  that fails on size and label counts once, so check both before counting):
+  an `IconButton` takes its `tooltip:`; an icon-only `FilledButton` takes only
+  `Icon(semanticLabel:)` (a `Tooltip` around it, inside or outside `logTag`, is not
+  merged into the button's node); a `Switch` or checkbox beside a `Text` needs
+  `Semantics(label:)` with the same string; a `PickerTile` or `InkWell` takes a
+  `Tooltip` **inside** `logTag`. Use strings that already exist
+  (`MaterialLocalizations.clearButtonTooltip`, the visible label); a new string is the
+  maintainer's call.
 - Controller at large text: no scrolling and no smaller captions. The two overflows
   were fixed where the layout was rigid: the job card's percentage keeps its design
   size at any text size (`textScaler.clamp(maxScaleFactor: 1)`, it is the biggest
@@ -147,21 +156,21 @@ verified.
 
 ## State (2026-10-28, second machine)
 
-Failing tests in `test/a11y`: 1576 of 6765, from 1843 at the start of the day (2478 at
-the start of the work); 545 s wall clock for the whole suite on the desktop. 267 went
-since the morning: the pickers and the controller (213), then the test-side groups
-(54: three demo-request timers, the queue's printer picker and rack positions, the
-finance menus, the print log, the spool form, a queue-settings note) and nothing new
-fails. Overflow findings are gone everywhere except the
-`material_ui` `SnackBar` (2 tests, not our code) and the "common, selection controls"
-test row (8 tests, a right-hand overflow of 13-77 dp inside the test's own fixture at
-`common_a11y_test.dart:603`, to check before calling it a test bug). Contrast findings in the output: 0;
-the two `genuine` rows of the report are the `65°` fixture (see Running it), nothing
-to fix.
+Failing tests in `test/a11y`: 1368 of 6765, from 1843 at the start of the day (2478 at
+the start of the work); 533 s wall clock for the whole suite on the desktop. Nothing
+new fails in any of the last three runs. What went since the morning: the pickers and
+the controller overflows (213), the test-side groups (54), then the labels (208: the
+slicer's option switch, the search field's clear button, the controller's icon
+buttons). Overflow findings are gone everywhere except the `material_ui` `SnackBar`
+(2 tests, not our code) and the "common, selection controls" test row (8 tests, a
+right-hand overflow of 13-77 dp inside the test's own fixture at
+`common_a11y_test.dart:603`, to check before calling it a test bug). Contrast findings
+in the output: 0; the two `genuine` rows of the report are the `65°` fixture (see
+Running it), nothing to fix.
 
-Left, by file: controller 410, queue 192, dashboard 171, files 168, slicer 128,
-inventory 128, archive 124, locations 56, dashboard sheets 48, common 41, tour 35,
-admin 31 (tap targets and missing labels, in pairs wherever a control is both).
+Left, by file: controller 402, queue 176, files 168, dashboard 155, archive 116,
+inventory 109, locations 48, tour 35, common 33, admin 31, dashboard sheets 24,
+projects 24 (tap targets and missing labels, in pairs wherever a control is both).
 
 ## Open, in this order
 
