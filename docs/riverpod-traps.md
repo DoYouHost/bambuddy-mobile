@@ -139,9 +139,11 @@ Two neighbouring traps:
 - **`notifier.state` is not readable from outside** (`@protected`,
   `@visibleForTesting`; the analyzer reports it). Read live state with
   `container.read(provider)`, not through a notifier you kept.
-- **A kept `autoDispose` notifier moves the crash, it does not remove it.**
-  `queueProvider` is `autoDispose` and survives a row vanishing only because the
-  tab badge in `RootScaffold` watches it.
+- **A kept `autoDispose` notifier moves the crash, it does not remove it.** An
+  `autoDispose` notifier that only a watcher keeps alive survives a row vanishing
+  exactly as long as that watcher does. `queueProvider` is not one: it is a plain
+  `AsyncNotifierProvider` ([queue_providers.dart](../lib/features/queue/queue_providers.dart)),
+  which the tab badge in `RootScaffold` also watches.
 
 The regression test keeps the `ProviderScope` stable (the app's container never
 goes away) and removes only the widget; anything else tests something different.
