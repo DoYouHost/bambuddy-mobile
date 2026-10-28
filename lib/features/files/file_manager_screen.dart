@@ -146,6 +146,10 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
             : logTag(
                 'files.create',
                 FloatingActionButton(
+                  // The sheet offers no upload in an external read-only folder.
+                  tooltip: state?.currentFolder?.externalReadonly == true
+                      ? l10n.fmNewFolder
+                      : l10n.fmAddFiles,
                   backgroundColor: t.accentGreen,
                   foregroundColor: t.onAccent,
                   onPressed: state == null
@@ -270,6 +274,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         'files.selection_clear',
         IconButton(
           icon: const Icon(Icons.close),
+          tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
           onPressed: notifier.clearSelection,
         ),
       ),

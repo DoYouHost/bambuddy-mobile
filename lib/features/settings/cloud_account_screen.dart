@@ -274,6 +274,9 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                     ).copyWith(
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
+                        tooltip: _obscure
+                            ? l10n.cloudShowPassword
+                            : l10n.cloudHidePassword,
                         icon: Icon(
                           _obscure ? Icons.visibility : Icons.visibility_off,
                           color: t.textTertiary,

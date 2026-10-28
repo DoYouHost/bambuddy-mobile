@@ -45,6 +45,8 @@
   "addPrinterIp": "Dirección IP",
   "addPrinterSerial": "Número de serie",
   "addPrinterAccessCode": "Código de acceso",
+  "addPrinterRevealAccessCode": "Mostrar código de acceso",
+  "addPrinterHideAccessCode": "Ocultar código de acceso",
   "addPrinterModel": "Modelo",
   "addPrinterModelOptional": "Opcional",
   "addPrinterModelNone": "Sin definir",
@@ -234,7 +236,7 @@
       }
     }
   },
-  "ctrlMoveAxisPlus": "Mover {axis} más",
+  "ctrlMoveAxisPlus": "Mover {axis}, sentido positivo",
   "@ctrlMoveAxisPlus": {
     "placeholders": {
       "axis": {
@@ -242,7 +244,7 @@
       }
     }
   },
-  "ctrlMoveAxisMinus": "Mover {axis} menos",
+  "ctrlMoveAxisMinus": "Mover {axis}, sentido negativo",
   "@ctrlMoveAxisMinus": {
     "placeholders": {
       "axis": {
@@ -2208,6 +2210,7 @@
   },
   "fmVariantsGone": "Este grupo ya no existe",
   "fmUpload": "Subir archivo",
+  "fmAddFiles": "Añadir archivos",
   "fmUploading": "Subiendo…",
   "fmUploaded": "Archivo subido: {name}",
   "@fmUploaded": {
@@ -2426,6 +2429,8 @@
   "cloudCredsNote": "Inicia sesión con tu cuenta de Bambu Lab. Estas credenciales se utilizan únicamente para descargar modelos de MakerWorld.",
   "cloudEmail": "Correo electrónico",
   "cloudPassword": "Contraseña",
+  "cloudShowPassword": "Mostrar contraseña",
+  "cloudHidePassword": "Ocultar contraseña",
   "cloudRegionGlobal": "Global",
   "cloudRegionChina": "China",
   "cloudSignIn": "Iniciar sesión",

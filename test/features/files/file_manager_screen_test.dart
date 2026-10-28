@@ -1110,6 +1110,9 @@ void main() {
       tester,
     ) async {
       await pumpAt(tester, folderId: 3);
+      // The button says what it does here: it cannot add files.
+      expect(find.byTooltip(pl.fmNewFolder), findsOneWidget);
+      expect(find.byTooltip(pl.fmAddFiles), findsNothing);
       await tester.tap(byLogId('files.create'));
       await tester.pumpAndSettle();
       expect(byLogId('files.new_folder'), findsOneWidget);
@@ -1119,6 +1122,7 @@ void main() {
     testWidgets('a writable folder keeps the add button', (tester) async {
       await pumpAt(tester, folderId: 1);
       expect(byLogId('files.create'), findsOneWidget);
+      expect(find.byTooltip(pl.fmAddFiles), findsOneWidget);
     });
   });
 }

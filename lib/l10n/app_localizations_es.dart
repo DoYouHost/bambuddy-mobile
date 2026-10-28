@@ -133,6 +133,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addPrinterAccessCode => 'Código de acceso';
 
   @override
+  String get addPrinterRevealAccessCode => 'Mostrar código de acceso';
+
+  @override
+  String get addPrinterHideAccessCode => 'Ocultar código de acceso';
+
+  @override
   String get addPrinterModel => 'Modelo';
 
   @override
@@ -592,12 +598,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String ctrlMoveAxisPlus(String axis) {
-    return 'Mover $axis más';
+    return 'Mover $axis, sentido positivo';
   }
 
   @override
   String ctrlMoveAxisMinus(String axis) {
-    return 'Mover $axis menos';
+    return 'Mover $axis, sentido negativo';
   }
 
   @override
@@ -4086,6 +4092,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get fmUpload => 'Subir archivo';
 
   @override
+  String get fmAddFiles => 'Añadir archivos';
+
+  @override
   String get fmUploading => 'Subiendo…';
 
   @override
@@ -4577,6 +4586,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get cloudPassword => 'Contraseña';
+
+  @override
+  String get cloudShowPassword => 'Mostrar contraseña';
+
+  @override
+  String get cloudHidePassword => 'Ocultar contraseña';
 
   @override
   String get cloudRegionGlobal => 'Global';

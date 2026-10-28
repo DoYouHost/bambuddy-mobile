@@ -213,6 +213,9 @@ class _ArchiveOutcomeRowState extends ConsumerState<ArchiveOutcomeRow> {
     };
     final label = good ? l10n.outcomeGood : l10n.outcomeReject;
     final onPressed = writable && !_saving ? () => _choose(choice) : null;
+    // The state goes inside the button: a `Semantics` around an `IconButton` is
+    // sealed off from its node, which is the one a screen reader focuses.
+    final mark = Semantics(selected: chosen, child: Icon(icon));
     final button = chosen
         ? IconButton.filled(
             onPressed: onPressed,
@@ -223,7 +226,7 @@ class _ArchiveOutcomeRowState extends ConsumerState<ArchiveOutcomeRow> {
               disabledBackgroundColor: fill.withValues(alpha: 0.5),
               disabledForegroundColor: good ? t.onAccent : t.onDanger,
             ),
-            icon: Icon(icon),
+            icon: mark,
           )
         : IconButton.outlined(
             onPressed: onPressed,
@@ -232,13 +235,10 @@ class _ArchiveOutcomeRowState extends ConsumerState<ArchiveOutcomeRow> {
               foregroundColor: ink,
               side: BorderSide(color: fill.withValues(alpha: 0.5)),
             ),
-            icon: Icon(icon),
+            icon: mark,
           );
-    return Semantics(
-      selected: chosen,
-      child: button.tagged(
-        good ? 'archive.verdict_good' : 'archive.verdict_reject',
-      ),
+    return button.tagged(
+      good ? 'archive.verdict_good' : 'archive.verdict_reject',
     );
   }
 

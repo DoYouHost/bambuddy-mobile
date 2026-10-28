@@ -472,6 +472,9 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                       hint: _editing ? l10n.editPrinterAccessCodeKeep : null,
                       validator: _editing ? null : required,
                       suffixIcon: IconButton(
+                        tooltip: _obscureAccessCode
+                            ? l10n.addPrinterRevealAccessCode
+                            : l10n.addPrinterHideAccessCode,
                         onPressed: () => setState(
                           () => _obscureAccessCode = !_obscureAccessCode,
                         ),

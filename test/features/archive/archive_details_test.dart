@@ -1,3 +1,4 @@
+import 'dart:ui' show Tristate;
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
@@ -323,6 +324,25 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repo.sent.single.verdict, isNull);
+    });
+
+    testWidgets('the chosen thumb says it is selected, to a screen reader', (
+      tester,
+    ) async {
+      // A `Semantics` around an `IconButton` never reaches its node, so the state
+      // went unannounced until it moved inside the button.
+      final handle = tester.ensureSemantics();
+      await open(tester, testArchive(userVerdict: PrintVerdict.good));
+
+      Tristate selected(String label) => tester
+          .getSemantics(thumb(label))
+          .getSemanticsData()
+          .flagsCollection
+          .isSelected;
+
+      expect(selected(pl.outcomeGood), Tristate.isTrue);
+      expect(selected(pl.outcomeReject), Tristate.isFalse);
+      handle.dispose();
     });
 
     testWidgets('a thumb down records the reject and asks why', (tester) async {

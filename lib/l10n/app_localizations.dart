@@ -332,6 +332,18 @@ abstract class AppLocalizations {
   /// **'Access code'**
   String get addPrinterAccessCode;
 
+  /// No description provided for @addPrinterRevealAccessCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Show access code'**
+  String get addPrinterRevealAccessCode;
+
+  /// No description provided for @addPrinterHideAccessCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide access code'**
+  String get addPrinterHideAccessCode;
+
   /// No description provided for @addPrinterModel.
   ///
   /// In en, this message translates to:
@@ -1157,13 +1169,13 @@ abstract class AppLocalizations {
   /// No description provided for @ctrlMoveAxisPlus.
   ///
   /// In en, this message translates to:
-  /// **'Move {axis} plus'**
+  /// **'Move {axis}, positive direction'**
   String ctrlMoveAxisPlus(String axis);
 
   /// No description provided for @ctrlMoveAxisMinus.
   ///
   /// In en, this message translates to:
-  /// **'Move {axis} minus'**
+  /// **'Move {axis}, negative direction'**
   String ctrlMoveAxisMinus(String axis);
 
   /// No description provided for @ctrlPause.
@@ -6698,6 +6710,12 @@ abstract class AppLocalizations {
   /// **'Upload file'**
   String get fmUpload;
 
+  /// No description provided for @fmAddFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Add files'**
+  String get fmAddFiles;
+
   /// No description provided for @fmUploading.
   ///
   /// In en, this message translates to:
@@ -7483,6 +7501,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Password'**
   String get cloudPassword;
+
+  /// No description provided for @cloudShowPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get cloudShowPassword;
+
+  /// No description provided for @cloudHidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get cloudHidePassword;
 
   /// No description provided for @cloudRegionGlobal.
   ///
