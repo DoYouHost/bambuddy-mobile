@@ -217,4 +217,36 @@ void main() {
       handle.dispose();
     });
   });
+
+  testWidgets('a11yTap taps a control the scroll has moved', (tester) async {
+    useLogicalWindow(tester, const Size(411, 800));
+    var taps = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 400,
+            // A list: a child's place is settled when the list is laid out, so after
+            // a scroll the finder answers with the old one until the next frame.
+            // The button's centre is just below the list's edge: built, but a tap at
+            // its old place hits nothing once `ensureVisible` has moved it.
+            child: ListView(
+              children: [
+                const SizedBox(height: 385),
+                TextButton(
+                  onPressed: () => taps++,
+                  child: const Text('moved by the scroll'),
+                ),
+                const SizedBox(height: 900),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await a11yTap(tester, find.text('moved by the scroll'));
+
+    expect(taps, 1);
+  });
 }

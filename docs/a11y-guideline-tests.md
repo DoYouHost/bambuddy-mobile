@@ -172,11 +172,11 @@ verified.
 
 ## State (2026-10-28, second machine)
 
-**Latest full run (2026-10-28, night, after the harness change): 629 of 6770 fail**,
-from 1018 of 6765. Left, by surface: inventory 109, queue 112 (edit form 80, create form
-24, bulk edit 8), printer files 88, archive 64, controller 53 (of 504), locations 48,
-projects 24, dashboard sheets 22, swatches 16, admin 12, common 9. The text below is the
-state of the earlier run; the open items still apply.
+**Latest full run (2026-10-28, night): 597 of 6779 fail**, from 629 after the paging
+change and 1018 before it. Left, by surface: queue 126, inventory 109, printer files 88,
+archive 60, locations 48, common 33, controller 33 (of 520), projects 24, dashboard sheets
+22, admin 19, swatches 16, print log 8, stats 8, dashboard 2. The text below is the state
+of the earlier runs; the open items still apply.
 
 Failing tests in `test/a11y`: 1018 of 6765, from 1843 at the start of the day (2478 at
 the start of the work); 499 s wall clock for the whole suite on the desktop. Nothing
@@ -216,11 +216,19 @@ scrolling screen one viewport at a time and measured a control cut by the page e
 (`copies.more` 4.2 dp, "More" 15 dp). Fixed in the harness (see "What the harness
 does"); the print screen now passes in full.
 
-Also left: four surfaces whose own arrangement fails at 150 and 200 % before the screen
-is reached (`queue, start mapping dialog`, `overview, file preview`, `file dialog, not
-sliced` and `sliced for another model`: a tap lands under the list's bottom edge, `would
-not receive pointer events`). The Prints items' dialog (`ControllerDetailDialog`, file,
-job and archive) holds its touch targets at every size.
+Left on the controller: the files search chips and the "no match" state (16 tests), the
+fault chip and the fault view (16), and the dual-nozzle heat tab (one tap target 42.7 dp
+high). The Prints items' dialog (`ControllerDetailDialog`, file, job and archive)
+holds its touch targets at every size.
+
+Four controller surfaces failed before the screen was reached, and the cause was the
+harness, not the app. `a11yTap` took the finder's position right after `ensureVisible`,
+which moves the scroll position but not the render tree, so a tap landed where the control
+had been; it now lays a frame out and scrolls the control to the middle of its
+scrollable (the default puts it at the leading edge, under a pinned header). The
+tests were also arranged for the normal text size: from 1.3x the settings tab shows one
+card at a time (`_openSettings` picks it), and a folder is found by its name, not as the
+nth built match of a lazy list (`.at(n)` changes meaning once the list scrolls).
 
 ## Open, in this order
 

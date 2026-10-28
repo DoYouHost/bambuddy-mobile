@@ -335,9 +335,21 @@ Future<void> a11yTap(
   Duration settle = const Duration(milliseconds: 700),
 }) async {
   await _pageUntilBuilt(tester, finder);
-  await tester.ensureVisible(finder.first);
+  await _scrollIntoView(tester, finder);
   await tester.tap(finder.first);
   await a11ySettle(tester, settle);
+}
+
+/// Scrolls the first match to the middle of its scrollable and lays the frame out.
+///
+/// `ensureVisible` moves the scroll position but not the render tree: without a
+/// frame the finder still answers with the old position, and a tap lands where the
+/// control was, below the fold, on whatever is there. Its default puts the control
+/// at the leading edge, which under a pinned header is a place nothing can be
+/// tapped at; the middle is clear of the headers a screen pins.
+Future<void> _scrollIntoView(WidgetTester tester, Finder finder) async {
+  await Scrollable.ensureVisible(tester.element(finder.first), alignment: 0.5);
+  await tester.pump();
 }
 
 Future<void> a11yLongPress(
@@ -345,7 +357,7 @@ Future<void> a11yLongPress(
   Finder finder, {
   Duration settle = const Duration(milliseconds: 700),
 }) async {
-  await tester.ensureVisible(finder.first);
+  await _scrollIntoView(tester, finder);
   await tester.longPress(finder.first);
   await a11ySettle(tester, settle);
 }

@@ -60,6 +60,15 @@ Future<void> _openPrints(WidgetTester tester, ControllerPrintsView view) async {
   await settle(tester);
 }
 
+/// Settings, on [card] (0 the saver, 1 the display). From a large text size the
+/// tab shows one card at a time behind a row of two; at the normal size both are
+/// there and nothing is tapped.
+Future<void> _openSettings(WidgetTester tester, {int card = 1}) async {
+  await _openTab(tester, ControllerTab.settings);
+  final picker = byLogId('controller.settings_card');
+  if (picker.evaluate().isNotEmpty) await a11yTap(tester, picker.at(card));
+}
+
 /// The library's search field, filled and submitted the way the keyboard does.
 Future<void> _search(WidgetTester tester, String text) async {
   await a11yTap(tester, byLogId('controller.files.search'));
@@ -127,7 +136,7 @@ void main() {
   _controller(
     'overview, file preview',
     arrange: (tester) async {
-      await _openTab(tester, ControllerTab.settings);
+      await _openSettings(tester);
       await a11yTap(tester, byLogId('controller.live_camera'));
       await _openTab(tester, ControllerTab.overview);
     },
@@ -193,8 +202,13 @@ void main() {
 
   _controller(
     'settings',
-    arrange: (tester) => _openTab(tester, ControllerTab.settings),
+    arrange: (tester) => _openSettings(tester),
     shows: byLogId('controller.keep_awake'),
+  );
+  _controller(
+    'settings, saver',
+    arrange: (tester) => _openSettings(tester, card: 0),
+    shows: byLogId('controller.saver_after'),
   );
 
   // Prints, Files.
@@ -268,7 +282,15 @@ void main() {
     'file dialog, sliced for another model',
     arrange: (tester) async {
       await _openPrints(tester, ControllerPrintsView.files);
-      await a11yTap(tester, byLogId('controller.files.folder').at(1));
+      // By name: the nth built match of a lazy list is not the nth row once the
+      // list has scrolled.
+      await a11yTap(
+        tester,
+        find.descendant(
+          of: byLogId('controller.files.folder'),
+          matching: find.text('Server rack'),
+        ),
+      );
       await a11yTap(tester, byLogId('controller.files.file').first);
     },
     shows: byLogId('controller.files.dialog.print'),
@@ -421,16 +443,22 @@ void main() {
   _controller(
     'settings, screen not held on',
     arrange: (tester) async {
-      await _openTab(tester, ControllerTab.settings);
+      await _openSettings(tester);
       await a11yTap(tester, byLogId('controller.keep_awake'));
+      // The preview button is on the saver's card.
+      final picker = byLogId('controller.settings_card');
+      if (picker.evaluate().isNotEmpty) await a11yTap(tester, picker.first);
     },
     shows: byLogId('controller.saver_preview'),
   );
   _controller(
     'settings, never-start confirmation',
     arrange: (tester) async {
-      await _openTab(tester, ControllerTab.settings);
+      await _openSettings(tester, card: 0);
       await a11yTap(tester, byLogId('controller.saver_after').last);
+      // From a large text size the row is a select: its last entry is Never.
+      final option = byLogId('controller.saver_after.option');
+      if (option.evaluate().isNotEmpty) await a11yTap(tester, option.last);
     },
     shows: byLogId('controller.saver_never'),
   );
