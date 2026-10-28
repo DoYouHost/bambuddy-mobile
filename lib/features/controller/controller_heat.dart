@@ -52,7 +52,10 @@ class ControllerHeat extends ConsumerWidget {
       (r) => r.kind == TempKind.nozzle && r.index != null,
     );
     final fans = _fansOf(status, l10n);
-    final stacked = readings.length > _sideBySideMax;
+    // A large text size gives each heater the room of a stacked one and leaves
+    // the fans the height their wrapped names need.
+    final stacked =
+        readings.length > _sideBySideMax || controllerLargeText(context);
     final fansRow = Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -77,7 +80,43 @@ class ControllerHeat extends ConsumerWidget {
           const ControllerForbidden(),
           const SizedBox(height: DashSpace.sm),
         ],
-        if (readings.isNotEmpty)
+        if (readings.isNotEmpty &&
+            controllerLargeText(context) &&
+            readings.length > _sideBySideMax)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < readings.length; i += 2) ...[
+                  if (i > 0) const SizedBox(height: DashSpace.md),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final (j, r)
+                            in readings.skip(i).take(2).indexed) ...[
+                          if (j > 0) const SizedBox(width: DashSpace.md),
+                          Expanded(
+                            child: _HeaterCard(
+                              printerId: printerId,
+                              status: status,
+                              model: item.printer.model,
+                              reading: r,
+                              dual: dual,
+                              stacked: true,
+                              refused: refused,
+                              wide: true,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          )
+        else if (readings.isNotEmpty)
           Expanded(
             flex: stacked ? 1 : _heatersShare,
             child: Row(
@@ -155,6 +194,7 @@ class _HeaterCard extends ConsumerWidget {
     required this.dual,
     required this.stacked,
     required this.refused,
+    this.wide = false,
   });
 
   final int printerId;
@@ -162,6 +202,10 @@ class _HeaterCard extends ConsumerWidget {
   final String? model;
   final TempReading reading;
   final bool dual;
+
+  /// The ring beside the buttons: a card of a two-by-two grid, as wide as it is
+  /// short, for four heaters at a large text size.
+  final bool wide;
 
   /// The reading under the ring instead of beside it.
   final bool stacked;
@@ -186,6 +230,9 @@ class _HeaterCard extends ConsumerWidget {
   static const _stackedButtonSize = 48.0;
 
   static const _ringStroke = 7.0;
+
+  /// The ring of a wide card.
+  static const _wideRing = 72.0;
 
   /// The server's hardware index of a nozzle: `nozzle_2` is the right head (0),
   /// the plain key the left one (1) on two heads, and 0 on one.
@@ -253,6 +300,63 @@ class _HeaterCard extends ConsumerWidget {
         ),
       ],
     );
+    final controls = _editable
+        ? Row(
+            children: [
+              _StepButton(
+                size: buttonSize,
+                id: 'controller.heat_minus',
+                tooltip: '−$_step°',
+                icon: Icons.remove,
+                onPressed: canSet && shown > 0
+                    ? () => _set(context, ref, (shown - _step).clamp(0, max))
+                    : null,
+              ),
+              SizedBox(width: gap),
+              Expanded(
+                child: _TargetField(
+                  height: buttonSize,
+                  compact: stacked,
+                  text: shown > 0 ? '$shown' : l10n.ctrlOff,
+                  enabled: canSet,
+                  onSet: (typed) => _set(context, ref, typed.clamp(0, max)),
+                ),
+              ),
+              SizedBox(width: gap),
+              _StepButton(
+                size: buttonSize,
+                id: 'controller.heat_plus',
+                tooltip: '+$_step°',
+                icon: Icons.add,
+                onPressed: canSet && shown < max
+                    ? () => _set(context, ref, (shown + _step).clamp(0, max))
+                    : null,
+              ),
+            ],
+          )
+        : SizedBox(
+            height: buttonSize,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.lock_outline,
+                  size: controllerIconSize(context, DashSpace.lg),
+                  color: t.textTertiary,
+                ),
+                const SizedBox(width: DashSpace.sm),
+                Expanded(
+                  child: Text(
+                    l10n.controllerNoChamberHeater,
+                    style: t.bodySoft,
+                    // The box is one button tall: a second line would spill out.
+                    maxLines: controllerLargeText(context) ? 1 : 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          );
+
     return ControllerCard.single(
       title: label,
       trailing: dual && reading.kind == TempKind.nozzle
@@ -274,80 +378,44 @@ class _HeaterCard extends ConsumerWidget {
               refused: refused,
             )
           : null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, box) => Center(
-                child: ringOf(
-                  math.max(
-                    _ringFloor,
-                    math.min(box.maxWidth, box.maxHeight) - 2 * DashSpace.sm,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: stacked ? DashSpace.xs : DashSpace.sm),
-          if (_editable)
-            Row(
+      child: wide
+          ? Row(
               children: [
-                _StepButton(
-                  size: buttonSize,
-                  id: 'controller.heat_minus',
-                  tooltip: '−$_step°',
-                  icon: Icons.remove,
-                  onPressed: canSet && shown > 0
-                      ? () => _set(context, ref, (shown - _step).clamp(0, max))
-                      : null,
+                // Never taller than the row: a ring squeezed into a shorter box
+                // is drawn as an ellipse.
+                LayoutBuilder(
+                  builder: (context, box) {
+                    final side = math.min(_wideRing, box.maxHeight);
+                    return SizedBox.square(
+                      dimension: side,
+                      child: ringOf(side),
+                    );
+                  },
                 ),
-                SizedBox(width: gap),
-                Expanded(
-                  child: _TargetField(
-                    height: buttonSize,
-                    compact: stacked,
-                    text: shown > 0 ? '$shown' : l10n.ctrlOff,
-                    enabled: canSet,
-                    onSet: (typed) => _set(context, ref, typed.clamp(0, max)),
-                  ),
-                ),
-                SizedBox(width: gap),
-                _StepButton(
-                  size: buttonSize,
-                  id: 'controller.heat_plus',
-                  tooltip: '+$_step°',
-                  icon: Icons.add,
-                  onPressed: canSet && shown < max
-                      ? () => _set(context, ref, (shown + _step).clamp(0, max))
-                      : null,
-                ),
+                const SizedBox(width: DashSpace.md),
+                Expanded(child: controls),
               ],
             )
-          else
-            SizedBox(
-              height: buttonSize,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.lock_outline,
-                    size: DashSpace.lg,
-                    color: t.textTertiary,
-                  ),
-                  const SizedBox(width: DashSpace.sm),
-                  Expanded(
-                    child: Text(
-                      l10n.controllerNoChamberHeater,
-                      style: t.bodySoft,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, box) => Center(
+                      child: ringOf(
+                        math.max(
+                          _ringFloor,
+                          math.min(box.maxWidth, box.maxHeight) -
+                              2 * DashSpace.sm,
+                        ),
+                      ),
                     ),
                   ),
-                ],
-              ),
+                ),
+                SizedBox(height: stacked ? DashSpace.xs : DashSpace.sm),
+                controls,
+              ],
             ),
-        ],
-      ),
     );
   }
 
@@ -436,7 +504,7 @@ class _NozzleSwitch extends ConsumerWidget {
           message: l10n.ctrlNozzleActive,
           child: Icon(
             Icons.check_circle,
-            size: DashSpace.xl,
+            size: controllerIconSize(context, DashSpace.xl),
             color: t.accentInk,
           ),
         );
@@ -444,7 +512,11 @@ class _NozzleSwitch extends ConsumerWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle, size: DashSpace.lg, color: t.accentInk),
+          Icon(
+            Icons.check_circle,
+            size: controllerIconSize(context, DashSpace.lg),
+            color: t.accentInk,
+          ),
           const SizedBox(width: DashSpace.xs),
           Text(
             l10n.ctrlNozzleActive,
@@ -940,48 +1012,88 @@ class _FanCardState extends ConsumerState<_FanCard> {
         vertical: DashSpace.sm,
       ),
       decoration: t.cardBox,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: controllerLargeText(context)
+          ? _largeBody(t, shown)
+          : Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.air,
+                      size: controllerIconSize(context, DashSpace.xl),
+                      color: t.textSecondary,
+                    ),
+                    const SizedBox(width: DashSpace.sm),
+                    Expanded(
+                      child: Text(
+                        widget.label,
+                        style: t.titleMd,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    _percent(t, shown),
+                  ],
+                ),
+                _slider(shown),
+              ],
+            ),
+    );
+  }
+
+  /// At a large text size the name takes a line of its own, wrapped at its
+  /// spaces, and the reading sits beside the slider instead of the name.
+  Widget _largeBody(DashTokens t, double shown) => Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      // The icon sits with the name, not in the middle of name and slider.
+      Row(
         children: [
-          Row(
-            children: [
-              Icon(Icons.air, size: DashSpace.xl, color: t.textSecondary),
-              const SizedBox(width: DashSpace.sm),
-              Expanded(
-                child: Text(
-                  widget.label,
-                  style: t.titleMd,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Text(
-                shown > 0
-                    ? '${shown.round()}%'
-                    : AppLocalizations.of(context).ctrlOff,
-                style: t.monoHeadline.copyWith(
-                  color: shown > 0 ? t.accentBlue : t.textTertiary,
-                ),
-              ),
-            ],
+          Icon(
+            Icons.air,
+            size: controllerIconSize(context, DashSpace.xl),
+            color: t.textSecondary,
           ),
-          logTag(
-            'controller.fan.${widget.fan}',
-            Slider(
-              value: shown,
-              max: 100,
-              divisions: 20,
-              onChanged: widget.refused
-                  ? null
-                  : (v) => setState(() => _drag = v),
-              onChangeEnd: widget.refused ? null : _send,
+          const SizedBox(width: DashSpace.sm),
+          Expanded(
+            child: Text(
+              widget.label,
+              style: t.titleMd,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
       ),
-    );
-  }
+      Row(
+        children: [
+          Expanded(child: _slider(shown)),
+          _percent(t, shown),
+        ],
+      ),
+    ],
+  );
+
+  Widget _percent(DashTokens t, double shown) => Text(
+    shown > 0 ? '${shown.round()}%' : AppLocalizations.of(context).ctrlOff,
+    style: t.monoHeadline.copyWith(
+      color: shown > 0 ? t.accentBlue : t.textTertiary,
+    ),
+  );
+
+  Widget _slider(double shown) => logTag(
+    'controller.fan.${widget.fan}',
+    Slider(
+      value: shown,
+      max: 100,
+      divisions: 20,
+      onChanged: widget.refused ? null : (v) => setState(() => _drag = v),
+      onChangeEnd: widget.refused ? null : _send,
+    ),
+  );
 
   Future<void> _send(double value) async {
     setState(() => _drag = null);

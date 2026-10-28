@@ -1,3 +1,4 @@
+import 'scale_to_fit.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -50,7 +51,7 @@ class ControllerFaultChip extends ConsumerWidget {
                   children: [
                     Icon(
                       Icons.warning_amber_rounded,
-                      size: DashSpace.xl,
+                      size: controllerIconSize(context, DashSpace.xl),
                       color: t.dangerInk,
                     ),
                     const SizedBox(width: DashSpace.xs),
@@ -170,7 +171,7 @@ class _ControllerFaultsState extends ConsumerState<ControllerFaults> {
                 children: [
                   Icon(
                     Icons.warning_amber_rounded,
-                    size: DashSpace.xl,
+                    size: controllerIconSize(context, DashSpace.xl),
                     color: t.dangerInk,
                   ),
                   const SizedBox(width: DashSpace.sm),

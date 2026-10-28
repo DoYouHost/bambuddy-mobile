@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:clock/clock.dart';
@@ -8,9 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/printers/offline_debounce.dart';
 import '../../core/theme/dash_theme.dart';
-import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
-import '../dashboard/widgets/printer_state_pill.dart';
 import '../dashboard/ws_providers.dart';
 import '../files/file_manager_providers.dart';
 import '../wall/wall_providers.dart';
@@ -18,9 +17,8 @@ import 'controller_filament.dart';
 import 'controller_heat.dart';
 import 'controller_move.dart';
 import 'controller_overview.dart';
-import 'controller_picker.dart';
-import 'controller_faults.dart';
 import 'controller_prints.dart';
+import 'controller_rail.dart';
 import 'controller_providers.dart';
 import 'controller_saver.dart';
 import 'controller_settings.dart';
@@ -92,6 +90,12 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
   final _debounce = OfflineDebounce();
   ControllerTab _tab = ControllerTab.overview;
   ControllerPrintsView _printsView = ControllerPrintsView.files;
+
+  /// The rail's panel lies over the screen while this is set; the screen under
+  /// it takes no touch and says nothing to a reader until it closes.
+  bool _railOpen = false;
+
+  void _setRail(bool open) => setState(() => _railOpen = open);
 
   /// Keeps the library's folder and search state while another tab or view is
   /// showing: the provider is autoDispose, and the user would otherwise land at
@@ -177,77 +181,151 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
     final printer = ref.watch(controllerPrinterProvider(widget.printerId));
     final item = printer.item;
 
-    return ControllerSaverHost(
-      printerId: widget.printerId,
-      child: DashBackground(
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          // A keyboard must not shrink the body: every tab is scaled to the room
-          // it has, so a smaller room would rescale the whole controller.
-          resizeToAvoidBottomInset: false,
-          // Not the sides: Android reports a camera cutout as an inset down the
-          // whole edge, though the hole is a small circle, and the strip it
-          // left was the widest empty space on the screen. The gutter keeps
-          // the content off the glass edge.
-          body: SafeArea(
-            left: false,
-            right: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                DashSpace.gutter,
-                0,
-                DashSpace.gutter,
-                DashSpace.sm,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (item != null)
-                    _TopBar(
-                      item: item,
-                      offline: _debounce.offline,
-                      tab: _tab,
-                      onTab: _selectTab,
-                    )
-                  else
-                    const _BareBar(),
-                  const SizedBox(height: DashSpace.md),
-                  Expanded(
-                    child: !printer.rosterKnown
-                        ? const Center(child: CircularProgressIndicator())
-                        : item == null
-                        ? Center(
-                            child: Text(
-                              l10n.controllerPrinterGone,
-                              style: t.bodySoft,
-                              textAlign: TextAlign.center,
+    final content = !printer.rosterKnown
+        ? const Center(child: CircularProgressIndicator())
+        : item == null
+        ? Center(
+            child: Text(
+              l10n.controllerPrinterGone,
+              style: t.bodySoft,
+              textAlign: TextAlign.center,
+            ),
+          )
+        : ScaleToFit(
+            reflows: true,
+            child: _LargeTextScroll(
+              height: switch (_tab) {
+                ControllerTab.overview => controllerOverviewScrollHeight,
+                ControllerTab.heat => controllerHeatScrollHeight,
+                _ => null,
+              },
+              child: switch (_tab) {
+                ControllerTab.overview => ControllerOverview(
+                  printerId: widget.printerId,
+                ),
+                ControllerTab.heat => ControllerHeat(
+                  printerId: widget.printerId,
+                ),
+                ControllerTab.move => ControllerMove(
+                  printerId: widget.printerId,
+                ),
+                ControllerTab.filament => ControllerFilament(
+                  printerId: widget.printerId,
+                ),
+                ControllerTab.prints => ControllerPrints(
+                  printerId: widget.printerId,
+                  view: _printsView,
+                  onView: _selectPrintsView,
+                ),
+                ControllerTab.settings => const ControllerSettings(),
+              },
+            ),
+          );
+    // `pop`, not `maybePop`: the panel's Exit is tapped while it is open, when
+    // the PopScope below would take a `maybePop` for a request to close it.
+    void exit() => Navigator.of(context).pop();
+
+    return PopScope(
+      canPop: !_railOpen || item == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _railOpen) _setRail(false);
+      },
+      child: ControllerSaverHost(
+        printerId: widget.printerId,
+        child: DashBackground(
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            // A keyboard must not shrink the body: every tab is scaled to the
+            // room it has, so a smaller room would rescale the whole controller.
+            resizeToAvoidBottomInset: false,
+            // Icons grow with the text only up to [_iconScaleCap]. An icon button
+            // has no padding here, so the larger icon fills its fixed box and
+            // stays at its centre; with the default padding the box was smaller
+            // than the glyph and the glyph was drawn off-centre.
+            body: _IconScale(
+              // Not the sides: Android reports a camera cutout as an inset down the
+              // whole edge, though the hole is a small circle, and the strip it
+              // left was the widest empty space on the screen. The gutter keeps
+              // the content off the glass edge.
+              child: SafeArea(
+                left: false,
+                right: false,
+                child: item == null
+                    ? Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          DashSpace.gutter,
+                          0,
+                          DashSpace.gutter,
+                          DashSpace.sm,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const _BareBar(),
+                            const SizedBox(height: DashSpace.md),
+                            Expanded(child: content),
+                          ],
+                        ),
+                      )
+                    : Stack(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              DashSpace.sm,
+                              DashSpace.sm,
+                              DashSpace.gutter,
+                              DashSpace.sm,
                             ),
-                          )
-                        : ScaleToFit(
-                            child: switch (_tab) {
-                              ControllerTab.overview => ControllerOverview(
-                                printerId: widget.printerId,
+                            // The rail too is under the panel: a reader would hear
+                            // every tab twice.
+                            child: ExcludeSemantics(
+                              excluding: _railOpen,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  ControllerRail(
+                                    tab: _tab,
+                                    onTab: _selectTab,
+                                    onOpen: () => _setRail(true),
+                                  ),
+                                  const SizedBox(width: DashSpace.sm),
+                                  Expanded(child: content),
+                                ],
                               ),
-                              ControllerTab.heat => ControllerHeat(
-                                printerId: widget.printerId,
-                              ),
-                              ControllerTab.move => ControllerMove(
-                                printerId: widget.printerId,
-                              ),
-                              ControllerTab.filament => ControllerFilament(
-                                printerId: widget.printerId,
-                              ),
-                              ControllerTab.prints => ControllerPrints(
-                                printerId: widget.printerId,
-                                view: _printsView,
-                                onView: _selectPrintsView,
-                              ),
-                              ControllerTab.settings =>
-                                const ControllerSettings(),
-                            },
+                            ),
                           ),
-                  ),
-                ],
+                          if (_railOpen) ...[
+                            Positioned.fill(
+                              child: logTag(
+                                'controller.rail_scrim',
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => _setRail(false),
+                                  child: ColoredBox(
+                                    color: Colors.black.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              left: DashSpace.sm,
+                              top: DashSpace.sm,
+                              bottom: DashSpace.sm,
+                              child: ControllerRailPanel(
+                                item: item,
+                                offline: _debounce.offline,
+                                tab: _tab,
+                                onTab: (tab) {
+                                  _selectTab(tab);
+                                  _setRail(false);
+                                },
+                                onClose: () => _setRail(false),
+                                onExit: exit,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
               ),
             ),
           ),
@@ -256,9 +334,6 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
     );
   }
 }
-
-/// A button's own height; the bar is built around the targets, not the reverse.
-const _barHeight = 44.0;
 
 /// The bar for a printer that is not (yet) there: only the way out.
 class _BareBar extends StatelessWidget {
@@ -285,190 +360,68 @@ class _ExitButton extends StatelessWidget {
   }
 }
 
-/// Exit, the printer with its switcher, the tabs and the printer's state.
-class _TopBar extends ConsumerWidget {
-  const _TopBar({
-    required this.item,
-    required this.offline,
-    required this.tab,
-    required this.onTab,
-  });
+/// The most the system text size enlarges an icon of the default size.
+const _iconScaleCap = 1.5;
 
-  final PrinterWithStatus item;
-  final bool offline;
-  final ControllerTab tab;
-  final ValueChanged<ControllerTab> onTab;
+/// Sets the size of the controller's icons from the system text size, up to
+/// [_iconScaleCap]: a bare icon, an icon button's icon and the icon of a filled
+/// button, which each have a default size of their own. Nothing changes at the
+/// normal text size.
+class _IconScale extends StatelessWidget {
+  const _IconScale({required this.child});
 
-  /// The name never takes more than this, so a long one cannot push the tabs
-  /// off a phone-width bar.
-  static const _nameMaxWidth = 190.0;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = DashTokens.of(context);
-    final l10n = AppLocalizations.of(context);
-    final printer = item.printer;
-    final several = ref.watch(
-      wallRosterProvider.select((r) => (r?.length ?? 0) > 1),
-    );
-    Widget name({required bool chevron}) => ConstrainedBox(
-      constraints: const BoxConstraints(
-        maxWidth: _nameMaxWidth,
-        minHeight: _barHeight,
-      ),
-      // Only as wide as the name: the cap is a ceiling, and what a short name
-      // leaves is the tabs'.
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  printer.name,
-                  style: t.titleMd,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (printer.model != null)
-                  Text(
-                    printer.model!,
-                    style: t.labelSoft,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
-            ),
-          ),
-          if (chevron)
-            Icon(
-              Icons.expand_more_rounded,
-              size: DashSpace.lg,
-              color: t.textTertiary,
-            ),
-        ],
-      ),
-    );
-    return Row(
-      children: [
-        _ExitButton(),
-        const SizedBox(width: DashSpace.sm),
-        // With one printer there is nothing to switch to, so the name is plain
-        // text: a chevron that only reloaded the same screen would be a lie.
-        several
-            ? logTag(
-                'controller.switch_printer',
-                Tooltip(
-                  message: l10n.controllerSwitchPrinter,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(DashSpace.md),
-                    onTap: () => openController(context, ref, replace: true),
-                    child: name(chevron: true),
-                  ),
-                ),
-              )
-            : name(chevron: false),
-        // The tabs keep their size. Centred when they fit; when the name, a
-        // large system font and the state leave them less than they need, the
-        // bar takes what is left and the tabs scroll inside it, never shrink: a
-        // long printer name must not push a tab off the screen, nor make the
-        // tabs' text a size of its own.
-        Expanded(
-          child: Center(
-            child: _Tabs(tab: tab, onTab: onTab),
-          ),
-        ),
-        ControllerFaultChip(printerId: printer.id),
-        const SizedBox(width: DashSpace.sm),
-        printerStatePill(t, l10n, item.status, offline: offline),
-      ],
-    );
-  }
-}
-
-class _Tabs extends StatelessWidget {
-  const _Tabs({required this.tab, required this.onTab});
-
-  final ControllerTab tab;
-  final ValueChanged<ControllerTab> onTab;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final l10n = AppLocalizations.of(context);
-    // The frame stays whole and the tabs scroll under its rounded inside edge,
-    // so a bar too narrow for them ends on its border, not mid-tab.
-    return Container(
-      padding: const EdgeInsets.all(DashSpace.xs),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashSpace.md + DashSpace.xs),
-        border: Border.all(color: t.subCardBorder),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(DashSpace.md),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final candidate in ControllerTab.values)
-                logTag(
-                  candidate.logId,
-                  _TabButton(
-                    label: candidate.label(l10n),
-                    selected: candidate == tab,
-                    onTap: () => onTab(candidate),
-                  ),
-                  selected: candidate == tab,
-                ),
-            ],
-          ),
-        ),
+    final text = MediaQuery.textScalerOf(context).scale(1);
+    final k = text.clamp(1.0, _iconScaleCap);
+    final theme = Theme.of(context);
+    // The same widgets at every size, so a change of the system text size does
+    // not remount the tab and lose its state; at the normal size they set
+    // nothing the theme does not already say.
+    return Theme(
+      data: text <= 1
+          ? theme
+          : theme.copyWith(
+              iconButtonTheme: IconButtonThemeData(
+                style: (theme.iconButtonTheme.style ?? const ButtonStyle())
+                    .copyWith(
+                      padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+                      iconSize: WidgetStatePropertyAll(24 * k),
+                    ),
+              ),
+              filledButtonTheme: FilledButtonThemeData(
+                style: (theme.filledButtonTheme.style ?? const ButtonStyle())
+                    .copyWith(iconSize: WidgetStatePropertyAll(18 * k)),
+              ),
+            ),
+      child: IconTheme.merge(
+        data: IconThemeData(applyTextScaling: false, size: 24 * k),
+        child: child,
       ),
     );
   }
 }
 
-class _TabButton extends StatelessWidget {
-  const _TabButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+/// At a large text size a tab that needs more than the screen has scrolls
+/// vertically; the cards keep the height they are designed for.
+class _LargeTextScroll extends StatelessWidget {
+  const _LargeTextScroll({required this.height, required this.child});
 
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
+  /// The height the tab needs at a large text size; null for a tab that fits.
+  final double? height;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final radius = BorderRadius.circular(DashSpace.md);
-    return Material(
-      color: selected ? t.accent.withValues(alpha: 0.16) : Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: radius,
-        side: selected
-            ? BorderSide(color: t.accent.withValues(alpha: 0.4))
-            : BorderSide.none,
-      ),
-      child: InkWell(
-        borderRadius: radius,
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: _barHeight),
-          padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: selected
-                ? t.bodyBold.copyWith(color: t.accentInk)
-                : t.bodyBold,
-          ),
-        ),
+    final needed = height;
+    if (needed == null || !controllerLargeText(context)) return child;
+    // Always a scroll view at a large size, as tall as the screen when the tab
+    // fits, so the tab keeps its state when the screen's height crosses [needed].
+    return LayoutBuilder(
+      builder: (context, box) => SingleChildScrollView(
+        child: SizedBox(height: math.max(needed, box.maxHeight), child: child),
       ),
     );
   }

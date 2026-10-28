@@ -1,3 +1,4 @@
+import 'scale_to_fit.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -81,7 +82,11 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
         if (printing) ...[
           Row(
             children: [
-              Icon(Icons.lock_outline, size: DashSpace.lg, color: t.warningInk),
+              Icon(
+                Icons.lock_outline,
+                size: controllerIconSize(context, DashSpace.lg),
+                color: t.warningInk,
+              ),
               const SizedBox(width: DashSpace.sm),
               Expanded(
                 child: Text(
@@ -326,6 +331,7 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
         ],
         ControllerChoices(
           id: 'controller.length_preset',
+          selectLabel: l10n.ctrlMoveLength,
           labels: [for (final p in _lengthPresets) l10n.ctrlMoveMm(p)],
           selected: _lengthPresets.indexOf(_length),
           enabled: enabled,
@@ -393,6 +399,7 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
             flex: _padSide.round(),
             child: ControllerChoices(
               id: 'controller.step_preset',
+              selectLabel: l10n.ctrlMoveStep,
               labels: [for (final p in _stepPresets) l10n.ctrlMoveMm(p)],
               selected: _stepPresets.indexOf(_step),
               enabled: enabled,

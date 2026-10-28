@@ -15,6 +15,7 @@ import '../dashboard/widgets/printer_card.dart';
 import '../inventory/inventory_providers.dart';
 import 'controller_controls.dart';
 import 'controller_providers.dart';
+import 'scale_to_fit.dart';
 
 /// The Filament tab: the AMS units, one at a time, with their slots
 /// ([docs/single-printer-controller.md] §2). A tap chooses a slot, and Load and
@@ -67,6 +68,44 @@ class _ControllerFilamentState extends ConsumerState<ControllerFilament> {
     final slot = trays.isEmpty
         ? null
         : (_slot ?? (active >= 0 ? active : 0)).clamp(0, trays.length - 1);
+    void select(int i) => setState(() {
+      _selected = i;
+      _slot = null;
+    });
+    final pane = _Pane(
+      printerId: widget.printerId,
+      status: status,
+      nozzleCount: item.printer.nozzleCount,
+      serial: item.printer.serialNumber,
+      unitIndex: entry.unitIndex,
+      unit: entry.unit,
+      trays: trays,
+      slot: slot,
+      dual: dual,
+      onSlot: (i) => setState(() => _slot = i),
+    );
+    // At a large text size the units sit in a row above the pane, which then has
+    // the whole width: a name and its humidity do not fit a 168 dp column.
+    if (controllerLargeText(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: _Rail._minHeight,
+            child: _Rail(
+              entries: entries,
+              selected: entries.indexOf(entry),
+              status: status,
+              dual: dual,
+              onSelect: select,
+              horizontal: true,
+            ),
+          ),
+          const SizedBox(height: DashSpace.sm),
+          Expanded(child: pane),
+        ],
+      );
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -77,10 +116,7 @@ class _ControllerFilamentState extends ConsumerState<ControllerFilament> {
             selected: entries.indexOf(entry),
             status: status,
             dual: dual,
-            onSelect: (i) => setState(() {
-              _selected = i;
-              _slot = null;
-            }),
+            onSelect: select,
           ),
         ),
         const SizedBox(width: DashSpace.md),
@@ -112,6 +148,7 @@ class _Rail extends StatelessWidget {
     required this.status,
     required this.dual,
     required this.onSelect,
+    this.horizontal = false,
   });
 
   final List<_Entry> entries;
@@ -119,6 +156,10 @@ class _Rail extends StatelessWidget {
   final PrinterStatus status;
   final bool dual;
   final ValueChanged<int> onSelect;
+  final bool horizontal;
+
+  /// The width of a unit's button in the row.
+  static const _tileWidth = 236.0;
 
   /// A rail button never grows past this, so a printer with one unit does not
   /// get one enormous button.
@@ -130,12 +171,16 @@ class _Rail extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final radius = BorderRadius.circular(DashSpace.md + DashSpace.xs);
-    return Column(
+    final rail = Flex(
+      direction: horizontal ? Axis.horizontal : Axis.vertical,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         for (final (i, entry) in entries.indexed) ...[
-          if (i > 0) const SizedBox(height: DashSpace.sm),
+          if (i > 0)
+            horizontal
+                ? const SizedBox(width: DashSpace.sm)
+                : const SizedBox(height: DashSpace.sm),
           Flexible(
             child: ConstrainedBox(
               constraints: const BoxConstraints(
@@ -187,7 +232,7 @@ class _Rail extends StatelessWidget {
                             const SizedBox(width: DashSpace.xs),
                             Icon(
                               Icons.water_drop_outlined,
-                              size: DashSpace.lg,
+                              size: controllerIconSize(context, DashSpace.lg),
                               color: t.accentBlue,
                             ),
                             const SizedBox(width: DashSpace.xs),
@@ -207,6 +252,11 @@ class _Rail extends StatelessWidget {
           ),
         ],
       ],
+    );
+    if (!horizontal) return rail;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: SizedBox(width: entries.length * _tileWidth, child: rail),
     );
   }
 }
@@ -300,6 +350,7 @@ class _Pane extends ConsumerWidget {
           label: l10n.amsLoad,
           tone: t.accentOrange,
           ink: t.accentOrangeInk,
+          locked: locked,
           onPressed: locked || busy ? null : () => command(true),
         ),
         _ActionButton(
@@ -308,6 +359,7 @@ class _Pane extends ConsumerWidget {
           label: l10n.amsUnload,
           tone: t.accentOrange,
           ink: t.accentOrangeInk,
+          locked: locked,
           onPressed: locked || busy ? null : () => command(false),
         ),
       ],
@@ -432,34 +484,21 @@ class _Pane extends ConsumerWidget {
         ),
         if (actions.isNotEmpty) ...[
           const SizedBox(height: DashSpace.md),
-          SizedBox(
-            height: _actionHeight,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final (i, action) in actions.indexed) ...[
-                  if (i > 0) const SizedBox(width: DashSpace.sm),
-                  Expanded(child: action),
+          // At least the button height, and taller when a large text size needs
+          // it: a fixed height cut the label.
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: _actionHeight),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (i, action) in actions.indexed) ...[
+                    if (i > 0) const SizedBox(width: DashSpace.sm),
+                    Expanded(child: action),
+                  ],
                 ],
-              ],
-            ),
-          ),
-        ],
-        if (locked && !refused && addressable) ...[
-          const SizedBox(height: DashSpace.sm),
-          Row(
-            children: [
-              Icon(Icons.lock_outline, size: DashSpace.lg, color: t.warningInk),
-              const SizedBox(width: DashSpace.sm),
-              Expanded(
-                child: Text(
-                  l10n.amsActionsWhilePrinting,
-                  style: t.bodyBold.copyWith(color: t.warningInk),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
               ),
-            ],
+            ),
           ),
         ],
       ],
@@ -488,7 +527,11 @@ class _Reading extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: DashSpace.xl, color: color),
+          Icon(
+            icon,
+            size: controllerIconSize(context, DashSpace.xl),
+            color: color,
+          ),
           const SizedBox(width: DashSpace.xs),
           Text(value, style: t.monoTitle),
         ],
@@ -504,6 +547,7 @@ class _ActionButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     required this.tone,
+    this.locked = false,
     this.ink,
   });
 
@@ -512,14 +556,16 @@ class _ActionButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
 
+  /// The printer is printing: a lock after the label says why the button is off.
+  final bool locked;
+
   /// Its colour while it works ([controllerButtonStyle]).
   final Color tone;
   final Color? ink;
 
   @override
-  Widget build(BuildContext context) => logTag(
-    id,
-    FilledButton.icon(
+  Widget build(BuildContext context) {
+    final button = FilledButton.icon(
       style: controllerButtonStyle(
         DashTokens.of(context),
         tone: tone,
@@ -527,9 +573,32 @@ class _ActionButton extends StatelessWidget {
       ),
       onPressed: onPressed,
       icon: Icon(icon),
-      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-    ),
-  );
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+          if (locked) ...[
+            const SizedBox(width: DashSpace.sm),
+            Icon(
+              Icons.lock_outline,
+              size: controllerIconSize(context, DashSpace.lg),
+            ),
+          ],
+        ],
+      ),
+    );
+    return logTag(
+      id,
+      locked
+          ? Tooltip(
+              message: AppLocalizations.of(context).amsActionsWhilePrinting,
+              child: button,
+            )
+          : button,
+    );
+  }
 }
 
 /// One slot: its number, the colour, the material, what is left, and a mark on
@@ -605,6 +674,7 @@ class _SlotCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
+    final large = controllerLargeText(context);
     final empty = tray.isEmpty;
     final color = empty ? null : parseTrayColor(tray.trayColor);
     final radius = BorderRadius.circular(DashSpace.md + DashSpace.xs);
@@ -661,7 +731,7 @@ class _SlotCard extends StatelessWidget {
                       style: t.titleMd.copyWith(
                         color: empty ? t.textTertiary : t.textPrimary,
                       ),
-                      maxLines: 1,
+                      maxLines: large ? 2 : 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     // A line even where there is nothing to say, so an empty
@@ -675,8 +745,8 @@ class _SlotCard extends StatelessWidget {
                                 l10n.inventoryUsageWeight(
                                   grams.toStringAsFixed(0),
                                 ),
-                            ].join(' · '),
-                      maxLines: 1,
+                            ].join(large ? '\n' : ' · '),
+                      maxLines: large ? 2 : 1,
                       overflow: TextOverflow.ellipsis,
                       style: t.monoValue.copyWith(
                         color: percent != null && percent < _lowPercent
@@ -715,9 +785,9 @@ class _SlotCard extends StatelessWidget {
             'controller.slot_edit',
             IconButton(
               tooltip: AppLocalizations.of(context).controllerEditSlot,
-              icon: const Icon(
+              icon: Icon(
                 Icons.edit_outlined,
-                size: DashSpace.lg + DashSpace.xs,
+                size: controllerIconSize(context, DashSpace.lg + DashSpace.xs),
               ),
               color: t.textSecondary,
               onPressed: onEdit,

@@ -241,7 +241,11 @@ class _FactPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(fact.icon, size: DashSpace.lg, color: ink),
+          Icon(
+            fact.icon,
+            size: controllerIconSize(context, DashSpace.lg),
+            color: ink,
+          ),
           const SizedBox(width: DashSpace.xs),
           // A server's waiting reason or a long user name is wider than the
           // pill can grow.

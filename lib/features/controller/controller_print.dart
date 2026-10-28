@@ -929,7 +929,7 @@ class _TopBar extends StatelessWidget {
               children: [
                 Icon(
                   Icons.lock_outline_rounded,
-                  size: DashSpace.lg,
+                  size: controllerIconSize(context, DashSpace.lg),
                   color: t.textSecondary,
                 ),
                 const SizedBox(width: DashSpace.sm),
@@ -1068,7 +1068,7 @@ class _FilamentRow extends StatelessWidget {
                   ),
                   Icon(
                     Icons.arrow_forward_rounded,
-                    size: DashSpace.lg,
+                    size: controllerIconSize(context, DashSpace.lg),
                     color: t.textTertiary,
                   ),
                   Expanded(
@@ -1138,7 +1138,7 @@ class _Slot extends StatelessWidget {
           child: hex == null
               ? Icon(
                   Icons.help_outline_rounded,
-                  size: DashSpace.lg,
+                  size: controllerIconSize(context, DashSpace.lg),
                   color: t.textTertiary,
                 )
               : null,

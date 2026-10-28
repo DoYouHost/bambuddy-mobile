@@ -846,8 +846,10 @@ void main() {
     test('list + status + control round-trip', () async {
       final repo = SmartPlugsRepository(dio);
       final plugs = await repo.fetchPlugs();
-      expect(plugs, hasLength(2));
+      expect(plugs, hasLength(3));
       expect(plugs.first.printerId, 1);
+      // The dual-nozzle H2D has one, so its controller overview is the fullest.
+      expect(plugs.last.printerId, 6);
       final status = await repo.fetchStatus(1);
       expect(status!.isOn, isTrue);
       expect(status.powerW, greaterThan(0));

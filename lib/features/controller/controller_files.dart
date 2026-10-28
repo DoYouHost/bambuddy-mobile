@@ -1,3 +1,4 @@
+import 'scale_to_fit.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_util/app_util.dart';
 import 'package:material_ui/material_ui.dart';
@@ -357,7 +358,7 @@ class _QueryChip extends StatelessWidget {
                 const SizedBox(width: DashSpace.xs),
                 Icon(
                   Icons.close_rounded,
-                  size: DashSpace.lg,
+                  size: controllerIconSize(context, DashSpace.lg),
                   color: t.accentInk,
                 ),
               ],
@@ -563,7 +564,7 @@ class _FolderTile extends StatelessWidget {
         ),
         child: Icon(
           Icons.folder_rounded,
-          size: DashSpace.xxl,
+          size: controllerIconSize(context, DashSpace.xxl),
           color: t.warningInk,
         ),
       ),

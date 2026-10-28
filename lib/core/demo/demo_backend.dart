@@ -167,7 +167,7 @@ class DemoBackend {
   // cancelled, which is exactly the state the card's banner is there to show.
   final List<Map<String, dynamic>> _scheduledDryings = [];
   int _nextScheduledDryingId = 1;
-  final Map<int, bool> _plugOn = {1: true, 2: false};
+  final Map<int, bool> _plugOn = {1: true, 2: false, 3: true};
   // What the slot-configuration sheet wrote, keyed `printer:ams:tray`. Applied
   // over the generated status so a demo write shows on the card, the way the
   // printer's own push would.
@@ -5109,17 +5109,20 @@ class DemoBackend {
       return _ok([
         _plug(1, 'Workshop plug', 'tasmota', 1),
         _plug(2, 'Office plug', 'homeassistant', 2),
+        // The dual-nozzle H2D, so the controller shows its fullest overview:
+        // four readings, the light and a plug.
+        _plug(3, 'H2D plug', 'tasmota', 6),
       ]);
     }
     final plugId = int.tryParse(s.length > 1 ? s[1] : '');
     if (plugId == null || !_plugOn.containsKey(plugId)) return _notFound();
     if (s.length >= 3 && s[2] == 'status') {
       final on = _plugOn[plugId]!;
-      final printing = plugId == 1 && !_stopped && !_paused;
+      final printing = plugId == 1 && !_stopped && !_paused || plugId == 3;
       return _ok({
         'state': on ? 'ON' : 'OFF',
         'reachable': true,
-        'device_name': plugId == 1 ? 'Workshop plug' : 'Office plug',
+        'device_name': _plugName(plugId),
         'energy': {
           'power': !on ? 0.0 : (printing ? _r1(96 + _wiggle(9)) : 8.2),
           'voltage': _r1(231 + _wiggle(1.2)),
@@ -5143,14 +5146,20 @@ class DemoBackend {
       return _ok(
         _plug(
           plugId,
-          plugId == 1 ? 'Workshop plug' : 'Office plug',
-          plugId == 1 ? 'tasmota' : 'homeassistant',
-          plugId,
+          _plugName(plugId),
+          plugId == 2 ? 'homeassistant' : 'tasmota',
+          plugId == 3 ? 6 : plugId,
         ),
       );
     }
     return _fallback(m);
   }
+
+  String _plugName(int id) => switch (id) {
+    1 => 'Workshop plug',
+    2 => 'Office plug',
+    _ => 'H2D plug',
+  };
 
   Map<String, dynamic> _plug(int id, String name, String type, int printerId) =>
       {

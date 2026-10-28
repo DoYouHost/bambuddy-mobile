@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import 'scale_to_fit.dart';
 import 'controller_controls.dart';
 import 'controller_archive.dart';
 import 'controller_files.dart';
@@ -55,6 +56,26 @@ class ControllerPrints extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final body = switch (view) {
+      ControllerPrintsView.files => ControllerFiles(printerId: printerId),
+      ControllerPrintsView.queue => ControllerQueue(printerId: printerId),
+      ControllerPrintsView.archive => ControllerArchive(printerId: printerId),
+    };
+    // A large text size does not fit the label in a narrow column: the views
+    // go in a row above the list, where each has the width of a third.
+    if (controllerLargeText(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: controllerButtonHeight,
+            child: _Rail(view: view, onView: onView, horizontal: true),
+          ),
+          const SizedBox(height: DashSpace.sm),
+          Expanded(child: body),
+        ],
+      );
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -63,35 +84,36 @@ class ControllerPrints extends StatelessWidget {
           child: _Rail(view: view, onView: onView),
         ),
         const SizedBox(width: DashSpace.sm),
-        Expanded(
-          child: switch (view) {
-            ControllerPrintsView.files => ControllerFiles(printerId: printerId),
-            ControllerPrintsView.queue => ControllerQueue(printerId: printerId),
-            ControllerPrintsView.archive => ControllerArchive(
-              printerId: printerId,
-            ),
-          },
-        ),
+        Expanded(child: body),
       ],
     );
   }
 }
 
 class _Rail extends StatelessWidget {
-  const _Rail({required this.view, required this.onView});
+  const _Rail({
+    required this.view,
+    required this.onView,
+    this.horizontal = false,
+  });
 
   final ControllerPrintsView view;
   final ValueChanged<ControllerPrintsView> onView;
+  final bool horizontal;
 
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    return Column(
+    final gap = horizontal
+        ? const SizedBox(width: DashSpace.sm)
+        : const SizedBox(height: DashSpace.sm);
+    return Flex(
+      direction: horizontal ? Axis.horizontal : Axis.vertical,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final (i, candidate) in ControllerPrintsView.values.indexed) ...[
-          if (i > 0) const SizedBox(height: DashSpace.sm),
+          if (i > 0) gap,
           Expanded(
             child: logTag(
               candidate.logId,
@@ -103,16 +125,22 @@ class _Rail extends StatelessWidget {
                   ink: candidate == view ? t.accentGreenInk : null,
                 ),
                 onPressed: () => onView(candidate),
-                child: Column(
+                child: Flex(
+                  direction: horizontal ? Axis.horizontal : Axis.vertical,
                   mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(candidate.icon),
-                    const SizedBox(height: DashSpace.xs),
-                    Text(
-                      candidate.label(l10n),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    horizontal
+                        ? const SizedBox(width: DashSpace.sm)
+                        : const SizedBox(height: DashSpace.xs),
+                    Flexible(
+                      child: Text(
+                        candidate.label(l10n),
+                        textAlign: TextAlign.center,
+                        maxLines: horizontal ? 1 : 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
