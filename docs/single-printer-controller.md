@@ -30,8 +30,16 @@ mechanics from.
 
 ## 2. Screens
 
-A top bar (exit, printer name and model with a switcher, the tabs, a fault chip
-that opens the fault view, the printer's state) over one tab at a time.
+A collapsible rail on the left (an arrow and one icon per tab) beside one tab at
+a time. The arrow opens a panel that lies over the screen instead of pushing it:
+the printer's name and model (a switcher when there are several printers), its
+state, the fault chip that opens the fault view, the tabs with their names and
+Exit. The arrow, a touch outside the panel or the system Back closes it (Back
+closes the panel first, the next one leaves); while it is open the screen and the
+rail under it take no touch and say nothing to a reader. **Exit lives only in the
+open panel** and in the system Back; the collapsed rail has none. The rail is
+56 dp wide and 48 dp per item, so on a screen lower than about 340 dp it scrolls
+(seven items); that is accepted.
 
 | Tab | Content |
 |---|---|
@@ -46,7 +54,8 @@ that opens the fault view, the printer's state) over one tab at a time.
 
 - **Designed for a phone in landscape.** The target is an ordinary smartphone
   held sideways, about 890–915 × 410 dp (the reporter's Redmi 9T Pro is
-  891×411 dp); after the top bar the body is about 860×345 dp. A layout is
+  891×411 dp); beside the rail the body is about 395 dp tall (337 dp with the old
+  top bar) and about 800 dp wide. A layout is
   checked against that. The touch panel whose look the controller borrows is
   800×360, and that size is only the floor the body is laid out in
   (`controllerBodySize`), never the screen to design for.
@@ -57,8 +66,9 @@ that opens the fault view, the printer's state) over one tab at a time.
 - **No text is scaled to fit, anywhere.** Equal things are one size: a
   `FittedBox` around a label made each one a size of its own, so where text did
   not fit the layout gives way instead — the Overview tiles drop the target at
-  four readings, the tabs scroll, the saver's box and the Prints tiles grow with
-  the system font, the keypad takes the body's scale. `controller_text_size_test.dart` scans for
+  four readings, the rail scrolls, the Prints tiles grow with the system font,
+  the keypad takes the body's scale, and from 130 % text the screens reflow
+  (next section). `controller_text_size_test.dart` scans for
   a `FittedBox` outside `scale_to_fit.dart` and the keypad, and measures the
   Overview and Heat texts in every language, in the app's real fonts, which
   every test runs with (docs/test-harness.md).
@@ -80,11 +90,66 @@ that opens the fault view, the printer's state) over one tab at a time.
   extruder with its own length presets.
 - Filament: a tap chooses a slot (the one feeding the print until then); Load,
   Unload and Dry sit under the slots and act on it, through the card's own
-  commands. The pencil on a slot opens the card's slot sheet (spool,
+  commands (at a large size Dry is in the same row). The pencil on a slot opens the card's slot sheet (spool,
   configuration).
 
 The fault view (reached from the chip, not a tab) lists the printer's HMS
 faults with Retry, Ignore and Dismiss and a link to the troubleshooting page.
+
+### Large text (from 130 %)
+
+Decided with the maintainer on the emulator-sized window (891×411 dp) at 100, 150
+and 200 % text. The rule is that a tab is rearranged, not squeezed, and that a
+touch target stays 48 dp or more at every size.
+
+- **The box does not grow with the text.** `ScaleToFit(reflows: true)` (the
+  controller screen's body) lays the tab out in `controllerBodySize` and scales to
+  the screen, so the factor is about 1 at every text size; before, the box grew
+  with the font and everything shrank (controls 45, 29 and 21 dp). The other users
+  of `ScaleToFit` (the file dialog, the print screen, the queue mapping sheet) keep
+  the old behaviour (`reflows: false`) and are not reflowed yet. Reflow starts at
+  `controllerReflowTextScale` (1.3, `controllerLargeText(context)`).
+- **Overview, Heat and Filament scroll vertically** at a large size when the screen
+  is lower than `controllerOverviewScrollHeight` / `controllerHeatScrollHeight`
+  (440 dp) / `controllerFilamentScrollHeight` (395 dp), through `_LargeTextScroll`.
+  It is always a scroll view at a large size, as tall as the screen when the tab
+  fits, so a change of height does not remount the tab and lose its state. The
+  other tabs fit without it. The heights are tuned by hand to the contents.
+- **Overview** has a layout of its own (`_LargeOverview`), still one screen: the
+  readings are two columns of one-line tiles with no target, the switches are 48 dp
+  rows, the job card is no taller than it needs. **Speed is a `dashCombo` at every
+  size**, not four buttons. There is no Status/Controls split (the maintainer
+  rejected it).
+- **Heat**: four heaters (two nozzles) are a 2×2 grid of compact cards. A ring is
+  never taller than the row it is in: a ring squeezed into a shorter box is drawn
+  as an ellipse. "Chamber has no heater" is one line with an ellipsis.
+- **Filament**: from a large size the unit's header is gone and the row of units
+  above the slots says it all: name, which head it feeds (`L` / `R`, said in words
+  to a reader) and humidity. The unit's temperature is not shown at those sizes.
+  Drying moves into the row with Load and Unload. A slot's facts are one line
+  (`88% · 880 g`) unless the fullest spool (`100% · 1000 g`) would not fit the card,
+  measured with the real text style; then each fact takes a line, for every card in
+  the row. A card with one fact has one line, and an empty slot none: the spool
+  takes the line that is not there, so a card is filled to its bottom edge. While
+  printing, Load and Unload carry a lock and the reason is their tooltip; there is
+  no line of text for it. An external spool's side is a round `L` / `R` mark (the
+  printer's own marks, like `AMS-A`), not a pill with the word, which covered the
+  spool.
+- **Icons** grow with the text, up to 150 % (`_IconScale` in the screen,
+  `controllerIconSize(context, base)` for an icon with a size of its own). Inside
+  the controller body an icon button has no padding: with the default 8 dp padding
+  the box of a 48 dp button was 32 dp, a 36 dp glyph was drawn from its corner and
+  looked off-centre by up to 3.6 dp (measured on the pixels of a render, not on the
+  layout, which reported the box as centred). The snowflake (`ac_unit`) is 1.6 dp
+  off by the shape of its glyph.
+- **Colours**: Load, Unload and the Move tab's jogs, Home, Extrude and Retract take
+  the theme accent (the preset or Material You), not a blue and an orange of their
+  own (`controllerButtonStyle(tone: t.accent, ink: t.accentInk)`). Drying is still
+  `accentBlue`: undecided.
+- **Prints tiles** are one column at a large size, `controllerTileHeight` times
+  `1 + (scale - 1) / 3`.
+- The demo gives printer 6 (H2D) a smart plug, so the fullest Overview (four
+  readings, light and plug) can be rendered.
 
 ### Camera and preview
 
@@ -307,3 +372,36 @@ phone screens and the web: they are not things done at the printer (maintainer,
 - A dialog's choice is acted on from the view's context, not the tile's: a refresh
   while the dialog is open may take the tile away.
 
+## 9. Left to do (end of 2026-10-28)
+
+The rail and the large-text reflow are committed on `test/a11y-guidelines` (two
+commits, not pushed). Open, most useful first:
+
+1. **Slot number badge on Filament** (the circle with the digit) overlapped the
+   material name at 200 % on a first render, when the spool was small. Check it with
+   the header gone; the latest renders look right.
+2. **Drying is still blue**: take the accent like the other buttons, or keep a
+   colour of its own? Ask.
+3. **No state on the collapsed rail.** The printer's state, name and fault count
+   are only in the open panel. A dot on the arrow was proposed, not decided.
+4. **The print-settings route and the file dialog are not reflowed** (they still
+   grow the box with the font): rows of 44-46 dp, "More" and "Preview", the date
+   cells and the file search chips remain among the a11y findings.
+5. **a11y**: `test/a11y/controller_a11y_test.dart` fails 146 of 504 (402 before the
+   rail). The ones left: the print screen, the airduct switch on Heat (44 dp tall,
+   the Cooling one) and part of Settings. The full `just test-a11y` has not been run
+   since the redesign (the last full run, 1018 failing of 6765, was before it).
+6. **Settings at a large size** show one card at a time behind a [Screen saver |
+   Display] choice. The maintainer disliked splits in general and did not say
+   whether this one stays.
+7. **Unit temperature** is not shown on Filament at a large size; say if it should
+   come back (the row of units has room for one more number).
+8. **Tests**: the L/R mark's reader label is mutation-checked, the colour tests too;
+   `ControllerRailPanel`'s width test only checks the number. No contract test is
+   needed (nothing new is read from the server).
+9. **Not pushed.** The local commits of this branch are ahead of origin; `pubspec.lock`
+   is modified only by the sibling `app-shared` override and is never committed.
+   `PickerTile` in `app-shared` is still uncommitted there (see
+   a11y-guideline-tests.md, open item 6).
+10. A second Argon round on the Filament and Move changes was not done; the first one
+    (the rail, `_IconScale`, `_LargeTextScroll`) found three real bugs, all fixed.

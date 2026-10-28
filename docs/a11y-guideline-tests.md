@@ -174,6 +174,12 @@ Left, by file: controller 402, queue 128, inventory 109, files 88, archive 60,
 locations 48, tour 35, common 33, projects 24, dashboard sheets 22, admin 19,
 swatches 16 (tap targets and missing labels, in pairs wherever a control is both).
 
+Update, the same evening: the controller screen was redesigned (a rail instead of a
+top bar, reflow from 130 % text; `docs/single-printer-controller.md` §2 and §9). Its
+rendered suite fails 146 of 504, from 402; the full suite was not re-run, so the
+1018 above is the last full number. The controller's own host tests were rewritten for
+the new layout.
+
 ## Open, in this order
 
 1. **Tap targets and labels of the controller screen**: dozens of 17-46 dp targets,
