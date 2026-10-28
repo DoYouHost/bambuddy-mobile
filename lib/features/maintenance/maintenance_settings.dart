@@ -531,12 +531,12 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
             Text(l10n.maintenanceFieldIcon, style: theme.textTheme.labelLarge),
             const SizedBox(height: DashSpace.sm),
             Wrap(
-              spacing: DashSpace.sm,
-              runSpacing: DashSpace.sm,
+              spacing: PickerTile.gap(_IconChoice.drawing, DashSpace.sm),
+              runSpacing: PickerTile.gap(_IconChoice.drawing, DashSpace.sm),
               children: [
                 for (final name in maintenanceIconNames)
                   _IconChoice(
-                    icon: maintenanceIcon(name),
+                    name: name,
                     selected: _icon == name,
                     onTap: () => setState(() => _icon = name),
                   ),
@@ -594,38 +594,44 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
 
 class _IconChoice extends StatelessWidget {
   const _IconChoice({
-    required this.icon,
+    required this.name,
     required this.selected,
     required this.onTap,
   });
 
-  final IconData icon;
+  final String name;
   final bool selected;
   final VoidCallback onTap;
+
+  static const drawing = 44.0;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: selected
-              ? scheme.primaryContainer
-              : scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected ? scheme.primary : scheme.outlineVariant,
-            width: selected ? 2 : 1,
+    return Tooltip(
+      message: name,
+      child: PickerTile(
+        drawing: drawing,
+        onTap: onTap,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: selected
+                ? scheme.primaryContainer
+                : scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: selected ? scheme.primary : scheme.outlineVariant,
+              width: selected ? 2 : 1,
+            ),
           ),
-        ),
-        child: Icon(
-          icon,
-          size: 22,
-          color: selected ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
+          child: Icon(
+            maintenanceIcon(name),
+            size: 22,
+            applyTextScaling: false,
+            color: selected
+                ? scheme.onPrimaryContainer
+                : scheme.onSurfaceVariant,
+          ),
         ),
       ),
     ).tagged('maintenance_type_form.icon');

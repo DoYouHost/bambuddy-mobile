@@ -1295,8 +1295,8 @@ class _ColorPicker extends ConsumerWidget {
           if (q.isEmpty) Text(l10n.inventoryColorCommon, style: t.microSoft),
           const SizedBox(height: DashSpace.xs),
           Wrap(
-            spacing: DashSpace.sm,
-            runSpacing: DashSpace.sm,
+            spacing: PickerTile.gap(_ColorChip.drawing, DashSpace.sm),
+            runSpacing: PickerTile.gap(_ColorChip.drawing, DashSpace.sm),
             children: [
               for (final c in shown)
                 _ColorChip(
@@ -1324,18 +1324,18 @@ class _ColorChip extends StatelessWidget {
   final VoidCallback onTap;
   final bool selected;
 
+  static const drawing = 36.0;
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final color = parseSpoolColor(entry.hexColor);
     return Tooltip(
       message: entry.colorName,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+      child: PickerTile(
+        drawing: drawing,
         onTap: onTap,
-        child: Container(
-          width: 36,
-          height: 36,
+        child: DecoratedBox(
           decoration: BoxDecoration(
             color: color ?? t.subCard,
             borderRadius: BorderRadius.circular(8),
@@ -1345,11 +1345,16 @@ class _ColorChip extends StatelessWidget {
             ),
           ),
           child: color == null
-              ? Icon(Icons.question_mark, size: 16, color: t.textTertiary)
+              ? Icon(
+                  Icons.question_mark,
+                  size: 16,
+                  applyTextScaling: false,
+                  color: t.textTertiary,
+                )
               : null,
         ),
-      ).tagged('spool_form.color_swatch'),
-    );
+      ),
+    ).tagged('spool_form.color_swatch');
   }
 }
 

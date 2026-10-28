@@ -96,6 +96,8 @@ class ProjectColorDot extends StatelessWidget {
   }
 }
 
+const _swatchSize = 36.0;
+
 /// Row of predefined color swatches with single selection (plus a "none"
 /// option). Stores/returns the chosen hex as `#RRGGBB`, or null for none.
 class ProjectColorSelector extends StatelessWidget {
@@ -115,18 +117,20 @@ class ProjectColorSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Wrap(
-      spacing: DashSpace.md,
-      runSpacing: DashSpace.md,
+      spacing: PickerTile.gap(_swatchSize, DashSpace.md),
+      runSpacing: PickerTile.gap(_swatchSize, DashSpace.md),
       children: [
         // "None" option.
         _swatch(
           context,
           color: t.subCard,
+          label: AppLocalizations.of(context).inventoryColorNone,
           isSelected: selected == null,
           onTap: () => onChanged(null),
           child: Icon(
             Icons.format_color_reset_outlined,
             size: 18,
+            applyTextScaling: false,
             color: t.textSecondary,
           ),
         ),
@@ -134,6 +138,7 @@ class ProjectColorSelector extends StatelessWidget {
           _swatch(
             context,
             color: parseProjectColor(hex)!,
+            label: hex,
             isSelected: _matches(hex),
             onTap: () => onChanged(hex),
           ),
@@ -144,25 +149,29 @@ class ProjectColorSelector extends StatelessWidget {
   Widget _swatch(
     BuildContext context, {
     required Color color,
+    required String label,
     required bool isSelected,
     required VoidCallback onTap,
     Widget? child,
   }) {
     final t = DashTokens.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: isSelected ? t.textPrimary : t.subCardBorder,
-            width: isSelected ? 3 : 1,
+    return Tooltip(
+      message: label,
+      child: PickerTile(
+        drawing: _swatchSize,
+        round: true,
+        onTap: onTap,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isSelected ? t.textPrimary : t.subCardBorder,
+              width: isSelected ? 3 : 1,
+            ),
           ),
+          child: child,
         ),
-        child: child,
       ),
     ).tagged('project_form.color');
   }

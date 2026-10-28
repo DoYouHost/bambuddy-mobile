@@ -448,6 +448,11 @@ class _JobCard extends StatelessWidget {
                       Text(
                         '${progress.toStringAsFixed(0)}%',
                         style: t.monoValue.copyWith(fontSize: percentSize),
+                        // Already the biggest figure on the screen: it keeps its
+                        // size at any text size so the lines under it stay in the card.
+                        textScaler: MediaQuery.textScalerOf(
+                          context,
+                        ).clamp(maxScaleFactor: 1),
                       ),
                     const SizedBox(width: DashSpace.md),
                     Expanded(

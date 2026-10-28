@@ -1047,8 +1047,10 @@ class _FilamentRow extends StatelessWidget {
         child: InkWell(
           borderRadius: radius,
           onTap: onTap,
-          child: SizedBox(
-            height: controllerButtonHeight,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: controllerButtonHeight,
+            ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
               child: Row(

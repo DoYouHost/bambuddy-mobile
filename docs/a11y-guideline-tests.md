@@ -14,18 +14,22 @@ public name starts with `a11y`); each feature has its own `*_a11y_test.dart`.
 The work runs against the sibling checkout of the shared packages, not a tagged
 release:
 
-1. Clone `git@github.com:DoYouHost/app-shared.git` next to this repository as
-   `../DoYouHost.app-shared` and keep it on `master`.
-2. Create the git-ignored `pubspec_overrides.yaml` in this repository:
+1. Keep a clone of `git@github.com:DoYouHost/app-shared.git` next to this repository,
+   on `master` and pulled (it has to contain `afc1783`). **Look at `ls ..` first:** the
+   maintainer's machines already have it as `../app-shared`; a second clone under
+   another name is a duplicate. Run the commands through the sibling `../flake.nix`
+   shell (`direnv exec .. <cmd>`), where `flutter` and `just` live.
+2. Create the git-ignored `pubspec_overrides.yaml` in this repository, pointing at
+   that clone:
 
    ```yaml
    dependency_overrides:
      dash_kit:
-       path: ../DoYouHost.app-shared/packages/dash_kit
+       path: ../app-shared/packages/dash_kit
      dash_ui:
-       path: ../DoYouHost.app-shared/packages/dash_ui
+       path: ../app-shared/packages/dash_ui
      app_report_ui:
-       path: ../DoYouHost.app-shared/packages/app_report_ui
+       path: ../app-shared/packages/app_report_ui
    ```
 3. `flutter pub get` rewrites the tracked `pubspec.lock` for that machine. It shows as
    modified on purpose: **never commit it, never stash it.**
@@ -36,7 +40,7 @@ release:
 
 - The whole suite: `just test-a11y` (one `flutter test --concurrency=4` under a
   12 GB scope). On the maintainer's laptop: 726-732 s against 1409 s one file at a
-  time, about 6 GiB. Another machine will time differently.
+  time, about 6 GiB; on the desktop 598 s. Another machine will time differently.
 - Several `flutter test` processes at once corrupt the shared `build/test_cache`; the
   parallelism is inside the one run. Kill by PID, never `pkill -f`.
 - The rest of the tests: `flutter test --concurrency=4 test/features test/l10n
@@ -45,6 +49,11 @@ release:
   `just test-a11y "--dart-define=A11Y_CONTRAST_REPORT=/tmp/x.jsonl test/a11y"`
   appends one JSON line per judged finding: verdict, text, foreground, grounds,
   contrast by the text's own colours, needed ratio, token and widget chain.
+  A run of the whole suite lists **two `genuine` findings, both `65°` in `#c8ccc6` on
+  `#f1f3ef`: that is the deliberate fixture of `a11y_contrast_phase_test.dart` ("a
+  real shortfall fails at every phase"), once per paint offset, not a widget of the
+  app.** A `genuine` row with a chain that ends in `Align ← Padding ← Scaffold body`
+  and no `token` is that fixture; any other one is real.
 
 ## What the harness does
 
@@ -113,40 +122,69 @@ verified.
   own line.
 - A dimmed label is a disabled node for a screen reader too (`Semantics(enabled:
   false)`), not a test exemption.
+- Icon and colour pickers (`location_form.icon` / `.color`, `maintenance_type_form.icon`,
+  `spool_form.color_swatch`, `project_form.color`) are one `PickerTile`
+  (`dash_kit`, `packages/dash_kit/lib/src/picker_tile.dart` in `app-shared`: a generic
+  widget with no app import belongs there, see unification-lessons.md): a 48 dp touch cell around a drawing that
+  keeps its size (44 for icons, 36 for colours), the `Wrap` gap reduced by
+  `PickerTile.gap` so the drawings stay where they were. Chosen from three real
+  renders (36 in 48, unchanged drawing, 44 in 48). The glyph inside does not grow with
+  the text (`applyTextScaling: false`): the cell is fixed, so a glyph that scaled to
+  44 dp at 200 % filled it edge to edge. The project palette wraps to two rows on a
+  window under 416 dp (8 × 48 against 379), accepted rather than pushing the grid into
+  the page gutter, which would break the hit area.
+- A tappable tile needs a **label**, and every picker tile had two findings, size and
+  missing label, in equal numbers. A `Tooltip` counts as the label only **inside**
+  `logTag` / `.tagged`; outside it the tag's own semantics node takes the tap and
+  stays unlabeled. The tooltip text is the icon key or the colour code; real names
+  are new copy in five languages and wait for the maintainer.
+- Controller at large text: no scrolling and no smaller captions. The two overflows
+  were fixed where the layout was rigid: the job card's percentage keeps its design
+  size at any text size (`textScaler.clamp(maxScaleFactor: 1)`, it is the biggest
+  figure on the screen), and the filament row in the print settings has
+  `minHeight: controllerButtonHeight` instead of a fixed height, inside a list that
+  already scrolls. 100 % is unchanged.
 
-## State (end of 2026-10-28)
+## State (2026-10-28, second machine)
 
-Failing tests in `test/a11y`: 1843 of 6765, from 2478 at the start. Overflow findings
-are gone everywhere except the single-printer controller (19 tests) and the
+Failing tests in `test/a11y`: 1630 of 6765, from 1843 at the start of the day (2478 at
+the start of the work); 536 s for the whole suite. The 213 that went are all in the
+pickers and the controller (inventory 87, projects 40, maintenance 40, locations 40,
+controller 6) and nothing new fails. Overflow findings are gone everywhere except the
 `material_ui` `SnackBar` (2 tests, not our code). Contrast findings in the output: 0;
-the report still lists two genuine ones (`65°` in `#c8ccc6` on `#f1f3ef`, 1.46:1) that
-are not located yet.
+the two `genuine` rows of the report are the `65°` fixture (see Running it), nothing
+to fix.
+
+Left, by file: controller 410, queue 192, dashboard 171, files 168, slicer 128,
+inventory 128, archive 124, locations 56, dashboard sheets 48, common 41, tour 35,
+admin 31 (tap targets and missing labels, in pairs wherever a control is both).
 
 ## Open, in this order
 
-1. **Tap targets of the pickers**, about 720 findings: `location_form.icon`,
-   `maintenance_type_form.icon`, `spool_form.color_swatch`, `project_form.color`.
-   Probably one shared 48 dp tile with a 36 dp drawing (as `ams_slot_colour.swatch`):
-   check first whether the four share code. Then the controller screen's dozens of
-   17-46 dp targets.
-2. **Controller layout at large text** (19 tests; bottom overflows of 15-39 dp in
-   `controller_overview.dart` and `controller_print.dart`). The screen is designed to
-   fill without scrolling in landscape. Decision pending: scroll above 130 % text
-   (recommended), scale the captions down, or leave it.
-3. The two `65°` contrast findings.
-4. About twelve test-side failures at large text, where the test's `arrange` does not
+1. **Tap targets and labels of the controller screen**: dozens of 17-46 dp targets,
+   and tappable nodes with no label (32 in the three print-screen surfaces alone). The
+   pickers are done (`PickerTile`, see Decisions); the other screens have the same two
+   findings per control, so check both before counting.
+2. About twelve test-side failures at large text, where the test's `arrange` does not
    reach the control (controller keypad, "Test cube" in the print log, the "X1 Carbon"
-   tile in the dashboard fold test, the wall tile tap, the pipelines fan-out select).
+   tile in the dashboard fold test, the wall tile tap, the pipelines fan-out select, and
+   the new spool form's "Wymagane" and "Dodaj 2 szpule" at 150 % and 200 %: 5 tests).
    Fix with `ensureVisible`, not in the app.
-5. No widget test yet for the swatches section header, the queue-edit schedule row,
+3. No widget test yet for the swatches section header, the queue-edit schedule row,
    the archive colour-filter row and the timelapse info row (the a11y suite covers
-   them). The wall tile caption has a test, but its render is black (camera).
-6. Unification: two `SectionCard` classes (`stats_common.dart`,
+   them), nor for the maintenance type sheet and the project form (only the a11y suite
+   builds them). The wall tile caption has a test, but its render is black (camera).
+4. Unification: two `SectionCard` classes (`stats_common.dart`,
    `project_detail_sections.dart`) and two `_StatTile`s that differ in look; needs a
    decision before merging.
-7. Waiting for the maintainer: new screen-reader copy in five languages, the
-   date-range picker cells, how many accents after a `timeit`, `°C` on the
-   temperature tiles if wanted.
+5. Waiting for the maintainer: new screen-reader copy in five languages (the picker
+   tiles say the icon key or the colour code today), the date-range picker cells, how
+   many accents after a `timeit`, `°C` on the temperature tiles if wanted.
+6. **`PickerTile` and its test sit uncommitted in the `app-shared` working tree**
+   (`packages/dash_kit/lib/src/picker_tile.dart`, `test/picker_tile_test.dart`, one
+   export line in `dash_kit.dart`). This branch builds against the sibling checkout
+   only; it needs that commit, a shared release and a `pubspec.yaml` ref bump before
+   CI can go green.
 
 ## How to prove a change
 

@@ -150,8 +150,8 @@ class _PrinterLocationFormState extends ConsumerState<_PrinterLocationForm> {
               Text(l10n.printerLocationsFieldIcon, style: t.label),
               const SizedBox(height: DashSpace.sm),
               Wrap(
-                spacing: DashSpace.sm,
-                runSpacing: DashSpace.sm,
+                spacing: PickerTile.gap(_size, DashSpace.sm),
+                runSpacing: PickerTile.gap(_size, DashSpace.sm),
                 children: [
                   for (final name in printerLocationIcons.keys)
                     _IconChoice(
@@ -165,8 +165,8 @@ class _PrinterLocationFormState extends ConsumerState<_PrinterLocationForm> {
               Text(l10n.printerLocationsFieldColor, style: t.label),
               const SizedBox(height: DashSpace.sm),
               Wrap(
-                spacing: DashSpace.sm,
-                runSpacing: DashSpace.sm,
+                spacing: PickerTile.gap(_size, DashSpace.sm),
+                runSpacing: PickerTile.gap(_size, DashSpace.sm),
                 children: [
                   for (final hex in printerLocationColors)
                     _ColorChoice(
@@ -207,7 +207,7 @@ class _PrinterLocationFormState extends ConsumerState<_PrinterLocationForm> {
   }
 }
 
-/// A tap target of [_size]; the glyph inside is smaller.
+/// The drawing of an icon or colour choice; its touch cell is the [PickerTile] around it.
 const _size = 44.0;
 
 class _IconChoice extends StatelessWidget {
@@ -224,27 +224,29 @@ class _IconChoice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    return Tooltip(
-      message: name,
-      child: logTag(
-        'location_form.icon',
-        selected: selected,
-        Material(
-          color: selected ? t.accentGreen : t.subCard,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-            side: BorderSide(color: selected ? t.accentGreen : t.subCardBorder),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: onTap,
-            child: SizedBox.square(
-              dimension: _size,
-              child: Icon(
-                printerLocationIcon(name),
-                size: 22,
-                color: selected ? t.onAccent : t.textSecondary,
+    return logTag(
+      'location_form.icon',
+      selected: selected,
+      Tooltip(
+        message: name,
+        child: PickerTile(
+          drawing: _size,
+          onTap: onTap,
+          child: DecoratedBox(
+            decoration: ShapeDecoration(
+              color: selected ? t.accentGreen : t.subCard,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(
+                  color: selected ? t.accentGreen : t.subCardBorder,
+                ),
               ),
+            ),
+            child: Icon(
+              printerLocationIcon(name),
+              size: 22,
+              applyTextScaling: false,
+              color: selected ? t.onAccent : t.textSecondary,
             ),
           ),
         ),
@@ -268,34 +270,35 @@ class _ColorChoice extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final color = colorFromHex(hex) ?? t.textTertiary;
-    return Tooltip(
-      message: hex,
-      child: logTag(
-        'location_form.color',
-        selected: selected,
-        Material(
-          color: color,
-          shape: CircleBorder(
-            side: BorderSide(
-              color: selected ? t.textPrimary : Colors.transparent,
-              width: 3,
+    return logTag(
+      'location_form.color',
+      selected: selected,
+      Tooltip(
+        message: hex,
+        child: PickerTile(
+          drawing: _size,
+          round: true,
+          onTap: onTap,
+          child: DecoratedBox(
+            decoration: ShapeDecoration(
+              color: color,
+              shape: CircleBorder(
+                side: BorderSide(
+                  color: selected ? t.textPrimary : Colors.transparent,
+                  width: 3,
+                ),
+              ),
             ),
-          ),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: onTap,
-            child: SizedBox.square(
-              dimension: _size,
-              child: selected
-                  ? Icon(
-                      Icons.check,
-                      size: 22,
-                      color: color.computeLuminance() > 0.5
-                          ? Colors.black
-                          : Colors.white,
-                    )
-                  : null,
-            ),
+            child: selected
+                ? Icon(
+                    Icons.check,
+                    size: 22,
+                    applyTextScaling: false,
+                    color: color.computeLuminance() > 0.5
+                        ? Colors.black
+                        : Colors.white,
+                  )
+                : null,
           ),
         ),
       ),
