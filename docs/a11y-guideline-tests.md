@@ -156,22 +156,23 @@ verified.
 
 ## State (2026-10-28, second machine)
 
-Failing tests in `test/a11y`: 1250 of 6765, from 1843 at the start of the day (2478 at
-the start of the work); 517 s wall clock for the whole suite on the desktop. Nothing
+Failing tests in `test/a11y`: 1018 of 6765, from 1843 at the start of the day (2478 at
+the start of the work); 499 s wall clock for the whole suite on the desktop. Nothing
 new fails in any of the last three runs. What went since the morning: the pickers and
-the controller overflows (213), the test-side groups (54), then the labels (326: the
+the controller overflows (213), the test-side groups (54), then the labels (558: the
 slicer's option switch, the search field's clear button, the controller's icon
 buttons, the archive's verdict thumbs, the queue's check rows, two checkboxes in the
-mapping sheet and the group form). Overflow findings are gone everywhere except the `material_ui` `SnackBar`
+mapping sheet and the group form, the show/hide toggles of the access code and the
+cloud password, the files' add and close buttons). Overflow findings are gone everywhere except the `material_ui` `SnackBar`
 (2 tests, not our code) and the "common, selection controls" test row (8 tests, a
 right-hand overflow of 13-77 dp inside the test's own fixture at
 `common_a11y_test.dart:603`, to check before calling it a test bug). Contrast findings
 in the output: 0; the two `genuine` rows of the report are the `65°` fixture (see
 Running it), nothing to fix.
 
-Left, by file: controller 402, files 168, dashboard 155, queue 128, inventory 109,
-archive 60, locations 48, tour 35, common 33, projects 24, dashboard sheets 22,
-admin 19 (tap targets and missing labels, in pairs wherever a control is both).
+Left, by file: controller 402, queue 128, inventory 109, files 88, archive 60,
+locations 48, tour 35, common 33, projects 24, dashboard sheets 22, admin 19,
+swatches 16 (tap targets and missing labels, in pairs wherever a control is both).
 
 ## Open, in this order
 
