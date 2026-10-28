@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:app_report_ui/app_report_ui.dart';
 import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
@@ -154,9 +156,52 @@ class A11yTapTargets extends MinimumTapTargetGuideline {
   @override
   bool shouldSkipNode(SemanticsNode node) =>
       super.shouldSkipNode(node) ||
+      _cutByViewport(node) ||
       ((node.tags?.contains(_suffixIcon) ?? false) &&
           node.rect.width >= floor &&
           node.rect.height >= floor);
+
+  /// A control a scrollable's viewport cuts. `SemanticsNode.rect` is already
+  /// clipped, so a button half scrolled out reads as a small one and fails for a
+  /// reason that is not in the app. Flutter's own guideline skips a node that
+  /// touches *any* edge of a scrollable, sides included, so it hides a control
+  /// flush with the left of a list and still misses one a scale moved. Here the
+  /// node's rect and the viewport's paint clip are compared, both in the node's
+  /// own coordinates.
+  ///
+  /// Only a node flush with its clip on the axis a scrollable above it scrolls is
+  /// skipped, and
+  /// [a11yMeetsAllWhileScrolling] pages with an overlap taller than any target, so
+  /// every control stands whole in the viewport at some stop and is measured
+  /// there. A control that is flush with the viewport at the very first or last
+  /// stop is the one gap, as it is in Flutter's own guideline.
+  static bool _cutByViewport(SemanticsNode node) {
+    final clip = node.parentPaintClipRect;
+    if (clip == null) return false;
+    var vertical = false;
+    var horizontal = false;
+    for (var a = node.parent; a != null; a = a.parent) {
+      final data = a.getSemanticsData();
+      vertical |=
+          data.hasAction(SemanticsAction.scrollUp) ||
+          data.hasAction(SemanticsAction.scrollDown);
+      horizontal |=
+          data.hasAction(SemanticsAction.scrollLeft) ||
+          data.hasAction(SemanticsAction.scrollRight);
+    }
+    if (!vertical && !horizontal) return false;
+    // Both are in the node's own coordinates, so a scale above does not matter.
+    final rect = node.rect;
+    const eps = 0.01;
+    // Only the edges the list scrolls across: a row as wide as the list is flush
+    // with its sides all the time, and is not cut.
+    return (vertical &&
+            ((rect.top - clip.top).abs() < eps ||
+                (rect.bottom - clip.bottom).abs() < eps)) ||
+        (horizontal &&
+            ((rect.left - clip.left).abs() < eps ||
+                (rect.right - clip.right).abs() < eps));
+  }
 }
 
 /// The three guidelines on what is laid out right now. All three run and every
@@ -242,13 +287,20 @@ Future<bool> _reveal(WidgetTester tester, Finder finder) async {
   return found;
 }
 
-/// Scrolls the screen's main list one viewport at a time and asserts at each
-/// stop: a guideline only sees what is built, and a lazy list builds the
-/// viewport plus a little. A screen without a vertical scrollable has nothing to do.
+/// How far one stop of [a11yMeetsAllWhileScrolling] overlaps the last: taller than
+/// any target on a screen, so a control cut by the edge at one stop stands whole at
+/// the next. The tap-target guideline skips a node the viewport cuts
+/// ([A11yTapTargets]); the overlap is what keeps that from hiding it.
+const _pageOverlap = 72.0;
+
+/// Scrolls the screen's main list one viewport less [_pageOverlap] at a time and
+/// asserts at each stop: a guideline only sees what is built, and a lazy list
+/// builds the viewport plus a little. A screen without a vertical scrollable has
+/// nothing to do.
 Future<void> a11yMeetsAllWhileScrolling(
   WidgetTester tester, {
   bool Function(SemanticsData data)? skipContrast,
-  int maxPages = 12,
+  int maxPages = 16,
 }) async {
   await a11yMeetsAll(tester, skipContrast: skipContrast);
   final position = _mainList();
@@ -260,13 +312,15 @@ Future<void> a11yMeetsAllWhileScrolling(
     await tester.pump(const Duration(milliseconds: 100));
     await a11yMeetsAll(tester, skipContrast: skipContrast);
   }
+  // Never less than half a viewport, so a short one still advances.
+  final step = math.max(
+    position.viewportDimension - _pageOverlap,
+    position.viewportDimension / 2,
+  );
   for (var page = 0; page < maxPages; page++) {
     if (position.pixels >= position.maxScrollExtent) return;
     position.jumpTo(
-      (position.pixels + position.viewportDimension).clamp(
-        0.0,
-        position.maxScrollExtent,
-      ),
+      (position.pixels + step).clamp(0.0, position.maxScrollExtent),
     );
     await tester.pump(const Duration(milliseconds: 100));
     await a11yMeetsAll(tester, skipContrast: skipContrast);

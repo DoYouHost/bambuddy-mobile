@@ -63,6 +63,14 @@ release:
 - Widget tests run in the **app theme**: `plApp` in `test/helpers.dart` passes
   `buildDashThemeData`. Before, they used the default Material theme and could not
   see anything that depends on it (icon scaling, button padding, fonts).
+- `a11yMeetsAllWhileScrolling` pages a scrolling screen one viewport **less 72 dp** at a
+  time, and `A11yTapTargets` skips a node that is flush with its viewport's paint clip
+  on the axis the list scrolls (`SemanticsNode.rect` is already clipped, so a control
+  half scrolled out reads as a small one). The overlap is what keeps the skip from
+  hiding it: the control stands whole at the next stop and is measured there. Flutter's
+  own guideline skips only nodes at the edge of a scrollable that marks itself
+  implicit, and any node flush with its left side; it also lets a full-width row under
+  48 dp through, which this harness does not close. Tests: `a11y_tap_targets_test.dart`.
 - A text scale reaches a sheet only through `MaterialApp.builder`: a sheet is a route
   above the card, so scaling the card does not scale it.
 
@@ -156,6 +164,12 @@ verified.
 
 ## State (2026-10-28, second machine)
 
+**Latest full run (2026-10-28, night, after the harness change): 629 of 6770 fail**,
+from 1018 of 6765. Left, by surface: inventory 109, queue 112 (edit form 80, create form
+24, bulk edit 8), printer files 88, archive 64, controller 53 (of 504), locations 48,
+projects 24, dashboard sheets 22, swatches 16, admin 12, common 9. The text below is the
+state of the earlier run; the open items still apply.
+
 Failing tests in `test/a11y`: 1018 of 6765, from 1843 at the start of the day (2478 at
 the start of the work); 499 s wall clock for the whole suite on the desktop. Nothing
 new fails in any of the last three runs. What went since the morning: the pickers and
@@ -189,17 +203,17 @@ top of the page). The "More" dialog and the two mapping dialogs take the room th
 given from 1.3x text. The plate and chamber steppers name their buttons without new copy
 (`Plate −1`, `−5°`, as the heat tab does), and `log_coverage` is at zero unnamed.
 
-What is left on the print screen is **not the app**: `a11yMeetsAllWhileScrolling` pages
-a scrolling screen one viewport at a time and the tap-target guideline measures a node
-clipped by the viewport, so a control cut by the page edge (`copies.more` 4.2 dp,
-"More" 15 dp) fails at 150 and 200 %. Which control lands on an edge is luck of the
-content height. Paging with an overlap of a control's height and skipping a node whose
-unclipped size passes would remove this class of finding everywhere; it changes the
-judge, so it waits for the maintainer.
+What was left on the print screen at 150 and 200 % was not the app: the harness paged a
+scrolling screen one viewport at a time and measured a control cut by the page edge
+(`copies.more` 4.2 dp, "More" 15 dp). Fixed in the harness (see "What the harness
+does"); the print screen now fails only on the system date picker.
 
-Also left: the system date picker's day cells (34.6 dp rows in landscape), the queue
-view's "start mapping dialog" arrangement (a tap below the fold at 150 and 200 %), the
-queue job dialog and the file dialog (their own `ScaleToFit`).
+Also left: the system date picker's day cells (34.6 dp rows in landscape), and four
+surfaces whose own arrangement fails at 150 and 200 % before the screen is reached
+(`queue, start mapping dialog`, `overview, file preview`, `file dialog, not sliced` and
+`sliced for another model`: a tap lands under the list's bottom edge, `would not
+receive pointer events`). The Prints items' dialog (`ControllerDetailDialog`, file, job
+and archive) now holds its touch targets at every size.
 
 ## Open, in this order
 
