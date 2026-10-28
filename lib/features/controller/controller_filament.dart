@@ -386,7 +386,7 @@ class _Pane extends ConsumerWidget {
         logTag(
           'controller.dry',
           FilledButton.icon(
-            style: controllerButtonStyle(t, tone: t.accentBlue),
+            style: controllerButtonStyle(t, tone: t.accent, ink: t.accentInk),
             icon: const Icon(Icons.local_fire_department_outlined),
             label: Text(
               unit.isDrying ? l10n.ctrlDrying : l10n.ctrlDry,
@@ -463,7 +463,8 @@ class _Pane extends ConsumerWidget {
                       style: controllerButtonStyle(
                         t,
                         minimumSize: const Size(0, controllerButtonHeight),
-                        tone: t.accentBlue,
+                        tone: t.accent,
+                        ink: t.accentInk,
                       ),
                       icon: const Icon(Icons.local_fire_department_outlined),
                       label: Text(
@@ -624,39 +625,39 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final button = FilledButton.icon(
-      style: controllerButtonStyle(
-        DashTokens.of(context),
-        tone: tone,
-        ink: ink,
-      ),
-      onPressed: onPressed,
-      icon: Icon(icon),
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-          ),
-          if (locked) ...[
-            const SizedBox(width: DashSpace.sm),
-            Icon(
-              Icons.lock_outline,
-              size: controllerIconSize(context, DashSpace.lg),
-            ),
-          ],
-        ],
-      ),
-    );
-    return logTag(
+    final button = logTag(
       id,
-      locked
-          ? Tooltip(
-              message: AppLocalizations.of(context).amsActionsWhilePrinting,
-              child: button,
-            )
-          : button,
+      FilledButton.icon(
+        style: controllerButtonStyle(
+          DashTokens.of(context),
+          tone: tone,
+          ink: ink,
+        ),
+        onPressed: onPressed,
+        icon: Icon(icon),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+            if (locked) ...[
+              const SizedBox(width: DashSpace.sm),
+              Icon(
+                Icons.lock_outline,
+                size: controllerIconSize(context, DashSpace.lg),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
+    return locked
+        ? Tooltip(
+            message: AppLocalizations.of(context).amsActionsWhilePrinting,
+            child: button,
+          )
+        : button;
   }
 }
 

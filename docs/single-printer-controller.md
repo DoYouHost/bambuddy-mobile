@@ -105,8 +105,8 @@ touch target stays 48 dp or more at every size.
 - **The box does not grow with the text.** `ScaleToFit(reflows: true)` (the
   controller screen's body) lays the tab out in `controllerBodySize` and scales to
   the screen, so the factor is about 1 at every text size; before, the box grew
-  with the font and everything shrank (controls 45, 29 and 21 dp). The other users
-  of `ScaleToFit` (the file dialog, the print screen, the queue mapping sheet) keep
+  with the font and everything shrank (controls 45, 29 and 21 dp). The print-settings screen, its "More"
+  dialog and the mapping dialogs reflow too; the file dialog and the job dialog keep
   the old behaviour (`reflows: false`) and are not reflowed yet. Reflow starts at
   `controllerReflowTextScale` (1.3, `controllerLargeText(context)`).
 - **Overview, Heat and Filament scroll vertically** at a large size when the screen
@@ -380,13 +380,15 @@ commits, not pushed). Open, most useful first:
 1. **Slot number badge on Filament** (the circle with the digit) overlapped the
    material name at 200 % on a first render, when the spool was small. Check it with
    the header gone; the latest renders look right.
-2. **Drying is still blue**: take the accent like the other buttons, or keep a
-   colour of its own? Ask.
+2. ~~Drying is still blue~~ done: it takes the accent and its ink like Load and
+   Unload (`controller_filament_test.dart`, "takes the theme accent").
 3. **No state on the collapsed rail.** The printer's state, name and fault count
    are only in the open panel. A dot on the arrow was proposed, not decided.
-4. **The print-settings route and the file dialog are not reflowed** (they still
-   grow the box with the font). Their a11y findings and the controller's remaining
-   count are in `docs/a11y-guideline-tests.md` (Open, item 1), not here.
+4. ~~The print-settings route is not reflowed~~ done (2026-10-28): the factor is about
+   1.07, from 1.3x text the job and its options stack on the left and the mapping gets
+   the wider right side, every card is as tall as its content (`ControllerCard.single(
+   shrink: true)`) and the page scrolls with the buttons pinned. The file dialog and the
+   job dialog are still not reflowed.
 5. **Settings at a large size** show one card at a time behind a [Screen saver |
    Display] choice. The maintainer disliked splits in general and did not say
    whether this one stays.

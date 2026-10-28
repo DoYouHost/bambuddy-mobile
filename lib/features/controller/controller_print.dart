@@ -195,28 +195,35 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
                 const SizedBox(height: DashSpace.md),
                 Expanded(
                   child: ScaleToFit(
+                    reflows: true,
+                    // From a large text size the height is the scroll's to
+                    // handle, not the scale's: a bar that grew with the text
+                    // would otherwise shrink the body below 1.
+                    minSize: Size(
+                      controllerPrintBodySize.width,
+                      controllerLargeText(context)
+                          ? 1
+                          : controllerPrintBodySize.height,
+                    ),
                     // The state's own context is above the scale, so the dialogs
                     // this screen opens take it from here.
                     child: Builder(
                       builder: (scaled) {
                         _scale = ControllerScale.of(scaled);
+                        final bar = _bottomBar(l10n);
+                        final large = controllerLargeText(scaled);
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            // Only the cards scroll: the way to print stays on
+                            // the screen.
                             Expanded(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(flex: 3, child: _jobCard(l10n)),
-                                  const SizedBox(width: DashSpace.md),
-                                  Expanded(flex: 4, child: _filamentCard(l10n)),
-                                  const SizedBox(width: DashSpace.md),
-                                  Expanded(flex: 3, child: _optionsCard(l10n)),
-                                ],
-                              ),
+                              child: large
+                                  ? _largeCards(l10n, bar.note)
+                                  : _cards(l10n),
                             ),
                             const SizedBox(height: DashSpace.md),
-                            _bottomBar(l10n),
+                            bar.bar,
                           ],
                         );
                       },
@@ -230,6 +237,49 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
       ),
     );
   }
+
+  /// Job, mapping and options side by side.
+  Widget _cards(AppLocalizations l10n) => Row(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Expanded(flex: 3, child: _jobCard(l10n)),
+      const SizedBox(width: DashSpace.md),
+      Expanded(flex: 4, child: _filamentCard(l10n)),
+      const SizedBox(width: DashSpace.md),
+      Expanded(flex: 3, child: _optionsCard(l10n)),
+    ],
+  );
+
+  /// At a large text size three columns are too narrow for a filament row: the
+  /// job and its options stack on the left and the mapping gets the wider side.
+  /// The cards are as tall as their content and the page scrolls.
+  Widget _largeCards(AppLocalizations l10n, Widget? note) =>
+      SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (note != null) ...[note, const SizedBox(height: DashSpace.sm)],
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _jobCard(l10n, shrink: true),
+                      const SizedBox(height: DashSpace.md),
+                      _optionsCard(l10n, shrink: true),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: DashSpace.md),
+                Expanded(flex: 5, child: _filamentCard(l10n, shrink: true)),
+              ],
+            ),
+          ],
+        ),
+      );
 
   // --- Job ---
 
@@ -268,7 +318,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     mapping: mappingKey(_manualMapping),
   );
 
-  Widget _jobCard(AppLocalizations l10n) {
+  Widget _jobCard(AppLocalizations l10n, {bool shrink = false}) {
     final t = DashTokens.of(context);
     final plates =
         ref.watch(plateListProvider((_isArchive, _sourceId))).value ??
@@ -279,70 +329,99 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
       if (_source.printTimeSeconds case final s?) formatSeconds(l10n, s),
       if (_source.filamentUsedGrams case final g?) fmtGrams(g),
     ];
-    return ControllerCard.single(
-      title: l10n.controllerPrintJob,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+    final top = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(DashSpace.md),
+          child: QueueThumbnail(item: _source, size: _thumbSize),
+        ),
+        const SizedBox(width: DashSpace.md),
+        Expanded(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(DashSpace.md),
-                child: QueueThumbnail(item: _source, size: _thumbSize),
+              Text(
+                _source.displayName,
+                style: t.titleSm,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(width: DashSpace.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _source.displayName,
-                      style: t.titleSm,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (meta.isNotEmpty) ...[
-                      const SizedBox(height: DashSpace.xs),
-                      Text(
-                        meta.join(' · '),
-                        style: t.monoLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
+              if (meta.isNotEmpty) ...[
+                const SizedBox(height: DashSpace.xs),
+                Text(
+                  meta.join(' · '),
+                  style: t.monoLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
+              ],
             ],
           ),
-          const Spacer(),
-          if (plates.isMultiPlate) ...[
-            PrintStepper(
-              id: 'controller.print.plate',
-              label: l10n.queueEditPlate,
-              value: plates.byIndex(_plate)?.name ?? '$_plate',
-              // Stepped through the list, not by arithmetic on the numbers.
-              onLess: position <= 0 ? null : () => _stepPlate(-1),
-              onMore: position >= plates.plates.length - 1
-                  ? null
-                  : () => _stepPlate(1),
-            ),
-            const SizedBox(height: DashSpace.sm),
+        ),
+      ],
+    );
+    final steppers = <Widget>[
+      if (plates.isMultiPlate) ...[
+        PrintStepper(
+          id: 'controller.print.plate',
+          label: l10n.queueEditPlate,
+          // The word the row already shows and a sign: no copy of its own.
+          lessTooltip: '${l10n.queueEditPlate} −1',
+          moreTooltip: '${l10n.queueEditPlate} +1',
+          value: plates.byIndex(_plate)?.name ?? '$_plate',
+          // Stepped through the list, not by arithmetic on the numbers.
+          onLess: position <= 0 ? null : () => _stepPlate(-1),
+          onMore: position >= plates.plates.length - 1
+              ? null
+              : () => _stepPlate(1),
+        ),
+        const SizedBox(height: DashSpace.sm),
+      ],
+      if (copiesOffered)
+        PrintStepper(
+          id: 'controller.print.copies',
+          label: l10n.queueEditCopies,
+          value: '$_copies',
+          lessTooltip: l10n.copiesLess,
+          moreTooltip: l10n.copiesMore,
+          onLess: _copies <= 1 ? null : () => setState(() => _copies--),
+          onMore: _copies >= _maxCopies
+              ? null
+              : () => setState(() => _copies++),
+        ),
+    ];
+    if (shrink) {
+      return ControllerCard.single(
+        title: l10n.controllerPrintJob,
+        shrink: true,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            top,
+            if (steppers.isNotEmpty) const SizedBox(height: DashSpace.md),
+            ...steppers,
           ],
-          if (copiesOffered)
-            PrintStepper(
-              id: 'controller.print.copies',
-              label: l10n.queueEditCopies,
-              value: '$_copies',
-              lessTooltip: l10n.copiesLess,
-              moreTooltip: l10n.copiesMore,
-              onLess: _copies <= 1 ? null : () => setState(() => _copies--),
-              onMore: _copies >= _maxCopies
-                  ? null
-                  : () => setState(() => _copies++),
+        ),
+      );
+    }
+    return ControllerCard.single(
+      title: l10n.controllerPrintJob,
+      // The steppers sit at the bottom when the card has room; a job with plates
+      // and copies in a short card scrolls instead of overflowing.
+      child: LayoutBuilder(
+        builder: (context, box) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: box.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [top, const Spacer(), ...steppers],
+              ),
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
@@ -365,7 +444,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
 
   // --- Filament ---
 
-  Widget _filamentCard(AppLocalizations l10n) {
+  Widget _filamentCard(AppLocalizations l10n, {bool shrink = false}) {
     final t = DashTokens.of(context);
     final reqs = ref.watch(printRequirementsProvider(_plateSource));
     final status = ref.watch(mappingStatusProvider(_printer.id));
@@ -383,31 +462,69 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     final waiting =
         (!reqs.hasValue && reqs.isLoading) ||
         (!status.hasValue && status.isLoading);
+    Widget row(int i) => _FilamentRow(
+      comparison: comparison[i],
+      catalog: catalog,
+      dualExternal: (status.value?.vtTray?.length ?? 0) > 1,
+      onTap: () => _editMapping(),
+    );
+    final caption = Text(
+      _manualMapping == null
+          ? l10n.controllerPrintAutoMatched(_printer.name)
+          : l10n.controllerPrintManualMapping,
+      style: t.labelSoft,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+    final reset = _manualMapping == null
+        ? null
+        : logTag(
+            'controller.print.reset_mapping',
+            TextButton(
+              onPressed: () => setState(() {
+                _manualMapping = null;
+                _rack.clear();
+              }),
+              child: Text(l10n.controllerPrintResetMapping),
+            ),
+          );
+    if (shrink) {
+      // In a page that scrolls the rows are a plain column: a list of their own
+      // would take the drag from the page.
+      return ControllerCard.single(
+        title: l10n.queueFilamentMapping,
+        trailing: reset,
+        shrink: true,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            caption,
+            const SizedBox(height: DashSpace.sm),
+            if (waiting)
+              const Padding(
+                padding: EdgeInsets.all(DashSpace.lg),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (comparison.isEmpty)
+              Center(child: Text('—', style: t.bodySoft))
+            else
+              for (final i in List.generate(comparison.length, (i) => i)) ...[
+                if (i > 0) const SizedBox(height: DashSpace.sm),
+                row(i),
+              ],
+            ?_costFooter(l10n, t),
+          ],
+        ),
+      );
+    }
     return ControllerCard.single(
       title: l10n.queueFilamentMapping,
-      trailing: _manualMapping == null
-          ? null
-          : logTag(
-              'controller.print.reset_mapping',
-              TextButton(
-                onPressed: () => setState(() {
-                  _manualMapping = null;
-                  _rack.clear();
-                }),
-                child: Text(l10n.controllerPrintResetMapping),
-              ),
-            ),
+      trailing: reset,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            _manualMapping == null
-                ? l10n.controllerPrintAutoMatched(_printer.name)
-                : l10n.controllerPrintManualMapping,
-            style: t.labelSoft,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          caption,
           const SizedBox(height: DashSpace.sm),
           Expanded(
             child: waiting
@@ -418,12 +535,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
                     itemCount: comparison.length,
                     separatorBuilder: (_, _) =>
                         const SizedBox(height: DashSpace.sm),
-                    itemBuilder: (context, i) => _FilamentRow(
-                      comparison: comparison[i],
-                      catalog: catalog,
-                      dualExternal: (status.value?.vtTray?.length ?? 0) > 1,
-                      onTap: () => _editMapping(),
-                    ),
+                    itemBuilder: (context, i) => row(i),
                   ),
           ),
           ?_costFooter(l10n, t),
@@ -453,8 +565,9 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
           'controller.print.cost_center',
           InkWell(
             onTap: _openMore,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: printOptionHeight),
+              alignment: Alignment.centerLeft,
               child: Text(
                 l10n.controllerPrintCostCenter(
                   selected.isPrivate
@@ -490,6 +603,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
             logTag(
               'controller.print.cost_center_retry',
               TextButton(
+                style: _tapTarget,
                 onPressed: () => ref.invalidate(printableCostCentersProvider),
                 child: Text(l10n.retry),
               ),
@@ -555,63 +669,67 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
 
   bool get _triState => ref.watch(triStateCalibrationProvider).orFalse;
 
-  Widget _optionsCard(AppLocalizations l10n) {
+  Widget _optionsCard(AppLocalizations l10n, {bool shrink = false}) {
     final triState = _triState;
+    final rows = <Widget>[
+      PrintOptionRow(
+        id: 'controller.print.bed_levelling',
+        label: l10n.queueOptBedLevelling,
+        value: calibrationLabel(l10n, _options.bedLevelling, triState),
+        onTap: () => setState(
+          () => _options = _options.copyWith(
+            bedLevelling: nextCalibration(_options.bedLevelling, triState),
+          ),
+        ),
+      ),
+      const SizedBox(height: DashSpace.xs),
+      PrintOptionRow(
+        id: 'controller.print.flow_cali',
+        label: l10n.queueOptFlowCali,
+        value: calibrationLabel(l10n, _options.flowCali, triState),
+        onTap: () => setState(
+          () => _options = _options.copyWith(
+            flowCali: nextCalibration(_options.flowCali, triState),
+          ),
+        ),
+      ),
+      const SizedBox(height: DashSpace.xs),
+      PrintOptionRow(
+        id: 'controller.print.timelapse',
+        label: l10n.queueOptTimelapse,
+        value: _options.timelapse ? l10n.commonOn : l10n.commonOff,
+        on: _options.timelapse,
+        onTap: () => setState(
+          () => _options = _options.copyWith(timelapse: !_options.timelapse),
+        ),
+      ),
+      if (_when == QueueScheduleType.scheduled) ...[
+        const SizedBox(height: DashSpace.xs),
+        PrintOptionRow(
+          id: 'controller.print.pick_time',
+          label: l10n.queueEditPickTime,
+          value: _scheduledTime == null
+              ? '—'
+              : DateTimeFormats.of(context).dateTime(_scheduledTime!),
+          on: _scheduledTime != null,
+          onTap: _pickTime,
+        ),
+      ],
+    ];
+    final column = Column(
+      mainAxisSize: shrink ? MainAxisSize.min : MainAxisSize.max,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: rows,
+    );
     return ControllerCard.single(
       title: l10n.controllerPrintOptions,
       trailing: logTag(
         'controller.print.more',
         TextButton(onPressed: _openMore, child: Text(l10n.controllerPrintMore)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          PrintOptionRow(
-            id: 'controller.print.bed_levelling',
-            label: l10n.queueOptBedLevelling,
-            value: calibrationLabel(l10n, _options.bedLevelling, triState),
-            onTap: () => setState(
-              () => _options = _options.copyWith(
-                bedLevelling: nextCalibration(_options.bedLevelling, triState),
-              ),
-            ),
-          ),
-          const SizedBox(height: DashSpace.xs),
-          PrintOptionRow(
-            id: 'controller.print.flow_cali',
-            label: l10n.queueOptFlowCali,
-            value: calibrationLabel(l10n, _options.flowCali, triState),
-            onTap: () => setState(
-              () => _options = _options.copyWith(
-                flowCali: nextCalibration(_options.flowCali, triState),
-              ),
-            ),
-          ),
-          const SizedBox(height: DashSpace.xs),
-          PrintOptionRow(
-            id: 'controller.print.timelapse',
-            label: l10n.queueOptTimelapse,
-            value: _options.timelapse ? l10n.commonOn : l10n.commonOff,
-            on: _options.timelapse,
-            onTap: () => setState(
-              () =>
-                  _options = _options.copyWith(timelapse: !_options.timelapse),
-            ),
-          ),
-          if (_when == QueueScheduleType.scheduled) ...[
-            const SizedBox(height: DashSpace.xs),
-            PrintOptionRow(
-              id: 'controller.print.pick_time',
-              label: l10n.queueEditPickTime,
-              value: _scheduledTime == null
-                  ? '—'
-                  : DateTimeFormats.of(context).dateTime(_scheduledTime!),
-              on: _scheduledTime != null,
-              onTap: _pickTime,
-            ),
-          ],
-        ],
-      ),
+      shrink: shrink,
+      // Scrolls when the fourth row (the time) does not fit the card.
+      child: shrink ? column : SingleChildScrollView(child: column),
     );
   }
 
@@ -631,7 +749,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
 
   // --- Bottom bar ---
 
-  Widget _bottomBar(AppLocalizations l10n) {
+  ({Widget? note, Widget bar}) _bottomBar(AppLocalizations l10n) {
     final t = DashTokens.of(context);
     final item = ref.watch(controllerPrinterProvider(_printer.id)).item;
     final status = item?.status;
@@ -689,50 +807,76 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
         compatible &&
         reqs != null &&
         costCenterAllowsCreate(billing);
-    return SizedBox(
-      height: controllerButtonHeight,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              note,
-              style: t.bodySoft.copyWith(color: warn ? t.warningInk : null),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: DashSpace.md),
-          _WhenChoices(
-            labels: [
-              l10n.controllerPrintNow,
-              l10n.queueScheduleQueue,
-              l10n.queueScheduleSchedule,
-            ],
-            selected: _when.index,
-            onChanged: (i) => setState(() {
-              _when = QueueScheduleType.values[i];
-              // Staged for a manual start only in Queue, as the form has it.
-              if (_when != QueueScheduleType.queue) {
-                _extras = _extras.copyWith(requireManualStart: false);
-              }
-            }),
-          ),
-          const SizedBox(width: DashSpace.md),
-          logTag(
-            'controller.print.submit',
-            FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(_submitWidth, controllerButtonHeight),
-              ),
-              onPressed: !canPrint || _awaitingTime ? null : _submit,
-              child: Text(switch (_when) {
-                QueueScheduleType.asap => l10n.controllerPrintNowAction,
-                QueueScheduleType.queue => l10n.fmAddToQueue,
-                QueueScheduleType.scheduled => l10n.queueScheduleSchedule,
-              }),
-            ),
-          ),
-        ],
+    final noteText = Text(
+      note,
+      style: t.bodySoft.copyWith(color: warn ? t.warningInk : null),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
+    final choices = _WhenChoices(
+      labels: [
+        l10n.controllerPrintNow,
+        l10n.queueScheduleQueue,
+        l10n.queueScheduleSchedule,
+      ],
+      selected: _when.index,
+      onChanged: (i) => setState(() {
+        _when = QueueScheduleType.values[i];
+        // Staged for a manual start only in Queue, as the form has it.
+        if (_when != QueueScheduleType.queue) {
+          _extras = _extras.copyWith(requireManualStart: false);
+        }
+      }),
+    );
+    final submit = logTag(
+      'controller.print.submit',
+      FilledButton(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(_submitWidth, controllerButtonHeight),
+          // The theme pads a button 14 dp above and below its label, which at a
+          // large text size is taller than the choices beside it. A fixed height
+          // cut the label instead (its box is clipped), so the padding goes and
+          // the height is the minimum, as the choices have.
+          padding: const EdgeInsets.symmetric(horizontal: DashSpace.xl),
+        ),
+        onPressed: !canPrint || _awaitingTime ? null : _submit,
+        child: Text(switch (_when) {
+          QueueScheduleType.asap => l10n.controllerPrintNowAction,
+          QueueScheduleType.queue => l10n.fmAddToQueue,
+          QueueScheduleType.scheduled => l10n.queueScheduleSchedule,
+        }),
+      ),
+    );
+    // At a large text size the note and the buttons no longer fit one line. The
+    // buttons stay pinned; the note goes to the top of the scrolling cards, so
+    // it does not take the room they scroll in.
+    if (controllerLargeText(context)) {
+      return (
+        note: note.isEmpty ? null : noteText,
+        // Wraps: three choices and the submit are wider than the body in a
+        // language with long labels.
+        bar: Wrap(
+          alignment: WrapAlignment.end,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: DashSpace.md,
+          runSpacing: DashSpace.sm,
+          children: [choices, submit],
+        ),
+      );
+    }
+    return (
+      note: null,
+      bar: SizedBox(
+        height: controllerButtonHeight,
+        child: Row(
+          children: [
+            Expanded(child: noteText),
+            const SizedBox(width: DashSpace.md),
+            choices,
+            const SizedBox(width: DashSpace.md),
+            submit,
+          ],
+        ),
       ),
     );
   }
@@ -862,6 +1006,12 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
 }
 
 const _thumbSize = 76.0;
+
+/// A text button at the touch-target minimum: the theme's own is 44 dp high, and
+/// the factor the body is drawn at is under 1.09.
+final _tapTarget = TextButton.styleFrom(
+  minimumSize: const Size(0, printOptionHeight),
+);
 const _submitWidth = 220.0;
 const _swatch = 24.0;
 
@@ -917,8 +1067,13 @@ class _TopBar extends StatelessWidget {
           ),
           const SizedBox(width: DashSpace.md),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
-            height: _lockHeight,
+            padding: const EdgeInsets.symmetric(
+              horizontal: DashSpace.md,
+              vertical: DashSpace.xs,
+            ),
+            // A minimum, centred: a larger font makes the name and the icon taller.
+            constraints: const BoxConstraints(minHeight: _lockHeight),
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: t.subCard,
               borderRadius: BorderRadius.circular(DashSpace.md),
@@ -930,6 +1085,9 @@ class _TopBar extends StatelessWidget {
                 Icon(
                   Icons.lock_outline_rounded,
                   size: controllerIconSize(context, DashSpace.lg),
+                  // The size already follows the text: the icon theme would scale
+                  // it a second time.
+                  applyTextScaling: false,
                   color: t.textSecondary,
                 ),
                 const SizedBox(width: DashSpace.sm),

@@ -23,6 +23,12 @@ bool controllerLargeText(BuildContext context) =>
 double controllerIconSize(BuildContext context, double base) =>
     base * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.5);
 
+/// The print-settings screen's body, laid out in this much room. The screen has a
+/// bar above it, so it gets less room than a tab does, and at the tabs' height it
+/// would be drawn at 0.95 and every touch target with it. 1.07 on the 891 x 411
+/// window.
+const controllerPrintBodySize = Size(800, 312);
+
 /// The heights the overview and the heat tab need at a large text size: their
 /// cards, laid out at that size, are taller than the screen is, so these two
 /// tabs scroll instead of squeezing the cards until a ring turns into an ellipse.

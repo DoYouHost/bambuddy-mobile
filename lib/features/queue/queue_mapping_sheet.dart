@@ -483,11 +483,13 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     child: LayoutBuilder(
       builder: (context, box) => SizedBox(
         width: math.min(_dialogSize.width * widget.dialogScale!, box.maxWidth),
-        height: math.min(
-          _dialogSize.height * widget.dialogScale!,
-          box.maxHeight,
-        ),
+        // From a large text size the dialog takes the room there is, and its
+        // lists scroll, instead of growing with the font.
+        height: controllerLargeText(context)
+            ? box.maxHeight
+            : math.min(_dialogSize.height * widget.dialogScale!, box.maxHeight),
         child: ScaleToFit(
+          reflows: true,
           minSize: _dialogSize,
           child: Padding(
             padding: const EdgeInsets.all(DashSpace.md),
@@ -1276,8 +1278,11 @@ class _PickerDialog extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, box) => SizedBox(
           width: math.min(_size.width * scale, box.maxWidth),
-          height: math.min(_size.height * scale, box.maxHeight),
+          height: controllerLargeText(context)
+              ? box.maxHeight
+              : math.min(_size.height * scale, box.maxHeight),
           child: ScaleToFit(
+            reflows: true,
             minSize: _size,
             child: Padding(
               padding: const EdgeInsets.all(DashSpace.md),

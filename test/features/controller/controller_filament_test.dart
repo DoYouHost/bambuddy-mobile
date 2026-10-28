@@ -74,6 +74,29 @@ Finder slots() => find.byWidgetPredicate((w) {
   return id.startsWith('controller.slot') && id != 'controller.slot_edit';
 });
 
+/// Fill and text colour of the enabled button tagged [id].
+(Color?, Color?) _buttonColours(WidgetTester tester, String id) {
+  final style = tester
+      .widget<FilledButton>(
+        find.descendant(
+          of: byLogId(id),
+          matching: find.byWidgetPredicate((w) => w is FilledButton),
+        ),
+      )
+      .style!;
+  return (
+    style.backgroundColor!.resolve({}),
+    style.foregroundColor!.resolve({}),
+  );
+}
+
+(Color?, Color?) _dryStyle(WidgetTester tester) =>
+    _buttonColours(tester, 'controller.dry');
+
+/// Load is the reference: it is the button that follows the accent.
+(Color?, Color?) _accentStyle(WidgetTester tester) =>
+    _buttonColours(tester, 'controller.load');
+
 void main() {
   late RecordingCommands commands;
   late _Statuses statuses;
@@ -609,6 +632,15 @@ void main() {
       expect(byLogId('controller.dry'), findsNothing);
     });
 
+    testWidgets('takes the theme accent, like Load and Unload', (tester) async {
+      await pump(
+        tester,
+        _status(ams: [_unit(0, moduleType: 'n3f')], drying: true),
+      );
+
+      expect(_dryStyle(tester), _accentStyle(tester));
+    });
+
     testWidgets('opens the drying sheet', (tester) async {
       await pump(
         tester,
@@ -851,6 +883,15 @@ void main() {
           tester.getRect(dry).top,
           closeTo(tester.getRect(byLogId('controller.load')).top, 0.5),
         );
+      });
+
+      testWidgets('keep Drying in the theme accent', (tester) async {
+        await pumpLarge(
+          tester,
+          _status(ams: [_unit(0, moduleType: 'n3f')], drying: true),
+        );
+
+        expect(_dryStyle(tester), _accentStyle(tester));
       });
 
       testWidgets('mark which head a unit feeds on the unit itself', (

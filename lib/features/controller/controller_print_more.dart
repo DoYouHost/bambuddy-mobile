@@ -166,8 +166,13 @@ class _MoreDialogState extends ConsumerState<_MoreDialog> {
       child: LayoutBuilder(
         builder: (context, box) => SizedBox(
           width: math.min(_width * widget.scale, box.maxWidth),
-          height: math.min(_height * widget.scale, box.maxHeight),
+          // From a large text size the rows are a list that scrolls, so the
+          // dialog takes the room there is instead of growing with the font.
+          height: controllerLargeText(context)
+              ? box.maxHeight
+              : math.min(_height * widget.scale, box.maxHeight),
           child: ScaleToFit(
+            reflows: true,
             minSize: const Size(_width, _height),
             child: Padding(
               padding: const EdgeInsets.all(DashSpace.md),
@@ -290,6 +295,9 @@ class _MoreDialogState extends ConsumerState<_MoreDialog> {
         PrintStepper(
           id: 'controller.print.more.chamber',
           label: l10n.controllerPrintChamber,
+          // The step and a sign, as the heat tab names its steppers.
+          lessTooltip: '−$chamberStep°',
+          moreTooltip: '+$chamberStep°',
           value: target == null ? '—' : '$target°',
           // Back to the filament's own below the first step.
           onLess: target == null

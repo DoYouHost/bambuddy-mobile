@@ -750,15 +750,23 @@ class ControllerChoices extends StatelessWidget {
 class ControllerCard extends StatelessWidget {
   const ControllerCard({super.key, required this.sections, this.footer});
 
+  /// With [shrink] the card is as tall as its content instead of filling the
+  /// height it is given: for a card in a page that scrolls.
   ControllerCard.single({
     Key? key,
     required String title,
     Widget? trailing,
     required Widget child,
+    bool shrink = false,
   }) : this(
          key: key,
          sections: [
-           ControllerSection(title: title, trailing: trailing, child: child),
+           ControllerSection(
+             title: title,
+             trailing: trailing,
+             shrink: shrink,
+             child: child,
+           ),
          ],
        );
 
@@ -768,6 +776,14 @@ class ControllerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    // A row that stretches needs a height to stretch to.
+    if (sections.length == 1 && this.footer == null && sections.single.shrink) {
+      return Container(
+        padding: const EdgeInsets.all(DashSpace.md),
+        decoration: t.cardBox,
+        child: sections.single,
+      );
+    }
     final row = Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -805,9 +821,13 @@ class ControllerSection extends StatelessWidget {
     required this.child,
     this.trailing,
     this.flex = 1,
+    this.shrink = false,
   });
 
   static const headerHeight = 44.0;
+
+  /// The content takes its own height; see [ControllerCard.single].
+  final bool shrink;
 
   final String title;
   final Widget? trailing;
@@ -821,9 +841,11 @@ class ControllerSection extends StatelessWidget {
     final t = DashTokens.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: shrink ? MainAxisSize.min : MainAxisSize.max,
       children: [
-        SizedBox(
-          height: headerHeight,
+        // A minimum: a trailing button that is taller than the header makes it so.
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: headerHeight),
           child: Row(
             children: [
               Expanded(
@@ -839,7 +861,7 @@ class ControllerSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: DashSpace.sm),
-        Expanded(child: child),
+        if (shrink) child else Expanded(child: child),
       ],
     );
   }

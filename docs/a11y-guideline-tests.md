@@ -180,10 +180,31 @@ rendered suite fails 146 of 504, from 402; the full suite was not re-run, so the
 1018 above is the last full number. The controller's own host tests were rewritten for
 the new layout.
 
+Controller re-run (2026-10-28, night): `test/a11y/controller_a11y_test.dart` fails
+76 of 504, from 146. What changed: the print-settings screen is reflowed like the
+controller body (`ScaleToFit(reflows: true)`, `controllerPrintBodySize` 800 x 312, so the
+factor is about 1.07 on the 891 x 411 window; from 1.3x text two columns, cards as tall as
+their content, one page that scrolls and the bar's buttons pinned, the bar's note at the
+top of the page). The "More" dialog and the two mapping dialogs take the room they are
+given from 1.3x text. The plate and chamber steppers name their buttons without new copy
+(`Plate −1`, `−5°`, as the heat tab does), and `log_coverage` is at zero unnamed.
+
+What is left on the print screen is **not the app**: `a11yMeetsAllWhileScrolling` pages
+a scrolling screen one viewport at a time and the tap-target guideline measures a node
+clipped by the viewport, so a control cut by the page edge (`copies.more` 4.2 dp,
+"More" 15 dp) fails at 150 and 200 %. Which control lands on an edge is luck of the
+content height. Paging with an overlap of a control's height and skipping a node whose
+unclipped size passes would remove this class of finding everywhere; it changes the
+judge, so it waits for the maintainer.
+
+Also left: the system date picker's day cells (34.6 dp rows in landscape), the queue
+view's "start mapping dialog" arrangement (a tap below the fold at 150 and 200 %), the
+queue job dialog and the file dialog (their own `ScaleToFit`).
+
 ## Open, in this order
 
-1. **The controller screen**: 146 of 504 rendered tests fail, from 402 before the rail
-   and the large-text reflow (design and rules: `docs/single-printer-controller.md`
+1. **The controller screen**: 76 of 504 rendered tests fail (see above), from 402 before the
+   rail and the large-text reflow (design and rules: `docs/single-printer-controller.md`
    §2 and §9). What is left: the print-settings route (rows of 44-46 dp, "More" and
    "Preview", the date cells and the file search chips; it and the file dialog still
    grow their box with the font, `ScaleToFit(reflows: false)`, and are not reflowed),

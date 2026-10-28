@@ -134,6 +134,16 @@ PlateList _platesAt(List<int> indexes) => PlateList.fromJson({
   'has_gcode': true,
 });
 
+/// Where [finder] is drawn: its box through every transform above it, which is
+/// what `tester.getSize` leaves out (the body is scaled by a `FittedBox`).
+Rect _onScreen(WidgetTester tester, Finder finder) {
+  final box = tester.renderObject<RenderBox>(finder.first);
+  return MatrixUtils.transformRect(
+    box.getTransformTo(null),
+    Offset.zero & box.size,
+  );
+}
+
 void main() {
   setUp(setUpQueueForm);
 
@@ -681,6 +691,248 @@ void main() {
     });
   });
 
+  // A touch target is 48 dp or more on a 844 x 390 landscape phone and larger at
+  // every text size: the body is drawn at a factor of at least 1, and from 130 %
+  // the cards are rearranged, not scaled down. A window under the design floor
+  // (800 dp wide, 312 dp of body height at normal text) still shrinks it.
+  for (final textScale in const [1.0, 1.5, 2.0]) {
+    testWidgets('the print screen keeps its touch targets 48 dp at '
+        '${(textScale * 100).round()} % text', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = textScale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      // A window on which the old, scale-down layout drew the body at under 1.
+      await pump(tester, size: const Size(844, 390), copies: true);
+
+      for (final id in [
+        'controller.print.bed_levelling',
+        'controller.print.flow_cali',
+        'controller.print.timelapse',
+        'controller.print.more',
+      ]) {
+        await tester.ensureVisible(byLogId(id));
+        expect(
+          _onScreen(tester, byLogId(id)).height,
+          greaterThanOrEqualTo(48),
+          reason: id,
+        );
+      }
+    });
+  }
+
+  // The bar's note moves above its buttons from 130 %; the buttons themselves
+  // (three choices and the submit) wrap onto a second line where a language's
+  // labels are too long, and stay inside the screen.
+  for (final locale in AppLocalizations.supportedLocales) {
+    for (final textScale in const [1.5, 2.0]) {
+      for (final mode in const [1, 2]) {
+        testWidgets('the print bar fits its buttons in ${locale.languageCode} '
+            'at ${(textScale * 100).round()} % text, mode $mode', (
+          tester,
+        ) async {
+          tester.platformDispatcher.textScaleFactorTestValue = textScale;
+          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+          await pump(
+            tester,
+            locale: locale,
+            size: landscapeRedmi,
+            copies: true,
+          );
+          await tester.tap(byLogId('controller.print.when').at(mode));
+          await tester.pumpAndSettle();
+
+          expect(tester.takeException(), isNull);
+          final submit = _onScreen(tester, byLogId('controller.print.submit'));
+          expect(submit.right, lessThanOrEqualTo(landscapeRedmi.width));
+          expect(submit.left, greaterThanOrEqualTo(0));
+          for (final choice in byLogId('controller.print.when').evaluate()) {
+            final r = MatrixUtils.transformRect(
+              (choice.renderObject! as RenderBox).getTransformTo(null),
+              Offset.zero & (choice.renderObject! as RenderBox).size,
+            );
+            expect(r.left, greaterThanOrEqualTo(0));
+            expect(r.right, lessThanOrEqualTo(landscapeRedmi.width));
+          }
+        });
+      }
+    }
+  }
+
+  // A stepper's buttons carry a symbol, not a word: a reader needs a name for
+  // each, and the visible label is the stepper's, not the button's.
+  testWidgets('the plate stepper names its buttons', (tester) async {
+    await pump(tester, plates: _threePlates);
+
+    expect(find.byTooltip('${pl.queueEditPlate} −1'), findsOneWidget);
+    expect(find.byTooltip('${pl.queueEditPlate} +1'), findsOneWidget);
+  });
+
+  // The job card scrolls instead of overflowing when a long name, the plates
+  // and the copies do not fit it.
+  for (final textScale in const [1.0, 1.5, 2.0]) {
+    testWidgets('the job card holds a long name, plates and copies at '
+        '${(textScale * 100).round()} % text', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = textScale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pump(
+        tester,
+        size: landscapeRedmi,
+        copies: true,
+        plates: _threePlates,
+        file: _file(
+          name: 'a_rather_long_file_name_for_a_tile_that_wraps_twice.gcode.3mf',
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(byLogId('controller.print.copies.more'), findsOneWidget);
+      expect(byLogId('controller.print.plate.more'), findsOneWidget);
+    });
+  }
+
+  // From 130 % the cards sit in a page that scrolls, as tall as their content.
+  // A card that scrolled inside it would take the drag from the page, and what
+  // it hides is cut: the page is the only scrollable, in the fullest case (a
+  // note, plates, copies, a time picked) and in every language.
+  for (final locale in AppLocalizations.supportedLocales) {
+    for (final textScale in const [1.5, 2.0]) {
+      testWidgets('the page is the only thing that scrolls in '
+          '${locale.languageCode} at ${(textScale * 100).round()} % text', (
+        tester,
+      ) async {
+        tester.platformDispatcher.textScaleFactorTestValue = textScale;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await pump(
+          tester,
+          locale: locale,
+          size: landscapeRedmi,
+          copies: true,
+          held: true,
+          plates: _threePlates,
+          file: _file(name: 'a_rather_long_file_name_for_a_tile.gcode.3mf'),
+        );
+        await tester.tap(byLogId('controller.print.when').at(2));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(byLogId('controller.print.pick_time'));
+        await tester.tap(byLogId('controller.print.pick_time'));
+        await tester.pumpAndSettle();
+        final ok = find.text(
+          MaterialLocalizations.of(
+            tester.element(find.byType(Dialog).first),
+          ).okButtonLabel,
+        );
+        await tester.tap(ok);
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.text(
+            MaterialLocalizations.of(
+              tester.element(find.byType(Dialog).first),
+            ).okButtonLabel,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        // The time was picked: the row shows it, not the dash.
+        expect(
+          find.descendant(
+            of: byLogId('controller.print.pick_time'),
+            matching: find.text('—'),
+          ),
+          findsNothing,
+        );
+        expect(
+          find.descendant(
+            of: find.byType(ControllerPrintScreen),
+            matching: find.byType(Scrollable),
+          ),
+          findsOneWidget,
+        );
+        final row = _onScreen(tester, byLogId('controller.print.pick_time'));
+        expect(row.left, greaterThanOrEqualTo(0));
+        expect(row.right, lessThanOrEqualTo(landscapeRedmi.width));
+      });
+    }
+  }
+
+  // The three choices and the submit are one row of buttons: the same height at
+  // every text size, and the lock chip holds its icon and its text.
+  for (final textScale in const [1.0, 1.3, 1.5, 2.0]) {
+    testWidgets('the bar buttons are one height at '
+        '${(textScale * 100).round()} % text', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = textScale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pump(tester, size: landscapeRedmi);
+
+      final submit = _onScreen(tester, byLogId('controller.print.submit'));
+      for (final choice in byLogId('controller.print.when').evaluate()) {
+        final box = choice.renderObject! as RenderBox;
+        final r = MatrixUtils.transformRect(
+          box.getTransformTo(null),
+          Offset.zero & box.size,
+        );
+        expect(r.height, closeTo(submit.height, 0.5));
+      }
+
+      // The label is not cut: a paragraph given less height than its text needs
+      // clips what sticks out (the tail of a "j").
+      final label = tester.renderObject<RenderParagraph>(
+        find.descendant(
+          of: byLogId('controller.print.submit'),
+          matching: find.byType(RichText),
+        ),
+      );
+      expect(
+        label.size.height,
+        greaterThanOrEqualTo(
+          label.getMaxIntrinsicHeight(label.size.width) - 0.5,
+        ),
+      );
+    });
+
+    testWidgets('the lock chip holds its icon and its text at '
+        '${(textScale * 100).round()} % text', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = textScale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pump(tester, size: landscapeRedmi);
+
+      final lock = find.byIcon(Icons.lock_outline_rounded);
+      final icon = _onScreen(tester, lock);
+      // The chip: the bordered box around the icon and the printer's name.
+      final chip = _onScreen(
+        tester,
+        find.ancestor(
+          of: lock,
+          matching: find.byWidgetPredicate(
+            (w) =>
+                w is Container &&
+                w.decoration is BoxDecoration &&
+                (w.decoration! as BoxDecoration).border != null,
+          ),
+        ),
+      );
+      // The glyph is as wide as the icon is tall; a size scaled twice outgrows the chip.
+      expect(icon.width, lessThanOrEqualTo(chip.height));
+      expect(chip.contains(icon.topLeft), isTrue);
+      expect(chip.contains(icon.bottomRight), isTrue);
+      // Centred on the chip's middle line.
+      expect(icon.center.dy, closeTo(chip.center.dy, 1));
+    });
+  }
+
+  testWidgets('the way to print stays on the screen at 200 % text', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pump(tester, size: landscapeRedmi, copies: true);
+
+    final submit = _onScreen(tester, byLogId('controller.print.submit'));
+    expect(submit.bottom, lessThanOrEqualTo(landscapeRedmi.height));
+    expect(submit.top, greaterThanOrEqualTo(0));
+    expect(submit.right, lessThanOrEqualTo(landscapeRedmi.width));
+    expect(submit.left, greaterThanOrEqualTo(0));
+  });
+
   // The controller never shrinks text to fit: where it does not fit, the layout
   // gives way. Measured with the app's own fonts in every language.
   for (final locale in AppLocalizations.supportedLocales) {
@@ -742,6 +994,8 @@ void main() {
 
   /// Opens the "More options" dialog.
   Future<void> openMore(WidgetTester tester) async {
+    // At a large text size the cards scroll, and this one can sit below the fold.
+    await tester.ensureVisible(byLogId('controller.print.more'));
     await tester.tap(byLogId('controller.print.more'));
     await tester.pumpAndSettle();
   }
@@ -822,6 +1076,7 @@ void main() {
             ],
           );
           // The cheaper centre has less than the job costs.
+          await tester.ensureVisible(byLogId('controller.print.cost_center'));
           await tester.tap(byLogId('controller.print.cost_center'));
           await tester.pumpAndSettle();
           await tester.tap(find.text('Workshop'));
@@ -1484,6 +1739,24 @@ void main() {
       await send(tester);
 
       expect(capturedBody?['confirm_outcome'], isFalse);
+    });
+
+    testWidgets('the chamber stepper names its buttons', (tester) async {
+      await pump(tester);
+
+      await openMore(tester);
+      await reveal(tester, 'preheat', target: find.text(pl.queueEditPreheat));
+      await tester.tap(
+        find.descendant(
+          of: byLogId('controller.print.more.preheat'),
+          matching: find.text(pl.commonOn),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await reveal(tester, 'chamber.more');
+
+      expect(find.byTooltip('−5°'), findsOneWidget);
+      expect(find.byTooltip('+5°'), findsOneWidget);
     });
 
     testWidgets('the dialog fits a small window and a large system font', (

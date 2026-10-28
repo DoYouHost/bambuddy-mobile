@@ -111,29 +111,29 @@ class PrintOptionRow extends StatelessWidget {
         child: InkWell(
           borderRadius: radius,
           onTap: onTap,
-          child: SizedBox(
-            height: printOptionHeight,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: t.bodyPlain,
-                      // Two lines where a language names the option at length.
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+          // A minimum: a language that names the option at length takes two lines.
+          child: Container(
+            constraints: const BoxConstraints(minHeight: printOptionHeight),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: t.bodyPlain,
+                    // Two lines where a language names the option at length.
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: DashSpace.sm),
-                  Text(
-                    value,
-                    style: t.bodyBold.copyWith(color: on ? t.accentInk : null),
-                    maxLines: 1,
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: DashSpace.sm),
+                Text(
+                  value,
+                  style: t.bodyBold.copyWith(color: on ? t.accentInk : null),
+                  maxLines: 1,
+                ),
+              ],
             ),
           ),
         ),
