@@ -156,21 +156,22 @@ verified.
 
 ## State (2026-10-28, second machine)
 
-Failing tests in `test/a11y`: 1368 of 6765, from 1843 at the start of the day (2478 at
-the start of the work); 533 s wall clock for the whole suite on the desktop. Nothing
+Failing tests in `test/a11y`: 1250 of 6765, from 1843 at the start of the day (2478 at
+the start of the work); 517 s wall clock for the whole suite on the desktop. Nothing
 new fails in any of the last three runs. What went since the morning: the pickers and
-the controller overflows (213), the test-side groups (54), then the labels (208: the
+the controller overflows (213), the test-side groups (54), then the labels (326: the
 slicer's option switch, the search field's clear button, the controller's icon
-buttons). Overflow findings are gone everywhere except the `material_ui` `SnackBar`
+buttons, the archive's verdict thumbs, the queue's check rows, two checkboxes in the
+mapping sheet and the group form). Overflow findings are gone everywhere except the `material_ui` `SnackBar`
 (2 tests, not our code) and the "common, selection controls" test row (8 tests, a
 right-hand overflow of 13-77 dp inside the test's own fixture at
 `common_a11y_test.dart:603`, to check before calling it a test bug). Contrast findings
 in the output: 0; the two `genuine` rows of the report are the `65°` fixture (see
 Running it), nothing to fix.
 
-Left, by file: controller 402, queue 176, files 168, dashboard 155, archive 116,
-inventory 109, locations 48, tour 35, common 33, admin 31, dashboard sheets 24,
-projects 24 (tap targets and missing labels, in pairs wherever a control is both).
+Left, by file: controller 402, files 168, dashboard 155, queue 128, inventory 109,
+archive 60, locations 48, tour 35, common 33, projects 24, dashboard sheets 22,
+admin 19 (tap targets and missing labels, in pairs wherever a control is both).
 
 ## Open, in this order
 
@@ -196,7 +197,9 @@ projects 24 (tap targets and missing labels, in pairs wherever a control is both
    `project_detail_sections.dart`) and two `_StatTile`s that differ in look; needs a
    decision before merging.
 5. Waiting for the maintainer: new screen-reader copy in five languages (the picker
-   tiles say the icon key or the colour code today), the date-range picker cells, how
+   tiles say the icon key or the colour code today; the X/Y jog arrows now say "Move
+   X plus" and the like, plate and chamber steppers of the print screen still have no
+   name, and neither has the spool colour wheel), the date-range picker cells, how
    many accents after a `timeit`, `°C` on the temperature tiles if wanted.
 6. **`PickerTile` and its test sit uncommitted in the `app-shared` working tree**
    (`packages/dash_kit/lib/src/picker_tile.dart`, `test/picker_tile_test.dart`, one
