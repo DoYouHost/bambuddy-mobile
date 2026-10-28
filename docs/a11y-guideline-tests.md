@@ -15,7 +15,7 @@ The work runs against the sibling checkout of the shared packages, not a tagged
 release:
 
 1. Keep a clone of `git@github.com:DoYouHost/app-shared.git` next to this repository,
-   on `master` and pulled (it has to contain `afc1783`). **Look at `ls ..` first:** the
+   on `master` and pulled (it has to contain `5b8a74a`, the `pickDate` entry mode). **Look at `ls ..` first:** the
    maintainer's machines already have it as `../app-shared`; a second clone under
    another name is a duplicate. Run the commands through the sibling `../flake.nix`
    shell (`direnv exec .. <cmd>`), where `flutter` and `just` live.
@@ -71,6 +71,12 @@ release:
   own guideline skips only nodes at the edge of a scrollable that marks itself
   implicit, and any node flush with its left side; it also lets a full-width row under
   48 dp through, which this harness does not close. Tests: `a11y_tap_targets_test.dart`.
+- `a11yTap` and `a11yLongPress` scroll the control to the **middle** of its scrollable and
+  pump a frame before tapping. `ensureVisible` moves the scroll position but not the
+  render tree, so the finder still answered with the old place and the tap landed
+  where the control had been, under the fold; and its default puts the control at the
+  leading edge, under a pinned header. Find a row of a lazy list by its text, not as
+  `.at(n)`: the nth built match is another row once the list has scrolled.
 - A text scale reaches a sheet only through `MaterialApp.builder`: a sheet is a route
   above the card, so scaling the card does not scale it.
 
@@ -163,96 +169,71 @@ verified.
   no test opens that view, by decision: the calendar is a Flutter widget that is
   smaller than 48 dp in landscape and is reachable on purpose. Do not add a test that
   toggles it unless the calendar is replaced.
-- Controller at large text: no scrolling and no smaller captions. The two overflows
-  were fixed where the layout was rigid: the job card's percentage keeps its design
-  size at any text size (`textScaler.clamp(maxScaleFactor: 1)`, it is the biggest
-  figure on the screen), and the filament row in the print settings has
-  `minHeight: controllerButtonHeight` instead of a fixed height, inside a list that
-  already scrolls. 100 % is unchanged.
+- Controller at large text: **a screen is rearranged, never scaled with the font**
+  (`ScaleToFit(reflows: true)`, from 1.3x text), no caption gets smaller, and a touch
+  target stays 48 dp or more. What cannot fit the window then scrolls as a page (Overview,
+  Heat, Filament, the print-settings screen, the Prints items' dialog), with the actions
+  pinned where there are any; nothing scrolls inside a card that sits in such a page, as it
+  would take the drag from the page. Details and the numbers:
+  `docs/single-printer-controller.md` §2 and §9.
 
-## State (2026-10-28, second machine)
+## State (2026-10-28, end of the day)
 
-**Latest full run (2026-10-28, night): 597 of 6779 fail**, from 629 after the paging
-change and 1018 before it. Left, by surface: queue 126, inventory 109, printer files 88,
-archive 60, locations 48, common 33, controller 33 (of 520), projects 24, dashboard sheets
-22, admin 19, swatches 16, print log 8, stats 8, dashboard 2. The text below is the state
-of the earlier runs; the open items still apply.
+**597 of 6779 tests in `test/a11y` fail**, from 2478 at the start of the work (1843 at the
+start of that day, 1018 at the last full run before the harness changes, 629 after
+them). A whole run is about 10 minutes (`just test-a11y`, four files at a time).
 
-Failing tests in `test/a11y`: 1018 of 6765, from 1843 at the start of the day (2478 at
-the start of the work); 499 s wall clock for the whole suite on the desktop. Nothing
-new fails in any of the last three runs. What went since the morning: the pickers and
-the controller overflows (213), the test-side groups (54), then the labels (558: the
-slicer's option switch, the search field's clear button, the controller's icon
-buttons, the archive's verdict thumbs, the queue's check rows, two checkboxes in the
-mapping sheet and the group form, the show/hide toggles of the access code and the
-cloud password, the files' add and close buttons). Overflow findings are gone everywhere except the `material_ui` `SnackBar`
-(2 tests, not our code) and the "common, selection controls" test row (8 tests, a
-right-hand overflow of 13-77 dp inside the test's own fixture at
-`common_a11y_test.dart:603`, to check before calling it a test bug). Contrast findings
-in the output: 0; the two `genuine` rows of the report are the `65°` fixture (see
-Running it), nothing to fix.
+Left, by file. One surface is 8 tests (three accents in both themes at 100 %, then 150
+and 200 %). Tap targets and missing labels come in pairs wherever a control is both, so
+check both before counting.
 
-Left, by file: controller 402, queue 128, inventory 109, files 88, archive 60,
-locations 48, tour 35, common 33, projects 24, dashboard sheets 22, admin 19,
-swatches 16 (tap targets and missing labels, in pairs wherever a control is both).
+| File | Fails | Surfaces |
+|---|---|---|
+| queue | 126 | the edit form in eight states, bulk edit |
+| inventory | 109 | the colour dialogs, the labels sheet and its menus, the label options sheet |
+| files | 88 | the printer files in eight states, the file details |
+| archive | 60 | the filters, the timelapse player and editor, the no-3MF banners |
+| locations | 48 | every state of the locations screen |
+| common | 33 | selection controls (a fixture overflow, to check), the colour wheel, the QR scanner (2), a snack bar |
+| controller | 33 of 520 | see below |
+| projects | 24 | project detail in three states |
+| dashboard sheets | 22 | the slot colour dialog, the movement sheet |
+| admin | 19 | the API key dialog, the group form |
+| swatches | 16 | both swatch views |
+| print log, stats | 16 | the date-range pickers |
+| dashboard, model sources | 3 | a folded section, one MakerWorld state |
 
-Update, the same evening: the controller screen was redesigned (a rail instead of a
-top bar, reflow from 130 % text; `docs/single-printer-controller.md` §2 and §9). Its
-rendered suite fails 146 of 504, from 402; the full suite was not re-run, so the
-1018 above is the last full number. The controller's own host tests were rewritten for
-the new layout.
+**The causes outside the controller have not been sorted since the harness changed.**
+The numbers above are by file; do not assume they are all "target and label" until one
+surface of each group has been read.
 
-Controller re-run (2026-10-28, night): `test/a11y/controller_a11y_test.dart` fails
-76 of 504, from 146. What changed: the print-settings screen is reflowed like the
-controller body (`ScaleToFit(reflows: true)`, `controllerPrintBodySize` 800 x 312, so the
-factor is about 1.07 on the 891 x 411 window; from 1.3x text two columns, cards as tall as
-their content, one page that scrolls and the bar's buttons pinned, the bar's note at the
-top of the page). The "More" dialog and the two mapping dialogs take the room they are
-given from 1.3x text. The plate and chamber steppers name their buttons without new copy
-(`Plate −1`, `−5°`, as the heat tab does), and `log_coverage` is at zero unnamed.
+Left on the controller: the files search chips and the "no match" state (16), the fault
+chip and the fault view (16), and the dual-nozzle heat tab (one target 42.7 dp high).
+The print-settings screen, its dialogs, the file, job and archive dialog and the
+settings tab pass at every size.
 
-What was left on the print screen at 150 and 200 % was not the app: the harness paged a
-scrolling screen one viewport at a time and measured a control cut by the page edge
-(`copies.more` 4.2 dp, "More" 15 dp). Fixed in the harness (see "What the harness
-does"); the print screen now passes in full.
-
-Left on the controller: the files search chips and the "no match" state (16 tests), the
-fault chip and the fault view (16), and the dual-nozzle heat tab (one tap target 42.7 dp
-high). The Prints items' dialog (`ControllerDetailDialog`, file, job and archive)
-holds its touch targets at every size.
-
-Four controller surfaces failed before the screen was reached, and the cause was the
-harness, not the app. `a11yTap` took the finder's position right after `ensureVisible`,
-which moves the scroll position but not the render tree, so a tap landed where the control
-had been; it now lays a frame out and scrolls the control to the middle of its
-scrollable (the default puts it at the leading edge, under a pinned header). The
-tests were also arranged for the normal text size: from 1.3x the settings tab shows one
-card at a time (`_openSettings` picks it), and a folder is found by its name, not as the
-nth built match of a lazy list (`.at(n)` changes meaning once the list scrolls).
+What the day fixed, in short, so it is not redone: the pickers (`PickerTile`), 558
+missing labels, the controller's rail and its reflow from 1.3x text, the print-settings
+screen and every dialog it opens, the Prints items' dialog, the date picker in
+landscape, and four harness faults (a cut control read as a small one; paging without
+overlap; `a11yTap` tapping the old place; tests arranged only for the normal text size).
+Contrast findings in the output: 0; the two `genuine` rows of the report are the `65°`
+fixture (see Running it), nothing to fix.
 
 ## Open, in this order
 
-1. **The controller screen**: 76 of 504 rendered tests fail (see above), from 402 before the
-   rail and the large-text reflow (design and rules: `docs/single-printer-controller.md`
-   §2 and §9). What is left: the print-settings route (rows of 44-46 dp, "More" and
-   "Preview", the date cells and the file search chips; it and the file dialog still
-   grow their box with the font, `ScaleToFit(reflows: false)`, and are not reflowed),
-   the airduct switch on Heat (48 × 44 dp, the Cooling one) and part of Settings;
-   tappable nodes with no label remain in the three print-screen surfaces. The other
-   screens have the same two findings per control (a target and a label), so check
-   both before counting. The pickers are done (`PickerTile`, see Decisions). **The
-   full `just test-a11y` has not been run since the redesign**: run it and replace the
-   numbers in State.
-2. Nine test-side failures left, none solved by `ensureVisible`: the "X1 Carbon" tile in
-   the dashboard fold test at 150 % and 200 % (2), the new spool form's material menu at
-   150 % and 200 % (2, a framework assertion `transformed == position -
-   childParentData.offset` in a hit test, cause not found), the wall's `wall.live_camera`
-   at 150 % and 200 % (4: the panel is not scrollable and the switch sits at y = 476 in
-   a 411 dp window, which looks like an **app defect**, not a test one), and the
-   "Timelapse" chip of the printer files at 200 % (1, `ensureVisible` does not bring it
-   into the horizontal list). The harness now pages a lazy list for `shows` and
-   `a11yTap` (`_pageUntilBuilt`) and unmounts at the end of a surface (a poll can start
-   a demo request in the last frame).
+1. **The controller, 33 left** (above). The files search chips and the fault chip come
+   first: each is 16 tests and probably one fix. Design and rules:
+   `docs/single-printer-controller.md` §2 and §9.
+2. **The other screens, 564 tests.** Start with one surface per group, read the finding,
+   fix the class of it and re-run the file: the queue edit form and the colour dialogs
+   are the largest and share widgets across their surfaces. Suspects from earlier runs,
+   to check first: the dashboard's folded section (the "X1 Carbon" tile at 150 and 200 %),
+   the spool form's material menu (a framework assertion `transformed == position -
+   childParentData.offset` in a hit test, cause not found), and the printer files'
+   "Timelapse" chip at 200 % (`ensureVisible` does not bring it into the horizontal
+   list). The wall's `wall.live_camera` was thought an app defect; it was the harness
+   (`a11yTap`), and the wall suites pass.
 3. No widget test yet for the swatches section header, the queue-edit schedule row,
    the archive colour-filter row and the timelapse info row (the a11y suite covers
    them), nor for the maintenance type sheet and the project form (only the a11y suite
@@ -261,16 +242,17 @@ nth built match of a lazy list (`.at(n)` changes meaning once the list scrolls).
    `project_detail_sections.dart`) and two `_StatTile`s that differ in look; needs a
    decision before merging.
 5. Waiting for the maintainer: new screen-reader copy in five languages (the picker
-   tiles say the icon key or the colour code today; the X/Y jog arrows now say "Move
-   X plus" and the like, plate and chamber steppers of the print screen still have no
-   name, and neither has the spool colour wheel), the date-range picker cells, how
-   many accents after a `timeit`, `°C` on the temperature tiles if wanted.
-6. **`app-shared` is two commits ahead of its `origin` and has one uncommitted change.**
-   Committed locally: `PickerTile` (`fc94434`) and the search field's clear tooltip
-   (`33e3e9e`). Uncommitted: `pickDate` / `pickDateTime` take `initialEntryMode`
-   (`date_picker.dart`, with its test). This branch builds against the sibling checkout
-   only; it needs those commits pushed, a shared release and a `pubspec.yaml` ref bump
-   before CI can go green.
+   tiles say the icon key or the colour code today; the X/Y jog arrows say "Move X plus"
+   and the like; the plate and chamber steppers say `Plate −1` and `−5°` from existing
+   words and signs; the spool colour wheel has no name), the date-range pickers of print
+   log and statistics (16 tests, not looked at), how many accents after a `timeit`, `°C`
+   on the temperature tiles if wanted.
+6. **The shared packages.** `app-shared` has `PickerTile`, the search field's clear
+   tooltip and `pickDate(initialEntryMode)` on `master` (`5b8a74a`, pushed directly past
+   the pull-request rule). This branch builds against the sibling checkout
+   (`pubspec_overrides.yaml`) only: `pubspec.yaml` still pins `dash_kit` and `dash_ui` at
+   `v0.14.4`, which has none of that. CI goes green after a shared release and a ref bump
+   (`docs/shared-packages.md`). Not raised unprompted.
 
 ## How to prove a change
 
