@@ -45,7 +45,7 @@ class PrintStepper extends StatelessWidget {
             padding: EdgeInsets.zero,
           ),
           onPressed: onTap,
-          child: Icon(icon),
+          child: Icon(icon, semanticLabel: tip),
         ),
       );
       return tip == null ? b : Tooltip(message: tip, child: b);

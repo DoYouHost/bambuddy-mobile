@@ -552,9 +552,14 @@ class _OptionRow extends StatelessWidget {
             ? Row(
                 children: [
                   Expanded(child: label),
-                  Switch(
-                    value: _asBool(),
-                    onChanged: enabled ? (v) => onChanged(v) : null,
+                  // The row's text is a node of its own beside the switch, so
+                  // the switch is named here.
+                  Semantics(
+                    label: option.label,
+                    child: Switch(
+                      value: _asBool(),
+                      onChanged: enabled ? (v) => onChanged(v) : null,
+                    ),
                   ).tagged('process_settings.option_bool'),
                 ],
               )

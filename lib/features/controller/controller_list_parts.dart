@@ -58,7 +58,9 @@ class ControllerHeaderButton extends StatelessWidget {
             padding: EdgeInsets.zero,
           ),
           onPressed: onPressed,
-          child: Icon(icon),
+          // An icon-only `FilledButton` takes its label from its child; the
+          // `Tooltip` around it is not merged into the button's node.
+          child: Icon(icon, semanticLabel: tooltip),
         ),
       ),
     );
