@@ -20,6 +20,9 @@ import 'queue_edit_screen.dart';
 import 'queue_item_view.dart';
 import 'queue_removal.dart';
 
+/// The share of a row a time may take and still sit beside the name.
+const _timeBesideShare = 0.35;
+
 /// The queue's History tab, as the web's `QueuePage.tsx` (`HistorySection`,
 /// `CompactHistoryRow`) shows it: every finished, failed, skipped and
 /// cancelled item, why it failed, and a way to queue it again.
@@ -587,7 +590,7 @@ class _HistoryRow extends ConsumerWidget {
                       time,
                       DefaultTextStyle.of(context).style.merge(meta),
                     ) <=
-                    box.maxWidth * 0.35;
+                    box.maxWidth * _timeBesideShare;
                 final name = Text(
                   item.displayName,
                   maxLines: timeBeside ? 1 : 2,
@@ -842,7 +845,7 @@ class _BatchRow extends StatelessWidget {
     DateTime? latest,
     List<(QueueItemStatusKind, int)> counts,
   ) {
-    final large = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+    final large = dashLargeText(context);
     final countWidgets = [
       for (final (kind, n) in counts)
         if (n > 0)
@@ -878,13 +881,13 @@ class _BatchRow extends StatelessWidget {
     final lead = [
       Icon(
         expanded ? Icons.expand_more : Icons.chevron_right,
-        size: 18,
+        size: DashIcon.md,
         color: t.textTertiary,
       ),
       const SizedBox(width: DashSpace.xs),
       Icon(
         expanded ? Icons.inventory_2_outlined : Icons.inventory_2,
-        size: 18,
+        size: DashIcon.md,
         color: t.accentBlue,
       ),
       const SizedBox(width: DashSpace.sm),

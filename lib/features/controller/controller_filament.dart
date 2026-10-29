@@ -17,6 +17,10 @@ import 'controller_controls.dart';
 import 'controller_providers.dart';
 import 'scale_to_fit.dart';
 
+/// The fullest spool a card has to fit: 100 % of a kilogram, which is what the
+/// widest usage line reads.
+const _fullestSpoolGrams = '1000';
+
 /// The Filament tab: the AMS units, one at a time, with their slots
 /// ([docs/single-printer-controller.md] §2). A tap chooses a slot, and Load and
 /// Unload under the slots act on it, through the printer card's own commands
@@ -894,7 +898,7 @@ class _SlotCard extends StatelessWidget {
                             large &&
                             !_fits(
                               context,
-                              '100% · ${l10n.inventoryUsageWeight('1000')}',
+                              '100% · ${l10n.inventoryUsageWeight(_fullestSpoolGrams)}',
                               style,
                               box.maxWidth,
                             );

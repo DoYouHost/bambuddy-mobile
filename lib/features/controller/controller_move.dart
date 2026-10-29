@@ -535,7 +535,7 @@ class _JogButton extends StatelessWidget {
         child: busy
             ? const DashSpinner()
             : label == null
-            ? Icon(icon, size: 32, semanticLabel: description)
+            ? Icon(icon, size: DashIcon.xl, semanticLabel: description)
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

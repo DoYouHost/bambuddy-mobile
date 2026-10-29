@@ -1347,7 +1347,7 @@ class _ColorChip extends StatelessWidget {
           child: color == null
               ? Icon(
                   Icons.question_mark,
-                  size: 16,
+                  size: DashIcon.sm,
                   applyTextScaling: false,
                   color: t.textTertiary,
                 )

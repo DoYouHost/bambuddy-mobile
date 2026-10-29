@@ -337,7 +337,9 @@ class _QueryChip extends StatelessWidget {
           borderRadius: radius,
           onTap: onTap,
           child: Container(
-            constraints: const BoxConstraints(minHeight: 48),
+            constraints: const BoxConstraints(
+              minHeight: kMinInteractiveDimension,
+            ),
             padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
             decoration: BoxDecoration(
               color: t.accentInk.withValues(alpha: 0.12),

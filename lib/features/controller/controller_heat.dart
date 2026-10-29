@@ -17,6 +17,10 @@ import 'controller_controls.dart';
 import 'controller_providers.dart';
 import 'scale_to_fit.dart';
 
+/// How many cards a row of the Heat page holds: two heaters or two fans side by
+/// side, which leaves a name room to stay on one line at 200 % text.
+const _perRow = 2;
+
 /// The Heat tab: every heater with its target, and the fans
 /// ([docs/single-printer-controller.md] §2). Reads its printer through
 /// [controllerPrinterProvider] only, and shares the height between the two rows
@@ -84,12 +88,13 @@ class ControllerHeat extends ConsumerWidget {
               const ControllerForbidden(),
               const SizedBox(height: DashSpace.sm),
             ],
-            for (var i = 0; i < readings.length; i += 2) ...[
+            for (var i = 0; i < readings.length; i += _perRow) ...[
               if (i > 0) const SizedBox(height: DashSpace.md),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final (j, r) in readings.skip(i).take(2).indexed) ...[
+                  for (final (j, r)
+                      in readings.skip(i).take(_perRow).indexed) ...[
                     if (j > 0) const SizedBox(width: DashSpace.md),
                     Expanded(
                       child: _HeaterCard(
@@ -109,13 +114,14 @@ class ControllerHeat extends ConsumerWidget {
             ],
             // Two to a row, like the heaters: three across leave a name such as
             // "Pomocniczy" less width than its own, and it breaks mid-word.
-            for (var i = 0; i < fans.length; i += 2) ...[
+            for (var i = 0; i < fans.length; i += _perRow) ...[
               const SizedBox(height: DashSpace.md),
               IntrinsicHeight(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final (j, fan) in fans.skip(i).take(2).indexed) ...[
+                    for (final (j, fan)
+                        in fans.skip(i).take(_perRow).indexed) ...[
                       if (j > 0) const SizedBox(width: DashSpace.md),
                       Expanded(child: fanCard(fan)),
                     ],
@@ -245,7 +251,7 @@ class _HeaterCard extends ConsumerWidget {
 
   /// The least a touch target is, so the row is no smaller than the buttons in
   /// it already lay out at: a smaller button keeps a 48 dp area around itself.
-  static const _stackedButtonSize = 48.0;
+  static const _stackedButtonSize = kMinInteractiveDimension;
 
   static const _ringStroke = 7.0;
 

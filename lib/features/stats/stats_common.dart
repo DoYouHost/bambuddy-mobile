@@ -95,7 +95,7 @@ class MetricToggle extends StatelessWidget {
     return SegmentedButton<StatMetric>(
       showSelectedIcon: false,
       style: const ButtonStyle(
-        minimumSize: WidgetStatePropertyAll(Size(0, 48)),
+        minimumSize: WidgetStatePropertyAll(Size(0, kMinInteractiveDimension)),
       ),
       segments: [
         for (final m in StatMetric.values)

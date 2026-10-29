@@ -215,7 +215,7 @@ class _LargeOverview extends ConsumerWidget {
   }
 
   /// The camera is a strip, as tall as this whatever the text.
-  static const _stripHeight = 150.0;
+  static const _stripHeight = 152.0;
 }
 
 /// The camera, or — with "Live camera" off — the cover of the file being
@@ -265,8 +265,8 @@ class _ViewCard extends ConsumerWidget {
             // the inks the dark theme uses, whichever theme the app is in.
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(20),
+                color: Colors.black.withValues(alpha: DashAlpha.cover),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
               ),
               child: live
                   ? DashPill(

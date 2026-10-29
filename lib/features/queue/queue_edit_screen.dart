@@ -947,7 +947,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                     Icon(
                       Icons.bento_outlined,
                       color: t.textSecondary,
-                      size: 20,
+                      size: DashIcon.md,
                     ),
                     const SizedBox(width: DashSpace.md),
                     Expanded(

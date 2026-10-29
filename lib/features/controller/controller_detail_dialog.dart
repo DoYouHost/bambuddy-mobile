@@ -246,12 +246,8 @@ class _Actions extends StatelessWidget {
 
   final List<Widget> actions;
 
-  /// A label has to fit with room to spare: measurement and rendering can round
-  /// apart, and a label that wraps grows only its own button.
-  static const _slack = 10.0;
-
   /// Icon box and the gap to the label of a Material `*.icon` button.
-  static const _iconWidth = 18.0 + 8.0;
+  static const _iconWidth = controllerButtonIconSize + DashSpace.sm;
 
   double _needed(BuildContext context, Widget action) {
     if (action is! ControllerDialogAction) return 0;
@@ -272,7 +268,8 @@ class _Actions extends StatelessWidget {
         final gaps = DashSpace.md * (actions.length - 1);
         final share = (box.maxWidth - gaps) / actions.length;
         final sideBySide =
-            !box.hasBoundedWidth || needed.every((w) => w + _slack <= share);
+            !box.hasBoundedWidth ||
+            needed.every((w) => w + controllerFitSlack <= share);
         if (sideBySide) {
           return Row(
             children: [

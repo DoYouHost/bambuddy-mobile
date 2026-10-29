@@ -732,7 +732,9 @@ final defaultConfirmOutcomeProvider = serverGate<bool>(
 /// before it and whenever the version is not known yet. A value, not a gate
 /// (docs/providers.md, "Versions").
 final chamberMaxTargetProvider = Provider<int>(
-  (ref) => ref.watch(serverVersionProvider).value?.chamberMaxTargetC ?? 60,
+  (ref) =>
+      ref.watch(serverVersionProvider).value?.chamberMaxTargetC ??
+      ServerVersion.chamberMaxTargetLegacyC,
 );
 
 /// Whether library files can be grouped as cross-model alternatives and queued

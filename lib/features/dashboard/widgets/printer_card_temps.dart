@@ -103,7 +103,10 @@ class _GaugeTile extends ConsumerWidget {
         children: [
           Text(
             reading.label(l10n).toUpperCase(),
-            style: t.micro.copyWith(color: t.textSecondary, letterSpacing: 0.3),
+            style: t.micro.copyWith(
+              color: t.textSecondary,
+              letterSpacing: DashTracking.label,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -131,7 +134,7 @@ class _GaugeTile extends ConsumerWidget {
             children: [
               Icon(
                 Icons.arrow_forward,
-                size: 12,
+                size: DashIcon.xs,
                 color: hasTarget ? accent : t.textTertiary,
               ),
               const SizedBox(width: DashSpace.xs),
@@ -148,14 +151,12 @@ class _GaugeTile extends ConsumerWidget {
           ),
           const SizedBox(height: DashSpace.sm),
           ExcludeSemantics(
-            child: LinearProgressIndicator(
+            child: DashProgressBar(
               value: actual == null
                   ? 0
                   : (actual / reading.gaugeMax(chamberMax)).clamp(0.0, 1.0),
-              minHeight: 4,
-              borderRadius: BorderRadius.circular(2),
+              height: DashBar.thin,
               color: accent,
-              backgroundColor: t.gaugeTrack,
             ),
           ),
         ],
@@ -804,7 +805,7 @@ class _StepButton extends StatelessWidget {
           dimension: kMinInteractiveDimension,
           child: Icon(
             icon,
-            size: 20,
+            size: DashIcon.md,
             color: t.textPrimary,
             semanticLabel: label,
           ),

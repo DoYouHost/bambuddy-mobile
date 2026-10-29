@@ -1209,10 +1209,6 @@ class _BarButtons extends StatelessWidget {
   final Widget submit;
   final String submitLabel;
 
-  /// Measurement and rendering can round apart: a pair that fits by a hair
-  /// stacks, which still looks right.
-  static const _slack = 10.0;
-
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
@@ -1231,7 +1227,8 @@ class _BarButtons extends StatelessWidget {
       _submitWidth,
       2 * DashSpace.xl + textWidth(context, submitLabel, submitText),
     );
-    final needed = choicesWidth + DashSpace.md + submitWidth + _slack;
+    final needed =
+        choicesWidth + DashSpace.md + submitWidth + controllerFitSlack;
     return LayoutBuilder(
       builder: (context, box) {
         if (!box.hasBoundedWidth || needed <= box.maxWidth) {

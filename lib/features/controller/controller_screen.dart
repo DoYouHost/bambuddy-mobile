@@ -226,7 +226,7 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
             // A keyboard must not shrink the body: every tab is scaled to the
             // room it has, so a smaller room would rescale the whole controller.
             resizeToAvoidBottomInset: false,
-            // Icons grow with the text only up to [_iconScaleCap]. An icon button
+            // Icons grow with the text only up to [controllerIconScaleCap]. An icon button
             // has no padding here, so the larger icon fills its fixed box and
             // stays at its centre; with the default padding the box was smaller
             // than the glyph and the glyph was drawn off-centre.
@@ -290,7 +290,9 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
                                   behavior: HitTestBehavior.opaque,
                                   onTap: () => _setRail(false),
                                   child: ColoredBox(
-                                    color: Colors.black.withValues(alpha: 0.5),
+                                    color: Colors.black.withValues(
+                                      alpha: DashAlpha.scrim,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -348,11 +350,8 @@ class _ExitButton extends StatelessWidget {
   }
 }
 
-/// The most the system text size enlarges an icon of the default size.
-const _iconScaleCap = 1.5;
-
 /// Sets the size of the controller's icons from the system text size, up to
-/// [_iconScaleCap]: a bare icon, an icon button's icon and the icon of a filled
+/// [controllerIconScaleCap]: a bare icon, an icon button's icon and the icon of a filled
 /// button, which each have a default size of their own. Nothing changes at the
 /// normal text size.
 class _IconScale extends StatelessWidget {
@@ -363,7 +362,7 @@ class _IconScale extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = MediaQuery.textScalerOf(context).scale(1);
-    final k = text.clamp(1.0, _iconScaleCap);
+    final k = text.clamp(1.0, controllerIconScaleCap);
     final theme = Theme.of(context);
     // The same widgets at every size, so a change of the system text size does
     // not remount the tab and lose its state; at the normal size they set
@@ -376,16 +375,20 @@ class _IconScale extends StatelessWidget {
                 style: (theme.iconButtonTheme.style ?? const ButtonStyle())
                     .copyWith(
                       padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-                      iconSize: WidgetStatePropertyAll(24 * k),
+                      iconSize: WidgetStatePropertyAll(DashIcon.lg * k),
                     ),
               ),
               filledButtonTheme: FilledButtonThemeData(
                 style: (theme.filledButtonTheme.style ?? const ButtonStyle())
-                    .copyWith(iconSize: WidgetStatePropertyAll(18 * k)),
+                    .copyWith(
+                      iconSize: WidgetStatePropertyAll(
+                        controllerButtonIconSize * k,
+                      ),
+                    ),
               ),
             ),
       child: IconTheme.merge(
-        data: IconThemeData(applyTextScaling: false, size: 24 * k),
+        data: IconThemeData(applyTextScaling: false, size: DashIcon.lg * k),
         child: child,
       ),
     );

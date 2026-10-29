@@ -503,14 +503,14 @@ class _Controls extends StatelessWidget {
               ),
               Expanded(
                 // The clock beside the bar is its name; the bar's own touch area
-                // is the padding around the 4 dp line.
+                // is the padding around the line, which is Material's default bar height.
                 child: Semantics(
                   label: clock,
                   child: VideoProgressIndicator(
                     controller,
                     allowScrubbing: true,
                     padding: const EdgeInsets.symmetric(
-                      vertical: (kMinInteractiveDimension - 4) / 2,
+                      vertical: (kMinInteractiveDimension - DashBar.thin) / 2,
                     ),
                     colors: const VideoProgressColors(
                       playedColor: Colors.white,

@@ -68,7 +68,9 @@ class _DashboardFilterSheet extends ConsumerWidget {
                   // Fixed minimum height so the header never resizes the sheet
                   // or shifts the title when the Clear button toggles.
                   ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 48),
+                    constraints: const BoxConstraints(
+                      minHeight: kMinInteractiveDimension,
+                    ),
                     child: BesideOrBelow(
                       label: Text(
                         l10n.dashboardFilters,

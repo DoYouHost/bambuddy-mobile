@@ -1258,7 +1258,7 @@ class _ProfileChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Row(
@@ -1604,12 +1604,12 @@ class _SummaryHeader extends ConsumerWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
       ),
       // Over the content rather than in the decoration, which would inset the
       // row by the border and leave the power chip 46 dp instead of 48.
       foregroundDecoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Row(

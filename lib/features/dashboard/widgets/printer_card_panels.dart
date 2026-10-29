@@ -358,13 +358,13 @@ int tempGridColumns({
   required TextDirection textDirection,
   required bool airductGlyph,
 }) {
-  const spacing = 8.0;
+  const spacing = DashSpace.sm;
   double measure(String text) => (TextPainter(
     text: TextSpan(text: text, style: digits),
     textDirection: textDirection,
     textScaler: scaler,
   )..layout()).width;
-  final glyph = 20.0 + DashSpace.xs;
+  final glyph = DashIcon.md + DashSpace.xs;
   final widest = airductGlyph
       ? [
           measure('000°'),
@@ -411,7 +411,7 @@ class _TempGrid extends StatelessWidget {
     final airduct = readings.any((r) => r.kind == TempKind.chamber);
     return LayoutBuilder(
       builder: (context, constraints) {
-        const spacing = 8.0;
+        const spacing = DashSpace.sm;
         final columns = tempGridColumns(
           width: constraints.maxWidth,
           digits: digits,

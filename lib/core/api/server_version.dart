@@ -227,7 +227,16 @@ class ServerVersion implements Comparable<ServerVersion> {
   /// Highest chamber target the server will accept, in °C — the one gate no
   /// observation can settle, since the only probe would be a real command
   /// heating somebody's chamber. See `docs/server-gates.md`.
-  int get chamberMaxTargetC => supports(ServerFeature.chamberTemp65) ? 65 : 60;
+  int get chamberMaxTargetC => supports(ServerFeature.chamberTemp65)
+      ? chamberMaxTargetRaisedC
+      : chamberMaxTargetLegacyC;
+
+  /// The ceiling before the server raised it (1.2.6), and what an unknown
+  /// version is assumed to take.
+  static const chamberMaxTargetLegacyC = 60;
+
+  /// The ceiling from 1.2.6.
+  static const chamberMaxTargetRaisedC = 65;
 
   List<int> get _base => [major, minor, patch, micro];
 

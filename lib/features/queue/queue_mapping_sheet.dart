@@ -813,7 +813,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     return Tooltip(
       message: l10n.mappingRackPositionHint,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
         onTap: enabled ? () => _pickRackPosition(rack, groupId, group) : null,
         child: ConstrainedBox(
           constraints: const BoxConstraints(

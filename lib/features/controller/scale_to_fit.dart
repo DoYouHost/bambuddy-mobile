@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:dash_kit/dash_kit.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// The smallest box the controller's body is laid out in: the body area of the
@@ -12,7 +13,7 @@ const controllerBodySize = Size(800, 360);
 
 /// From this system text size a tab that does not fit the box reflows: its
 /// cards are rearranged, never scaled down.
-const controllerReflowTextScale = 1.3;
+const controllerReflowTextScale = dashLargeTextScale;
 
 /// Whether the system text is large enough for [controllerReflowTextScale].
 bool controllerLargeText(BuildContext context) =>
@@ -26,10 +27,27 @@ bool controllerPaged(BuildContext context) =>
     (context.dependOnInheritedWidgetOfExactType<ControllerScale>()?.paged ??
         false);
 
-/// An icon's size at the system text size: it grows with the text up to 150%,
-/// like the icons that take their size from the theme ([ControllerScreen]).
+/// Room left over when a label is measured against the space it will get:
+/// measuring and rendering can round apart, and a label that just fits would
+/// wrap.
+const controllerFitSlack = DashSpace.sm;
+
+/// Material 3's size for the icon of a `FilledButton.icon`, which the controller
+/// measures labels against and scales with the text.
+const controllerButtonIconSize = 18.0;
+
+/// The most the system text size enlarges an icon: the icon's own size, up to
+/// 150% of it.
+const controllerIconScaleCap = 1.5;
+
+/// An icon's size at the system text size: it grows with the text up to
+/// [controllerIconScaleCap], like the icons that take their size from the theme
+/// ([ControllerScreen]).
 double controllerIconSize(BuildContext context, double base) =>
-    base * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.5);
+    base *
+    MediaQuery.textScalerOf(
+      context,
+    ).scale(1).clamp(1.0, controllerIconScaleCap);
 
 /// The print-settings screen's body, laid out in this much room. The screen has a
 /// bar above it, so it gets less room than a tab does, and at the tabs' height it

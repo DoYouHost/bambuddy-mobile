@@ -365,7 +365,7 @@ class QueueSubmitAction extends StatelessWidget {
   final VoidCallback? onPressed;
 
   /// The pill's touch height; the bar's 4 dp insets above and below it make 56.
-  static const _height = 48.0;
+  static const _height = kMinInteractiveDimension;
 
   @override
   Widget build(BuildContext context) {

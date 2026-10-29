@@ -529,10 +529,10 @@ class _OptionRow extends StatelessWidget {
             ),
           ),
         SizedBox(
-          width: 48,
+          width: kMinInteractiveDimension,
           child: modified
               ? IconButton(
-                  icon: const Icon(Icons.undo, size: 18),
+                  icon: const Icon(Icons.undo, size: DashIcon.md),
                   tooltip: l10n.processSettingsRevert,
                   onPressed: onRevert,
                 ).tagged('process_settings.revert')

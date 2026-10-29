@@ -357,17 +357,18 @@ class _HmsErrorCardState extends ConsumerState<HmsErrorCard> {
     final actions = error.fullCode == null
         ? const <String>[]
         : hmsRenderableActions(error.actions);
-    final buttonText = TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: widget.large ? 15 : 12.5,
-      fontWeight: FontWeight.w600,
-    );
+    final tokens = DashTokens.of(context);
+    final buttonText = widget.large ? tokens.bodyStrong : tokens.label;
     final wiki = url == null
         ? null
         : IconButton(
             tooltip: l10n.hmsViewInWiki,
             onPressed: () => unawaited(openWebLink(context, url)),
-            icon: Icon(Icons.open_in_new, size: 20, color: scheme.primary),
+            icon: Icon(
+              Icons.open_in_new,
+              size: DashIcon.md,
+              color: scheme.primary,
+            ),
           ).tagged('${widget.area}.open_url');
     return Container(
       margin: const EdgeInsets.only(top: DashSpace.sm),
@@ -452,11 +453,7 @@ class _HmsErrorCardState extends ConsumerState<HmsErrorCard> {
                                 ? _largeHeight
                                 : kMinInteractiveDimension,
                           ),
-                          textStyle: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: widget.large ? 15 : 12.5,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          textStyle: widget.large ? t.bodyStrong : t.label,
                           backgroundColor: action == hmsStopAction
                               ? scheme.errorContainer
                               : null,
@@ -485,7 +482,7 @@ class _HmsErrorCardState extends ConsumerState<HmsErrorCard> {
       builder: (context, constraints) {
         final style = (widget.large ? t.bodyStrong : t.bodyPlain).copyWith(
           color: t.textPrimary,
-          height: 1.25,
+          height: DashLeading.snug,
         );
         final text = Text(
           label,
@@ -1139,14 +1136,10 @@ class _FilamentRow extends StatelessWidget {
           ),
           if (percent != null) ...[
             const SizedBox(height: DashSpace.xs),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(2),
-              child: LinearProgressIndicator(
-                value: percent / 100,
-                minHeight: 4,
-                color: active ? t.accentGreen : t.textTertiary,
-                backgroundColor: t.gaugeTrack,
-              ),
+            DashProgressBar(
+              value: percent / 100,
+              height: DashBar.thin,
+              color: active ? t.accentGreen : t.textTertiary,
             ),
           ],
         ],
@@ -1246,7 +1239,7 @@ class _AmsChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 13, color: color),
+            Icon(icon, size: DashIcon.xs, color: color),
             const SizedBox(width: DashSpace.xs),
             Text(text, style: t.monoLabel.copyWith(color: color)),
           ],

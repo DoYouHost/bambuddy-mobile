@@ -322,7 +322,7 @@ class _HeaderIconButton extends StatelessWidget {
   }
 }
 
-const _btnSpinner = DashSpinner(size: 16);
+const _btnSpinner = DashSpinner(size: DashIcon.md);
 
 /// Arranges control buttons in a 2-column grid; solo button takes full width.
 class _ControlsGrid extends StatelessWidget {
@@ -372,7 +372,10 @@ class _LifecycleButton extends StatelessWidget {
 
   /// Width the button spends besides its label: the padding, the 1 dp border,
   /// the icon and the gap after it.
-  static const chrome = 2 * DashSpace.md + 2 + 18 + DashSpace.sm;
+  static const chrome =
+      2 * DashSpace.md + 2 * _borderWidth + DashIcon.md + DashSpace.sm;
+
+  static const _borderWidth = 1.0;
 
   @override
   Widget build(BuildContext context) {
@@ -401,12 +404,12 @@ class _LifecycleButton extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: border),
+              border: Border.all(color: border, width: _borderWidth),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                busy ? _btnSpinner : Icon(icon, size: 18, color: fg),
+                busy ? _btnSpinner : Icon(icon, size: DashIcon.md, color: fg),
                 const SizedBox(width: DashSpace.sm),
                 Text(label, style: t.bodyBold.copyWith(color: fg)),
               ],

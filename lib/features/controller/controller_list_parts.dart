@@ -17,6 +17,9 @@ const controllerTileHeight = 82.0;
 const controllerThumbSize = 64.0;
 const controllerGridColumns = 2;
 
+/// The share of the font's growth a tile in the one-column layout takes.
+const _oneColumnGrowthShare = 1 / 3;
+
 /// The grid every Prints view lays its tiles in. A tile grows with the system
 /// font, as the body's box does (`ScaleToFit`): two lines of title and a row of
 /// facts outgrow a fixed height at a large one.
@@ -26,11 +29,13 @@ SliverGridDelegate controllerTileGrid(
   // One column at a large text size: a tile's facts and badge need the width.
   crossAxisCount: controllerLargeText(context) ? 1 : controllerGridColumns,
   // In one column the title has the width for a line and the thumbnail does not
-  // grow, so a tile needs only a third of the font's growth, not all of it.
+  // grow, so a tile needs only [_oneColumnGrowthShare] of the font's growth.
   mainAxisExtent:
       controllerTileHeight *
       (controllerLargeText(context)
-          ? 1 + (MediaQuery.textScalerOf(context).scale(1) - 1) / 3
+          ? 1 +
+                (MediaQuery.textScalerOf(context).scale(1) - 1) *
+                    _oneColumnGrowthShare
           : math.max(1.0, MediaQuery.textScalerOf(context).scale(1))),
   mainAxisSpacing: DashSpace.sm,
   crossAxisSpacing: DashSpace.sm,

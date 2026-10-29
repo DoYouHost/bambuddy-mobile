@@ -240,7 +240,7 @@ class LocationPrinterRow extends StatelessWidget {
         dense: true,
       ),
     );
-    final pillBelow = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+    final pillBelow = dashLargeText(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: DecoratedBox(
@@ -382,7 +382,7 @@ class LocationSelectionBar extends StatelessWidget {
     // Count and buttons share a row until the text is large: then the count
     // gets a line of its own and the buttons share the width, or stack when a
     // label does not fit in half of it.
-    if (MediaQuery.textScalerOf(context).scale(1) <= 1.3) {
+    if (!dashLargeText(context)) {
       return Row(
         children: [
           Expanded(child: countText),

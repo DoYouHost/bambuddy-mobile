@@ -11,14 +11,14 @@ import 'controller_picker.dart';
 import 'controller_screen.dart';
 import 'scale_to_fit.dart';
 
-/// The width of the collapsed rail: a column of 48 dp touch targets.
-const controllerRailWidth = 56.0;
+/// The width of the collapsed rail: a column of touch targets with a gap each side.
+const controllerRailWidth = _item + 2 * DashSpace.xs;
 
 /// The width of the open panel, which lies over the screen instead of pushing it.
 const _panelWidth = 252.0;
 
 /// Tall enough for a finger at any text size: the rail is outside the scaled body.
-const _item = 48.0;
+const _item = kMinInteractiveDimension;
 
 IconData controllerTabIcon(ControllerTab tab) => switch (tab) {
   ControllerTab.overview => Icons.dashboard_outlined,
@@ -117,11 +117,13 @@ class _RailIcon extends StatelessWidget {
     final t = DashTokens.of(context);
     final radius = BorderRadius.circular(DashSpace.md);
     return Material(
-      color: selected ? t.accent.withValues(alpha: 0.16) : Colors.transparent,
+      color: selected
+          ? t.accent.withValues(alpha: DashAlpha.wash)
+          : Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: radius,
         side: selected
-            ? BorderSide(color: t.accent.withValues(alpha: 0.4))
+            ? BorderSide(color: t.accent.withValues(alpha: DashAlpha.outline))
             : BorderSide.none,
       ),
       child: InkWell(
@@ -334,11 +336,13 @@ class _PanelTab extends StatelessWidget {
     final t = DashTokens.of(context);
     final radius = BorderRadius.circular(DashSpace.md);
     return Material(
-      color: selected ? t.accent.withValues(alpha: 0.16) : Colors.transparent,
+      color: selected
+          ? t.accent.withValues(alpha: DashAlpha.wash)
+          : Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: radius,
         side: selected
-            ? BorderSide(color: t.accent.withValues(alpha: 0.4))
+            ? BorderSide(color: t.accent.withValues(alpha: DashAlpha.outline))
             : BorderSide.none,
       ),
       child: InkWell(

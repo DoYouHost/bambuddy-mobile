@@ -17,6 +17,9 @@ import 'object_pick_mask.dart';
 import 'skip_objects_providers.dart';
 import 'ws_providers.dart';
 
+/// The share of the header a counter may take and still sit beside the texts.
+const _counterInlineShare = 0.4;
+
 /// Skip-objects screen: shows the current print's objects (with their printer
 /// display IDs) over a top-down build-plate render, and lets the user select
 /// failed ones by tapping their shape on the plate or their row in the list
@@ -379,14 +382,15 @@ class _InfoBanner extends StatelessWidget {
             data.skippedCount,
             data.total,
           );
-          final counterStyle = TextStyle(fontSize: 12, color: t.textSecondary);
+          final counterStyle = t.labelSoft.copyWith(color: t.textSecondary);
           // Beside the texts while it leaves them room; under them at large
           // text, where it would squeeze the hint into a sliver.
           final measured = DefaultTextStyle.of(
             context,
           ).style.merge(counterStyle);
           final inline =
-              textWidth(context, counter, measured) <= box.maxWidth * 0.4;
+              textWidth(context, counter, measured) <=
+              box.maxWidth * _counterInlineShare;
           final counterText = Text(counter, style: counterStyle);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -395,7 +399,7 @@ class _InfoBanner extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.desktop_windows_outlined,
-                    size: 20,
+                    size: DashIcon.md,
                     color: t.accentBlue,
                   ),
                   const SizedBox(width: DashSpace.md),
@@ -405,18 +409,11 @@ class _InfoBanner extends StatelessWidget {
                       children: [
                         Text(
                           l10n.skipObjectsMatchInfo,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: t.textPrimary,
-                          ),
+                          style: t.label.copyWith(color: t.textPrimary),
                         ),
                         Text(
                           l10n.skipObjectsMatchHint,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: t.textSecondary,
-                          ),
+                          style: t.microSoft.copyWith(color: t.textSecondary),
                         ),
                       ],
                     ),
@@ -464,10 +461,9 @@ class _LayerWarning extends StatelessWidget {
             child: Text(
               l10n.skipObjectsWaitForLayer(layer),
               // The ink, not the swatch: the amber reads 1.9:1 as text.
-              style: TextStyle(
-                fontSize: 12,
-                color: DashTokens.of(context).warningInk,
-              ),
+              style: DashTokens.of(
+                context,
+              ).labelSoft.copyWith(color: DashTokens.of(context).warningInk),
             ),
           ),
         ],
@@ -949,7 +945,7 @@ class _ObjectMarker extends StatelessWidget {
             decoration: BoxDecoration(
               // Nearly opaque: over a bright plate the blend lightens the blue
               // until black on it is under 4.5:1, over a dark one white is.
-              color: bg.withValues(alpha: 0.95),
+              color: bg.withValues(alpha: DashAlpha.cover),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: selected ? Colors.white : Colors.black38,
@@ -970,8 +966,7 @@ class _ObjectMarker extends StatelessWidget {
                 child: Text(
                   '${object.id}',
                   maxLines: 1,
-                  style: TextStyle(
-                    fontSize: 11,
+                  style: tokens.micro.copyWith(
                     fontWeight: FontWeight.w800,
                     color: skipped ? tokens.onDanger : fg,
                     decoration: skipped ? TextDecoration.lineThrough : null,
@@ -1072,12 +1067,17 @@ class _ObjectTile extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                constraints: const BoxConstraints(minWidth: 46, minHeight: 46),
+                constraints: const BoxConstraints(
+                  minWidth: kMinInteractiveDimension,
+                  minHeight: kMinInteractiveDimension,
+                ),
                 padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
                 decoration: BoxDecoration(
                   color: accentBg,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: accent.withValues(alpha: 0.4)),
+                  border: Border.all(
+                    color: accent.withValues(alpha: DashAlpha.outline),
+                  ),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1115,11 +1115,7 @@ class _ObjectTile extends StatelessWidget {
               if (skipped)
                 Text(
                   l10n.skipObjectsSkippedTag,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: t.dangerInk,
-                  ),
+                  style: t.label.copyWith(color: t.dangerInk),
                 )
               else
                 Icon(

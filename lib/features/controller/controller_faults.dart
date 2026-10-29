@@ -18,7 +18,7 @@ class ControllerFaultChip extends ConsumerWidget {
   final int printerId;
 
   /// A touch target, not the 44 dp of the section headers beside it.
-  static const _height = 48.0;
+  static const _height = kMinInteractiveDimension;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

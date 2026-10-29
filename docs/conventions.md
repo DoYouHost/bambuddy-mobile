@@ -107,6 +107,23 @@ spacing (room for a 38 dp gauge, centring a knob) gets a named constant
 next to the widget it measures. There are no per-screen exceptions: a
 screen that "looks better at 10" gets 12.
 
+**Sizes go through the scales in `dash_ui`, like spacing.** Icons are
+`DashIcon` (`xs 12 · sm 16 · md 20 · lg 24 · xl 32`), corner radii `DashRadius`
+(`sm 8 · md 12 · lg 16 · xl 20`), a progress bar `DashBar` (`thin 4 · thick 8`),
+a tint `DashAlpha` (`wash`, `outline`, `scrim`, `cover`), a line height
+`DashLeading` and an upper-case label's spacing `DashTracking`. Text sizes are
+the `DashTokens` styles (`micro 11 · label 12 · body 13 · titleSm 14 · titleMd
+16 …`), never a `fontSize:`. A touch target is `kMinInteractiveDimension`, and
+"large text" is `dashLargeText(context)`, one threshold for every screen. All
+of them sit on the 4 dp grid with no two steps under 4 dp apart, so 12, 12.5
+and 13 cannot sit side by side. A layout size that is none of these (a strip
+height, a panel width) is a named constant that says what it is for and is a
+multiple of 4. **State of the migration:** the lines the `test/a11y-guidelines`
+branch touched use the scales; the rest of `lib/` still has about 147 icon sizes,
+201 radii (14, 18, 10 and 6 among them, which are off the scale), 40 font sizes
+and 147 alphas typed by hand, and no test refuses them yet. Moving them is a
+visible change (a card's 14 becomes 12 or 16), so it is the maintainer's call.
+
 **A `Wrap` that sets `spacing` also sets `runSpacing`.** `spacing` is the gap
 inside a run; the gap between runs defaults to zero, so the row looks right
 until it wraps — at a narrow width or a larger system text size — and then the

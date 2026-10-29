@@ -216,7 +216,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
 
         // At large text the filters alone fill the sheet, so header and list
         // scroll as one; otherwise the filters stay put above the list.
-        final scrollTogether = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+        final scrollTogether = dashLargeText(context);
         return Column(
           children: [
             Expanded(
