@@ -2051,6 +2051,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Erlaube den Kamerazugriff, um QR-Codes zu scannen.';
 
   @override
+  String get scannerTorch => 'Taschenlampe';
+
+  @override
   String get errMissingUrl => 'Serveradresse eingeben';
 
   @override
@@ -4545,7 +4548,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mwAlreadyInLibrary => 'Bereits in deiner Bibliothek';
 
   @override
-  String get mwViewInFiles => 'Im Dateimanager anzeigen';
+  String get mwViewInFiles => 'Dateien öffnen';
 
   @override
   String get mwRecentImports => 'Kürzlich importiert';

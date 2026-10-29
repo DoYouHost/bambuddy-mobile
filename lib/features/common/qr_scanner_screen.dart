@@ -95,20 +95,21 @@ class _QrScannerScreenState<T extends Object>
             style: t.display.copyWith(letterSpacing: -0.3),
           ),
           actions: [
-            IconButton(
-              onPressed: () => _controller.toggleTorch(),
-              icon: ValueListenableBuilder<MobileScannerState>(
-                valueListenable: _controller,
-                builder: (context, state, _) => Icon(
-                  state.torchState == TorchState.on
-                      ? Icons.flash_on
-                      : Icons.flash_off,
-                  color: state.torchState == TorchState.on
-                      ? t.accentGreen
-                      : t.textPrimary,
-                ),
-              ),
-            ).tagged('scanner.torch'),
+            ValueListenableBuilder<MobileScannerState>(
+              valueListenable: _controller,
+              builder: (context, state, _) {
+                final on = state.torchState == TorchState.on;
+                return IconButton(
+                  onPressed: () => _controller.toggleTorch(),
+                  tooltip: AppLocalizations.of(context).scannerTorch,
+                  isSelected: on,
+                  icon: Icon(
+                    on ? Icons.flash_on : Icons.flash_off,
+                    color: on ? t.accentGreen : t.textPrimary,
+                  ),
+                ).tagged('scanner.torch');
+              },
+            ),
           ],
         ),
       ),

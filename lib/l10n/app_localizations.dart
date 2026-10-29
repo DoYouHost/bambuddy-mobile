@@ -3416,6 +3416,12 @@ abstract class AppLocalizations {
   /// **'Allow camera access to scan QR codes.'**
   String get cameraPermissionBody;
 
+  /// Name of the QR scanner's button that switches the phone's flashlight on and off
+  ///
+  /// In en, this message translates to:
+  /// **'Flashlight'**
+  String get scannerTorch;
+
   /// No description provided for @errMissingUrl.
   ///
   /// In en, this message translates to:
@@ -7445,7 +7451,7 @@ abstract class AppLocalizations {
   /// No description provided for @mwViewInFiles.
   ///
   /// In en, this message translates to:
-  /// **'View in File Manager'**
+  /// **'Open Files'**
   String get mwViewInFiles;
 
   /// No description provided for @mwRecentImports.

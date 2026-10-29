@@ -1274,6 +1274,10 @@
   "scanApiKeyHint": "Point the camera at the API key QR code",
   "cameraPermissionTitle": "Camera access needed",
   "cameraPermissionBody": "Allow camera access to scan QR codes.",
+  "scannerTorch": "Flashlight",
+  "@scannerTorch": {
+    "description": "Name of the QR scanner's button that switches the phone's flashlight on and off"
+  },
   "errMissingUrl": "Enter the server address",
   "errMissingApiKey": "Enter the API key",
   "errMissingCredentials": "Enter username and password",
@@ -3034,7 +3038,7 @@
   "mwInLibrary": "In library",
   "mwImported": "Imported to your library",
   "mwAlreadyInLibrary": "Already in your library",
-  "mwViewInFiles": "View in File Manager",
+  "mwViewInFiles": "Open Files",
   "mwRecentImports": "Recent imports",
   "mwNoRecent": "No recent imports yet",
   "mwOpenOnMakerworld": "Open on MakerWorld",

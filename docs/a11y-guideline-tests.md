@@ -194,16 +194,16 @@ check both before counting.
 | files | 0 (was 88) | the quick-nav chips lost their 48 dp area to the bar's padding; the file photo tiles take the section title as their tooltip |
 | archive | 0 (was 60) | the colour swatches got a 48 dp cell and the colour code as their name; the timelapse trim strip, surface and seek bar are named from strings the app already has |
 | locations | 0 (was 48) | the location header was 44 dp tall |
-| common | 25 (was 33) | the colour wheel (8, no name), the QR scanner's torch button (16, no name and no existing string), the snack bar with the long "Pokaż w menedżerze plików" action at 200 % (1: the shared `dash_kit` snack lays the action label out without wrapping) |
+| common | 8 (was 33) | the colour wheel (no name; the library's gesture node is its own semantic boundary, so a label above it does not reach it) |
 | controller | 0 (was 33 of 520) | see the controller section below |
 | projects | 0 (was 24) | the bill-of-materials checkbox takes the item name; the project link is 48 dp |
 | dashboard sheets | 8 (was 22) | the slot colour dialog's wheel; the movement sheet buttons are 48 dp |
 | admin | 0 (was 19) | the advanced permissions row is 48 dp; the API key is read as one label |
 | swatches | 0 (was 16) | the delete button takes the Material delete tooltip |
 | print log, stats | 16 | the date-range picker: its day cells are 56 × 42 dp (Flutter's calendar) |
-| dashboard, model sources | 1 (was 3) | MakerWorld "plate imported" at 200 %: the same long snack action as in common |
+| dashboard, model sources | 0 (was 3) | the MakerWorld "imported" snack's action label is short in all five languages |
 
-**The 68 left (2026-10-29) all wait for a decision**: the colour wheel (32, new copy and a wrapper around a library widget), the QR torch button (16, new copy), the date-range calendar (16), the material menu (2) and the long snack action (2, a shared package).
+**The 50 left (2026-10-29) all wait for a decision**: the colour wheel (32, only recomposing the picker from `ColorWheelPicker` and `ColorCodeField` can name it), the date-range calendar (16, Flutter's own 42 dp day cell), and the material menu (2).
 What the day fixed, in short, so it is not redone: the pickers (`PickerTile`), 558
 missing labels, the controller's rail and its reflow from 1.3x text, the print-settings
 screen and every dialog it opens, the Prints items' dialog, the date picker in
@@ -229,15 +229,15 @@ short-window surfaces use 891 dp for that reason. Reflowing for width is not don
 ## Open, in this order
 
 1. **The controller is done** (above). Design and rules: `docs/single-printer-controller.md` §2 and §9.
-2. **The other screens, 68 tests, all waiting for a decision** (the table above): the
-   colour wheel in four dialogs (32; the library's gesture node has no name and offers no
-   hook, so it needs new copy in five languages and a wrapper), the QR scanner's torch
-   button (16; there is no torch string in the app), the date-range calendar of print log
-   and statistics (16; the day cell is 56 x 42 dp in Flutter's own picker), the spool
-   form's material menu (2; a framework assertion `transformed == position -
-   childParentData.offset` in a hit test, cause not found) and the snack bar whose action
-   "Pokaż w menedżerze plików" overflows by 47 dp at 200 % text (2; the `snack` helper is
-   in `dash_kit`, so the fix is a shared release or a shorter label).
+2. **The other screens, 50 tests, all waiting for a decision** (the table above): the
+   colour wheel in four dialogs (32; the library's gesture node is a semantic boundary of
+   its own, so a label on a parent never reaches it, and naming it means building the
+   picker from `ColorWheelPicker` and `ColorCodeField`, whose two-way update flags
+   `ColorPicker` keeps private), the date-range calendar of print log and statistics (16;
+   `showDateRangePicker` draws a 42 dp day cell that cannot be set, so the way out is the
+   text entry mode or two single-date pickers) and the spool form's material menu (2; a
+   framework assertion `transformed == position - childParentData.offset` in a hit test,
+   cause not found).
 3. No widget test yet for the swatches section header, the queue-edit schedule row,
    the archive colour-filter row and the timelapse info row (the a11y suite covers
    them), nor for the maintenance type sheet and the project form (only the a11y suite

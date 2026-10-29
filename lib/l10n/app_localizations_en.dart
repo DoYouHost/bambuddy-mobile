@@ -2026,6 +2026,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraPermissionBody => 'Allow camera access to scan QR codes.';
 
   @override
+  String get scannerTorch => 'Flashlight';
+
+  @override
   String get errMissingUrl => 'Enter the server address';
 
   @override
@@ -4499,7 +4502,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mwAlreadyInLibrary => 'Already in your library';
 
   @override
-  String get mwViewInFiles => 'View in File Manager';
+  String get mwViewInFiles => 'Open Files';
 
   @override
   String get mwRecentImports => 'Recent imports';

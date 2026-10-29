@@ -2045,6 +2045,9 @@ class AppLocalizationsEs extends AppLocalizations {
       'Permite el acceso a la cámara para escanear códigos QR.';
 
   @override
+  String get scannerTorch => 'Linterna';
+
+  @override
   String get errMissingUrl => 'Introduce la dirección del servidor';
 
   @override
@@ -4556,7 +4559,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get mwAlreadyInLibrary => 'Ya está en tu biblioteca';
 
   @override
-  String get mwViewInFiles => 'Ver en el gestor de archivos';
+  String get mwViewInFiles => 'Abrir archivos';
 
   @override
   String get mwRecentImports => 'Importaciones recientes';

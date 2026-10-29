@@ -2075,6 +2075,9 @@ class AppLocalizationsPl extends AppLocalizations {
       'Zezwól na dostęp do aparatu, aby skanować kody QR.';
 
   @override
+  String get scannerTorch => 'Latarka';
+
+  @override
   String get errMissingUrl => 'Podaj adres serwera';
 
   @override
@@ -4592,7 +4595,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get mwAlreadyInLibrary => 'Już jest w bibliotece';
 
   @override
-  String get mwViewInFiles => 'Pokaż w menedżerze plików';
+  String get mwViewInFiles => 'Otwórz pliki';
 
   @override
   String get mwRecentImports => 'Ostatnie importy';
