@@ -21,18 +21,20 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_diagnostics"
-      ref: "v0.14.4"
-      resolved-ref: c88045fbc5096ba856bcf7c07f0a62b2b29c6c2d
+      ref: "v0.14.5"
+      resolved-ref: "1f5f539ee177d130b20b65e1262fb73a66f82c08"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.4.0"
   app_guards:
     dependency: "direct dev"
     description:
-      path: "../app-shared/packages/app_guards"
-      relative: true
-    source: path
-    version: "0.2.0"
+      path: "packages/app_guards"
+      ref: "v0.14.5"
+      resolved-ref: "1f5f539ee177d130b20b65e1262fb73a66f82c08"
+      url: "https://github.com/DoYouHost/app-shared.git"
+    source: git
+    version: "0.3.0"
   app_report_client:
     dependency: "direct main"
     description:
@@ -45,16 +47,18 @@ packages:
   app_report_ui:
     dependency: "direct main"
     description:
-      path: "../app-shared/packages/app_report_ui"
-      relative: true
-    source: path
+      path: "packages/app_report_ui"
+      ref: "v0.14.5"
+      resolved-ref: "1f5f539ee177d130b20b65e1262fb73a66f82c08"
+      url: "https://github.com/DoYouHost/app-shared.git"
+    source: git
     version: "0.2.0"
   app_test_kit:
     dependency: "direct dev"
     description:
       path: "packages/app_test_kit"
-      ref: "v0.14.4"
-      resolved-ref: c88045fbc5096ba856bcf7c07f0a62b2b29c6c2d
+      ref: "v0.14.5"
+      resolved-ref: "1f5f539ee177d130b20b65e1262fb73a66f82c08"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.2.0"
@@ -62,8 +66,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_util"
-      ref: "v0.14.4"
-      resolved-ref: c88045fbc5096ba856bcf7c07f0a62b2b29c6c2d
+      ref: "v0.14.5"
+      resolved-ref: "1f5f539ee177d130b20b65e1262fb73a66f82c08"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.3.0"
@@ -278,17 +282,21 @@ packages:
   dash_kit:
     dependency: "direct main"
     description:
-      path: "../app-shared/packages/dash_kit"
-      relative: true
-    source: path
-    version: "0.2.2"
+      path: "packages/dash_kit"
+      ref: "v0.14.5"
+      resolved-ref: "1f5f539ee177d130b20b65e1262fb73a66f82c08"
+      url: "https://github.com/DoYouHost/app-shared.git"
+    source: git
+    version: "0.3.0"
   dash_ui:
-    dependency: "direct overridden"
+    dependency: transitive
     description:
-      path: "../app-shared/packages/dash_ui"
-      relative: true
-    source: path
-    version: "0.5.2"
+      path: "packages/dash_ui"
+      ref: "v0.14.5"
+      resolved-ref: "1f5f539ee177d130b20b65e1262fb73a66f82c08"
+      url: "https://github.com/DoYouHost/app-shared.git"
+    source: git
+    version: "0.6.0"
   dbus:
     dependency: transitive
     description:
