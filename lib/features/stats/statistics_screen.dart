@@ -7,6 +7,7 @@ import '../../core/models/archive_stats.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
+import '../common/pick_date_range.dart';
 import 'stats_common.dart';
 import 'stats_providers.dart';
 import 'stats_sections.dart';
@@ -149,12 +150,9 @@ class _RangeMenu extends ConsumerWidget {
         initialValue: filter.range,
         onSelected: (range) async {
           if (range == StatsRange.custom) {
-            final now = DateTime.now();
-            final picked = await showDateRangePicker(
-              context: context,
-              firstDate: DateTime(now.year - 5),
-              lastDate: now,
-              initialDateRange: filter.from != null && filter.to != null
+            final picked = await pickDateRange(
+              context,
+              initial: filter.from != null && filter.to != null
                   ? DateTimeRange(start: filter.from!, end: filter.to!)
                   : null,
             );

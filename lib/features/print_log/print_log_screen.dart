@@ -16,6 +16,7 @@ import '../../providers.dart';
 import '../archive/archive_providers.dart' show printersForPickerProvider;
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
+import '../common/pick_date_range.dart';
 import '../common/print_run_labels.dart';
 import '../common/print_thumbnail.dart';
 import '../stats/stats_common.dart' show fmtGrams, fmtNum;
@@ -629,12 +630,9 @@ class _PrintLogFilterSheet extends ConsumerWidget {
                             '${filters.to == null ? '' : DateTimeFormats.of(context).date(filters.to!)}',
                 ),
                 onPressed: () async {
-                  final now = DateTime.now();
-                  final picked = await showDateRangePicker(
-                    context: context,
-                    firstDate: DateTime(now.year - 5),
-                    lastDate: now,
-                    initialDateRange: filters.from != null && filters.to != null
+                  final picked = await pickDateRange(
+                    context,
+                    initial: filters.from != null && filters.to != null
                         ? DateTimeRange(start: filters.from!, end: filters.to!)
                         : null,
                   );

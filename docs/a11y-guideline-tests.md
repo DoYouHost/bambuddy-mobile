@@ -190,20 +190,20 @@ check both before counting.
 | File | Fails | Surfaces |
 |---|---|---|
 | queue | 0 (was 126, fixed 2026-10-29) | the submit pill was 40 dp; the controller's mapping dialog is now measured in the landscape window |
-| inventory | 18 (was 109) | the two colour dialogs: the wheel has no name (new copy, see below); the new spool form's material menu (framework assertion) |
+| inventory | 2 (was 109) | the new spool form's material menu (a NaN in a layout transform, cause not found) |
 | files | 0 (was 88) | the quick-nav chips lost their 48 dp area to the bar's padding; the file photo tiles take the section title as their tooltip |
 | archive | 0 (was 60) | the colour swatches got a 48 dp cell and the colour code as their name; the timelapse trim strip, surface and seek bar are named from strings the app already has |
 | locations | 0 (was 48) | the location header was 44 dp tall |
-| common | 8 (was 33) | the colour wheel (no name; the library's gesture node is its own semantic boundary, so a label above it does not reach it) |
+| common | 0 (was 33) | the colour wheel is exempt from the label rule (see below) |
 | controller | 0 (was 33 of 520) | see the controller section below |
 | projects | 0 (was 24) | the bill-of-materials checkbox takes the item name; the project link is 48 dp |
-| dashboard sheets | 8 (was 22) | the slot colour dialog's wheel; the movement sheet buttons are 48 dp |
+| dashboard sheets | 0 (was 22) | the movement sheet buttons are 48 dp |
 | admin | 0 (was 19) | the advanced permissions row is 48 dp; the API key is read as one label |
 | swatches | 0 (was 16) | the delete button takes the Material delete tooltip |
-| print log, stats | 16 | the date-range picker: its day cells are 56 × 42 dp (Flutter's calendar) |
+| print log, stats | 0 (was 16) | the range dialog opens on typed entry (`pickDateRange`); the calendar behind its icon keeps Flutter's 42 dp day cell and is not tested |
 | dashboard, model sources | 0 (was 3) | the MakerWorld "imported" snack's action label is short in all five languages |
 
-**The 50 left (2026-10-29) all wait for a decision**: the colour wheel (32, only recomposing the picker from `ColorWheelPicker` and `ColorCodeField` can name it), the date-range calendar (16, Flutter's own 42 dp day cell), and the material menu (2).
+**2 left (2026-10-29)**: the spool form's material menu. Two decisions are recorded instead of fixed: the colour wheel stays as it is and its nodes are exempt from the label rule (`A11yLabeledTapTargets`; everything else in those dialogs is still checked), and the date-range calendar is opened second, behind the dialog's icon, and is not tested.
 What the day fixed, in short, so it is not redone: the pickers (`PickerTile`), 558
 missing labels, the controller's rail and its reflow from 1.3x text, the print-settings
 screen and every dialog it opens, the Prints items' dialog, the date picker in
@@ -229,15 +229,12 @@ short-window surfaces use 891 dp for that reason. Reflowing for width is not don
 ## Open, in this order
 
 1. **The controller is done** (above). Design and rules: `docs/single-printer-controller.md` §2 and §9.
-2. **The other screens, 50 tests, all waiting for a decision** (the table above): the
-   colour wheel in four dialogs (32; the library's gesture node is a semantic boundary of
-   its own, so a label on a parent never reaches it, and naming it means building the
-   picker from `ColorWheelPicker` and `ColorCodeField`, whose two-way update flags
-   `ColorPicker` keeps private), the date-range calendar of print log and statistics (16;
-   `showDateRangePicker` draws a 42 dp day cell that cannot be set, so the way out is the
-   text entry mode or two single-date pickers) and the spool form's material menu (2; a
-   framework assertion `transformed == position - childParentData.offset` in a hit test,
-   cause not found).
+2. **The material menu of the new spool form, 2 tests**: a NaN in a layout transform
+   (`TransformLayer is constructed with an invalid matrix`), then the framework assertion
+   `transformed == position - childParentData.offset` in a hit test. The widget that
+   computes the NaN is not found. Decided and left on purpose: the colour wheel (a
+   library gesture node that cannot be named without rebuilding the picker) and the
+   calendar behind the range dialog's icon (a 42 dp day cell Flutter does not expose).
 3. No widget test yet for the swatches section header, the queue-edit schedule row,
    the archive colour-filter row and the timelapse info row (the a11y suite covers
    them), nor for the maintenance type sheet and the project form (only the a11y suite
