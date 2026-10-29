@@ -189,7 +189,7 @@ check both before counting.
 
 | File | Fails | Surfaces |
 |---|---|---|
-| queue | 126 | the edit form in eight states, bulk edit |
+| queue | 0 (was 126, fixed 2026-10-29) | the submit pill was 40 dp; the controller's mapping dialog is now measured in the landscape window |
 | inventory | 109 | the colour dialogs, the labels sheet and its menus, the label options sheet |
 | files | 88 | the printer files in eight states, the file details |
 | archive | 60 | the filters, the timelapse player and editor, the no-3MF banners |

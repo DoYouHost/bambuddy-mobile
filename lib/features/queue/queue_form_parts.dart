@@ -364,6 +364,9 @@ class QueueSubmitAction extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
 
+  /// The pill's touch height; the bar's 4 dp insets above and below it make 56.
+  static const _height = 48.0;
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
@@ -384,6 +387,7 @@ class QueueSubmitAction extends StatelessWidget {
           shape: WidgetStatePropertyAll(
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
+          minimumSize: const WidgetStatePropertyAll(Size(64, _height)),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         onPressed: onPressed,

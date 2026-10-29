@@ -658,6 +658,9 @@ Future<void> main() async {
       home: () => _mappingLauncher(item, printer, dialog: true),
       arrange: a11yOpenLauncher,
       shows: byLogId('queue_mapping.close'),
+      // Only the landscape controller opens it, and its layout scales to the
+      // window: a phone portrait window would measure a shrunken dialog.
+      window: landscapeRedmi,
     );
   }
 
