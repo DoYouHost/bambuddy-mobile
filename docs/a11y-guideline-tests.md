@@ -190,10 +190,10 @@ check both before counting.
 | File | Fails | Surfaces |
 |---|---|---|
 | queue | 0 (was 126, fixed 2026-10-29) | the submit pill was 40 dp; the controller's mapping dialog is now measured in the landscape window |
-| inventory | 109 | the colour dialogs, the labels sheet and its menus, the label options sheet |
-| files | 88 | the printer files in eight states, the file details |
+| inventory | 18 (was 109) | the two colour dialogs: the wheel has no name (new copy, see below); the new spool form's material menu (framework assertion) |
+| files | 0 (was 88) | the quick-nav chips lost their 48 dp area to the bar's padding; the file photo tiles take the section title as their tooltip |
 | archive | 60 | the filters, the timelapse player and editor, the no-3MF banners |
-| locations | 48 | every state of the locations screen |
+| locations | 0 (was 48) | the location header was 44 dp tall |
 | common | 33 | selection controls (a fixture overflow, to check), the colour wheel, the QR scanner (2), a snack bar |
 | controller | 33 of 520 | see below |
 | projects | 24 | project detail in three states |

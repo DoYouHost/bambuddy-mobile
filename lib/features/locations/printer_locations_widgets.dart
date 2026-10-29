@@ -110,43 +110,48 @@ class LocationCard extends StatelessWidget {
                       InkWell(
                         borderRadius: BorderRadius.circular(14),
                         onTap: onTap,
-                        child: Row(
-                          children: [
-                            Icon(
-                              selecting
-                                  ? (picked
-                                        ? Icons.check_box
-                                        : Icons.check_box_outline_blank)
-                                  : (expanded
-                                        ? Icons.expand_less
-                                        : Icons.expand_more),
-                              color: picked && selecting
-                                  ? t.accentGreen
-                                  : t.textSecondary,
-                            ),
-                            const SizedBox(width: DashSpace.sm),
-                            LocationIconTile(location: location),
-                            const SizedBox(width: DashSpace.md),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    location.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: t.titleSm,
-                                  ),
-                                  Text(
-                                    l10n.printerLocationsPrinterCount(
-                                      location.printerCount,
-                                    ),
-                                    style: t.bodyPlain,
-                                  ),
-                                ],
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            minHeight: kMinInteractiveDimension,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                selecting
+                                    ? (picked
+                                          ? Icons.check_box
+                                          : Icons.check_box_outline_blank)
+                                    : (expanded
+                                          ? Icons.expand_less
+                                          : Icons.expand_more),
+                                color: picked && selecting
+                                    ? t.accentGreen
+                                    : t.textSecondary,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: DashSpace.sm),
+                              LocationIconTile(location: location),
+                              const SizedBox(width: DashSpace.md),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      location.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: t.titleSm,
+                                    ),
+                                    Text(
+                                      l10n.printerLocationsPrinterCount(
+                                        location.printerCount,
+                                      ),
+                                      style: t.bodyPlain,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

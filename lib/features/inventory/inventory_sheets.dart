@@ -528,16 +528,23 @@ class _ActionPill extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: border,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: color),
-              const SizedBox(width: DashSpace.sm),
-              Text(
-                label,
-                style: DashTokens.of(context).label.copyWith(color: color),
-              ),
-            ],
+          // The padding plus the label is 43 dp; this brings the touch area to 48.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: kMinInteractiveDimension - 2 * DashSpace.md,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: DashSpace.sm),
+                Text(
+                  label,
+                  style: DashTokens.of(context).label.copyWith(color: color),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -513,29 +513,34 @@ class _LabelSpoolRow extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(DashSpace.sm),
-        child: Row(
-          children: [
-            Icon(
-              checked ? Icons.check_box : Icons.check_box_outline_blank,
-              size: 20,
-              color: checked ? t.accentGreenInk : t.textTertiary,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(DashSpace.sm),
+            child: Row(
+              children: [
+                Icon(
+                  checked ? Icons.check_box : Icons.check_box_outline_blank,
+                  size: 20,
+                  color: checked ? t.accentGreenInk : t.textTertiary,
+                ),
+                const SizedBox(width: DashSpace.md),
+                SpoolSwatch(rgba: spool.rgba, size: 20, radius: 6),
+                const SizedBox(width: DashSpace.md),
+                Expanded(
+                  child: Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.body,
+                  ),
+                ),
+                const SizedBox(width: DashSpace.sm),
+                Text('#${spool.id}', style: t.monoMicro.legible),
+              ],
             ),
-            const SizedBox(width: DashSpace.md),
-            SpoolSwatch(rgba: spool.rgba, size: 20, radius: 6),
-            const SizedBox(width: DashSpace.md),
-            Expanded(
-              child: Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: t.body,
-              ),
-            ),
-            const SizedBox(width: DashSpace.sm),
-            Text('#${spool.id}', style: t.monoMicro.legible),
-          ],
+          ),
         ),
       ),
     ).tagged('labels.spool');
@@ -852,27 +857,32 @@ class _CheckRow extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(10),
       onTap: () => onChanged(!value),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              value ? Icons.check_box : Icons.check_box_outline_blank,
-              size: 20,
-              color: value ? t.accentGreenInk : t.textTertiary,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  value ? Icons.check_box : Icons.check_box_outline_blank,
+                  size: 20,
+                  color: value ? t.accentGreenInk : t.textTertiary,
+                ),
+                const SizedBox(width: DashSpace.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label, style: t.body),
+                      if (hint != null) Text(hint!, style: t.microSoft.legible),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: DashSpace.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: t.body),
-                  if (hint != null) Text(hint!, style: t.microSoft.legible),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     ).tagged(id);

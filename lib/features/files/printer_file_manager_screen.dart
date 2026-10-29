@@ -543,10 +543,8 @@ class _PrinterFileManagerScreenState
     height: 48,
     child: ListView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(
-        horizontal: DashSpace.gutter,
-        vertical: DashSpace.sm,
-      ),
+      // No vertical padding: the chip's 48 dp touch area needs the whole bar.
+      padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
       children: [
         for (final (path, tab) in _quickDirs)
           Padding(

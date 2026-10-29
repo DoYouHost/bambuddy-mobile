@@ -653,8 +653,16 @@ void main() {
       final container = await openOptions(tester, fieldsGate: true);
       await tapOption(tester, find.text(pl.labelFieldBrand));
       await settle(tester);
-      // Back to the top, where the reset link is.
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, 800));
+      // Back to the top, where the reset link is. The sheet's own list, not the
+      // last scrollable: a text field built further down has one of its own.
+      await tester.drag(
+        find
+            .byWidgetPredicate(
+              (w) => w is Scrollable && w.axis == Axis.vertical,
+            )
+            .last,
+        const Offset(0, 800),
+      );
       await tester.pump();
       await tester.tap(find.text(pl.labelFieldsReset));
       await settle(tester);
@@ -740,6 +748,16 @@ void main() {
       await settle(tester);
 
       expect(find.text(pl.labelOptionsTitle), findsOneWidget);
+      // Below the fold in a list that builds rows lazily.
+      await tester.scrollUntilVisible(
+        find.text(pl.labelFormatTitle),
+        120,
+        scrollable: find
+            .byWidgetPredicate(
+              (w) => w is Scrollable && w.axis == Axis.vertical,
+            )
+            .last,
+      );
       expect(find.text(pl.labelFormatTitle), findsOneWidget);
     });
 
