@@ -361,6 +361,25 @@ Future<bool> _reveal(WidgetTester tester, Finder finder) async {
 /// ([A11yTapTargets]); the overlap is what keeps that from hiding it.
 const _pageOverlap = 72.0;
 
+/// Closes a menu that hangs off the list about to be paged, once the surface has
+/// been measured with it open. The paging jumps that list; a field that scrolls out
+/// of a lazy list takes the menu's anchor with it and Flutter lays the overlay out
+/// at NaN. No finger can do that (the menu's barrier takes the first drag and only
+/// closes it), and the form behind the menu is worth its scrolling pass all the
+/// same. A menu on another route, behind a sheet that is the one being paged, is
+/// left alone: Escape would close the sheet and leave that menu under a list that
+/// then scrolls.
+Future<void> _closeMenuOn(WidgetTester tester, ScrollPosition position) async {
+  final route = ModalRoute.of(position.context.storageContext);
+  final hangsOff = find
+      .byType(MenuItemButton)
+      .evaluate()
+      .any((e) => ModalRoute.of(e) == route);
+  if (!hangsOff) return;
+  await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+  await tester.pump(const Duration(milliseconds: 300));
+}
+
 /// Scrolls the screen's main list one viewport less [_pageOverlap] at a time and
 /// asserts at each stop: a guideline only sees what is built, and a lazy list
 /// builds the viewport plus a little. A screen without a vertical scrollable has
@@ -373,6 +392,7 @@ Future<void> a11yMeetsAllWhileScrolling(
   await a11yMeetsAll(tester, skipContrast: skipContrast);
   final position = _mainList();
   if (position == null) return;
+  await _closeMenuOn(tester, position);
   // A tap on a target down the list leaves it scrolled; the pages above would
   // never be measured.
   if (position.pixels > 0) {

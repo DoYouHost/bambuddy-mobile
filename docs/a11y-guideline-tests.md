@@ -190,7 +190,7 @@ check both before counting.
 | File | Fails | Surfaces |
 |---|---|---|
 | queue | 0 (was 126, fixed 2026-10-29) | the submit pill was 40 dp; the controller's mapping dialog is now measured in the landscape window |
-| inventory | 0 (was 109) | the material menu surface does not run the scrolling pass (see below) |
+| inventory | 0 (was 109) | the labels, the detail sheet, and the material menu (the harness closes an open menu before paging, see below) |
 | files | 0 (was 88) | the quick-nav chips lost their 48 dp area to the bar's padding; the file photo tiles take the section title as their tooltip |
 | archive | 0 (was 60) | the colour swatches got a 48 dp cell and the colour code as their name; the timelapse trim strip, surface and seek bar are named from strings the app already has |
 | locations | 0 (was 48) | the location header was 44 dp tall |
@@ -203,7 +203,7 @@ check both before counting.
 | print log, stats | 0 (was 16) | the range dialog opens on typed entry (`pickDateRange`); the calendar behind its icon keeps Flutter's 42 dp day cell and is not tested |
 | dashboard, model sources | 0 (was 3) | the MakerWorld "imported" snack's action label is short in all five languages |
 
-**0 red (2026-10-29)**, with three things decided and not fixed: the colour wheel stays as it is and its nodes are exempt from the label rule (`A11yLabeledTapTargets`; everything else in those dialogs is still checked), the date-range calendar is opened second, behind the dialog's icon, and is not tested, and the spool form's material menu surface skips the scrolling pass.
+**0 red (2026-10-29)**, with two things decided and not fixed: the colour wheel stays as it is and its nodes are exempt from the label rule (`A11yLabeledTapTargets`; everything else in those dialogs is still checked), and the date-range calendar is opened second, behind the dialog's icon, and is not tested.
 What the day fixed, in short, so it is not redone: the pickers (`PickerTile`), 558
 missing labels, the controller's rail and its reflow from 1.3x text, the print-settings
 screen and every dialog it opens, the Prints items' dialog, the date picker in
@@ -229,14 +229,15 @@ short-window surfaces use 891 dp for that reason. Reflowing for width is not don
 ## Open, in this order
 
 1. **The controller is done** (above). Design and rules: `docs/single-printer-controller.md` §2 and §9.
-2. **Nothing red.** Three things are decided and left on purpose: the colour wheel (a
-   library gesture node that cannot be named without rebuilding the picker), the
-   calendar behind the range dialog's icon (a 42 dp day cell Flutter does not expose),
-   and the spool form's material menu: the scrolling pass jumps the form while the menu
-   hangs off a field in it, the field leaves the lazy list, and Flutter lays the overlay
-   out at NaN (`TransformLayer is constructed with an invalid matrix`). A finger cannot
-   do that, since the menu's barrier takes the first drag and only closes the menu, so
-   the surface runs with `scroll: false`.
+2. **Nothing red.** Two things are decided and left on purpose: the colour wheel (a
+   library gesture node that cannot be named without rebuilding the picker) and the
+   calendar behind the range dialog's icon (a 42 dp day cell Flutter does not expose).
+   A menu a surface leaves open is measured and then closed (Escape) before the paging
+   starts: the paging jumps the list the menu hangs off, the field leaves the lazy
+   list, and Flutter lays the overlay out at NaN (`TransformLayer is constructed with
+   an invalid matrix`). A finger cannot do that, since the menu's barrier takes the
+   first drag and only closes it. Without `_closeMenu` the spool form's material menu
+   fails again.
 3. No widget test yet for the swatches section header, the queue-edit schedule row,
    the archive colour-filter row and the timelapse info row (the a11y suite covers
    them), nor for the maintenance type sheet and the project form (only the a11y suite

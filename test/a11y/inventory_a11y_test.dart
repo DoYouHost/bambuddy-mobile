@@ -669,11 +669,6 @@ void main() {
       await tester.tap(byLogId('spool_form.material'));
     },
     shows: find.byType(MenuItemButton),
-    // The scrolling pass jumps the form while the menu hangs off a field in it;
-    // once the field is out of the list the menu's anchor is gone and Flutter lays
-    // the overlay out at NaN. A finger cannot do that: the menu's barrier takes the
-    // first drag and only closes the menu.
-    scroll: false,
   );
 
   a11ySurface(
