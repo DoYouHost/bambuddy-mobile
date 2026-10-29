@@ -273,6 +273,15 @@ class _Rail extends StatelessWidget {
                               style: t.monoValue,
                             ),
                           ],
+                          // The pane drops its header at this size, and with it
+                          // the unit's temperature.
+                          if (horizontal && entry.unit?.temp != null) ...[
+                            const SizedBox(width: DashSpace.xs),
+                            Text(
+                              '${entry.unit!.temp!.toStringAsFixed(0)}°C',
+                              style: t.monoValue,
+                            ),
+                          ],
                         ],
                       ),
                     ),

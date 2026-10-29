@@ -8,7 +8,7 @@ import '../../providers.dart';
 
 /// The keys issued on this server.
 final apiKeysListProvider =
-    AsyncNotifierProvider<ApiKeysListNotifier, List<ApiKey>>(
+    AsyncNotifierProvider.autoDispose<ApiKeysListNotifier, List<ApiKey>>(
       ApiKeysListNotifier.new,
     );
 

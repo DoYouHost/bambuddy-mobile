@@ -1316,6 +1316,7 @@ class _FilamentRow extends StatelessWidget {
                   Icon(
                     Icons.arrow_forward_rounded,
                     size: controllerIconSize(context, DashSpace.lg),
+                    applyTextScaling: false,
                     color: t.textTertiary,
                   ),
                   Expanded(
@@ -1388,6 +1389,7 @@ class _Slot extends StatelessWidget {
               ? Icon(
                   Icons.help_outline_rounded,
                   size: controllerIconSize(context, DashSpace.lg),
+                  applyTextScaling: false,
                   color: t.textTertiary,
                 )
               : null,

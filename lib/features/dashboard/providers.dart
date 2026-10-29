@@ -32,9 +32,10 @@ class DashboardState {
   bool get stale => printers != null && error != null;
 }
 
-final dashboardProvider = NotifierProvider<DashboardNotifier, DashboardState>(
-  DashboardNotifier.new,
-);
+final dashboardProvider =
+    NotifierProvider.autoDispose<DashboardNotifier, DashboardState>(
+      DashboardNotifier.new,
+    );
 
 /// REST polling every 5s. This pattern remains from M2 as backfill after
 /// app resume and fallback when WebSocket fails.

@@ -72,9 +72,10 @@ class SetupState {
   );
 }
 
-final setupControllerProvider = NotifierProvider<SetupController, SetupState>(
-  SetupController.new,
-);
+final setupControllerProvider =
+    NotifierProvider.autoDispose<SetupController, SetupState>(
+      SetupController.new,
+    );
 
 /// How long the controller leaves the code step up before declaring the
 /// challenge stale. Overridden in tests to keep them off the clock.

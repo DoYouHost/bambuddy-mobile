@@ -870,14 +870,14 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
                 PieChartSectionData(
                   value: _metric.of(entries[i].value).toDouble(),
                   color: colorFor(i),
-                  radius: DashRadius.xl,
+                  radius: DashSize.d20,
                   showTitle: false,
                 ),
             if (pooledTotal > 0)
               PieChartSectionData(
                 value: pooledTotal.toDouble(),
                 color: t.textTertiary,
-                radius: DashRadius.xl,
+                radius: DashSize.d20,
                 showTitle: false,
               ),
           ],
@@ -1032,33 +1032,33 @@ class ColorDistributionCard extends StatelessWidget {
                       PieChartData(
                         sectionsSpace: 1,
                         // Wide enough that the readout below fits inside the
-                        // hole; the ring keeps its 20px thickness (44+20 = 64,
-                        // inside the 66 half-extent).
-                        centerSpaceRadius: DashSize.d48,
+                        // hole; the ring keeps its 20 dp thickness (40+20 = 60,
+                        // inside the 64 half-extent).
+                        centerSpaceRadius: DashSize.d40,
                         sections: [
                           for (final e in drawn)
                             PieChartSectionData(
                               value: e.value,
                               color: colorFromHex(e.key) ?? t.textTertiary,
-                              radius: DashRadius.xl,
+                              radius: DashSize.d20,
                               showTitle: false,
                             ),
                           if (sliverTotal > 0)
                             PieChartSectionData(
                               value: sliverTotal,
                               color: t.textTertiary,
-                              radius: DashRadius.xl,
+                              radius: DashSize.d20,
                               showTitle: false,
                             ),
                         ],
                       ),
                     ),
                     // Bounded to the square that fits inside the hole
-                    // (side = r·√2 ≈ 62 for r = 44) and scaled down rather than
+                    // (side = r·√2 ≈ 56 for r = 40) and scaled down rather than
                     // overflowing, so a long total like "10.24 kg" can never
                     // paint over the ring the way it used to.
                     SizedBox(
-                      width: DashSize.d64,
+                      width: DashSize.d56,
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Column(

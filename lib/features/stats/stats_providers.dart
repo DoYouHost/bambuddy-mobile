@@ -103,9 +103,10 @@ class StatsFilterNotifier extends Notifier<StatsFilter> {
 /// Fetched statistics for active [statsFilterProvider]. We compute `from`/`to`
 /// dates from chosen range and delegate to repository. Relative dates anchored to
 /// [now] computed once per build (no clock in state).
-final statsProvider = AsyncNotifierProvider<StatsNotifier, ArchiveStats>(
-  StatsNotifier.new,
-);
+final statsProvider =
+    AsyncNotifierProvider.autoDispose<StatsNotifier, ArchiveStats>(
+      StatsNotifier.new,
+    );
 
 class StatsNotifier extends AsyncNotifier<ArchiveStats> {
   @override
@@ -305,7 +306,7 @@ final failureAnalysisCacheProvider = Provider<FailureAnalysisCache>(
 /// For "all time" instead of no dates (server would guess 30 days), anchor `from`
 /// in far past to cover entire archive.
 final failureAnalysisProvider =
-    AsyncNotifierProvider<FailureAnalysisNotifier, FailureAnalysis>(
+    AsyncNotifierProvider.autoDispose<FailureAnalysisNotifier, FailureAnalysis>(
       FailureAnalysisNotifier.new,
     );
 

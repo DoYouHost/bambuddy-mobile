@@ -10,7 +10,7 @@ import '../../providers.dart';
 /// The account list behind the administration screen. Rebuilt on a profile
 /// change like every other server-backed list.
 final usersListProvider =
-    AsyncNotifierProvider<UsersListNotifier, List<CurrentUser>>(
+    AsyncNotifierProvider.autoDispose<UsersListNotifier, List<CurrentUser>>(
       UsersListNotifier.new,
     );
 

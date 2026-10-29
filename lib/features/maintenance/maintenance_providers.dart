@@ -6,7 +6,7 @@ import '../../data/maintenance_repository.dart';
 import '../../providers.dart';
 
 final maintenanceOverviewProvider =
-    AsyncNotifierProvider<
+    AsyncNotifierProvider.autoDispose<
       MaintenanceOverviewNotifier,
       List<PrinterMaintenanceOverview>
     >(MaintenanceOverviewNotifier.new);
@@ -76,9 +76,10 @@ class MaintenanceOverviewNotifier
 }
 
 final maintenanceTypesProvider =
-    AsyncNotifierProvider<MaintenanceTypesNotifier, List<MaintenanceType>>(
-      MaintenanceTypesNotifier.new,
-    );
+    AsyncNotifierProvider.autoDispose<
+      MaintenanceTypesNotifier,
+      List<MaintenanceType>
+    >(MaintenanceTypesNotifier.new);
 
 /// Maintenance types catalog (Settings tab): system defaults + custom tasks.
 /// CRUD mutates server-side and refreshes; type changes affect per-printer

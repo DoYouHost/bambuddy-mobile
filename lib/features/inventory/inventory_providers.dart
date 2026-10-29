@@ -80,7 +80,7 @@ class InventoryState {
 }
 
 final inventoryProvider =
-    AsyncNotifierProvider<InventoryNotifier, InventoryState>(
+    AsyncNotifierProvider.autoDispose<InventoryNotifier, InventoryState>(
       InventoryNotifier.new,
     );
 

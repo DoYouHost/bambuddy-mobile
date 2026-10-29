@@ -15,9 +15,10 @@ import '../../data/queue_repository.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
 
-final queueProvider = AsyncNotifierProvider<QueueNotifier, List<QueueItem>>(
-  QueueNotifier.new,
-);
+final queueProvider =
+    AsyncNotifierProvider.autoDispose<QueueNotifier, List<QueueItem>>(
+      QueueNotifier.new,
+    );
 
 /// Print queue (M5). Shows only ACTIVE items (pending, scheduled, printing, paused)
 /// sorted by `position` — history (completed/cancelled) lives in archive, not queue.
@@ -60,6 +61,9 @@ class QueueNotifier extends AsyncNotifier<List<QueueItem>> {
   /// notifier of an unwatched provider builds it, which is one request, and the
   /// refresh is a second, both thrown away a moment later.
   Future<void> refresh() async {
+    // Disposed with nobody watching (the edit screen refreshes a queue no tab
+    // shows): the next reader builds a fresh list anyway.
+    if (!ref.mounted) return;
     // No profile (mid server-change) → nothing to fetch; mirrors [build].
     if (ref.read(serverProfileProvider) == null) return;
     state = const AsyncLoading<List<QueueItem>>();
@@ -322,7 +326,7 @@ Timer pollQueue(ProviderContainer providers, Duration every) {
 /// `queue:update_all`, as the web's banner does. A failed reload leaves the
 /// banner as it was: an error has no place over a list that is otherwise fine.
 final queueSkippedProvider =
-    AsyncNotifierProvider<QueueSkippedNotifier, List<QueueItem>>(
+    AsyncNotifierProvider.autoDispose<QueueSkippedNotifier, List<QueueItem>>(
       QueueSkippedNotifier.new,
     );
 

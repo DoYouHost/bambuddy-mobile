@@ -457,6 +457,7 @@ Future<void> a11yLongPress(
   Finder finder, {
   Duration settle = const Duration(milliseconds: 700),
 }) async {
+  await _pageUntilBuilt(tester, finder);
   await _scrollIntoView(tester, finder);
   await tester.longPress(finder.first);
   await a11ySettle(tester, settle);

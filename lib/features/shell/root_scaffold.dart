@@ -264,7 +264,13 @@ class _NavItem extends StatelessWidget {
                   clipBehavior: Clip.none,
                   children: [
                     IconTheme.merge(
-                      data: IconThemeData(color: color, size: DashIcon.lg),
+                      // The 24 dp slot is fixed: a glyph that grew with the text
+                      // would paint over the label under it.
+                      data: IconThemeData(
+                        color: color,
+                        size: DashIcon.lg,
+                        applyTextScaling: false,
+                      ),
                       child: glyph,
                     ),
                     if (badge > 0)

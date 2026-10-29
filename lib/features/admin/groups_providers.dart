@@ -10,7 +10,7 @@ import '../../providers.dart';
 /// the groups, so a refusal belongs on screen rather than degrading to an
 /// empty list the way the picker does.
 final groupsListProvider =
-    AsyncNotifierProvider<GroupsListNotifier, List<GroupSummary>>(
+    AsyncNotifierProvider.autoDispose<GroupsListNotifier, List<GroupSummary>>(
       GroupsListNotifier.new,
     );
 

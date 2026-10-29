@@ -1845,13 +1845,15 @@ class _ColorSwatch extends StatelessWidget {
                 child: color == null
                     ? Icon(
                         Icons.help_outline,
-                        size: DashIcon.md,
+                        size: DashIcon.sm,
+                        applyTextScaling: false,
                         color: checkColor,
                       )
                     : (selected
                           ? Icon(
                               Icons.check,
-                              size: DashIcon.md,
+                              size: DashIcon.sm,
+                              applyTextScaling: false,
                               color: checkColor,
                             )
                           : null),

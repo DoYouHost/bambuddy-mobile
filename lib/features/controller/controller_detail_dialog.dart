@@ -246,8 +246,12 @@ class _Actions extends StatelessWidget {
 
   final List<Widget> actions;
 
-  /// Icon box and the gap to the label of a Material `*.icon` button.
-  static const _iconWidth = controllerButtonIconSize + DashSpace.sm;
+  /// Icon box and the gap to the label of a Material `*.icon` button. The dialog
+  /// is its own route, outside the controller's icon scale, so the icon follows
+  /// the text.
+  static double _iconWidth(BuildContext context) =>
+      MediaQuery.textScalerOf(context).scale(controllerButtonIconSize) +
+      DashSpace.sm;
 
   double _needed(BuildContext context, Widget action) {
     if (action is! ControllerDialogAction) return 0;
@@ -257,7 +261,9 @@ class _Actions extends StatelessWidget {
           style?.textStyle?.resolve(const {}),
         );
     final padding = style?.padding?.resolve(const {})?.horizontal ?? 0;
-    return padding + _iconWidth + textWidth(context, action.label, textStyle);
+    return padding +
+        _iconWidth(context) +
+        textWidth(context, action.label, textStyle);
   }
 
   @override

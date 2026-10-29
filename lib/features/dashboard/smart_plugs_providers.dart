@@ -94,7 +94,7 @@ class SmartPlugsState {
 }
 
 final smartPlugsProvider =
-    NotifierProvider<SmartPlugsNotifier, SmartPlugsState>(
+    NotifierProvider.autoDispose<SmartPlugsNotifier, SmartPlugsState>(
       SmartPlugsNotifier.new,
     );
 
@@ -169,6 +169,8 @@ class SmartPlugsNotifier extends Notifier<SmartPlugsState> {
   Future<void> refresh() => _poll(_generation);
 
   Future<void> _poll(int generation) async {
+    // The microtask scheduled by build can outlive an autoDispose provider.
+    if (!ref.mounted) return;
     final repo = ref.read(smartPlugsRepositoryProvider);
     final List<SmartPlug> plugs;
     try {

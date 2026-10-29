@@ -177,6 +177,7 @@ class _ControllerFaultsState extends ConsumerState<ControllerFaults> {
                   Icon(
                     Icons.warning_amber_rounded,
                     size: controllerIconSize(context, DashSpace.xl),
+                    applyTextScaling: false,
                     color: t.dangerInk,
                   ),
                   const SizedBox(width: DashSpace.sm),

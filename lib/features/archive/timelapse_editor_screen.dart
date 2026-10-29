@@ -492,7 +492,9 @@ class _SectionHeader extends StatelessWidget {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: DashSpace.sm),
-              SectionHeading(label, style: theme.textTheme.titleSmall),
+              Flexible(
+                child: SectionHeading(label, style: theme.textTheme.titleSmall),
+              ),
             ],
           ),
           Text(value, style: theme.textTheme.bodySmall),

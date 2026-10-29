@@ -635,9 +635,7 @@ ButtonStyle controllerButtonStyle(
   return FilledButton.styleFrom(
     // A wash of the text colour: `subCard` is a 2% tint and `subCardBorder` a
     // 5% one, which is a border with nothing inside it on this ground.
-    backgroundColor: base.withValues(
-      alpha: tone == null ? DashAlpha.wash : DashAlpha.wash,
-    ),
+    backgroundColor: base.withValues(alpha: DashAlpha.wash),
     foregroundColor: text ?? t.textPrimary,
     disabledBackgroundColor: t.textPrimary.withValues(alpha: DashAlpha.faint),
     disabledForegroundColor: t.textSecondary,

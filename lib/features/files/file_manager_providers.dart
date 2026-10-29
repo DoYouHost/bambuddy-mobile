@@ -200,7 +200,7 @@ class FileManagerState {
 }
 
 final fileManagerProvider =
-    AsyncNotifierProvider<FileManagerNotifier, FileManagerState>(
+    AsyncNotifierProvider.autoDispose<FileManagerNotifier, FileManagerState>(
       FileManagerNotifier.new,
     );
 

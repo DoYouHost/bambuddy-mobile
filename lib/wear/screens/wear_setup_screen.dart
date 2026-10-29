@@ -244,10 +244,13 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
   /// explanation.
   Future<void> _startDemo() {
     setState(() => _phoneError = null);
+    // Nothing on this screen watches the controller, and an autoDispose one is
+    // gone before its sign-in finishes unless something listens.
+    final keepAlive = ref.listenManual(setupControllerProvider, (_, _) {});
     return run(
       () => ref.read(setupControllerProvider.notifier).enterDemo(),
       onError: (error) => setState(() => _phoneError = error),
-    );
+    ).whenComplete(keepAlive.close);
   }
 
   /// Look for what the phone last latched and *offer* it. A live push is picked

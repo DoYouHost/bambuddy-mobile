@@ -370,7 +370,7 @@ int tempGridColumns({
     textDirection: textDirection,
     textScaler: scaler,
   )..layout()).width;
-  final glyph = DashIcon.md + DashSpace.xs;
+  final glyph = scaler.scale(DashIcon.md) + DashSpace.xs;
   final widest = airductGlyph
       ? [
           measure('000°'),
@@ -381,7 +381,10 @@ int tempGridColumns({
   if (widest > inner) return 1;
   if (label == null || setpoint == null) return 2;
   final setpointWidth =
-      DashSpace.xs + DashIcon.xs + DashSpace.xs + measure('000°', setpoint);
+      DashSpace.xs +
+      scaler.scale(DashIcon.xs) +
+      DashSpace.xs +
+      measure('000°', setpoint);
   final widestLabel = labels.fold<double>(
     0,
     (w, text) => w > measure(text, label) ? w : measure(text, label),

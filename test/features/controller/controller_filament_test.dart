@@ -869,6 +869,19 @@ void main() {
         expect(find.text('AMS-A'), findsOneWidget);
       });
 
+      testWidgets('keep the unit\'s temperature, in the row', (tester) async {
+        await pumpLarge(
+          tester,
+          _status(
+            ams: [
+              AmsUnit(id: 0, humidity: 24, temp: 28.4, trays: _unit(0).trays),
+            ],
+          ),
+        );
+
+        expect(find.text('28°C'), findsOneWidget);
+      });
+
       testWidgets('keep Drying, in the row with the slot\'s buttons', (
         tester,
       ) async {

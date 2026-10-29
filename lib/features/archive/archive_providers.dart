@@ -208,9 +208,10 @@ List<Archive> applyArchiveFilters(
   return result;
 }
 
-final archiveProvider = AsyncNotifierProvider<ArchiveNotifier, List<Archive>>(
-  ArchiveNotifier.new,
-);
+final archiveProvider =
+    AsyncNotifierProvider.autoDispose<ArchiveNotifier, List<Archive>>(
+      ArchiveNotifier.new,
+    );
 
 /// One archive read fresh from the server — what the photo viewer opens on, so
 /// a shot attached after the list was loaded still shows up.

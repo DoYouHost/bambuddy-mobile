@@ -38,15 +38,17 @@ class FinanceTransactions {
 }
 
 final financeTransactionsProvider =
-    AsyncNotifierProvider<FinanceTransactionsNotifier, FinanceTransactions>(
-      FinanceTransactionsNotifier.new,
-    );
+    AsyncNotifierProvider.autoDispose<
+      FinanceTransactionsNotifier,
+      FinanceTransactions
+    >(FinanceTransactionsNotifier.new);
 
 /// Every user's ledger — the administrator's view.
 final adminTransactionsProvider =
-    AsyncNotifierProvider<AdminTransactionsNotifier, FinanceTransactions>(
-      AdminTransactionsNotifier.new,
-    );
+    AsyncNotifierProvider.autoDispose<
+      AdminTransactionsNotifier,
+      FinanceTransactions
+    >(AdminTransactionsNotifier.new);
 
 /// Every center, private ones and closed ones included (the administrator's list).
 final allCostCentersProvider = FutureProvider.autoDispose<List<CostCenter>>(

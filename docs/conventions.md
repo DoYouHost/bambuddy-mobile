@@ -132,7 +132,7 @@ children touch. `wrap_run_spacing_test.dart` scans `lib/` for the omission.
 **Layout that depends on whether a label fits in one line must measure with the
 `textStyle` and `padding` of the same `ButtonStyle` the button renders with**
 (`FilledButtonTheme.of(context).style` and friends) — never with constants or
-`textTheme.labelLarge`. The theme overrides buttons (horizontal padding 20,
+`textTheme.labelLarge`. The theme overrides buttons (horizontal padding 16,
 Manrope w700) while `labelLarge` is w500, so constants underestimated the width
 by ~11 px: invisible at normal text size, wrong at system text size "small"
 (`font_scale 0.85`) on a 360 dp screen. Add ~10 px of slack — collapsing early

@@ -26,9 +26,10 @@ ActionOutcome _mapError(Object e, String action) => e is AppApiException
 final projectStatusFilterProvider = StateProvider<String?>((_) => null);
 
 final projectsListProvider =
-    AsyncNotifierProvider<ProjectsListNotifier, List<ProjectListResponse>>(
-      ProjectsListNotifier.new,
-    );
+    AsyncNotifierProvider.autoDispose<
+      ProjectsListNotifier,
+      List<ProjectListResponse>
+    >(ProjectsListNotifier.new);
 
 /// Projects list with optional status filter. Rebuilds on profile or filter
 /// change. Delete is optimistic; create just refreshes (server computes stats).

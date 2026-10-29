@@ -304,6 +304,37 @@ void main() {
       expect(find.text(pl.controllerPrintUnmapped(1)), findsOneWidget);
     });
 
+    testWidgets('draws the filament icons once scaled at a large text size', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pump(
+        tester,
+        size: const Size(844, 390),
+        requirements: const [
+          FilamentRequirement(slotId: 1, type: 'TPU', color: '#111111'),
+        ],
+      );
+
+      // The size follows the text up to controllerIconScaleCap; the icon theme
+      // must not scale it a second time.
+      final cap = DashSpace.lg * controllerIconScaleCap;
+      for (final icon in [
+        Icons.arrow_forward_rounded,
+        Icons.help_outline_rounded,
+      ]) {
+        expect(find.byIcon(icon), findsWidgets, reason: '$icon');
+        for (final at in find.byIcon(icon).evaluate()) {
+          expect(
+            tester.getSize(find.byElementPredicate((e) => e == at)).width,
+            lessThanOrEqualTo(cap),
+            reason: '$icon',
+          );
+        }
+      }
+    });
+
     testWidgets('fits a small window and a large system font', (tester) async {
       tester.platformDispatcher.textScaleFactorTestValue = 1.3;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);

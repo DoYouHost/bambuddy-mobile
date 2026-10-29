@@ -1034,7 +1034,7 @@ class _CatalogueSwatch extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(DashRadius.sm),
         onTap: onTap,
-        // The swatch paints 36 dp, its touch target is the 48 dp cell around it.
+        // The swatch paints 40 dp, its touch target is the 48 dp cell around it.
         child: SizedBox.square(
           dimension: kMinInteractiveDimension,
           child: Center(

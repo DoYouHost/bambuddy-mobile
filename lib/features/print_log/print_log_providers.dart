@@ -161,9 +161,10 @@ class PrintLogState {
   );
 }
 
-final printLogProvider = AsyncNotifierProvider<PrintLogNotifier, PrintLogState>(
-  PrintLogNotifier.new,
-);
+final printLogProvider =
+    AsyncNotifierProvider.autoDispose<PrintLogNotifier, PrintLogState>(
+      PrintLogNotifier.new,
+    );
 
 /// The print log, one page at a time.
 ///

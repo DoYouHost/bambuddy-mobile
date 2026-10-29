@@ -347,7 +347,8 @@ class _ControlsGrid extends StatelessWidget {
         .map((label) => textWidth(context, label, style))
         .fold<double>(0, max);
     return ContentGrid(
-      minTileWidth: widest + _LifecycleButton.chrome,
+      minTileWidth:
+          widest + _LifecycleButton.chrome(MediaQuery.textScalerOf(context)),
       maxColumns: buttons.length,
       children: buttons,
     );
@@ -376,9 +377,12 @@ class _LifecycleButton extends StatelessWidget {
   final bool danger;
 
   /// Width the button spends besides its label: the padding, the 1 dp border,
-  /// the icon and the gap after it.
-  static const chrome =
-      2 * DashSpace.md + 2 * _borderWidth + DashIcon.md + DashSpace.sm;
+  /// the icon (which follows the text scale) and the gap after it.
+  static double chrome(TextScaler scaler) =>
+      2 * DashSpace.md +
+      2 * _borderWidth +
+      scaler.scale(DashIcon.md) +
+      DashSpace.sm;
 
   static const _borderWidth = 1.0;
 

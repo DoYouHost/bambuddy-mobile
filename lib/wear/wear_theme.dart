@@ -119,13 +119,15 @@ const wearButtonPadding = EdgeInsets.symmetric(
   vertical: WearSpace.buttonVertical,
 );
 
-/// The label of every button: Wear Material 3's `LabelMedium`, 15 sp at 500.
+/// The label of every button: Wear Material 3's `LabelMedium` (15 sp), on the
+/// 16 sp step of [WearFontSize], at 500.
 const wearButtonLabel = TextStyle(
   fontSize: WearFontSize.hero,
   fontWeight: DashWeight.medium,
 );
 
-/// A button's second line: Wear Material 3's `LabelSmall`, 13 sp at 500.
+/// A button's second line: Wear Material 3's `LabelSmall` (13 sp), on the 14 sp
+/// step of [WearFontSize], at 500.
 const wearButtonSecondaryLabel = TextStyle(
   fontSize: WearFontSize.title,
   fontWeight: DashWeight.medium,
