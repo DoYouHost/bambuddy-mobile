@@ -6,6 +6,8 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Filmstrip, trim range and playhead in one control.
 ///
 /// Keeping them apart meant reading a time off a slider and looking for it in
@@ -193,108 +195,112 @@ class _TimelapseTrimStripState extends State<TimelapseTrimStrip> {
 
           return logTag(
             'timelapse_edit.trim',
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              // On tap *up*, not down: a press that turns into a handle drag
-              // would otherwise have already yanked the playhead to wherever
-              // the finger landed before the drag gesture won the arena.
-              onTapUp: (d) {
-                _grab = _Grab.playhead;
-                _update(d.localPosition.dx, width);
-                _grab = null;
-              },
-              onHorizontalDragStart: (d) => _begin(d.localPosition.dx, width),
-              onHorizontalDragUpdate: (d) => _update(d.localPosition.dx, width),
-              onHorizontalDragEnd: (_) => _end(),
-              onHorizontalDragCancel: _end,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: scheme.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(radius),
+            Semantics(
+              label: AppLocalizations.of(context).timelapseEditTrim,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                // On tap *up*, not down: a press that turns into a handle drag
+                // would otherwise have already yanked the playhead to wherever
+                // the finger landed before the drag gesture won the arena.
+                onTapUp: (d) {
+                  _grab = _Grab.playhead;
+                  _update(d.localPosition.dx, width);
+                  _grab = null;
+                },
+                onHorizontalDragStart: (d) => _begin(d.localPosition.dx, width),
+                onHorizontalDragUpdate: (d) =>
+                    _update(d.localPosition.dx, width),
+                onHorizontalDragEnd: (_) => _end(),
+                onHorizontalDragCancel: _end,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(radius),
+                        ),
                       ),
                     ),
-                  ),
-                  // Every frame of the recording, across the whole track and
-                  // laid out from the track alone — trimming must not move or
-                  // rescale them, or the strip stops being a timeline.
-                  Positioned(
-                    key: TimelapseTrimStrip.framesKey,
-                    left: _trackLeft,
-                    width: track,
-                    top: 0,
-                    bottom: 0,
-                    child: _Frames(
-                      frames: widget.frames,
-                      loading: widget.loading,
-                    ),
-                  ),
-                  // What the cut discards stays visible but dimmed, as in the
-                  // web editor: that is how you see whether the cut lands
-                  // where you meant it to.
-                  Positioned(
-                    key: TimelapseTrimStrip.dimStartKey,
-                    left: _trackLeft,
-                    width: (startX - _trackLeft).clamp(0.0, track),
-                    top: 0,
-                    bottom: 0,
-                    child: const ColoredBox(color: Colors.black54),
-                  ),
-                  Positioned(
-                    key: TimelapseTrimStrip.dimEndKey,
-                    left: endX,
-                    width: (_trackLeft + track - endX).clamp(0.0, track),
-                    top: 0,
-                    bottom: 0,
-                    child: const ColoredBox(color: Colors.black54),
-                  ),
-                  if (position != null)
+                    // Every frame of the recording, across the whole track and
+                    // laid out from the track alone — trimming must not move or
+                    // rescale them, or the strip stops being a timeline.
                     Positioned(
-                      key: TimelapseTrimStrip.playheadKey,
-                      // Centred on the true time, kept inside the track by its
-                      // own half-width — a single pixel of correction at the
-                      // very ends, not the axis-wide inset that used to hold
-                      // the line still for the first moments of playback.
-                      left: (_x(position, width) - 1).clamp(
-                        _trackLeft,
-                        math.max(_trackLeft, _trackLeft + track - 2),
-                      ),
-                      width: 2,
+                      key: TimelapseTrimStrip.framesKey,
+                      left: _trackLeft,
+                      width: track,
                       top: 0,
                       bottom: 0,
-                      child: const ColoredBox(color: Colors.white),
-                    ),
-                  Positioned(
-                    left: startX - hw,
-                    width: (endX - startX + 2 * hw).clamp(0.0, width),
-                    top: 0,
-                    bottom: 0,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: scheme.primary, width: 2),
-                        borderRadius: BorderRadius.circular(radius),
+                      child: _Frames(
+                        frames: widget.frames,
+                        loading: widget.loading,
                       ),
                     ),
-                  ),
-                  // Just outside the selection's edges, so a handle never
-                  // covers a frame that is being kept, nor the playhead.
-                  _Handle(
-                    key: TimelapseTrimStrip.startHandleKey,
-                    x: startX - hw,
-                    width: hw,
-                    color: scheme.primary,
-                    leading: true,
-                  ),
-                  _Handle(
-                    key: TimelapseTrimStrip.endHandleKey,
-                    x: endX,
-                    width: hw,
-                    color: scheme.primary,
-                    leading: false,
-                  ),
-                ],
+                    // What the cut discards stays visible but dimmed, as in the
+                    // web editor: that is how you see whether the cut lands
+                    // where you meant it to.
+                    Positioned(
+                      key: TimelapseTrimStrip.dimStartKey,
+                      left: _trackLeft,
+                      width: (startX - _trackLeft).clamp(0.0, track),
+                      top: 0,
+                      bottom: 0,
+                      child: const ColoredBox(color: Colors.black54),
+                    ),
+                    Positioned(
+                      key: TimelapseTrimStrip.dimEndKey,
+                      left: endX,
+                      width: (_trackLeft + track - endX).clamp(0.0, track),
+                      top: 0,
+                      bottom: 0,
+                      child: const ColoredBox(color: Colors.black54),
+                    ),
+                    if (position != null)
+                      Positioned(
+                        key: TimelapseTrimStrip.playheadKey,
+                        // Centred on the true time, kept inside the track by its
+                        // own half-width — a single pixel of correction at the
+                        // very ends, not the axis-wide inset that used to hold
+                        // the line still for the first moments of playback.
+                        left: (_x(position, width) - 1).clamp(
+                          _trackLeft,
+                          math.max(_trackLeft, _trackLeft + track - 2),
+                        ),
+                        width: 2,
+                        top: 0,
+                        bottom: 0,
+                        child: const ColoredBox(color: Colors.white),
+                      ),
+                    Positioned(
+                      left: startX - hw,
+                      width: (endX - startX + 2 * hw).clamp(0.0, width),
+                      top: 0,
+                      bottom: 0,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: scheme.primary, width: 2),
+                          borderRadius: BorderRadius.circular(radius),
+                        ),
+                      ),
+                    ),
+                    // Just outside the selection's edges, so a handle never
+                    // covers a frame that is being kept, nor the playhead.
+                    _Handle(
+                      key: TimelapseTrimStrip.startHandleKey,
+                      x: startX - hw,
+                      width: hw,
+                      color: scheme.primary,
+                      leading: true,
+                    ),
+                    _Handle(
+                      key: TimelapseTrimStrip.endHandleKey,
+                      x: endX,
+                      width: hw,
+                      color: scheme.primary,
+                      leading: false,
+                    ),
+                  ],
+                ),
               ),
             ),
           );

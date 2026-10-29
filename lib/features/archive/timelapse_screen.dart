@@ -433,9 +433,14 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
                           aspectRatio: controller.value.aspectRatio,
                           child: logTag(
                             'timelapse.surface',
-                            GestureDetector(
-                              onTap: _togglePlay,
-                              child: VideoPlayer(controller),
+                            Semantics(
+                              label: controller.value.isPlaying
+                                  ? l10n.timelapsePause
+                                  : l10n.timelapsePlay,
+                              child: GestureDetector(
+                                onTap: _togglePlay,
+                                child: VideoPlayer(controller),
+                              ),
                             ),
                           ),
                         ),
@@ -470,51 +475,63 @@ class _Controls extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return ValueListenableBuilder<VideoPlayerValue>(
       valueListenable: controller,
-      builder: (context, value, _) => Padding(
-        padding: const EdgeInsets.fromLTRB(
-          DashSpace.sm,
-          DashSpace.sm,
-          DashSpace.gutter,
-          DashSpace.sm,
-        ),
-        child: Row(
-          children: [
-            logTag(
-              'timelapse.play_pause',
-              IconButton(
-                icon: Icon(
-                  value.isPlaying ? Icons.pause : Icons.play_arrow,
+      builder: (context, value, _) {
+        final clock =
+            '${formatClock(value.position.inMilliseconds / 1000)}'
+            ' / ${formatClock(value.duration.inMilliseconds / 1000)}';
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.sm,
+            DashSpace.sm,
+            DashSpace.gutter,
+            DashSpace.sm,
+          ),
+          child: Row(
+            children: [
+              logTag(
+                'timelapse.play_pause',
+                IconButton(
+                  icon: Icon(
+                    value.isPlaying ? Icons.pause : Icons.play_arrow,
+                    color: Colors.white,
+                  ),
+                  tooltip: value.isPlaying
+                      ? l10n.timelapsePause
+                      : l10n.timelapsePlay,
+                  onPressed: onToggle,
+                ),
+              ),
+              Expanded(
+                // The clock beside the bar is its name; the bar's own touch area
+                // is the padding around the 4 dp line.
+                child: Semantics(
+                  label: clock,
+                  child: VideoProgressIndicator(
+                    controller,
+                    allowScrubbing: true,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: (kMinInteractiveDimension - 4) / 2,
+                    ),
+                    colors: const VideoProgressColors(
+                      playedColor: Colors.white,
+                      bufferedColor: Colors.white24,
+                      backgroundColor: Colors.white12,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: DashSpace.md),
+              Text(
+                clock,
+                style: const TextStyle(
                   color: Colors.white,
-                ),
-                tooltip: value.isPlaying
-                    ? l10n.timelapsePause
-                    : l10n.timelapsePlay,
-                onPressed: onToggle,
-              ),
-            ),
-            Expanded(
-              child: VideoProgressIndicator(
-                controller,
-                allowScrubbing: true,
-                colors: const VideoProgressColors(
-                  playedColor: Colors.white,
-                  bufferedColor: Colors.white24,
-                  backgroundColor: Colors.white12,
+                  fontFeatures: [FontFeature.tabularFigures()],
                 ),
               ),
-            ),
-            const SizedBox(width: DashSpace.md),
-            Text(
-              '${formatClock(value.position.inMilliseconds / 1000)}'
-              ' / ${formatClock(value.duration.inMilliseconds / 1000)}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontFeatures: [FontFeature.tabularFigures()],
-              ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -173,19 +173,24 @@ class _Header extends ConsumerWidget {
             const SizedBox(height: DashSpace.sm),
             InkWell(
               onTap: () => openWebLink(context, project.url!),
-              child: Row(
-                children: [
-                  Icon(Icons.link, size: 18, color: t.accentGreenInk),
-                  const SizedBox(width: DashSpace.sm),
-                  Expanded(
-                    child: Text(
-                      project.url!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: t.body.copyWith(color: t.accentGreenInk),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minHeight: kMinInteractiveDimension,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.link, size: 18, color: t.accentGreenInk),
+                    const SizedBox(width: DashSpace.sm),
+                    Expanded(
+                      child: Text(
+                        project.url!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.body.copyWith(color: t.accentGreenInk),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ).tagged('project.open_url'),
           ],

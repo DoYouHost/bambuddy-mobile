@@ -527,19 +527,22 @@ class ProjectBomSection extends ConsumerWidget {
       contentPadding: EdgeInsets.zero,
       // Completion is derived from quantity_acquired >= quantity_needed, so the
       // checkbox sets acquired to needed (done) or 0 (not done).
-      leading: Checkbox(
-        value: item.isComplete,
-        activeColor: t.accentGreen,
-        checkColor: t.onAccent,
-        onChanged: (v) => ref
-            .read(projectBomProvider(projectId).notifier)
-            .edit(
-              item.id,
-              BomItemInput(
-                name: item.name,
-                quantityAcquired: (v ?? false) ? item.quantityNeeded : 0,
+      leading: Semantics(
+        label: item.name,
+        child: Checkbox(
+          value: item.isComplete,
+          activeColor: t.accentGreen,
+          checkColor: t.onAccent,
+          onChanged: (v) => ref
+              .read(projectBomProvider(projectId).notifier)
+              .edit(
+                item.id,
+                BomItemInput(
+                  name: item.name,
+                  quantityAcquired: (v ?? false) ? item.quantityNeeded : 0,
+                ),
               ),
-            ),
+        ),
       ).tagged('project.bom_done'),
       title: Text(
         item.name,

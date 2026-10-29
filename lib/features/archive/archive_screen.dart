@@ -680,7 +680,7 @@ class _No3mfBanner extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(
                             horizontal: DashSpace.sm,
                           ),
-                          visualDensity: VisualDensity.compact,
+                          minimumSize: const Size(0, kMinInteractiveDimension),
                           foregroundColor: t.accentOrangeInk,
                         ),
                       ),
@@ -1682,7 +1682,9 @@ class _ArchiveFilterSheet extends ConsumerWidget {
                   // OR/AND only matters once several colors are picked.
                   control: SegmentedButton<ColorFilterMode>(
                     style: const ButtonStyle(
-                      visualDensity: VisualDensity.compact,
+                      minimumSize: WidgetStatePropertyAll(
+                        Size(0, kMinInteractiveDimension),
+                      ),
                     ),
                     segments: [
                       ButtonSegment(
@@ -1760,12 +1762,12 @@ class _ColorSwatchWrap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    // Each swatch brings its own 48 dp touch cell, so the wrap adds no gaps.
     return Wrap(
-      spacing: DashSpace.md,
-      runSpacing: DashSpace.md,
       children: [
         for (final hex in colors)
           _ColorSwatch(
+            hex: hex,
             color: colorFromHex(hex),
             selected: selected.contains(hex),
             accent: t.accentGreen,
@@ -1779,6 +1781,7 @@ class _ColorSwatchWrap extends StatelessWidget {
 
 class _ColorSwatch extends StatelessWidget {
   const _ColorSwatch({
+    required this.hex,
     required this.color,
     required this.selected,
     required this.accent,
@@ -1786,6 +1789,8 @@ class _ColorSwatch extends StatelessWidget {
     required this.onTap,
   });
 
+  /// The filament colour code, which is the swatch's name for a screen reader.
+  final String hex;
   final Color? color;
   final bool selected;
   final Color accent;
@@ -1798,24 +1803,37 @@ class _ColorSwatch extends StatelessWidget {
     final checkColor = (color != null && color!.computeLuminance() > 0.5)
         ? Colors.black
         : Colors.white;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: selected ? accent : border,
-            width: selected ? 3 : 1,
+    return logTag(
+      'archive.filter_color',
+      selected: selected,
+      Tooltip(
+        message: hex,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: SizedBox.square(
+            dimension: kMinInteractiveDimension,
+            child: Center(
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: selected ? accent : border,
+                    width: selected ? 3 : 1,
+                  ),
+                ),
+                child: color == null
+                    ? Icon(Icons.help_outline, size: 18, color: checkColor)
+                    : (selected
+                          ? Icon(Icons.check, size: 18, color: checkColor)
+                          : null),
+              ),
+            ),
           ),
         ),
-        child: color == null
-            ? Icon(Icons.help_outline, size: 18, color: checkColor)
-            : (selected
-                  ? Icon(Icons.check, size: 18, color: checkColor)
-                  : null),
       ),
     );
   }
