@@ -95,8 +95,8 @@ class GroupCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: DashSize.d40,
+            height: DashSize.d40,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: accent.withValues(alpha: DashAlpha.wash),

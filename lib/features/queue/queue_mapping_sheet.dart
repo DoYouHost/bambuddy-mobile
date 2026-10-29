@@ -725,8 +725,10 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
           ActionChip(
             avatar: _rereading
                 ? const SizedBox.square(
-                    dimension: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    dimension: DashSize.d16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: DashStroke.regular,
+                    ),
                   )
                 : const Icon(Icons.refresh, size: DashIcon.md),
             label: Text(l10n.mappingReRead),
@@ -846,7 +848,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                         if (diameter.isNotEmpty) diameter,
                       ].join(' · '),
                       style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+                        fontWeight: DashWeight.bold,
                       ),
                     ),
                     const Icon(Icons.arrow_drop_down, size: DashIcon.md),

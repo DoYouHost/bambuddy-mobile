@@ -300,7 +300,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         l10n.inventoryAddSpool,
                         style: const TextStyle(
                           fontFamily: DashTokens.fontUi,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: DashWeight.bold,
                         ),
                       ),
                     ),

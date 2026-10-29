@@ -529,7 +529,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             title: Text(
               l10n.printersTitle,
-              style: t.displayLg.copyWith(letterSpacing: -0.5),
+              style: t.displayLg.copyWith(letterSpacing: DashTracking.tight),
             ),
             iconTheme: IconThemeData(color: t.textPrimary),
             actions: [
@@ -938,8 +938,8 @@ class _AppDrawer extends ConsumerWidget {
                     top: -48,
                     right: -36,
                     child: Container(
-                      width: 150,
-                      height: 150,
+                      width: DashSize.d160,
+                      height: DashSize.d160,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: t.accentGreen.withValues(alpha: DashAlpha.wash),
@@ -967,7 +967,7 @@ class _AppDrawer extends ConsumerWidget {
                                   color: Colors.black.withValues(
                                     alpha: DashAlpha.wash,
                                   ),
-                                  blurRadius: 12,
+                                  blurRadius: DashBlur.lg,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
@@ -994,7 +994,9 @@ class _AppDrawer extends ConsumerWidget {
                               children: [
                                 Text(
                                   'Bambuddy',
-                                  style: t.display.copyWith(letterSpacing: 0.2),
+                                  style: t.display.copyWith(
+                                    letterSpacing: DashTracking.label,
+                                  ),
                                 ),
                                 const SizedBox(height: DashSpace.xs),
                                 _ProfileChip(label: profileLabel),
@@ -1340,8 +1342,8 @@ class _DrawerTile extends StatelessWidget {
                   children: [
                     DashIconTile(
                       icon: icon,
-                      size: 40,
-                      radius: 12,
+                      size: DashSize.d40,
+                      radius: DashRadius.md,
                       iconSize: DashIcon.md,
                     ),
                     const SizedBox(width: DashSpace.lg),
@@ -1629,8 +1631,8 @@ class _SummaryHeader extends ConsumerWidget {
       child: Row(
         children: [
           Container(
-            width: 8,
-            height: 8,
+            width: DashSize.d8,
+            height: DashSize.d8,
             decoration: BoxDecoration(shape: BoxShape.circle, color: dotColor),
           ),
           const SizedBox(width: DashSpace.sm),
@@ -1652,7 +1654,7 @@ class _SummaryHeader extends ConsumerWidget {
                       TextSpan(text: l10n.nextAvailableLabel),
                       TextSpan(
                         text: next.printer.name,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                        style: const TextStyle(fontWeight: DashWeight.bold),
                       ),
                       TextSpan(text: _nextSuffix(l10n, next)),
                     ],

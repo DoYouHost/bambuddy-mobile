@@ -48,7 +48,10 @@ class _CollapsedCard extends ConsumerWidget {
         belowName: printing
             ? Padding(
                 padding: const EdgeInsets.only(top: DashSpace.xs),
-                child: _PrintProgressBar(status: status!, height: 3),
+                child: _PrintProgressBar(
+                  status: status!,
+                  height: DashStroke.regular,
+                ),
               )
             : null,
         status: _StateChip(

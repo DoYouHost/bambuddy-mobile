@@ -50,7 +50,7 @@ class FailureAnalysisCard extends ConsumerWidget {
       child: dashAsyncStrip(
         context,
         async,
-        height: 80,
+        height: DashSize.d80,
         failureMessage: l10n.statsLoadFailed,
         data: (f) {
           // Inks: this paints the rate itself, in monoDisplay.
@@ -276,8 +276,8 @@ class PrintActivityCard extends StatelessWidget {
               const SizedBox(width: DashSpace.sm),
               for (final frac in [0.0, 0.33, 0.66, 1.0])
                 Container(
-                  width: 13,
-                  height: 13,
+                  width: DashSize.d12,
+                  height: DashSize.d12,
                   margin: const EdgeInsets.all(_cellInset),
                   decoration: BoxDecoration(
                     color: frac == 0
@@ -455,7 +455,7 @@ class BarList extends StatelessWidget {
               const SizedBox(height: DashSpace.xs),
               DashProgressBar(
                 value: rows[i].fraction.clamp(0, 1).toDouble(),
-                height: 8,
+                height: DashSize.d8,
                 color: rows[i].color,
               ),
             ],
@@ -738,7 +738,7 @@ class _OverTimeChart extends StatelessWidget {
       return SectionCard(
         title: title,
         child: SizedBox(
-          height: 60,
+          height: DashSize.d64,
           child: Center(
             child: Text(
               l10n.statsEmpty,
@@ -760,7 +760,7 @@ class _OverTimeChart extends StatelessWidget {
     return SectionCard(
       title: title,
       child: SizedBox(
-        height: 180,
+        height: DashSize.d192,
         child: LineChart(
           LineChartData(
             minY: 0,
@@ -777,7 +777,7 @@ class _OverTimeChart extends StatelessWidget {
               leftTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
-                  reservedSize: 38,
+                  reservedSize: DashSize.d40,
                   getTitlesWidget: (v, meta) =>
                       Text(formatY(v), style: axisStyle),
                 ),
@@ -785,7 +785,7 @@ class _OverTimeChart extends StatelessWidget {
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
-                  reservedSize: 24,
+                  reservedSize: DashSize.d24,
                   interval: (points.length / 4).ceilToDouble(),
                   getTitlesWidget: (v, meta) {
                     final i = v.round();
@@ -855,6 +855,56 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
         if (pooled(i)) _metric.of(entries[i].value),
     ].fold<num>(0, (s, v) => s + v);
 
+    // Beside the legend while it has room; above it at a large text size, where
+    // a ring and a column of figures side by side leave the names a sliver.
+    final chart = SizedBox(
+      width: DashSize.d128,
+      height: DashSize.d128,
+      child: PieChart(
+        PieChartData(
+          sectionsSpace: 2,
+          centerSpaceRadius: DashSize.d32,
+          sections: [
+            for (var i = 0; i < entries.length; i++)
+              if (!pooled(i))
+                PieChartSectionData(
+                  value: _metric.of(entries[i].value).toDouble(),
+                  color: colorFor(i),
+                  radius: DashRadius.xl,
+                  showTitle: false,
+                ),
+            if (pooledTotal > 0)
+              PieChartSectionData(
+                value: pooledTotal.toDouble(),
+                color: t.textTertiary,
+                radius: DashRadius.xl,
+                showTitle: false,
+              ),
+          ],
+        ),
+      ),
+    );
+    final legend = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < entries.length; i++)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
+            child: Row(
+              children: [
+                Expanded(
+                  child: LegendDot(color: colorFor(i), text: entries[i].key),
+                ),
+                Text(
+                  '${_metric.format(l10n, _metric.of(entries[i].value))} · ${total == 0 ? 0 : (_metric.of(entries[i].value) / total * 100).round()}%',
+                  style: t.monoLabel,
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+
     return SectionCard(
       title: l10n.statsByMaterialTitle,
       stackTrailing: true,
@@ -862,63 +912,22 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
         value: _metric,
         onChanged: (m) => setState(() => _metric = m),
       ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 120,
-            height: 120,
-            child: PieChart(
-              PieChartData(
-                sectionsSpace: 2,
-                centerSpaceRadius: 32,
-                sections: [
-                  for (var i = 0; i < entries.length; i++)
-                    if (!pooled(i))
-                      PieChartSectionData(
-                        value: _metric.of(entries[i].value).toDouble(),
-                        color: colorFor(i),
-                        radius: 22,
-                        showTitle: false,
-                      ),
-                  if (pooledTotal > 0)
-                    PieChartSectionData(
-                      value: pooledTotal.toDouble(),
-                      color: t.textTertiary,
-                      radius: 22,
-                      showTitle: false,
-                    ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: DashSpace.lg),
-          Expanded(
-            child: Column(
+      child: dashLargeText(context)
+          ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (var i = 0; i < entries.length; i++)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: LegendDot(
-                            color: colorFor(i),
-                            text: entries[i].key,
-                          ),
-                        ),
-                        Text(
-                          '${_metric.format(l10n, _metric.of(entries[i].value))} · ${total == 0 ? 0 : (_metric.of(entries[i].value) / total * 100).round()}%',
-                          style: t.monoLabel,
-                        ),
-                      ],
-                    ),
-                  ),
+                Center(child: chart),
+                const SizedBox(height: DashSpace.lg),
+                legend,
+              ],
+            )
+          : Row(
+              children: [
+                chart,
+                const SizedBox(width: DashSpace.lg),
+                Expanded(child: legend),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -970,7 +979,7 @@ class ColorDistributionCard extends StatelessWidget {
       return SectionCard(
         title: l10n.statsColorDistribution,
         child: SizedBox(
-          height: 50,
+          height: DashSize.d48,
           child: Center(
             child: Text(
               l10n.statsEmpty,
@@ -1014,8 +1023,8 @@ class ColorDistributionCard extends StatelessWidget {
           Row(
             children: [
               SizedBox(
-                width: 132,
-                height: 132,
+                width: DashSize.d128,
+                height: DashSize.d128,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
@@ -1025,20 +1034,20 @@ class ColorDistributionCard extends StatelessWidget {
                         // Wide enough that the readout below fits inside the
                         // hole; the ring keeps its 20px thickness (44+20 = 64,
                         // inside the 66 half-extent).
-                        centerSpaceRadius: 44,
+                        centerSpaceRadius: DashSize.d48,
                         sections: [
                           for (final e in drawn)
                             PieChartSectionData(
                               value: e.value,
                               color: colorFromHex(e.key) ?? t.textTertiary,
-                              radius: 20,
+                              radius: DashRadius.xl,
                               showTitle: false,
                             ),
                           if (sliverTotal > 0)
                             PieChartSectionData(
                               value: sliverTotal,
                               color: t.textTertiary,
-                              radius: 20,
+                              radius: DashRadius.xl,
                               showTitle: false,
                             ),
                         ],
@@ -1049,7 +1058,7 @@ class ColorDistributionCard extends StatelessWidget {
                     // overflowing, so a long total like "10.24 kg" can never
                     // paint over the ring the way it used to.
                     SizedBox(
-                      width: 60,
+                      width: DashSize.d64,
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Column(
@@ -1118,8 +1127,8 @@ class _ColorChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 16,
-            height: 16,
+            width: DashSize.d16,
+            height: DashSize.d16,
             decoration: BoxDecoration(
               color: color,
               borderRadius: BorderRadius.circular(DashRadius.xs),
@@ -1156,7 +1165,7 @@ class _BarHistogram extends StatelessWidget {
     final axisStyle = t.monoMicro;
     final maxY = values.fold<double>(1, math.max);
     return SizedBox(
-      height: 170,
+      height: DashSize.d160,
       child: BarChart(
         BarChartData(
           alignment: BarChartAlignment.spaceAround,
@@ -1174,7 +1183,7 @@ class _BarHistogram extends StatelessWidget {
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 30,
+                reservedSize: DashSize.d32,
                 getTitlesWidget: (v, meta) => v == meta.max
                     ? const SizedBox.shrink()
                     : Text(v.toInt().toString(), style: axisStyle),
@@ -1183,7 +1192,7 @@ class _BarHistogram extends StatelessWidget {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 24,
+                reservedSize: DashSize.d24,
                 getTitlesWidget: (v, meta) {
                   final i = v.round();
                   if (i < 0 || i >= labels.length) {
@@ -1206,7 +1215,7 @@ class _BarHistogram extends StatelessWidget {
                   BarChartRodData(
                     toY: values[i],
                     color: t.accentGreen,
-                    width: 10,
+                    width: DashSize.d12,
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(DashRadius.xs),
                     ),

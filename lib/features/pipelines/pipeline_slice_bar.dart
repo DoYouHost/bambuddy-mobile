@@ -92,7 +92,7 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
                   icon: _saving
-                      ? const DashSpinner(size: 16)
+                      ? const DashSpinner(size: DashSize.d16)
                       : const Icon(
                           Icons.bookmark_add_outlined,
                           size: DashIcon.md,

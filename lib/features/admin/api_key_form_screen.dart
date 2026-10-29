@@ -282,7 +282,10 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    return Text(text, style: t.bodyBold.copyWith(letterSpacing: 0.3));
+    return Text(
+      text,
+      style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
+    );
   }
 }
 

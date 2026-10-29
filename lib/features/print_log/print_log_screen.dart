@@ -232,7 +232,7 @@ class _SortMenu extends ConsumerWidget {
     /// not a choice — tapping it must not close the menu.
     PopupMenuEntry<String> caption(String text) => PopupMenuItem<String>(
       enabled: false,
-      height: 32,
+      height: DashSize.d32,
       child: Text(text, style: t.micro.copyWith(color: t.textTertiary)),
     );
 
@@ -337,7 +337,7 @@ class _ListFooter extends ConsumerWidget {
       ),
       child: Center(
         child: state.loadingMore
-            ? const DashSpinner(size: 22)
+            ? const DashSpinner(size: DashSize.d24)
             : logTag(
                 'print_log.load_more',
                 TextButton(
@@ -409,7 +409,7 @@ class _PrintLogCard extends ConsumerWidget {
                 children: [
                   PrintThumbnail.printLogEntry(
                     printLogEntryId: entry.hasThumbnail ? entry.id : null,
-                    size: 52,
+                    size: DashSize.d56,
                   ),
                   const SizedBox(width: DashSpace.md),
                   Expanded(
@@ -533,7 +533,7 @@ class _PrintLogFilterSheet extends ConsumerWidget {
           ),
           children: [
             SizedBox(
-              height: 48,
+              height: DashSize.d48,
               child: Row(
                 children: [
                   Text(l10n.printLogFilters, style: theme.textTheme.titleLarge),

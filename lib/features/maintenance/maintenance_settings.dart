@@ -220,8 +220,8 @@ class _TypeTile extends ConsumerWidget {
     return ListTile(
       leading: DashIconTile(
         icon: maintenanceIcon(type.icon),
-        size: 40,
-        radius: 12,
+        size: DashSize.d40,
+        radius: DashRadius.md,
         iconSize: DashIcon.md,
       ),
       title: Text(type.name, style: t.titleSm),
@@ -508,7 +508,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                 ),
                 const SizedBox(width: DashSpace.md),
                 SizedBox(
-                  width: 110,
+                  width: DashSize.d112,
                   child: TextFormField(
                     controller: _interval,
                     keyboardType: TextInputType.number,
@@ -582,7 +582,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
             FilledButton(
               onPressed: _saving ? null : _save,
               child: _saving
-                  ? const DashSpinner(size: 20)
+                  ? const DashSpinner(size: DashSize.d20)
                   : Text(l10n.inventorySave),
             ).tagged('maintenance_type_form.save'),
           ],
@@ -621,7 +621,7 @@ class _IconChoice extends StatelessWidget {
             borderRadius: BorderRadius.circular(DashRadius.sm),
             border: Border.all(
               color: selected ? scheme.primary : scheme.outlineVariant,
-              width: selected ? 2 : 1,
+              width: selected ? DashStroke.regular : DashStroke.hairline,
             ),
           ),
           child: Icon(

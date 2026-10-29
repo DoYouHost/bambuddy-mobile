@@ -250,7 +250,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
 
   Widget _pageSelector(List<ProcessPage> pages, ProcessPage? active) {
     return SizedBox(
-      height: 44,
+      height: DashSize.d48,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),

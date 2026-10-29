@@ -81,7 +81,11 @@ class _SignedInState extends ConsumerState<_SignedIn> {
           decoration: t.cardBox,
           child: Row(
             children: [
-              const DashIconTile(icon: Icons.cloud_done, size: 44, radius: 14),
+              const DashIconTile(
+                icon: Icons.cloud_done,
+                size: DashSize.d48,
+                radius: DashRadius.lg,
+              ),
               const SizedBox(width: DashSpace.lg),
               Expanded(
                 child: Column(
@@ -113,7 +117,7 @@ class _SignedInState extends ConsumerState<_SignedIn> {
           ),
           onPressed: _busy ? null : _signOut,
           icon: _busy
-              ? DashSpinner(size: 16, color: t.textPrimary)
+              ? DashSpinner(size: DashSize.d16, color: t.textPrimary)
               : const Icon(Icons.logout),
           label: Text(l10n.cloudSignOut),
         ).tagged('cloud.sign_out'),

@@ -101,37 +101,23 @@ class _GaugeTile extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            reading.label(l10n).toUpperCase(),
-            style: t.micro.copyWith(
-              color: t.textSecondary,
-              letterSpacing: DashTracking.label,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: DashSpace.sm),
-          // The digits own their row: nothing sits beside them, so they keep
-          // their full size at every text size (the grid goes to one column when
-          // they would not fit, see [tempGridColumns]).
+          // Label left, setpoint right on the same line: the digits keep a row
+          // of their own below, and the tile loses a line of height.
           Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              if (airductIcon != null) ...[
-                Icon(airductIcon, size: DashIcon.md, color: accent),
-                const SizedBox(width: DashSpace.xs),
-              ],
-              Text(
-                actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
-                style: t.monoDisplay.copyWith(height: 1.0),
+              Expanded(
+                child: Text(
+                  reading.label(l10n).toUpperCase(),
+                  style: t.micro.copyWith(
+                    color: t.textSecondary,
+                    letterSpacing: DashTracking.label,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ],
-          ),
-          const SizedBox(height: DashSpace.xs),
-          // The setpoint: an arrow and the number, "-" when none is set.
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+              const SizedBox(width: DashSpace.xs),
+              // The setpoint: an arrow and the number, "-" when none is set.
               Icon(
                 Icons.arrow_forward,
                 size: DashIcon.xs,
@@ -146,6 +132,23 @@ class _GaugeTile extends ConsumerWidget {
                       : t.textTertiary,
                   fontFamily: DashTokens.fontMono,
                 ),
+              ),
+            ],
+          ),
+          const SizedBox(height: DashSpace.sm),
+          // The digits own their row: nothing sits beside them, so they keep
+          // their full size at every text size (the grid goes to one column when
+          // they or the label line would not fit, see [tempGridColumns]).
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (airductIcon != null) ...[
+                Icon(airductIcon, size: DashIcon.md, color: accent),
+                const SizedBox(width: DashSpace.xs),
+              ],
+              Text(
+                actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
+                style: t.monoDisplay.copyWith(height: 1.0),
               ),
             ],
           ),
@@ -248,7 +251,7 @@ class _StateChip extends StatelessWidget {
     if (offline) {
       bg = scheme.error.withValues(alpha: DashAlpha.wash);
       fg = scheme.error;
-      border = Border.all(color: scheme.error, width: 1.5);
+      border = Border.all(color: scheme.error, width: DashStroke.regular);
     } else {
       bg = t.accentGreen.withValues(alpha: DashAlpha.wash);
       fg = t.accentGreenInk;
@@ -269,7 +272,7 @@ class _StateChip extends StatelessWidget {
         maxLines: 1,
         softWrap: false,
         overflow: TextOverflow.ellipsis,
-        style: t.micro.copyWith(color: fg, letterSpacing: 0.4),
+        style: t.micro.copyWith(color: fg, letterSpacing: DashTracking.label),
       ),
     );
   }
@@ -474,7 +477,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
               mainAxisSize: MainAxisSize.min,
               children: [
                 busy
-                    ? const DashSpinner(size: 16)
+                    ? const DashSpinner(size: DashSize.d16)
                     : Icon(
                         Icons.swap_horiz,
                         size: DashIcon.sm,
@@ -571,7 +574,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
                       ? '—'
                       : '${_reading.actual!.toStringAsFixed(0)}°',
                   style: t.monoTitle.copyWith(
-                    fontWeight: FontWeight.w400,
+                    fontWeight: DashWeight.regular,
                     color: t.textSecondary,
                   ),
                 ),
@@ -611,7 +614,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
                           style: TextStyle(
                             fontFamily: DashTokens.fontMono,
                             fontSize: DashFontSize.numeral,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: DashWeight.bold,
                             color: _reading.gaugeInk(
                               t,
                               target: _target.toDouble(),

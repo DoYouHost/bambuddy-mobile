@@ -181,7 +181,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                         textStyle: const TextStyle(
                           fontFamily: DashTokens.fontUi,
                           fontSize: DashFontSize.body,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: DashWeight.semibold,
                         ),
                       ),
                     ),
@@ -271,7 +271,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             else
               FilteringTextInputFormatter.allow(RegExp('[A-Za-z0-9]')),
           ],
-          style: t.monoHeadline.copyWith(letterSpacing: 4),
+          style: t.monoHeadline.copyWith(letterSpacing: DashTracking.wide),
           decoration: dashFieldDecoration(
             t,
             labelText: l10n.twoFactorCodeLabel,
@@ -300,7 +300,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               textStyle: const TextStyle(
                 fontFamily: DashTokens.fontUi,
                 fontSize: DashFontSize.body,
-                fontWeight: FontWeight.w600,
+                fontWeight: DashWeight.semibold,
               ),
             ),
           ),
@@ -331,7 +331,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               textStyle: const TextStyle(
                 fontFamily: DashTokens.fontUi,
                 fontSize: DashFontSize.body,
-                fontWeight: FontWeight.w600,
+                fontWeight: DashWeight.semibold,
               ),
             ),
             child: Text(l10n.twoFactorBack),

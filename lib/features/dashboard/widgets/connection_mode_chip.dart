@@ -56,8 +56,8 @@ class ConnectionModeChip extends ConsumerWidget {
           children: [
             if (live)
               Container(
-                width: 8,
-                height: 8,
+                width: DashSize.d8,
+                height: DashSize.d8,
                 decoration: BoxDecoration(
                   color: accent,
                   shape: BoxShape.circle,

@@ -23,7 +23,6 @@ Future<void> _loadAppFonts() async {
         'JetBrainsMono-400.ttf',
         'JetBrainsMono-600.ttf',
         'JetBrainsMono-700.ttf',
-        'JetBrainsMono-800.ttf',
       ],
     ),
     (
@@ -33,7 +32,6 @@ Future<void> _loadAppFonts() async {
         'Manrope-500.ttf',
         'Manrope-600.ttf',
         'Manrope-700.ttf',
-        'Manrope-800.ttf',
       ],
     ),
   ]) {

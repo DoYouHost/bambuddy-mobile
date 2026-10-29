@@ -90,7 +90,7 @@ class _HeaterHistoryPanelState extends ConsumerState<HeaterHistoryPanel> {
           dashAsyncStrip(
             context,
             async,
-            height: 260,
+            height: DashSize.d240,
             failureMessage: l10n.sensorHistoryError,
             data: (history) => _Content(
               series: history.seriesFor(widget.kind),
@@ -151,7 +151,7 @@ class _Content extends StatelessWidget {
 
     if (values.isEmpty) {
       return SizedBox(
-        height: 260,
+        height: DashSize.d240,
         child: Center(child: Text(l10n.sensorHistoryEmpty)),
       );
     }
@@ -183,7 +183,7 @@ class _Content extends StatelessWidget {
         _Legend(color: color, hasTarget: targets.isNotEmpty),
         const SizedBox(height: DashSpace.sm),
         SizedBox(
-          height: 220,
+          height: DashSize.d240,
           child: LineChart(_chartData(context, values, targets)),
         ),
       ],
@@ -232,7 +232,7 @@ class _Content extends StatelessWidget {
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 36,
+            reservedSize: DashSize.d40,
             getTitlesWidget: (v, meta) =>
                 Text(v.toInt().toString(), style: axis),
           ),
@@ -240,7 +240,7 @@ class _Content extends StatelessWidget {
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 24,
+            reservedSize: DashSize.d24,
             interval: (maxX - minX) / 4,
             getTitlesWidget: (v, meta) => Padding(
               padding: const EdgeInsets.only(top: DashSpace.xs),
@@ -289,8 +289,8 @@ class _Legend extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          width: 18,
-          height: 2,
+          width: DashSize.d20,
+          height: DashStroke.regular,
           child: CustomPaint(painter: _LinePainter(c, dashed: dashed)),
         ),
         const SizedBox(width: DashSpace.sm),

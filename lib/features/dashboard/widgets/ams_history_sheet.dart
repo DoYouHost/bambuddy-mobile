@@ -174,7 +174,7 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
               dashAsyncStrip(
                 context,
                 async,
-                height: 260,
+                height: DashSize.d240,
                 failureMessage: l10n.sensorHistoryError,
                 data: (history) => _Content(
                   history: history,
@@ -230,7 +230,7 @@ class _Content extends StatelessWidget {
 
     if (spots.isEmpty) {
       return SizedBox(
-        height: 260,
+        height: DashSize.d240,
         child: Center(child: Text(l10n.sensorHistoryEmpty)),
       );
     }
@@ -263,7 +263,7 @@ class _Content extends StatelessWidget {
         ),
         const SizedBox(height: DashSpace.lg),
         SizedBox(
-          height: 220,
+          height: DashSize.d240,
           child: LineChart(_chartData(context, spots, color)),
         ),
       ],
@@ -326,7 +326,7 @@ class _Content extends StatelessWidget {
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 36,
+            reservedSize: DashSize.d40,
             getTitlesWidget: (v, meta) =>
                 Text(v.toInt().toString(), style: axis),
           ),
@@ -334,7 +334,7 @@ class _Content extends StatelessWidget {
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 24,
+            reservedSize: DashSize.d24,
             interval: (maxX - minX) / 4,
             getTitlesWidget: (v, meta) => Padding(
               padding: const EdgeInsets.only(top: DashSpace.xs),
@@ -354,7 +354,7 @@ class _Content extends StatelessWidget {
     return HorizontalLine(
       y: y,
       color: color,
-      strokeWidth: 1,
+      strokeWidth: DashStroke.hairline,
       dashArray: const [5, 5],
       label: HorizontalLineLabel(
         show: true,
@@ -362,7 +362,7 @@ class _Content extends StatelessWidget {
         style: TextStyle(
           color: color,
           fontSize: DashFontSize.micro,
-          fontWeight: FontWeight.w500,
+          fontWeight: DashWeight.medium,
         ),
         labelResolver: (_) => label,
       ),

@@ -5,6 +5,8 @@ import 'package:bambuddy_mobile/core/models/firmware.dart';
 import 'package:bambuddy_mobile/core/models/heater_history.dart';
 import 'package:bambuddy_mobile/data/heater_history_repository.dart';
 import 'package:clock/clock.dart';
+import 'package:dash_kit/dash_kit.dart' show ContentGrid, DashTracking;
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
@@ -485,6 +487,29 @@ void main() {
     final tiles = find.byIcon(Icons.arrow_forward).evaluate().length;
     expect(tiles, greaterThanOrEqualTo(2));
     expect(find.byType(LinearProgressIndicator), findsNWidgets(tiles + 1));
+  });
+
+  testWidgets('pause and stop split the row between them, half each', (
+    tester,
+  ) async {
+    final item = PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'X1C Warsztat'),
+      status: PrinterStatus.fromJson(
+        readFixture('printer_status_printing.json') as Map<String, dynamic>,
+      ),
+    );
+    await tester.pumpWidget(_cardWithProviders(item));
+
+    Rect buttonOf(String label) => tester.getRect(
+      find.ancestor(of: find.text(label), matching: find.byType(InkWell)).first,
+    );
+    final grid = tester.getRect(find.byType(ContentGrid));
+    final pause = buttonOf(pl.ctrlPause);
+    final stop = buttonOf(pl.ctrlStop);
+
+    expect(pause.left, closeTo(grid.left, 0.5));
+    expect(stop.right, closeTo(grid.right, 0.5));
+    expect(pause.width, closeTo(stop.width, 0.5));
   });
 
   testWidgets('controls bar: fans, speed and light from fixture', (
@@ -4187,9 +4212,9 @@ void main() {
 
       // Width, text scale, columns the grid must pick, tile height measured.
       for (final (width, scale, columns, height) in [
-        (320.0, 1.0, 2, 106.0),
-        (320.0, 1.3, 2, 122.0),
-        (360.0, 2.0, 1, 162.0),
+        (320.0, 1.0, 2, 88.0),
+        (320.0, 1.3, 1, 100.0),
+        (360.0, 2.0, 1, 129.0),
       ]) {
         testWidgets(
           '${width.round()} dp at text scale $scale: $columns column(s), the '
@@ -4252,6 +4277,24 @@ void main() {
               expect(rect.bottom, lessThanOrEqualTo(tile.bottom));
             }
 
+            // The setpoint shares the label's line, so no label may be cut.
+            final labels = find.byWidgetPredicate(
+              (w) => w is Text && w.style?.letterSpacing == DashTracking.label,
+            );
+            expect(labels, findsAtLeastNWidgets(4));
+            for (final label in labels.evaluate()) {
+              final paragraph = tester.renderObject<RenderParagraph>(
+                find.byWidget(label.widget),
+              );
+              expect(
+                paragraph.didExceedMaxLines,
+                isFalse,
+                reason:
+                    '${paragraph.text.toPlainText()} at $width dp, scale $scale',
+              );
+              expect(paragraph.size.width, greaterThan(0));
+            }
+
             // The chamber's glyph stops before its digits, inside the tile.
             final glyph = find.byIcon(Icons.local_fire_department);
             expect(glyph, findsOneWidget);
@@ -4291,6 +4334,26 @@ void main() {
         // The air-duct glyph alone tips a width the nozzle's digits still fit.
         expect(columns(226, 1.3), 2);
         expect(columns(226, 1.3, glyph: true), 1);
+      });
+
+      test('the grid is one column where the label and setpoint line would '
+          'not fit', () {
+        const digits = TextStyle(fontFamily: 'JetBrainsMono', fontSize: 26);
+        const label = TextStyle(fontSize: 11, letterSpacing: 0.4);
+        const setpoint = TextStyle(fontFamily: 'JetBrainsMono', fontSize: 11);
+        int columns(List<String> labels) => tempGridColumns(
+          width: 254,
+          digits: digits,
+          labels: labels,
+          label: label,
+          setpoint: setpoint,
+          scaler: TextScaler.noScaling,
+          textDirection: TextDirection.ltr,
+          airductGlyph: false,
+        );
+
+        expect(columns(['BED']), 2);
+        expect(columns(['BED', 'A VERY LONG SENSOR NAME']), 1);
       });
     });
 

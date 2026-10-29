@@ -1120,8 +1120,8 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         enabled: enabled,
         leading: swatch != null
             ? Container(
-                width: 28,
-                height: 28,
+                width: DashSize.d32,
+                height: DashSize.d32,
                 decoration: BoxDecoration(
                   color: swatch,
                   shape: BoxShape.circle,

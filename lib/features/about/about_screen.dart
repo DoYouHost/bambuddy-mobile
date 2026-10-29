@@ -179,7 +179,7 @@ class _AboutSection extends StatelessWidget {
               title!,
               style: t.bodyBold.copyWith(
                 color: t.accentGreenInk,
-                letterSpacing: 0.2,
+                letterSpacing: DashTracking.label,
               ),
             ),
           if (body != null) ...[
@@ -239,8 +239,8 @@ class _AboutRow extends StatelessWidget {
               children: [
                 DashIconTile(
                   icon: icon,
-                  size: 36,
-                  radius: 11,
+                  size: DashSize.d40,
+                  radius: DashRadius.md,
                   iconSize: DashIcon.sm,
                 ),
                 const SizedBox(width: DashSpace.md),

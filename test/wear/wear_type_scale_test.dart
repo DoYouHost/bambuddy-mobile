@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:bambuddy_mobile/wear/wear_theme.dart';
+import 'package:dash_kit/dash_kit.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -112,19 +113,28 @@ void main() {
     // a WearText role or a button label — is held to the floor too.
     // Comments out, so a `fontSize:` in prose cannot stand in for a real one.
     final source = sources[tokens]!.replaceAll(RegExp(r'//.*'), '');
-    final sizes = [
-      for (final m in RegExp(r'fontSize:\s*([\d.]+)').allMatches(source))
-        double.parse(m.group(1)!),
+    const scale = {
+      'fine': WearFontSize.fine,
+      'body': WearFontSize.body,
+      'title': WearFontSize.title,
+      'hero': WearFontSize.hero,
+    };
+    final names = [
+      for (final m in RegExp(
+        r'fontSize:\s*WearFontSize\.(\w+)',
+      ).allMatches(source))
+        m.group(1)!,
     ];
 
-    // A size behind a named constant, or a style with no size at all, would
-    // escape the scan.
-    expect(sizes, hasLength(fontSize.allMatches(source).length));
-    expect(sizes, hasLength(RegExp(r'TextStyle\(').allMatches(source).length));
-    expect(sizes, isNotEmpty);
+    // A size behind a literal or a constant of its own, or a style with no size
+    // at all, would escape the scan.
+    expect(names, hasLength(fontSize.allMatches(source).length));
+    expect(names, hasLength(RegExp(r'TextStyle\(').allMatches(source).length));
+    expect(names, isNotEmpty);
+    expect(names.toSet().difference(scale.keys.toSet()), isEmpty);
     expect(
-      sizes.where((s) => s < 12),
-      [WearText.fine.fontSize],
+      names.where((n) => scale[n]! < 12),
+      ['fine'],
       reason:
           '12 sp is the floor for essential text; only WearText.fine, '
           'the non-essential fine print, may go below it.',

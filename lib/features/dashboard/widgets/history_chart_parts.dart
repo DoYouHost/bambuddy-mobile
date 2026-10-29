@@ -78,7 +78,7 @@ class HistoryStat extends StatelessWidget {
           Text(
             value,
             style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+              fontWeight: DashWeight.bold,
             ),
           ),
         ],

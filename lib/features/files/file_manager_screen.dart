@@ -428,7 +428,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   LibraryThumbnail(
                     fileId: file.id,
                     hasThumbnail: file.thumbnailPath != null,
-                    size: 56,
+                    size: DashSize.d56,
                   ),
                   const SizedBox(width: DashSpace.md),
                   Expanded(
@@ -1192,7 +1192,7 @@ class _Breadcrumb extends StatelessWidget {
     TextStyle crumbStyle(bool current) =>
         t.bodyBold.copyWith(color: current ? t.textPrimary : t.accentGreenInk);
     return SizedBox(
-      height: 44,
+      height: DashSize.d48,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
@@ -1353,8 +1353,8 @@ class _FolderTile extends StatelessWidget {
                     icon: folder.isExternal
                         ? Icons.folder_special_outlined
                         : Icons.folder,
-                    size: 40,
-                    radius: 12,
+                    size: DashSize.d40,
+                    radius: DashRadius.md,
                   ),
                   const SizedBox(width: DashSpace.md),
                   Expanded(
@@ -1477,8 +1477,8 @@ class _FileTile extends StatelessWidget {
                 children: [
                   selectionMode
                       ? SizedBox(
-                          width: 52,
-                          height: 52,
+                          width: DashSize.d56,
+                          height: DashSize.d56,
                           child: Icon(
                             selected
                                 ? Icons.check_circle
@@ -1491,7 +1491,7 @@ class _FileTile extends StatelessWidget {
                           child: LibraryThumbnail(
                             fileId: file.id,
                             hasThumbnail: file.thumbnailPath != null,
-                            size: 52,
+                            size: DashSize.d56,
                           ),
                         ),
                   const SizedBox(width: DashSpace.md),

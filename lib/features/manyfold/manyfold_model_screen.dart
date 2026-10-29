@@ -425,7 +425,7 @@ class _FileRow extends StatelessWidget {
                   FilledButton.tonalIcon(
                     onPressed: busy ? null : onImport,
                     icon: importing
-                        ? const DashSpinner(size: 16)
+                        ? const DashSpinner(size: DashSize.d16)
                         : const Icon(Icons.download, size: DashIcon.md),
                     label: Text(importing ? l10n.mfImporting : l10n.mfImport),
                   ).tagged('manyfold.import_file'),

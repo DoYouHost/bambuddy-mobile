@@ -540,7 +540,7 @@ class _PrinterFileManagerScreenState
       );
 
   Widget _quickNav(DashTokens t, AppLocalizations l10n) => SizedBox(
-    height: 48,
+    height: DashSize.d48,
     child: ListView(
       scrollDirection: Axis.horizontal,
       // No vertical padding: the chip's 48 dp touch area needs the whole bar.
@@ -834,7 +834,7 @@ class _PrinterFileManagerScreenState
                         padding: const EdgeInsets.only(right: DashSpace.sm),
                         child: Text(label, style: t.monoLabel),
                       ),
-                    DashSpinner(size: 20, value: _downloadProgress),
+                    DashSpinner(size: DashSize.d20, value: _downloadProgress),
                     // Only while the server is still pulling files. Once
                     // the transfer starts there is nothing worth stopping:
                     // the bytes are coming off the server's own disk, and

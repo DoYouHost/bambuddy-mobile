@@ -301,7 +301,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
       child: FilledButton(
         onPressed: _saving || !_hasInput ? null : _apply,
         child: _saving
-            ? DashSpinner(size: 20, color: t.onAccent)
+            ? DashSpinner(size: DashSize.d20, color: t.onAccent)
             : Text(l10n.inventoryBulkEditApply(_count)),
       ).tagged('bulk_edit.apply'),
     ),
@@ -379,7 +379,11 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
       placeholder: l10n.inventoryBulkEditUnchanged,
       value: hex.isEmpty ? null : hex.toUpperCase(),
       valueStyle: t.monoValue,
-      leading: SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24, radius: 6),
+      leading: SpoolSwatch(
+        rgba: hex.isEmpty ? null : hex,
+        size: DashSize.d24,
+        radius: DashRadius.sm,
+      ),
       trailingIcon: Icons.colorize,
       onTap: _pickColor,
       clear: (

@@ -136,7 +136,7 @@ class WearToast extends StatelessWidget {
                   success
                       ? Icons.check_circle_outline_rounded
                       : Icons.error_outline_rounded,
-                  size: 26,
+                  size: DashIcon.lg,
                   color: success ? scheme.primary : scheme.error,
                 ),
                 const SizedBox(height: DashSpace.sm),

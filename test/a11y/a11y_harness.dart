@@ -177,10 +177,22 @@ class A11yTapTargets extends MinimumTapTargetGuideline {
   /// every control stands whole in the viewport at some stop and is measured
   /// there. A control that is flush with the viewport at the very first or last
   /// stop is the one gap, as it is in Flutter's own guideline.
+  static const _pinned = SemanticsTag('RenderViewport.excludeFromScrolling');
+
+  static bool _inPinnedHeader(SemanticsNode node) {
+    for (SemanticsNode? n = node; n != null; n = n.parent) {
+      if (n.tags?.contains(_pinned) ?? false) return true;
+    }
+    return false;
+  }
+
   static bool _cutByViewport(SemanticsNode node) {
     final clip = node.parentPaintClipRect;
     if (clip == null) return false;
-    var vertical = false;
+    // A pinned header that shrinks as the list scrolls (the search bar) hangs
+    // outside the scrolling node, so nothing above it scrolls: it is tagged by the
+    // viewport instead, and mid-collapse its controls are cut by its own height.
+    var vertical = _inPinnedHeader(node);
     var horizontal = false;
     for (var a = node.parent; a != null; a = a.parent) {
       final data = a.getSemanticsData();

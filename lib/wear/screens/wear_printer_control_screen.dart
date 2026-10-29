@@ -529,7 +529,7 @@ class _WearFaultState extends State<_WearFault> {
             children: [
               const Icon(
                 Icons.warning_amber_rounded,
-                size: 14,
+                size: DashIcon.sm,
                 color: wearFaultText,
               ),
               const SizedBox(width: DashSpace.xs),
@@ -538,7 +538,7 @@ class _WearFaultState extends State<_WearFault> {
                   widget.fault.displayCode,
                   style: WearText.body.copyWith(
                     color: wearFaultText,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: DashWeight.semibold,
                   ),
                 ),
               ),
@@ -554,7 +554,7 @@ class _WearFaultState extends State<_WearFault> {
                 overflow: _fullText ? null : TextOverflow.ellipsis,
                 // Looser lines: this runs to three of them and is the only
                 // paragraph on the watch anyone has to actually read.
-                style: WearText.body.copyWith(height: 1.25),
+                style: WearText.body.copyWith(height: DashLeading.snug),
               ),
             ),
           ],
@@ -570,7 +570,7 @@ class _WearFaultState extends State<_WearFault> {
                   // A step down from the theme's button text: these stack one
                   // per action inside an already-boxed fault.
                   textStyle: WearText.body.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: DashWeight.semibold,
                   ),
                   backgroundColor: action == hmsStopAction
                       ? wearDestructive

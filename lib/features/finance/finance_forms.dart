@@ -259,7 +259,10 @@ Widget _saveButton(
   child: FilledButton(
     onPressed: saving ? null : onPressed,
     child: saving
-        ? DashSpinner(size: 20, color: DashTokens.of(context).onAccent)
+        ? DashSpinner(
+            size: DashSize.d20,
+            color: DashTokens.of(context).onAccent,
+          )
         : Text(label),
   ).tagged(id),
 );
@@ -886,7 +889,7 @@ class _MembersSheetState extends ConsumerState<_MembersSheet> {
         Text(l10n.financeManageMembers, style: t.labelSoft),
         _gap(),
         if (detail.isLoading && !detail.hasValue)
-          const Center(child: DashSpinner(size: 22))
+          const Center(child: DashSpinner(size: DashSize.d24))
         else if (detail.hasError && !detail.hasValue)
           Text(l10n.financeLoadFailed, style: t.labelSoft)
         else if (members.isEmpty)

@@ -464,8 +464,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               children: [
                 ValueListenableBuilder(
                   valueListenable: _c['rgba']!,
-                  builder: (context, _, _) =>
-                      SpoolSwatch(rgba: _c['rgba']!.text, size: 40, radius: 12),
+                  builder: (context, _, _) => SpoolSwatch(
+                    rgba: _c['rgba']!.text,
+                    size: DashSize.d40,
+                    radius: DashRadius.md,
+                  ),
                 ),
                 const SizedBox(width: DashSpace.md),
                 Expanded(
@@ -620,7 +623,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               child: FilledButton(
                 onPressed: _saving || copyPresetsPending ? null : _save,
                 child: _saving || copyPresetsPending
-                    ? DashSpinner(size: 20, color: t.onAccent)
+                    ? DashSpinner(size: DashSize.d20, color: t.onAccent)
                     : Text(
                         !_isEdit && _quantity > 1
                             ? l10n.inventoryAddSpools(_quantity)
@@ -665,7 +668,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   Widget _emptySpoolField(AppLocalizations l10n, List<CoreWeightEntry> cores) {
     final t = DashTokens.of(context);
     final weightField = SizedBox(
-      width: cores.isEmpty ? null : 110,
+      width: cores.isEmpty ? null : DashSize.d112,
       child: TextFormField(
         controller: _c['coreWeight'],
         style: t.body,
@@ -994,7 +997,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       placeholder: l10n.inventoryColorNone,
       value: color == null ? null : hex.toUpperCase(),
       valueStyle: t.monoValue,
-      leading: SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24, radius: 6),
+      leading: SpoolSwatch(
+        rgba: hex.isEmpty ? null : hex,
+        size: DashSize.d24,
+        radius: DashRadius.sm,
+      ),
       trailingIcon: Icons.colorize,
       onTap: _openColorPicker,
       // The row this shares with the colour-name field carries the spacing.
@@ -1277,7 +1284,7 @@ class _ColorPicker extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          height: 40,
+          height: DashSize.d40,
           decoration: BoxDecoration(
             color: preview ?? t.subCard,
             borderRadius: BorderRadius.circular(DashRadius.md),
@@ -1341,7 +1348,7 @@ class _ColorChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(DashRadius.sm),
             border: Border.all(
               color: selected ? t.accentGreen : t.subCardBorder,
-              width: selected ? 2 : 1,
+              width: selected ? DashStroke.regular : DashStroke.hairline,
             ),
           ),
           child: color == null
@@ -1643,7 +1650,10 @@ class _FormSection extends StatelessWidget {
       padding: const EdgeInsets.only(top: DashSpace.sm, bottom: DashSpace.xs),
       child: Text(
         label.toUpperCase(),
-        style: t.micro.copyWith(color: t.accentGreenInk, letterSpacing: 1.2),
+        style: t.micro.copyWith(
+          color: t.accentGreenInk,
+          letterSpacing: DashTracking.caps,
+        ),
       ),
     );
   }

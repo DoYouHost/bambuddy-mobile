@@ -294,7 +294,7 @@ class BusyLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      const DashSpinner(size: 16),
+      const DashSpinner(size: DashSize.d16),
       const SizedBox(width: DashSpace.sm),
       Expanded(child: Text(label, style: DashTokens.of(context).bodySoft)),
     ],

@@ -246,27 +246,27 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
           child: TabBarView(
             controller: _tabs,
             children: [
-              Column(
-                children: [
-                  const QueueResumeBanners(),
-                  Expanded(
-                    child: dashAsync(
-                      context,
-                      async,
-                      onRetry: () => ref.read(queueProvider.notifier).refresh(),
-                      data: (items) => RefreshIndicator(
-                        onRefresh: () =>
-                            ref.read(queueProvider.notifier).refresh(),
-                        child: items.isEmpty
-                            ? EmptyStateView(
+              dashAsync(
+                context,
+                async,
+                onRetry: () => ref.read(queueProvider.notifier).refresh(),
+                data: (items) => RefreshIndicator(
+                  onRefresh: () => ref.read(queueProvider.notifier).refresh(),
+                  child: items.isEmpty
+                      // Nothing to scroll, so the banners sit above the message.
+                      ? Column(
+                          children: [
+                            const QueueResumeBanners(),
+                            Expanded(
+                              child: EmptyStateView(
                                 message: l10n.queueEmpty,
                                 icon: Icons.playlist_add_check,
-                              )
-                            : _QueueList(items: items),
-                      ),
-                    ),
-                  ),
-                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      : _QueueList(items: items),
+                ),
               ),
               const QueueHistoryView(),
             ],
@@ -321,38 +321,40 @@ class _QueueList extends ConsumerWidget {
     ];
     final offset = pinned.length;
 
-    // The top inset goes above the pinned cards, not into the list: inside the
-    // list it also sat between the printing card and the next one, which made
-    // that one gap twice the others.
-    return Padding(
-      padding: const EdgeInsets.only(top: DashSpace.sm),
-      child: Column(
-        children: [
-          for (final it in pinned) _QueueCard(item: it, pinned: true),
-          Expanded(
-            child: ReorderableListView.builder(
-              padding: const EdgeInsets.only(bottom: DashSpace.sm),
-              physics: const AlwaysScrollableScrollPhysics(),
-              // No default long-press drag — reorder only via explicit handle on left
-              // side of tile.
-              buildDefaultDragHandles: false,
-              itemCount: reorderable.length,
-              onReorderItem: (oldIndex, newIndex) async {
-                ref.read(tourBeaconProvider)?.signal('queue.reorder');
-                final messenger = ScaffoldMessenger.of(context);
-                final result = await ref
-                    .read(queueProvider.notifier)
-                    .reorder(oldIndex + offset, newIndex + offset);
-                _snackFailure(messenger, l10n, result);
-              },
-              itemBuilder: (context, i) => _QueueCard(
-                key: ValueKey(reorderable[i].id),
-                item: reorderable[i],
-                dragIndex: i,
-              ),
-            ),
-          ),
-        ],
+    // The resume banners and the printing cards are the list's header, so they
+    // scroll away with it: with several printers running, fixed rows would take
+    // the whole screen. The top inset goes above them, not into the list: inside
+    // the list it also sat between the printing card and the next one, which
+    // made that one gap twice the others.
+    return ReorderableListView.builder(
+      header: Padding(
+        padding: const EdgeInsets.only(top: DashSpace.sm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const QueueResumeBanners(),
+            for (final it in pinned) _QueueCard(item: it, pinned: true),
+          ],
+        ),
+      ),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
+      physics: const AlwaysScrollableScrollPhysics(),
+      // No default long-press drag — reorder only via explicit handle on left
+      // side of tile.
+      buildDefaultDragHandles: false,
+      itemCount: reorderable.length,
+      onReorderItem: (oldIndex, newIndex) async {
+        ref.read(tourBeaconProvider)?.signal('queue.reorder');
+        final messenger = ScaffoldMessenger.of(context);
+        final result = await ref
+            .read(queueProvider.notifier)
+            .reorder(oldIndex + offset, newIndex + offset);
+        _snackFailure(messenger, l10n, result);
+      },
+      itemBuilder: (context, i) => _QueueCard(
+        key: ValueKey(reorderable[i].id),
+        item: reorderable[i],
+        dragIndex: i,
       ),
     );
   }
@@ -439,8 +441,8 @@ class _QueueCard extends ConsumerWidget {
               // A tick in place of the picture, as the archive marks a pick.
               if (selected)
                 Container(
-                  width: 56,
-                  height: 56,
+                  width: DashSize.d56,
+                  height: DashSize.d56,
                   decoration: BoxDecoration(
                     color: t.accentGreen.withValues(alpha: DashAlpha.wash),
                     borderRadius: BorderRadius.circular(DashRadius.lg),
@@ -450,7 +452,7 @@ class _QueueCard extends ConsumerWidget {
               else
                 ClipRRect(
                   borderRadius: BorderRadius.circular(DashRadius.lg),
-                  child: QueueThumbnail(item: item, size: 56),
+                  child: QueueThumbnail(item: item, size: DashSize.d56),
                 ),
               const SizedBox(width: DashSpace.md),
               Expanded(
@@ -638,7 +640,10 @@ class _Chip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: t.micro.copyWith(color: accent, letterSpacing: 0.2),
+        style: t.micro.copyWith(
+          color: accent,
+          letterSpacing: DashTracking.label,
+        ),
       ),
     );
   }

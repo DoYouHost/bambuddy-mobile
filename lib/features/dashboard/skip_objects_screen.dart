@@ -310,7 +310,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
       if (_skipping)
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: DashSpace.lg),
-          child: DashSpinner(size: 20),
+          child: DashSpinner(size: DashSize.d20),
         )
       else
         FilledButton(
@@ -862,7 +862,7 @@ class _ObjectShapesPainter extends CustomPainter {
     final style = TextStyle(
       fontFamily: DashTokens.fontMono,
       fontSize: fontSize,
-      fontWeight: FontWeight.w800,
+      fontWeight: DashWeight.bold,
       height: 1,
       decoration: object.skipped ? TextDecoration.lineThrough : null,
       decorationColor: Colors.white,
@@ -966,12 +966,12 @@ class _ObjectMarker extends StatelessWidget {
               borderRadius: BorderRadius.circular(DashRadius.sm),
               border: Border.all(
                 color: selected ? Colors.white : Colors.black38,
-                width: selected ? 2 : 1,
+                width: selected ? DashStroke.regular : DashStroke.hairline,
               ),
               boxShadow: const [
                 BoxShadow(
                   color: Colors.black45,
-                  blurRadius: 4,
+                  blurRadius: DashBlur.sm,
                   offset: Offset(0, 1),
                 ),
               ],
@@ -984,7 +984,7 @@ class _ObjectMarker extends StatelessWidget {
                   '${object.id}',
                   maxLines: 1,
                   style: tokens.micro.copyWith(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: DashWeight.bold,
                     color: skipped ? tokens.onDanger : fg,
                     decoration: skipped ? TextDecoration.lineThrough : null,
                   ),
@@ -1020,7 +1020,7 @@ class _CountBadge extends StatelessWidget {
         l10n.skipObjectsActiveCount(count),
         style: const TextStyle(
           fontSize: DashFontSize.micro,
-          fontWeight: FontWeight.w600,
+          fontWeight: DashWeight.semibold,
           color: Colors.white,
         ),
       ),
@@ -1110,7 +1110,7 @@ class _ObjectTile extends StatelessWidget {
                       'ID',
                       style: TextStyle(
                         fontSize: DashFontSize.micro,
-                        letterSpacing: 1,
+                        letterSpacing: DashTracking.caps,
                         color: accent.withValues(alpha: DashAlpha.strong),
                       ),
                     ),

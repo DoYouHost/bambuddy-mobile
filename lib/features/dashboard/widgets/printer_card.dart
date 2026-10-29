@@ -449,7 +449,7 @@ class _IconSquare extends StatelessWidget {
     return DashIconTile(
       icon: icon,
       size: _HeaderLine.glyphSquare,
-      radius: 11,
+      radius: DashRadius.md,
       iconSize: DashIcon.md,
       ink: color,
       fill: fill,
@@ -662,7 +662,7 @@ class _NameText extends StatelessWidget {
       maxLines: 1,
       softWrap: false,
       overflow: TextOverflow.ellipsis,
-      style: tokens.display.copyWith(letterSpacing: -0.3),
+      style: tokens.display.copyWith(letterSpacing: DashTracking.tight),
     );
   }
 }

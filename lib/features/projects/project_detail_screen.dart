@@ -121,8 +121,8 @@ class _Header extends ConsumerWidget {
               ProjectCoverImage(
                 projectId: project.id,
                 hasCover: project.hasCover,
-                width: 88,
-                height: 88,
+                width: DashSize.d96,
+                height: DashSize.d96,
                 borderRadius: BorderRadius.circular(DashRadius.xl),
                 cacheBust: project.updatedAt,
               ),
@@ -376,7 +376,7 @@ class _ProgressRow extends StatelessWidget {
           ],
         ),
         const SizedBox(height: DashSpace.sm),
-        DashProgressBar(value: progressFraction(percent), height: 8),
+        DashProgressBar(value: progressFraction(percent), height: DashSize.d8),
       ],
     );
   }

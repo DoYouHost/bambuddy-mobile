@@ -831,7 +831,7 @@ class _SlotCard extends StatelessWidget {
           color: selected
               ? t.accent.withValues(alpha: DashAlpha.strong)
               : t.subCardBorder,
-          width: selected ? 2 : 1,
+          width: selected ? DashStroke.regular : DashStroke.hairline,
         ),
       ),
       child: logTagMaterial(

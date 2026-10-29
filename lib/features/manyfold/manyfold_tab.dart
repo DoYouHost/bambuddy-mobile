@@ -255,7 +255,7 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
       // The name is two lines with an ellipsis, so the text size never asks for
       // fewer columns; one column would make the preview as wide as the screen.
       ContentGrid(
-        minTileWidth: 120,
+        minTileWidth: DashSize.d128,
         spacing: DashSpace.md,
         runSpacing: DashSpace.md,
         children: [
@@ -343,7 +343,7 @@ class _ModelTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(DashRadius.lg),
             border: Border.all(
               color: picked ? t.accentGreen : t.subCardBorder,
-              width: picked ? 2 : 1,
+              width: picked ? DashStroke.regular : DashStroke.hairline,
             ),
           ),
           child: Column(

@@ -28,8 +28,8 @@ class LocationIconTile extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(DashRadius.lg),
       child: Container(
-        width: 44,
-        height: 44,
+        width: DashSize.d48,
+        height: DashSize.d48,
         color: t.subCard,
         child: Stack(
           alignment: Alignment.center,

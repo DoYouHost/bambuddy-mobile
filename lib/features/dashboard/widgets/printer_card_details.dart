@@ -470,7 +470,7 @@ class _HmsErrorCardState extends ConsumerState<HmsErrorCard> {
                               : null,
                         ),
                         child: _pending == action
-                            ? const DashSpinner(size: 14)
+                            ? const DashSpinner(size: DashSize.d16)
                             : Text(hmsActionLabel(l10n, action)),
                       ),
                     ),
@@ -930,7 +930,7 @@ class _AmsSection extends ConsumerWidget {
                     amsUnitName(unit.id ?? unitIndex).toUpperCase(),
                     style: t.bodyBold.copyWith(
                       color: t.textPrimary,
-                      letterSpacing: 0.4,
+                      letterSpacing: DashTracking.label,
                     ),
                   ),
                   if (extruder != null) ...[
@@ -1030,7 +1030,10 @@ class _SpoolSection extends StatelessWidget {
       children: [
         Text(
           l10n.externalSpool.toUpperCase(),
-          style: t.label.copyWith(color: t.textPrimary, letterSpacing: 0.4),
+          style: t.label.copyWith(
+            color: t.textPrimary,
+            letterSpacing: DashTracking.label,
+          ),
         ),
         const SizedBox(height: DashSpace.md),
         for (var i = 0; i < trays.length; i++)
@@ -1113,7 +1116,7 @@ class _FilamentRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              _ColorDot(color: dotColor, size: 9),
+              _ColorDot(color: dotColor, size: DashSize.d8),
               const SizedBox(width: DashSpace.sm),
               Expanded(
                 child: Text(
@@ -1123,7 +1126,7 @@ class _FilamentRow extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: DashTokens.fontMono,
                     fontSize: DashFontSize.label,
-                    fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+                    fontWeight: active ? DashWeight.bold : DashWeight.semibold,
                     color: textColor,
                   ),
                 ),
@@ -1135,7 +1138,7 @@ class _FilamentRow extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: DashTokens.fontMono,
                     fontSize: DashFontSize.label,
-                    fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+                    fontWeight: active ? DashWeight.bold : DashWeight.semibold,
                     color: active ? t.accentGreenInk : t.textSecondary,
                   ),
                 ),
@@ -1549,7 +1552,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
               style: TextStyle(
                 fontFamily: DashTokens.fontMono,
                 fontSize: DashFontSize.hero,
-                fontWeight: FontWeight.w700,
+                fontWeight: DashWeight.bold,
                 color: look.color,
               ),
             ),
@@ -2406,7 +2409,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              const Divider(height: 24),
+              const Divider(height: DashSize.d24),
             ],
             if (current != null) ...[
               Text(
@@ -2437,7 +2440,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                         current.material,
                       ),
               ).taggedMaterial('assign_spool.current', current.material),
-              const Divider(height: 24),
+              const Divider(height: DashSize.d24),
             ],
             if (slot.lockedByTag) ...[
               // Only true of the spool the tag names; one pinned by hand in
@@ -2605,8 +2608,8 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
         Tooltip(
           message: l10n.inventoryScanSpool,
           child: SizedBox(
-            width: 48,
-            height: 48,
+            width: DashSize.d48,
+            height: DashSize.d48,
             child: Material(
               color: t.subCard,
               borderRadius: BorderRadius.circular(DashRadius.lg),
@@ -2796,7 +2799,7 @@ class _ColorDot extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(color: t.hairline, width: 0.5),
+        border: Border.all(color: t.hairline, width: DashStroke.hairline),
       ),
     );
   }

@@ -426,7 +426,7 @@ class _SortMenu extends ConsumerWidget {
     final notifier = ref.read(queueHistoryOrderProvider.notifier);
     PopupMenuEntry<String> caption(String text) => PopupMenuItem<String>(
       enabled: false,
-      height: 32,
+      height: DashSize.d32,
       child: Text(text, style: t.micro.copyWith(color: t.textTertiary)),
     );
     return logTag(
@@ -595,7 +595,7 @@ class _HistoryRow extends ConsumerWidget {
                   item.displayName,
                   maxLines: timeBeside ? 1 : 2,
                   overflow: TextOverflow.ellipsis,
-                  style: t.body.copyWith(fontWeight: FontWeight.w600),
+                  style: t.body.copyWith(fontWeight: DashWeight.semibold),
                 );
                 return Row(
                   children: [
@@ -665,8 +665,8 @@ class _HistoryRow extends ConsumerWidget {
                               color: meta.color,
                             )
                           : Container(
-                              width: 10,
-                              height: 10,
+                              width: DashSize.d12,
+                              height: DashSize.d12,
                               decoration: BoxDecoration(
                                 color: swatch,
                                 shape: BoxShape.circle,
@@ -892,7 +892,7 @@ class _BatchRow extends StatelessWidget {
       row.batchName ?? l10n.queueHistoryBatch,
       maxLines: large ? 2 : 1,
       overflow: TextOverflow.ellipsis,
-      style: t.body.copyWith(fontWeight: FontWeight.w600),
+      style: t.body.copyWith(fontWeight: DashWeight.semibold),
     );
     final lead = [
       Icon(

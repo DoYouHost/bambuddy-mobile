@@ -124,8 +124,8 @@ class RingGauge extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return SizedBox(
-      width: 110,
-      height: 110,
+      width: DashSize.d112,
+      height: DashSize.d112,
       child: CustomPaint(
         painter: _RingPainter(
           percent: percent.clamp(0, 100).toDouble(),
@@ -196,8 +196,8 @@ class LegendDot extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 10,
-          height: 10,
+          width: DashSize.d12,
+          height: DashSize.d12,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: DashSpace.sm),

@@ -356,7 +356,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(DashRadius.lg),
-          child: QueueThumbnail(item: it, size: 52),
+          child: QueueThumbnail(item: it, size: DashSize.d56),
         ),
         const SizedBox(width: DashSpace.md),
         Expanded(
@@ -1950,7 +1950,7 @@ class _Dropdown<T> extends StatelessWidget {
           style: MenuStyle(
             backgroundColor: WidgetStatePropertyAll(t.overlaySurface),
             surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-            elevation: const WidgetStatePropertyAll(8),
+            elevation: const WidgetStatePropertyAll(DashElevation.raised),
             padding: const WidgetStatePropertyAll(
               EdgeInsets.symmetric(vertical: DashSpace.sm),
             ),
@@ -2011,7 +2011,7 @@ class _Dropdown<T> extends StatelessWidget {
         textStyle: const TextStyle(
           fontFamily: DashTokens.fontUi,
           fontSize: DashFontSize.title,
-          fontWeight: FontWeight.w600,
+          fontWeight: DashWeight.semibold,
         ),
       ),
       child: Text(label),
@@ -2075,14 +2075,14 @@ class _SwatchDot extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      width: 18,
-      height: 18,
+      width: DashSize.d20,
+      height: DashSize.d20,
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
         border: Border.all(
           color: ring ?? t.hairline,
-          width: ring != null ? 2 : 1,
+          width: ring != null ? DashStroke.regular : DashStroke.hairline,
         ),
       ),
     );

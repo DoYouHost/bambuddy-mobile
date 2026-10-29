@@ -318,7 +318,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
             ),
         const SizedBox(height: DashSpace.md),
         if (state.loadingMore)
-          const DashSpinner(size: 22)
+          const DashSpinner(size: DashSize.d24)
         else if (state.hasMore)
           logTag(
             'finance.load_more',
@@ -558,7 +558,7 @@ class _CostCenterTile extends ConsumerWidget {
             const SizedBox(height: DashSpace.sm),
             DashProgressBar(
               value: spent,
-              height: 6,
+              height: DashSize.d8,
               color: spent >= 1 ? t.dangerInk : null,
             ),
           ],

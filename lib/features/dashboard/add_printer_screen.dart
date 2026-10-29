@@ -433,7 +433,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                     // succeeded — needs the DISCOVERY_SCAN permission).
                     if (_discovery != null && !_editing) ...[
                       _scanSection(t, l10n),
-                      const Divider(height: 32),
+                      const Divider(height: DashSize.d32),
                     ],
                     _field(
                       t,
@@ -524,7 +524,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                         style: dashPrimaryButtonStyle(t),
                         onPressed: _busy ? null : _submit,
                         child: _busy
-                            ? const DashSpinner(size: 20)
+                            ? const DashSpinner(size: DashSize.d20)
                             : Text(
                                 _editing
                                     ? l10n.editPrinterSubmit
@@ -747,7 +747,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         OutlinedButton.icon(
           onPressed: _scanning ? null : _scan,
           icon: _scanning
-              ? const DashSpinner(size: 16)
+              ? const DashSpinner(size: DashSize.d16)
               : const Icon(Icons.search),
           label: Text(_scanButtonLabel(l10n, progress)),
         ).tagged('add_printer.scan_network'),
@@ -847,7 +847,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         OutlinedButton.icon(
           onPressed: _diagnosing ? null : _runDiagnostic,
           icon: _diagnosing
-              ? const DashSpinner(size: 16)
+              ? const DashSpinner(size: DashSize.d16)
               : const Icon(Icons.troubleshoot),
           label: Text(
             _diagnosing

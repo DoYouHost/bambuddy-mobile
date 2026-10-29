@@ -60,8 +60,8 @@ BoxDecoration wearTintedBox(Color accent, {double radius = wearRadiusCard}) =>
       border: Border.all(color: accent.withValues(alpha: _tintBorder)),
     );
 
-const _tintFill = 0.15;
-const _tintBorder = 0.6;
+const _tintFill = DashAlpha.wash;
+const _tintBorder = DashAlpha.strong;
 
 /// The watch type scale, by role rather than by size. A site needing a colour
 /// does a `copyWith` on the role, so the size stays decided here — and sizes a
@@ -70,31 +70,43 @@ const _tintBorder = 0.6;
 class WearText {
   /// The question on a full-screen confirm: Wear Material 3's `titleMedium`,
   /// 16 sp at weight 550 — Flutter takes weights in hundreds, so 600.
-  static const hero = TextStyle(fontSize: 16, fontWeight: FontWeight.w600);
+  static const hero = TextStyle(
+    fontSize: WearFontSize.hero,
+    fontWeight: DashWeight.semibold,
+  );
 
   /// The line under that question: `bodyMedium`, 14 sp at 450, so 400.
-  static const message = TextStyle(fontSize: 14);
+  static const message = TextStyle(fontSize: WearFontSize.title);
 
   /// The header line at the top of a screen's scroll.
-  static const title = TextStyle(fontSize: 14, fontWeight: FontWeight.bold);
+  static const title = TextStyle(
+    fontSize: WearFontSize.title,
+    fontWeight: DashWeight.bold,
+  );
 
   /// A step heading inside a screen (the setup flow's sections).
-  static const section = TextStyle(fontSize: 13, fontWeight: FontWeight.bold);
+  static const section = TextStyle(
+    fontSize: WearFontSize.title,
+    fontWeight: DashWeight.bold,
+  );
 
   /// The name of a thing you can act on — a row, a chip, a button-shaped label.
-  static const strong = TextStyle(fontSize: 13, fontWeight: FontWeight.w600);
+  static const strong = TextStyle(
+    fontSize: WearFontSize.title,
+    fontWeight: DashWeight.semibold,
+  );
 
   /// A value the user typed or is about to.
-  static const value = TextStyle(fontSize: 13);
+  static const value = TextStyle(fontSize: WearFontSize.title);
 
   /// Ordinary prose: the sentence under a heading, a readout, a toast, a row's
   /// second line, an error. 12 sp is Play's floor for essential text (WO-V14),
   /// so a quieter line is quieter by colour, never by size.
-  static const body = TextStyle(fontSize: 12);
+  static const body = TextStyle(fontSize: WearFontSize.body);
 
   /// Fine print: a label above a value, a field's hint — never text the user
   /// needs before acting (WO-V14 allows 10 sp only for non-essential text).
-  static const fine = TextStyle(fontSize: 10, color: wearMuted);
+  static const fine = TextStyle(fontSize: WearFontSize.fine, color: wearMuted);
 }
 
 /// Wear Material 3's `ButtonDefaults` (compose-material3 1.7.1): every button
@@ -108,12 +120,15 @@ const wearButtonPadding = EdgeInsets.symmetric(
 );
 
 /// The label of every button: Wear Material 3's `LabelMedium`, 15 sp at 500.
-const wearButtonLabel = TextStyle(fontSize: 15, fontWeight: FontWeight.w500);
+const wearButtonLabel = TextStyle(
+  fontSize: WearFontSize.hero,
+  fontWeight: DashWeight.medium,
+);
 
 /// A button's second line: Wear Material 3's `LabelSmall`, 13 sp at 500.
 const wearButtonSecondaryLabel = TextStyle(
-  fontSize: 13,
-  fontWeight: FontWeight.w500,
+  fontSize: WearFontSize.title,
+  fontWeight: DashWeight.medium,
 );
 
 /// Dark, black-background theme (OLED-friendly) with larger tap targets.
@@ -132,7 +147,7 @@ ThemeData wearTheme([ColorScheme? colorScheme]) {
         padding: wearButtonPadding,
         shape: const StadiumBorder(),
         textStyle: wearButtonLabel,
-        iconSize: 26,
+        iconSize: DashIcon.lg,
       ),
     ),
     // The secondary action in a list: a full-width outlined button, not the
@@ -145,7 +160,7 @@ ThemeData wearTheme([ColorScheme? colorScheme]) {
         textStyle: wearButtonLabel,
         foregroundColor: scheme.onSurface,
         side: BorderSide(color: scheme.outline),
-        iconSize: 24,
+        iconSize: DashIcon.lg,
       ),
     ),
     inputDecorationTheme: const InputDecorationTheme(

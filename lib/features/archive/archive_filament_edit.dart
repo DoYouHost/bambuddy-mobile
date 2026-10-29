@@ -185,10 +185,10 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
                   ),
                   if (_saving)
                     SizedBox(
-                      width: 16,
-                      height: 16,
+                      width: DashSize.d16,
+                      height: DashSize.d16,
                       child: CircularProgressIndicator(
-                        strokeWidth: 2,
+                        strokeWidth: DashStroke.regular,
                         semanticsLabel: l10n.archiveFilamentSaving,
                       ),
                     )

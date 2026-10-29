@@ -266,7 +266,7 @@ class _TimelapseTrimStripState extends State<TimelapseTrimStrip> {
                           _trackLeft,
                           math.max(_trackLeft, _trackLeft + track - 2),
                         ),
-                        width: 2,
+                        width: DashStroke.regular,
                         top: 0,
                         bottom: 0,
                         child: const ColoredBox(color: Colors.white),
@@ -278,7 +278,10 @@ class _TimelapseTrimStripState extends State<TimelapseTrimStrip> {
                       bottom: 0,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          border: Border.all(color: scheme.primary, width: 2),
+                          border: Border.all(
+                            color: scheme.primary,
+                            width: DashStroke.regular,
+                          ),
                           borderRadius: BorderRadius.circular(radius),
                         ),
                       ),
@@ -364,7 +367,9 @@ class _Frames extends StatelessWidget {
     if (frames.isEmpty) {
       return ColoredBox(
         color: scheme.surfaceContainerHigh,
-        child: loading ? const Center(child: DashSpinner(size: 20)) : null,
+        child: loading
+            ? const Center(child: DashSpinner(size: DashSize.d20))
+            : null,
       );
     }
     return LayoutBuilder(

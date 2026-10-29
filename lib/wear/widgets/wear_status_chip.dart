@@ -26,8 +26,8 @@ class WearStatusChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 8,
-            height: 8,
+            width: DashSize.d8,
+            height: DashSize.d8,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: DashSpace.sm),

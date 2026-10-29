@@ -196,7 +196,9 @@ class ControllerRailPanel extends ConsumerWidget {
       clipBehavior: Clip.antiAlias,
       child: SizedBox(
         // Wider at a large text size, where the same words need more room.
-        width: controllerLargeText(context) ? _panelWidth + 72 : _panelWidth,
+        width: controllerLargeText(context)
+            ? _panelWidth + DashSize.d72
+            : _panelWidth,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

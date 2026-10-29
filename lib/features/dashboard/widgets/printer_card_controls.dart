@@ -177,7 +177,7 @@ class _LightSwitchRow extends ConsumerWidget {
                   ),
                   const SizedBox(width: DashSpace.md),
                   busy
-                      ? const DashSpinner(size: 20)
+                      ? const DashSpinner(size: DashSize.d20)
                       : PillSwitch(on: on, tokens: t),
                 ],
               ),
@@ -348,6 +348,7 @@ class _ControlsGrid extends StatelessWidget {
         .fold<double>(0, max);
     return ContentGrid(
       minTileWidth: widest + _LifecycleButton.chrome,
+      maxColumns: buttons.length,
       children: buttons,
     );
   }

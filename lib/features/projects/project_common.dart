@@ -90,7 +90,7 @@ class ProjectColorDot extends StatelessWidget {
       decoration: BoxDecoration(
         color: c,
         shape: BoxShape.circle,
-        border: Border.all(color: t.cardBorder, width: 1),
+        border: Border.all(color: t.cardBorder, width: DashStroke.hairline),
       ),
     );
   }
@@ -167,7 +167,7 @@ class ProjectColorSelector extends StatelessWidget {
             shape: BoxShape.circle,
             border: Border.all(
               color: isSelected ? t.textPrimary : t.subCardBorder,
-              width: isSelected ? 3 : 1,
+              width: isSelected ? DashStroke.heavy : DashStroke.hairline,
             ),
           ),
           child: child,
@@ -200,7 +200,10 @@ class ProjectStatusChip extends StatelessWidget {
       ),
       child: Text(
         projectStatusLabel(l10n, status),
-        style: t.micro.copyWith(color: color, letterSpacing: 0.2),
+        style: t.micro.copyWith(
+          color: color,
+          letterSpacing: DashTracking.label,
+        ),
       ),
     );
   }

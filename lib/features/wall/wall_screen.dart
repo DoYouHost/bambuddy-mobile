@@ -363,7 +363,7 @@ class _WallPanel extends StatelessWidget {
                         .toUpperCase(),
                     style: t.label.copyWith(
                       color: t.accentGreenInk,
-                      letterSpacing: 0.4,
+                      letterSpacing: DashTracking.label,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -495,7 +495,7 @@ class _PanelItem extends StatelessWidget {
             ? null
             : BoxDecoration(
                 border: BorderDirectional(
-                  start: BorderSide(color: stripe, width: 3),
+                  start: BorderSide(color: stripe, width: DashStroke.heavy),
                 ),
               ),
         padding: const EdgeInsets.fromLTRB(

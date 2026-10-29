@@ -211,8 +211,8 @@ class _SvgGlyph extends StatelessWidget {
     final color = IconTheme.of(context).color ?? const Color(0xFFFFFFFF);
     return SvgPicture.asset(
       asset,
-      width: 22,
-      height: 22,
+      width: DashSize.d24,
+      height: DashSize.d24,
       colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
     );
   }
@@ -259,7 +259,7 @@ class _NavItem extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                height: 24,
+                height: DashSize.d24,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -276,8 +276,8 @@ class _NavItem extends StatelessWidget {
                             horizontal: DashSpace.xs,
                           ),
                           constraints: const BoxConstraints(
-                            minWidth: 15,
-                            minHeight: 15,
+                            minWidth: DashSize.d16,
+                            minHeight: DashSize.d16,
                           ),
                           decoration: BoxDecoration(
                             color: tokens.dangerInk,
@@ -289,9 +289,9 @@ class _NavItem extends StatelessWidget {
                               style: TextStyle(
                                 fontFamily: DashTokens.fontUi,
                                 fontSize: DashFontSize.micro,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: DashWeight.bold,
                                 color: tokens.onDanger,
-                                height: 1.2,
+                                height: DashLeading.snug,
                               ),
                             ),
                           ),
@@ -308,7 +308,7 @@ class _NavItem extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: DashTokens.fontUi,
                   fontSize: DashFontSize.micro,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  fontWeight: selected ? DashWeight.bold : DashWeight.semibold,
                   color: color,
                 ),
               ),

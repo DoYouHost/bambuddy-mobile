@@ -655,7 +655,11 @@ class _SpoolTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  SpoolSwatch(rgba: tray.trayColor, size: 16, radius: 4),
+                  SpoolSwatch(
+                    rgba: tray.trayColor,
+                    size: DashSize.d16,
+                    radius: DashRadius.xs,
+                  ),
                   const SizedBox(width: DashSpace.xs),
                   Text(label, style: t.label),
                   const Spacer(),

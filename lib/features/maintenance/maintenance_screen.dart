@@ -277,8 +277,8 @@ class _MaintenanceRow extends ConsumerWidget {
               children: [
                 DashIconTile(
                   icon: maintenanceIcon(item.maintenanceTypeIcon),
-                  size: 40,
-                  radius: 12,
+                  size: DashSize.d40,
+                  radius: DashRadius.md,
                   iconSize: DashIcon.md,
                   ink: inkAccent,
                   fill: tileAccent.withValues(alpha: DashAlpha.wash),
@@ -292,8 +292,8 @@ class _MaintenanceRow extends ConsumerWidget {
                       const SizedBox(height: DashSpace.sm),
                       DashProgressBar(
                         value: item.progress,
-                        height: 5,
-                        radius: 3,
+                        height: DashSize.d4,
+                        radius: DashRadius.xs,
                         color: tileAccent,
                       ),
                       const SizedBox(height: DashSpace.sm),

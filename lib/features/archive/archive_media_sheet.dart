@@ -769,7 +769,7 @@ class _DownloadBar extends StatelessWidget {
     }
     return Row(
       children: [
-        DashSpinner(size: 20, value: progress),
+        DashSpinner(size: DashSize.d20, value: progress),
         const SizedBox(width: DashSpace.md),
         Expanded(
           // A live region so a screen reader says the phase changed: the row is

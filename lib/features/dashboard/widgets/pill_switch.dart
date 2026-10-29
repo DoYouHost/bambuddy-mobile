@@ -21,7 +21,7 @@ class PillSwitch extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeInOut,
-      width: 42,
+      width: DashSize.d40,
       height: _height,
       padding: const EdgeInsets.all((_height - _knob) / 2),
       decoration: BoxDecoration(

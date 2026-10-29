@@ -362,7 +362,12 @@ class _FinishPhoto extends StatelessWidget {
         child: ColoredBox(
           color: t.subCard,
           child: photo == null
-              ? Center(child: PrintThumbnail(archiveId: archive.id, size: 120))
+              ? Center(
+                  child: PrintThumbnail(
+                    archiveId: archive.id,
+                    size: DashSize.d128,
+                  ),
+                )
               : MediaImage(
                   path: Endpoints.archivePhoto(archive.id, photo),
                   fit: BoxFit.contain,

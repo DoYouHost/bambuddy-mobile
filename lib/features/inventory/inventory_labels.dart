@@ -526,7 +526,11 @@ class _LabelSpoolRow extends StatelessWidget {
                   color: checked ? t.accentGreenInk : t.textTertiary,
                 ),
                 const SizedBox(width: DashSpace.md),
-                SpoolSwatch(rgba: spool.rgba, size: 20, radius: 6),
+                SpoolSwatch(
+                  rgba: spool.rgba,
+                  size: DashSize.d20,
+                  radius: DashRadius.sm,
+                ),
                 const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Text(

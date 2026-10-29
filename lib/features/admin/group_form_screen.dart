@@ -157,7 +157,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
             Expanded(
               child: Text(
                 l10n.groupsPermissionsHeader,
-                style: t.bodyBold.copyWith(letterSpacing: 0.3),
+                style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
               ),
             ),
             Text(

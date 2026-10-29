@@ -248,7 +248,7 @@ class _StatsBody extends ConsumerWidget {
         ...computed.when(
           loading: () => const [
             SizedBox(height: DashSpace.md),
-            SizedBox(height: 80, child: DashLoading()),
+            SizedBox(height: DashSize.d80, child: DashLoading()),
           ],
           error: (_, _) => const [],
           data: (c) => c.isEmpty
@@ -393,7 +393,7 @@ class _OverviewCard extends StatelessWidget {
               ],
             ),
           ],
-          Divider(height: 24, color: t.hairline),
+          Divider(height: DashSize.d24, color: t.hairline),
           Row(
             children: [
               Icon(

@@ -100,8 +100,8 @@ class _PrinterRow extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 10,
-                height: 10,
+                width: DashSize.d12,
+                height: DashSize.d12,
                 decoration: BoxDecoration(
                   color: stateColor,
                   shape: BoxShape.circle,
@@ -134,7 +134,7 @@ class _PrinterRow extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, size: 18),
+              const Icon(Icons.chevron_right, size: DashIcon.md),
             ],
           ),
         ),

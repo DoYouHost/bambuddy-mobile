@@ -431,7 +431,7 @@ class _SupplierFormSheetState extends ConsumerState<_SupplierFormSheet> {
                 child: FilledButton(
                   onPressed: _saving ? null : _save,
                   child: _saving
-                      ? DashSpinner(size: 20, color: t.onAccent)
+                      ? DashSpinner(size: DashSize.d20, color: t.onAccent)
                       : Text(l10n.inventorySave),
                 ).tagged('supplier_form.save'),
               ),

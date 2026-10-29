@@ -337,7 +337,7 @@ class _SectionHeader extends StatelessWidget {
               label.toUpperCase(),
               style: t.label.copyWith(
                 color: t.accentGreenInk,
-                letterSpacing: 0.8,
+                letterSpacing: DashTracking.caps,
               ),
             ),
           ),
@@ -381,7 +381,7 @@ class _ColorSwatch extends StatelessWidget {
             : [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: DashAlpha.faint),
-                  blurRadius: 3,
+                  blurRadius: DashBlur.sm,
                   offset: const Offset(0, 1),
                 ),
               ],
@@ -420,7 +420,10 @@ class _CodeChip extends StatelessWidget {
       ),
       child: Text(
         code,
-        style: t.monoTitle.copyWith(color: t.accentGreenInk, letterSpacing: 3),
+        style: t.monoTitle.copyWith(
+          color: t.accentGreenInk,
+          letterSpacing: DashTracking.wide,
+        ),
       ),
     );
   }
@@ -552,7 +555,7 @@ class _UncodedTile extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  _ColorSwatch(rgba: identity.rgba, size: 40),
+                  _ColorSwatch(rgba: identity.rgba, size: DashSize.d40),
                   const SizedBox(width: DashSpace.lg),
                   Expanded(
                     child: Text(
@@ -581,7 +584,7 @@ class _UncodedTile extends StatelessWidget {
                       textStyle: const TextStyle(
                         fontFamily: DashTokens.fontUi,
                         fontSize: DashFontSize.title,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: DashWeight.bold,
                       ),
                     ),
                     onPressed: onGenerate,
@@ -773,8 +776,8 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                 ],
                 style: const TextStyle(
                   fontFamily: 'monospace',
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 4,
+                  fontWeight: DashWeight.bold,
+                  letterSpacing: DashTracking.wide,
                 ),
                 decoration: InputDecoration(
                   labelText: l10n.swatchFieldCode,
@@ -856,7 +859,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                   suffixIcon: Padding(
                     padding: const EdgeInsets.all(DashSpace.sm),
                     child: Container(
-                      width: 24,
+                      width: DashSize.d24,
                       decoration: BoxDecoration(
                         color:
                             preview ??
@@ -988,8 +991,8 @@ class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: Container(
-                      width: 36,
-                      height: 36,
+                      width: DashSize.d40,
+                      height: DashSize.d40,
                       decoration: BoxDecoration(
                         color:
                             color ?? theme.colorScheme.surfaceContainerHighest,

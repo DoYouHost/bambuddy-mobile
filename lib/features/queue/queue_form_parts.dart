@@ -63,7 +63,10 @@ class QueueSectionCard extends StatelessWidget {
     final fold = collapse;
     final heading = title == null
         ? null
-        : Text(title!, style: t.bodyBold.copyWith(letterSpacing: 0.2));
+        : Text(
+            title!,
+            style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
+          );
     final open = fold?.open ?? true;
     // The gap under the title belongs to an open card only.
     EdgeInsets headerPadding({required bool open}) => EdgeInsets.fromLTRB(

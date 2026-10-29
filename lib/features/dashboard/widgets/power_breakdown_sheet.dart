@@ -112,7 +112,10 @@ class PowerBreakdownSheet extends ConsumerWidget {
                       color: on == true ? t.accentGreen : null,
                       border: on == true
                           ? null
-                          : Border.all(color: t.textTertiary, width: 1.5),
+                          : Border.all(
+                              color: t.textTertiary,
+                              width: DashStroke.regular,
+                            ),
                     ),
                   ),
                 ),
@@ -217,7 +220,7 @@ class PowerBreakdownSheet extends ConsumerWidget {
                     watts(state.totalPowerW),
                     style: t.monoValue.copyWith(
                       fontSize: _heroFontSize,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: DashWeight.bold,
                       color: t.textPrimary,
                       fontFeatures: const [FontFeature.tabularFigures()],
                     ),

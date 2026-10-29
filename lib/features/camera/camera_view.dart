@@ -176,8 +176,11 @@ class CameraRetryingBadge extends StatelessWidget {
           shape: BoxShape.circle,
         ),
         child: const SizedBox.square(
-          dimension: 16,
-          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+          dimension: DashSize.d16,
+          child: CircularProgressIndicator(
+            strokeWidth: DashStroke.regular,
+            color: Colors.white,
+          ),
         ),
       ),
     );

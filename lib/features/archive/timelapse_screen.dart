@@ -369,8 +369,8 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
             style: const TextStyle(
               fontFamily: DashTokens.fontUi,
               fontSize: DashFontSize.display,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
+              fontWeight: DashWeight.bold,
+              letterSpacing: DashTracking.tight,
               color: Colors.white,
             ),
           ),

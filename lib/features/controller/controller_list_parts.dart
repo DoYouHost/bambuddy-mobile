@@ -141,7 +141,10 @@ class ControllerHeaderCard extends StatelessWidget {
               left: 0,
               right: 0,
               bottom: 0,
-              child: LinearProgressIndicator(value: progress, minHeight: 4),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: DashSize.d4,
+              ),
             ),
         ],
       ),

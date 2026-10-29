@@ -320,7 +320,7 @@ class _FolderTile extends StatelessWidget {
                 leading: LibraryThumbnail(
                   fileId: f.id,
                   hasThumbnail: f.thumbnailPath != null,
-                  size: 44,
+                  size: DashSize.d48,
                 ),
                 title: Text(
                   f.displayName,

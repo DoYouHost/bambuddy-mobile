@@ -208,8 +208,8 @@ class _SpoolTile extends StatelessWidget {
                           opacity: spool.isArchived ? 0.5 : 1,
                           child: SpoolSwatch(
                             rgba: spool.rgba,
-                            size: 44,
-                            radius: 13,
+                            size: DashSize.d48,
+                            radius: DashRadius.md,
                           ),
                         ),
                         const SizedBox(width: DashSpace.md),
@@ -253,8 +253,8 @@ class _SpoolTile extends StatelessWidget {
                               const SizedBox(height: DashSpace.sm),
                               DashProgressBar(
                                 value: frac,
-                                height: 4,
-                                radius: 2,
+                                height: DashSize.d4,
+                                radius: DashRadius.xs,
                                 color: fillColor,
                               ),
                               const SizedBox(height: DashSpace.sm),
@@ -435,7 +435,11 @@ class _SpoolDetailSheet extends ConsumerWidget {
           children: [
             Row(
               children: [
-                SpoolSwatch(rgba: spool.rgba, size: 52, radius: 16),
+                SpoolSwatch(
+                  rgba: spool.rgba,
+                  size: DashSize.d56,
+                  radius: DashRadius.lg,
+                ),
                 const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Column(
@@ -477,7 +481,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
             if (spool.remainingFraction != null) ...[
               DashProgressBar(
                 value: spool.remainingFraction,
-                height: 8,
+                height: DashSize.d8,
                 color: spool.isLowStock ? t.danger : null,
               ),
               const SizedBox(height: DashSpace.sm),

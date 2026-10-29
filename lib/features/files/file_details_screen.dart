@@ -128,11 +128,11 @@ class _FileDetailsScreenState extends ConsumerState<FileDetailsScreen> {
                         ),
                         child: MediaImage(
                           path: Endpoints.libraryFilePhoto(widget.fileId, name),
-                          width: 96,
-                          height: 96,
+                          width: DashSize.d96,
+                          height: DashSize.d96,
                           borderRadius: BorderRadius.circular(DashRadius.md),
                           placeholder: (_) => SizedBox.square(
-                            dimension: 96,
+                            dimension: DashSize.d96,
                             child: Icon(
                               Icons.image_outlined,
                               color: t.textTertiary,

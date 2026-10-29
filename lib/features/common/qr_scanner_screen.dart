@@ -92,7 +92,7 @@ class _QrScannerScreenState<T extends Object>
           elevation: 0,
           title: Text(
             widget.title,
-            style: t.display.copyWith(letterSpacing: -0.3),
+            style: t.display.copyWith(letterSpacing: DashTracking.tight),
           ),
           actions: [
             ValueListenableBuilder<MobileScannerState>(
@@ -127,10 +127,13 @@ class _QrScannerScreenState<T extends Object>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 240,
-                  height: 240,
+                  width: DashSize.d240,
+                  height: DashSize.d240,
                   decoration: BoxDecoration(
-                    border: Border.all(color: t.accentGreen, width: 3),
+                    border: Border.all(
+                      color: t.accentGreen,
+                      width: DashStroke.heavy,
+                    ),
                     borderRadius: BorderRadius.circular(DashRadius.lg),
                   ),
                 ),
@@ -144,7 +147,7 @@ class _QrScannerScreenState<T extends Object>
                     textAlign: TextAlign.center,
                     style: t.titleMd.copyWith(
                       shadows: const [
-                        Shadow(blurRadius: 8, color: Colors.black),
+                        Shadow(blurRadius: DashBlur.md, color: Colors.black),
                       ],
                     ),
                   ),

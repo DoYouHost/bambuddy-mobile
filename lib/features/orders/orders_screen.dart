@@ -365,7 +365,7 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                       value: total > 0
                           ? (b.completedCount / total).clamp(0.0, 1.0)
                           : 0,
-                      height: 6,
+                      height: DashSize.d8,
                       color: b.status == PrintBatchStatus.completed
                           ? null
                           : t.accentBlue,

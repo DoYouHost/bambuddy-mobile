@@ -131,7 +131,7 @@ class _LabelPrinterSettingsState extends ConsumerState<LabelPrinterSettings> {
         OutlinedButton.icon(
           onPressed: _scanning ? null : _search,
           icon: _scanning
-              ? const DashSpinner(size: 16)
+              ? const DashSpinner(size: DashSize.d16)
               : const Icon(Icons.search),
           label: Text(
             _scanning ? l10n.labelPrinterSearching : l10n.labelPrinterSearch,
@@ -169,7 +169,7 @@ class _LabelPrinterSettingsState extends ConsumerState<LabelPrinterSettings> {
         FilledButton(
           onPressed: _checking ? null : () => _use(_address.text),
           child: _checking
-              ? const DashSpinner(size: 16)
+              ? const DashSpinner(size: DashSize.d16)
               : Text(l10n.labelPrinterSave),
         ).tagged('label_printer.save'),
       ],

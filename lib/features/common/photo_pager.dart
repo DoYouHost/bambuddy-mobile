@@ -18,8 +18,8 @@ PreferredSizeWidget photoViewerAppBar(String title, {List<Widget>? actions}) =>
           style: const TextStyle(
             fontFamily: DashTokens.fontUi,
             fontSize: DashFontSize.display,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
+            fontWeight: DashWeight.bold,
+            letterSpacing: DashTracking.tight,
             color: Colors.white,
           ),
         ),
@@ -119,7 +119,7 @@ class _PhotoPagerState extends State<PhotoPager> {
                   style: const TextStyle(
                     fontFamily: DashTokens.fontMono,
                     fontSize: DashFontSize.label,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: DashWeight.semibold,
                     color: Colors.white,
                   ),
                 ),

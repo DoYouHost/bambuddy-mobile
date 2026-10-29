@@ -9,7 +9,11 @@ import '../wear_theme.dart';
 const wearSpinner = Center(
   child: Padding(
     padding: EdgeInsets.all(DashSpace.sm),
-    child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator()),
+    child: SizedBox(
+      width: DashSize.d24,
+      height: DashSize.d24,
+      child: CircularProgressIndicator(),
+    ),
   ),
 );
 
@@ -25,8 +29,8 @@ const wearBusyVeil = Positioned.fill(
     color: wearScrim,
     child: Center(
       child: SizedBox(
-        width: 30,
-        height: 30,
+        width: DashSize.d32,
+        height: DashSize.d32,
         child: CircularProgressIndicator(),
       ),
     ),

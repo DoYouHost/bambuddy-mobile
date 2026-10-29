@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:dash_kit/dash_kit.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -177,7 +178,7 @@ class _AnswerButton extends StatelessWidget {
       icon = Icons.close_rounded,
       size = const Size.square(60),
       shape = const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(18)),
+        borderRadius: BorderRadius.all(Radius.circular(DashRadius.xl)),
       ),
       turn = 0;
 

@@ -218,11 +218,12 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
   /// Directional X/Y pad. The center cell shows the active step for feedback.
   Widget _buildXyPad(DashTokens t, bool locked) {
     final l10n = AppLocalizations.of(context);
-    Widget spacer() => const SizedBox(width: 56, height: 56);
+    Widget spacer() =>
+        const SizedBox(width: DashSize.d56, height: DashSize.d56);
 
     Widget center() => SizedBox(
-      width: 56,
-      height: 56,
+      width: DashSize.d56,
+      height: DashSize.d56,
       child: Center(
         child: Text(
           '$_step',
@@ -495,8 +496,8 @@ class _JogButton extends StatelessWidget {
         child: InkWell(
           onTap: enabled ? onTap : null,
           child: Container(
-            width: 56,
-            height: 56,
+            width: DashSize.d56,
+            height: DashSize.d56,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(DashRadius.lg),
               border: Border.all(color: t.subCardBorder),
@@ -558,7 +559,7 @@ class _JogAction extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 busy
-                    ? const DashSpinner(size: 16)
+                    ? const DashSpinner(size: DashSize.d16)
                     : Icon(icon, size: DashIcon.sm, color: fg),
                 const SizedBox(width: DashSpace.sm),
                 Text(label, style: t.bodyBold.copyWith(color: fg)),
@@ -611,7 +612,7 @@ class _JogWideButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               busy
-                  ? const DashSpinner(size: 16)
+                  ? const DashSpinner(size: DashSize.d16)
                   : Icon(icon, size: DashIcon.md, color: fg),
               const SizedBox(width: DashSpace.sm),
               Text(label, style: t.bodyBold.copyWith(color: fg)),

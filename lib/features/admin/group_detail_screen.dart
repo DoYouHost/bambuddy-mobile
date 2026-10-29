@@ -74,7 +74,7 @@ class GroupDetailScreen extends ConsumerWidget {
                 const SizedBox(height: DashSpace.xl),
                 Text(
                   l10n.groupsMembersHeader,
-                  style: t.bodyBold.copyWith(letterSpacing: 0.3),
+                  style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
                 ),
                 const SizedBox(height: DashSpace.sm),
                 if (group.members.isEmpty)

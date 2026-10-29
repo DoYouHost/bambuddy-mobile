@@ -314,7 +314,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
                 borderRadius: BorderRadius.circular(DashRadius.lg),
                 child: MakerWorldThumbnail(
                   coverUrl: model.design.coverUrl,
-                  size: 72,
+                  size: DashSize.d72,
                 ),
               ),
               const SizedBox(width: DashSpace.md),
@@ -338,7 +338,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
               ),
             ],
           ),
-          Divider(height: 24, color: t.hairline),
+          Divider(height: DashSize.d24, color: t.hairline),
           if (model.instances.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
@@ -401,7 +401,10 @@ class _PlateRow extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(DashRadius.md),
-            child: MakerWorldThumbnail(coverUrl: plate.coverUrl, size: 48),
+            child: MakerWorldThumbnail(
+              coverUrl: plate.coverUrl,
+              size: DashSize.d48,
+            ),
           ),
           const SizedBox(width: DashSpace.md),
           Expanded(
@@ -444,7 +447,7 @@ class _PlateRow extends StatelessWidget {
                 onPressed: importing ? null : onImport,
                 icon: importing
                     ? DashSpinner(
-                        size: 16,
+                        size: DashSize.d16,
                         color: DashTokens.of(context).onAccent,
                       )
                     : const Icon(Icons.download, size: DashIcon.md),
@@ -523,7 +526,7 @@ class _RecentRow extends StatelessWidget {
                     child: LibraryThumbnail(
                       fileId: item.libraryFileId,
                       hasThumbnail: item.hasThumbnail,
-                      size: 48,
+                      size: DashSize.d48,
                     ),
                   ),
                   const SizedBox(width: DashSpace.md),

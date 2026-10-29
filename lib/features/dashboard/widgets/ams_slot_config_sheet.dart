@@ -338,7 +338,11 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     placeholder: '',
     value: (_colour ?? 'FFFFFF').toUpperCase(),
     valueStyle: t.monoValue,
-    leading: SpoolSwatch(rgba: _colour, size: 24, radius: 6),
+    leading: SpoolSwatch(
+      rgba: _colour,
+      size: DashSize.d24,
+      radius: DashRadius.sm,
+    ),
     trailingIcon: Icons.colorize,
     onTap: () => _pickColour(l10n),
     padding: EdgeInsets.zero,
@@ -629,7 +633,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
             borderRadius: BorderRadius.circular(DashRadius.lg),
             border: Border.all(
               color: selected ? t.accentGreen : t.subCardBorder,
-              width: selected ? 1.5 : 1,
+              width: selected ? DashStroke.regular : DashStroke.hairline,
             ),
           ),
           child: Row(
@@ -1035,14 +1039,14 @@ class _CatalogueSwatch extends StatelessWidget {
           dimension: kMinInteractiveDimension,
           child: Center(
             child: Container(
-              width: 36,
-              height: 36,
+              width: DashSize.d40,
+              height: DashSize.d40,
               decoration: BoxDecoration(
                 color: colour,
                 borderRadius: BorderRadius.circular(DashRadius.sm),
                 border: Border.all(
                   color: selected ? t.accentGreen : t.subCardBorder,
-                  width: selected ? 2 : 1,
+                  width: selected ? DashStroke.regular : DashStroke.hairline,
                 ),
               ),
             ),

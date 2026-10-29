@@ -191,7 +191,7 @@ class _PrinterLocationFormState extends ConsumerState<_PrinterLocationForm> {
                 child: FilledButton(
                   onPressed: _saving ? null : _save,
                   child: _saving
-                      ? DashSpinner(size: 20, color: t.onAccent)
+                      ? DashSpinner(size: DashSize.d20, color: t.onAccent)
                       : Text(
                           editing
                               ? l10n.printerLocationsSave
@@ -285,7 +285,7 @@ class _ColorChoice extends StatelessWidget {
               shape: CircleBorder(
                 side: BorderSide(
                   color: selected ? t.textPrimary : Colors.transparent,
-                  width: 3,
+                  width: DashStroke.heavy,
                 ),
               ),
             ),

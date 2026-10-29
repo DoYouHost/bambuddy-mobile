@@ -347,7 +347,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
           iconTheme: IconThemeData(color: t.textPrimary),
           title: Text(
             widget.title ?? l10n.gcodeViewerTitle,
-            style: t.display.copyWith(letterSpacing: -0.3),
+            style: t.display.copyWith(letterSpacing: DashTracking.tight),
           ),
         ),
       ),

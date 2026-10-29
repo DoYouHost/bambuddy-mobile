@@ -193,8 +193,8 @@ class _Avatar extends StatelessWidget {
         ? '?'
         : user.username.characters.first.toUpperCase();
     return Container(
-      width: 44,
-      height: 44,
+      width: DashSize.d48,
+      height: DashSize.d48,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: accent.withValues(
@@ -286,7 +286,7 @@ class _UserDetailSheet extends ConsumerWidget {
                 const SizedBox(height: DashSpace.lg),
                 Text(
                   l10n.usersOwnedTitle,
-                  style: t.bodyBold.copyWith(letterSpacing: 0.3),
+                  style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
                 ),
                 const SizedBox(height: DashSpace.sm),
                 _OwnedCounts(userId: user.id),
@@ -393,7 +393,7 @@ class _OwnedCounts extends ConsumerWidget {
       context,
       ref.watch(userItemsCountProvider(userId)),
       padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
-      loading: const DashSpinner(size: 20),
+      loading: const DashSpinner(size: DashSize.d20),
       failureMessage: l10n.usersOwnedFailed,
       data: (counts) => Row(
         children: [
@@ -485,7 +485,7 @@ class _DetailRow extends StatelessWidget {
           Icon(icon, size: DashIcon.sm, color: t.textTertiary),
           const SizedBox(width: DashSpace.md),
           SizedBox(
-            width: 110,
+            width: DashSize.d112,
             child: Text(label, style: t.label.copyWith(color: t.textSecondary)),
           ),
           Expanded(child: Text(value, style: t.body)),

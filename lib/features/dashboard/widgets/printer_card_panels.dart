@@ -122,7 +122,7 @@ class _FirmwareLine extends ConsumerWidget {
                 style: TextStyle(
                   fontFamily: DashTokens.fontMono,
                   fontSize: DashFontSize.label,
-                  fontWeight: update ? FontWeight.w700 : FontWeight.w600,
+                  fontWeight: update ? DashWeight.bold : DashWeight.semibold,
                   color: color,
                 ),
               ),
@@ -257,7 +257,9 @@ class _PrintPanel extends StatelessWidget {
           const SizedBox(height: DashSpace.md),
           Row(
             children: [
-              Expanded(child: _PrintProgressBar(status: status, height: 6)),
+              Expanded(
+                child: _PrintProgressBar(status: status, height: DashSize.d8),
+              ),
               if (progress != null && !showStage) ...[
                 const SizedBox(width: DashSpace.md),
                 Text('${progress.toStringAsFixed(0)}%', style: t.monoValue),
@@ -350,17 +352,21 @@ class _CoverThumbnail extends StatelessWidget {
 /// that gives way. The widest reading is measured, not the one on screen, so the
 /// layout does not jump between one column and two when a nozzle passes 100 °C:
 /// `000°` for a nozzle or the bed, and for the chamber `00°` after its air-duct
-/// glyph (the server's ceiling is 65 °C).
+/// glyph (the server's ceiling is 65 °C). The label line is measured the same
+/// way: the widest of [labels] beside the arrow and `000°` in [setpoint].
 int tempGridColumns({
   required double width,
   required TextStyle digits,
+  List<String> labels = const [],
+  TextStyle? label,
+  TextStyle? setpoint,
   required TextScaler scaler,
   required TextDirection textDirection,
   required bool airductGlyph,
 }) {
   const spacing = DashSpace.sm;
-  double measure(String text) => (TextPainter(
-    text: TextSpan(text: text, style: digits),
+  double measure(String text, [TextStyle? style]) => (TextPainter(
+    text: TextSpan(text: text, style: style ?? digits),
     textDirection: textDirection,
     textScaler: scaler,
   )..layout()).width;
@@ -372,7 +378,15 @@ int tempGridColumns({
         ].reduce((a, b) => a > b ? a : b)
       : measure('000°');
   final inner = (width - spacing) / 2 - tileChrome;
-  return widest > inner ? 1 : 2;
+  if (widest > inner) return 1;
+  if (label == null || setpoint == null) return 2;
+  final setpointWidth =
+      DashSpace.xs + DashIcon.xs + DashSpace.xs + measure('000°', setpoint);
+  final widestLabel = labels.fold<double>(
+    0,
+    (w, text) => w > measure(text, label) ? w : measure(text, label),
+  );
+  return widestLabel + setpointWidth > inner ? 1 : 2;
 }
 
 /// Padding and border a temperature tile spends sideways: 12 dp of padding and
@@ -407,7 +421,9 @@ class _TempGrid extends StatelessWidget {
     final hasSecondNozzle = readings.any(
       (r) => r.kind == TempKind.nozzle && r.index != null,
     );
-    final digits = DashTokens.of(context).monoDisplay.copyWith(height: 1.0);
+    final tokens = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final digits = tokens.monoDisplay.copyWith(height: 1.0);
     final airduct = readings.any((r) => r.kind == TempKind.chamber);
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -415,6 +431,9 @@ class _TempGrid extends StatelessWidget {
         final columns = tempGridColumns(
           width: constraints.maxWidth,
           digits: digits,
+          labels: [for (final r in readings) r.label(l10n).toUpperCase()],
+          label: tokens.micro.copyWith(letterSpacing: DashTracking.label),
+          setpoint: tokens.micro.copyWith(fontFamily: DashTokens.fontMono),
           scaler: MediaQuery.textScalerOf(context),
           textDirection: Directionality.of(context),
           airductGlyph: airduct,
@@ -680,7 +699,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                   style: TextStyle(
                     fontFamily: DashTokens.fontMono,
                     fontSize: DashFontSize.numeral,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: DashWeight.bold,
                     color: accent,
                   ),
                 ),

@@ -366,12 +366,12 @@ class _SaverBox extends ConsumerWidget {
         ),
         border: Border.all(
           color: color.withValues(alpha: DashAlpha.heavy),
-          width: 2,
+          width: DashStroke.regular,
         ),
         boxShadow: [
           BoxShadow(
             color: color.withValues(alpha: DashAlpha.wash),
-            blurRadius: 18,
+            blurRadius: DashBlur.lg,
           ),
         ],
       ),

@@ -263,8 +263,8 @@ class AccentDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    width: 16,
-    height: 16,
+    width: DashSize.d16,
+    height: DashSize.d16,
     decoration: BoxDecoration(color: color, shape: BoxShape.circle),
   );
 }

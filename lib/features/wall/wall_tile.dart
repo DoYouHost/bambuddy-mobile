@@ -93,7 +93,9 @@ class _WallTileState extends State<WallTile> {
 
     return Container(
       decoration: t.cardBox.copyWith(
-        border: fault == null ? null : Border.all(color: t.danger, width: 2),
+        border: fault == null
+            ? null
+            : Border.all(color: t.danger, width: DashStroke.regular),
       ),
       padding: const EdgeInsets.all(DashSpace.md),
       child: Opacity(
@@ -169,7 +171,7 @@ class _WallTileState extends State<WallTile> {
           borderRadius: BorderRadius.circular(DashRadius.xl),
           side: fault == null
               ? BorderSide.none
-              : BorderSide(color: danger, width: 2),
+              : BorderSide(color: danger, width: DashStroke.regular),
         ),
         child: InkWell(
           onTap: () => Navigator.of(context).push(
@@ -304,8 +306,8 @@ class _WallTileState extends State<WallTile> {
     return [
       DashProgressBar(
         value: progress == null ? null : (progress / 100).clamp(0.0, 1.0),
-        height: 4,
-        radius: 2,
+        height: DashSize.d4,
+        radius: DashRadius.xs,
         color: status.isPaused ? t.accentOrange : null,
       ),
       const SizedBox(height: DashSpace.sm),

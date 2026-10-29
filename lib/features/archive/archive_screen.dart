@@ -762,8 +762,8 @@ class _ArchiveCard extends StatelessWidget {
                 children: [
                   selected
                       ? Container(
-                          width: 52,
-                          height: 52,
+                          width: DashSize.d56,
+                          height: DashSize.d56,
                           decoration: BoxDecoration(
                             color: t.accentGreen.withValues(
                               alpha: DashAlpha.wash,
@@ -775,7 +775,10 @@ class _ArchiveCard extends StatelessWidget {
                       : Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            PrintThumbnail(archiveId: archive.id, size: 52),
+                            PrintThumbnail(
+                              archiveId: archive.id,
+                              size: DashSize.d56,
+                            ),
                             Positioned(
                               left: -4,
                               top: -4,
@@ -987,7 +990,7 @@ class _ArchiveSheet extends ConsumerWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    PrintThumbnail(archiveId: archive.id, size: 72),
+                    PrintThumbnail(archiveId: archive.id, size: DashSize.d72),
                     const SizedBox(width: DashSpace.md),
                     Expanded(
                       child: Column(
@@ -1562,7 +1565,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
             // toggles; the button keeps its slot via Visibility.maintainSize so
             // its appearance can't reflow the sheet content.
             SizedBox(
-              height: 48,
+              height: DashSize.d48,
               child: Row(
                 children: [
                   Text(l10n.archiveFilters, style: theme.textTheme.titleLarge),
@@ -1829,14 +1832,14 @@ class _ColorSwatch extends StatelessWidget {
             dimension: kMinInteractiveDimension,
             child: Center(
               child: Container(
-                width: 34,
-                height: 34,
+                width: DashSize.d32,
+                height: DashSize.d32,
                 decoration: BoxDecoration(
                   color: color,
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: selected ? accent : border,
-                    width: selected ? 3 : 1,
+                    width: selected ? DashStroke.heavy : DashStroke.hairline,
                   ),
                 ),
                 child: color == null
