@@ -39,14 +39,21 @@ void _controller(
   List<Override> overrides = const [],
   Future<void> Function(WidgetTester tester)? arrange,
   required Finder shows,
+  Size window = landscapeRedmi,
+  List<double> textScales = a11yTextScales,
 }) => a11ySurface(
   'controller, $name',
-  window: landscapeRedmi,
+  window: window,
   home: () => ControllerScreen(printerId: printer),
   overrides: overrides,
   arrange: arrange,
   shows: shows,
+  textScales: textScales,
 );
+
+/// A phone whose window is 360 dp tall: the body is shorter than the design's
+/// (360 dp), so every tab is a page from the normal text size up.
+const _shortWindow = Size(891, 360);
 
 Future<void> _openTab(WidgetTester tester, ControllerTab tab) async {
   await tester.ensureVisible(byLogId(tab.logId));
@@ -525,6 +532,28 @@ void main() {
     arrange: (tester) => a11yTap(tester, find.text('open')),
     shows: byLogId('controller.pick_printer'),
   );
+
+  // The same tabs on a short window, at 100 % and at the 120 % no other surface
+  // tries: between the normal size and the reflow (1.3x) the design's box does not
+  // grow with the text, so only the room's height tells a tab to become a page.
+  for (final (tab, id) in [
+    (ControllerTab.overview, 'controller.stop'),
+    (ControllerTab.heat, 'controller.heat_plus'),
+    (ControllerTab.move, 'controller.home'),
+    (ControllerTab.filament, 'controller.slot'),
+    (ControllerTab.settings, 'controller.saver_after'),
+  ]) {
+    _controller(
+      'short window, ${tab.name}',
+      printer: _dual,
+      window: _shortWindow,
+      textScales: [1.2, ...a11yTextScales],
+      arrange: tab == ControllerTab.overview
+          ? null
+          : (tester) => _openTab(tester, tab),
+      shows: byLogId(id),
+    );
+  }
 
   // A paused print with a fault, from a roster of one.
   for (final open in [false, true]) {

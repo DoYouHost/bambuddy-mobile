@@ -33,7 +33,7 @@ mechanics from.
 A collapsible rail on the left (an arrow and one icon per tab) beside one tab at
 a time. The arrow opens a panel that lies over the screen instead of pushing it:
 the printer's name and model (a switcher when there are several printers), its
-state, the fault chip that opens the fault view, the tabs with their names and
+state, the tabs with their names and
 Exit. The arrow, a touch outside the panel or the system Back closes it (Back
 closes the panel first, the next one leaves); while it is open the screen and the
 rail under it take no touch and say nothing to a reader. **Exit lives only in the
@@ -109,18 +109,29 @@ touch target stays 48 dp or more at every size.
   dialog, the mapping dialogs and the Prints items' dialog (`ControllerDetailDialog`:
   file, job, archive) reflow too, so no controller screen scales with the font any more. Reflow starts at
   `controllerReflowTextScale` (1.3, `controllerLargeText(context)`).
-- **Overview, Heat and Filament scroll vertically** at a large size when the screen
-  is lower than `controllerOverviewScrollHeight` / `controllerHeatScrollHeight`
-  (440 dp) / `controllerFilamentScrollHeight` (395 dp), through `_LargeTextScroll`.
-  It is always a scroll view at a large size, as tall as the screen when the tab
-  fits, so a change of height does not remount the tab and lose its state. The
-  other tabs fit without it. The heights are tuned by hand to the contents.
+- **A tab is a page, or it stretches.** `controllerPaged(context)` is the one question
+  every tab asks: from `controllerReflowTextScale` (1.3x), or when the room is shorter
+  than the design's (`controllerBodySize` height) grown by the text, **Overview, Heat,
+  Move, Filament and Settings are a `ControllerPage`**: the cookbook pattern
+  (`LayoutBuilder` + `SingleChildScrollView` + `ConstrainedBox(minHeight)`) around cards
+  as tall as their content. No `Expanded`, nothing that takes the room's height: a card
+  handed a height somebody guessed (440 dp for Heat, once) is squeezed the day a printer
+  shows more, and its buttons go under 48 dp. `ScaleToFit` sets the answer (sticky: it
+  leaves page mode only at 1.03 of the design's height) and, in page mode, scales by the
+  **width only**: a page scrolls vertically, so a window narrower than the design's 800 dp
+  (the body is the window less the rail and gutters) still shrinks it. That is a known
+  limit, not a fix: at 800 dp of window a 48 dp button is 42.7 dp. Prints, Files, Queue
+  and Archive keep `Expanded`: a list scrolls itself and cannot be squeezed.
+  A cost: crossing the height threshold swaps the tab's tree, so its scroll offset is
+  lost (state in the tab's own `State` is kept).
 - **Overview** has a layout of its own (`_LargeOverview`), still one screen: the
   readings are two columns of one-line tiles with no target, the switches are 48 dp
   rows, the job card is no taller than it needs. **Speed is a `dashCombo` at every
   size**, not four buttons. There is no Status/Controls split (the maintainer
   rejected it).
-- **Heat**: four heaters (two nozzles) are a 2×2 grid of compact cards. A ring is
+- **Heat**: on a page, every heater count is a grid of compact cards two to a row,
+  the ring beside the buttons (three heaters used to be three stacked columns).
+  Four heaters (two nozzles) are a 2×2 grid of compact cards. A ring is
   never taller than the row it is in: a ring squeezed into a shorter box is drawn
   as an ellipse. "Chamber has no heater" is one line with an ellipsis.
 - **Filament**: from a large size the unit's header is gone and the row of units
@@ -382,8 +393,10 @@ commits, not pushed). Open, most useful first:
    the header gone; the latest renders look right.
 2. ~~Drying is still blue~~ done: it takes the accent and its ink like Load and
    Unload (`controller_filament_test.dart`, "takes the theme accent").
-3. **No state on the collapsed rail.** The printer's state, name and fault count
-   are only in the open panel. A dot on the arrow was proposed, not decided.
+3. ~~No state on the collapsed rail~~ done (2026-10-29): the fault chip moved out of
+   the panel onto the Overview's picture (top right, 48 dp, opaque under its tint), so
+   a fault is on screen without opening anything. The printer's state and name are
+   still only in the open panel.
 4. ~~The print-settings route is not reflowed~~ done (2026-10-28): the factor is about
    1.07, from 1.3x text the job and its options stack on the left and the mapping gets
    the wider right side, every card is as tall as its content (`ControllerCard.single(
@@ -408,4 +421,4 @@ commits, not pushed). Open, most useful first:
    `PickerTile` in `app-shared` is still uncommitted there (see
    a11y-guideline-tests.md, open item 6).
 9. A second Argon round on the Filament and Move changes was not done; the first one
-    (the rail, `_IconScale`, `_LargeTextScroll`) found three real bugs, all fixed.
+    (the rail, `_IconScale`, the large-text scroll) found three real bugs, all fixed.

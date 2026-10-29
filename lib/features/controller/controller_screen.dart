@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:clock/clock.dart';
@@ -193,34 +192,22 @@ class _ControllerScreenState extends ConsumerState<ControllerScreen> {
           )
         : ScaleToFit(
             reflows: true,
-            child: _LargeTextScroll(
-              height: switch (_tab) {
-                ControllerTab.overview => controllerOverviewScrollHeight,
-                ControllerTab.heat => controllerHeatScrollHeight,
-                ControllerTab.filament => controllerFilamentScrollHeight,
-                _ => null,
-              },
-              child: switch (_tab) {
-                ControllerTab.overview => ControllerOverview(
-                  printerId: widget.printerId,
-                ),
-                ControllerTab.heat => ControllerHeat(
-                  printerId: widget.printerId,
-                ),
-                ControllerTab.move => ControllerMove(
-                  printerId: widget.printerId,
-                ),
-                ControllerTab.filament => ControllerFilament(
-                  printerId: widget.printerId,
-                ),
-                ControllerTab.prints => ControllerPrints(
-                  printerId: widget.printerId,
-                  view: _printsView,
-                  onView: _selectPrintsView,
-                ),
-                ControllerTab.settings => const ControllerSettings(),
-              },
-            ),
+            child: switch (_tab) {
+              ControllerTab.overview => ControllerOverview(
+                printerId: widget.printerId,
+              ),
+              ControllerTab.heat => ControllerHeat(printerId: widget.printerId),
+              ControllerTab.move => ControllerMove(printerId: widget.printerId),
+              ControllerTab.filament => ControllerFilament(
+                printerId: widget.printerId,
+              ),
+              ControllerTab.prints => ControllerPrints(
+                printerId: widget.printerId,
+                view: _printsView,
+                onView: _selectPrintsView,
+              ),
+              ControllerTab.settings => const ControllerSettings(),
+            },
           );
     // `pop`, not `maybePop`: the panel's Exit is tapped while it is open, when
     // the PopScope below would take a `maybePop` for a request to close it.
@@ -400,29 +387,6 @@ class _IconScale extends StatelessWidget {
       child: IconTheme.merge(
         data: IconThemeData(applyTextScaling: false, size: 24 * k),
         child: child,
-      ),
-    );
-  }
-}
-
-/// At a large text size a tab that needs more than the screen has scrolls
-/// vertically; the cards keep the height they are designed for.
-class _LargeTextScroll extends StatelessWidget {
-  const _LargeTextScroll({required this.height, required this.child});
-
-  /// The height the tab needs at a large text size; null for a tab that fits.
-  final double? height;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final needed = height;
-    if (needed == null || !controllerLargeText(context)) return child;
-    // Always a scroll view at a large size, as tall as the screen when the tab
-    // fits, so the tab keeps its state when the screen's height crosses [needed].
-    return LayoutBuilder(
-      builder: (context, box) => SingleChildScrollView(
-        child: SizedBox(height: math.max(needed, box.maxHeight), child: child),
       ),
     );
   }

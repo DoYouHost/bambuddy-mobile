@@ -10,12 +10,15 @@ import '../dashboard/widgets/printer_card.dart';
 import 'controller_controls.dart';
 import 'controller_providers.dart';
 
-/// The fault count in the top bar, opening the fault view. Absent while the
-/// printer reports none.
+/// The fault count on the Overview's picture, opening the fault view. Absent
+/// while the printer reports none.
 class ControllerFaultChip extends ConsumerWidget {
   const ControllerFaultChip({super.key, required this.printerId});
 
   final int printerId;
+
+  /// A touch target, not the 44 dp of the section headers beside it.
+  static const _height = 48.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,7 +28,7 @@ class ControllerFaultChip extends ConsumerWidget {
     if (count == 0) return const SizedBox.shrink();
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final radius = BorderRadius.circular(ControllerSection.headerHeight / 2);
+    final radius = BorderRadius.circular(_height / 2);
     return logTag(
       'controller.faults',
       Semantics(
@@ -43,7 +46,7 @@ class ControllerFaultChip extends ConsumerWidget {
             borderRadius: radius,
             onTap: () => showControllerFaults(context, printerId),
             child: SizedBox(
-              height: ControllerSection.headerHeight,
+              height: _height,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
                 child: Row(

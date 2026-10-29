@@ -79,7 +79,7 @@ class _ControllerSettingsState extends ConsumerState<ControllerSettings> {
     );
     // A large text size leaves room for one card at a time: a row of two picks
     // it, and the card has no title of its own, since the row says it.
-    if (controllerLargeText(context)) {
+    if (controllerPaged(context)) {
       final t = DashTokens.of(context);
       final preview = logTag(
         'controller.saver_preview',
@@ -99,18 +99,18 @@ class _ControllerSettingsState extends ConsumerState<ControllerSettings> {
               : null,
         ),
       );
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ControllerChoices(
-            id: 'controller.settings_card',
-            labels: [l10n.controllerSaverTitle, l10n.controllerDisplayTitle],
-            selected: _card,
-            onChanged: (i) => setState(() => _card = i),
-          ),
-          const SizedBox(height: DashSpace.sm),
-          Expanded(
-            child: Container(
+      return ControllerPage(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ControllerChoices(
+              id: 'controller.settings_card',
+              labels: [l10n.controllerSaverTitle, l10n.controllerDisplayTitle],
+              selected: _card,
+              onChanged: (i) => setState(() => _card = i),
+            ),
+            const SizedBox(height: DashSpace.sm),
+            Container(
               padding: const EdgeInsets.all(DashSpace.md),
               decoration: t.cardBox,
               child: _card == 0
@@ -124,8 +124,8 @@ class _ControllerSettingsState extends ConsumerState<ControllerSettings> {
                       ],
                     ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     }
     return Row(

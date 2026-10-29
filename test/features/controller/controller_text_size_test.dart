@@ -223,6 +223,49 @@ void main() {
     }
   });
 
+  testWidgets('a one-word fan name stays on one line at 200 % text', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      locale: const Locale('pl'),
+      size: landscapeRedmi,
+      textScale: 2,
+      child: const ControllerScreen(printerId: 1),
+      status: const PrinterStatus(
+        id: 1,
+        connected: true,
+        state: 'IDLE',
+        coolingFanSpeed: 70,
+        bigFan1Speed: 40,
+        bigFan2Speed: 20,
+        temperatures: _threeHeaters,
+      ),
+    );
+    await tester.tap(byLogId(ControllerTab.heat.logId));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final pl = lookupAppLocalizations(const Locale('pl'));
+    final names = [
+      pl.ctrlFanPartLabel,
+      pl.ctrlFanAuxLabel,
+      pl.ctrlFanChamberLabel,
+    ].where((name) => !name.contains(' '));
+    expect(names, isNotEmpty);
+    for (final name in names) {
+      // A word cannot wrap at a space, so a second line is a break inside it.
+      final paragraph =
+          tester.renderObject(find.text(name).last) as RenderParagraph;
+      final lines = paragraph
+          .getBoxesForSelection(
+            TextSelection(baseOffset: 0, extentOffset: name.length),
+          )
+          .map((box) => box.top.round())
+          .toSet();
+      expect(lines, hasLength(1), reason: name);
+    }
+  });
+
   testWidgets('rail tabs that do not fit scroll, and the last can be reached', (
     tester,
   ) async {
@@ -279,8 +322,8 @@ void main() {
       }
     }
 
-    /// The scroll view the screen puts round a tab, not the rail's.
-    Finder tabScroll(Type tab) => find.ancestor(
+    /// The scroll view of the tab's page (`ControllerPage`), not the rail's.
+    Finder tabScroll(Type tab) => find.descendant(
       of: find.byType(tab),
       matching: find.byType(SingleChildScrollView),
     );
@@ -308,7 +351,14 @@ void main() {
                   .first,
             )
             .position;
-        expect(position.maxScrollExtent, greaterThan(0));
+        // A page scrolls only where its cards outgrow the window: the overview's
+        // do at 150 % here, three heaters and their fans still fit.
+        expect(
+          position.maxScrollExtent,
+          tab == ControllerTab.overview
+              ? greaterThan(0)
+              : greaterThanOrEqualTo(0),
+        );
         expect(tester.takeException(), isNull);
       });
     }

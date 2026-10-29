@@ -84,26 +84,28 @@ class _ControllerFilamentState extends ConsumerState<ControllerFilament> {
       dual: dual,
       onSlot: (i) => setState(() => _slot = i),
     );
-    // At a large text size the units sit in a row above the pane, which then has
-    // the whole width: a name and its humidity do not fit a 168 dp column.
-    if (controllerLargeText(context)) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            height: _Rail._minHeight,
-            child: _Rail(
-              entries: entries,
-              selected: entries.indexOf(entry),
-              status: status,
-              dual: dual,
-              onSelect: select,
-              horizontal: true,
+    // On a page the units sit in a row above the pane, which then has the whole
+    // width: a name and its humidity do not fit a 168 dp column.
+    if (controllerPaged(context)) {
+      return ControllerPage(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: _Rail._minHeight,
+              child: _Rail(
+                entries: entries,
+                selected: entries.indexOf(entry),
+                status: status,
+                dual: dual,
+                onSelect: select,
+                horizontal: true,
+              ),
             ),
-          ),
-          const SizedBox(height: DashSpace.sm),
-          Expanded(child: pane),
-        ],
+            const SizedBox(height: DashSpace.sm),
+            pane,
+          ],
+        ),
       );
     }
     return Row(
@@ -322,6 +324,43 @@ class _Pane extends ConsumerWidget {
   static const _headerHeight = controllerButtonHeight;
   static const _actionHeight = controllerButtonHeight;
 
+  /// The spool a card on a page keeps above its text, as tall as this.
+  static const _spoolHeight = 112.0;
+
+  /// The row of spools takes the pane's height; on a page nothing hands it one,
+  /// so it is the spool, the card's two text blocks at the lines the fullest
+  /// card takes, and the card's padding. A card with less text gives the spare
+  /// lines to its spool, as on a screen.
+  static Widget _fill(
+    BuildContext context,
+    DashTokens t,
+    bool page,
+    Widget child,
+  ) {
+    if (!page) return Expanded(child: child);
+    double line(TextStyle style) {
+      final painter = TextPainter(
+        text: TextSpan(text: 'Ag', style: style),
+        textDirection: TextDirection.ltr,
+        textScaler: MediaQuery.textScalerOf(context),
+        maxLines: 1,
+      )..layout();
+      final height = painter.height;
+      painter.dispose();
+      return height;
+    }
+
+    final lines = controllerLargeText(context) ? 2 : 1;
+    return SizedBox(
+      height:
+          _spoolHeight +
+          DashSpace.sm +
+          lines * (line(t.titleMd) + line(t.monoValue)) +
+          2 * DashSpace.sm,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
@@ -335,7 +374,7 @@ class _Pane extends ConsumerWidget {
         (s) => s.pendingFor(printerId).isBusy(ControlAction.ams),
       ),
     );
-    final large = controllerLargeText(context);
+    final large = controllerPaged(context);
     final unit = this.unit;
     final amsId = unit == null ? externalHolderUnit : (unit.id ?? unitIndex!);
     final active = status.activeTray;
@@ -493,8 +532,11 @@ class _Pane extends ConsumerWidget {
           ),
           const SizedBox(height: DashSpace.sm),
         ],
-        Expanded(
-          child: Row(
+        _fill(
+          context,
+          t,
+          large,
+          Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               for (final (i, tray) in trays.indexed) ...[

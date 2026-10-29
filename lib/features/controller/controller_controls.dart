@@ -59,7 +59,7 @@ class ControllerReadings extends StatelessWidget {
     );
     // At a large text size the readings are lines of a grid of two, each one
     // line tall: four tall tiles in a row need more width than the box has.
-    if (controllerLargeText(context)) {
+    if (controllerPaged(context)) {
       Widget tile(TempReading r) => ConstrainedBox(
         constraints: const BoxConstraints(
           minHeight: kMinInteractiveDimension + DashSpace.xs,
@@ -369,7 +369,7 @@ class ControllerSwitches extends ConsumerWidget {
     ];
     // At a large text size each switch is a line of its own, the height of a
     // finger: two side by side no longer fit their names.
-    if (controllerLargeText(context)) {
+    if (controllerPaged(context)) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -502,7 +502,7 @@ class _SwitchTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    final large = controllerLargeText(context);
+    final large = controllerPaged(context);
     final radius = BorderRadius.circular(DashSpace.md + DashSpace.xs);
     final tile = Material(
       color: on ? t.accent.withValues(alpha: 0.10) : t.subCard,
@@ -671,7 +671,7 @@ class ControllerChoices extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final radius = BorderRadius.circular(DashSpace.md);
-    if (selectLabel != null && controllerLargeText(context)) {
+    if (selectLabel != null && controllerPaged(context)) {
       return dashCombo<int>(
         context,
         id: id,
@@ -776,12 +776,35 @@ class ControllerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    // A row that stretches needs a height to stretch to.
-    if (sections.length == 1 && this.footer == null && sections.single.shrink) {
+    // A row that stretches needs a height to stretch to: sections that shrink are
+    // laid side by side from the top, and the card is as tall as the tallest.
+    if (sections.every((s) => s.shrink)) {
+      final natural = sections.length == 1
+          ? sections.single
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final (i, s) in sections.indexed) ...[
+                  if (i > 0) const SizedBox(width: DashSpace.xl),
+                  Expanded(flex: s.flex, child: s),
+                ],
+              ],
+            );
+      final footer = this.footer;
       return Container(
         padding: const EdgeInsets.all(DashSpace.md),
         decoration: t.cardBox,
-        child: sections.single,
+        child: footer == null
+            ? natural
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  natural,
+                  const SizedBox(height: DashSpace.md),
+                  footer,
+                ],
+              ),
       );
     }
     final row = Row(

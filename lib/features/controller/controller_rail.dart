@@ -7,7 +7,6 @@ import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../dashboard/widgets/printer_state_pill.dart';
 import '../wall/wall_providers.dart';
-import 'controller_faults.dart';
 import 'controller_picker.dart';
 import 'controller_screen.dart';
 import 'scale_to_fit.dart';
@@ -287,7 +286,6 @@ class ControllerRailPanel extends ConsumerWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   printerStatePill(t, l10n, item.status, offline: offline),
-                  ControllerFaultChip(printerId: printer.id),
                 ],
               ),
             ),

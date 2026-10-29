@@ -17,6 +17,7 @@ import '../dashboard/widgets/print_meta_row.dart';
 import '../wall/wall_camera.dart';
 import 'scale_to_fit.dart';
 import 'controller_controls.dart';
+import 'controller_faults.dart';
 import 'controller_providers.dart';
 
 /// The Overview tab: what the printer is doing and the controls used while it
@@ -32,7 +33,7 @@ class ControllerOverview extends ConsumerWidget {
     final item = ref.watch(controllerPrinterProvider(printerId)).item;
     // A large text size needs more room than the box has for everything at
     // once, so it has a layout of its own: still one screen, more compact.
-    if (controllerLargeText(context) && item != null) {
+    if (controllerPaged(context) && item != null) {
       return _LargeOverview(printerId: printerId, item: item);
     }
     final status = item?.status;
@@ -177,7 +178,8 @@ class _LargeOverview extends ConsumerWidget {
       ],
     );
     final left = column([
-      Expanded(
+      SizedBox(
+        height: _stripHeight,
         child: _ViewCard(printerId: printerId, status: status),
       ),
       if (printing && reachable)
@@ -195,20 +197,25 @@ class _LargeOverview extends ConsumerWidget {
     final right = status == null
         ? const SizedBox.shrink()
         : column([
-            if (printing) Expanded(child: _JobCard(status: status)),
+            if (printing) _JobCard(status: status),
             if (readings) ControllerReadings(status: status),
             if (controllerLightVisible(status, refused: refused) || hasPlug)
               ControllerSwitches(printerId: printerId, status: status),
           ]);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(flex: 4, child: left),
-        const SizedBox(width: DashSpace.md),
-        Expanded(flex: 6, child: right),
-      ],
+    return ControllerPage(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 4, child: left),
+          const SizedBox(width: DashSpace.md),
+          Expanded(flex: 6, child: right),
+        ],
+      ),
     );
   }
+
+  /// The camera is a strip, as tall as this whatever the text.
+  static const _stripHeight = 150.0;
 }
 
 /// The camera, or — with "Live camera" off — the cover of the file being
@@ -275,6 +282,18 @@ class _ViewCard extends ConsumerWidget {
                       icon: Icons.image_outlined,
                       dense: true,
                     ),
+            ),
+          ),
+          Positioned(
+            right: DashSpace.md,
+            top: DashSpace.md,
+            // Opaque under its tint: the picture behind it is a camera frame.
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: t.cardGradient,
+                borderRadius: BorderRadius.circular(DashSpace.xl),
+              ),
+              child: ControllerFaultChip(printerId: printerId),
             ),
           ),
         ],
@@ -462,6 +481,7 @@ class _JobCard extends StatelessWidget {
   static const _percentShare = 0.3;
   static const _percentMin = 28.0;
   static const _percentMax = 96.0;
+  static const _percentOnPage = 52.0;
 
   @override
   Widget build(BuildContext context) {
@@ -503,10 +523,10 @@ class _JobCard extends StatelessWidget {
       decoration: t.cardBox,
       child: LayoutBuilder(
         builder: (context, box) {
-          final percentSize = (box.maxHeight * _percentShare).clamp(
-            _percentMin,
-            _percentMax,
-          );
+          // On a page there is no height to take a share of.
+          final percentSize = box.hasBoundedHeight
+              ? (box.maxHeight * _percentShare).clamp(_percentMin, _percentMax)
+              : _percentOnPage;
           // At its size, whatever the share: the percentage is what gives, by
           // the card's height, and no text is scaled to fit.
           return Center(

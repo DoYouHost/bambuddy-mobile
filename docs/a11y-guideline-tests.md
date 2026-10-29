@@ -220,6 +220,20 @@ overlap; `a11yTap` tapping the old place; tests arranged only for the normal tex
 Contrast findings in the output: 0; the two `genuine` rows of the report are the `65°`
 fixture (see Running it), nothing to fix.
 
+## Controller, 2026-10-29
+
+All 520 controller surfaces pass, and 45 more on a window 360 dp tall at 120, 150 and
+200 % (`short window` in `controller_a11y_test.dart`; without the height trigger in
+`ScaleToFit` 27 of them fail). The last 33 failures had three causes, none of them a
+`ScaleToFit` shrink on the Redmi's window (its height factor is 1.1 there): the search
+chip was 40 dp (now 48); the fault chip lived only in the rail's open panel (it is on
+the Overview picture now); the four-heater Heat tab at 200 % was squeezed by a fixed
+440 dp box (42.5 dp buttons). The last is why every tab that could be squeezed is now a
+`ControllerPage` (see `single-printer-controller.md` §2). **Known limit, unchanged:** a
+window narrower than about 890 dp shrinks the body by its width (800 dp of window: 0.89,
+a 48 dp button is 42.7 dp). A surface on such a window fails the tap-target guideline; the
+short-window surfaces use 891 dp for that reason. Reflowing for width is not done.
+
 ## Open, in this order
 
 1. **The controller, 33 left** (above). The files search chips and the fault chip come

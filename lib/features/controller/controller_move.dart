@@ -76,7 +76,8 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
     final enabled = connected && !printing && !refused && !_busy;
     final model = item.printer.model;
     final dual = status.isDualNozzle(item.printer.nozzleCount);
-    return Column(
+    final page = controllerPaged(context);
+    final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (printing) ...[
@@ -101,9 +102,13 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
           const ControllerForbidden(),
           const SizedBox(height: DashSpace.sm),
         ],
-        Expanded(child: _cards(status, model, dual, enabled, l10n)),
+        if (page)
+          _cards(status, model, dual, enabled, l10n, page: true)
+        else
+          Expanded(child: _cards(status, model, dual, enabled, l10n)),
       ],
     );
+    return page ? ControllerPage(child: body) : body;
   }
 
   Widget _cards(
@@ -111,9 +116,10 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
     String? model,
     bool dual,
     bool enabled,
-    AppLocalizations l10n,
-  ) {
-    return Row(
+    AppLocalizations l10n, {
+    bool page = false,
+  }) {
+    final cards = Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Each card's share of the width is its design width, so both
@@ -125,12 +131,14 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
               ControllerSection(
                 title: 'X / Y',
                 flex: _padSide.round(),
-                child: _xyPad(enabled),
+                shrink: page,
+                child: _xyPad(enabled, page: page),
               ),
               ControllerSection(
                 title: 'Z',
                 flex: _zWidth.round(),
-                child: _zPair(model, enabled, l10n),
+                shrink: page,
+                child: _zPair(model, enabled, l10n, page: page),
               ),
             ],
             // The step is the pad's and Z's, so it sits under them.
@@ -142,16 +150,19 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
           flex: _sideWidth.round(),
           child: ControllerCard.single(
             title: l10n.controllerExtruder,
-            child: _extruder(status, dual, enabled, l10n),
+            shrink: page,
+            child: _extruder(status, dual, enabled, l10n, page: page),
           ),
         ),
       ],
     );
+    // On a page the two cards are as tall as the taller of them.
+    return page ? IntrinsicHeight(child: cards) : cards;
   }
 
   /// Directional X/Y pad: a three-by-three grid filling its section, the
   /// arrows in the cross and the step in use, for feedback, in the middle.
-  Widget _xyPad(bool enabled) {
+  Widget _xyPad(bool enabled, {bool page = false}) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     Widget arrow(
@@ -179,12 +190,17 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
     const gap = SizedBox(width: DashSpace.sm, height: DashSpace.sm);
     const blank = Expanded(child: SizedBox.shrink());
     final step = _step.toDouble();
-    Widget row(List<Widget> cells) => Expanded(
-      child: Row(
+    Widget row(List<Widget> cells) {
+      final line = Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [cells[0], gap, cells[1], gap, cells[2]],
-      ),
-    );
+      );
+      // On a page nothing hands the pad a height: a row is a button tall.
+      return page
+          ? SizedBox(height: _JogButton.size, child: line)
+          : Expanded(child: line);
+    }
+
     return Column(
       children: [
         row([
@@ -238,7 +254,12 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
   /// Z up and down. The sign each arrow sends is [bedJogDistance]'s; where it
   /// cannot be known the pair is replaced by a note, never guessed — a wrong
   /// sign drives the plate into the nozzle.
-  Widget _zPair(String? model, bool enabled, AppLocalizations l10n) {
+  Widget _zPair(
+    String? model,
+    bool enabled,
+    AppLocalizations l10n, {
+    bool page = false,
+  }) {
     final t = DashTokens.of(context);
     // Only the A1 family's sign depends on the server, so nothing is fetched
     // for any other printer.
@@ -287,10 +308,14 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
       );
     }
 
+    // On a page the pair is as tall as the pad beside it.
+    Widget tall(Widget child) => page
+        ? SizedBox(height: _zHeight, child: child)
+        : Expanded(child: child);
     return Column(
       children: [
-        Expanded(
-          child: button(
+        tall(
+          button(
             'z_up',
             Icons.vertical_align_top_rounded,
             l10n.ctrlMoveZUp,
@@ -298,8 +323,8 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
           ),
         ),
         const SizedBox(height: DashSpace.sm),
-        Expanded(
-          child: button(
+        tall(
+          button(
             'z_down',
             Icons.vertical_align_bottom_rounded,
             l10n.ctrlMoveZDown,
@@ -317,9 +342,13 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
     PrinterStatus status,
     bool dual,
     bool enabled,
-    AppLocalizations l10n,
-  ) {
+    AppLocalizations l10n, {
+    bool page = false,
+  }) {
     final t = DashTokens.of(context);
+    Widget tall(Widget child) => page
+        ? SizedBox(height: _JogButton.size, child: child)
+        : Expanded(child: child);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -340,8 +369,8 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
           onChanged: (i) => setState(() => _length = _lengthPresets[i]),
         ),
         const SizedBox(height: DashSpace.md),
-        Expanded(
-          child: _JogButton(
+        tall(
+          _JogButton(
             id: 'controller.jog_extrude',
             icon: Icons.arrow_downward_rounded,
             label: l10n.ctrlMoveExtrude,
@@ -362,8 +391,8 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
           ),
         ),
         const SizedBox(height: DashSpace.sm),
-        Expanded(
-          child: _JogButton(
+        tall(
+          _JogButton(
             id: 'controller.jog_retract',
             icon: Icons.arrow_upward_rounded,
             label: l10n.ctrlMoveRetract,
@@ -440,6 +469,11 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
   /// room — up on a big screen, down on a small one.
   static const _padSide = 184.0;
   static const _zWidth = 136.0;
+
+  /// The pad on a page: three buttons and the gaps between them; Z's two buttons
+  /// share the same height.
+  static const _padHeight = 3 * _JogButton.size + 2 * DashSpace.sm;
+  static const _zHeight = (_padHeight - DashSpace.sm) / 2;
 
   /// The extruder and step cards: three mm presets side by side.
   static const _sideWidth = 168.0;

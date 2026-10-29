@@ -160,7 +160,8 @@ void main() {
       ) async {
         await pump(tester, size, textScale: 1.5);
 
-        expect(scrollables(), findsNothing);
+        // The overview is a page from here (`ControllerPage`): a scroll view
+        // that scrolls only where the window is too short for the cards.
         expect(tester.takeException(), isNull);
       });
     });

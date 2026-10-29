@@ -20,7 +20,8 @@ import 'scale_to_fit.dart';
 /// The Heat tab: every heater with its target, and the fans
 /// ([docs/single-printer-controller.md] §2). Reads its printer through
 /// [controllerPrinterProvider] only, and shares the height between the two rows
-/// like the Overview does, so it fills the screen and never scrolls.
+/// like the Overview does, so it fills the screen and never scrolls; at a large
+/// text size it is a [ControllerPage] instead.
 class ControllerHeat extends ConsumerWidget {
   const ControllerHeat({super.key, required this.printerId});
 
@@ -55,24 +56,77 @@ class ControllerHeat extends ConsumerWidget {
     // A large text size gives each heater the room of a stacked one and leaves
     // the fans the height their wrapped names need.
     final stacked =
-        readings.length > _sideBySideMax || controllerLargeText(context);
+        readings.length > _sideBySideMax || controllerPaged(context);
+    Widget fanCard(({String key, String label, int value}) fan) => _FanCard(
+      printerId: printerId,
+      fan: fan.key,
+      label: fan.label,
+      value: fan.value,
+      refused: refused,
+    );
     final fansRow = Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final (i, fan) in fans.indexed) ...[
           if (i > 0) const SizedBox(width: DashSpace.md),
-          Expanded(
-            child: _FanCard(
-              printerId: printerId,
-              fan: fan.key,
-              label: fan.label,
-              value: fan.value,
-              refused: refused,
-            ),
-          ),
+          Expanded(child: fanCard(fan)),
         ],
       ],
     );
+    // A large text size: a page of cards as tall as their content, two to a row
+    // with the ring beside the buttons, then the fans.
+    if (controllerPaged(context)) {
+      return ControllerPage(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (refused) ...[
+              const ControllerForbidden(),
+              const SizedBox(height: DashSpace.sm),
+            ],
+            for (var i = 0; i < readings.length; i += 2) ...[
+              if (i > 0) const SizedBox(height: DashSpace.md),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final (j, r) in readings.skip(i).take(2).indexed) ...[
+                    if (j > 0) const SizedBox(width: DashSpace.md),
+                    Expanded(
+                      child: _HeaterCard(
+                        printerId: printerId,
+                        status: status,
+                        model: item.printer.model,
+                        reading: r,
+                        dual: dual,
+                        stacked: true,
+                        refused: refused,
+                        wide: true,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+            // Two to a row, like the heaters: three across leave a name such as
+            // "Pomocniczy" less width than its own, and it breaks mid-word.
+            for (var i = 0; i < fans.length; i += 2) ...[
+              const SizedBox(height: DashSpace.md),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final (j, fan) in fans.skip(i).take(2).indexed) ...[
+                      if (j > 0) const SizedBox(width: DashSpace.md),
+                      Expanded(child: fanCard(fan)),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -80,43 +134,7 @@ class ControllerHeat extends ConsumerWidget {
           const ControllerForbidden(),
           const SizedBox(height: DashSpace.sm),
         ],
-        if (readings.isNotEmpty &&
-            controllerLargeText(context) &&
-            readings.length > _sideBySideMax)
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var i = 0; i < readings.length; i += 2) ...[
-                  if (i > 0) const SizedBox(height: DashSpace.md),
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (final (j, r)
-                            in readings.skip(i).take(2).indexed) ...[
-                          if (j > 0) const SizedBox(width: DashSpace.md),
-                          Expanded(
-                            child: _HeaterCard(
-                              printerId: printerId,
-                              status: status,
-                              model: item.printer.model,
-                              reading: r,
-                              dual: dual,
-                              stacked: true,
-                              refused: refused,
-                              wide: true,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          )
-        else if (readings.isNotEmpty)
+        if (readings.isNotEmpty)
           Expanded(
             flex: stacked ? 1 : _heatersShare,
             child: Row(
@@ -359,6 +377,7 @@ class _HeaterCard extends ConsumerWidget {
 
     return ControllerCard.single(
       title: label,
+      shrink: wide,
       trailing: dual && reading.kind == TempKind.nozzle
           ? _NozzleSwitch(
               compact: stacked,
@@ -1046,7 +1065,8 @@ class _FanCardState extends ConsumerState<_FanCard> {
   /// At a large text size the name takes a line of its own, wrapped at its
   /// spaces, and the reading sits beside the slider instead of the name.
   Widget _largeBody(DashTokens t, double shown) => Column(
-    mainAxisAlignment: MainAxisAlignment.center,
+    // From the top, so the names of a row of cards start on one line.
+    mainAxisAlignment: MainAxisAlignment.start,
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       // The icon sits with the name, not in the middle of name and slider.
