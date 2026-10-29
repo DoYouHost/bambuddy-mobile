@@ -600,7 +600,11 @@ class _ControlsShelfState extends State<_ControlsShelf> {
           onChanged: (v) => setState(() => _mode = v),
         ),
         gap,
-        Row(
+        // A wrap, not a row: three steppers are wider than a 379 dp shelf, a
+        // layout no screen builds, so a row would overflow the fixture itself.
+        Wrap(
+          spacing: DashSpace.lg,
+          runSpacing: DashSpace.sm,
           children: [
             DashStepper(
               value: _count,
@@ -612,7 +616,6 @@ class _ControlsShelfState extends State<_ControlsShelf> {
               lessId: 'common.step_less',
               moreId: 'common.step_more',
             ),
-            const Spacer(),
             DashStepper(
               value: 1,
               min: 1,
@@ -624,7 +627,6 @@ class _ControlsShelfState extends State<_ControlsShelf> {
               lessId: 'common.step_less_compact',
               moreId: 'common.step_more_compact',
             ),
-            const Spacer(),
             DashStepper(
               value: 9,
               min: 1,

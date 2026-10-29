@@ -499,6 +499,9 @@ class _SwatchTile extends StatelessWidget {
                         Icons.delete_outline_rounded,
                         color: t.dangerInk,
                       ),
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).deleteButtonTooltip,
                       onPressed: onDelete,
                     ),
                   ),

@@ -194,24 +194,16 @@ check both before counting.
 | files | 0 (was 88) | the quick-nav chips lost their 48 dp area to the bar's padding; the file photo tiles take the section title as their tooltip |
 | archive | 0 (was 60) | the colour swatches got a 48 dp cell and the colour code as their name; the timelapse trim strip, surface and seek bar are named from strings the app already has |
 | locations | 0 (was 48) | the location header was 44 dp tall |
-| common | 33 | selection controls (a fixture overflow, to check), the colour wheel, the QR scanner (2), a snack bar |
-| controller | 33 of 520 | see below |
+| common | 25 (was 33) | the colour wheel (8, no name), the QR scanner's torch button (16, no name and no existing string), the snack bar with the long "Pokaż w menedżerze plików" action at 200 % (1: the shared `dash_kit` snack lays the action label out without wrapping) |
+| controller | 0 (was 33 of 520) | see the controller section below |
 | projects | 0 (was 24) | the bill-of-materials checkbox takes the item name; the project link is 48 dp |
-| dashboard sheets | 22 | the slot colour dialog, the movement sheet |
-| admin | 19 | the API key dialog, the group form |
-| swatches | 16 | both swatch views |
-| print log, stats | 16 | the date-range pickers |
-| dashboard, model sources | 3 | a folded section, one MakerWorld state |
+| dashboard sheets | 8 (was 22) | the slot colour dialog's wheel; the movement sheet buttons are 48 dp |
+| admin | 0 (was 19) | the advanced permissions row is 48 dp; the API key is read as one label |
+| swatches | 0 (was 16) | the delete button takes the Material delete tooltip |
+| print log, stats | 16 | the date-range picker: its day cells are 56 × 42 dp (Flutter's calendar) |
+| dashboard, model sources | 1 (was 3) | MakerWorld "plate imported" at 200 %: the same long snack action as in common |
 
-**The causes outside the controller have not been sorted since the harness changed.**
-The numbers above are by file; do not assume they are all "target and label" until one
-surface of each group has been read.
-
-Left on the controller: the files search chips and the "no match" state (16), the fault
-chip and the fault view (16), and the dual-nozzle heat tab (one target 42.7 dp high).
-The print-settings screen, its dialogs, the file, job and archive dialog and the
-settings tab pass at every size.
-
+**The 68 left (2026-10-29) all wait for a decision**: the colour wheel (32, new copy and a wrapper around a library widget), the QR torch button (16, new copy), the date-range calendar (16), the material menu (2) and the long snack action (2, a shared package).
 What the day fixed, in short, so it is not redone: the pickers (`PickerTile`), 558
 missing labels, the controller's rail and its reflow from 1.3x text, the print-settings
 screen and every dialog it opens, the Prints items' dialog, the date picker in
@@ -236,18 +228,16 @@ short-window surfaces use 891 dp for that reason. Reflowing for width is not don
 
 ## Open, in this order
 
-1. **The controller, 33 left** (above). The files search chips and the fault chip come
-   first: each is 16 tests and probably one fix. Design and rules:
-   `docs/single-printer-controller.md` §2 and §9.
-2. **The other screens, 564 tests.** Start with one surface per group, read the finding,
-   fix the class of it and re-run the file: the queue edit form and the colour dialogs
-   are the largest and share widgets across their surfaces. Suspects from earlier runs,
-   to check first: the dashboard's folded section (the "X1 Carbon" tile at 150 and 200 %),
-   the spool form's material menu (a framework assertion `transformed == position -
-   childParentData.offset` in a hit test, cause not found), and the printer files'
-   "Timelapse" chip at 200 % (`ensureVisible` does not bring it into the horizontal
-   list). The wall's `wall.live_camera` was thought an app defect; it was the harness
-   (`a11yTap`), and the wall suites pass.
+1. **The controller is done** (above). Design and rules: `docs/single-printer-controller.md` §2 and §9.
+2. **The other screens, 68 tests, all waiting for a decision** (the table above): the
+   colour wheel in four dialogs (32; the library's gesture node has no name and offers no
+   hook, so it needs new copy in five languages and a wrapper), the QR scanner's torch
+   button (16; there is no torch string in the app), the date-range calendar of print log
+   and statistics (16; the day cell is 56 x 42 dp in Flutter's own picker), the spool
+   form's material menu (2; a framework assertion `transformed == position -
+   childParentData.offset` in a hit test, cause not found) and the snack bar whose action
+   "Pokaż w menedżerze plików" overflows by 47 dp at 200 % text (2; the `snack` helper is
+   in `dash_kit`, so the fix is a shared release or a shorter label).
 3. No widget test yet for the swatches section header, the queue-edit schedule row,
    the archive colour-filter row and the timelapse info row (the a11y suite covers
    them), nor for the maintenance type sheet and the project form (only the a11y suite
@@ -258,9 +248,8 @@ short-window surfaces use 891 dp for that reason. Reflowing for width is not don
 5. Waiting for the maintainer: new screen-reader copy in five languages (the picker
    tiles say the icon key or the colour code today; the X/Y jog arrows say "Move X plus"
    and the like; the plate and chamber steppers say `Plate −1` and `−5°` from existing
-   words and signs; the spool colour wheel has no name), the date-range pickers of print
-   log and statistics (16 tests, not looked at), how many accents after a `timeit`, `°C`
-   on the temperature tiles if wanted.
+   words and signs; the spool colour wheel and the QR torch button have no name), how
+   many accents after a `timeit`, `°C` on the temperature tiles if wanted.
 6. **The shared packages.** `app-shared` has `PickerTile`, the search field's clear
    tooltip and `pickDate(initialEntryMode)` on `master` (`5b8a74a`, pushed directly past
    the pull-request rule). This branch builds against the sibling checkout

@@ -258,9 +258,17 @@ class _CreatedKeyDialogState extends State<_CreatedKeyDialog> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: t.subCardBorder),
             ),
-            child: SelectableText(
-              apiKey,
-              style: t.monoValue.copyWith(color: t.accentGreenInk),
+            // Read out as one label: the selectable text's own node is a tappable
+            // line under 48 dp, and the Copy button below is the way to take the key.
+            child: Semantics(
+              container: true,
+              label: apiKey,
+              child: ExcludeSemantics(
+                child: SelectableText(
+                  apiKey,
+                  style: t.monoValue.copyWith(color: t.accentGreenInk),
+                ),
+              ),
             ),
           ),
         ],

@@ -529,6 +529,9 @@ class _JogAction extends StatelessWidget {
       child: InkWell(
         onTap: enabled ? onTap : null,
         child: Container(
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
+          ),
           padding: const EdgeInsets.symmetric(
             horizontal: DashSpace.md,
             vertical: DashSpace.sm,
@@ -585,6 +588,10 @@ class _JogWideButton extends StatelessWidget {
       child: InkWell(
         onTap: enabled ? onTap : null,
         child: Container(
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
+          ),
+          alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),

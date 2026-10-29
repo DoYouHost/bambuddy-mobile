@@ -187,27 +187,32 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                   horizontal: DashSpace.xs,
                   vertical: DashSpace.md,
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      _showAdvanced ? Icons.expand_less : Icons.expand_more,
-                      size: 20,
-                      color: t.textSecondary,
-                    ),
-                    const SizedBox(width: DashSpace.sm),
-                    Expanded(
-                      child: Text(
-                        l10n.groupsAdvancedPermissions,
-                        style: t.bodyBold.copyWith(color: t.textPrimary),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: kMinInteractiveDimension - 2 * DashSpace.md,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _showAdvanced ? Icons.expand_less : Icons.expand_more,
+                        size: 20,
+                        color: t.textSecondary,
                       ),
-                    ),
-                    if (advancedSelected > 0)
-                      DashPill(
-                        label: '$advancedSelected',
-                        accent: t.accentOrange,
-                        accentInk: t.accentOrangeInk,
+                      const SizedBox(width: DashSpace.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.groupsAdvancedPermissions,
+                          style: t.bodyBold.copyWith(color: t.textPrimary),
+                        ),
                       ),
-                  ],
+                      if (advancedSelected > 0)
+                        DashPill(
+                          label: '$advancedSelected',
+                          accent: t.accentOrange,
+                          accentInk: t.accentOrangeInk,
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),

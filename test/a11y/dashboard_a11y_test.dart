@@ -52,7 +52,9 @@ void main() {
     overrides: _dashboard,
     home: () => const DashboardScreen(),
     arrange: (tester) => a11yTap(tester, byLogId('dashboard.group').last),
-    shows: find.text('X1 Carbon'),
+    // The chevron only a folded group shows. A printer's name is no proof: at
+    // some text sizes the last group on screen is the one that holds it.
+    shows: find.byIcon(Icons.chevron_right),
   );
 
   a11ySurface(
