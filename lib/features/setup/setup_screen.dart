@@ -172,7 +172,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       onPressed: state.busy ? null : _fillDemo,
                       icon: Icon(
                         Icons.play_circle_outline,
-                        size: 18,
+                        size: DashIcon.md,
                         color: t.textSecondary,
                       ),
                       label: Text(l10n.tryDemo),
@@ -180,7 +180,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                         foregroundColor: t.textSecondary,
                         textStyle: const TextStyle(
                           fontFamily: DashTokens.fontUi,
-                          fontSize: 13,
+                          fontSize: DashFontSize.body,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -285,7 +285,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           'setup.two_factor_send_email',
           TextButton.icon(
             onPressed: state.busy ? null : controller.sendTwoFactorEmailCode,
-            icon: Icon(Icons.mail_outline, size: 18, color: t.textSecondary),
+            icon: Icon(
+              Icons.mail_outline,
+              size: DashIcon.md,
+              color: t.textSecondary,
+            ),
             label: Text(
               state.emailCodeSent
                   ? l10n.twoFactorResendEmail
@@ -295,7 +299,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               foregroundColor: t.textSecondary,
               textStyle: const TextStyle(
                 fontFamily: DashTokens.fontUi,
-                fontSize: 13,
+                fontSize: DashFontSize.body,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -326,7 +330,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               foregroundColor: t.textSecondary,
               textStyle: const TextStyle(
                 fontFamily: DashTokens.fontUi,
-                fontSize: 13,
+                fontSize: DashFontSize.body,
                 fontWeight: FontWeight.w600,
               ),
             ),

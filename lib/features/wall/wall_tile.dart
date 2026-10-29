@@ -127,14 +127,16 @@ class _WallTileState extends State<WallTile> {
                 child: offline
                     ? Icon(
                         Icons.cloud_off_rounded,
-                        size: 32,
+                        size: DashIcon.xl,
                         color: t.textTertiary,
                       )
                     : printing && progress != null
                     ? FittedBox(
                         child: Text(
                           '${progress.toStringAsFixed(0)}%',
-                          style: t.monoDisplay.copyWith(fontSize: 40),
+                          style: t.monoDisplay.copyWith(
+                            fontSize: DashFontSize.numeral,
+                          ),
                         ),
                       )
                     : const SizedBox.shrink(),
@@ -164,7 +166,7 @@ class _WallTileState extends State<WallTile> {
         color: Colors.black,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(DashRadius.xl),
           side: fault == null
               ? BorderSide.none
               : BorderSide(color: danger, width: 2),

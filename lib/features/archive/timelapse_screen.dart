@@ -368,7 +368,7 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
             widget.title ?? l10n.timelapseTitle,
             style: const TextStyle(
               fontFamily: DashTokens.fontUi,
-              fontSize: 20,
+              fontSize: DashFontSize.display,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.3,
               color: Colors.white,

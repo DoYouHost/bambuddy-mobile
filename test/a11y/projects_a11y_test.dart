@@ -179,7 +179,7 @@ void main() {
     home: () => const ProjectDetailScreen(projectId: 1),
     overrides: richOverrides,
     arrange: (tester) async {
-      await tester.tap(byLogId('project.folder').first);
+      await a11yTap(tester, byLogId('project.folder'));
     },
     shows: byLogId('project.print_file'),
   );
@@ -237,7 +237,8 @@ void main() {
     'project detail, bill of materials row menu',
     home: () => const ProjectDetailScreen(projectId: 1),
     arrange: (tester) async {
-      await tester.tap(
+      await a11yTap(
+        tester,
         find.descendant(
           of: byLogId('project.bom_item').first,
           matching: find.byType(PopupMenuButton<String>),
@@ -262,7 +263,8 @@ void main() {
     'project detail, edit bill of materials item',
     home: () => const ProjectDetailScreen(projectId: 1),
     arrange: (tester) async {
-      await tester.tap(
+      await a11yTap(
+        tester,
         find.descendant(
           of: byLogId('project.bom_item').first,
           matching: find.byType(PopupMenuButton<String>),

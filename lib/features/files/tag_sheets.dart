@@ -36,9 +36,11 @@ class TagChip extends StatelessWidget {
         vertical: DashSpace.xs,
       ),
       decoration: BoxDecoration(
-        color: t.accentGreen.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: t.accentGreen.withValues(alpha: 0.30)),
+        color: t.accentGreen.withValues(alpha: DashAlpha.faint),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
+        border: Border.all(
+          color: t.accentGreen.withValues(alpha: DashAlpha.soft),
+        ),
       ),
       child: Text(
         label,

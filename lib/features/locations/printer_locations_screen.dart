@@ -388,7 +388,7 @@ class _PrinterLocationsScreenState
                     ),
                 ],
                 child: Chip(
-                  avatar: const Icon(Icons.sort, size: 18),
+                  avatar: const Icon(Icons.sort, size: DashIcon.md),
                   label: Text(_sortLabel(l10n, sort)),
                 ),
               ).tagged('locations.sort'),

@@ -1200,14 +1200,14 @@ class _Breadcrumb extends StatelessWidget {
           TextButton.icon(
             icon: Icon(
               Icons.home_outlined,
-              size: 18,
+              size: DashIcon.md,
               color: crumbs.isEmpty ? t.textTertiary : t.accentGreenInk,
             ),
             label: Text(l10n.fmRoot, style: crumbStyle(crumbs.isEmpty)),
             onPressed: crumbs.isEmpty ? null : () => onOpen(null),
           ).tagged('files.crumb_root'),
           for (var i = 0; i < crumbs.length; i++) ...[
-            Icon(Icons.chevron_right, size: 18, color: t.textTertiary),
+            Icon(Icons.chevron_right, size: DashIcon.md, color: t.textTertiary),
             TextButton(
               onPressed: i == crumbs.length - 1
                   ? null
@@ -1335,7 +1335,7 @@ class _FolderTile extends StatelessWidget {
         child: logTag(
           'files.folder',
           InkWell(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             onTap: onOpen,
             child: Container(
               padding: const EdgeInsets.symmetric(
@@ -1344,7 +1344,7 @@ class _FolderTile extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
@@ -1454,7 +1454,7 @@ class _FileTile extends StatelessWidget {
         child: logTag(
           'files.file',
           InkWell(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             onTap: onTap,
             onLongPress: onLongPress,
             child: Container(
@@ -1464,12 +1464,12 @@ class _FileTile extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: selected
-                    ? t.accentGreen.withValues(alpha: 0.10)
+                    ? t.accentGreen.withValues(alpha: DashAlpha.faint)
                     : t.subCard,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(
                   color: selected
-                      ? t.accentGreen.withValues(alpha: 0.4)
+                      ? t.accentGreen.withValues(alpha: DashAlpha.outline)
                       : t.subCardBorder,
                 ),
               ),
@@ -1487,7 +1487,7 @@ class _FileTile extends StatelessWidget {
                           ),
                         )
                       : ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(DashRadius.lg),
                           child: LibraryThumbnail(
                             fileId: file.id,
                             hasThumbnail: file.thumbnailPath != null,
@@ -1522,7 +1522,7 @@ class _FileTile extends StatelessWidget {
                             children: [
                               Icon(
                                 Icons.alt_route,
-                                size: 12,
+                                size: DashIcon.xs,
                                 color: t.textTertiary,
                               ),
                               const SizedBox(width: DashSpace.xs),
@@ -1560,7 +1560,11 @@ class _FileTile extends StatelessWidget {
                     ),
                   ),
                   if (!selectionMode)
-                    Icon(Icons.more_vert, size: 20, color: t.textSecondary),
+                    Icon(
+                      Icons.more_vert,
+                      size: DashIcon.md,
+                      color: t.textSecondary,
+                    ),
                 ],
               ),
             ),
@@ -1591,7 +1595,7 @@ class _ExtrasBadges extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     Widget icon(IconData data, String label) => Semantics(
       label: label,
-      child: Icon(data, size: 12, color: t.textTertiary),
+      child: Icon(data, size: DashIcon.xs, color: t.textTertiary),
     );
     return Row(
       mainAxisSize: MainAxisSize.min,

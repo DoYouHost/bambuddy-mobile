@@ -35,7 +35,7 @@ class _ListHeader extends StatelessWidget {
           ),
           if (consumed > 0) ...[
             const SizedBox(width: DashSpace.sm),
-            Icon(Icons.trending_down, size: 13, color: t.textTertiary),
+            Icon(Icons.trending_down, size: DashIcon.xs, color: t.textTertiary),
             const SizedBox(width: DashSpace.xs),
             Text(
               l10n.inventoryTotalConsumed(fmtGrams(consumed)),
@@ -106,7 +106,7 @@ class _SpoolTile extends StatelessWidget {
         ),
         if (spool.materialNumber case final number?) ...[
           const SizedBox(width: DashSpace.sm),
-          Icon(Icons.tag, size: 12, color: t.textTertiary),
+          Icon(Icons.tag, size: DashIcon.xs, color: t.textTertiary),
           const SizedBox(width: DashSpace.xs),
           Flexible(
             child: Text(
@@ -121,7 +121,7 @@ class _SpoolTile extends StatelessWidget {
         // dried costs the list no height. The run's figures are in the sheet.
         if (spool.lastDriedAt case final dried?) ...[
           const SizedBox(width: DashSpace.sm),
-          Icon(Icons.air, size: 12, color: t.textTertiary),
+          Icon(Icons.air, size: DashIcon.xs, color: t.textTertiary),
           const SizedBox(width: DashSpace.xs),
           Flexible(
             child: Text(
@@ -134,7 +134,7 @@ class _SpoolTile extends StatelessWidget {
         ],
         if (assignment != null) ...[
           const SizedBox(width: DashSpace.sm),
-          Icon(Icons.print_outlined, size: 12, color: t.textTertiary),
+          Icon(Icons.print_outlined, size: DashIcon.xs, color: t.textTertiary),
           const SizedBox(width: DashSpace.xs),
           Text(
             assignmentSlotLabel(l10n, assignment!),
@@ -159,7 +159,7 @@ class _SpoolTile extends StatelessWidget {
           'inventory.spool',
           spool.material,
           InkWell(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             onLongPress: onLongPress,
             onTap:
                 onTap ??
@@ -172,16 +172,16 @@ class _SpoolTile extends StatelessWidget {
               padding: const EdgeInsets.all(DashSpace.lg),
               decoration: BoxDecoration(
                 color: selected
-                    ? t.accentGreen.withValues(alpha: 0.12)
+                    ? t.accentGreen.withValues(alpha: DashAlpha.faint)
                     : low
-                    ? t.danger.withValues(alpha: 0.05)
+                    ? t.danger.withValues(alpha: DashAlpha.faint)
                     : t.subCard,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(
                   color: selected
-                      ? t.accentGreen.withValues(alpha: 0.6)
+                      ? t.accentGreen.withValues(alpha: DashAlpha.strong)
                       : low
-                      ? t.danger.withValues(alpha: 0.35)
+                      ? t.danger.withValues(alpha: DashAlpha.soft)
                       : t.subCardBorder,
                 ),
               ),
@@ -195,7 +195,7 @@ class _SpoolTile extends StatelessWidget {
                       selected
                           ? Icons.check_box
                           : Icons.check_box_outline_blank,
-                      size: 22,
+                      size: DashIcon.md,
                       color: selected ? t.accentGreenInk : t.textTertiary,
                     ),
                     const SizedBox(width: DashSpace.md),
@@ -244,7 +244,7 @@ class _SpoolTile extends StatelessWidget {
                                     const SizedBox(width: DashSpace.sm),
                                     Icon(
                                       Icons.archive_outlined,
-                                      size: 14,
+                                      size: DashIcon.sm,
                                       color: t.textTertiary,
                                     ),
                                   ],
@@ -290,8 +290,10 @@ class _MaterialTag extends StatelessWidget {
         vertical: DashSpace.xs,
       ),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: tokens.textSecondary.withValues(alpha: 0.25)),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
+        border: Border.all(
+          color: tokens.textSecondary.withValues(alpha: DashAlpha.soft),
+        ),
       ),
       child: Text(
         label.toUpperCase(),
@@ -313,8 +315,10 @@ class _LowBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: tokens.danger.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
+        border: Border.all(
+          color: tokens.danger.withValues(alpha: DashAlpha.scrim),
+        ),
       ),
       child: Text(
         l10n.inventoryLowStock.toUpperCase(),
@@ -357,7 +361,9 @@ class SpoolSwatch extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         // Stronger than a card's hairline: a black spool on the dark theme,
         // or a white one on the light theme, is otherwise just a hole.
-        border: Border.all(color: t.textTertiary.withValues(alpha: 0.4)),
+        border: Border.all(
+          color: t.textTertiary.withValues(alpha: DashAlpha.outline),
+        ),
       ),
       child: color == null
           ? Icon(Icons.question_mark, size: size * 0.5, color: t.textTertiary)
@@ -670,7 +676,7 @@ class _UsageRow extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.history, size: 16, color: t.textTertiary),
+              Icon(Icons.history, size: DashIcon.sm, color: t.textTertiary),
               const SizedBox(width: DashSpace.sm),
               Expanded(
                 child: Column(
@@ -727,7 +733,7 @@ class _DetailCard extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Column(mainAxisSize: MainAxisSize.min, children: children),
@@ -774,7 +780,7 @@ class _InfoRow extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(top: _detailIconNudge),
-            child: Icon(icon, size: 16, color: t.textSecondary),
+            child: Icon(icon, size: DashIcon.sm, color: t.textSecondary),
           ),
           const SizedBox(width: DashSpace.md),
           Expanded(
@@ -858,7 +864,7 @@ class _SupplierLinkRow extends StatelessWidget {
               link.isPurchaseSource
                   ? Icons.shopping_bag_outlined
                   : Icons.storefront_outlined,
-              size: 16,
+              size: DashIcon.sm,
               color: link.isPurchaseSource ? t.accentGreenInk : t.textSecondary,
             ),
           ),

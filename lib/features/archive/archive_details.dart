@@ -199,8 +199,8 @@ class _Chip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: ink.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
+        border: Border.all(color: ink.withValues(alpha: DashAlpha.scrim)),
       ),
       child: Text(
         text,
@@ -255,7 +255,7 @@ class ArchiveStatsPanel extends ConsumerWidget {
       padding: const EdgeInsets.all(DashSpace.md),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Column(
@@ -305,8 +305,8 @@ class ArchiveStatsPanel extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
             decoration: BoxDecoration(
-              color: badge.fill.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(6),
+              color: badge.fill.withValues(alpha: DashAlpha.wash),
+              borderRadius: BorderRadius.circular(DashRadius.sm),
             ),
             child: Text(
               badge.text,

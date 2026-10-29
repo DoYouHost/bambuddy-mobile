@@ -54,17 +54,20 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                 segments: [
                   ButtonSegment(
                     value: _Section.phone,
-                    icon: const Icon(Icons.smartphone_outlined, size: 16),
+                    icon: const Icon(
+                      Icons.smartphone_outlined,
+                      size: DashIcon.sm,
+                    ),
                     label: Text(l10n.appSettingsPhone),
                   ),
                   ButtonSegment(
                     value: _Section.watch,
-                    icon: const Icon(Icons.watch_outlined, size: 16),
+                    icon: const Icon(Icons.watch_outlined, size: DashIcon.sm),
                     label: Text(l10n.watchSettingsTitle),
                   ),
                   ButtonSegment(
                     value: _Section.labelPrinter,
-                    icon: const Icon(Icons.label_outline, size: 16),
+                    icon: const Icon(Icons.label_outline, size: DashIcon.sm),
                     label: Text(l10n.appSettingsLabelPrinter),
                   ),
                 ],

@@ -22,7 +22,7 @@ class _MovementTile extends ConsumerWidget {
       padding: const EdgeInsets.only(top: DashSpace.md),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         clipBehavior: Clip.antiAlias,
         child: logTag(
           'printer.move',
@@ -43,16 +43,24 @@ class _MovementTile extends ConsumerWidget {
               ),
               decoration: BoxDecoration(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.open_with, size: 18, color: t.textSecondary),
+                  Icon(
+                    Icons.open_with,
+                    size: DashIcon.md,
+                    color: t.textSecondary,
+                  ),
                   const SizedBox(width: DashSpace.md),
                   Text(l10n.ctrlMove, style: t.titleSm),
                   const Spacer(),
-                  Icon(Icons.chevron_right, size: 18, color: t.textTertiary),
+                  Icon(
+                    Icons.chevron_right,
+                    size: DashIcon.md,
+                    color: t.textTertiary,
+                  ),
                 ],
               ),
             ),
@@ -322,7 +330,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
     final label = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.height, size: 16, color: t.textSecondary),
+        Icon(Icons.height, size: DashIcon.sm, color: t.textSecondary),
         const SizedBox(width: DashSpace.sm),
         Text(l10n.ctrlMoveZ, style: t.body.copyWith(color: t.textSecondary)),
       ],
@@ -482,7 +490,7 @@ class _JogButton extends StatelessWidget {
       message: label,
       child: Material(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: enabled ? onTap : null,
@@ -490,11 +498,13 @@ class _JogButton extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(DashRadius.lg),
               border: Border.all(color: t.subCardBorder),
             ),
             alignment: Alignment.center,
-            child: busy ? const DashSpinner() : Icon(icon, size: 26, color: fg),
+            child: busy
+                ? const DashSpinner()
+                : Icon(icon, size: DashIcon.lg, color: fg),
           ),
         ),
       ),
@@ -524,7 +534,7 @@ class _JogAction extends StatelessWidget {
     final fg = enabled ? t.textPrimary : t.textTertiary;
     return Material(
       color: t.subCard,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: enabled ? onTap : null,
@@ -537,7 +547,7 @@ class _JogAction extends StatelessWidget {
             vertical: DashSpace.sm,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(DashRadius.md),
             border: Border.all(color: t.subCardBorder),
           ),
           // widthFactor: as wide as its content on its own, centred when a
@@ -549,7 +559,7 @@ class _JogAction extends StatelessWidget {
               children: [
                 busy
                     ? const DashSpinner(size: 16)
-                    : Icon(icon, size: 16, color: fg),
+                    : Icon(icon, size: DashIcon.sm, color: fg),
                 const SizedBox(width: DashSpace.sm),
                 Text(label, style: t.bodyBold.copyWith(color: fg)),
               ],
@@ -583,7 +593,7 @@ class _JogWideButton extends StatelessWidget {
     final fg = enabled ? t.textPrimary : t.textTertiary;
     return Material(
       color: t.subCard,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: enabled ? onTap : null,
@@ -594,7 +604,7 @@ class _JogWideButton extends StatelessWidget {
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             border: Border.all(color: t.subCardBorder),
           ),
           child: Row(
@@ -602,7 +612,7 @@ class _JogWideButton extends StatelessWidget {
             children: [
               busy
                   ? const DashSpinner(size: 16)
-                  : Icon(icon, size: 18, color: fg),
+                  : Icon(icon, size: DashIcon.md, color: fg),
               const SizedBox(width: DashSpace.sm),
               Text(label, style: t.bodyBold.copyWith(color: fg)),
             ],

@@ -42,7 +42,7 @@ class ConnectionBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: fg),
+            Icon(icon, size: DashIcon.md, color: fg),
             const SizedBox(width: DashSpace.sm),
             Expanded(
               child: Text(message, style: TextStyle(color: fg)),

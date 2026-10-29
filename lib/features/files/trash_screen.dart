@@ -187,7 +187,7 @@ class _TrashTile extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: t.subCard,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(DashRadius.xl),
           border: Border.all(color: t.subCardBorder),
         ),
         child: ListTile(

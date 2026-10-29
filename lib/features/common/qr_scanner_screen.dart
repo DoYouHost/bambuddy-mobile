@@ -131,7 +131,7 @@ class _QrScannerScreenState<T extends Object>
                   height: 240,
                   decoration: BoxDecoration(
                     border: Border.all(color: t.accentGreen, width: 3),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(DashRadius.lg),
                   ),
                 ),
                 const SizedBox(height: DashSpace.xl),
@@ -184,7 +184,7 @@ class _ScannerError extends StatelessWidget {
             Icon(
               denied ? Icons.no_photography_outlined : Icons.error_outline,
               color: t.textSecondary,
-              size: 56,
+              size: DashIcon.xxl,
             ),
             const SizedBox(height: DashSpace.lg),
             Text(

@@ -207,13 +207,13 @@ class _Rail extends StatelessWidget {
                 'controller.filament_unit',
                 Material(
                   color: i == selected
-                      ? t.accent.withValues(alpha: 0.10)
+                      ? t.accent.withValues(alpha: DashAlpha.faint)
                       : t.subCard,
                   shape: RoundedRectangleBorder(
                     borderRadius: radius,
                     side: BorderSide(
                       color: i == selected
-                          ? t.accent.withValues(alpha: 0.55)
+                          ? t.accent.withValues(alpha: DashAlpha.scrim)
                           : t.subCardBorder,
                     ),
                   ),
@@ -768,7 +768,9 @@ class _SlotCard extends StatelessWidget {
           : EdgeInsets.zero,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(_chip / 2),
-        color: active ? t.accent : t.textPrimary.withValues(alpha: 0.12),
+        color: active
+            ? t.accent
+            : t.textPrimary.withValues(alpha: DashAlpha.faint),
       ),
       // Not the Container's `alignment`: that stretches the chip across the
       // whole row the Positioned gives it, and a number becomes a long pill.
@@ -822,11 +824,13 @@ class _SlotCard extends StatelessWidget {
     final percent = empty ? null : fill.percent;
     final grams = empty ? null : fill.grams;
     final card = Material(
-      color: selected ? t.accent.withValues(alpha: 0.10) : t.subCard,
+      color: selected ? t.accent.withValues(alpha: DashAlpha.faint) : t.subCard,
       shape: RoundedRectangleBorder(
         borderRadius: radius,
         side: BorderSide(
-          color: selected ? t.accent.withValues(alpha: 0.7) : t.subCardBorder,
+          color: selected
+              ? t.accent.withValues(alpha: DashAlpha.strong)
+              : t.subCardBorder,
           width: selected ? 2 : 1,
         ),
       ),

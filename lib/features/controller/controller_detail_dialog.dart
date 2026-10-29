@@ -354,10 +354,14 @@ class _FactPill extends StatelessWidget {
         vertical: DashSpace.xs,
       ),
       decoration: BoxDecoration(
-        color: tint == null ? t.subCard : tint.withValues(alpha: 0.14),
+        color: tint == null
+            ? t.subCard
+            : tint.withValues(alpha: DashAlpha.wash),
         borderRadius: radius,
         border: Border.all(
-          color: tint == null ? t.subCardBorder : tint.withValues(alpha: 0.5),
+          color: tint == null
+              ? t.subCardBorder
+              : tint.withValues(alpha: DashAlpha.scrim),
         ),
       ),
       child: Row(

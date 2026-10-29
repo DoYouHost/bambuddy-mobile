@@ -101,11 +101,13 @@ class PrintOptionRow extends StatelessWidget {
     return logTag(
       id,
       Material(
-        color: on ? t.accent.withValues(alpha: 0.16) : t.subCard,
+        color: on ? t.accent.withValues(alpha: DashAlpha.wash) : t.subCard,
         shape: RoundedRectangleBorder(
           borderRadius: radius,
           side: BorderSide(
-            color: on ? t.accent.withValues(alpha: 0.4) : t.subCardBorder,
+            color: on
+                ? t.accent.withValues(alpha: DashAlpha.outline)
+                : t.subCardBorder,
           ),
         ),
         child: InkWell(

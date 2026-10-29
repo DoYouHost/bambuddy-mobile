@@ -275,7 +275,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       foregroundColor: t.textPrimary,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(DashRadius.lg),
                         side: BorderSide(color: t.subCardBorder),
                       ),
                       onPressed: () => _scanSpool(context, ref),
@@ -292,7 +292,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       foregroundColor: t.onAccent,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(DashRadius.xl),
                       ),
                       onPressed: () => openSpoolForm(context),
                       icon: const Icon(Icons.add),

@@ -500,7 +500,7 @@ void main() {
             .style!
             .backgroundColor!
             .resolve({});
-        expect(fill, t.accent.withValues(alpha: 0.22), reason: id);
+        expect(fill, t.accent.withValues(alpha: DashAlpha.wash), reason: id);
       }
     });
 

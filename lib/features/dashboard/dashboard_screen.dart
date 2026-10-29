@@ -922,8 +922,12 @@ class _AppDrawer extends ConsumerWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    t.accentGreen.withValues(alpha: t.isDark ? 0.20 : 0.14),
-                    t.accentGreen.withValues(alpha: t.isDark ? 0.06 : 0.04),
+                    t.accentGreen.withValues(
+                      alpha: t.isDark ? DashAlpha.wash : DashAlpha.wash,
+                    ),
+                    t.accentGreen.withValues(
+                      alpha: t.isDark ? DashAlpha.faint : DashAlpha.faint,
+                    ),
                   ],
                 ),
               ),
@@ -938,7 +942,7 @@ class _AppDrawer extends ConsumerWidget {
                       height: 150,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: t.accentGreen.withValues(alpha: 0.18),
+                        color: t.accentGreen.withValues(alpha: DashAlpha.wash),
                       ),
                     ),
                   ),
@@ -955,10 +959,14 @@ class _AppDrawer extends ConsumerWidget {
                         children: [
                           Container(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(
+                                DashRadius.lg,
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.22),
+                                  color: Colors.black.withValues(
+                                    alpha: DashAlpha.wash,
+                                  ),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -966,7 +974,9 @@ class _AppDrawer extends ConsumerWidget {
                               border: Border.all(color: t.subCardBorder),
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(15),
+                              borderRadius: BorderRadius.circular(
+                                DashRadius.lg,
+                              ),
                               child: Image.asset(
                                 'assets/icon/app_logo.png',
                                 width: _iconSize,
@@ -1220,7 +1230,11 @@ class _DrawerVersions extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: DashSpace.xs),
-          child: Icon(Icons.print_outlined, size: 14, color: t.textTertiary),
+          child: Icon(
+            Icons.print_outlined,
+            size: DashIcon.sm,
+            color: t.textTertiary,
+          ),
         ),
         const SizedBox(width: DashSpace.sm),
         Expanded(
@@ -1264,7 +1278,7 @@ class _ProfileChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.dns_rounded, size: 13, color: t.textSecondary),
+          Icon(Icons.dns_rounded, size: DashIcon.xs, color: t.textSecondary),
           const SizedBox(width: DashSpace.xs),
           Flexible(
             child: Text(
@@ -1309,7 +1323,7 @@ class _DrawerTile extends StatelessWidget {
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         clipBehavior: Clip.antiAlias,
         child: logTag(
           id,
@@ -1328,13 +1342,13 @@ class _DrawerTile extends StatelessWidget {
                       icon: icon,
                       size: 40,
                       radius: 12,
-                      iconSize: 21,
+                      iconSize: DashIcon.md,
                     ),
                     const SizedBox(width: DashSpace.lg),
                     Expanded(child: Text(label, style: t.bodyStrong)),
                     Icon(
                       Icons.chevron_right_rounded,
-                      size: 20,
+                      size: DashIcon.md,
                       color: t.textTertiary,
                     ),
                   ],
@@ -1655,7 +1669,7 @@ class _SummaryHeader extends ConsumerWidget {
             Tooltip(
               message: l10n.totalPowerTooltip,
               child: InkWell(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(DashRadius.sm),
                 onTap: () => showPowerBreakdownSheet(
                   context,
                   printers: [
@@ -1676,7 +1690,11 @@ class _SummaryHeader extends ConsumerWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.bolt, size: 15, color: t.accentGreenInk),
+                        Icon(
+                          Icons.bolt,
+                          size: DashIcon.sm,
+                          color: t.accentGreenInk,
+                        ),
                         const SizedBox(width: DashSpace.xs),
                         Text(
                           l10n.powerWatts(totalPowerW.round()),
@@ -1718,7 +1736,7 @@ PopupMenuItem<VoidCallback> _menuItem(
     id,
     Row(
       children: [
-        Icon(icon, size: 20),
+        Icon(icon, size: DashIcon.md),
         const SizedBox(width: DashSpace.md),
         // A popup menu is capped at 256 px, which a long label at a large
         // system text size runs past.

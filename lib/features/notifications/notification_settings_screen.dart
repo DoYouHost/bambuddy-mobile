@@ -227,14 +227,14 @@ class _BlockedBanner extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: scheme.errorContainer,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(DashRadius.md),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             Icons.notifications_off_outlined,
-            size: 18,
+            size: DashIcon.md,
             color: scheme.onErrorContainer,
           ),
           const SizedBox(width: DashSpace.md),

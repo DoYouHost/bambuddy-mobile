@@ -211,7 +211,7 @@ class _LabelPrinterSettingsState extends ConsumerState<LabelPrinterSettings> {
                 padding: const EdgeInsets.only(top: DashSpace.xs),
                 child: Icon(
                   Icons.print_outlined,
-                  size: 20,
+                  size: DashIcon.md,
                   color: t.accentGreenInk,
                 ),
               ),

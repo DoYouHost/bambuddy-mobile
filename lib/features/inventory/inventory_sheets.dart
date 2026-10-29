@@ -185,7 +185,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
               onPressed: _saving || _printerId == null ? null : _assign,
               icon: _saving
                   ? DashSpinner(color: t.onAccent)
-                  : const Icon(Icons.add_link, size: 18),
+                  : const Icon(Icons.add_link, size: DashIcon.md),
               label: Text(l10n.inventoryAssignConfirm),
             ).tagged('spool_assign.save'),
           ],
@@ -507,17 +507,17 @@ class _ActionPill extends StatelessWidget {
       _ActionPillVariant.destructive => (tokens.dangerInk, tokens.danger),
     };
     final fill = variant == _ActionPillVariant.primary
-        ? tokens.accentGreen.withValues(alpha: 0.16)
+        ? tokens.accentGreen.withValues(alpha: DashAlpha.wash)
         : Colors.transparent;
     final border = outline == null
         ? null
-        : Border.all(color: outline.withValues(alpha: 0.4));
+        : Border.all(color: outline.withValues(alpha: DashAlpha.outline));
 
     return Material(
       color: fill,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         onTap: onPressed,
         child: Container(
           padding: const EdgeInsets.symmetric(
@@ -525,7 +525,7 @@ class _ActionPill extends StatelessWidget {
             vertical: DashSpace.md,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             border: border,
           ),
           // The padding plus the label is 43 dp; this brings the touch area to 48.
@@ -537,7 +537,7 @@ class _ActionPill extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(icon, size: 16, color: color),
+                Icon(icon, size: DashIcon.sm, color: color),
                 const SizedBox(width: DashSpace.sm),
                 Text(
                   label,

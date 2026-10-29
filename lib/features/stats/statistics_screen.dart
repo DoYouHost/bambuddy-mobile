@@ -202,7 +202,7 @@ class _StatsBody extends ConsumerWidget {
                 children: [
                   Icon(
                     Icons.bar_chart_outlined,
-                    size: 48,
+                    size: DashIcon.xxl,
                     color: t.textTertiary,
                   ),
                   const SizedBox(height: DashSpace.md),
@@ -381,7 +381,11 @@ class _OverviewCard extends StatelessWidget {
             const SizedBox(height: DashSpace.sm),
             Row(
               children: [
-                Icon(Icons.hourglass_empty, size: 14, color: t.textTertiary),
+                Icon(
+                  Icons.hourglass_empty,
+                  size: DashIcon.sm,
+                  color: t.textTertiary,
+                ),
                 const SizedBox(width: DashSpace.sm),
                 Expanded(
                   child: Text(l10n.statsEnergyWarmingUp, style: t.microSoft),
@@ -392,7 +396,11 @@ class _OverviewCard extends StatelessWidget {
           Divider(height: 24, color: t.hairline),
           Row(
             children: [
-              Icon(Icons.summarize_outlined, size: 28, color: t.accentGreenInk),
+              Icon(
+                Icons.summarize_outlined,
+                size: DashIcon.xl,
+                color: t.accentGreenInk,
+              ),
               const SizedBox(width: DashSpace.md),
               Expanded(child: Text(l10n.statsTotalCost, style: t.body)),
               Text(
@@ -425,7 +433,7 @@ class _StatTile extends StatelessWidget {
     final t = DashTokens.of(context);
     return Row(
       children: [
-        Icon(icon, size: 28, color: t.accentGreenInk),
+        Icon(icon, size: DashIcon.xl, color: t.accentGreenInk),
         const SizedBox(width: DashSpace.md),
         Expanded(
           child: Column(

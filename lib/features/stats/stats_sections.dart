@@ -42,7 +42,7 @@ class FailureAnalysisCard extends ConsumerWidget {
       trailing: logTag(
         'stats.open_print_log',
         IconButton(
-          icon: const Icon(Icons.receipt_long_outlined, size: 20),
+          icon: const Icon(Icons.receipt_long_outlined, size: DashIcon.md),
           tooltip: l10n.printLogTitle,
           onPressed: () => context.push('/print-log'),
         ),
@@ -241,7 +241,9 @@ class PrintActivityCard extends StatelessWidget {
                             margin: const EdgeInsets.all(_cellInset),
                             decoration: BoxDecoration(
                               color: cellColor(dayAt(w, d)),
-                              borderRadius: BorderRadius.circular(3),
+                              borderRadius: BorderRadius.circular(
+                                DashRadius.xs,
+                              ),
                             ),
                           ),
                       ],
@@ -281,7 +283,7 @@ class PrintActivityCard extends StatelessWidget {
                     color: frac == 0
                         ? track
                         : Color.lerp(track, t.accentGreen, frac)!,
-                    borderRadius: BorderRadius.circular(3),
+                    borderRadius: BorderRadius.circular(DashRadius.xs),
                   ),
                 ),
               const SizedBox(width: DashSpace.sm),
@@ -393,7 +395,7 @@ class _RecordRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 22, color: t.accentGreenInk),
+          Icon(icon, size: DashIcon.lg, color: t.accentGreenInk),
           const SizedBox(width: DashSpace.md),
           Expanded(
             child: Column(
@@ -1109,7 +1111,7 @@ class _ColorChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Row(
@@ -1120,7 +1122,7 @@ class _ColorChip extends StatelessWidget {
             height: 16,
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(DashRadius.xs),
               border: Border.all(color: t.cardBorder),
             ),
           ),
@@ -1206,7 +1208,7 @@ class _BarHistogram extends StatelessWidget {
                     color: t.accentGreen,
                     width: 10,
                     borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(3),
+                      top: Radius.circular(DashRadius.xs),
                     ),
                   ),
                 ],

@@ -386,7 +386,7 @@ class _Place extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: _size, minHeight: _size),
       padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
       decoration: BoxDecoration(
-        color: t.overlaySurface.withValues(alpha: 0.85),
+        color: t.overlaySurface.withValues(alpha: DashAlpha.heavy),
         borderRadius: BorderRadius.circular(_size / 2),
       ),
       child: Center(

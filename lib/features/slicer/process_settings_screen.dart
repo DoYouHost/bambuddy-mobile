@@ -133,7 +133,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
     if (count == 0) return const SizedBox.shrink();
     return TextButton.icon(
       onPressed: () => _revertAll(catalog, values),
-      icon: const Icon(Icons.restart_alt, size: 18),
+      icon: const Icon(Icons.restart_alt, size: DashIcon.md),
       label: Text(_l10n.processSettingsRevertAll(count)),
     ).tagged('process_settings.revert_all');
   }
@@ -306,14 +306,14 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
       padding: const EdgeInsets.all(DashSpace.md),
       decoration: BoxDecoration(
         color: theme.colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(DashRadius.md),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             Icons.info_outline,
-            size: 18,
+            size: DashIcon.md,
             color: theme.colorScheme.onSecondaryContainer,
           ),
           const SizedBox(width: DashSpace.sm),
@@ -508,7 +508,9 @@ class _OptionRow extends StatelessWidget {
       style: theme.textTheme.bodyMedium?.copyWith(
         color: enabled
             ? theme.colorScheme.onSurface
-            : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            : theme.colorScheme.onSurfaceVariant.withValues(
+                alpha: DashAlpha.scrim,
+              ),
       ),
     );
     final label = Row(
@@ -524,7 +526,7 @@ class _OptionRow extends StatelessWidget {
             padding: const EdgeInsets.only(left: DashSpace.sm),
             child: Icon(
               Icons.circle,
-              size: 8,
+              size: DashIcon.xs,
               color: theme.colorScheme.primary,
             ),
           ),

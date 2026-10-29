@@ -197,9 +197,11 @@ class _Avatar extends StatelessWidget {
       height: 44,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: user.isActive ? 0.16 : 0.06),
+        color: accent.withValues(
+          alpha: user.isActive ? DashAlpha.wash : DashAlpha.faint,
+        ),
         shape: BoxShape.circle,
-        border: Border.all(color: accent.withValues(alpha: 0.4)),
+        border: Border.all(color: accent.withValues(alpha: DashAlpha.outline)),
       ),
       child: Text(
         initial,
@@ -328,7 +330,7 @@ class _SheetActions extends ConsumerWidget {
               Navigator.of(context).pop();
               openUserEdit(context, user);
             },
-            icon: const Icon(Icons.edit_outlined, size: 18),
+            icon: const Icon(Icons.edit_outlined, size: DashIcon.md),
             label: Text(l10n.usersEdit),
           ).tagged('user_detail.edit'),
         ),
@@ -338,10 +340,12 @@ class _SheetActions extends ConsumerWidget {
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 foregroundColor: t.dangerInk,
-                side: BorderSide(color: t.danger.withValues(alpha: 0.5)),
+                side: BorderSide(
+                  color: t.danger.withValues(alpha: DashAlpha.scrim),
+                ),
               ),
               onPressed: () => _delete(context, ref),
-              icon: const Icon(Icons.delete_outline, size: 18),
+              icon: const Icon(Icons.delete_outline, size: DashIcon.md),
               label: Text(l10n.usersDelete),
             ).tagged('user_detail.delete'),
           ),
@@ -443,12 +447,12 @@ class _CountTile extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Column(
         children: [
-          Icon(icon, size: 16, color: t.textSecondary),
+          Icon(icon, size: DashIcon.sm, color: t.textSecondary),
           const SizedBox(height: DashSpace.sm),
           Text('$value', style: t.monoHeadline),
           const SizedBox(height: DashSpace.xs),
@@ -478,7 +482,7 @@ class _DetailRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: t.textTertiary),
+          Icon(icon, size: DashIcon.sm, color: t.textTertiary),
           const SizedBox(width: DashSpace.md),
           SizedBox(
             width: 110,

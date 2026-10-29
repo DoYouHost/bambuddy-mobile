@@ -257,7 +257,7 @@ class _Content extends StatelessWidget {
           LineChartBarData(
             spots: targets,
             isStepLineChart: true,
-            color: color.withValues(alpha: 0.55),
+            color: color.withValues(alpha: DashAlpha.scrim),
             barWidth: 1.5,
             dashArray: const [5, 5],
             dotData: const FlDotData(show: false),
@@ -303,7 +303,11 @@ class _Legend extends StatelessWidget {
       children: [
         item(color, false, l10n.heaterHistoryReading),
         const SizedBox(width: DashSpace.lg),
-        item(color.withValues(alpha: 0.55), true, l10n.heaterHistoryTarget),
+        item(
+          color.withValues(alpha: DashAlpha.scrim),
+          true,
+          l10n.heaterHistoryTarget,
+        ),
       ],
     );
   }

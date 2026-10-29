@@ -195,11 +195,13 @@ class _ReadingTile extends ConsumerWidget {
             DashSpace.sm,
           ),
           decoration: BoxDecoration(
-            color: active ? t.accent.withValues(alpha: 0.08) : t.subCard,
+            color: active
+                ? t.accent.withValues(alpha: DashAlpha.faint)
+                : t.subCard,
             borderRadius: radius,
             border: Border.all(
               color: active
-                  ? t.accent.withValues(alpha: 0.45)
+                  ? t.accent.withValues(alpha: DashAlpha.scrim)
                   : t.subCardBorder,
             ),
           ),
@@ -505,11 +507,13 @@ class _SwitchTile extends StatelessWidget {
     final large = controllerPaged(context);
     final radius = BorderRadius.circular(DashSpace.md + DashSpace.xs);
     final tile = Material(
-      color: on ? t.accent.withValues(alpha: 0.10) : t.subCard,
+      color: on ? t.accent.withValues(alpha: DashAlpha.faint) : t.subCard,
       shape: RoundedRectangleBorder(
         borderRadius: radius,
         side: BorderSide(
-          color: on ? t.accent.withValues(alpha: 0.35) : t.subCardBorder,
+          color: on
+              ? t.accent.withValues(alpha: DashAlpha.soft)
+              : t.subCardBorder,
         ),
       ),
       child: logTag(
@@ -618,16 +622,24 @@ ButtonStyle controllerButtonStyle(
   // Pulled toward the text colour: the bare accent is too pale on a light tile.
   final text =
       ink ?? (tone == null ? null : Color.lerp(tone, t.textPrimary, 0.3));
-  final grey = BorderSide(color: t.textPrimary.withValues(alpha: 0.22));
+  final grey = BorderSide(
+    color: t.textPrimary.withValues(alpha: DashAlpha.wash),
+  );
   final enabledSide =
       side ??
-      BorderSide(color: base.withValues(alpha: tone == null ? 0.22 : 0.5));
+      BorderSide(
+        color: base.withValues(
+          alpha: tone == null ? DashAlpha.wash : DashAlpha.scrim,
+        ),
+      );
   return FilledButton.styleFrom(
     // A wash of the text colour: `subCard` is a 2% tint and `subCardBorder` a
     // 5% one, which is a border with nothing inside it on this ground.
-    backgroundColor: base.withValues(alpha: tone == null ? 0.16 : 0.22),
+    backgroundColor: base.withValues(
+      alpha: tone == null ? DashAlpha.wash : DashAlpha.wash,
+    ),
     foregroundColor: text ?? t.textPrimary,
-    disabledBackgroundColor: t.textPrimary.withValues(alpha: 0.11),
+    disabledBackgroundColor: t.textPrimary.withValues(alpha: DashAlpha.faint),
     disabledForegroundColor: t.textSecondary,
     minimumSize: minimumSize,
     padding: padding,
@@ -703,13 +715,13 @@ class ControllerChoices extends StatelessWidget {
               id,
               Material(
                 color: i == selected
-                    ? t.accent.withValues(alpha: 0.16)
+                    ? t.accent.withValues(alpha: DashAlpha.wash)
                     : t.subCard,
                 shape: RoundedRectangleBorder(
                   borderRadius: radius,
                   side: BorderSide(
                     color: i == selected
-                        ? t.accent.withValues(alpha: 0.4)
+                        ? t.accent.withValues(alpha: DashAlpha.outline)
                         : t.subCardBorder,
                   ),
                 ),

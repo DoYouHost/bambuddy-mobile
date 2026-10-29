@@ -17,7 +17,7 @@ PreferredSizeWidget photoViewerAppBar(String title, {List<Widget>? actions}) =>
           title,
           style: const TextStyle(
             fontFamily: DashTokens.fontUi,
-            fontSize: 20,
+            fontSize: DashFontSize.display,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
             color: Colors.white,
@@ -106,8 +106,8 @@ class _PhotoPagerState extends State<PhotoPager> {
             padding: const EdgeInsets.only(bottom: DashSpace.xl),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(999),
+                color: Colors.black.withValues(alpha: DashAlpha.strong),
+                borderRadius: BorderRadius.circular(DashRadius.pill),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -118,7 +118,7 @@ class _PhotoPagerState extends State<PhotoPager> {
                   '${_page + 1} / ${photos.length}',
                   style: const TextStyle(
                     fontFamily: DashTokens.fontMono,
-                    fontSize: 12,
+                    fontSize: DashFontSize.label,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),

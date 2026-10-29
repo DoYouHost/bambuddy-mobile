@@ -1150,13 +1150,13 @@ class _WhenChoices extends StatelessWidget {
               'controller.print.when',
               Material(
                 color: i == selected
-                    ? t.accent.withValues(alpha: 0.16)
+                    ? t.accent.withValues(alpha: DashAlpha.wash)
                     : t.subCard,
                 shape: RoundedRectangleBorder(
                   borderRadius: radius,
                   side: BorderSide(
                     color: i == selected
-                        ? t.accent.withValues(alpha: 0.4)
+                        ? t.accent.withValues(alpha: DashAlpha.outline)
                         : t.subCardBorder,
                   ),
                 ),
@@ -1280,12 +1280,14 @@ class _FilamentRow extends StatelessWidget {
     return logTag(
       'controller.print.filament',
       Material(
-        color: unmatched ? t.warning.withValues(alpha: 0.10) : t.subCard,
+        color: unmatched
+            ? t.warning.withValues(alpha: DashAlpha.faint)
+            : t.subCard,
         shape: RoundedRectangleBorder(
           borderRadius: radius,
           side: BorderSide(
             color: unmatched
-                ? t.warning.withValues(alpha: 0.5)
+                ? t.warning.withValues(alpha: DashAlpha.scrim)
                 : t.subCardBorder,
           ),
         ),
@@ -1378,7 +1380,9 @@ class _Slot extends StatelessWidget {
             color: hex == null
                 ? null
                 : Color(0xFF000000 | int.parse(hex, radix: 16)),
-            border: Border.all(color: t.textPrimary.withValues(alpha: 0.3)),
+            border: Border.all(
+              color: t.textPrimary.withValues(alpha: DashAlpha.soft),
+            ),
           ),
           child: hex == null
               ? Icon(

@@ -589,7 +589,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         onSelected: (v) => setState(() => _onlyThisPrinter = v),
         avatar: Icon(
           _onlyThisPrinter ? Icons.filter_alt : Icons.filter_alt_off,
-          size: 18,
+          size: DashIcon.md,
           color: _onlyThisPrinter ? t.accentGreenInk : t.textTertiary,
         ),
         showCheckmark: false,
@@ -614,7 +614,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     return Padding(
       padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         onTap: () => setState(() {
           _picked = preset;
           _userPicked = true;
@@ -626,7 +626,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
           ),
           decoration: BoxDecoration(
             color: t.subCard,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             border: Border.all(
               color: selected ? t.accentGreen : t.subCardBorder,
               width: selected ? 1.5 : 1,
@@ -636,7 +636,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
             children: [
               Icon(
                 selected ? Icons.check_circle : Icons.circle_outlined,
-                size: 18,
+                size: DashIcon.md,
                 color: selected ? t.accentGreenInk : t.textTertiary,
               ),
               const SizedBox(width: DashSpace.md),
@@ -683,13 +683,15 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
       DashSpace.sm,
     ),
     decoration: BoxDecoration(
-      color: t.accentBlue.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: t.accentBlue.withValues(alpha: 0.4)),
+      color: t.accentBlue.withValues(alpha: DashAlpha.faint),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
+      border: Border.all(
+        color: t.accentBlue.withValues(alpha: DashAlpha.outline),
+      ),
     ),
     child: Row(
       children: [
-        Icon(Icons.cloud_off, size: 18, color: t.accentBlue),
+        Icon(Icons.cloud_off, size: DashIcon.md, color: t.accentBlue),
         const SizedBox(width: DashSpace.sm),
         Expanded(
           child: Text(
@@ -714,7 +716,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
       text,
       style: TextStyle(
         fontFamily: DashTokens.fontUi,
-        fontSize: 13,
+        fontSize: DashFontSize.body,
         color: t.textTertiary,
       ),
     ),
@@ -758,7 +760,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
             const SizedBox(height: DashSpace.xs),
             TextButton.icon(
               onPressed: busy ? null : () => _reset(l10n),
-              icon: const Icon(Icons.layers_clear, size: 18),
+              icon: const Icon(Icons.layers_clear, size: DashIcon.md),
               label: Text(l10n.amsSlotReset),
               style: TextButton.styleFrom(foregroundColor: t.dangerInk),
             ).tagged('ams_slot_config.reset'),
@@ -1026,7 +1028,7 @@ class _CatalogueSwatch extends StatelessWidget {
     return Tooltip(
       message: entry.colorName,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
         onTap: onTap,
         // The swatch paints 36 dp, its touch target is the 48 dp cell around it.
         child: SizedBox.square(
@@ -1037,7 +1039,7 @@ class _CatalogueSwatch extends StatelessWidget {
               height: 36,
               decoration: BoxDecoration(
                 color: colour,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(DashRadius.sm),
                 border: Border.all(
                   color: selected ? t.accentGreen : t.subCardBorder,
                   width: selected ? 2 : 1,

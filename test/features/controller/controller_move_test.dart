@@ -100,7 +100,7 @@ void main() {
     ) async {
       await pump(tester, _status());
       final t = DashTokens.of(tester.element(find.byType(ControllerMove)));
-      final accent = t.accent.withValues(alpha: 0.22);
+      final accent = t.accent.withValues(alpha: DashAlpha.wash);
 
       for (final id in [
         'controller.jog_y_plus',

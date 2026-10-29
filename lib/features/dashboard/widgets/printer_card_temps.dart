@@ -94,7 +94,7 @@ class _GaugeTile extends ConsumerWidget {
       padding: const EdgeInsets.all(DashSpace.md),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Column(
@@ -118,7 +118,7 @@ class _GaugeTile extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (airductIcon != null) ...[
-                Icon(airductIcon, size: 20, color: accent),
+                Icon(airductIcon, size: DashIcon.md, color: accent),
                 const SizedBox(width: DashSpace.xs),
               ],
               Text(
@@ -167,7 +167,7 @@ class _GaugeTile extends ConsumerWidget {
 
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: logTag(
         // Per sensor, under the same name the WebSocket frame uses for it
@@ -246,11 +246,11 @@ class _StateChip extends StatelessWidget {
     final Color fg;
     final BoxBorder? border;
     if (offline) {
-      bg = scheme.error.withValues(alpha: 0.14);
+      bg = scheme.error.withValues(alpha: DashAlpha.wash);
       fg = scheme.error;
       border = Border.all(color: scheme.error, width: 1.5);
     } else {
-      bg = t.accentGreen.withValues(alpha: 0.16);
+      bg = t.accentGreen.withValues(alpha: DashAlpha.wash);
       fg = t.accentGreenInk;
       border = null;
     }
@@ -261,7 +261,7 @@ class _StateChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: border,
       ),
       child: Text(
@@ -439,7 +439,11 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
         'sheet.temperature',
         Row(
           children: [
-            Icon(Icons.check_circle, size: 15, color: t.accentGreenInk),
+            Icon(
+              Icons.check_circle,
+              size: DashIcon.sm,
+              color: t.accentGreenInk,
+            ),
             const SizedBox(width: DashSpace.sm),
             Text(
               l10n.ctrlNozzleActive,
@@ -453,7 +457,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
       alignment: Alignment.centerLeft,
       child: Material(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: enabled ? _switchNozzle : null,
@@ -463,7 +467,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
             ),
             padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(DashRadius.md),
               border: Border.all(color: t.subCardBorder),
             ),
             child: Row(
@@ -473,7 +477,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
                     ? const DashSpinner(size: 16)
                     : Icon(
                         Icons.swap_horiz,
-                        size: 16,
+                        size: DashIcon.sm,
                         color: enabled ? t.textPrimary : t.textTertiary,
                       ),
                 const SizedBox(width: DashSpace.sm),
@@ -606,7 +610,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
                           _target == 0 ? l10n.ctrlOff : '$_target°',
                           style: TextStyle(
                             fontFamily: DashTokens.fontMono,
-                            fontSize: 44,
+                            fontSize: DashFontSize.numeral,
                             fontWeight: FontWeight.w700,
                             color: _reading.gaugeInk(
                               t,
@@ -731,8 +735,10 @@ class _PresetChip extends StatelessWidget {
     final t = DashTokens.of(context);
     final fg = selected ? t.accentGreenInk : t.textPrimary;
     return Material(
-      color: selected ? t.accentGreen.withValues(alpha: 0.16) : t.subCard,
-      borderRadius: BorderRadius.circular(12),
+      color: selected
+          ? t.accentGreen.withValues(alpha: DashAlpha.wash)
+          : t.subCard,
+      borderRadius: BorderRadius.circular(DashRadius.md),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -742,10 +748,10 @@ class _PresetChip extends StatelessWidget {
           ),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(DashRadius.md),
               border: Border.all(
                 color: selected
-                    ? t.accentGreen.withValues(alpha: 0.5)
+                    ? t.accentGreen.withValues(alpha: DashAlpha.scrim)
                     : t.subCardBorder,
               ),
             ),
@@ -795,7 +801,7 @@ class _StepButton extends StatelessWidget {
     return Material(
       color: t.subCard,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         side: BorderSide(color: t.subCardBorder),
       ),
       clipBehavior: Clip.antiAlias,
@@ -830,7 +836,7 @@ class _AirductToggle extends StatelessWidget {
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.air, size: 16, color: t.textSecondary),
+          Icon(Icons.air, size: DashIcon.sm, color: t.textSecondary),
           const SizedBox(width: DashSpace.sm),
           Text(
             l10n.ctrlAirduct,
@@ -843,12 +849,12 @@ class _AirductToggle extends StatelessWidget {
         segments: [
           ButtonSegment(
             value: false,
-            icon: const Icon(Icons.ac_unit, size: 16),
+            icon: const Icon(Icons.ac_unit, size: DashIcon.sm),
             label: Text(l10n.ctrlAirductCooling),
           ),
           ButtonSegment(
             value: true,
-            icon: const Icon(Icons.local_fire_department, size: 16),
+            icon: const Icon(Icons.local_fire_department, size: DashIcon.sm),
             label: Text(l10n.ctrlAirductHeating),
           ),
         ],
@@ -887,8 +893,10 @@ class _SheetButton extends StatelessWidget {
     final t = DashTokens.of(context);
     final fg = filled ? t.accentGreenInk : t.textPrimary;
     return Material(
-      color: filled ? t.accentGreen.withValues(alpha: 0.16) : t.subCard,
-      borderRadius: BorderRadius.circular(14),
+      color: filled
+          ? t.accentGreen.withValues(alpha: DashAlpha.wash)
+          : t.subCard,
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -897,10 +905,10 @@ class _SheetButton extends StatelessWidget {
             minHeight: kMinInteractiveDimension,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             border: Border.all(
               color: filled
-                  ? t.accentGreen.withValues(alpha: 0.5)
+                  ? t.accentGreen.withValues(alpha: DashAlpha.scrim)
                   : t.subCardBorder,
             ),
           ),

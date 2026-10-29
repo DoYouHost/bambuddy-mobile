@@ -19,7 +19,7 @@ class _InfoRow extends StatelessWidget {
     Widget item(IconData icon, String text, Color color) => Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: color),
+        Icon(icon, size: DashIcon.sm, color: color),
         const SizedBox(width: DashSpace.sm),
         Text(text, style: t.monoLabel.copyWith(color: color)),
       ],
@@ -112,7 +112,7 @@ class _FirmwareLine extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (update) ...[
-              Icon(Icons.system_update, size: 12, color: color),
+              Icon(Icons.system_update, size: DashIcon.xs, color: color),
               const SizedBox(width: DashSpace.xs),
             ],
             Flexible(
@@ -121,7 +121,7 @@ class _FirmwareLine extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: DashTokens.fontMono,
-                  fontSize: 11.5,
+                  fontSize: DashFontSize.label,
                   fontWeight: update ? FontWeight.w700 : FontWeight.w600,
                   color: color,
                 ),
@@ -220,7 +220,7 @@ class _PrintPanel extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.autorenew, size: 14, color: t.accentGreenInk),
+              Icon(Icons.autorenew, size: DashIcon.sm, color: t.accentGreenInk),
               const SizedBox(width: DashSpace.xs),
               Flexible(
                 child: Text(
@@ -239,7 +239,7 @@ class _PrintPanel extends StatelessWidget {
       padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Column(
@@ -314,7 +314,7 @@ class _CoverThumbnail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final placeholder = ClipRRect(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       child: Image.asset(
         _placeholderAsset,
         key: const ValueKey('cover_placeholder'),
@@ -335,7 +335,7 @@ class _CoverThumbnail extends StatelessWidget {
       path: url,
       width: _size,
       height: _size,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       imageKey: const ValueKey('cover_network'),
       // The card's cover is a picture of the print, and a missing one is not
       // news worth an icon of its own — the same plate outline stands in for
@@ -556,7 +556,7 @@ class _FanCell extends ConsumerWidget {
       ),
       decoration: BoxDecoration(
         color: tokens.subCard,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: tokens.subCardBorder),
       ),
       child: Column(
@@ -583,7 +583,7 @@ class _FanCell extends ConsumerWidget {
 
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: logTag(
         // Per fan, under the key the server itself uses ('part'/'aux'/'aux2'/
@@ -679,7 +679,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                   _speed == 0 ? l10n.ctrlOff : '$_speed%',
                   style: TextStyle(
                     fontFamily: DashTokens.fontMono,
-                    fontSize: 44,
+                    fontSize: DashFontSize.numeral,
                     fontWeight: FontWeight.w700,
                     color: accent,
                   ),

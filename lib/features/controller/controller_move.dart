@@ -539,7 +539,7 @@ class _JogButton extends StatelessWidget {
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, size: 24),
+                  Icon(icon, size: DashIcon.lg),
                   const SizedBox(width: DashSpace.sm),
                   Flexible(
                     child: Text(
@@ -596,13 +596,13 @@ class _NozzleChoice extends ConsumerWidget {
                 'controller.jog_nozzle',
                 Material(
                   color: active == head.$2
-                      ? t.accent.withValues(alpha: 0.16)
+                      ? t.accent.withValues(alpha: DashAlpha.wash)
                       : t.subCard,
                   shape: RoundedRectangleBorder(
                     borderRadius: radius,
                     side: BorderSide(
                       color: active == head.$2
-                          ? t.accent.withValues(alpha: 0.4)
+                          ? t.accent.withValues(alpha: DashAlpha.outline)
                           : t.subCardBorder,
                     ),
                   ),

@@ -117,8 +117,8 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
         id: 'nav.dashboard',
       ),
       _NavItem(
-        icon: const Icon(Icons.list_outlined, size: 22),
-        selectedIcon: const Icon(Icons.list, size: 22),
+        icon: const Icon(Icons.list_outlined, size: DashIcon.lg),
+        selectedIcon: const Icon(Icons.list, size: DashIcon.lg),
         label: l10n.navQueue,
         selected: index == 1,
         badge: queueCount,
@@ -127,8 +127,8 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
         id: 'nav.queue',
       ),
       _NavItem(
-        icon: const Icon(Icons.inventory_2_outlined, size: 22),
-        selectedIcon: const Icon(Icons.inventory_2, size: 22),
+        icon: const Icon(Icons.inventory_2_outlined, size: DashIcon.lg),
+        selectedIcon: const Icon(Icons.inventory_2, size: DashIcon.lg),
         label: l10n.navArchive,
         selected: index == 2,
         tokens: t,
@@ -136,8 +136,8 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
         id: 'nav.archive',
       ),
       _NavItem(
-        icon: const Icon(Icons.build_outlined, size: 22),
-        selectedIcon: const Icon(Icons.build, size: 22),
+        icon: const Icon(Icons.build_outlined, size: DashIcon.lg),
+        selectedIcon: const Icon(Icons.build, size: DashIcon.lg),
         label: l10n.navMaintenance,
         selected: index == 3,
         badge: maintenanceCount,
@@ -252,7 +252,7 @@ class _NavItem extends StatelessWidget {
       id,
       InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
           child: Column(
@@ -264,7 +264,7 @@ class _NavItem extends StatelessWidget {
                   clipBehavior: Clip.none,
                   children: [
                     IconTheme.merge(
-                      data: IconThemeData(color: color, size: 22),
+                      data: IconThemeData(color: color, size: DashIcon.lg),
                       child: glyph,
                     ),
                     if (badge > 0)
@@ -281,14 +281,14 @@ class _NavItem extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: tokens.dangerInk,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(DashRadius.sm),
                           ),
                           child: Center(
                             child: Text(
                               '$badge',
                               style: TextStyle(
                                 fontFamily: DashTokens.fontUi,
-                                fontSize: 9,
+                                fontSize: DashFontSize.micro,
                                 fontWeight: FontWeight.w700,
                                 color: tokens.onDanger,
                                 height: 1.2,
@@ -307,7 +307,7 @@ class _NavItem extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: DashTokens.fontUi,
-                  fontSize: 10,
+                  fontSize: DashFontSize.micro,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                   color: color,
                 ),

@@ -130,7 +130,7 @@ class ManyfoldPreview extends ConsumerWidget {
                 ? const DashSpinner()
                 : Icon(
                     Icons.view_in_ar_outlined,
-                    size: 36,
+                    size: DashIcon.xl,
                     color: t.textTertiary,
                   ),
           );

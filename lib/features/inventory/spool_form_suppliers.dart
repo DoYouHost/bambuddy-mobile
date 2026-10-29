@@ -79,7 +79,7 @@ class _SupplierLinksSection extends ConsumerWidget {
         OutlinedButton.icon(
           style: OutlinedButton.styleFrom(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(DashRadius.lg),
             ),
           ),
           onPressed: () => _pick(context),
@@ -131,10 +131,10 @@ class _SupplierLinksSection extends ConsumerWidget {
       ),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(
           color: link.isPurchaseSource
-              ? t.accentGreen.withValues(alpha: 0.5)
+              ? t.accentGreen.withValues(alpha: DashAlpha.scrim)
               : t.subCardBorder,
         ),
       ),

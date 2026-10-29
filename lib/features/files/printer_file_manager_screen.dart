@@ -556,7 +556,7 @@ class _PrinterFileManagerScreenState
               showCheckmark: false,
               backgroundColor: t.subCard,
               side: BorderSide(color: t.subCardBorder),
-              selectedColor: t.accentGreen.withValues(alpha: 0.18),
+              selectedColor: t.accentGreen.withValues(alpha: DashAlpha.wash),
               labelStyle: t.label.copyWith(
                 color: _path == path ? t.accentGreenInk : t.textSecondary,
               ),
@@ -897,7 +897,7 @@ class _PrinterFileManagerScreenState
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 48, color: tokens.textTertiary),
+          Icon(icon, size: DashIcon.xxl, color: tokens.textTertiary),
           const SizedBox(height: DashSpace.md),
           Text(message, textAlign: TextAlign.center, style: tokens.bodySoft),
           if (action != null) ...[const SizedBox(height: DashSpace.lg), action],

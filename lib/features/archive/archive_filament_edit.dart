@@ -144,18 +144,22 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
         child: logTag(
           'archive.filament_edit',
           InkWell(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             onTap: _saving ? null : _edit,
             child: Container(
               padding: const EdgeInsets.all(DashSpace.md),
               decoration: BoxDecoration(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.scale_outlined, size: 18, color: t.textTertiary),
+                  Icon(
+                    Icons.scale_outlined,
+                    size: DashIcon.md,
+                    color: t.textTertiary,
+                  ),
                   const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Column(
@@ -189,7 +193,11 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
                       ),
                     )
                   else
-                    Icon(Icons.edit_outlined, size: 18, color: t.textSecondary),
+                    Icon(
+                      Icons.edit_outlined,
+                      size: DashIcon.md,
+                      color: t.textSecondary,
+                    ),
                 ],
               ),
             ),

@@ -26,7 +26,7 @@ class LocationIconTile extends StatelessWidget {
     final t = DashTokens.of(context);
     final stripe = colorFromHex(location.color);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       child: Container(
         width: 44,
         height: 44,
@@ -36,7 +36,7 @@ class LocationIconTile extends StatelessWidget {
           children: [
             Icon(
               printerLocationIcon(location.icon),
-              size: 24,
+              size: DashIcon.lg,
               color: t.textSecondary,
             ),
             if (stripe != null)
@@ -108,7 +108,7 @@ class LocationCard extends StatelessWidget {
                       selected: selecting ? picked : null,
                       expanded: selecting ? null : expanded,
                       InkWell(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(DashRadius.lg),
                         onTap: onTap,
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(
@@ -245,11 +245,13 @@ class LocationPrinterRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: picked ? t.accentGreen.withValues(alpha: 0.1) : t.subCard,
-          borderRadius: BorderRadius.circular(16),
+          color: picked
+              ? t.accentGreen.withValues(alpha: DashAlpha.faint)
+              : t.subCard,
+          borderRadius: BorderRadius.circular(DashRadius.lg),
           border: Border.all(
             color: picked
-                ? t.accentGreen.withValues(alpha: 0.3)
+                ? t.accentGreen.withValues(alpha: DashAlpha.soft)
                 : t.subCardBorder,
           ),
         ),

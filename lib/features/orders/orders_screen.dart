@@ -610,7 +610,7 @@ class _PlateRow extends StatelessWidget {
       padding: const EdgeInsets.only(top: DashSpace.sm),
       child: Row(
         children: [
-          Icon(Icons.layers_outlined, size: 18, color: t.textTertiary),
+          Icon(Icons.layers_outlined, size: DashIcon.md, color: t.textTertiary),
           const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Column(

@@ -351,7 +351,11 @@ class _PresetSheetState extends State<_PresetSheet> {
                       ),
                       subtitle: Text(_sourceLabel(l10n, p.source)),
                       trailing: p.isLocal
-                          ? Icon(Icons.star, size: 16, color: t.accentGreen)
+                          ? Icon(
+                              Icons.star,
+                              size: DashIcon.sm,
+                              color: t.accentGreen,
+                            )
                           : null,
                       onTap: () => Navigator.pop<PresetPick>(ctx, (
                         preset: p,
@@ -607,7 +611,7 @@ class _UnitSpools extends StatelessWidget {
                         vertical: DashSpace.xs,
                       ),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(DashRadius.md),
                         border: Border.all(color: t.subCardBorder),
                       ),
                       child: Text(why(s), style: t.labelSoft),
@@ -635,7 +639,7 @@ class _SpoolTile extends StatelessWidget {
     return Material(
       color: t.subCard,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         side: BorderSide(color: t.subCardBorder),
       ),
       clipBehavior: Clip.antiAlias,

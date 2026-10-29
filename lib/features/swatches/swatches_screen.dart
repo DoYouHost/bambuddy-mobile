@@ -346,7 +346,7 @@ class _SectionHeader extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
             decoration: BoxDecoration(
               color: t.subCard,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(DashRadius.xl),
               border: Border.all(color: t.subCardBorder),
             ),
             child: Text('$count', style: t.monoLabel),
@@ -374,20 +374,24 @@ class _ColorSwatch extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         color: color ?? t.subCard,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         border: Border.all(color: t.subCardBorder),
         boxShadow: color == null
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.10),
+                  color: Colors.black.withValues(alpha: DashAlpha.faint),
                   blurRadius: 3,
                   offset: const Offset(0, 1),
                 ),
               ],
       ),
       child: color == null
-          ? Icon(Icons.palette_outlined, size: 20, color: t.textTertiary)
+          ? Icon(
+              Icons.palette_outlined,
+              size: DashIcon.md,
+              color: t.textTertiary,
+            )
           : null,
     );
   }
@@ -408,9 +412,11 @@ class _CodeChip extends StatelessWidget {
         vertical: DashSpace.xs,
       ),
       decoration: BoxDecoration(
-        color: t.accentGreen.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: t.accentGreen.withValues(alpha: 0.4)),
+        color: t.accentGreen.withValues(alpha: DashAlpha.wash),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
+        border: Border.all(
+          color: t.accentGreen.withValues(alpha: DashAlpha.outline),
+        ),
       ),
       child: Text(
         code,
@@ -446,7 +452,7 @@ class _SwatchTile extends StatelessWidget {
         child: logTag(
           'swatches.card',
           InkWell(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             onTap: onEdit,
             child: Container(
               padding: const EdgeInsets.fromLTRB(
@@ -457,7 +463,7 @@ class _SwatchTile extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
@@ -535,13 +541,13 @@ class _UncodedTile extends StatelessWidget {
         child: logTag(
           'swatches.generate',
           InkWell(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             onTap: onGenerate,
             child: Container(
               padding: const EdgeInsets.all(DashSpace.md),
               decoration: BoxDecoration(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
@@ -563,23 +569,23 @@ class _UncodedTile extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: t.accentGreenInk,
                       side: BorderSide(
-                        color: t.accentGreen.withValues(alpha: 0.55),
+                        color: t.accentGreen.withValues(alpha: DashAlpha.scrim),
                       ),
                       padding: const EdgeInsets.symmetric(
                         horizontal: DashSpace.lg,
                         vertical: DashSpace.sm,
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(DashRadius.lg),
                       ),
                       textStyle: const TextStyle(
                         fontFamily: DashTokens.fontUi,
-                        fontSize: 14,
+                        fontSize: DashFontSize.title,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     onPressed: onGenerate,
-                    icon: const Icon(Icons.add, size: 18),
+                    icon: const Icon(Icons.add, size: DashIcon.md),
                     label: Text(l10n.swatchGenerate),
                   ),
                 ],
@@ -606,7 +612,7 @@ class _EmptyHint extends StatelessWidget {
       padding: const EdgeInsets.all(DashSpace.xl),
       child: Column(
         children: [
-          Icon(icon, size: 40, color: t.textTertiary),
+          Icon(icon, size: DashIcon.xxl, color: t.textTertiary),
           const SizedBox(height: DashSpace.md),
           Text(
             title,
@@ -855,7 +861,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                         color:
                             preview ??
                             theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(DashRadius.sm),
                         border: Border.all(
                           color: theme.colorScheme.outlineVariant,
                         ),
@@ -885,7 +891,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                         onPressed: _submit,
                         icon: Icon(
                           _isEdit ? Icons.check : Icons.auto_awesome,
-                          size: 18,
+                          size: DashIcon.md,
                         ),
                         label: Text(
                           _isEdit ? l10n.swatchSave : l10n.swatchGenerateCode,
@@ -987,7 +993,7 @@ class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
                       decoration: BoxDecoration(
                         color:
                             color ?? theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(DashRadius.sm),
                         border: Border.all(
                           color: theme.colorScheme.outlineVariant,
                         ),

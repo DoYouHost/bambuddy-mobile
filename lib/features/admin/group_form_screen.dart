@@ -180,7 +180,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
           logTag(
             'group_form.advanced',
             InkWell(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(DashRadius.lg),
               onTap: () => setState(() => _showAdvanced = !_showAdvanced),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -195,7 +195,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                     children: [
                       Icon(
                         _showAdvanced ? Icons.expand_less : Icons.expand_more,
-                        size: 20,
+                        size: DashIcon.md,
                         color: t.textSecondary,
                       ),
                       const SizedBox(width: DashSpace.sm),
@@ -344,10 +344,10 @@ class _CategoryTile extends StatelessWidget {
         color: t.subCard,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
           side: BorderSide(
             color: count > 0
-                ? t.accentGreen.withValues(alpha: 0.3)
+                ? t.accentGreen.withValues(alpha: DashAlpha.soft)
                 : t.subCardBorder,
           ),
         ),
@@ -422,14 +422,16 @@ class _LockedNotice extends StatelessWidget {
         vertical: DashSpace.md,
       ),
       decoration: BoxDecoration(
-        color: t.accentOrange.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: t.accentOrange.withValues(alpha: 0.35)),
+        color: t.accentOrange.withValues(alpha: DashAlpha.faint),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
+        border: Border.all(
+          color: t.accentOrange.withValues(alpha: DashAlpha.soft),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lock_outline, size: 18, color: t.accentOrangeInk),
+          Icon(Icons.lock_outline, size: DashIcon.md, color: t.accentOrangeInk),
           const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(text, style: t.label.copyWith(color: t.textPrimary)),

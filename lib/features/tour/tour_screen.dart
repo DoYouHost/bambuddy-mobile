@@ -367,7 +367,7 @@ class _TourScreenState extends State<TourScreen>
                 holeTouchable: _step.requires.isNotEmpty,
                 // Dark enough to tell apart on the dark theme, where the
                 // screen under it is nearly black already.
-                color: Colors.black.withValues(alpha: 0.72),
+                color: Colors.black.withValues(alpha: DashAlpha.strong),
                 ring: DashTokens.of(context).accentGreen,
                 repaint: _frames,
               ),
@@ -498,7 +498,7 @@ class _RenderScrim extends RenderBox {
   static const _holePadding = DashSpace.xs;
   static const _ringWidth = 2.0;
   static const _glowWidth = 8.0;
-  static const _holeRadius = Radius.circular(16);
+  static const _holeRadius = Radius.circular(DashRadius.lg);
 
   /// The hole in this box's own coordinates, padded.
   Rect? get _hole {
@@ -559,7 +559,7 @@ class _RenderScrim extends RenderBox {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = _glowWidth
-          ..color = this.ring.withValues(alpha: 0.25)
+          ..color = this.ring.withValues(alpha: DashAlpha.soft)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
       )
       ..drawRRect(
@@ -610,7 +610,7 @@ class _TourCard extends StatelessWidget {
       padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
         color: t.overlaySurface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(color: t.cardBorder),
       ),
       child: Column(
@@ -648,7 +648,7 @@ class _TourCard extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxHeight: screen.height * 0.3),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(DashRadius.md),
                   child: AspectRatio(
                     aspectRatio:
                         _wallPreviewSize.width / _wallPreviewSize.height,

@@ -320,9 +320,11 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
           vertical: DashSpace.xs,
         ),
         decoration: BoxDecoration(
-          color: t.danger.withValues(alpha: 0.16),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: t.danger.withValues(alpha: 0.4)),
+          color: t.danger.withValues(alpha: DashAlpha.wash),
+          borderRadius: BorderRadius.circular(DashRadius.xl),
+          border: Border.all(
+            color: t.danger.withValues(alpha: DashAlpha.outline),
+          ),
         ),
         child: Icon(Icons.delete_outline, color: t.dangerInk),
       ),
@@ -644,16 +646,18 @@ class _No3mfBanner extends ConsumerWidget {
           DashSpace.md,
         ),
         decoration: BoxDecoration(
-          color: t.accentOrange.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: t.accentOrange.withValues(alpha: 0.35)),
+          color: t.accentOrange.withValues(alpha: DashAlpha.faint),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
+          border: Border.all(
+            color: t.accentOrange.withValues(alpha: DashAlpha.soft),
+          ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
               Icons.warning_amber_rounded,
-              size: 20,
+              size: DashIcon.md,
               color: t.accentOrangeInk,
             ),
             const SizedBox(width: DashSpace.md),
@@ -670,7 +674,7 @@ class _No3mfBanner extends ConsumerWidget {
                       'archive.no3mf_docs',
                       TextButton.icon(
                         onPressed: () => openWebLink(context, docs),
-                        icon: const Icon(Icons.open_in_new, size: 14),
+                        icon: const Icon(Icons.open_in_new, size: DashIcon.sm),
                         label: Text(
                           reason == No3mfReason.internalStorage
                               ? l10n.archiveNo3mfDocsWhy
@@ -692,7 +696,7 @@ class _No3mfBanner extends ConsumerWidget {
             logTag(
               'archive.no3mf_dismiss',
               IconButton(
-                icon: const Icon(Icons.close, size: 18),
+                icon: const Icon(Icons.close, size: DashIcon.md),
                 tooltip: l10n.archiveNo3mfDismiss,
                 color: t.textTertiary,
                 onPressed: () =>
@@ -738,19 +742,19 @@ class _ArchiveCard extends StatelessWidget {
         child: logTag(
           'archive.card',
           InkWell(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             onTap: onTap,
             onLongPress: onLongPress,
             child: Container(
               padding: const EdgeInsets.all(DashSpace.lg),
               decoration: BoxDecoration(
                 color: selected
-                    ? t.accentGreen.withValues(alpha: 0.14)
+                    ? t.accentGreen.withValues(alpha: DashAlpha.wash)
                     : t.subCard,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(
                   color: selected
-                      ? t.accentGreen.withValues(alpha: 0.5)
+                      ? t.accentGreen.withValues(alpha: DashAlpha.scrim)
                       : t.subCardBorder,
                 ),
               ),
@@ -761,8 +765,10 @@ class _ArchiveCard extends StatelessWidget {
                           width: 52,
                           height: 52,
                           decoration: BoxDecoration(
-                            color: t.accentGreen.withValues(alpha: 0.16),
-                            borderRadius: BorderRadius.circular(14),
+                            color: t.accentGreen.withValues(
+                              alpha: DashAlpha.wash,
+                            ),
+                            borderRadius: BorderRadius.circular(DashRadius.lg),
                           ),
                           child: Icon(Icons.check, color: t.accentGreenInk),
                         )
@@ -810,7 +816,7 @@ class _ArchiveCard extends StatelessWidget {
                       IconButton(
                         icon: Icon(
                           archive.isFavorite ? Icons.star : Icons.star_border,
-                          size: 20,
+                          size: DashIcon.md,
                           color: archive.isFavorite
                               ? t.accentOrangeInk
                               : t.textTertiary,
@@ -823,7 +829,11 @@ class _ArchiveCard extends StatelessWidget {
                     )
                   else if (archive.isFavorite) ...[
                     const SizedBox(width: DashSpace.sm),
-                    Icon(Icons.star, size: 18, color: t.accentOrangeInk),
+                    Icon(
+                      Icons.star,
+                      size: DashIcon.md,
+                      color: t.accentOrangeInk,
+                    ),
                   ],
                 ],
               ),
@@ -857,13 +867,17 @@ class _PlateBadge extends StatelessWidget {
         padding: const EdgeInsets.all(DashSpace.xs),
         decoration: BoxDecoration(
           color: t.subCard,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(DashRadius.sm),
           border: Border.all(color: t.subCardBorder),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.grid_view_outlined, size: 12, color: t.textSecondary),
+            Icon(
+              Icons.grid_view_outlined,
+              size: DashIcon.xs,
+              color: t.textSecondary,
+            ),
             const SizedBox(width: DashSpace.xs),
             Text('$plate', style: t.monoMicro.copyWith(color: t.textSecondary)),
           ],
@@ -905,7 +919,7 @@ class _MediaBadges extends StatelessWidget {
       padding: const EdgeInsets.all(DashSpace.xs),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: badges),
@@ -914,7 +928,7 @@ class _MediaBadges extends StatelessWidget {
 
   Widget _badge(IconData icon, Color color, String label) => Semantics(
     label: label,
-    child: Icon(icon, size: 12, color: color),
+    child: Icon(icon, size: DashIcon.xs, color: color),
   );
 }
 
@@ -1229,7 +1243,7 @@ class _ReasonedButton extends StatelessWidget {
             Text(label),
             if (why != null) ...[
               const SizedBox(width: DashSpace.sm),
-              const Icon(Icons.info_outline, size: 18),
+              const Icon(Icons.info_outline, size: DashIcon.md),
             ],
           ],
         ),
@@ -1606,7 +1620,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
                 FilterChip(
                   avatar: Icon(
                     filters.favoritesOnly ? Icons.star : Icons.star_border,
-                    size: 18,
+                    size: DashIcon.md,
                   ),
                   label: Text(l10n.archiveFilterFavorites),
                   selected: filters.favoritesOnly,
@@ -1826,9 +1840,17 @@ class _ColorSwatch extends StatelessWidget {
                   ),
                 ),
                 child: color == null
-                    ? Icon(Icons.help_outline, size: 18, color: checkColor)
+                    ? Icon(
+                        Icons.help_outline,
+                        size: DashIcon.md,
+                        color: checkColor,
+                      )
                     : (selected
-                          ? Icon(Icons.check, size: 18, color: checkColor)
+                          ? Icon(
+                              Icons.check,
+                              size: DashIcon.md,
+                              color: checkColor,
+                            )
                           : null),
               ),
             ),

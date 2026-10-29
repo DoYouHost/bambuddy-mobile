@@ -232,9 +232,11 @@ class _LoginBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
-        color: t.accentOrange.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: t.accentOrange.withValues(alpha: 0.35)),
+        color: t.accentOrange.withValues(alpha: DashAlpha.faint),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
+        border: Border.all(
+          color: t.accentOrange.withValues(alpha: DashAlpha.soft),
+        ),
       ),
       child: Row(
         children: [
@@ -309,7 +311,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 child: MakerWorldThumbnail(
                   coverUrl: model.design.coverUrl,
                   size: 72,
@@ -398,7 +400,7 @@ class _PlateRow extends StatelessWidget {
       child: Row(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(DashRadius.md),
             child: MakerWorldThumbnail(coverUrl: plate.coverUrl, size: 48),
           ),
           const SizedBox(width: DashSpace.md),
@@ -421,10 +423,10 @@ class _PlateRow extends StatelessWidget {
               onPressed: null,
               style: TextButton.styleFrom(
                 disabledForegroundColor: t.accentGreenInk.withValues(
-                  alpha: 0.6,
+                  alpha: DashAlpha.strong,
                 ),
               ),
-              icon: const Icon(Icons.check_circle, size: 18),
+              icon: const Icon(Icons.check_circle, size: DashIcon.md),
               label: Text(l10n.mwInLibrary),
             ).tagged('makerworld.plate')
           else
@@ -445,7 +447,7 @@ class _PlateRow extends StatelessWidget {
                         size: 16,
                         color: DashTokens.of(context).onAccent,
                       )
-                    : const Icon(Icons.download, size: 18),
+                    : const Icon(Icons.download, size: DashIcon.md),
                 label: Text(l10n.mwImport),
               ),
             ),
@@ -502,7 +504,7 @@ class _RecentRow extends StatelessWidget {
         child: logTag(
           'makerworld.recent_import',
           InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             onTap: () => context.push('/files'),
             child: Container(
               padding: const EdgeInsets.symmetric(
@@ -511,13 +513,13 @@ class _RecentRow extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(DashRadius.md),
                     child: LibraryThumbnail(
                       fileId: item.libraryFileId,
                       hasThumbnail: item.hasThumbnail,
@@ -540,7 +542,7 @@ class _RecentRow extends StatelessWidget {
                         tooltip: l10n.mwOpenOnMakerworld,
                         icon: Icon(
                           Icons.open_in_new,
-                          size: 18,
+                          size: DashIcon.md,
                           color: t.textSecondary,
                         ),
                         onPressed: () => openWebLink(context, source),
@@ -571,7 +573,7 @@ class _InlineError extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: DashSpace.xl),
       child: Column(
         children: [
-          Icon(Icons.error_outline, size: 40, color: t.dangerInk),
+          Icon(Icons.error_outline, size: DashIcon.xxl, color: t.dangerInk),
           const SizedBox(height: DashSpace.md),
           Text(message, textAlign: TextAlign.center, style: t.bodyPlain),
           const SizedBox(height: DashSpace.md),

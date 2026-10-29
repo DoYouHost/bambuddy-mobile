@@ -778,7 +778,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         decoration: BoxDecoration(
           color: t.subCard,
           border: Border.all(color: t.subCardBorder),
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(DashRadius.xl),
         ),
         // One id for both buttons, as it has always been logged.
         child: DashStepper(
@@ -1070,7 +1070,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               children: [
                 if (at != null)
                   IconButton(
-                    icon: const Icon(Icons.close, size: 18),
+                    icon: const Icon(Icons.close, size: DashIcon.md),
                     tooltip: l10n.clear,
                     onPressed: () => setState(() {
                       _lastDried = null;
@@ -1280,7 +1280,7 @@ class _ColorPicker extends ConsumerWidget {
           height: 40,
           decoration: BoxDecoration(
             color: preview ?? t.subCard,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(DashRadius.md),
             border: Border.all(color: t.subCardBorder),
           ),
         ),
@@ -1338,7 +1338,7 @@ class _ColorChip extends StatelessWidget {
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: color ?? t.subCard,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(DashRadius.sm),
             border: Border.all(
               color: selected ? t.accentGreen : t.subCardBorder,
               width: selected ? 2 : 1,

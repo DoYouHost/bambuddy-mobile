@@ -118,7 +118,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
                         children: [
                           Icon(
                             Icons.warning_amber_rounded,
-                            size: 18,
+                            size: DashIcon.md,
                             color: theme.colorScheme.tertiary,
                           ),
                           const SizedBox(width: DashSpace.sm),

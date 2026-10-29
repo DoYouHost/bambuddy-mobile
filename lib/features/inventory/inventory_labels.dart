@@ -106,7 +106,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                   children: [
                     Icon(
                       Icons.print_outlined,
-                      size: 20,
+                      size: DashIcon.md,
                       color: t.accentGreenInk,
                     ),
                     const SizedBox(width: DashSpace.sm),
@@ -511,7 +511,7 @@ class _LabelSpoolRow extends StatelessWidget {
     ].whereType<String>().join(' · ');
 
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       onTap: onTap,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
@@ -522,7 +522,7 @@ class _LabelSpoolRow extends StatelessWidget {
               children: [
                 Icon(
                   checked ? Icons.check_box : Icons.check_box_outline_blank,
-                  size: 20,
+                  size: DashIcon.md,
                   color: checked ? t.accentGreenInk : t.textTertiary,
                 ),
                 const SizedBox(width: DashSpace.md),
@@ -579,7 +579,7 @@ class _LabelFooter extends StatelessWidget {
           onPressed: onPrint,
           icon: busy
               ? DashSpinner(color: t.onAccent)
-              : const Icon(Icons.print_outlined, size: 18),
+              : const Icon(Icons.print_outlined, size: DashIcon.md),
           label: Text('${l10n.inventoryLabelsPrint} ($count)'),
         ).tagged('labels.print'),
       ),
@@ -645,14 +645,14 @@ class _TemplateSheet extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: DashSpace.md),
               child: Material(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(DashRadius.lg),
                   onTap: () => Navigator.of(context).pop(template),
                   child: Container(
                     padding: const EdgeInsets.all(DashSpace.lg),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(DashRadius.lg),
                       border: Border.all(color: t.subCardBorder),
                     ),
                     child: Column(
@@ -744,14 +744,14 @@ class _StartingPositionSlot extends StatelessWidget {
       label: l10n.inventoryLabelsStartSlot(position),
       child: Material(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(DashRadius.md),
           onTap: onTap,
           child: Container(
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(DashRadius.md),
               border: Border.all(color: t.subCardBorder),
             ),
             child: Text('$position', style: t.monoLabel.legible),
@@ -855,7 +855,7 @@ class _CheckRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return InkWell(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       onTap: () => onChanged(!value),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
@@ -867,7 +867,7 @@ class _CheckRow extends StatelessWidget {
               children: [
                 Icon(
                   value ? Icons.check_box : Icons.check_box_outline_blank,
-                  size: 20,
+                  size: DashIcon.md,
                   color: value ? t.accentGreenInk : t.textTertiary,
                 ),
                 const SizedBox(width: DashSpace.md),
@@ -892,5 +892,6 @@ class _CheckRow extends StatelessWidget {
 extension on TextStyle {
   /// The shared micro/label tokens are 11–12 px, too small to read on a phone
   /// in the print sheets; floor them at 13.
-  TextStyle get legible => (fontSize ?? 0) < 13 ? copyWith(fontSize: 13) : this;
+  TextStyle get legible =>
+      (fontSize ?? 0) < 13 ? copyWith(fontSize: DashFontSize.body) : this;
 }

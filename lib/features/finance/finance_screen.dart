@@ -476,7 +476,7 @@ class _CostCenterTile extends ConsumerWidget {
       padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Column(
@@ -618,7 +618,7 @@ class _TransactionTile extends ConsumerWidget {
       padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Row(

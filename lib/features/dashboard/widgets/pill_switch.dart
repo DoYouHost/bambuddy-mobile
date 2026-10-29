@@ -26,7 +26,7 @@ class PillSwitch extends StatelessWidget {
       padding: const EdgeInsets.all((_height - _knob) / 2),
       decoration: BoxDecoration(
         color: on ? tokens.accentGreen : tokens.gaugeTrack,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
       ),
       child: AnimatedAlign(
         duration: const Duration(milliseconds: 180),

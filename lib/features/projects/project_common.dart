@@ -129,7 +129,7 @@ class ProjectColorSelector extends StatelessWidget {
           onTap: () => onChanged(null),
           child: Icon(
             Icons.format_color_reset_outlined,
-            size: 18,
+            size: DashIcon.md,
             applyTextScaling: false,
             color: t.textSecondary,
           ),
@@ -194,9 +194,9 @@ class ProjectStatusChip extends StatelessWidget {
         vertical: DashSpace.xs,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
+        color: color.withValues(alpha: DashAlpha.wash),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
+        border: Border.all(color: color.withValues(alpha: DashAlpha.outline)),
       ),
       child: Text(
         projectStatusLabel(l10n, status),

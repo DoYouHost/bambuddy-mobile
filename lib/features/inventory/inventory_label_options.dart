@@ -184,7 +184,7 @@ class _LabelOptionsSheet extends ConsumerWidget {
                   LabelDestination.labelPrinter => Icons.print_outlined,
                   LabelDestination.share => Icons.ios_share,
                   LabelDestination.save => Icons.save_alt,
-                }, size: 18),
+                }, size: DashIcon.md),
                 label: Text(l10n.inventoryLabelsPrint),
               ).tagged('label_options.print'),
             ),
@@ -256,13 +256,13 @@ class _SetUpLabelPrinterRow extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return InkWell(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       onTap: () => context.push('/settings/label-printer'),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
         child: Row(
           children: [
-            Icon(Icons.label_outline, size: 20, color: t.textTertiary),
+            Icon(Icons.label_outline, size: DashIcon.md, color: t.textTertiary),
             const SizedBox(width: DashSpace.md),
             Expanded(
               child: Column(
@@ -273,7 +273,7 @@ class _SetUpLabelPrinterRow extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, size: 20, color: t.textTertiary),
+            Icon(Icons.chevron_right, size: DashIcon.md, color: t.textTertiary),
           ],
         ),
       ),

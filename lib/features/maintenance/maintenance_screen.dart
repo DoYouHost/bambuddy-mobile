@@ -279,9 +279,9 @@ class _MaintenanceRow extends ConsumerWidget {
                   icon: maintenanceIcon(item.maintenanceTypeIcon),
                   size: 40,
                   radius: 12,
-                  iconSize: 18,
+                  iconSize: DashIcon.md,
                   ink: inkAccent,
-                  fill: tileAccent.withValues(alpha: 0.14),
+                  fill: tileAccent.withValues(alpha: DashAlpha.wash),
                 ),
                 const SizedBox(width: DashSpace.md),
                 Expanded(
@@ -308,7 +308,10 @@ class _MaintenanceRow extends ConsumerWidget {
                 ),
                 const SizedBox(width: DashSpace.xs),
                 IconButton(
-                  icon: const Icon(Icons.check_circle_outline, size: 28),
+                  icon: const Icon(
+                    Icons.check_circle_outline,
+                    size: DashIcon.xl,
+                  ),
                   // Matches the row's own urgency accent (orange when overdue)
                   // instead of always green, so it doesn't clash with the rest.
                   color: inkAccent,

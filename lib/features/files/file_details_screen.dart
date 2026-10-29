@@ -122,7 +122,7 @@ class _FileDetailsScreenState extends ConsumerState<FileDetailsScreen> {
                     Tooltip(
                       message: l10n.archivePhotosTitle,
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(DashRadius.md),
                         onTap: () => context.push(
                           _filePhotosRoute(widget.fileId, i, widget.title),
                         ),
@@ -130,7 +130,7 @@ class _FileDetailsScreenState extends ConsumerState<FileDetailsScreen> {
                           path: Endpoints.libraryFilePhoto(widget.fileId, name),
                           width: 96,
                           height: 96,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(DashRadius.md),
                           placeholder: (_) => SizedBox.square(
                             dimension: 96,
                             child: Icon(

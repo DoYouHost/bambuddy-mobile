@@ -88,7 +88,10 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   widget.printerName,
-                  style: TextStyle(fontSize: 12, color: t.textSecondary),
+                  style: TextStyle(
+                    fontSize: DashFontSize.label,
+                    color: t.textSecondary,
+                  ),
                 ),
               ),
             ),
@@ -138,7 +141,10 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
                         padding: const EdgeInsets.only(bottom: DashSpace.sm),
                         child: Text(
                           l10n.skipObjectsSelectHint,
-                          style: TextStyle(fontSize: 12, color: t.textTertiary),
+                          style: TextStyle(
+                            fontSize: DashFontSize.label,
+                            color: t.textTertiary,
+                          ),
                         ),
                       ),
                     for (final obj in data.objects)
@@ -372,9 +378,11 @@ class _InfoBanner extends StatelessWidget {
         vertical: DashSpace.md,
       ),
       decoration: BoxDecoration(
-        color: t.accentBlue.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: t.accentBlue.withValues(alpha: 0.3)),
+        color: t.accentBlue.withValues(alpha: DashAlpha.faint),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
+        border: Border.all(
+          color: t.accentBlue.withValues(alpha: DashAlpha.soft),
+        ),
       ),
       child: LayoutBuilder(
         builder: (context, box) {
@@ -449,13 +457,17 @@ class _LayerWarning extends StatelessWidget {
         vertical: DashSpace.md,
       ),
       decoration: BoxDecoration(
-        color: amber.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: amber.withValues(alpha: 0.4)),
+        color: amber.withValues(alpha: DashAlpha.faint),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
+        border: Border.all(color: amber.withValues(alpha: DashAlpha.outline)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.warning_amber_rounded, size: 18, color: amber),
+          const Icon(
+            Icons.warning_amber_rounded,
+            size: DashIcon.md,
+            color: amber,
+          ),
           const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(
@@ -530,7 +542,9 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
     // plate edges are — and it keeps that job when the render is missing
     // entirely (demo mode, a printer with no cover).
     final grid = CustomPaint(
-      painter: _PlateGridPainter(line: t.textTertiary.withValues(alpha: 0.18)),
+      painter: _PlateGridPainter(
+        line: t.textTertiary.withValues(alpha: DashAlpha.wash),
+      ),
       child: const SizedBox.expand(),
     );
     const noRender = SizedBox.expand();
@@ -590,7 +604,7 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
     );
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       child: AspectRatio(
         aspectRatio: 1,
         child: Stack(
@@ -711,7 +725,7 @@ class _PlateGridPainter extends CustomPainter {
     // Brighter outer frame so the plate edge reads clearly.
     canvas.drawRect(
       Offset.zero & size,
-      paint..color = line.withValues(alpha: 0.5),
+      paint..color = line.withValues(alpha: DashAlpha.scrim),
     );
   }
 
@@ -804,7 +818,10 @@ class _ObjectShapesPainter extends CustomPainter {
       final color = _colorOf(object);
       canvas.drawPath(
         shape.fill,
-        Paint()..color = color.withValues(alpha: marked ? 0.45 : 0.16),
+        Paint()
+          ..color = color.withValues(
+            alpha: marked ? DashAlpha.scrim : DashAlpha.wash,
+          ),
       );
       // Round caps because the outline is loose unit segments: butt caps would
       // notch every staircase corner once the stroke is wider than a mask pixel.
@@ -861,7 +878,7 @@ class _ObjectShapesPainter extends CustomPainter {
             ..style = PaintingStyle.stroke
             ..strokeWidth = fontSize * 0.3
             ..strokeJoin = StrokeJoin.round
-            ..color = Colors.black.withValues(alpha: 0.85),
+            ..color = Colors.black.withValues(alpha: DashAlpha.heavy),
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -946,7 +963,7 @@ class _ObjectMarker extends StatelessWidget {
               // Nearly opaque: over a bright plate the blend lightens the blue
               // until black on it is under 4.5:1, over a dark one white is.
               color: bg.withValues(alpha: DashAlpha.cover),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(DashRadius.sm),
               border: Border.all(
                 color: selected ? Colors.white : Colors.black38,
                 width: selected ? 2 : 1,
@@ -996,13 +1013,13 @@ class _CountBadge extends StatelessWidget {
         vertical: DashSpace.xs,
       ),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.black.withValues(alpha: DashAlpha.strong),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
       ),
       child: Text(
         l10n.skipObjectsActiveCount(count),
         style: const TextStyle(
-          fontSize: 10,
+          fontSize: DashFontSize.micro,
           fontWeight: FontWeight.w600,
           color: Colors.white,
         ),
@@ -1039,7 +1056,7 @@ class _ObjectTile extends StatelessWidget {
         : (selected ? t.accentBlue : t.accentGreenInk);
     final accentBg =
         (skipped ? t.danger : (selected ? t.accentBlue : t.accentGreen))
-            .withValues(alpha: 0.15);
+            .withValues(alpha: DashAlpha.wash);
 
     return Tooltip(
       message: blockedReason ?? '',
@@ -1047,20 +1064,22 @@ class _ObjectTile extends StatelessWidget {
           ? TooltipTriggerMode.manual
           : TooltipTriggerMode.tap,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         onTap: (canSelect && !skipped) ? onToggle : null,
         child: Container(
           padding: const EdgeInsets.all(DashSpace.md),
           decoration: BoxDecoration(
             color: skipped
-                ? t.danger.withValues(alpha: 0.06)
-                : (selected ? t.accentBlue.withValues(alpha: 0.08) : t.subCard),
-            borderRadius: BorderRadius.circular(14),
+                ? t.danger.withValues(alpha: DashAlpha.faint)
+                : (selected
+                      ? t.accentBlue.withValues(alpha: DashAlpha.faint)
+                      : t.subCard),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             border: Border.all(
               color: skipped
-                  ? t.danger.withValues(alpha: 0.3)
+                  ? t.danger.withValues(alpha: DashAlpha.soft)
                   : (selected
-                        ? t.accentBlue.withValues(alpha: 0.5)
+                        ? t.accentBlue.withValues(alpha: DashAlpha.scrim)
                         : t.subCardBorder),
             ),
           ),
@@ -1074,7 +1093,7 @@ class _ObjectTile extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
                 decoration: BoxDecoration(
                   color: accentBg,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(DashRadius.md),
                   border: Border.all(
                     color: accent.withValues(alpha: DashAlpha.outline),
                   ),
@@ -1090,9 +1109,9 @@ class _ObjectTile extends StatelessWidget {
                     Text(
                       'ID',
                       style: TextStyle(
-                        fontSize: 8,
+                        fontSize: DashFontSize.micro,
                         letterSpacing: 1,
-                        color: accent.withValues(alpha: 0.7),
+                        color: accent.withValues(alpha: DashAlpha.strong),
                       ),
                     ),
                   ],
@@ -1105,7 +1124,7 @@ class _ObjectTile extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: DashFontSize.title,
                     color: skipped ? t.dangerInk : t.textPrimary,
                     decoration: skipped ? TextDecoration.lineThrough : null,
                   ),
@@ -1145,23 +1164,33 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.view_in_ar_outlined, size: 48, color: t.textTertiary),
+            Icon(
+              Icons.view_in_ar_outlined,
+              size: DashIcon.xxl,
+              color: t.textTertiary,
+            ),
             const SizedBox(height: DashSpace.lg),
             Text(
               l10n.skipObjectsEmpty,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, color: t.textPrimary),
+              style: TextStyle(
+                fontSize: DashFontSize.lead,
+                color: t.textPrimary,
+              ),
             ),
             const SizedBox(height: DashSpace.sm),
             Text(
               l10n.skipObjectsEmptyHint,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: t.textSecondary),
+              style: TextStyle(
+                fontSize: DashFontSize.label,
+                color: t.textSecondary,
+              ),
             ),
             const SizedBox(height: DashSpace.xl),
             OutlinedButton.icon(
               onPressed: onReload,
-              icon: const Icon(Icons.refresh, size: 18),
+              icon: const Icon(Icons.refresh, size: DashIcon.md),
               label: Text(l10n.skipObjectsReload),
             ).tagged('skip_objects.reload'),
           ],

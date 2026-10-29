@@ -99,11 +99,17 @@ class GroupCard extends StatelessWidget {
             height: 40,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.16),
+              color: accent.withValues(alpha: DashAlpha.wash),
               shape: BoxShape.circle,
-              border: Border.all(color: accent.withValues(alpha: 0.4)),
+              border: Border.all(
+                color: accent.withValues(alpha: DashAlpha.outline),
+              ),
             ),
-            child: Icon(Icons.group_outlined, size: 20, color: accentInk),
+            child: Icon(
+              Icons.group_outlined,
+              size: DashIcon.md,
+              color: accentInk,
+            ),
           ),
           const SizedBox(width: DashSpace.md),
           Expanded(

@@ -358,7 +358,7 @@ class _FinishPhoto extends StatelessWidget {
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         child: ColoredBox(
           color: t.subCard,
           child: photo == null

@@ -222,7 +222,7 @@ class _TypeTile extends ConsumerWidget {
         icon: maintenanceIcon(type.icon),
         size: 40,
         radius: 12,
-        iconSize: 18,
+        iconSize: DashIcon.md,
       ),
       title: Text(type.name, style: t.titleSm),
       subtitle: Text(
@@ -618,7 +618,7 @@ class _IconChoice extends StatelessWidget {
             color: selected
                 ? scheme.primaryContainer
                 : scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(DashRadius.sm),
             border: Border.all(
               color: selected ? scheme.primary : scheme.outlineVariant,
               width: selected ? 2 : 1,
@@ -626,7 +626,7 @@ class _IconChoice extends StatelessWidget {
           ),
           child: Icon(
             maintenanceIcon(name),
-            size: 22,
+            size: DashIcon.lg,
             applyTextScaling: false,
             color: selected
                 ? scheme.onPrimaryContainer

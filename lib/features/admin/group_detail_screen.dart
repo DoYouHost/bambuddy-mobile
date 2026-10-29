@@ -300,14 +300,14 @@ class _MemberRow extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: t.subCard,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
           border: Border.all(color: t.subCardBorder),
         ),
         child: Row(
           children: [
             Icon(
               Icons.person_outline,
-              size: 18,
+              size: DashIcon.md,
               color: member.isActive ? t.textSecondary : t.textTertiary,
             ),
             const SizedBox(width: DashSpace.md),
@@ -333,7 +333,7 @@ class _MemberRow extends StatelessWidget {
               IconButton(
                 icon: Icon(
                   Icons.person_remove_outlined,
-                  size: 18,
+                  size: DashIcon.md,
                   color: t.dangerInk,
                 ),
                 tooltip: l10n.groupsRemoveMember,

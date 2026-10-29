@@ -133,15 +133,15 @@ class _ScheduledDryingRowState extends ConsumerState<_ScheduledDryingRow> {
         DashSpace.sm,
       ),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accent.withValues(alpha: 0.4)),
+        color: accent.withValues(alpha: DashAlpha.faint),
+        borderRadius: BorderRadius.circular(DashRadius.md),
+        border: Border.all(color: accent.withValues(alpha: DashAlpha.outline)),
       ),
       child: Row(
         children: [
           Icon(
             failed ? Icons.error_outline : Icons.schedule,
-            size: 16,
+            size: DashIcon.sm,
             color: accent,
           ),
           const SizedBox(width: DashSpace.sm),
@@ -168,7 +168,7 @@ class _ScheduledDryingRowState extends ConsumerState<_ScheduledDryingRow> {
                 ? l10n.ctrlDryScheduleDismiss
                 : l10n.ctrlDryScheduleCancel,
             color: accent,
-            borderColor: accent.withValues(alpha: 0.5),
+            borderColor: accent.withValues(alpha: DashAlpha.scrim),
             onPressed: _busy ? null : _drop,
           ),
         ],
@@ -279,7 +279,11 @@ class _DryStartPicker extends StatelessWidget {
           const SizedBox(height: DashSpace.sm),
           Row(
             children: [
-              Icon(Icons.event_outlined, size: 18, color: t.textSecondary),
+              Icon(
+                Icons.event_outlined,
+                size: DashIcon.md,
+                color: t.textSecondary,
+              ),
               const SizedBox(width: DashSpace.md),
               Expanded(
                 child: Text(
@@ -337,7 +341,7 @@ class _AutoDryingNote extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.autorenew, size: 15, color: t.textTertiary),
+          Icon(Icons.autorenew, size: DashIcon.sm, color: t.textTertiary),
           const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(text, style: t.body.copyWith(color: t.textSecondary)),

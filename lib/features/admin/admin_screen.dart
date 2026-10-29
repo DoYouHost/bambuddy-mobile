@@ -79,7 +79,7 @@ class _SignedInAs extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.badge_outlined, size: 15, color: t.textTertiary),
+          Icon(Icons.badge_outlined, size: DashIcon.sm, color: t.textTertiary),
           const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(l10n.adminSignedInAs(username), style: t.labelSoft),

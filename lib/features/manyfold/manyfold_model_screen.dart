@@ -254,7 +254,7 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 child: ManyfoldPreview(modelId: model.id, size: _previewSize),
               ),
               const SizedBox(width: DashSpace.md),
@@ -302,7 +302,7 @@ class _Header extends StatelessWidget {
               if (model.url.isNotEmpty)
                 TextButton.icon(
                   onPressed: () => openWebLink(context, model.url),
-                  icon: const Icon(Icons.open_in_new, size: 18),
+                  icon: const Icon(Icons.open_in_new, size: DashIcon.md),
                   label: Text(l10n.mfOpenInManyfold),
                 ).tagged('manyfold.open_in_manyfold'),
             ],
@@ -426,7 +426,7 @@ class _FileRow extends StatelessWidget {
                     onPressed: busy ? null : onImport,
                     icon: importing
                         ? const DashSpinner(size: 16)
-                        : const Icon(Icons.download, size: 18),
+                        : const Icon(Icons.download, size: DashIcon.md),
                     label: Text(importing ? l10n.mfImporting : l10n.mfImport),
                   ).tagged('manyfold.import_file'),
               ],

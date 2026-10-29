@@ -385,7 +385,9 @@ class QueueSubmitAction extends StatelessWidget {
             EdgeInsets.symmetric(horizontal: DashSpace.lg),
           ),
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(DashRadius.md),
+            ),
           ),
           minimumSize: const WidgetStatePropertyAll(Size(64, _height)),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,

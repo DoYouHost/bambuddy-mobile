@@ -26,7 +26,7 @@ class _ControlsActions extends ConsumerWidget {
         padding: const EdgeInsets.only(top: DashSpace.md),
         child: Row(
           children: [
-            Icon(Icons.lock_outline, size: 16, color: t.textSecondary),
+            Icon(Icons.lock_outline, size: DashIcon.sm, color: t.textSecondary),
             const SizedBox(width: DashSpace.sm),
             Flexible(
               child: Text(
@@ -133,7 +133,7 @@ class _LightSwitchRow extends ConsumerWidget {
       padding: const EdgeInsets.only(top: DashSpace.md),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         clipBehavior: Clip.antiAlias,
         child: logTag(
           'controls.light',
@@ -145,9 +145,11 @@ class _LightSwitchRow extends ConsumerWidget {
                 vertical: DashSpace.lg,
               ),
               decoration: BoxDecoration(
-                color: t.accentGreen.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: t.accentGreen.withValues(alpha: 0.3)),
+                color: t.accentGreen.withValues(alpha: DashAlpha.faint),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
+                border: Border.all(
+                  color: t.accentGreen.withValues(alpha: DashAlpha.soft),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -160,7 +162,7 @@ class _LightSwitchRow extends ConsumerWidget {
                       children: [
                         Icon(
                           on ? Icons.lightbulb : Icons.lightbulb_outline,
-                          size: 18,
+                          size: DashIcon.md,
                           color: t.accentGreenInk,
                         ),
                         const SizedBox(width: DashSpace.sm),
@@ -258,7 +260,9 @@ class _SmartPlugButton extends ConsumerWidget {
       tooltip: tip,
       icon: on ? Icons.power : Icons.power_off,
       color: fg,
-      borderColor: on ? t.accentGreen.withValues(alpha: 0.5) : t.subCardBorder,
+      borderColor: on
+          ? t.accentGreen.withValues(alpha: DashAlpha.scrim)
+          : t.subCardBorder,
       onPressed: canControl ? () => _onToggle(context, ref, plug, !on) : null,
     );
   }
@@ -302,18 +306,18 @@ class _HeaderIconButton extends StatelessWidget {
       IconButton(
         tooltip: tooltip,
         onPressed: onPressed,
-        icon: Icon(icon, size: 18),
+        icon: Icon(icon, size: DashIcon.md),
         // The 34 dp box is the look; the target around it is Material's 48.
         style: IconButton.styleFrom(
           tapTargetSize: MaterialTapTargetSize.padded,
           backgroundColor: t.subCard,
           foregroundColor: fg,
-          disabledForegroundColor: fg.withValues(alpha: 0.4),
+          disabledForegroundColor: fg.withValues(alpha: DashAlpha.outline),
           fixedSize: const Size(34, 34),
           minimumSize: const Size(34, 34),
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(DashRadius.md),
             side: BorderSide(color: borderColor ?? t.subCardBorder),
           ),
         ),
@@ -383,11 +387,11 @@ class _LifecycleButton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final fg = danger ? scheme.error : t.textPrimary;
     final border = danger
-        ? scheme.error.withValues(alpha: 0.5)
+        ? scheme.error.withValues(alpha: DashAlpha.scrim)
         : t.subCardBorder;
     return Material(
       color: t.subCard,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: logTag(
         id,
@@ -403,7 +407,7 @@ class _LifecycleButton extends StatelessWidget {
               horizontal: DashSpace.md,
             ),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(DashRadius.lg),
               border: Border.all(color: border, width: _borderWidth),
             ),
             child: Row(
@@ -453,7 +457,7 @@ class _SpeedControlTile extends ConsumerWidget {
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.speed, size: 16, color: t.textSecondary),
+            Icon(Icons.speed, size: DashIcon.sm, color: t.textSecondary),
             const SizedBox(width: DashSpace.sm),
             Text(
               l10n.ctrlSpeed,
@@ -524,7 +528,7 @@ class _SpeedControl extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: t.subCard,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
           border: Border.all(color: t.subCardBorder),
         ),
         child: Row(
@@ -532,10 +536,14 @@ class _SpeedControl extends StatelessWidget {
           children: [
             busy
                 ? _btnSpinner
-                : Icon(Icons.speed, size: 18, color: t.textSecondary),
+                : Icon(Icons.speed, size: DashIcon.md, color: t.textSecondary),
             const SizedBox(width: DashSpace.sm),
             Text(label, style: t.bodyBold.copyWith(color: t.textPrimary)),
-            Icon(Icons.arrow_drop_down, size: 18, color: t.textSecondary),
+            Icon(
+              Icons.arrow_drop_down,
+              size: DashIcon.md,
+              color: t.textSecondary,
+            ),
           ],
         ),
       ),

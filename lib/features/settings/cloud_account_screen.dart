@@ -108,7 +108,7 @@ class _SignedInState extends ConsumerState<_SignedIn> {
             side: BorderSide(color: t.cardBorder),
             padding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(DashRadius.lg),
             ),
           ),
           onPressed: _busy ? null : _signOut,

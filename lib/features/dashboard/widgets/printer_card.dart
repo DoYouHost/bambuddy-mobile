@@ -405,7 +405,7 @@ class _CardShell extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           gradient: tokens.cardGradient,
-          borderRadius: BorderRadius.circular(26),
+          borderRadius: BorderRadius.circular(DashRadius.xl),
           border: Border.all(color: tokens.cardBorder),
         ),
         child: child,
@@ -438,19 +438,19 @@ class _IconSquare extends StatelessWidget {
     final Color fill;
     if (tint != null) {
       color = tint;
-      fill = tint.withValues(alpha: 0.14);
+      fill = tint.withValues(alpha: DashAlpha.wash);
     } else if (offline) {
       color = tokens.textTertiary;
-      fill = tokens.textTertiary.withValues(alpha: 0.10);
+      fill = tokens.textTertiary.withValues(alpha: DashAlpha.faint);
     } else {
       color = tokens.accentGreenInk;
-      fill = tokens.accentGreen.withValues(alpha: 0.14);
+      fill = tokens.accentGreen.withValues(alpha: DashAlpha.wash);
     }
     return DashIconTile(
       icon: icon,
       size: _HeaderLine.glyphSquare,
       radius: 11,
-      iconSize: 18,
+      iconSize: DashIcon.md,
       ink: color,
       fill: fill,
     );

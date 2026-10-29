@@ -32,7 +32,7 @@ class ProjectCoverImage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
-    final radius = borderRadius ?? BorderRadius.circular(12);
+    final radius = borderRadius ?? BorderRadius.circular(DashRadius.md);
 
     Widget placeholder([IconData icon = Icons.folder_special_outlined]) =>
         Container(

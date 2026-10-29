@@ -342,9 +342,11 @@ class _QueryChip extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
             decoration: BoxDecoration(
-              color: t.accentInk.withValues(alpha: 0.12),
+              color: t.accentInk.withValues(alpha: DashAlpha.faint),
               borderRadius: radius,
-              border: Border.all(color: t.accentInk.withValues(alpha: 0.4)),
+              border: Border.all(
+                color: t.accentInk.withValues(alpha: DashAlpha.outline),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -561,7 +563,7 @@ class _FolderTile extends StatelessWidget {
         width: controllerThumbSize,
         height: controllerThumbSize,
         decoration: BoxDecoration(
-          color: t.warning.withValues(alpha: 0.14),
+          color: t.warning.withValues(alpha: DashAlpha.wash),
           borderRadius: BorderRadius.circular(DashSpace.md),
         ),
         child: Icon(

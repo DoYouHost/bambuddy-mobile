@@ -175,7 +175,7 @@ class _ProjectCard extends StatelessWidget {
             hasCover: project.hasCover,
             width: 64,
             height: 64,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             cacheBust: project.createdAt,
           ),
           const SizedBox(width: DashSpace.md),

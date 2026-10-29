@@ -486,7 +486,7 @@ class _PanelItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: DashSpace.sm),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         border: Border.all(color: t.subCardBorder),
       ),
       clipBehavior: Clip.antiAlias,
@@ -568,7 +568,11 @@ class _QueueRow extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.schedule, size: 14, color: t.accentOrangeInk),
+                Icon(
+                  Icons.schedule,
+                  size: DashIcon.sm,
+                  color: t.accentOrangeInk,
+                ),
                 const SizedBox(width: DashSpace.xs),
                 // The server's own sentence; it is not localised.
                 Expanded(
@@ -735,7 +739,7 @@ class _RailCount extends StatelessWidget {
     final t = DashTokens.of(context);
     return Column(
       children: [
-        Icon(icon, size: 22, color: color),
+        Icon(icon, size: DashIcon.lg, color: color),
         const SizedBox(height: DashSpace.xs),
         Text('$count', style: t.monoValue.copyWith(color: color)),
       ],

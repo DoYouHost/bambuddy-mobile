@@ -395,13 +395,13 @@ class _PrintLogCard extends ConsumerWidget {
         child: logTag(
           'print_log.card',
           InkWell(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             onTap: onTap,
             child: Container(
               padding: const EdgeInsets.all(DashSpace.lg),
               decoration: BoxDecoration(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
@@ -621,7 +621,7 @@ class _PrintLogFilterSheet extends ConsumerWidget {
             logTag(
               'print_log.filters.dates',
               OutlinedButton.icon(
-                icon: const Icon(Icons.date_range, size: 18),
+                icon: const Icon(Icons.date_range, size: DashIcon.md),
                 label: Text(
                   filters.from == null && filters.to == null
                       ? l10n.printLogFilterDates

@@ -410,14 +410,16 @@ class _QueueCard extends ConsumerWidget {
           padding: const EdgeInsets.all(DashSpace.lg),
           decoration: BoxDecoration(
             gradient: selected ? null : t.cardGradient,
-            color: selected ? t.accentGreen.withValues(alpha: 0.14) : null,
-            borderRadius: BorderRadius.circular(22),
+            color: selected
+                ? t.accentGreen.withValues(alpha: DashAlpha.wash)
+                : null,
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             // The printing card wears a green-tinted border; only a pick is filled.
             border: Border.all(
               color: selected
-                  ? t.accentGreen.withValues(alpha: 0.5)
+                  ? t.accentGreen.withValues(alpha: DashAlpha.scrim)
                   : pinned
-                  ? t.accentGreen.withValues(alpha: 0.3)
+                  ? t.accentGreen.withValues(alpha: DashAlpha.soft)
                   : t.cardBorder,
             ),
           ),
@@ -440,14 +442,14 @@ class _QueueCard extends ConsumerWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: t.accentGreen.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(16),
+                    color: t.accentGreen.withValues(alpha: DashAlpha.wash),
+                    borderRadius: BorderRadius.circular(DashRadius.lg),
                   ),
                   child: Icon(Icons.check, color: t.accentGreenInk),
                 )
               else
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(DashRadius.lg),
                   child: QueueThumbnail(item: item, size: 56),
                 ),
               const SizedBox(width: DashSpace.md),
@@ -498,8 +500,8 @@ class _QueueCard extends ConsumerWidget {
           vertical: DashSpace.xs,
         ),
         decoration: BoxDecoration(
-          color: t.danger.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(22),
+          color: t.danger.withValues(alpha: DashAlpha.wash),
+          borderRadius: BorderRadius.circular(DashRadius.xl),
         ),
         child: Icon(Icons.delete_outline, color: t.dangerInk),
       ),
@@ -626,10 +628,12 @@ class _Chip extends StatelessWidget {
         vertical: DashSpace.xs,
       ),
       decoration: BoxDecoration(
-        color: neutral ? t.subCard : accent.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(20),
+        color: neutral ? t.subCard : accent.withValues(alpha: DashAlpha.wash),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(
-          color: neutral ? t.subCardBorder : accent.withValues(alpha: 0.4),
+          color: neutral
+              ? t.subCardBorder
+              : accent.withValues(alpha: DashAlpha.outline),
         ),
       ),
       child: Text(

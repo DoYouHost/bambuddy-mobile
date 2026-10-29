@@ -236,7 +236,7 @@ class _IconChoice extends StatelessWidget {
             decoration: ShapeDecoration(
               color: selected ? t.accentGreen : t.subCard,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 side: BorderSide(
                   color: selected ? t.accentGreen : t.subCardBorder,
                 ),
@@ -244,7 +244,7 @@ class _IconChoice extends StatelessWidget {
             ),
             child: Icon(
               printerLocationIcon(name),
-              size: 22,
+              size: DashIcon.lg,
               applyTextScaling: false,
               color: selected ? t.onAccent : t.textSecondary,
             ),
@@ -292,7 +292,7 @@ class _ColorChoice extends StatelessWidget {
             child: selected
                 ? Icon(
                     Icons.check,
-                    size: 22,
+                    size: DashIcon.lg,
                     applyTextScaling: false,
                     color: color.computeLuminance() > 0.5
                         ? Colors.black

@@ -355,7 +355,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return Row(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
           child: QueueThumbnail(item: it, size: 52),
         ),
         const SizedBox(width: DashSpace.md),
@@ -822,7 +822,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
         child: Row(
           children: [
-            Icon(Icons.layers_outlined, color: t.textSecondary, size: 20),
+            Icon(
+              Icons.layers_outlined,
+              color: t.textSecondary,
+              size: DashIcon.md,
+            ),
             const SizedBox(width: DashSpace.md),
             Expanded(
               child: Text(
@@ -846,7 +850,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           title: l10n.queueEditPlate,
           child: widget._isCreate
               ? InkWell(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(DashRadius.md),
                   onTap: () => _pickPlate(plates),
                   child: row,
                 ).tagged('queue_edit.plate')
@@ -890,7 +894,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(DashRadius.md),
             onTap: printerId == null
                 ? null
                 : () async {
@@ -1880,7 +1884,7 @@ class _CheckRow extends StatelessWidget {
     // node of its own with no label.
     return MergeSemantics(
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         onTap: enabled ? () => onChanged!(!value) : null,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
@@ -1895,7 +1899,7 @@ class _CheckRow extends StatelessWidget {
               ),
               Icon(
                 icon,
-                size: 18,
+                size: DashIcon.md,
                 color: enabled ? t.textSecondary : t.textTertiary,
               ),
               const SizedBox(width: DashSpace.md),
@@ -1952,7 +1956,7 @@ class _Dropdown<T> extends StatelessWidget {
             ),
             shape: WidgetStatePropertyAll(
               RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 side: BorderSide(color: t.overlayBorder),
               ),
             ),
@@ -1999,14 +2003,14 @@ class _Dropdown<T> extends StatelessWidget {
               selected
                   ? Icons.radio_button_checked
                   : Icons.radio_button_unchecked,
-              size: 18,
+              size: DashIcon.md,
               color: selected ? t.accentGreenInk : t.textTertiary,
             ),
       style: MenuItemButton.styleFrom(
         foregroundColor: t.textPrimary,
         textStyle: const TextStyle(
           fontFamily: DashTokens.fontUi,
-          fontSize: 14,
+          fontSize: DashFontSize.title,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -2023,9 +2027,9 @@ class _Dropdown<T> extends StatelessWidget {
   }) {
     return Material(
       color: t.groupCard,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(
@@ -2033,7 +2037,7 @@ class _Dropdown<T> extends StatelessWidget {
             vertical: DashSpace.md,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(DashRadius.md),
             border: Border.all(color: t.groupCardBorder),
           ),
           child: Row(

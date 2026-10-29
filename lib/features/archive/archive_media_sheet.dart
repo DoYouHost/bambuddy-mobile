@@ -656,15 +656,17 @@ class _MediaRow extends StatelessWidget {
     final picked = selected ?? false;
     final row = InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       child: Container(
         padding: const EdgeInsets.all(DashSpace.md),
         decoration: BoxDecoration(
-          color: picked ? t.accentGreen.withValues(alpha: 0.10) : t.subCard,
+          color: picked
+              ? t.accentGreen.withValues(alpha: DashAlpha.faint)
+              : t.subCard,
           border: Border.all(
             color: picked ? t.accentGreenInk : t.subCardBorder,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(DashRadius.md),
         ),
         child: Row(
           children: [
@@ -673,11 +675,11 @@ class _MediaRow extends StatelessWidget {
             // reads 2.1:1 on the light card — under the 3:1 a control that
             // signals its own state has to clear.
             if (selected == null)
-              Icon(icon, size: 20, color: t.accentGreenInk)
+              Icon(icon, size: DashIcon.md, color: t.accentGreenInk)
             else
               Icon(
                 picked ? Icons.check_box : Icons.check_box_outline_blank,
-                size: 20,
+                size: DashIcon.md,
                 color: picked ? t.accentGreenInk : t.textTertiary,
               ),
             const SizedBox(width: DashSpace.md),
@@ -700,7 +702,11 @@ class _MediaRow extends StatelessWidget {
               ),
             ),
             if (selected == null)
-              Icon(Icons.chevron_right, size: 20, color: t.textTertiary),
+              Icon(
+                Icons.chevron_right,
+                size: DashIcon.md,
+                color: t.textTertiary,
+              ),
           ],
         ),
       ),

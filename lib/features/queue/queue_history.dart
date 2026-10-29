@@ -568,7 +568,7 @@ class _HistoryRow extends ConsumerWidget {
         ),
         decoration: BoxDecoration(
           gradient: t.cardGradient,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
           border: Border.all(color: t.cardBorder),
         ),
         child: Column(
@@ -602,7 +602,7 @@ class _HistoryRow extends ConsumerWidget {
                     Icon(icon, size: _statusSize, color: ink),
                     const SizedBox(width: DashSpace.sm),
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(DashRadius.sm),
                       child: QueueThumbnail(item: item, size: _thumbSize),
                     ),
                     const SizedBox(width: DashSpace.sm),
@@ -649,7 +649,11 @@ class _HistoryRow extends ConsumerWidget {
                 children: [
                   if (item.printerName case final printer?)
                     metaItem(
-                      Icon(Icons.print_outlined, size: 12, color: meta.color),
+                      Icon(
+                        Icons.print_outlined,
+                        size: DashIcon.xs,
+                        color: meta.color,
+                      ),
                       printer,
                     ),
                   if (swatch != null || mass != null)
@@ -657,7 +661,7 @@ class _HistoryRow extends ConsumerWidget {
                       swatch == null
                           ? Icon(
                               Icons.scale_outlined,
-                              size: 12,
+                              size: DashIcon.xs,
                               color: meta.color,
                             )
                           : Container(
@@ -674,14 +678,22 @@ class _HistoryRow extends ConsumerWidget {
                   if (item.printTimeSeconds case final seconds?
                       when seconds > 0)
                     metaItem(
-                      Icon(Icons.timer_outlined, size: 12, color: meta.color),
+                      Icon(
+                        Icons.timer_outlined,
+                        size: DashIcon.xs,
+                        color: meta.color,
+                      ),
                       formatSeconds(l10n, seconds),
                     ),
                   if (item.createdByUsername case final user?)
                     Tooltip(
                       message: l10n.queueHistoryAddedBy(user),
                       child: metaItem(
-                        Icon(Icons.person_outline, size: 12, color: meta.color),
+                        Icon(
+                          Icons.person_outline,
+                          size: DashIcon.xs,
+                          color: meta.color,
+                        ),
                         user,
                       ),
                     ),
@@ -697,7 +709,11 @@ class _HistoryRow extends ConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.error_outline, size: 12, color: t.dangerInk),
+                    Icon(
+                      Icons.error_outline,
+                      size: DashIcon.xs,
+                      color: t.dangerInk,
+                    ),
                     const SizedBox(width: DashSpace.xs),
                     Expanded(
                       child: Text(
@@ -790,14 +806,14 @@ class _BatchRow extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         gradient: t.cardGradient,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: t.cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             onTap: onToggle,
             child: ConstrainedBox(
               constraints: const BoxConstraints(
@@ -854,7 +870,7 @@ class _BatchRow extends StatelessWidget {
             children: [
               Icon(
                 _statusLook(t, kind).$1,
-                size: 12,
+                size: DashIcon.xs,
                 color: _statusLook(t, kind).$2,
               ),
               Text(' $n', style: meta.copyWith(color: _statusLook(t, kind).$2)),

@@ -37,10 +37,12 @@ class ControllerFaultChip extends ConsumerWidget {
         // The count is spoken as words above, not as a bare digit.
         excludeSemantics: true,
         child: Material(
-          color: t.danger.withValues(alpha: 0.16),
+          color: t.danger.withValues(alpha: DashAlpha.wash),
           shape: RoundedRectangleBorder(
             borderRadius: radius,
-            side: BorderSide(color: t.danger.withValues(alpha: 0.5)),
+            side: BorderSide(
+              color: t.danger.withValues(alpha: DashAlpha.scrim),
+            ),
           ),
           child: InkWell(
             borderRadius: radius,

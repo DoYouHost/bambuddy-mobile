@@ -405,14 +405,14 @@ class _Notice extends StatelessWidget {
         vertical: DashSpace.md,
       ),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withValues(alpha: 0.35)),
+        color: accent.withValues(alpha: DashAlpha.faint),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
+        border: Border.all(color: accent.withValues(alpha: DashAlpha.soft)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: accent),
+          Icon(icon, size: DashIcon.md, color: accent),
           const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(text, style: t.label.copyWith(color: t.textPrimary)),

@@ -391,8 +391,8 @@ class _RunCard extends ConsumerWidget {
         vertical: DashSpace.xs,
       ),
       decoration: BoxDecoration(
-        color: colour.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(999),
+        color: colour.withValues(alpha: DashAlpha.wash),
+        borderRadius: BorderRadius.circular(DashRadius.pill),
       ),
       child: Text(
         runStatusLabel(l10n, run.status),
@@ -429,7 +429,7 @@ class _RunCard extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: DashSpace.xs),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: colour),
+          Icon(icon, size: DashIcon.sm, color: colour),
           const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(

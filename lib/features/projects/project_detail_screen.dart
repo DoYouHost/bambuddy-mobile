@@ -123,7 +123,7 @@ class _Header extends ConsumerWidget {
                 hasCover: project.hasCover,
                 width: 88,
                 height: 88,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 cacheBust: project.updatedAt,
               ),
               const SizedBox(width: DashSpace.lg),
@@ -179,7 +179,11 @@ class _Header extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.link, size: 18, color: t.accentGreenInk),
+                    Icon(
+                      Icons.link,
+                      size: DashIcon.md,
+                      color: t.accentGreenInk,
+                    ),
                     const SizedBox(width: DashSpace.sm),
                     Expanded(
                       child: Text(
@@ -268,7 +272,7 @@ class _DashTag extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Text(label, style: t.micro.copyWith(color: t.textSecondary)),
@@ -466,12 +470,12 @@ class _StatTile extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: t.accentGreenInk),
+          Icon(icon, size: DashIcon.md, color: t.accentGreenInk),
           const SizedBox(width: DashSpace.md),
           Expanded(
             child: Column(

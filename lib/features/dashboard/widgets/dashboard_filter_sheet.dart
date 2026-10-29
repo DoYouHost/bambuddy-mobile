@@ -175,7 +175,7 @@ class _DashboardFilterSheet extends ConsumerWidget {
                             ascending
                                 ? Icons.arrow_upward
                                 : Icons.arrow_downward,
-                            size: 18,
+                            size: DashIcon.md,
                           ),
                           label: Text(
                             ascending

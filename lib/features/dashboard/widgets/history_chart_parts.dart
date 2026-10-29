@@ -114,6 +114,6 @@ LineChartBarData dashLineSeries(List<FlSpot> spots, Color color) =>
       dotData: const FlDotData(show: false),
       belowBarData: BarAreaData(
         show: true,
-        color: color.withValues(alpha: 0.15),
+        color: color.withValues(alpha: DashAlpha.wash),
       ),
     );

@@ -567,7 +567,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       const SizedBox(height: DashSpace.sm),
       Row(
         children: [
-          Icon(Icons.circle, size: 10, color: summaryInk),
+          Icon(Icons.circle, size: DashIcon.xs, color: summaryInk),
           const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(
@@ -584,7 +584,11 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.warning_amber_rounded, size: 18, color: t.warningInk),
+              Icon(
+                Icons.warning_amber_rounded,
+                size: DashIcon.md,
+                color: t.warningInk,
+              ),
               const SizedBox(width: DashSpace.sm),
               Expanded(
                 child: Text(
@@ -724,7 +728,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                     dimension: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.refresh, size: 18),
+                : const Icon(Icons.refresh, size: DashIcon.md),
             label: Text(l10n.mappingReRead),
             onPressed: _rereading ? null : _reread,
           ).tagged('queue_mapping.reread'),
@@ -831,7 +835,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                         ? theme.colorScheme.primary
                         : theme.colorScheme.outlineVariant,
                   ),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(DashRadius.sm),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -845,7 +849,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const Icon(Icons.arrow_drop_down, size: 18),
+                    const Icon(Icons.arrow_drop_down, size: DashIcon.md),
                   ],
                 ),
               ),
@@ -1108,7 +1112,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                       },
                     ),
                   ).tagged('queue_mapping.force_color'),
-                  const Icon(Icons.palette_outlined, size: 16),
+                  const Icon(Icons.palette_outlined, size: DashIcon.sm),
                   const SizedBox(width: DashSpace.xs),
                   Flexible(child: Text(l10n.queueEditForceColorMatch)),
                 ],
@@ -1396,7 +1400,7 @@ class _Badge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(DashRadius.xs),
       ),
       child: Text(text, style: theme.textTheme.labelSmall),
     );

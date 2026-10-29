@@ -168,7 +168,7 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
                 onPressed: busy
                     ? null
                     : () => setState(() => _editingConnection = true),
-                icon: const Icon(Icons.settings_outlined, size: 18),
+                icon: const Icon(Icons.settings_outlined, size: DashIcon.md),
                 label: Text(l10n.mfEditConnection),
               ).tagged('manyfold.edit_connection'),
           ],
@@ -334,13 +334,13 @@ class _ModelTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         onTap: enabled ? onOpen : null,
         child: Container(
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: t.subCard,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             border: Border.all(
               color: picked ? t.accentGreen : t.subCardBorder,
               width: picked ? 2 : 1,
@@ -459,7 +459,7 @@ class _NotConnected extends StatelessWidget {
           decoration: t.cardBox,
           child: Column(
             children: [
-              Icon(Icons.link_off, size: 40, color: t.textTertiary),
+              Icon(Icons.link_off, size: DashIcon.xxl, color: t.textTertiary),
               const SizedBox(height: DashSpace.md),
               Text(
                 l10n.mfNotConnectedTitle,

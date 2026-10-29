@@ -273,7 +273,7 @@ class _PrinterCandidateTile extends StatelessWidget {
         ),
       ),
       trailing: candidate.hasPlug
-          ? Icon(Icons.power, color: t.accentGreenInk, size: 20)
+          ? Icon(Icons.power, color: t.accentGreenInk, size: DashIcon.md)
           : null,
       onTap: onTap,
     ).tagged('queue.printer_option');

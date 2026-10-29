@@ -180,12 +180,14 @@ class ControllerTileFrame extends StatelessWidget {
     return Opacity(
       opacity: dimmed ? 0.62 : 1,
       child: Material(
-        color: highlighted ? t.accentGreen.withValues(alpha: 0.06) : t.subCard,
+        color: highlighted
+            ? t.accentGreen.withValues(alpha: DashAlpha.faint)
+            : t.subCard,
         shape: RoundedRectangleBorder(
           borderRadius: radius,
           side: BorderSide(
             color: highlighted
-                ? t.accentGreen.withValues(alpha: 0.45)
+                ? t.accentGreen.withValues(alpha: DashAlpha.scrim)
                 : t.subCardBorder,
           ),
         ),
@@ -236,9 +238,9 @@ class ControllerChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
       decoration: BoxDecoration(
-        color: ink.withValues(alpha: 0.12),
+        color: ink.withValues(alpha: DashAlpha.faint),
         borderRadius: BorderRadius.circular(DashSpace.sm),
-        border: Border.all(color: ink.withValues(alpha: 0.4)),
+        border: Border.all(color: ink.withValues(alpha: DashAlpha.outline)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

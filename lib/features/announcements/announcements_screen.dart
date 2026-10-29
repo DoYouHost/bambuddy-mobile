@@ -204,7 +204,7 @@ class AnnouncementTile extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
                   onPressed: () => openWebLink(context, link.toString()),
-                  icon: const Icon(Icons.open_in_new, size: 16),
+                  icon: const Icon(Icons.open_in_new, size: DashIcon.sm),
                   label: Text(text.linkLabel ?? l10n.announcementsReadMore),
                 ).tagged('announcements.link'),
               ),

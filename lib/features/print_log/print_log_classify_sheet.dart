@@ -289,7 +289,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
                     onPressed: _saving ? null : _delete,
                     icon: Icon(
                       Icons.delete_outline,
-                      size: 18,
+                      size: DashIcon.md,
                       color: t.dangerInk,
                     ),
                     label: Text(

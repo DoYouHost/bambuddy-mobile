@@ -119,7 +119,7 @@ class _SupplierRow extends ConsumerWidget {
       minimumSize: Size.zero,
     );
     final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(DashRadius.xl),
       side: BorderSide(color: t.subCardBorder),
     );
     return Padding(

@@ -152,7 +152,7 @@ class PowerBreakdownSheet extends ConsumerWidget {
       padding: const EdgeInsets.all(DashSpace.md),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Column(

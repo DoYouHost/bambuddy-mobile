@@ -537,7 +537,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                         l10n.addPrinterConnectionNote,
                         style: TextStyle(
                           fontFamily: DashTokens.fontUi,
-                          fontSize: 12,
+                          fontSize: DashFontSize.label,
                           color: t.textSecondary,
                         ),
                       ),
@@ -758,7 +758,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
               _scanError!,
               style: TextStyle(
                 fontFamily: DashTokens.fontUi,
-                fontSize: 12,
+                fontSize: DashFontSize.label,
                 color: t.dangerInk,
               ),
             ),
@@ -793,9 +793,9 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: Material(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(DashRadius.md),
           onTap: () => _applyDiscovered(p),
           child: Padding(
             padding: const EdgeInsets.symmetric(
@@ -804,7 +804,11 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.print_outlined, size: 20, color: t.accentGreenInk),
+                Icon(
+                  Icons.print_outlined,
+                  size: DashIcon.md,
+                  color: t.accentGreenInk,
+                ),
                 const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Column(
@@ -824,7 +828,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                     ],
                   ),
                 ),
-                Icon(Icons.add, size: 20, color: t.textTertiary),
+                Icon(Icons.add, size: DashIcon.md, color: t.textTertiary),
               ],
             ),
           ),
@@ -858,7 +862,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
               _diagnosticError!,
               style: TextStyle(
                 fontFamily: DashTokens.fontUi,
-                fontSize: 12,
+                fontSize: DashFontSize.label,
                 color: t.dangerInk,
               ),
             ),
@@ -887,7 +891,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: color),
+          Icon(icon, size: DashIcon.md, color: color),
           const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(

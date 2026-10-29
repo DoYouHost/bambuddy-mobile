@@ -243,7 +243,7 @@ class _PipelineCard extends ConsumerWidget {
         children: [
           Icon(
             Icons.warning_amber_rounded,
-            size: 18,
+            size: DashIcon.md,
             color: theme.colorScheme.tertiary,
           ),
           const SizedBox(width: DashSpace.sm),
@@ -270,7 +270,7 @@ class _PipelineCard extends ConsumerWidget {
       children: [
         Icon(
           Icons.print_outlined,
-          size: 18,
+          size: DashIcon.md,
           color: theme.colorScheme.onSurfaceVariant,
         ),
         const SizedBox(width: DashSpace.sm),

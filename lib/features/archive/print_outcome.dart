@@ -98,13 +98,13 @@ class ArchiveVerdictMark extends StatelessWidget {
         decoration: BoxDecoration(
           // Opaque, so the mark reads the same over any thumbnail.
           color: Color.alphaBlend(
-            tone.withValues(alpha: 0.25),
+            tone.withValues(alpha: DashAlpha.soft),
             t.overlaySurface,
           ),
           shape: BoxShape.circle,
-          border: Border.all(color: tone.withValues(alpha: 0.6)),
+          border: Border.all(color: tone.withValues(alpha: DashAlpha.strong)),
         ),
-        child: Icon(icon, size: 13, color: ink),
+        child: Icon(icon, size: DashIcon.xs, color: ink),
       ),
     );
   }
@@ -223,7 +223,7 @@ class _ArchiveOutcomeRowState extends ConsumerState<ArchiveOutcomeRow> {
             style: IconButton.styleFrom(
               backgroundColor: fill,
               foregroundColor: good ? t.onAccent : t.onDanger,
-              disabledBackgroundColor: fill.withValues(alpha: 0.5),
+              disabledBackgroundColor: fill.withValues(alpha: DashAlpha.scrim),
               disabledForegroundColor: good ? t.onAccent : t.onDanger,
             ),
             icon: mark,
@@ -233,7 +233,7 @@ class _ArchiveOutcomeRowState extends ConsumerState<ArchiveOutcomeRow> {
             tooltip: label,
             style: IconButton.styleFrom(
               foregroundColor: ink,
-              side: BorderSide(color: fill.withValues(alpha: 0.5)),
+              side: BorderSide(color: fill.withValues(alpha: DashAlpha.scrim)),
             ),
             icon: mark,
           );

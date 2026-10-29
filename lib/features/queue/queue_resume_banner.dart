@@ -111,9 +111,11 @@ class _ResumeBanner extends StatelessWidget {
             DashSpace.xs,
           ),
           decoration: BoxDecoration(
-            color: t.accentOrange.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: t.accentOrange.withValues(alpha: 0.35)),
+            color: t.accentOrange.withValues(alpha: DashAlpha.faint),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
+            border: Border.all(
+              color: t.accentOrange.withValues(alpha: DashAlpha.soft),
+            ),
           ),
           // One line and one word on the button: what happened and what to do
           // about it. The confirmation says the rest.
@@ -121,7 +123,7 @@ class _ResumeBanner extends StatelessWidget {
             children: [
               Icon(
                 Icons.warning_amber_rounded,
-                size: 20,
+                size: DashIcon.md,
                 color: t.accentOrangeInk,
               ),
               const SizedBox(width: DashSpace.sm),

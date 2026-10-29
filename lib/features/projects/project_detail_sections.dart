@@ -58,7 +58,7 @@ class SectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 19, color: t.accentGreenInk),
+              Icon(icon, size: DashIcon.md, color: t.accentGreenInk),
               const SizedBox(width: DashSpace.sm),
               Expanded(child: Text(title, style: t.titleSm)),
               ?action,
@@ -84,7 +84,7 @@ Widget sectionCardAction({
   required String label,
   required VoidCallback onPressed,
 }) => TextButton.icon(
-  icon: Icon(icon, size: 18),
+  icon: Icon(icon, size: DashIcon.md),
   label: Text(label),
   onPressed: onPressed,
 ).tagged(id);

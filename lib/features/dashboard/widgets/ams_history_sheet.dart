@@ -148,12 +148,15 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
                 segments: [
                   ButtonSegment(
                     value: AmsHistoryMetric.humidity,
-                    icon: const Icon(Icons.water_drop_outlined, size: 18),
+                    icon: const Icon(
+                      Icons.water_drop_outlined,
+                      size: DashIcon.md,
+                    ),
                     label: Text(l10n.amsHistoryHumidity),
                   ),
                   ButtonSegment(
                     value: AmsHistoryMetric.temperature,
-                    icon: const Icon(Icons.thermostat, size: 18),
+                    icon: const Icon(Icons.thermostat, size: DashIcon.md),
                     label: Text(l10n.amsHistoryTemperature),
                   ),
                 ],
@@ -358,7 +361,7 @@ class _Content extends StatelessWidget {
         alignment: Alignment.topRight,
         style: TextStyle(
           color: color,
-          fontSize: 10,
+          fontSize: DashFontSize.micro,
           fontWeight: FontWeight.w500,
         ),
         labelResolver: (_) => label,

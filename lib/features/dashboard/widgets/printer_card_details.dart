@@ -65,13 +65,19 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
           DashSpace.md,
         ),
         decoration: BoxDecoration(
-          color: t.accentBlue.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: t.accentBlue.withValues(alpha: 0.4)),
+          color: t.accentBlue.withValues(alpha: DashAlpha.faint),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
+          border: Border.all(
+            color: t.accentBlue.withValues(alpha: DashAlpha.outline),
+          ),
         ),
         child: Row(
           children: [
-            Icon(Icons.layers_clear_outlined, size: 20, color: t.accentBlue),
+            Icon(
+              Icons.layers_clear_outlined,
+              size: DashIcon.md,
+              color: t.accentBlue,
+            ),
             const SizedBox(width: DashSpace.sm),
             Expanded(
               child: Text(
@@ -90,7 +96,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
               icon: Icons.check_rounded,
               tooltip: l10n.plateClearAction,
               color: t.accentBlue,
-              borderColor: t.accentBlue.withValues(alpha: 0.5),
+              borderColor: t.accentBlue.withValues(alpha: DashAlpha.scrim),
               onPressed: _busy || offer == ControlOffer.pending ? null : _clear,
             ),
           ],
@@ -160,9 +166,11 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
       width: double.infinity,
       padding: const EdgeInsets.all(DashSpace.md),
       decoration: BoxDecoration(
-        color: scheme.error.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: scheme.error.withValues(alpha: 0.5)),
+        color: scheme.error.withValues(alpha: DashAlpha.faint),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
+        border: Border.all(
+          color: scheme.error.withValues(alpha: DashAlpha.scrim),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,7 +186,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
                 children: [
                   Icon(
                     Icons.warning_amber_rounded,
-                    size: 18,
+                    size: DashIcon.md,
                     color: scheme.error,
                   ),
                   const SizedBox(width: DashSpace.sm),
@@ -192,7 +200,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
                   ),
                   Icon(
                     _expanded ? Icons.expand_less : Icons.expand_more,
-                    size: 20,
+                    size: DashIcon.md,
                     color: scheme.error,
                   ),
                 ],
@@ -223,7 +231,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
                       ? null
                       : () =>
                             dismissAllHmsErrors(context, ref, widget.printerId),
-                  icon: const Icon(Icons.done_all, size: 18),
+                  icon: const Icon(Icons.done_all, size: DashIcon.md),
                   label: Text(l10n.hmsDismissAll),
                   style: TextButton.styleFrom(foregroundColor: scheme.error),
                 ),
@@ -385,7 +393,7 @@ class _HmsErrorCardState extends ConsumerState<HmsErrorCard> {
         // once, one unbroken column of text and buttons reads as a single long
         // error rather than as three separate things to decide about.
         color: t.subCard,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Column(
@@ -540,7 +548,7 @@ class _DetailsToggle extends StatelessWidget {
       padding: const EdgeInsets.only(top: DashSpace.md),
       child: Material(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         clipBehavior: Clip.antiAlias,
         child: logTag(
           id,
@@ -553,7 +561,7 @@ class _DetailsToggle extends StatelessWidget {
               alignment: Alignment.center,
               padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
@@ -569,7 +577,7 @@ class _DetailsToggle extends StatelessWidget {
                     duration: const Duration(milliseconds: 200),
                     child: Icon(
                       Icons.expand_more,
-                      size: 18,
+                      size: DashIcon.md,
                       color: t.textSecondary,
                     ),
                   ),
@@ -666,7 +674,7 @@ class _DetailsPanel extends ConsumerWidget {
               padding: const EdgeInsets.all(DashSpace.lg),
               decoration: BoxDecoration(
                 color: t.groupCard,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(color: t.groupCardBorder),
               ),
               child: Column(
@@ -1114,7 +1122,7 @@ class _FilamentRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: DashTokens.fontMono,
-                    fontSize: 12,
+                    fontSize: DashFontSize.label,
                     fontWeight: active ? FontWeight.w700 : FontWeight.w600,
                     color: textColor,
                   ),
@@ -1126,7 +1134,7 @@ class _FilamentRow extends StatelessWidget {
                   trailing,
                   style: TextStyle(
                     fontFamily: DashTokens.fontMono,
-                    fontSize: 12,
+                    fontSize: DashFontSize.label,
                     fontWeight: active ? FontWeight.w700 : FontWeight.w600,
                     color: active ? t.accentGreenInk : t.textSecondary,
                   ),
@@ -1169,7 +1177,7 @@ class _FilamentRow extends StatelessWidget {
             'printer.ams_slot',
             tray.trayType,
             InkWell(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(DashRadius.sm),
               onTap: () => dashSheet<void>(
                 context,
                 builder: (_) => _AssignSlotSheet(slot: slot),
@@ -1228,7 +1236,7 @@ class _AmsChip extends StatelessWidget {
     final t = DashTokens.of(context);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(DashRadius.sm),
       child: Container(
         constraints: const BoxConstraints(
           minWidth: kMinInteractiveDimension,
@@ -1533,14 +1541,14 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
       Center(
         child: Column(
           children: [
-            Icon(look.icon, size: 32, color: look.color),
+            Icon(look.icon, size: DashIcon.xl, color: look.color),
             const SizedBox(height: DashSpace.sm),
             Text(
               look.label,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: DashTokens.fontMono,
-                fontSize: 32,
+                fontSize: DashFontSize.hero,
                 fontWeight: FontWeight.w700,
                 color: look.color,
               ),
@@ -1590,15 +1598,15 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
           vertical: DashSpace.md,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(DashRadius.md),
           borderSide: BorderSide(color: t.subCardBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(DashRadius.md),
           borderSide: BorderSide(color: t.subCardBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(DashRadius.md),
           borderSide: BorderSide(color: t.accentGreen),
         ),
       ),
@@ -2013,7 +2021,7 @@ class _SlotActions extends ConsumerWidget {
               beforeSend: () => Navigator.of(context).pop(),
             )
           : null,
-      icon: const Icon(Icons.login, size: 18),
+      icon: const Icon(Icons.login, size: DashIcon.md),
       label: Text(l10n.amsLoad),
     ).tagged('assign_spool.ams_load');
 
@@ -2028,7 +2036,7 @@ class _SlotActions extends ConsumerWidget {
               beforeSend: () => Navigator.of(context).pop(),
             )
           : null,
-      icon: const Icon(Icons.logout, size: 18),
+      icon: const Icon(Icons.logout, size: DashIcon.md),
       label: Text(l10n.amsUnload),
     ).tagged('assign_spool.ams_unload');
 
@@ -2046,7 +2054,7 @@ class _SlotActions extends ConsumerWidget {
               l10n.amsRfidRereadStarted,
             )
           : null,
-      icon: const Icon(Icons.nfc, size: 18),
+      icon: const Icon(Icons.nfc, size: DashIcon.md),
       label: Text(l10n.amsRfidReread),
     ).tagged('assign_spool.rfid_reread');
 
@@ -2055,7 +2063,7 @@ class _SlotActions extends ConsumerWidget {
     // buttons are what the job blocks.
     final configure = OutlinedButton.icon(
       onPressed: busy ? null : () => _openConfig(context),
-      icon: const Icon(Icons.tune, size: 18),
+      icon: const Icon(Icons.tune, size: DashIcon.md),
       label: Text(l10n.amsSlotConfigure),
     ).tagged('assign_spool.configure');
 
@@ -2388,7 +2396,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
             if (_offersRegister(inv, current)) ...[
               FilledButton.tonalIcon(
                 onPressed: () => _registerFromSlot(context, ref, l10n),
-                icon: const Icon(Icons.add_circle_outline, size: 18),
+                icon: const Icon(Icons.add_circle_outline, size: DashIcon.md),
                 label: Text(l10n.inventoryFromSlot),
               ).tagged('assign_spool.add_to_inventory'),
               const SizedBox(height: DashSpace.sm),
@@ -2422,7 +2430,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                     ? null
                     : TextButton.icon(
                         onPressed: () => _unassign(context, ref, l10n),
-                        icon: const Icon(Icons.link_off, size: 18),
+                        icon: const Icon(Icons.link_off, size: DashIcon.md),
                         label: Text(l10n.inventoryUnassign),
                       ).taggedMaterial(
                         'assign_spool.unassign',
@@ -2483,7 +2491,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                           ].join(' · '),
                         ),
                         trailing: from != null
-                            ? const Icon(Icons.swap_horiz, size: 20)
+                            ? const Icon(Icons.swap_horiz, size: DashIcon.md)
                             : null,
                         onTap: () => _assign(context, ref, l10n, s, from: from),
                       ).taggedMaterial('assign_spool.option', s.material);
@@ -2601,13 +2609,13 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
             height: 48,
             child: Material(
               color: t.subCard,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(DashRadius.lg),
               child: InkWell(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 onTap: () => _scanAndAssign(l10n),
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(DashRadius.lg),
                     border: Border.all(color: t.subCardBorder),
                   ),
                   child: Icon(Icons.qr_code_scanner, color: t.textSecondary),
@@ -2755,7 +2763,7 @@ class _ExtruderBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.print_outlined, size: 13, color: color),
+          Icon(Icons.print_outlined, size: DashIcon.xs, color: color),
           const SizedBox(width: DashSpace.xs),
           Text(short, style: t.monoLabel.copyWith(color: color)),
         ],
@@ -2775,7 +2783,12 @@ class _ColorDot extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     if (color == null) {
-      return Icon(Icons.circle_outlined, size: size + 3, color: t.textTertiary);
+      // The outlined glyph has padding built in, so it is drawn a fifth larger.
+      return Icon(
+        Icons.circle_outlined,
+        size: size * 1.2,
+        color: t.textTertiary,
+      );
     }
     return Container(
       width: size,

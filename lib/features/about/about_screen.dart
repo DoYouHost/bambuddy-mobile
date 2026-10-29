@@ -37,7 +37,7 @@ class AboutScreen extends StatelessWidget {
             Column(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(DashRadius.xl),
                   child: Image.asset(
                     'assets/icon/app_logo.png',
                     width: _iconSize,
@@ -226,18 +226,23 @@ class _AboutRow extends StatelessWidget {
       child: logTag(
         id,
         InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.all(DashSpace.md),
             decoration: BoxDecoration(
               color: t.subCard,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(DashRadius.lg),
               border: Border.all(color: t.subCardBorder),
             ),
             child: Row(
               children: [
-                DashIconTile(icon: icon, size: 36, radius: 11, iconSize: 17),
+                DashIconTile(
+                  icon: icon,
+                  size: 36,
+                  radius: 11,
+                  iconSize: DashIcon.sm,
+                ),
                 const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Column(
@@ -252,7 +257,11 @@ class _AboutRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, size: 20, color: t.textTertiary),
+                Icon(
+                  Icons.chevron_right,
+                  size: DashIcon.md,
+                  color: t.textTertiary,
+                ),
               ],
             ),
           ),

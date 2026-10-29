@@ -133,10 +133,10 @@ class _LocationClimateSheet extends ConsumerWidget {
                 padding: const EdgeInsets.all(DashSpace.lg),
                 decoration: BoxDecoration(
                   color: t.subCard,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(DashRadius.xl),
                   border: Border.all(
                     color: climate.alerting
-                        ? t.accentOrange.withValues(alpha: 0.5)
+                        ? t.accentOrange.withValues(alpha: DashAlpha.scrim)
                         : t.subCardBorder,
                   ),
                 ),

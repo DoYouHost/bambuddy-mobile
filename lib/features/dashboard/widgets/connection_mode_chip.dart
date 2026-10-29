@@ -45,9 +45,11 @@ class ConnectionModeChip extends ConsumerWidget {
           vertical: DashSpace.xs,
         ),
         decoration: BoxDecoration(
-          color: accent.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: accent.withValues(alpha: 0.4)),
+          color: accent.withValues(alpha: DashAlpha.wash),
+          borderRadius: BorderRadius.circular(DashRadius.xl),
+          border: Border.all(
+            color: accent.withValues(alpha: DashAlpha.outline),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -62,7 +64,7 @@ class ConnectionModeChip extends ConsumerWidget {
                 ),
               )
             else
-              Icon(Icons.sync, size: 13, color: ink),
+              Icon(Icons.sync, size: DashIcon.xs, color: ink),
             const SizedBox(width: DashSpace.sm),
             Text(label, style: t.label.copyWith(color: ink)),
           ],

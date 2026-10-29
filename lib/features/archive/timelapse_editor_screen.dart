@@ -368,7 +368,7 @@ class _Preview extends StatelessWidget {
     return ValueListenableBuilder<VideoPlayerValue>(
       valueListenable: controller,
       builder: (context, value, _) => ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         child: AspectRatio(
           aspectRatio: value.aspectRatio,
           child: logTag(
@@ -391,7 +391,7 @@ class _Preview extends StatelessWidget {
                           padding: const EdgeInsets.all(DashSpace.md),
                           child: Icon(
                             Icons.play_arrow,
-                            size: 36,
+                            size: DashIcon.xl,
                             color: Theme.of(context).colorScheme.onPrimary,
                             semanticLabel: l10n.timelapsePlay,
                           ),
@@ -486,7 +486,11 @@ class _SectionHeader extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+              Icon(
+                icon,
+                size: DashIcon.md,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: DashSpace.sm),
               SectionHeading(label, style: theme.textTheme.titleSmall),
             ],

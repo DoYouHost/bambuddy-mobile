@@ -122,7 +122,11 @@ class _DemoUnavailable extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.videocam_off, color: Colors.white54, size: 48),
+          const Icon(
+            Icons.videocam_off,
+            color: Colors.white54,
+            size: DashIcon.xxl,
+          ),
           const SizedBox(height: DashSpace.md),
           Text(
             text,
@@ -194,7 +198,11 @@ class _Message extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.videocam_off, color: Colors.white54, size: 48),
+          const Icon(
+            Icons.videocam_off,
+            color: Colors.white54,
+            size: DashIcon.xxl,
+          ),
           const SizedBox(height: DashSpace.md),
           Text(
             text,
