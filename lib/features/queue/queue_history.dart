@@ -15,6 +15,7 @@ import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/color_dot.dart';
 import '../common/dash_async.dart';
 import 'color_substitution_chip.dart';
 import 'queue_edit_screen.dart';
@@ -665,15 +666,7 @@ class _HistoryRow extends ConsumerWidget {
                               size: DashIcon.xs,
                               color: meta.color,
                             )
-                          : Container(
-                              width: DashSize.d12,
-                              height: DashSize.d12,
-                              decoration: BoxDecoration(
-                                color: swatch,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: t.hairline),
-                              ),
-                            ),
+                          : ColorDot(color: swatch),
                       filament,
                     ),
                   if (item.printTimeSeconds case final seconds?

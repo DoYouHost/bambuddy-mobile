@@ -13,6 +13,7 @@ import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/features/controller/controller_prints.dart';
 import 'package:bambuddy_mobile/features/controller/controller_queue.dart';
+import 'package:bambuddy_mobile/features/common/color_catalog.dart';
 import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
@@ -426,7 +427,7 @@ void main() {
               spools: const <int, SlotSpool>{},
             ),
           ),
-          mappingColorCatalogProvider.overrideWith(
+          colorNameCatalogProvider.overrideWith(
             (ref) async => ColorCatalog.empty,
           ),
           mappingFilamentNamesProvider.overrideWith((ref) async => const {}),

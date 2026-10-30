@@ -23,6 +23,7 @@ import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../archive/archive_providers.dart';
+import '../common/color_catalog.dart';
 import '../common/dash_async.dart';
 import '../queue/job_cost_providers.dart';
 import '../queue/queue_cost_center_state.dart';
@@ -453,8 +454,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     final status = ref.watch(mappingStatusProvider(_printer.id));
     final remain = ref.watch(mappingInventoryRemainProvider(_printer.id)).value;
     final preferLowest = ref.watch(preferLowestFilamentProvider).value;
-    final catalog =
-        ref.watch(mappingColorCatalogProvider).value ?? ColorCatalog.empty;
+    final catalog = ref.watchColorNames();
     final comparison = queueMappingComparison(
       requirements: reqs.value ?? const [],
       status: status.value,
@@ -1306,7 +1306,7 @@ class _FilamentRow extends StatelessWidget {
                     child: _Slot(
                       colour: req.color,
                       title: req.type ?? '',
-                      subtitle: mappingColorName(
+                      subtitle: colorDisplayName(
                         l10n,
                         catalog,
                         req.color ?? '',

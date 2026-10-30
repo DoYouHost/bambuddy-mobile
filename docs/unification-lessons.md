@@ -48,6 +48,7 @@ is the map and the decisions.
 | `QueueThumbnail`, `queueStatusLabel`, `queueStagedLabel`, `queueTargetLabel`; `pollQueue` (in `queue_providers.dart`) for a screen that shows the queue outside its tab | [queue_item_view.dart](../lib/features/queue/queue_item_view.dart) |
 | The controller's list tiles, header, chip and failure message; the frame of an item's dialog | [controller_list_parts.dart](../lib/features/controller/controller_list_parts.dart), [controller_detail_dialog.dart](../lib/features/controller/controller_detail_dialog.dart) |
 | `libraryFileQueueDraft`, `archiveQueueDraft`: what a print form, the phone's or the controller's, is opened on | [queue_drafts.dart](../lib/features/queue/queue_drafts.dart) |
+| `ColorDot`: a colour as a round mark (hairline or a ring); `colorDisplayName`, `colorNameCatalogProvider` and `ref.watchColorNames()`: a colour's name and the catalogue it comes from; `colorHexLabel` (`color_names.dart`): `#RRGGBB` | [color_dot.dart](../lib/features/common/color_dot.dart), [color_catalog.dart](../lib/features/common/color_catalog.dart) |
 | `printRunStatusLabel` and `printRunTone`: a run's status word and colour | [print_run_labels.dart](../lib/features/common/print_run_labels.dart) |
 | `controllerPrintBlock`: why the controller may not print a file or an archive | [controller_print.dart](../lib/features/controller/controller_print.dart) |
 | `buttonAt`, `useLogicalWindow`, `mockImmersiveChannels`, `landscapeRedmi` / `landscapePixel`; `FakeQueue`; `FakeArchives`; `pumpControllerScreen` | [test/helpers.dart](../test/helpers.dart), [queue_fakes.dart](../test/features/queue/queue_fakes.dart), [archive_fakes.dart](../test/features/archive/archive_fakes.dart), [controller_harness.dart](../test/features/controller/controller_harness.dart) |
@@ -115,6 +116,12 @@ more than the lines it saves.
   pointing one at another changes behaviour (see the comment on
   `printerModelsProvider` in
   [inventory_providers.dart](../lib/features/inventory/inventory_providers.dart)).
+- **The other colour dots.** `FilamentDot` (archive) outlines in `textTertiary`,
+  the printer card's `_ColorDot` draws a crossed-out ring for an empty slot, and
+  the mapping sheet's and controller's swatches draw a question mark for an unknown
+  colour. Each differs from `ColorDot` in outline or fallback, so merging them would
+  change pixels or need a flag per difference; only the three identical ones
+  (queue history, queue edit, substitution chip) share it.
 - **`Archive.isSliced`** mirrors the web's `isSlicedFile` (a `.gcode` / `.gcode.*`
   name, or slice metadata), so it is not folded into `isSlicedFilename`.
 - **`plateLabel` vs `batchPlateLabel`** word things differently on purpose, and

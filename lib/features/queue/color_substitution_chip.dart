@@ -8,7 +8,8 @@ import '../../core/ams/color_names.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import 'queue_mapping_sheet.dart';
+import '../common/color_catalog.dart';
+import '../common/color_dot.dart';
 
 /// The web's `ColorSubstitutionNotes` (#3279) as a chip: a slot that printed
 /// from a spool of another colour than the file asked for. The web writes one
@@ -27,8 +28,7 @@ class ColorSubstitutionChip extends ConsumerWidget {
     if (subs.isEmpty) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final catalog =
-        ref.watch(mappingColorCatalogProvider).value ?? ColorCatalog.empty;
+    final catalog = ref.watchColorNames();
     final single = subs.length == 1 ? subs.single : null;
     return logTag(
       'queue.color_substitution',
@@ -74,13 +74,13 @@ class ColorSubstitutionChip extends ConsumerWidget {
                     ),
                     const SizedBox(width: DashSpace.xs),
                     if (single != null) ...[
-                      _Swatch(hex: single.got),
+                      ColorDot(color: colorFromHex(single.got)),
                       Icon(
                         Icons.arrow_forward,
                         size: DashIcon.xs,
                         color: t.warningInk,
                       ),
-                      _Swatch(hex: single.wanted),
+                      ColorDot(color: colorFromHex(single.wanted)),
                     ] else
                       Text(
                         l10n.queueColorSubstitutionSlots(subs.length),
@@ -100,29 +100,6 @@ class ColorSubstitutionChip extends ConsumerWidget {
 Future<void> showColorSubstitutionSheet(BuildContext context, QueueItem item) =>
     dashSheet<void>(context, builder: (_) => _SubstitutionSheet(item: item));
 
-/// A colour as a dot; a hex that is no colour leaves the dot empty rather than
-/// drawing a wrong one.
-class _Swatch extends StatelessWidget {
-  const _Swatch({required this.hex, this.size = DashSize.d12});
-
-  final String hex;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: colorFromHex(hex.replaceFirst('#', '')),
-        shape: BoxShape.circle,
-        border: Border.all(color: t.hairline),
-      ),
-    );
-  }
-}
-
 class _SubstitutionSheet extends ConsumerWidget {
   const _SubstitutionSheet({required this.item});
 
@@ -132,8 +109,7 @@ class _SubstitutionSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final catalog =
-        ref.watch(mappingColorCatalogProvider).value ?? ColorCatalog.empty;
+    final catalog = ref.watchColorNames();
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
         DashSpace.xl,
@@ -198,12 +174,12 @@ class _SlotBlock extends StatelessWidget {
               final printed = _Side(
                 caption: l10n.queueColorSubstitutionPrinted,
                 hex: sub.got,
-                name: mappingColorName(l10n, catalog, sub.got, material: type),
+                name: colorDisplayName(l10n, catalog, sub.got, material: type),
               );
               final wanted = _Side(
                 caption: l10n.queueColorSubstitutionWanted,
                 hex: sub.wanted,
-                name: mappingColorName(
+                name: colorDisplayName(
                   l10n,
                   catalog,
                   sub.wanted,
@@ -252,7 +228,7 @@ class _Side extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    final shown = '#${hex.replaceFirst('#', '').toUpperCase()}';
+    final shown = colorHexLabel(hex);
     return Semantics(
       container: true,
       label: '$caption: $name $shown',
@@ -264,7 +240,7 @@ class _Side extends StatelessWidget {
           const SizedBox(height: DashSpace.xs),
           Row(
             children: [
-              _Swatch(hex: hex, size: DashSize.d24),
+              ColorDot(color: colorFromHex(hex), size: DashSize.d24),
               const SizedBox(width: DashSpace.sm),
               Expanded(
                 child: Column(
@@ -294,11 +270,11 @@ String colorSubstitutionLabel(
   final type = sub.type.isEmpty ? null : sub.type;
   final (got, wanted) = disambiguateColorNames(
     (
-      name: mappingColorName(l10n, catalog, sub.got, material: type),
+      name: colorDisplayName(l10n, catalog, sub.got, material: type),
       hex: sub.got,
     ),
     (
-      name: mappingColorName(l10n, catalog, sub.wanted, material: type),
+      name: colorDisplayName(l10n, catalog, sub.wanted, material: type),
       hex: sub.wanted,
     ),
   );

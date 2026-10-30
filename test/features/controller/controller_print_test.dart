@@ -20,7 +20,7 @@ import 'package:bambuddy_mobile/features/orders/orders_providers.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/features/queue/job_cost_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_drafts.dart';
-import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
+import 'package:bambuddy_mobile/features/common/color_catalog.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -208,7 +208,7 @@ void main() {
           preferLowestFilamentProvider.overrideWithValue(
             const AsyncData(false),
           ),
-          mappingColorCatalogProvider.overrideWith(
+          colorNameCatalogProvider.overrideWith(
             (ref) async => ColorCatalog.empty,
           ),
           awaitingReviewProvider.overrideWithValue(held),
