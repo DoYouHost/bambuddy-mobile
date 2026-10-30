@@ -803,6 +803,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get queueAmsFromSlicer => 'AMS depuis le slicer';
 
   @override
+  String queueColorSubstitution(int slot, String got, String wanted) {
+    return 'L\'emplacement $slot a imprimé en $got, le fichier demande $wanted';
+  }
+
+  @override
   String queueAnyOfModels(String models) {
     return 'Au choix parmi : $models';
   }

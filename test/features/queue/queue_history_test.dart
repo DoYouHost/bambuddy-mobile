@@ -31,6 +31,7 @@ QueueItem _item(
   String? batchName,
   String? error,
   int? createdById,
+  List<ColorSubstitution> substitutions = const [],
 }) => QueueItem(
   id: id,
   position: 1,
@@ -44,6 +45,7 @@ QueueItem _item(
   batchName: batchName,
   errorMessage: error,
   createdById: createdById,
+  colorSubstitutions: substitutions,
 );
 
 /// A history on an older server, which sends all of it unsorted; [paged] is
@@ -263,6 +265,97 @@ void main() {
 
     expect(find.text(reason), findsOneWidget);
     expect(find.text('stale'), findsNothing);
+  });
+
+  group('colour substitutions', () {
+    const green = ColorSubstitution(
+      slotId: 2,
+      type: 'PLA',
+      wanted: '#FF0000',
+      got: '#00FF00',
+      tray: 5,
+    );
+
+    testWidgets('a row says which slot printed in another colour', (
+      tester,
+    ) async {
+      await _openHistory(
+        tester,
+        _History([
+          _item(1, substitutions: const [green]),
+          _item(2),
+        ]),
+      );
+
+      expect(
+        find.text(
+          pl.queueColorSubstitution(2, pl.colorFamilyGreen, pl.colorFamilyRed),
+        ),
+        findsOneWidget,
+        reason: 'only the row that reports one carries the line',
+      );
+      expect(find.byIcon(Icons.error_outline), findsOneWidget);
+    });
+
+    testWidgets('two alike names get their hex so they can be told apart', (
+      tester,
+    ) async {
+      await _openHistory(
+        tester,
+        _History([
+          _item(
+            1,
+            substitutions: const [
+              ColorSubstitution(slotId: 1, wanted: '#00AA00', got: '#22DD22'),
+            ],
+          ),
+        ]),
+      );
+
+      expect(
+        find.text(
+          pl.queueColorSubstitution(
+            1,
+            '${pl.colorFamilyGreen} (#22DD22)',
+            '${pl.colorFamilyGreen} (#00AA00)',
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('several slots stay inside the row at text $scale', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(411, 1600);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await _openHistory(
+          tester,
+          _History([
+            _item(
+              1,
+              substitutions: const [
+                green,
+                ColorSubstitution(slotId: 3, wanted: '#0000FF', got: '#FFFF00'),
+                ColorSubstitution(slotId: 4, wanted: '#000000', got: '#FFFFFF'),
+              ],
+            ),
+          ]),
+          textScale: scale,
+        );
+
+        expect(tester.takeException(), isNull);
+        for (final slot in [2, 3, 4]) {
+          final line = find.textContaining(
+            pl.queueColorSubstitution(slot, '', '').split(':').first,
+          );
+          expect(line, findsOneWidget);
+          expect(tester.getRect(line).right, lessThanOrEqualTo(411));
+        }
+      });
+    }
   });
 
   testWidgets('removing asks first, then deletes and drops the row', (

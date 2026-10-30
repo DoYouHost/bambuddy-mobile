@@ -364,6 +364,7 @@
   "plugStateOff": "Apagado",
   "queueEmpty": "La cola está vacía",
   "queueAmsFromSlicer": "AMS del laminador",
+  "queueColorSubstitution": "La ranura {slot} imprimió en {got}, el archivo pide {wanted}",
   "queueAnyOfModels": "Cualquiera de: {models}",
   "@queueAnyOfModels": {
     "placeholders": {

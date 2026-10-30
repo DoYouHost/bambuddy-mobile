@@ -364,6 +364,7 @@
   "plugStateOff": "Aus",
   "queueEmpty": "Die Warteschlange ist leer",
   "queueAmsFromSlicer": "AMS aus Slicer",
+  "queueColorSubstitution": "Slot {slot} wurde in {got} gedruckt, die Datei verlangt {wanted}",
   "queueAnyOfModels": "Eines von: {models}",
   "@queueAnyOfModels": {
     "placeholders": {

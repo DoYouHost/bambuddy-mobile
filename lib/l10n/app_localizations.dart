@@ -1460,6 +1460,12 @@ abstract class AppLocalizations {
   /// **'AMS from slicer'**
   String get queueAmsFromSlicer;
 
+  /// One line on a queue or history row: a slot printed from a spool of another colour than the file asked for. Colours are names, or hex codes when two names would be alike.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {slot} printed in {got}, the file asks for {wanted}'**
+  String queueColorSubstitution(int slot, String got, String wanted);
+
   /// No description provided for @queueAnyOfModels.
   ///
   /// In en, this message translates to:

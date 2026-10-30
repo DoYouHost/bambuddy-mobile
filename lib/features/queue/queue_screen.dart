@@ -16,6 +16,7 @@ import '../dashboard/ws_providers.dart';
 import '../orders/orders_providers.dart';
 import 'queue_actions.dart';
 import 'queue_bulk_edit_screen.dart';
+import 'color_substitution_notes.dart';
 import 'queue_edit_screen.dart';
 import 'queue_history.dart';
 import 'queue_item_view.dart';
@@ -468,6 +469,7 @@ class _QueueCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: DashSpace.sm),
                     _Subtitle(item: item),
+                    ColorSubstitutionNotes(item: item),
                   ],
                 ),
               ),

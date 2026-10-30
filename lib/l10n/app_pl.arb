@@ -333,6 +333,7 @@
   "plugStateOff": "Wyłączone",
   "queueEmpty": "Kolejka jest pusta",
   "queueAmsFromSlicer": "AMS ze slicera",
+  "queueColorSubstitution": "Slot {slot}: wydrukowano w kolorze {got}, plik wymaga {wanted}",
   "queueAnyOfModels": "Dowolny z: {models}",
   "@queueAnyOfModels": {
     "placeholders": {

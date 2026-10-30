@@ -111,6 +111,46 @@ void main() {
     expect(byLogId('queue.orders'), findsNothing);
   });
 
+  testWidgets('a queued card names a slot that printed in another colour', (
+    tester,
+  ) async {
+    final item = QueueItem.fromJson({
+      ...(readFixture('queue_item.json') as Map<String, dynamic>),
+      'color_substitutions': [
+        {
+          'slot_id': 1,
+          'type': 'PLA',
+          'wanted': '#FF0000',
+          'got': '#0000FF',
+          'tray': 0,
+        },
+      ],
+    });
+
+    await tester.pumpWidget(_screen([item]));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        pl.queueColorSubstitution(1, pl.colorFamilyBlue, pl.colorFamilyRed),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a card of a server without the field has no such line', (
+    tester,
+  ) async {
+    final item = QueueItem.fromJson(
+      readFixture('queue_item.json') as Map<String, dynamic>,
+    );
+
+    await tester.pumpWidget(_screen([item]));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.error_outline), findsNothing);
+  });
+
   testWidgets('an empty queue shows a message', (tester) async {
     await tester.pumpWidget(_screen(const []));
     await tester.pumpAndSettle();

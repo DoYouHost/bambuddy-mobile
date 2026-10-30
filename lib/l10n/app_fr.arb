@@ -364,6 +364,7 @@
   "plugStateOff": "Éteint",
   "queueEmpty": "La file d'attente est vide",
   "queueAmsFromSlicer": "AMS depuis le slicer",
+  "queueColorSubstitution": "L'emplacement {slot} a imprimé en {got}, le fichier demande {wanted}",
   "queueAnyOfModels": "Au choix parmi : {models}",
   "@queueAnyOfModels": {
     "placeholders": {

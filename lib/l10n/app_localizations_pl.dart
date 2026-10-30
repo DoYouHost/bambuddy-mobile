@@ -788,6 +788,11 @@ class AppLocalizationsPl extends AppLocalizations {
   String get queueAmsFromSlicer => 'AMS ze slicera';
 
   @override
+  String queueColorSubstitution(int slot, String got, String wanted) {
+    return 'Slot $slot: wydrukowano w kolorze $got, plik wymaga $wanted';
+  }
+
+  @override
   String queueAnyOfModels(String models) {
     return 'Dowolny z: $models';
   }
