@@ -485,6 +485,27 @@
   },
   "queueEmpty": "The queue is empty",
   "queueAmsFromSlicer": "AMS from slicer",
+  "queueColorSubstitution": "Slot {slot} printed in {got}, the file asks for {wanted}",
+  "@queueColorSubstitution": {
+    "description": "One line on a queue or history row: a slot printed from a spool of another colour than the file asked for. Colours are names, or hex codes when two names would be alike.",
+    "placeholders": {
+      "slot": {"type": "int"},
+      "got": {"type": "String"},
+      "wanted": {"type": "String"}
+    }
+  },
+  "queueColorSubstitutionSlots": "{count, plural, one{{count} slot} other{{count} slots}}",
+  "@queueColorSubstitutionSlots": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "queueColorSubstitutionTitle": "Printed in another colour",
+  "queueColorSubstitutionWhy": "No spool in the file's colour was loaded, or the slot was picked by hand.",
+  "queueColorSubstitutionSlot": "Slot {slot}",
+  "@queueColorSubstitutionSlot": {
+    "placeholders": {"slot": {"type": "int"}}
+  },
+  "queueColorSubstitutionPrinted": "Printed in",
+  "queueColorSubstitutionWanted": "File asks for",
   "queueAnyOfModels": "Any of: {models}",
   "@queueAnyOfModels": {
     "placeholders": {

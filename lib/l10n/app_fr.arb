@@ -364,6 +364,13 @@
   "plugStateOff": "Éteint",
   "queueEmpty": "La file d'attente est vide",
   "queueAmsFromSlicer": "AMS depuis le slicer",
+  "queueColorSubstitution": "L'emplacement {slot} a imprimé en {got}, le fichier demande {wanted}",
+  "queueColorSubstitutionSlots": "{count, plural, one{{count} emplacement} other{{count} emplacements}}",
+  "queueColorSubstitutionTitle": "Imprimé dans une autre couleur",
+  "queueColorSubstitutionWhy": "Aucune bobine de la couleur du fichier n'était chargée, ou l'emplacement a été choisi à la main.",
+  "queueColorSubstitutionSlot": "Emplacement {slot}",
+  "queueColorSubstitutionPrinted": "Imprimé en",
+  "queueColorSubstitutionWanted": "Le fichier demande",
   "queueAnyOfModels": "Au choix parmi : {models}",
   "@queueAnyOfModels": {
     "placeholders": {

@@ -16,6 +16,7 @@ import '../dashboard/ws_providers.dart';
 import '../orders/orders_providers.dart';
 import 'queue_actions.dart';
 import 'queue_bulk_edit_screen.dart';
+import 'color_substitution_chip.dart';
 import 'queue_edit_screen.dart';
 import 'queue_history.dart';
 import 'queue_item_view.dart';
@@ -576,6 +577,7 @@ class _Subtitle extends ConsumerWidget {
                 ),
                 accent: t.textTertiary,
               ),
+            ColorSubstitutionChip(item: item),
           ],
         ),
         if (parts.isNotEmpty)

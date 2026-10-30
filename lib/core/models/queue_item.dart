@@ -48,6 +48,7 @@ class QueueItem {
     this.amsMapping,
     this.beenJumped = false,
     this.variants = const [],
+    this.colorSubstitutions = const [],
     this.archiveHasSlicerAmsMapping = false,
     this.errorMessage,
     this.waitingReason,
@@ -333,6 +334,13 @@ class QueueItem {
   @JsonKey(fromJson: _variantsFromJson)
   final List<PrintVariant> variants;
 
+  /// Slots sent with a spool of another colour than the file asked for
+  /// (`color_substitutions`, server #3279), written when the job is dispatched
+  /// and kept for the history row. Empty for every job that printed in the
+  /// colours it asked for, and on every server before the field existed.
+  @JsonKey(fromJson: _colorSubstitutionsFromJson)
+  final List<ColorSubstitution> colorSubstitutions;
+
   /// Whether this item is still choosing between printers rather than waiting
   /// for one. Drives the `Any of N` label instead of `Any <model>`.
   bool get isCrossModel => variants.isNotEmpty;
@@ -378,6 +386,35 @@ class QueueItem {
 
 List<PrintVariant> _variantsFromJson(dynamic value) =>
     parseJsonList(value, PrintVariant.fromJson);
+
+List<ColorSubstitution> _colorSubstitutionsFromJson(dynamic value) =>
+    parseJsonList(value, ColorSubstitution.fromJson);
+
+/// One entry of `PrintQueueItemResponse.color_substitutions`: slot [slotId]
+/// (1-based, as the file numbers its filaments) printed from [tray] in [got]
+/// where the file asked for [wanted]. Both colours are `#RRGGBB`; [type] is the
+/// file's material for that slot and can be empty.
+@JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
+class ColorSubstitution {
+  const ColorSubstitution({
+    required this.slotId,
+    required this.wanted,
+    required this.got,
+    this.type = '',
+    this.tray,
+  });
+
+  factory ColorSubstitution.fromJson(Map<String, dynamic> json) =>
+      _$ColorSubstitutionFromJson(json);
+
+  final int slotId;
+  final String wanted;
+  final String got;
+
+  @JsonKey(defaultValue: '')
+  final String type;
+  final int? tray;
+}
 
 /// `{"2": 1}` → `{2: 1}`: the group ids JSON had to stringify, back to ints.
 Map<int, int>? _toRackChoiceOrNull(dynamic value) =>

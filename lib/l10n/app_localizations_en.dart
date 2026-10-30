@@ -777,6 +777,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queueAmsFromSlicer => 'AMS from slicer';
 
   @override
+  String queueColorSubstitution(int slot, String got, String wanted) {
+    return 'Slot $slot printed in $got, the file asks for $wanted';
+  }
+
+  @override
+  String queueColorSubstitutionSlots(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count slots',
+      one: '$count slot',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueColorSubstitutionTitle => 'Printed in another colour';
+
+  @override
+  String get queueColorSubstitutionWhy =>
+      'No spool in the file\'s colour was loaded, or the slot was picked by hand.';
+
+  @override
+  String queueColorSubstitutionSlot(int slot) {
+    return 'Slot $slot';
+  }
+
+  @override
+  String get queueColorSubstitutionPrinted => 'Printed in';
+
+  @override
+  String get queueColorSubstitutionWanted => 'File asks for';
+
+  @override
   String queueAnyOfModels(String models) {
     return 'Any of: $models';
   }

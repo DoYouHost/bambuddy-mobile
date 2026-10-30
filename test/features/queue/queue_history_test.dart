@@ -31,6 +31,7 @@ QueueItem _item(
   String? batchName,
   String? error,
   int? createdById,
+  List<ColorSubstitution> substitutions = const [],
 }) => QueueItem(
   id: id,
   position: 1,
@@ -44,6 +45,7 @@ QueueItem _item(
   batchName: batchName,
   errorMessage: error,
   createdById: createdById,
+  colorSubstitutions: substitutions,
 );
 
 /// A history on an older server, which sends all of it unsorted; [paged] is
@@ -263,6 +265,181 @@ void main() {
 
     expect(find.text(reason), findsOneWidget);
     expect(find.text('stale'), findsNothing);
+  });
+
+  group('colour substitutions', () {
+    const green = ColorSubstitution(
+      slotId: 2,
+      type: 'PLA',
+      wanted: '#FF0000',
+      got: '#00FF00',
+      tray: 5,
+    );
+    const yellow = ColorSubstitution(
+      slotId: 3,
+      wanted: '#0000FF',
+      got: '#FFFF00',
+    );
+    const white = ColorSubstitution(
+      slotId: 4,
+      wanted: '#000000',
+      got: '#FFFFFF',
+    );
+    final chip = byLogId('queue.color_substitution');
+
+    testWidgets('only the row that reports one carries the chip', (
+      tester,
+    ) async {
+      await _openHistory(
+        tester,
+        _History([
+          _item(1, substitutions: const [green]),
+          _item(2),
+        ]),
+      );
+
+      expect(chip, findsOneWidget);
+      expect(find.text(pl.queueColorSubstitutionTitle), findsNothing);
+    });
+
+    testWidgets('the sheet names both colours of a slot with their hex', (
+      tester,
+    ) async {
+      await _openHistory(
+        tester,
+        _History([
+          _item(1, substitutions: const [green]),
+        ]),
+      );
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.queueColorSubstitutionTitle), findsOneWidget);
+      expect(find.text(pl.queueColorSubstitutionSlot(2)), findsOneWidget);
+      expect(find.text(pl.queueColorSubstitutionPrinted), findsOneWidget);
+      expect(find.text(pl.queueColorSubstitutionWanted), findsOneWidget);
+      expect(find.text(pl.colorFamilyGreen), findsOneWidget);
+      expect(find.text('#00FF00'), findsOneWidget);
+      expect(find.text(pl.colorFamilyRed), findsOneWidget);
+      expect(find.text('#FF0000'), findsOneWidget);
+    });
+
+    testWidgets('several slots are one chip with a count, a block each', (
+      tester,
+    ) async {
+      await _openHistory(
+        tester,
+        _History([
+          _item(1, substitutions: const [green, yellow, white]),
+        ]),
+      );
+
+      expect(find.text(pl.queueColorSubstitutionSlots(3)), findsOneWidget);
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+      for (final slot in [2, 3, 4]) {
+        expect(find.text(pl.queueColorSubstitutionSlot(slot)), findsOneWidget);
+      }
+    });
+
+    testWidgets('a screen reader can open the sheet by its tap action', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await _openHistory(
+        tester,
+        _History([
+          _item(1, substitutions: const [green]),
+        ]),
+      );
+
+      expect(
+        tester.getSemantics(chip),
+        matchesSemantics(
+          isButton: true,
+          hasTapAction: true,
+          hasEnabledState: false,
+          label: pl.queueColorSubstitution(
+            2,
+            pl.colorFamilyGreen,
+            pl.colorFamilyRed,
+          ),
+        ),
+      );
+      tester.semantics.tap(find.semantics.byLabel(RegExp('Slot 2')));
+      await tester.pumpAndSettle();
+      expect(find.text(pl.queueColorSubstitutionTitle), findsOneWidget);
+      handle.dispose();
+    });
+
+    for (final (scale, stacked) in [(1.0, false), (2.0, true)]) {
+      testWidgets(
+        'the two sides of a slot are ${stacked ? 'stacked' : 'side '
+                  'by side'} at text $scale',
+        (tester) async {
+          tester.view.physicalSize = const Size(411, 1600);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await _openHistory(
+            tester,
+            _History([
+              _item(1, substitutions: const [green]),
+            ]),
+            textScale: scale,
+          );
+          await tester.tap(chip);
+          await tester.pumpAndSettle();
+
+          final printed = tester.getTopLeft(
+            find.text(pl.queueColorSubstitutionPrinted),
+          );
+          final wanted = tester.getTopLeft(
+            find.text(pl.queueColorSubstitutionWanted),
+          );
+          expect(wanted.dy > printed.dy, stacked);
+        },
+      );
+    }
+
+    testWidgets('a third slot does not make the row taller', (tester) async {
+      Future<double> rowHeight(List<ColorSubstitution> subs) async {
+        await _openHistory(tester, _History([_item(1, substitutions: subs)]));
+        return tester.getSize(byLogId('queue_history.row')).height;
+      }
+
+      expect(
+        await rowHeight(const [green, yellow, white]),
+        await rowHeight(const [green]),
+        reason: 'the slots are in the sheet, not on the row',
+      );
+    });
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('the chip stays inside the row and 48 dp tall at text '
+          '$scale', (tester) async {
+        tester.view.physicalSize = const Size(411, 1600);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await _openHistory(
+          tester,
+          _History([
+            _item(1, substitutions: const [green, yellow, white]),
+          ]),
+          textScale: scale,
+        );
+
+        expect(tester.takeException(), isNull);
+        final rect = tester.getRect(chip);
+        expect(rect.right, lessThanOrEqualTo(411));
+        expect(rect.height, greaterThanOrEqualTo(48));
+        expect(rect.width, greaterThanOrEqualTo(48));
+
+        await tester.tap(chip);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text(pl.queueColorSubstitutionSlot(4)), findsOneWidget);
+      });
+    }
   });
 
   testWidgets('removing asks first, then deletes and drops the row', (

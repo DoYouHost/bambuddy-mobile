@@ -364,6 +364,13 @@
   "plugStateOff": "Apagado",
   "queueEmpty": "La cola está vacía",
   "queueAmsFromSlicer": "AMS del laminador",
+  "queueColorSubstitution": "La ranura {slot} imprimió en {got}, el archivo pide {wanted}",
+  "queueColorSubstitutionSlots": "{count, plural, one{{count} ranura} other{{count} ranuras}}",
+  "queueColorSubstitutionTitle": "Impreso en otro color",
+  "queueColorSubstitutionWhy": "No había ninguna bobina del color del archivo cargada, o la ranura se eligió a mano.",
+  "queueColorSubstitutionSlot": "Ranura {slot}",
+  "queueColorSubstitutionPrinted": "Impreso en",
+  "queueColorSubstitutionWanted": "El archivo pide",
   "queueAnyOfModels": "Cualquiera de: {models}",
   "@queueAnyOfModels": {
     "placeholders": {
