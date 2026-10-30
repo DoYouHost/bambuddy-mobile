@@ -365,6 +365,12 @@
   "queueEmpty": "Die Warteschlange ist leer",
   "queueAmsFromSlicer": "AMS aus Slicer",
   "queueColorSubstitution": "Slot {slot} wurde in {got} gedruckt, die Datei verlangt {wanted}",
+  "queueColorSubstitutionSlots": "{count, plural, one{{count} Slot} other{{count} Slots}}",
+  "queueColorSubstitutionTitle": "In anderer Farbe gedruckt",
+  "queueColorSubstitutionWhy": "Es war keine Spule in der Farbe der Datei geladen, oder der Slot wurde von Hand gewählt.",
+  "queueColorSubstitutionSlot": "Slot {slot}",
+  "queueColorSubstitutionPrinted": "Gedruckt in",
+  "queueColorSubstitutionWanted": "Datei verlangt",
   "queueAnyOfModels": "Eines von: {models}",
   "@queueAnyOfModels": {
     "placeholders": {

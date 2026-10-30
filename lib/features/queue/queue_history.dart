@@ -16,7 +16,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import 'color_substitution_notes.dart';
+import 'color_substitution_chip.dart';
 import 'queue_edit_screen.dart';
 import 'queue_item_view.dart';
 import 'queue_removal.dart';
@@ -698,10 +698,10 @@ class _HistoryRow extends ConsumerWidget {
                         user,
                       ),
                     ),
+                  ColorSubstitutionChip(item: item),
                 ],
               ),
             ),
-            ColorSubstitutionNotes(item: item, indent: _indent),
             if (showError)
               Padding(
                 padding: const EdgeInsets.only(

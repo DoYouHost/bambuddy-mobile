@@ -111,34 +111,35 @@ void main() {
     expect(byLogId('queue.orders'), findsNothing);
   });
 
-  testWidgets('a queued card names a slot that printed in another colour', (
-    tester,
-  ) async {
-    final item = QueueItem.fromJson({
-      ...(readFixture('queue_item.json') as Map<String, dynamic>),
-      'color_substitutions': [
-        {
-          'slot_id': 1,
-          'type': 'PLA',
-          'wanted': '#FF0000',
-          'got': '#0000FF',
-          'tray': 0,
-        },
-      ],
-    });
+  testWidgets(
+    'a queued card carries a chip for a slot printed in another colour',
+    (tester) async {
+      final item = QueueItem.fromJson({
+        ...(readFixture('queue_item.json') as Map<String, dynamic>),
+        'color_substitutions': [
+          {
+            'slot_id': 1,
+            'type': 'PLA',
+            'wanted': '#FF0000',
+            'got': '#0000FF',
+            'tray': 0,
+          },
+        ],
+      });
 
-    await tester.pumpWidget(_screen([item]));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(_screen([item]));
+      await tester.pumpAndSettle();
 
-    expect(
-      find.text(
-        pl.queueColorSubstitution(1, pl.colorFamilyBlue, pl.colorFamilyRed),
-      ),
-      findsOneWidget,
-    );
-  });
+      final chip = byLogId('queue.color_substitution');
+      expect(chip, findsOneWidget);
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+      expect(find.text(pl.colorFamilyBlue), findsOneWidget);
+      expect(find.text(pl.colorFamilyRed), findsOneWidget);
+    },
+  );
 
-  testWidgets('a card of a server without the field has no such line', (
+  testWidgets('a card of a server without the field has no such chip', (
     tester,
   ) async {
     final item = QueueItem.fromJson(
@@ -148,7 +149,7 @@ void main() {
     await tester.pumpWidget(_screen([item]));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.error_outline), findsNothing);
+    expect(byLogId('queue.color_substitution'), findsNothing);
   });
 
   testWidgets('an empty queue shows a message', (tester) async {

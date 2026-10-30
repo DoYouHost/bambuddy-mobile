@@ -796,6 +796,35 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String queueColorSubstitutionSlots(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Slots',
+      one: '$count Slot',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueColorSubstitutionTitle => 'In anderer Farbe gedruckt';
+
+  @override
+  String get queueColorSubstitutionWhy =>
+      'Es war keine Spule in der Farbe der Datei geladen, oder der Slot wurde von Hand gewählt.';
+
+  @override
+  String queueColorSubstitutionSlot(int slot) {
+    return 'Slot $slot';
+  }
+
+  @override
+  String get queueColorSubstitutionPrinted => 'Gedruckt in';
+
+  @override
+  String get queueColorSubstitutionWanted => 'Datei verlangt';
+
+  @override
   String queueAnyOfModels(String models) {
     return 'Eines von: $models';
   }

@@ -275,8 +275,19 @@ void main() {
       got: '#00FF00',
       tray: 5,
     );
+    const yellow = ColorSubstitution(
+      slotId: 3,
+      wanted: '#0000FF',
+      got: '#FFFF00',
+    );
+    const white = ColorSubstitution(
+      slotId: 4,
+      wanted: '#000000',
+      got: '#FFFFFF',
+    );
+    final chip = byLogId('queue.color_substitution');
 
-    testWidgets('a row says which slot printed in another colour', (
+    testWidgets('only the row that reports one carries the chip', (
       tester,
     ) async {
       await _openHistory(
@@ -287,73 +298,86 @@ void main() {
         ]),
       );
 
-      expect(
-        find.text(
-          pl.queueColorSubstitution(2, pl.colorFamilyGreen, pl.colorFamilyRed),
-        ),
-        findsOneWidget,
-        reason: 'only the row that reports one carries the line',
-      );
-      expect(find.byIcon(Icons.error_outline), findsOneWidget);
+      expect(chip, findsOneWidget);
+      expect(find.text(pl.queueColorSubstitutionTitle), findsNothing);
     });
 
-    testWidgets('two alike names get their hex so they can be told apart', (
+    testWidgets('the sheet names both colours of a slot with their hex', (
       tester,
     ) async {
       await _openHistory(
         tester,
         _History([
-          _item(
-            1,
-            substitutions: const [
-              ColorSubstitution(slotId: 1, wanted: '#00AA00', got: '#22DD22'),
-            ],
-          ),
+          _item(1, substitutions: const [green]),
+        ]),
+      );
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.queueColorSubstitutionTitle), findsOneWidget);
+      expect(find.text(pl.queueColorSubstitutionSlot(2)), findsOneWidget);
+      expect(find.text(pl.queueColorSubstitutionPrinted), findsOneWidget);
+      expect(find.text(pl.queueColorSubstitutionWanted), findsOneWidget);
+      expect(find.text(pl.colorFamilyGreen), findsOneWidget);
+      expect(find.text('#00FF00'), findsOneWidget);
+      expect(find.text(pl.colorFamilyRed), findsOneWidget);
+      expect(find.text('#FF0000'), findsOneWidget);
+    });
+
+    testWidgets('several slots are one chip with a count, a block each', (
+      tester,
+    ) async {
+      await _openHistory(
+        tester,
+        _History([
+          _item(1, substitutions: const [green, yellow, white]),
         ]),
       );
 
+      expect(find.text(pl.queueColorSubstitutionSlots(3)), findsOneWidget);
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+      for (final slot in [2, 3, 4]) {
+        expect(find.text(pl.queueColorSubstitutionSlot(slot)), findsOneWidget);
+      }
+    });
+
+    testWidgets('a third slot does not make the row taller', (tester) async {
+      Future<double> rowHeight(List<ColorSubstitution> subs) async {
+        await _openHistory(tester, _History([_item(1, substitutions: subs)]));
+        return tester.getSize(byLogId('queue_history.row')).height;
+      }
+
       expect(
-        find.text(
-          pl.queueColorSubstitution(
-            1,
-            '${pl.colorFamilyGreen} (#22DD22)',
-            '${pl.colorFamilyGreen} (#00AA00)',
-          ),
-        ),
-        findsOneWidget,
+        await rowHeight(const [green, yellow, white]),
+        await rowHeight(const [green]),
+        reason: 'the slots are in the sheet, not on the row',
       );
     });
 
     for (final scale in [1.0, 1.5, 2.0]) {
-      testWidgets('several slots stay inside the row at text $scale', (
-        tester,
-      ) async {
+      testWidgets('the chip stays inside the row and 48 dp tall at text '
+          '$scale', (tester) async {
         tester.view.physicalSize = const Size(411, 1600);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.reset);
         await _openHistory(
           tester,
           _History([
-            _item(
-              1,
-              substitutions: const [
-                green,
-                ColorSubstitution(slotId: 3, wanted: '#0000FF', got: '#FFFF00'),
-                ColorSubstitution(slotId: 4, wanted: '#000000', got: '#FFFFFF'),
-              ],
-            ),
+            _item(1, substitutions: const [green, yellow, white]),
           ]),
           textScale: scale,
         );
 
         expect(tester.takeException(), isNull);
-        for (final slot in [2, 3, 4]) {
-          final line = find.textContaining(
-            pl.queueColorSubstitution(slot, '', '').split(':').first,
-          );
-          expect(line, findsOneWidget);
-          expect(tester.getRect(line).right, lessThanOrEqualTo(411));
-        }
+        final rect = tester.getRect(chip);
+        expect(rect.right, lessThanOrEqualTo(411));
+        expect(rect.height, greaterThanOrEqualTo(48));
+
+        await tester.tap(chip);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text(pl.queueColorSubstitutionSlot(4)), findsOneWidget);
       });
     }
   });

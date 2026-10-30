@@ -94,6 +94,7 @@ QueueItem _done(
   int? batchId,
   String status = 'completed',
   String? error,
+  List<Map<String, dynamic>>? substitutions,
 }) => QueueItem.fromJson({
   'id': id,
   'position': id,
@@ -104,6 +105,7 @@ QueueItem _done(
   'batch_id': batchId,
   'batch_name': batchId == null ? null : 'Keychains ×6',
   'error_message': error,
+  'color_substitutions': substitutions,
   'filament_type': 'PLA',
   'filament_color': '#1F8F4D',
   'filament_used_grams': 12.4,
@@ -309,7 +311,13 @@ Future<void> main() async {
     items: [
       _done(1, batchId: 4),
       _done(2, batchId: 4, status: 'failed', error: 'Filament ran out'),
-      _done(3),
+      // A chip for a slot printed in another colour: its tap target and ink.
+      _done(
+        3,
+        substitutions: const [
+          {'slot_id': 1, 'type': 'PLA', 'wanted': '#FF0000', 'got': '#00FF00'},
+        ],
+      ),
       _done(4, status: 'cancelled'),
     ],
     total: 120,

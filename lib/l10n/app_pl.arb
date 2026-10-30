@@ -334,6 +334,12 @@
   "queueEmpty": "Kolejka jest pusta",
   "queueAmsFromSlicer": "AMS ze slicera",
   "queueColorSubstitution": "Slot {slot}: wydrukowano w kolorze {got}, plik wymaga {wanted}",
+  "queueColorSubstitutionSlots": "{count, plural, one{{count} slot} few{{count} sloty} many{{count} slotów} other{{count} sloty}}",
+  "queueColorSubstitutionTitle": "Wydrukowano w innym kolorze",
+  "queueColorSubstitutionWhy": "Nie było szpuli w kolorze z pliku albo slot wybrano ręcznie.",
+  "queueColorSubstitutionSlot": "Slot {slot}",
+  "queueColorSubstitutionPrinted": "Wydrukowano w",
+  "queueColorSubstitutionWanted": "Plik wymaga",
   "queueAnyOfModels": "Dowolny z: {models}",
   "@queueAnyOfModels": {
     "placeholders": {

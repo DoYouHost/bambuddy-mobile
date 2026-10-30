@@ -797,6 +797,35 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String queueColorSubstitutionSlots(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ranuras',
+      one: '$count ranura',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueColorSubstitutionTitle => 'Impreso en otro color';
+
+  @override
+  String get queueColorSubstitutionWhy =>
+      'No había ninguna bobina del color del archivo cargada, o la ranura se eligió a mano.';
+
+  @override
+  String queueColorSubstitutionSlot(int slot) {
+    return 'Ranura $slot';
+  }
+
+  @override
+  String get queueColorSubstitutionPrinted => 'Impreso en';
+
+  @override
+  String get queueColorSubstitutionWanted => 'El archivo pide';
+
+  @override
   String queueAnyOfModels(String models) {
     return 'Cualquiera de: $models';
   }

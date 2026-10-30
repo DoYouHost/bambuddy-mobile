@@ -808,6 +808,35 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String queueColorSubstitutionSlots(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count emplacements',
+      one: '$count emplacement',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueColorSubstitutionTitle => 'Imprimé dans une autre couleur';
+
+  @override
+  String get queueColorSubstitutionWhy =>
+      'Aucune bobine de la couleur du fichier n\'était chargée, ou l\'emplacement a été choisi à la main.';
+
+  @override
+  String queueColorSubstitutionSlot(int slot) {
+    return 'Emplacement $slot';
+  }
+
+  @override
+  String get queueColorSubstitutionPrinted => 'Imprimé en';
+
+  @override
+  String get queueColorSubstitutionWanted => 'Le fichier demande';
+
+  @override
   String queueAnyOfModels(String models) {
     return 'Au choix parmi : $models';
   }

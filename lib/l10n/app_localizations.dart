@@ -1466,6 +1466,42 @@ abstract class AppLocalizations {
   /// **'Slot {slot} printed in {got}, the file asks for {wanted}'**
   String queueColorSubstitution(int slot, String got, String wanted);
 
+  /// No description provided for @queueColorSubstitutionSlots.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} slot} other{{count} slots}}'**
+  String queueColorSubstitutionSlots(int count);
+
+  /// No description provided for @queueColorSubstitutionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Printed in another colour'**
+  String get queueColorSubstitutionTitle;
+
+  /// No description provided for @queueColorSubstitutionWhy.
+  ///
+  /// In en, this message translates to:
+  /// **'No spool in the file\'s colour was loaded, or the slot was picked by hand.'**
+  String get queueColorSubstitutionWhy;
+
+  /// No description provided for @queueColorSubstitutionSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {slot}'**
+  String queueColorSubstitutionSlot(int slot);
+
+  /// No description provided for @queueColorSubstitutionPrinted.
+  ///
+  /// In en, this message translates to:
+  /// **'Printed in'**
+  String get queueColorSubstitutionPrinted;
+
+  /// No description provided for @queueColorSubstitutionWanted.
+  ///
+  /// In en, this message translates to:
+  /// **'File asks for'**
+  String get queueColorSubstitutionWanted;
+
   /// No description provided for @queueAnyOfModels.
   ///
   /// In en, this message translates to:

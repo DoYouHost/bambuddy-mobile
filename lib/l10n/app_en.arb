@@ -494,6 +494,18 @@
       "wanted": {"type": "String"}
     }
   },
+  "queueColorSubstitutionSlots": "{count, plural, one{{count} slot} other{{count} slots}}",
+  "@queueColorSubstitutionSlots": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "queueColorSubstitutionTitle": "Printed in another colour",
+  "queueColorSubstitutionWhy": "No spool in the file's colour was loaded, or the slot was picked by hand.",
+  "queueColorSubstitutionSlot": "Slot {slot}",
+  "@queueColorSubstitutionSlot": {
+    "placeholders": {"slot": {"type": "int"}}
+  },
+  "queueColorSubstitutionPrinted": "Printed in",
+  "queueColorSubstitutionWanted": "File asks for",
   "queueAnyOfModels": "Any of: {models}",
   "@queueAnyOfModels": {
     "placeholders": {
