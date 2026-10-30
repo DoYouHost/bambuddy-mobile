@@ -39,6 +39,10 @@ class ColorSubstitutionChip extends ConsumerWidget {
         label: single == null
             ? l10n.queueColorSubstitutionSlots(subs.length)
             : colorSubstitutionLabel(l10n, catalog, single),
+        // The tap is declared here: `excludeSemantics` drops the InkWell's own
+        // action, and a button a screen reader cannot activate is worse than
+        // none.
+        onTap: () => showColorSubstitutionSheet(context, item),
         excludeSemantics: true,
         child: InkWell(
           borderRadius: BorderRadius.circular(DashRadius.xl),
@@ -189,8 +193,8 @@ class _SlotBlock extends StatelessWidget {
           ),
           const SizedBox(height: DashSpace.sm),
           // Two columns while they fit, stacked at large text.
-          Builder(
-            builder: (context) {
+          LayoutBuilder(
+            builder: (context, box) {
               final printed = _Side(
                 caption: l10n.queueColorSubstitutionPrinted,
                 hex: sub.got,
@@ -206,7 +210,13 @@ class _SlotBlock extends StatelessWidget {
                   material: type,
                 ),
               );
-              final stacked = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+              // Two columns need room for a caption and a name each; the room
+              // they need grows with the text, so the rule is the width left
+              // at this scale, not the scale alone.
+              final stacked =
+                  box.maxWidth <
+                  (DashSize.d128 * 2 + DashSpace.md) *
+                      MediaQuery.textScalerOf(context).scale(1);
               return stacked
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

@@ -342,6 +342,65 @@ void main() {
       }
     });
 
+    testWidgets('a screen reader can open the sheet by its tap action', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await _openHistory(
+        tester,
+        _History([
+          _item(1, substitutions: const [green]),
+        ]),
+      );
+
+      expect(
+        tester.getSemantics(chip),
+        matchesSemantics(
+          isButton: true,
+          hasTapAction: true,
+          hasEnabledState: false,
+          label: pl.queueColorSubstitution(
+            2,
+            pl.colorFamilyGreen,
+            pl.colorFamilyRed,
+          ),
+        ),
+      );
+      tester.semantics.tap(find.semantics.byLabel(RegExp('Slot 2')));
+      await tester.pumpAndSettle();
+      expect(find.text(pl.queueColorSubstitutionTitle), findsOneWidget);
+      handle.dispose();
+    });
+
+    for (final (scale, stacked) in [(1.0, false), (2.0, true)]) {
+      testWidgets(
+        'the two sides of a slot are ${stacked ? 'stacked' : 'side '
+                  'by side'} at text $scale',
+        (tester) async {
+          tester.view.physicalSize = const Size(411, 1600);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await _openHistory(
+            tester,
+            _History([
+              _item(1, substitutions: const [green]),
+            ]),
+            textScale: scale,
+          );
+          await tester.tap(chip);
+          await tester.pumpAndSettle();
+
+          final printed = tester.getTopLeft(
+            find.text(pl.queueColorSubstitutionPrinted),
+          );
+          final wanted = tester.getTopLeft(
+            find.text(pl.queueColorSubstitutionWanted),
+          );
+          expect(wanted.dy > printed.dy, stacked);
+        },
+      );
+    }
+
     testWidgets('a third slot does not make the row taller', (tester) async {
       Future<double> rowHeight(List<ColorSubstitution> subs) async {
         await _openHistory(tester, _History([_item(1, substitutions: subs)]));
@@ -373,6 +432,7 @@ void main() {
         final rect = tester.getRect(chip);
         expect(rect.right, lessThanOrEqualTo(411));
         expect(rect.height, greaterThanOrEqualTo(48));
+        expect(rect.width, greaterThanOrEqualTo(48));
 
         await tester.tap(chip);
         await tester.pumpAndSettle();

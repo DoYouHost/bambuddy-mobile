@@ -63,6 +63,64 @@ void main() {
     });
   });
 
+  group('QueueItem.colorSubstitutions', () {
+    QueueItem parse(Object? value) => QueueItem.fromJson({
+      'id': 1,
+      'position': 1,
+      'status': 'completed',
+      'color_substitutions': value,
+    });
+
+    test('reads every field of an entry', () {
+      final sub = parse([
+        {
+          'slot_id': 2,
+          'type': 'PLA',
+          'wanted': '#FF0000',
+          'got': '#00FF00',
+          'tray': 5,
+        },
+      ]).colorSubstitutions.single;
+      expect(sub.slotId, 2);
+      expect(sub.type, 'PLA');
+      expect(sub.wanted, '#FF0000');
+      expect(sub.got, '#00FF00');
+      expect(sub.tray, 5);
+    });
+
+    test('is empty when an older server omits the field or sends null', () {
+      expect(
+        QueueItem.fromJson(const {
+          'id': 1,
+          'position': 1,
+          'status': 'pending',
+        }).colorSubstitutions,
+        isEmpty,
+      );
+      expect(parse(null).colorSubstitutions, isEmpty);
+      expect(parse(const []).colorSubstitutions, isEmpty);
+    });
+
+    test('drops a malformed entry and keeps the item and its neighbours', () {
+      final item = parse([
+        {'slot_id': 1, 'type': 'PLA', 'wanted': '#111111', 'got': '#222222'},
+        {'slot_id': 'x'},
+        {'slot_id': 5, 'wanted': null},
+        {'slot_id': 6, 'wanted': '#555555'},
+        'nonsense',
+        {'slot_id': 3, 'wanted': '#333333', 'got': '#444444'},
+      ]);
+      expect(item.colorSubstitutions.map((s) => s.slotId), [1, 3]);
+      expect(item.colorSubstitutions.last.type, isEmpty);
+      expect(item.colorSubstitutions.last.tray, isNull);
+    });
+
+    test('a field that is not a list is no substitutions', () {
+      expect(parse('[]').colorSubstitutions, isEmpty);
+      expect(parse(const {'slot_id': 1}).colorSubstitutions, isEmpty);
+    });
+  });
+
   group('QueueItemStatusKind classification', () {
     QueueItemStatusKind kind(String s) =>
         QueueItem(id: 1, position: 1, status: s).statusKind;
