@@ -44,6 +44,10 @@ class DemoBackend {
   /// Simulated job duration; the job loops forever.
   static const _printCycleSec = 5400; // 90 min
   static const _totalLayers = 264;
+
+  /// Layers the demo print has a slicer pause on (an insert to drop in), so the
+  /// card's next-pause marker has something to show.
+  static const _demoPauseLayers = [96, 192];
   static const _demoWearCostPerHour = 0.25;
 
   /// How many machines the demo runs a print on at once, from app settings.
@@ -1565,6 +1569,23 @@ class DemoBackend {
 
   double _r1(double v) => (v * 10).roundToDouble() / 10;
 
+  /// What the server's `next_pause` says at [frac] of the print: the first pause
+  /// on a layer above the one printing, and the minutes to it, which the demo's
+  /// even pace makes the share of the cycle between here and there. Null once
+  /// the last pause is behind.
+  Map<String, dynamic>? _nextPause(double frac) {
+    final layer = (frac * _totalLayers).floor();
+    for (final at in _demoPauseLayers) {
+      if (at > layer) {
+        return {
+          'layer': at,
+          'minutes': ((at / _totalLayers - frac) * _printCycleSec / 60).ceil(),
+        };
+      }
+    }
+    return null;
+  }
+
   /// An idle fixture with a print laid over it, for the machines that only run
   /// one because the setting asked for several.
   Map<String, dynamic> _maybePrinting(
@@ -1588,6 +1609,7 @@ class DemoBackend {
       'remaining_time': (_printCycleSec * (1 - frac) / 60).ceil(),
       'layer_num': (frac * _totalLayers).floor(),
       'total_layers': _totalLayers,
+      'next_pause': _nextPause(frac),
       'temperatures': {
         ...idle['temperatures'] as Map<String, dynamic>,
         'nozzle': _r1(220 + _wiggle(1.4, phase: id * 20)),
@@ -1621,6 +1643,7 @@ class DemoBackend {
       'remaining_time': printing ? ((_printCycleSec - elapsed) / 60).ceil() : 0,
       'layer_num': printing ? (frac * _totalLayers).floor() : 0,
       'total_layers': printing ? _totalLayers : 0,
+      'next_pause': printing && !_paused ? _nextPause(frac) : null,
       'temperatures': {
         'nozzle': _r1(heating ? 220 + _wiggle(1.4) : 152),
         'nozzle_target': _nozzleTarget[1] ?? (heating ? 220.0 : 0.0),

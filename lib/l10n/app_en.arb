@@ -1536,6 +1536,36 @@
       }
     }
   },
+  "printPauseAtLayer": "layer {layer}",
+  "@printPauseAtLayer": {
+    "description": "What the next-pause item of the print panel says while the server gives no minutes: the layer the pause is on.",
+    "placeholders": {
+      "layer": {
+        "type": "int"
+      }
+    }
+  },
+  "printPauseA11yIn": "Next pause in {duration}, at layer {layer}",
+  "@printPauseA11yIn": {
+    "description": "Screen reader text of the next-pause item: minutes to the pause and its layer.",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      },
+      "layer": {
+        "type": "int"
+      }
+    }
+  },
+  "printPauseA11yLayer": "Next pause at layer {layer}",
+  "@printPauseA11yLayer": {
+    "description": "Screen reader text of the next-pause item while the server gives no minutes.",
+    "placeholders": {
+      "layer": {
+        "type": "int"
+      }
+    }
+  },
   "notifHumidityThreshold": "AMS humidity above {value}%",
   "@notifHumidityThreshold": {
     "placeholders": {

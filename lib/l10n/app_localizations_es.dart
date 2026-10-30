@@ -2389,6 +2389,21 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String printPauseAtLayer(int layer) {
+    return 'capa $layer';
+  }
+
+  @override
+  String printPauseA11yIn(String duration, int layer) {
+    return 'Próxima pausa en $duration, en la capa $layer';
+  }
+
+  @override
+  String printPauseA11yLayer(int layer) {
+    return 'Próxima pausa en la capa $layer';
+  }
+
+  @override
   String notifHumidityThreshold(int value) {
     return 'Humedad del AMS por encima del $value%';
   }

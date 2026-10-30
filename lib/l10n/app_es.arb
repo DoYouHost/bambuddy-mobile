@@ -1259,6 +1259,9 @@
       }
     }
   },
+  "printPauseAtLayer": "capa {layer}",
+  "printPauseA11yIn": "Próxima pausa en {duration}, en la capa {layer}",
+  "printPauseA11yLayer": "Próxima pausa en la capa {layer}",
   "notifHumidityThreshold": "Humedad del AMS por encima del {value}%",
   "@notifHumidityThreshold": {
     "placeholders": {

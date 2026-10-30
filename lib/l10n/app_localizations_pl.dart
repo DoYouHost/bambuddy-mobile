@@ -2419,6 +2419,21 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String printPauseAtLayer(int layer) {
+    return 'warstwa $layer';
+  }
+
+  @override
+  String printPauseA11yIn(String duration, int layer) {
+    return 'Następna pauza za $duration, na warstwie $layer';
+  }
+
+  @override
+  String printPauseA11yLayer(int layer) {
+    return 'Następna pauza na warstwie $layer';
+  }
+
+  @override
   String notifHumidityThreshold(int value) {
     return 'Wilgotność AMS powyżej $value%';
   }

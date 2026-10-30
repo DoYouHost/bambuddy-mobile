@@ -199,6 +199,7 @@ class _PrintPanel extends StatelessWidget {
           icon: Icons.layers_outlined,
           text: '${status.layerNum}/${status.totalLayers}',
         ),
+      ?pauseMetaItem(context, l10n, status),
     ];
 
     final stage = _preparingStage(status);
@@ -258,7 +259,11 @@ class _PrintPanel extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _PrintProgressBar(status: status, height: DashSize.d8),
+                child: _PrintProgressBar(
+                  status: status,
+                  height: DashSize.d8,
+                  showPause: true,
+                ),
               ),
               if (progress != null && !showStage) ...[
                 const SizedBox(width: DashSpace.md),
@@ -286,20 +291,35 @@ String? _preparingStage(PrinterStatus status) {
 
 /// The print's progress bar, shared by the print panel and the collapsed card.
 class _PrintProgressBar extends StatelessWidget {
-  const _PrintProgressBar({required this.status, required this.height});
+  const _PrintProgressBar({
+    required this.status,
+    required this.height,
+    this.showPause = false,
+  });
 
   final PrinterStatus status;
   final double height;
 
+  /// Marks the next pause on the bar. Only the print panel does: the collapsed
+  /// card has no row to say what the tick is.
+  final bool showPause;
+
   @override
   Widget build(BuildContext context) {
     final progress = status.progress;
-    return DashProgressBar(
+    final bar = DashProgressBar(
       value: _preparingStage(status) != null || progress == null
           ? null
           : (progress / 100).clamp(0.0, 1.0),
       height: height,
     );
+    return showPause
+        ? PauseTick(
+            fraction: pauseTickFraction(status),
+            barHeight: height,
+            child: bar,
+          )
+        : bar;
   }
 }
 

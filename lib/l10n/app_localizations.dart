@@ -3968,6 +3968,24 @@ abstract class AppLocalizations {
   /// **'Bed cooled below {temp}°C'**
   String notifBedCooledThreshold(int temp);
 
+  /// What the next-pause item of the print panel says while the server gives no minutes: the layer the pause is on.
+  ///
+  /// In en, this message translates to:
+  /// **'layer {layer}'**
+  String printPauseAtLayer(int layer);
+
+  /// Screen reader text of the next-pause item: minutes to the pause and its layer.
+  ///
+  /// In en, this message translates to:
+  /// **'Next pause in {duration}, at layer {layer}'**
+  String printPauseA11yIn(String duration, int layer);
+
+  /// Screen reader text of the next-pause item while the server gives no minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Next pause at layer {layer}'**
+  String printPauseA11yLayer(int layer);
+
   /// No description provided for @notifHumidityThreshold.
   ///
   /// In en, this message translates to:

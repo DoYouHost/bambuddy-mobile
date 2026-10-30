@@ -114,6 +114,24 @@ print log takes instants instead and needs no zone.
   `DELETE` everything but printing), and a filament type list does not pair with its
   colour list by index: both in [queue-and-pipelines.md](queue-and-pipelines.md).
 
+## `next_pause` is the answer, not a delta
+
+`next_pause` (`{layer, minutes}`, server #2984) is the first slicer pause on a layer
+above the one printing, and the server writes the key into **every** status, REST and
+WebSocket, with JSON null for "none ahead". `PrinterStatus.mergedWith` therefore does
+*not* inherit it the way it inherits every other field: carrying the last value forward
+would keep a marker for a pause the print is already past. An older server never sends
+the key, which reads the same as "none", so the field needs no gate.
+
+- `minutes` is null at the start of a print (the printer reports no time left) and in any
+  speed mode but standard, where the slicer's times do not apply. The layer is right all
+  the same, so the card shows the layer and never warns by time.
+- It is null while the print is paused (`state` is `PAUSE`): the printer is waiting at a
+  pause, or was stopped by hand. Only `RUNNING` has one.
+- Readable with an API key (`PRINTERS_READ` is `can_read_status`); the server's own
+  "Pause Coming Up" alert and its lead time are not writable with one
+  ([api-keys-and-settings.md](api-keys-and-settings.md)).
+
 ## Clearing HMS errors does not clear a standing fault
 
 `POST /printers/{id}/hms/clear` answers `200 {"success": true}` once the command is
