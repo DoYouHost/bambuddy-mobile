@@ -220,6 +220,19 @@ carries for the whole fleet. A route pair, so `InventoryRepository` prefers the
 404. Being early costs a section offering to write where the write would 404, so
 the spool form hides it until this says yes.
 
+### profileDefaults — 1.2.6 (server #1326)
+
+`/inventory/profile-defaults` (list, `PUT` save, `DELETE /{id}`), `/resolve` and
+`POST /{id}/apply` with its Spoolman twin — what a new spool of a product starts
+with. The server lays a default on every spool it creates whether or not the app
+knows about it, so the gate only decides whether the app *offers* to read, save and
+manage one. A route family, so `ProfileDefaultsRepository` prefers the answers: the
+listing and `resolve` look no row up, so their 404 and 403 both hide the feature;
+the writes settle nothing (a 404 there is a default that is gone, a 403 a missing
+`inventory:update`). Measured on `:latest` (1.2.5.7): the routes 404. Being early
+costs a switch row in the spool form on a 1.2.6 beta older than the commit, until
+the form's first `resolve` 404s and the latch closes.
+
 ### libraryQueueTarget — 1.2.5.6 (server #3112, commit 70b42d1c)
 
 `printer_id` / `target_model` on `POST /library/files/add-to-queue` — a bulk

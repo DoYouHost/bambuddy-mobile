@@ -6345,6 +6345,8 @@ class DemoBackend {
 
       case 'suppliers':
         return _suppliersRoute(m, s, body);
+      case 'profile-defaults':
+        return _profileDefaultsRoute(m, s, q, body);
       case 'stats':
         if (s.length == 3 && s[2] == 'suppliers' && m == 'GET') {
           return _supplierStats(q);
@@ -6629,7 +6631,238 @@ class DemoBackend {
         }),
     ];
     _spools.add(spool);
+    _startFromProfileDefault(spool);
     return spool;
+  }
+
+  /// Profile defaults (#1326), seeded so the spool form's prefill and the
+  /// settings list have something to show. A saved one replaces the whole row,
+  /// as the route does.
+  late final List<Map<String, dynamic>> _profileDefaults = [
+    {
+      'id': 1,
+      'brand': 'Bambu Lab',
+      'material': 'PLA',
+      'subtype': 'Basic',
+      'color_name': '',
+      'slicer_filament': 'GFA00',
+      'slicer_filament_name': 'Bambu PLA Basic',
+      'presets': [
+        {
+          'printer_model': 'X1C',
+          'nozzle_diameter': '',
+          'slicer_filament': 'Bambu PLA Basic @BBL X1C',
+          'slicer_filament_name': 'Bambu PLA Basic @BBL X1C',
+        },
+      ],
+      'k_profiles': [
+        {
+          'printer_id': 1,
+          'extruder': 0,
+          'nozzle_diameter': '0.4',
+          'nozzle_type': null,
+          'k_value': 0.02,
+          'name': 'Bambu PLA Basic',
+          'cali_idx': null,
+          'setting_id': null,
+        },
+      ],
+      'updated_at': _iso(DateTime.utc(2026, 10, 20, 9)),
+    },
+    {
+      'id': 2,
+      'brand': 'Bambu Lab',
+      'material': 'PLA',
+      'subtype': 'Basic',
+      'color_name': 'Red',
+      'slicer_filament': null,
+      'slicer_filament_name': null,
+      'presets': const <Object>[],
+      'k_profiles': const <Object>[],
+      'updated_at': _iso(DateTime.utc(2026, 10, 21, 18)),
+    },
+  ];
+  int _nextProfileDefaultId = 10;
+
+  /// `profile_defaults.match_key`: trimmed, case-folded.
+  static String _productKey(Map<String, dynamic> row, {bool colour = true}) => [
+    row['brand'],
+    row['material'],
+    row['subtype'],
+    if (colour) row['color_name'],
+  ].map((v) => '${v ?? ''}'.trim().toLowerCase()).join('\x1f');
+
+  /// The all-colours row as the base, the colour's own laid over it: its preset
+  /// replaces the base's, and each of its models replaces the base's for the
+  /// same `(model, nozzle)`. Null when neither exists.
+  Map<String, dynamic>? _resolveProfileDefault(Map<String, dynamic> product) {
+    if ('${product['material'] ?? ''}'.trim().isEmpty) return null;
+    final key = _productKey(product, colour: false);
+    final colour = '${product['color_name'] ?? ''}'.trim().toLowerCase();
+    final rows =
+        [
+          for (final row in _profileDefaults)
+            if (_productKey(row, colour: false) == key &&
+                ('${row['color_name']}'.isEmpty ||
+                    '${row['color_name']}'.trim().toLowerCase() == colour))
+              row,
+        ]..sort(
+          (a, b) => '${a['color_name']}'.length - '${b['color_name']}'.length,
+        );
+    if (rows.isEmpty) return null;
+    String? preset;
+    String? presetName;
+    final presets = <String, Map<String, dynamic>>{};
+    for (final row in rows) {
+      if ('${row['slicer_filament'] ?? ''}'.isNotEmpty) {
+        preset = row['slicer_filament'] as String;
+        presetName = row['slicer_filament_name'] as String?;
+      }
+      for (final p in (row['presets'] as List).cast<Map<String, dynamic>>()) {
+        presets['${p['printer_model']}|${p['nozzle_diameter'] ?? ''}'] = p;
+      }
+    }
+    return {
+      'slicer_filament': preset,
+      'slicer_filament_name': presetName,
+      'presets': presets.values.toList(),
+      'k_profiles': [for (final row in rows) ...(row['k_profiles'] as List)],
+      'default_ids': [for (final row in rows) row['id']],
+    };
+  }
+
+  /// What the server does on every create: a spool that names no preset of its
+  /// own starts with the default's, and gets its per-model rows.
+  void _startFromProfileDefault(Map<String, dynamic> spool) {
+    final resolved = _resolveProfileDefault(spool);
+    if (resolved == null) return;
+    if ('${spool['slicer_filament'] ?? ''}'.isEmpty) {
+      spool['slicer_filament'] = resolved['slicer_filament'];
+      spool['slicer_filament_name'] = resolved['slicer_filament_name'];
+    }
+    _fillPresetOverrides(spool['id'] as int, resolved['presets'] as List);
+  }
+
+  /// Adds the models a spool has no row for yet; never overwrites. Whether it
+  /// added any.
+  bool _fillPresetOverrides(int spoolId, List presets) {
+    final rows = _presetOverrides.putIfAbsent(spoolId, () => []);
+    var added = false;
+    for (final p in presets.cast<Map<String, dynamic>>()) {
+      final exists = rows.any(
+        (r) =>
+            r['printer_model'] == p['printer_model'] &&
+            (r['nozzle_diameter'] ?? '') == (p['nozzle_diameter'] ?? ''),
+      );
+      if (exists) continue;
+      added = true;
+      rows.add({
+        'id': rows.length + 1,
+        'spool_id': spoolId,
+        'printer_model': p['printer_model'],
+        'nozzle_diameter': p['nozzle_diameter'] ?? '',
+        'slicer_filament': p['slicer_filament'],
+        'slicer_filament_name': p['slicer_filament_name'],
+        'created_at': _iso(DateTime.now()),
+      });
+    }
+    return added;
+  }
+
+  DemoResult _profileDefaultsRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+    Map<String, dynamic> body,
+  ) {
+    DemoResult refuse(String detail) => (status: 422, body: {'detail': detail});
+
+    if (s.length == 2) {
+      if (m == 'GET') {
+        final rows = [..._profileDefaults]
+          ..sort((a, b) => _productKey(a).compareTo(_productKey(b)));
+        return _ok(rows);
+      }
+      if (m == 'PUT') {
+        if ('${body['material'] ?? ''}'.trim().isEmpty) {
+          return refuse('material must not be empty');
+        }
+        final models = <String>{};
+        for (final p in (body['presets'] as List? ?? const [])) {
+          final key = '${p['printer_model']}|${p['nozzle_diameter'] ?? ''}';
+          if (!models.add(key)) {
+            return refuse('Duplicate override for model ${p['printer_model']}');
+          }
+        }
+        final row = {
+          'brand': '${body['brand'] ?? ''}'.trim(),
+          'material': '${body['material']}'.trim(),
+          'subtype': '${body['subtype'] ?? ''}'.trim(),
+          'color_name': '${body['color_name'] ?? ''}'.trim(),
+          'slicer_filament': body['slicer_filament'],
+          'slicer_filament_name': body['slicer_filament_name'],
+          'presets': body['presets'] ?? const <Object>[],
+          'k_profiles': body['k_profiles'] ?? const <Object>[],
+          'updated_at': _iso(DateTime.now()),
+        };
+        final at = _profileDefaults.indexWhere(
+          (x) => _productKey(x) == _productKey(row),
+        );
+        final saved = {
+          'id': at < 0 ? _nextProfileDefaultId++ : _profileDefaults[at]['id'],
+          ...row,
+        };
+        at < 0 ? _profileDefaults.add(saved) : _profileDefaults[at] = saved;
+        return _ok(saved);
+      }
+    }
+    if (s.length == 3 && s[2] == 'resolve' && m == 'GET') {
+      if ((q['material'] ?? '').isEmpty) return refuse('material is required');
+      return _ok(
+        _resolveProfileDefault({
+          'brand': q['brand'],
+          'material': q['material'],
+          'subtype': q['subtype'],
+          'color_name': q['color_name'],
+        }),
+      );
+    }
+    final id = int.tryParse(s.length > 2 ? s[2] : '');
+    final row = _profileDefaults.where((x) => x['id'] == id).firstOrNull;
+    if (row == null) {
+      return (status: 404, body: {'detail': 'Profile default not found'});
+    }
+    if (s.length == 3 && m == 'DELETE') {
+      _profileDefaults.remove(row);
+      return _ok(const {'status': 'deleted'});
+    }
+    if (s.length == 4 && s[3] == 'apply' && m == 'POST') {
+      var updated = 0;
+      final colour = '${row['color_name']}'.trim().toLowerCase();
+      for (final spool in _spools) {
+        if (spool['archived_at'] != null ||
+            _productKey(spool, colour: false) !=
+                _productKey(row, colour: false) ||
+            (colour.isNotEmpty &&
+                '${spool['color_name'] ?? ''}'.trim().toLowerCase() !=
+                    colour)) {
+          continue;
+        }
+        var changed = false;
+        if ('${spool['slicer_filament'] ?? ''}'.isEmpty &&
+            '${row['slicer_filament'] ?? ''}'.isNotEmpty) {
+          spool['slicer_filament'] = row['slicer_filament'];
+          spool['slicer_filament_name'] = row['slicer_filament_name'];
+          changed = true;
+        }
+        changed =
+            _fillPresetOverrides(spool['id'] as int, row['presets'] as List) ||
+            changed;
+        if (changed) updated++;
+      }
+      return _ok({'updated': updated});
+    }
+    return _fallback(m);
   }
 
   List<Map<String, dynamic>> _spoolUsage(int spoolId) {
