@@ -7,6 +7,7 @@ import 'package:bambuddy_mobile/core/settings/label_print_prefs.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
+import 'package:bambuddy_mobile/features/inventory/profile_defaults_screen.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_providers.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -607,6 +608,24 @@ void main() {
     home: () => const InventoryScreen(),
     arrange: _openAssign,
     shows: find.text(pl.inventoryAssignNoPrinters),
+  );
+
+  // --- Profile defaults (Settings) ---
+
+  a11ySurface(
+    'inventory, profile defaults',
+    home: () => const ProfileDefaultsScreen(),
+    shows: find.text('Bambu Lab PLA Basic · Red'),
+  );
+
+  a11ySurface(
+    'inventory, profile defaults delete confirmation',
+    home: () => const ProfileDefaultsScreen(),
+    arrange: (tester) async {
+      await tester.tap(byLogId('profile_defaults.delete').first);
+      await settle(tester);
+    },
+    shows: find.text(pl.profileDefaultsDeleteTitle),
   );
 
   // --- Spool form, native backend ---

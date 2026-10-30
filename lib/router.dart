@@ -26,6 +26,7 @@ import 'features/inventory/inventory_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
 import 'features/maintenance/maintenance_settings.dart';
 import 'features/notifications/notification_settings_screen.dart';
+import 'features/inventory/profile_defaults_screen.dart';
 import 'features/settings/queue_settings_screen.dart';
 import 'features/label_printer/label_printer_screen.dart';
 import 'features/settings/app_settings_screen.dart';
@@ -167,6 +168,10 @@ GoRouter buildAppRouter({
       GoRoute(
         path: '/settings/queue',
         builder: (_, _) => const QueueSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/profile-defaults',
+        builder: (_, _) => const ProfileDefaultsScreen(),
       ),
 
       // Maintenance settings (types + per-printer overrides) — full screen

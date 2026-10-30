@@ -144,6 +144,13 @@ The app only reads, saves and manages them. The gate is in [server-gates.md](ser
   spools again.
 - **Known deviation:** from an edit or a copy the web saves the spool's own K profiles
   into the default; the app keeps the default's, since it cannot show the spool's.
+- **The list is in the server settings hub**, with the other settings that change the
+  server for everybody, and its entry shows only once the gate says yes
+  (`ProfileDefaultsScreen`). Apply goes to the twin route of the live inventory — the one
+  place the two modes differ — and refreshes the shelf when it changed anything; Delete
+  asks first. A 403 on Delete can also mean the default holds K profiles of printers the
+  session may not see (`delete_profile_default`), and the server's own words are what the
+  snack shows. Neither write settles the gate.
 
 ## Assigning a spool to a slot: two flows, both stay
 

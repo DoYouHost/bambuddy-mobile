@@ -4694,6 +4694,66 @@ abstract class AppLocalizations {
   /// **'Spool saved, its default was not.'**
   String get inventoryProfileDefaultSaveFailed;
 
+  /// Subtitle of the Profile defaults entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'What new spools start with'**
+  String get serverSettingsProfileDefaultsSubtitle;
+
+  /// Title of the profile defaults screen and of its entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile defaults'**
+  String get profileDefaultsTitle;
+
+  /// Explains where a profile default is saved and what applying one does; quotes the label of the spool form's default switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Save one with “Use as default” in a spool\'s form. Applying fills in only what spools lack.'**
+  String get profileDefaultsDescription;
+
+  /// Shown instead of the list when no profile default is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'No defaults saved yet'**
+  String get profileDefaultsEmpty;
+
+  /// Button on a profile default that fills in what existing spools of its product lack.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to spools'**
+  String get profileDefaultsApply;
+
+  /// Snackbar after applying a profile default: how many spools got something filled in.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No spool needed it} one{{count} spool filled in} other{{count} spools filled in}}'**
+  String profileDefaultsApplied(int count);
+
+  /// Title of the confirmation before a profile default is deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this default?'**
+  String get profileDefaultsDeleteTitle;
+
+  /// Body of the delete confirmation; spools that already got the profiles keep them.
+  ///
+  /// In en, this message translates to:
+  /// **'{product}: new spools stop starting with it. Spools that already got it keep it.'**
+  String profileDefaultsDeleteBody(String product);
+
+  /// Part of a profile default's summary line: how many per-printer-model presets it holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} model preset} other{{count} model presets}}'**
+  String profileDefaultsModelPresets(int count);
+
+  /// Part of a profile default's summary line: how many K profiles it holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} K profile} other{{count} K profiles}}'**
+  String profileDefaultsKProfiles(int count);
+
   /// No description provided for @inventoryFieldMaterial.
   ///
   /// In en, this message translates to:

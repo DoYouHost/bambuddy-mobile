@@ -2842,6 +2842,65 @@ class AppLocalizationsFr extends AppLocalizations {
       'Bobine enregistrée, mais pas ses valeurs par défaut.';
 
   @override
+  String get serverSettingsProfileDefaultsSubtitle =>
+      'Ce que reçoivent les nouvelles bobines';
+
+  @override
+  String get profileDefaultsTitle => 'Valeurs par défaut des profils';
+
+  @override
+  String get profileDefaultsDescription =>
+      'Enregistrez-en une avec « Utiliser par défaut » dans le formulaire de la bobine. Appliquer ne complète que ce qui manque aux bobines.';
+
+  @override
+  String get profileDefaultsEmpty => 'Aucune valeur par défaut enregistrée';
+
+  @override
+  String get profileDefaultsApply => 'Appliquer aux bobines';
+
+  @override
+  String profileDefaultsApplied(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bobines complétées',
+      one: '$count bobine complétée',
+      zero: 'Aucune bobine n\'en avait besoin',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get profileDefaultsDeleteTitle => 'Supprimer ces valeurs par défaut ?';
+
+  @override
+  String profileDefaultsDeleteBody(String product) {
+    return '$product : les nouvelles bobines ne démarreront plus avec. Celles qui l\'ont déjà reçu le gardent.';
+  }
+
+  @override
+  String profileDefaultsModelPresets(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count préréglages par modèle',
+      one: '$count préréglage par modèle',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String profileDefaultsKProfiles(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count profils K',
+      one: '$count profil K',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get inventoryFieldMaterial => 'Matériau';
 
   @override
