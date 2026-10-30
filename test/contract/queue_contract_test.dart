@@ -52,6 +52,23 @@ void main() {
       }
     });
 
+    test('color_substitutions is a list or null, never anything else', () async {
+      // Written only when a job is dispatched on a printer (#3279), which the
+      // seeded server never does, so this proves the shape an idle queue and an
+      // older server (no key at all) send, not a substitution's content; that
+      // is covered by the model and widget tests from the server's schema.
+      final raw = (await dio.get<List<dynamic>>(
+        Endpoints.queue,
+      )).data!.cast<Map<String, dynamic>>();
+      expect(raw, isNotEmpty);
+      for (final row in raw) {
+        expect(row['color_substitutions'], anyOf(isNull, isA<List<dynamic>>()));
+      }
+      for (final item in await queue.fetch()) {
+        expect(item.colorSubstitutions, isEmpty);
+      }
+    });
+
     test('reorder endpoint responds with valid status code', () async {
       final items = await queue.fetch();
       if (items.isEmpty) return;
