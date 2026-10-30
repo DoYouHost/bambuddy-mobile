@@ -99,5 +99,11 @@ the app stops working for everyone with a server on the LAN (most users). Users
 connecting through a public domain are unaffected. A new permission is a maintainer
 decision — see "Stop and ask: security" in AGENTS.md.
 
+Google Play adds a second step (policy announcement of 2026-10-29): an app targeting
+API 37+ must also submit a **Local Network declaration** in Play Console to use the
+permission. Raising the target is therefore two jobs — the manifest and runtime
+request, and the declaration — and the declaration must go in before the upload that
+raises the target. Tracked in [play-compliance.md](play-compliance.md#play-policy).
+
 Related: [notification-delivery.md](notification-delivery.md),
 [server-contract-traps.md](server-contract-traps.md).
