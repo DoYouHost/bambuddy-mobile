@@ -110,9 +110,6 @@ class ResolvedProfileDefault {
   final String? slicerFilament;
   final String? slicerFilamentName;
   final List<SpoolPresetOverride> presets;
-
-  /// Whether the form has anything to fill in from it.
-  bool get isEmpty => (slicerFilament ?? '').isEmpty && presets.isEmpty;
 }
 
 /// The body of `PUT /inventory/profile-defaults` (`FilamentProfileDefaultWrite`).

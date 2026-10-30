@@ -69,7 +69,10 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   String? _prefilledFrom;
   Timer? _resolveTimer;
   int _resolveEpoch = 0;
+
+  /// The product whose default the form shows, and the one being asked for.
   String? _lastResolvedKey;
+  String? _inFlightKey;
 
   /// "Use as default": the form's presets are saved as the default of the
   /// product, for every colour or only the typed one.
@@ -958,6 +961,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// included, so [_lastResolvedKey] drops the ones that ask the same question.
   void _scheduleResolve() {
     if (!_startsFromDefault) return;
+    // An answer for what was typed a moment ago must not land on top of what is
+    // typed now, even before this lookup's own timer has fired.
+    if (_inFlightKey != null && _product().matchKey != _inFlightKey) {
+      _resolveEpoch++;
+      _inFlightKey = null;
+    }
     _resolveTimer?.cancel();
     _resolveTimer = Timer(const Duration(milliseconds: 300), _resolveDefault);
   }
@@ -967,20 +976,24 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final product = _product();
     final key = product.matchKey;
     if (key == _lastResolvedKey) return;
-    _lastResolvedKey = key;
     final epoch = ++_resolveEpoch;
+    _inFlightKey = key;
     final repo = ref.read(profileDefaultsRepositoryProvider);
     ResolvedProfileDefault? resolved;
+    var failed = false;
     if (product.material.trim().isNotEmpty) {
       try {
         resolved = await repo.resolve(product);
       } on AppApiException {
         // Not fatal: the server lays the default on the spool at create anyway.
-        _lastResolvedKey = null;
-        return;
+        failed = true;
       }
     }
     if (!mounted || epoch != _resolveEpoch) return;
+    _inFlightKey = null;
+    // What the previous product's default put in is not this product's either,
+    // so a failed lookup takes it out and is asked again on the next change.
+    _lastResolvedKey = failed ? null : key;
     setState(() => _applyDefault(resolved, product));
   }
 
@@ -1011,9 +1024,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       _slicerFilamentName = null;
       _slicerFromDefault = false;
     }
-    _prefilledFrom = resolved == null || resolved.isEmpty
-        ? null
-        : product.label;
+    // Only what actually went into the form: a default whose preset lost to the
+    // user's own pick filled nothing.
+    _prefilledFrom = filled.isNotEmpty || _slicerFromDefault
+        ? product.label
+        : null;
   }
 
   /// The write behind "Use as default", or null when it is off or cannot be

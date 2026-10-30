@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:bambuddy_mobile/core/models/inventory.dart';
@@ -135,6 +136,9 @@ void main() {
     _Resolver? resolver,
     List<Map<String, dynamic>> stored = const [],
     int resolveStatus = 200,
+    bool Function(ProfileProduct product)? failFor,
+    Completer<void>? gate,
+    bool Function(ProfileProduct product)? holdWhen,
     int putStatus = 200,
     double textScale = 1,
     List<SlicerPreset> presets = const [],
@@ -143,20 +147,34 @@ void main() {
     inventory = _FakeInventory();
     server = ScriptedAdapter((o) {
       if (o.path == _resolvePath) {
-        if (resolveStatus != 200) {
-          return _json({'detail': 'boom'}, resolveStatus);
-        }
         final q = o.queryParameters;
-        return _json(
-          (resolver ?? (_) => null)(
-            ProfileProduct(
-              material: '${q['material']}',
-              brand: '${q['brand']}',
-              subtype: '${q['subtype']}',
-              colorName: '${q['color_name']}',
-            ),
-          ),
+        final product = ProfileProduct(
+          material: '${q['material']}',
+          brand: '${q['brand']}',
+          subtype: '${q['subtype']}',
+          colorName: '${q['color_name']}',
         );
+        if (resolveStatus != 200 || (failFor?.call(product) ?? false)) {
+          return _json({
+            'detail': 'boom',
+          }, resolveStatus == 200 ? 500 : resolveStatus);
+        }
+        final answer = (resolver ?? (_) => null)(product);
+        if (gate != null && (holdWhen?.call(product) ?? false)) {
+          // The body arrives only when the test says so.
+          return ResponseBody(
+            Stream.fromFuture(
+              gate.future.then(
+                (_) => Uint8List.fromList(utf8.encode(jsonEncode(answer))),
+              ),
+            ),
+            200,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          );
+        }
+        return _json(answer);
       }
       if (o.path == _listPath && o.method == 'GET') return _json(stored);
       if (o.path == _listPath && o.method == 'PUT') {
@@ -347,6 +365,92 @@ void main() {
       expect(find.text('Bambu PLA Basic'), findsNothing);
       // The model rows are still the default's: only the preset was the user's.
       expect(find.text('Bambu PLA Basic @BBL X1C'), findsOneWidget);
+    });
+
+    testWidgets('an answer for what was typed a moment ago does not land on '
+        'top of what is typed now', (tester) async {
+      final gate = Completer<void>();
+      await openForm(
+        tester,
+        resolver: (p) => p.brand.isEmpty ? _basic() : null,
+        gate: gate,
+        holdWhen: (p) => p.brand.isEmpty,
+      );
+      await typeCombo(tester, materialField(), 'PLA');
+      // The lookup for PLA is in flight; the user goes on typing.
+      await tester.enterText(brandField(), 'Acme');
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+
+      gate.complete();
+      // Long enough for the answer to travel, short of the new debounce.
+      for (var i = 0; i < 3; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      // Before the new lookup's timer has fired: the old answer is not shown.
+      expect(find.text('Bambu PLA Basic'), findsNothing);
+      expect(
+        find.text(pl.inventoryProfileDefaultPrefilled('PLA')),
+        findsNothing,
+      );
+      await afterTyping(tester);
+
+      // Acme PLA has no default.
+      expect(find.text('Bambu PLA Basic'), findsNothing);
+      expect(lookups(), ['PLA', 'PLA']);
+    });
+
+    testWidgets('a failed lookup takes out what the previous product\'s '
+        'default put in', (tester) async {
+      await openForm(
+        tester,
+        resolver: (_) => _basic(),
+        failFor: (p) => p.brand == 'Boom',
+      );
+      await typeCombo(tester, materialField(), 'PLA');
+      expect(find.text('Bambu PLA Basic @BBL X1C'), findsOneWidget);
+
+      await typeCombo(tester, brandField(), 'Boom');
+
+      expect(find.text('Bambu PLA Basic @BBL X1C'), findsNothing);
+      expect(find.text('Bambu PLA Basic'), findsNothing);
+      expect(
+        find.text(pl.inventoryProfileDefaultPrefilled('Boom PLA')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the note is shown only when the form was filled from the '
+        'default', (tester) async {
+      await openForm(
+        tester,
+        resolver: (_) => {
+          'slicer_filament': 'GFA00',
+          'slicer_filament_name': 'Bambu PLA Basic',
+          'presets': [],
+        },
+        presets: const [
+          SlicerPreset(
+            source: 'cloud',
+            id: 'MINE',
+            name: 'My own PLA',
+            filamentType: 'PLA',
+          ),
+        ],
+      );
+      await tester.tap(find.text(pl.inventorySlicerPresetNone));
+      await settle(tester);
+      await tester.tap(find.text('My own PLA'));
+      await settle(tester);
+
+      await typeCombo(tester, materialField(), 'PLA');
+
+      // The default's preset lost to the user's pick and it has no model rows.
+      expect(find.text('My own PLA'), findsOneWidget);
+      expect(
+        find.text(pl.inventoryProfileDefaultPrefilled('PLA')),
+        findsNothing,
+      );
     });
 
     testWidgets('a model the user cleared is not filled again', (tester) async {

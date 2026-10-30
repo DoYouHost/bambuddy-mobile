@@ -140,33 +140,6 @@ void main() {
     });
   });
 
-  group('ResolvedProfileDefault', () {
-    test('is empty without a preset and without any model row', () {
-      expect(ResolvedProfileDefault.fromJson(const {}).isEmpty, isTrue);
-      expect(
-        ResolvedProfileDefault.fromJson(const {'slicer_filament': ''}).isEmpty,
-        isTrue,
-      );
-    });
-
-    test('a preset or a model row is something to fill in', () {
-      expect(
-        ResolvedProfileDefault.fromJson(const {
-          'slicer_filament': 'GFA00',
-        }).isEmpty,
-        isFalse,
-      );
-      expect(
-        ResolvedProfileDefault.fromJson({
-          'presets': [
-            {'printer_model': 'X1C'},
-          ],
-        }).isEmpty,
-        isFalse,
-      );
-    });
-  });
-
   group('ProfileDefaultDraft.toJson', () {
     test('sends the whole replacement body, K profiles untouched', () {
       final k = {'printer_id': 2, 'k_value': 0.02, 'extra': true};

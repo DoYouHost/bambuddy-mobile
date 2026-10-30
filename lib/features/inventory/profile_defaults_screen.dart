@@ -40,7 +40,8 @@ class _ProfileDefaultsScreenState extends ConsumerState<ProfileDefaultsScreen> {
     final result = await runAction(write, logId: logId);
     if (!mounted) return;
     setState(() => _busy = false);
-    messenger.snack(result.messageFor(l10n) ?? success(l10n));
+    final message = result.messageFor(l10n) ?? success(l10n);
+    if (message.isNotEmpty) messenger.snack(message);
   }
 
   Future<void> _apply(ProfileDefault row) async {

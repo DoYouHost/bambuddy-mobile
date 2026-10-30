@@ -302,6 +302,27 @@ void main() {
       expect(find.text('Bambu Lab PLA Basic'), findsOneWidget);
     });
 
+    testWidgets('a delete that worked shows no empty snack bar', (
+      tester,
+    ) async {
+      await open(
+        tester,
+        onWrite: (o) {
+          if (o.method != 'DELETE') return null;
+          rows.removeWhere((r) => r['id'] == 2);
+          return _json({'status': 'deleted'});
+        },
+      );
+
+      await tester.tap(find.text(pl.inventoryDelete).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(pl.inventoryDelete).last);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text(''), findsNothing);
+    });
+
     testWidgets('a refused delete leaves the row and says why', (tester) async {
       await open(
         tester,
