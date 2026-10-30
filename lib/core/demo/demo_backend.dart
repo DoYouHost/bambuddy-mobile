@@ -2538,6 +2538,16 @@ class DemoBackend {
       libraryFileId: 3,
       slicedForModel: 'P1S',
       errorMessage: 'Filament ran out',
+      // The blue spool was empty, so the slot was sent with a yellow one.
+      colorSubstitutions: const [
+        {
+          'slot_id': 1,
+          'type': 'PLA',
+          'wanted': '#2D7FF9',
+          'got': '#E8B923',
+          'tray': 2,
+        },
+      ],
     ),
     _queueItem(
       id: 105,
@@ -2657,6 +2667,9 @@ class DemoBackend {
     bool manualStart = false,
     String slicedForModel = 'X1C',
     List<Map<String, dynamic>> variants = const [],
+    // Slots dispatched with a spool of another colour (#3279); the server
+    // sends null, not an empty list, when there are none.
+    List<Map<String, dynamic>> colorSubstitutions = const [],
     int? batchId,
     String? batchName,
     // A job queued from the library, as the server shapes one: the file's
@@ -2687,6 +2700,9 @@ class DemoBackend {
     'gcode_injection': gcodeInjection,
     'confirm_outcome': confirmOutcome,
     'filament_short': false,
+    'color_substitutions': colorSubstitutions.isEmpty
+        ? null
+        : colorSubstitutions,
     // Tri-state strings, as bambuddy 1.2.5+ sends them — the shape whose
     // arrival emptied the real queue screen. Demo mode is where that
     // regression should surface first, so it speaks the current contract and

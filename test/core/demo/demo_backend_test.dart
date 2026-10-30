@@ -118,6 +118,16 @@ void main() {
       expect(items.length, greaterThanOrEqualTo(2));
     });
 
+    test(
+      'the failed rack job shows a colour substitution, no other does',
+      () async {
+        final items = await QueueRepository(dio).fetchHistory();
+        final withSub = items.where((i) => i.colorSubstitutions.isNotEmpty);
+        expect(withSub.map((i) => i.id), [104]);
+        expect(withSub.single.colorSubstitutions.single.slotId, 1);
+      },
+    );
+
     test('the print on the X1 is the printing row of the queue', () async {
       // The Printers tab and the queue describe one demo, so the job the
       // simulation runs is the one the queue pins on top.
