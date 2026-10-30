@@ -1,6 +1,8 @@
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/settings/server_settings_screen.dart';
+import 'package:bambuddy_mobile/providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -15,6 +17,7 @@ void main() {
     WidgetTester tester, {
     AuthMode authMode = AuthMode.none,
     CurrentUser? user,
+    AsyncValue<bool> profileDefaults = const AsyncData(false),
   }) async {
     await pumpPhone(
       tester,
@@ -22,10 +25,27 @@ void main() {
       overrides: [
         fakeServerProfileOverride(authMode: authMode),
         currentUserOverride(user),
+        profileDefaultsSupportedProvider.overrideWithValue(profileDefaults),
       ],
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets('the profile defaults entry waits for a server that has them', (
+    tester,
+  ) async {
+    await pumpHub(tester, profileDefaults: const AsyncData(true));
+    expect(find.text(pl.profileDefaultsTitle), findsOneWidget);
+  });
+
+  testWidgets('a server without profile defaults, or one that has not '
+      'answered yet, shows no entry', (tester) async {
+    await pumpHub(tester);
+    expect(find.text(pl.profileDefaultsTitle), findsNothing);
+
+    await pumpHub(tester, profileDefaults: const AsyncLoading());
+    expect(find.text(pl.profileDefaultsTitle), findsNothing);
+  });
 
   testWidgets('an anonymous session gets the settings entries', (tester) async {
     await pumpHub(tester);

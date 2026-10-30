@@ -94,6 +94,10 @@ enum ServerFeature {
   /// `last_dried_at` on its update (#2863). The update key is taken and ignored
   /// below it.
   spoolLastDried,
+
+  /// `/inventory/profile-defaults/*` — the slicer preset, presets per model and
+  /// K profiles a new spool of a product starts with (#1326).
+  profileDefaults,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -201,6 +205,7 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.spoolSuppliers: (1, 2, 6, 0),
     ServerFeature.spoolMaterialNumber: (1, 2, 5, 7),
     ServerFeature.spoolLastDried: (1, 2, 6, 0),
+    ServerFeature.profileDefaults: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

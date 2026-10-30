@@ -4646,6 +4646,114 @@ abstract class AppLocalizations {
   /// **'Spool saved, its per-model presets were not.'**
   String get inventoryPrinterPresetsSaveFailed;
 
+  /// Note above the per-model presets of a new spool: its presets and slicer preset came from the saved default of the product typed so far.
+  ///
+  /// In en, this message translates to:
+  /// **'Filled from the default for {product}'**
+  String inventoryProfileDefaultPrefilled(String product);
+
+  /// Title of the switch in the spool form that saves the form's presets as the default for new spools of the product.
+  ///
+  /// In en, this message translates to:
+  /// **'Use as default'**
+  String get inventoryProfileDefaultUse;
+
+  /// Subtitle under the default switch naming the product the default is for.
+  ///
+  /// In en, this message translates to:
+  /// **'for {product}'**
+  String inventoryProfileDefaultFor(String product);
+
+  /// Subtitle of the disabled default switch while the material field is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the material first'**
+  String get inventoryProfileDefaultNeedsMaterial;
+
+  /// Label of the select that says whether the default covers every color of the product or only the typed one.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies to'**
+  String get inventoryProfileDefaultScope;
+
+  /// Option of the default's scope select: the default covers every color of the product.
+  ///
+  /// In en, this message translates to:
+  /// **'All colors'**
+  String get inventoryProfileDefaultAllColors;
+
+  /// Option of the default's scope select: the default covers the color typed in the form only.
+  ///
+  /// In en, this message translates to:
+  /// **'Only {color}'**
+  String inventoryProfileDefaultColorOnly(String color);
+
+  /// Snackbar after the spool was saved but writing the profile default failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool saved, its default was not.'**
+  String get inventoryProfileDefaultSaveFailed;
+
+  /// Subtitle of the Profile defaults entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'What new spools start with'**
+  String get serverSettingsProfileDefaultsSubtitle;
+
+  /// Title of the profile defaults screen and of its entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile defaults'**
+  String get profileDefaultsTitle;
+
+  /// Explains where a profile default is saved and what applying one does; quotes the label of the spool form's default switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Save one with “Use as default” in a spool\'s form. Applying fills in only what spools lack.'**
+  String get profileDefaultsDescription;
+
+  /// Shown instead of the list when no profile default is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'No defaults saved yet'**
+  String get profileDefaultsEmpty;
+
+  /// Button on a profile default that fills in what existing spools of its product lack.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to spools'**
+  String get profileDefaultsApply;
+
+  /// Snackbar after applying a profile default: how many spools got something filled in.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No spool needed it} one{{count} spool filled in} other{{count} spools filled in}}'**
+  String profileDefaultsApplied(int count);
+
+  /// Title of the confirmation before a profile default is deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this default?'**
+  String get profileDefaultsDeleteTitle;
+
+  /// Body of the delete confirmation; spools that already got the profiles keep them.
+  ///
+  /// In en, this message translates to:
+  /// **'{product}: new spools stop starting with it. Spools that already got it keep it.'**
+  String profileDefaultsDeleteBody(String product);
+
+  /// Part of a profile default's summary line: how many per-printer-model presets it holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} model preset} other{{count} model presets}}'**
+  String profileDefaultsModelPresets(int count);
+
+  /// Part of a profile default's summary line: how many K profiles it holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} K profile} other{{count} K profiles}}'**
+  String profileDefaultsKProfiles(int count);
+
   /// No description provided for @inventoryFieldMaterial.
   ///
   /// In en, this message translates to:

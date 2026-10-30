@@ -42,6 +42,9 @@ import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipeline_presets.dart';
 import 'package:bambuddy_mobile/data/pipelines_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:bambuddy_mobile/core/models/profile_default.dart';
+import 'package:bambuddy_mobile/data/profile_defaults_repository.dart';
+import 'package:bambuddy_mobile/core/models/spool_preset_override.dart';
 import 'package:bambuddy_mobile/data/projects_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/data/server_settings_repository.dart';
@@ -2619,6 +2622,202 @@ void main() {
       );
       expect(created.suppliers!.every((l) => !l.isPurchaseSource), isTrue);
       await source.deleteSpool(created.id);
+    });
+  });
+
+  group('profile defaults', () {
+    final defaults = ProfileDefaultsRepository(
+      dio,
+      () async => InventoryBackend.native,
+    );
+    final source = NativeInventorySource(dio);
+
+    test('lists an all-colours default with a K profile and a colour-only '
+        'one', () async {
+      final rows = await defaults.list();
+
+      final all = rows.firstWhere((r) => r.id == 1);
+      expect(all.product.colorName, isEmpty);
+      expect(all.slicerFilament, 'GFA00');
+      expect(all.presets.single.printerModel, 'X1C');
+      expect(all.kProfiles, hasLength(1));
+      expect(rows.firstWhere((r) => r.id == 2).product.colorName, 'Red');
+      // Ordered by product, the all-colours row before its colours.
+      expect(
+        rows.indexWhere((r) => r.id == 1) < rows.indexWhere((r) => r.id == 2),
+        isTrue,
+      );
+    });
+
+    test('resolves a product, a colour of it, and nothing for another', () async {
+      final blue = await defaults.resolve(
+        const ProfileProduct(
+          brand: 'bambu lab',
+          material: 'pla',
+          subtype: 'BASIC',
+          colorName: 'Blue',
+        ),
+      );
+      expect(blue!.slicerFilament, 'GFA00');
+      expect(blue.presets.single.printerModel, 'X1C');
+
+      // The colour row has no preset of its own, so it lays nothing over the base.
+      final red = await defaults.resolve(
+        const ProfileProduct(
+          brand: 'Bambu Lab',
+          material: 'PLA',
+          subtype: 'Basic',
+          colorName: 'Red',
+        ),
+      );
+      expect(red!.slicerFilament, 'GFA00');
+
+      expect(
+        await defaults.resolve(const ProfileProduct(material: 'ASA')),
+        isNull,
+      );
+      await expectLater(
+        defaults.resolve(const ProfileProduct(material: '')),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 422),
+        ),
+      );
+    });
+
+    test('a save replaces the product it names, whatever its case', () async {
+      const product = ProfileProduct(material: 'Demo-Save', brand: 'Acme');
+      final first = await defaults.save(
+        const ProfileDefaultDraft(
+          product: product,
+          slicerFilament: 'A',
+          kProfiles: [
+            {'printer_id': 1, 'k_value': 0.04},
+          ],
+        ),
+      );
+      addTearDown(() => defaults.delete(first.id));
+
+      final second = await defaults.save(
+        const ProfileDefaultDraft(
+          product: ProfileProduct(material: 'demo-save', brand: ' ACME '),
+          slicerFilament: 'B',
+        ),
+      );
+
+      expect(second.id, first.id);
+      expect(second.slicerFilament, 'B');
+      // A replacement: the K profile the second body left out is gone.
+      expect(second.kProfiles, isEmpty);
+      final rows = await defaults.list();
+      expect(
+        rows.where((r) => r.product.matchKey == product.matchKey),
+        hasLength(1),
+      );
+    });
+
+    test('a save with the same model twice is refused', () async {
+      await expectLater(
+        defaults.save(
+          const ProfileDefaultDraft(
+            product: ProfileProduct(material: 'Demo-Dup'),
+            presets: [
+              SpoolPresetOverride(printerModel: 'X1C'),
+              SpoolPresetOverride(printerModel: 'X1C'),
+            ],
+          ),
+        ),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 422),
+        ),
+      );
+    });
+
+    test('a new spool of the product starts with the default and a spool '
+        'with its own preset keeps it', () async {
+      final plain = await source.createSpool(
+        const SpoolDraft(material: 'PLA', brand: 'Bambu Lab', subtype: 'Basic'),
+      );
+      final own = await source.createSpool(
+        const SpoolDraft(
+          material: 'PLA',
+          brand: 'Bambu Lab',
+          subtype: 'Basic',
+          slicerFilament: 'GFA05',
+        ),
+      );
+      final other = await source.createSpool(const SpoolDraft(material: 'ASA'));
+      addTearDown(() async {
+        for (final s in [plain, own, other]) {
+          await source.deleteSpool(s.id);
+        }
+      });
+
+      final spools = {for (final s in await source.fetchSpools()) s.id: s};
+      expect(spools[plain.id]!.slicerFilament, 'GFA00');
+      expect(
+        (await source.fetchPresetOverrides(plain.id)).single.printerModel,
+        'X1C',
+      );
+      expect(spools[own.id]!.slicerFilament, 'GFA05');
+      expect(spools[other.id]!.slicerFilament, isNull);
+      expect(await source.fetchPresetOverrides(other.id), isEmpty);
+    });
+
+    test(
+      'apply fills what active spools lack, once, and counts them',
+      () async {
+        const product = ProfileProduct(material: 'Demo-Apply');
+        final a = await source.createSpool(
+          const SpoolDraft(material: 'Demo-Apply'),
+        );
+        final b = await source.createSpool(
+          const SpoolDraft(material: 'demo-apply'),
+        );
+        final archived = await source.createSpool(
+          const SpoolDraft(material: 'Demo-Apply'),
+        );
+        await source.archiveSpool(archived.id);
+        addTearDown(() async {
+          for (final s in [a, b, archived]) {
+            await source.deleteSpool(s.id);
+          }
+        });
+        final saved = await defaults.save(
+          const ProfileDefaultDraft(
+            product: product,
+            slicerFilament: 'GFA00',
+            presets: [SpoolPresetOverride(printerModel: 'H2D')],
+          ),
+        );
+        addTearDown(() => defaults.delete(saved.id));
+
+        expect(await defaults.apply(saved.id), 2);
+        expect(await defaults.apply(saved.id), 0);
+
+        expect(
+          (await source.fetchPresetOverrides(a.id)).single.printerModel,
+          'H2D',
+        );
+        expect(await source.fetchPresetOverrides(archived.id), isEmpty);
+      },
+    );
+
+    test('delete removes the default, and a second one is a 404', () async {
+      final saved = await defaults.save(
+        const ProfileDefaultDraft(
+          product: ProfileProduct(material: 'Demo-Del'),
+        ),
+      );
+
+      await defaults.delete(saved.id);
+
+      expect((await defaults.list()).where((r) => r.id == saved.id), isEmpty);
+      await expectLater(
+        defaults.delete(saved.id),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 404),
+        ),
+      );
     });
   });
 }

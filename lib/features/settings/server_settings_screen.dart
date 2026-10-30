@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers.dart';
+import '../common/dash_async.dart';
 import '../admin/admin_screen.dart';
 
 /// One entry for everything this app can change **on the server** — the
@@ -46,6 +48,14 @@ class ServerSettingsScreen extends ConsumerWidget {
               onTap: () => context.push('/settings/maintenance'),
               id: 'server_settings.maintenance',
             ),
+            if (ref.watch(profileDefaultsSupportedProvider).orFalse)
+              SettingsEntryTile(
+                icon: Icons.auto_awesome_outlined,
+                title: l10n.profileDefaultsTitle,
+                subtitle: l10n.serverSettingsProfileDefaultsSubtitle,
+                onTap: () => context.push('/settings/profile-defaults'),
+                id: 'server_settings.profile_defaults',
+              ),
             SettingsEntryTile(
               icon: Icons.cloud_outlined,
               title: l10n.cloudAccountMenu,

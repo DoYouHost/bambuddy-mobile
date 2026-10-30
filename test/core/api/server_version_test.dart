@@ -183,6 +183,7 @@ void main() {
           ServerFeature.locationHaSensors,
           ServerFeature.printerLocations,
           ServerFeature.spoolModelPresets,
+          ServerFeature.profileDefaults,
           ServerFeature.libraryFileExtras,
           ServerFeature.printOutcome,
         ]) {

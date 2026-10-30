@@ -1062,6 +1062,30 @@ abstract final class Endpoints {
   static String inventorySpoolFilamentPresets(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/filament-presets';
 
+  /// Profile defaults (#1326), shared by both inventory backends: `GET` lists
+  /// them, `PUT` creates or replaces the one for the product in the body — the
+  /// whole of it, K profiles included.
+  static const inventoryProfileDefaults =
+      '$apiPrefix/inventory/profile-defaults';
+
+  /// What a new spool of a product starts with (`ResolvedProfileDefault | null`):
+  /// query `material` (required), `brand`, `subtype`, `color_name`.
+  static const inventoryProfileDefaultsResolve =
+      '$apiPrefix/inventory/profile-defaults/resolve';
+
+  /// `DELETE` — spools that already got its profiles keep them.
+  static String inventoryProfileDefault(int id) =>
+      '$apiPrefix/inventory/profile-defaults/$id';
+
+  /// `POST` — fills in what active built-in spools of the product lack.
+  static String inventoryProfileDefaultApply(int id) =>
+      '$apiPrefix/inventory/profile-defaults/$id/apply';
+
+  /// Spoolman twin of [inventoryProfileDefaultApply]: the only profile-default
+  /// route whose answer depends on which inventory is live.
+  static String spoolmanProfileDefaultApply(int id) =>
+      '$apiPrefix/spoolman/inventory/profile-defaults/$id/apply';
+
   /// Supplier master list (`SupplierResponse[]`, server #2988) — `POST` here,
   /// `PATCH`/`DELETE` on [inventorySupplier]. The same list in Spoolman mode:
   /// the server keeps suppliers Bambuddy-side for both inventories.

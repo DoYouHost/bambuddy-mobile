@@ -1765,6 +1765,116 @@
   },
   "inventoryPrinterPresetsLoadFailed": "Not read — saving leaves them alone.",
   "inventoryPrinterPresetsSaveFailed": "Spool saved, its per-model presets were not.",
+  "inventoryProfileDefaultPrefilled": "Filled from the default for {product}",
+  "@inventoryProfileDefaultPrefilled": {
+    "description": "Note above the per-model presets of a new spool: its presets and slicer preset came from the saved default of the product typed so far.",
+    "placeholders": {
+      "product": {
+        "type": "String",
+        "example": "Bambu Lab PLA Basic"
+      }
+    }
+  },
+  "inventoryProfileDefaultUse": "Use as default",
+  "@inventoryProfileDefaultUse": {
+    "description": "Title of the switch in the spool form that saves the form's presets as the default for new spools of the product."
+  },
+  "inventoryProfileDefaultFor": "for {product}",
+  "@inventoryProfileDefaultFor": {
+    "description": "Subtitle under the default switch naming the product the default is for.",
+    "placeholders": {
+      "product": {
+        "type": "String",
+        "example": "Bambu Lab PLA Basic"
+      }
+    }
+  },
+  "inventoryProfileDefaultNeedsMaterial": "Enter the material first",
+  "@inventoryProfileDefaultNeedsMaterial": {
+    "description": "Subtitle of the disabled default switch while the material field is empty."
+  },
+  "inventoryProfileDefaultScope": "Applies to",
+  "@inventoryProfileDefaultScope": {
+    "description": "Label of the select that says whether the default covers every color of the product or only the typed one."
+  },
+  "inventoryProfileDefaultAllColors": "All colors",
+  "@inventoryProfileDefaultAllColors": {
+    "description": "Option of the default's scope select: the default covers every color of the product."
+  },
+  "inventoryProfileDefaultColorOnly": "Only {color}",
+  "@inventoryProfileDefaultColorOnly": {
+    "description": "Option of the default's scope select: the default covers the color typed in the form only.",
+    "placeholders": {
+      "color": {
+        "type": "String",
+        "example": "Red"
+      }
+    }
+  },
+  "inventoryProfileDefaultSaveFailed": "Spool saved, its default was not.",
+  "@inventoryProfileDefaultSaveFailed": {
+    "description": "Snackbar after the spool was saved but writing the profile default failed."
+  },
+  "serverSettingsProfileDefaultsSubtitle": "What new spools start with",
+  "@serverSettingsProfileDefaultsSubtitle": {
+    "description": "Subtitle of the Profile defaults entry in the server settings hub."
+  },
+  "profileDefaultsTitle": "Profile defaults",
+  "@profileDefaultsTitle": {
+    "description": "Title of the profile defaults screen and of its entry in the server settings hub."
+  },
+  "profileDefaultsDescription": "Save one with “Use as default” in a spool's form. Applying fills in only what spools lack.",
+  "@profileDefaultsDescription": {
+    "description": "Explains where a profile default is saved and what applying one does; quotes the label of the spool form's default switch."
+  },
+  "profileDefaultsEmpty": "No defaults saved yet",
+  "@profileDefaultsEmpty": {
+    "description": "Shown instead of the list when no profile default is saved."
+  },
+  "profileDefaultsApply": "Apply to spools",
+  "@profileDefaultsApply": {
+    "description": "Button on a profile default that fills in what existing spools of its product lack."
+  },
+  "profileDefaultsApplied": "{count, plural, =0{No spool needed it} one{{count} spool filled in} other{{count} spools filled in}}",
+  "@profileDefaultsApplied": {
+    "description": "Snackbar after applying a profile default: how many spools got something filled in.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileDefaultsDeleteTitle": "Delete this default?",
+  "@profileDefaultsDeleteTitle": {
+    "description": "Title of the confirmation before a profile default is deleted."
+  },
+  "profileDefaultsDeleteBody": "{product}: new spools stop starting with it. Spools that already got it keep it.",
+  "@profileDefaultsDeleteBody": {
+    "description": "Body of the delete confirmation; spools that already got the profiles keep them.",
+    "placeholders": {
+      "product": {
+        "type": "String"
+      }
+    }
+  },
+  "profileDefaultsModelPresets": "{count, plural, one{{count} model preset} other{{count} model presets}}",
+  "@profileDefaultsModelPresets": {
+    "description": "Part of a profile default's summary line: how many per-printer-model presets it holds.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileDefaultsKProfiles": "{count, plural, one{{count} K profile} other{{count} K profiles}}",
+  "@profileDefaultsKProfiles": {
+    "description": "Part of a profile default's summary line: how many K profiles it holds.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryFieldMaterial": "Material",
   "inventoryFieldBrand": "Brand",
   "inventoryFieldSubtype": "Variant",

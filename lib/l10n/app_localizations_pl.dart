@@ -2824,6 +2824,99 @@ class AppLocalizationsPl extends AppLocalizations {
       'Szpula zapisana, presety wg modelu — nie.';
 
   @override
+  String inventoryProfileDefaultPrefilled(String product) {
+    return 'Wypełniono z ustawień domyślnych dla $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultUse => 'Użyj jako domyślnych';
+
+  @override
+  String inventoryProfileDefaultFor(String product) {
+    return 'dla $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultNeedsMaterial => 'Najpierw podaj materiał';
+
+  @override
+  String get inventoryProfileDefaultScope => 'Dotyczy';
+
+  @override
+  String get inventoryProfileDefaultAllColors => 'Wszystkie kolory';
+
+  @override
+  String inventoryProfileDefaultColorOnly(String color) {
+    return 'Tylko $color';
+  }
+
+  @override
+  String get inventoryProfileDefaultSaveFailed =>
+      'Szpula zapisana, ustawienia domyślne — nie.';
+
+  @override
+  String get serverSettingsProfileDefaultsSubtitle =>
+      'Od czego startują nowe szpule';
+
+  @override
+  String get profileDefaultsTitle => 'Ustawienia domyślne profili';
+
+  @override
+  String get profileDefaultsDescription =>
+      'Zapisz je przełącznikiem „Użyj jako domyślnych” w formularzu szpuli. Zastosowanie uzupełnia tylko to, czego szpulom brakuje.';
+
+  @override
+  String get profileDefaultsEmpty => 'Nie zapisano jeszcze ustawień domyślnych';
+
+  @override
+  String get profileDefaultsApply => 'Zastosuj do szpul';
+
+  @override
+  String profileDefaultsApplied(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Uzupełniono $count szpul',
+      few: 'Uzupełniono $count szpule',
+      one: 'Uzupełniono $count szpulę',
+      zero: 'Żadna szpula tego nie potrzebowała',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get profileDefaultsDeleteTitle => 'Usunąć te ustawienia domyślne?';
+
+  @override
+  String profileDefaultsDeleteBody(String product) {
+    return '$product: nowe szpule przestaną z nich startować. Szpule, które już je dostały, je zachowują.';
+  }
+
+  @override
+  String profileDefaultsModelPresets(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count presetów wg modelu',
+      few: '$count presety wg modelu',
+      one: '$count preset wg modelu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String profileDefaultsKProfiles(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count profili K',
+      few: '$count profile K',
+      one: '$count profil K',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get inventoryFieldMaterial => 'Materiał';
 
   @override

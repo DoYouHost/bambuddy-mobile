@@ -2765,6 +2765,96 @@ class AppLocalizationsEn extends AppLocalizations {
       'Spool saved, its per-model presets were not.';
 
   @override
+  String inventoryProfileDefaultPrefilled(String product) {
+    return 'Filled from the default for $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultUse => 'Use as default';
+
+  @override
+  String inventoryProfileDefaultFor(String product) {
+    return 'for $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultNeedsMaterial => 'Enter the material first';
+
+  @override
+  String get inventoryProfileDefaultScope => 'Applies to';
+
+  @override
+  String get inventoryProfileDefaultAllColors => 'All colors';
+
+  @override
+  String inventoryProfileDefaultColorOnly(String color) {
+    return 'Only $color';
+  }
+
+  @override
+  String get inventoryProfileDefaultSaveFailed =>
+      'Spool saved, its default was not.';
+
+  @override
+  String get serverSettingsProfileDefaultsSubtitle =>
+      'What new spools start with';
+
+  @override
+  String get profileDefaultsTitle => 'Profile defaults';
+
+  @override
+  String get profileDefaultsDescription =>
+      'Save one with “Use as default” in a spool\'s form. Applying fills in only what spools lack.';
+
+  @override
+  String get profileDefaultsEmpty => 'No defaults saved yet';
+
+  @override
+  String get profileDefaultsApply => 'Apply to spools';
+
+  @override
+  String profileDefaultsApplied(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count spools filled in',
+      one: '$count spool filled in',
+      zero: 'No spool needed it',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get profileDefaultsDeleteTitle => 'Delete this default?';
+
+  @override
+  String profileDefaultsDeleteBody(String product) {
+    return '$product: new spools stop starting with it. Spools that already got it keep it.';
+  }
+
+  @override
+  String profileDefaultsModelPresets(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count model presets',
+      one: '$count model preset',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String profileDefaultsKProfiles(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count K profiles',
+      one: '$count K profile',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get inventoryFieldMaterial => 'Material';
 
   @override

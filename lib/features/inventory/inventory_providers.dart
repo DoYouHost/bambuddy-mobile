@@ -13,6 +13,7 @@ import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/location_sensor.dart';
 import '../../core/models/printer_status.dart';
+import '../../core/models/profile_default.dart';
 import '../../core/models/spool_preset_override.dart';
 import '../../core/models/supplier.dart';
 import '../../data/inventory_repository.dart';
@@ -837,6 +838,13 @@ final printerModelsProvider = FutureProvider.autoDispose<List<String>>((
 final presetOverridesSupportedProvider = capabilityGate(
   (ref) => ref.watch(inventoryRepositoryProvider).presetOverridesCapability,
 );
+
+/// Every saved profile default, read when the settings screen opens. Errors are
+/// shown, not swallowed: the list is the whole of that screen.
+final profileDefaultsProvider =
+    FutureProvider.autoDispose<List<ProfileDefault>>(
+      (ref) => ref.watch(profileDefaultsRepositoryProvider).list(),
+    );
 
 /// One spool's per-printer-model preset overrides, as stored right now.
 ///

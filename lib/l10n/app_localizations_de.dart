@@ -2797,6 +2797,97 @@ class AppLocalizationsDe extends AppLocalizations {
       'Spule gespeichert, modellspezifische Profile jedoch nicht.';
 
   @override
+  String inventoryProfileDefaultPrefilled(String product) {
+    return 'Aus der Vorgabe für $product übernommen';
+  }
+
+  @override
+  String get inventoryProfileDefaultUse => 'Als Vorgabe verwenden';
+
+  @override
+  String inventoryProfileDefaultFor(String product) {
+    return 'für $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultNeedsMaterial =>
+      'Zuerst das Material angeben';
+
+  @override
+  String get inventoryProfileDefaultScope => 'Gilt für';
+
+  @override
+  String get inventoryProfileDefaultAllColors => 'Alle Farben';
+
+  @override
+  String inventoryProfileDefaultColorOnly(String color) {
+    return 'Nur $color';
+  }
+
+  @override
+  String get inventoryProfileDefaultSaveFailed =>
+      'Spule gespeichert, die Vorgabe jedoch nicht.';
+
+  @override
+  String get serverSettingsProfileDefaultsSubtitle =>
+      'Womit neue Spulen starten';
+
+  @override
+  String get profileDefaultsTitle => 'Profilvorgaben';
+
+  @override
+  String get profileDefaultsDescription =>
+      'Speichere eine mit „Als Vorgabe verwenden“ im Spulenformular. Anwenden ergänzt nur, was Spulen fehlt.';
+
+  @override
+  String get profileDefaultsEmpty => 'Noch keine Vorgaben gespeichert';
+
+  @override
+  String get profileDefaultsApply => 'Auf Spulen anwenden';
+
+  @override
+  String profileDefaultsApplied(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Spulen ergänzt',
+      one: '$count Spule ergänzt',
+      zero: 'Keine Spule brauchte es',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get profileDefaultsDeleteTitle => 'Diese Vorgabe löschen?';
+
+  @override
+  String profileDefaultsDeleteBody(String product) {
+    return '$product: neue Spulen starten nicht mehr damit. Spulen, die sie schon erhalten haben, behalten sie.';
+  }
+
+  @override
+  String profileDefaultsModelPresets(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Modellprofile',
+      one: '$count Modellprofil',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String profileDefaultsKProfiles(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count K-Profile',
+      one: '$count K-Profil',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get inventoryFieldMaterial => 'Material';
 
   @override

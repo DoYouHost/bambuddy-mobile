@@ -50,6 +50,7 @@ import 'data/groups_repository.dart';
 import 'data/heater_history_repository.dart';
 import 'data/location_sensors_repository.dart';
 import 'data/printer_locations_repository.dart';
+import 'data/profile_defaults_repository.dart';
 import 'data/suppliers_repository.dart';
 import 'data/makerworld_repository.dart';
 import 'data/announcements_repository.dart';
@@ -1195,6 +1196,23 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
     ref.watch(serverVersionServiceProvider),
   );
 });
+
+/// Profile defaults: what a new spool of a product starts with. Not
+/// `autoDispose`, like [inventoryRepositoryProvider]: its latch has to outlive
+/// the form that first asked.
+final profileDefaultsRepositoryProvider = Provider<ProfileDefaultsRepository>(
+  (ref) => ProfileDefaultsRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(inventoryRepositoryProvider).backend,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether this server has profile defaults. Read by the spool form, which
+/// fills itself from one and offers to save one, and by the settings hub.
+final profileDefaultsSupportedProvider = capabilityGate(
+  (ref) => ref.watch(profileDefaultsRepositoryProvider).capability,
+);
 
 /// Service minting the camera stream token (the live view; on servers older
 /// than #3025 also every other `?token=` image). Rebuilt with client on profile

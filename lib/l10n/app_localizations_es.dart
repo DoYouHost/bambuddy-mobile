@@ -2788,6 +2788,99 @@ class AppLocalizationsEs extends AppLocalizations {
       'Bobina guardada, pero sus preajustes por modelo no.';
 
   @override
+  String inventoryProfileDefaultPrefilled(String product) {
+    return 'Rellenado con lo predeterminado de $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultUse => 'Usar como predeterminado';
+
+  @override
+  String inventoryProfileDefaultFor(String product) {
+    return 'para $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultNeedsMaterial =>
+      'Indica primero el material';
+
+  @override
+  String get inventoryProfileDefaultScope => 'Se aplica a';
+
+  @override
+  String get inventoryProfileDefaultAllColors => 'Todos los colores';
+
+  @override
+  String inventoryProfileDefaultColorOnly(String color) {
+    return 'Solo $color';
+  }
+
+  @override
+  String get inventoryProfileDefaultSaveFailed =>
+      'Bobina guardada, pero no sus valores predeterminados.';
+
+  @override
+  String get serverSettingsProfileDefaultsSubtitle =>
+      'Con qué empiezan las bobinas nuevas';
+
+  @override
+  String get profileDefaultsTitle => 'Valores predeterminados de perfil';
+
+  @override
+  String get profileDefaultsDescription =>
+      'Guarda uno con «Usar como predeterminado» en el formulario de la bobina. Aplicar solo rellena lo que a las bobinas les falta.';
+
+  @override
+  String get profileDefaultsEmpty =>
+      'Aún no hay valores predeterminados guardados';
+
+  @override
+  String get profileDefaultsApply => 'Aplicar a las bobinas';
+
+  @override
+  String profileDefaultsApplied(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bobinas completadas',
+      one: '$count bobina completada',
+      zero: 'Ninguna bobina lo necesitaba',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get profileDefaultsDeleteTitle =>
+      '¿Eliminar este valor predeterminado?';
+
+  @override
+  String profileDefaultsDeleteBody(String product) {
+    return '$product: las bobinas nuevas dejarán de empezar con él. Las que ya lo recibieron lo conservan.';
+  }
+
+  @override
+  String profileDefaultsModelPresets(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count preajustes por modelo',
+      one: '$count preajuste por modelo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String profileDefaultsKProfiles(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count perfiles K',
+      one: '$count perfil K',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get inventoryFieldMaterial => 'Material';
 
   @override
