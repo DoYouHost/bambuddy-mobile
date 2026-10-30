@@ -19,6 +19,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/color_catalog.dart';
 import '../controller/scale_to_fit.dart';
 import '../inventory/inventory_providers.dart';
 import '../slicer/slice_providers.dart';
@@ -58,15 +59,6 @@ final mappingFilamentNamesProvider =
       };
     });
 
-/// The server's colour catalogue; empty when it cannot be read, and names
-/// then come from the hue alone.
-final mappingColorCatalogProvider = FutureProvider.autoDispose<ColorCatalog>(
-  (ref) => ref
-      .watch(amsSlotConfigRepositoryProvider)
-      .colorCatalog()
-      .catchError((Object _) => ColorCatalog.empty),
-);
-
 /// The catalogue's name for a hex within a material, which the flat map can
 /// get wrong where one hex names two colours (`/inventory/colors/by-material`).
 final mappingColorByMaterialProvider = FutureProvider.autoDispose
@@ -76,33 +68,6 @@ final mappingColorByMaterialProvider = FutureProvider.autoDispose
           .colorByMaterial(key.hex, key.material)
           .catchError((Object _) => null),
     );
-
-/// `getColorName`: the catalogue's name, else the hue family's.
-String mappingColorName(
-  AppLocalizations l10n,
-  ColorCatalog catalog,
-  String? hex, {
-  String? material,
-}) =>
-    catalog.nameOf(hex, material: material) ??
-    switch (colorFamily(hex)) {
-      ColorFamily.red => l10n.colorFamilyRed,
-      ColorFamily.orange => l10n.colorFamilyOrange,
-      ColorFamily.yellow => l10n.colorFamilyYellow,
-      ColorFamily.green => l10n.colorFamilyGreen,
-      ColorFamily.cyan => l10n.colorFamilyCyan,
-      ColorFamily.blue => l10n.colorFamilyBlue,
-      ColorFamily.purple => l10n.colorFamilyPurple,
-      ColorFamily.pink => l10n.colorFamilyPink,
-      ColorFamily.brown => l10n.colorFamilyBrown,
-      ColorFamily.white => l10n.colorFamilyWhite,
-      ColorFamily.lightGray => l10n.colorFamilyLightGray,
-      ColorFamily.gray => l10n.colorFamilyGray,
-      ColorFamily.darkGray => l10n.colorFamilyDarkGray,
-      ColorFamily.black => l10n.colorFamilyBlack,
-      ColorFamily.clear => l10n.colorFamilyClear,
-      null => l10n.colorFamilyUnknown,
-    };
 
 /// `sameInletWarning`: the one Filament Track Switch inlet every filament of
 /// the print comes through, when it is one — then every change in the job is
@@ -527,8 +492,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     }
 
     final t = DashTokens.of(context);
-    final catalog =
-        ref.watch(mappingColorCatalogProvider).value ?? ColorCatalog.empty;
+    final catalog = ref.watchColorNames();
     final names = ref.watch(mappingFilamentNamesProvider).value ?? const {};
     final options = _SlotOptions(
       l10n: l10n,
@@ -1022,7 +986,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                 )),
               )
               .value;
-    final required = byMaterial ?? mappingColorName(l10n, options.catalog, hex);
+    final required = byMaterial ?? colorDisplayName(l10n, options.catalog, hex);
     final (requiredLabel, loadedLabel) = disambiguateColorNames(
       (name: required, hex: hex),
       (name: pick == null ? null : options.colorOf(pick), hex: pick?.color),
@@ -1362,7 +1326,7 @@ class _SlotOptions {
   String colorOf(LoadedFilament f) {
     final bound = spools[f.globalTrayId]?.colorName;
     if (bound != null && bound.isNotEmpty) return bound;
-    return mappingColorName(
+    return colorDisplayName(
       l10n,
       catalog,
       f.color,

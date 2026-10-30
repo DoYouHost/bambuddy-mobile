@@ -22,6 +22,8 @@ import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../slicer/slice_providers.dart';
+import '../common/color_catalog.dart';
+import '../common/color_dot.dart';
 import '../common/dash_async.dart';
 import '../orders/orders_providers.dart';
 import 'job_cost_providers.dart';
@@ -302,7 +304,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     // Loaded with the form, so the overrides name their colours on save.
-    ref.watch(mappingColorCatalogProvider);
+    ref.watch(colorNameCatalogProvider);
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -1202,8 +1204,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   }
 
   List<Map<String, dynamic>>? _buildFilamentOverrides() {
-    final catalog =
-        ref.read(mappingColorCatalogProvider).value ?? ColorCatalog.empty;
+    final catalog = ref.readColorNames();
     final entries = <Map<String, dynamic>>[];
     for (final r in _requirements()) {
       final ov = _overrides[r.slotId];
@@ -1998,7 +1999,11 @@ class _Dropdown<T> extends StatelessWidget {
     return MenuItemButton(
       onPressed: onTap,
       leadingIcon: swatch != null
-          ? _SwatchDot(color: swatch, ring: selected ? t.accentGreenInk : null)
+          ? ColorDot(
+              color: swatch,
+              size: DashSize.d20,
+              ring: selected ? t.accentGreenInk : null,
+            )
           : Icon(
               selected
                   ? Icons.radio_button_checked
@@ -2043,7 +2048,7 @@ class _Dropdown<T> extends StatelessWidget {
           child: Row(
             children: [
               if (swatch != null) ...[
-                _SwatchDot(color: swatch),
+                ColorDot(color: swatch, size: DashSize.d20),
                 const SizedBox(width: DashSpace.md),
               ],
               Expanded(
@@ -2061,30 +2066,6 @@ class _Dropdown<T> extends StatelessWidget {
           ),
         ),
       ).tagged('queue_edit.picker', expanded: isOpen),
-    );
-  }
-}
-
-/// Small round colour swatch used in filament dropdowns.
-class _SwatchDot extends StatelessWidget {
-  const _SwatchDot({required this.color, this.ring});
-  final Color color;
-  final Color? ring;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Container(
-      width: DashSize.d20,
-      height: DashSize.d20,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: ring ?? t.hairline,
-          width: ring != null ? DashStroke.regular : DashStroke.hairline,
-        ),
-      ),
     );
   }
 }

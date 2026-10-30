@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
+import 'package:bambuddy_mobile/features/common/color_catalog.dart';
 import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -74,7 +75,7 @@ void main() {
           printRequirementsProvider.overrideWith(
             (ref, key) async => requirements,
           ),
-          mappingColorCatalogProvider.overrideWith((ref) async => catalog),
+          colorNameCatalogProvider.overrideWith((ref) async => catalog),
           mappingFilamentNamesProvider.overrideWith((ref) async => names),
           mappingColorByMaterialProvider.overrideWith((ref, key) async => null),
         ],
