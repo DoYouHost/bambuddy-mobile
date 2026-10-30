@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_providers.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -635,6 +636,24 @@ void main() {
       await scrollSheetDown(tester, times: 16);
     },
     shows: byLogId('spool_form.save'),
+  );
+
+  // The default's switch and scope select exist only for a typed material, and
+  // the select only while the switch is on: the state the other scenarios of
+  // this form never reach.
+  a11ySurface(
+    'inventory, new spool form with the default on',
+    home: () => const InventoryScreen(),
+    arrange: (tester) async {
+      await _openNewSpool(tester);
+      await tester.enterText(_input('spool_form.material'), 'PLA');
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await settle(tester);
+      await scrollSheetDown(tester, times: 16);
+      await tester.tap(byLogId('spool_form.default'));
+      await settle(tester);
+    },
+    shows: byLogId('spool_form.default_scope'),
   );
 
   a11ySurface(

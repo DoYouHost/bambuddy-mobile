@@ -2788,6 +2788,38 @@ class AppLocalizationsEs extends AppLocalizations {
       'Bobina guardada, pero sus preajustes por modelo no.';
 
   @override
+  String inventoryProfileDefaultPrefilled(String product) {
+    return 'Rellenado con lo predeterminado de $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultUse => 'Usar como predeterminado';
+
+  @override
+  String inventoryProfileDefaultFor(String product) {
+    return 'para $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultNeedsMaterial =>
+      'Indica primero el material';
+
+  @override
+  String get inventoryProfileDefaultScope => 'Se aplica a';
+
+  @override
+  String get inventoryProfileDefaultAllColors => 'Todos los colores';
+
+  @override
+  String inventoryProfileDefaultColorOnly(String color) {
+    return 'Solo $color';
+  }
+
+  @override
+  String get inventoryProfileDefaultSaveFailed =>
+      'Bobina guardada, pero no sus valores predeterminados.';
+
+  @override
   String get inventoryFieldMaterial => 'Material';
 
   @override

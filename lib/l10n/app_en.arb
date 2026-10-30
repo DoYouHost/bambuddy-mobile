@@ -1765,6 +1765,56 @@
   },
   "inventoryPrinterPresetsLoadFailed": "Not read — saving leaves them alone.",
   "inventoryPrinterPresetsSaveFailed": "Spool saved, its per-model presets were not.",
+  "inventoryProfileDefaultPrefilled": "Filled from the default for {product}",
+  "@inventoryProfileDefaultPrefilled": {
+    "description": "Note above the per-model presets of a new spool: its presets and slicer preset came from the saved default of the product typed so far.",
+    "placeholders": {
+      "product": {
+        "type": "String",
+        "example": "Bambu Lab PLA Basic"
+      }
+    }
+  },
+  "inventoryProfileDefaultUse": "Use as default",
+  "@inventoryProfileDefaultUse": {
+    "description": "Title of the switch in the spool form that saves the form's presets as the default for new spools of the product."
+  },
+  "inventoryProfileDefaultFor": "for {product}",
+  "@inventoryProfileDefaultFor": {
+    "description": "Subtitle under the default switch naming the product the default is for.",
+    "placeholders": {
+      "product": {
+        "type": "String",
+        "example": "Bambu Lab PLA Basic"
+      }
+    }
+  },
+  "inventoryProfileDefaultNeedsMaterial": "Enter the material first",
+  "@inventoryProfileDefaultNeedsMaterial": {
+    "description": "Subtitle of the disabled default switch while the material field is empty."
+  },
+  "inventoryProfileDefaultScope": "Applies to",
+  "@inventoryProfileDefaultScope": {
+    "description": "Label of the select that says whether the default covers every color of the product or only the typed one."
+  },
+  "inventoryProfileDefaultAllColors": "All colors",
+  "@inventoryProfileDefaultAllColors": {
+    "description": "Option of the default's scope select: the default covers every color of the product."
+  },
+  "inventoryProfileDefaultColorOnly": "Only {color}",
+  "@inventoryProfileDefaultColorOnly": {
+    "description": "Option of the default's scope select: the default covers the color typed in the form only.",
+    "placeholders": {
+      "color": {
+        "type": "String",
+        "example": "Red"
+      }
+    }
+  },
+  "inventoryProfileDefaultSaveFailed": "Spool saved, its default was not.",
+  "@inventoryProfileDefaultSaveFailed": {
+    "description": "Snackbar after the spool was saved but writing the profile default failed."
+  },
   "inventoryFieldMaterial": "Material",
   "inventoryFieldBrand": "Brand",
   "inventoryFieldSubtype": "Variant",

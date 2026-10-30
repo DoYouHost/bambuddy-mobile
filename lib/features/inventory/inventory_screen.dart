@@ -19,6 +19,7 @@ import '../../core/models/inventory.dart';
 import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/location_sensor.dart';
+import '../../core/models/profile_default.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/models/spool_label.dart';
 import '../../core/models/spool_preset_override.dart';
@@ -56,6 +57,7 @@ part 'inventory_bulk_edit.dart';
 part 'location_climate.dart';
 part 'suppliers_sheet.dart';
 part 'spool_form_suppliers.dart';
+part 'spool_form_profile_default.dart';
 
 /// Scans a spool QR code and opens its detail card (NOT edit mode). The
 /// scanner returns the id parsed from the URL's `?spool=`; [showSpoolDetail]

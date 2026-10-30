@@ -4646,6 +4646,54 @@ abstract class AppLocalizations {
   /// **'Spool saved, its per-model presets were not.'**
   String get inventoryPrinterPresetsSaveFailed;
 
+  /// Note above the per-model presets of a new spool: its presets and slicer preset came from the saved default of the product typed so far.
+  ///
+  /// In en, this message translates to:
+  /// **'Filled from the default for {product}'**
+  String inventoryProfileDefaultPrefilled(String product);
+
+  /// Title of the switch in the spool form that saves the form's presets as the default for new spools of the product.
+  ///
+  /// In en, this message translates to:
+  /// **'Use as default'**
+  String get inventoryProfileDefaultUse;
+
+  /// Subtitle under the default switch naming the product the default is for.
+  ///
+  /// In en, this message translates to:
+  /// **'for {product}'**
+  String inventoryProfileDefaultFor(String product);
+
+  /// Subtitle of the disabled default switch while the material field is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the material first'**
+  String get inventoryProfileDefaultNeedsMaterial;
+
+  /// Label of the select that says whether the default covers every color of the product or only the typed one.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies to'**
+  String get inventoryProfileDefaultScope;
+
+  /// Option of the default's scope select: the default covers every color of the product.
+  ///
+  /// In en, this message translates to:
+  /// **'All colors'**
+  String get inventoryProfileDefaultAllColors;
+
+  /// Option of the default's scope select: the default covers the color typed in the form only.
+  ///
+  /// In en, this message translates to:
+  /// **'Only {color}'**
+  String inventoryProfileDefaultColorOnly(String color);
+
+  /// Snackbar after the spool was saved but writing the profile default failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool saved, its default was not.'**
+  String get inventoryProfileDefaultSaveFailed;
+
   /// No description provided for @inventoryFieldMaterial.
   ///
   /// In en, this message translates to:

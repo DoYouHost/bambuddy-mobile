@@ -2824,6 +2824,37 @@ class AppLocalizationsPl extends AppLocalizations {
       'Szpula zapisana, presety wg modelu — nie.';
 
   @override
+  String inventoryProfileDefaultPrefilled(String product) {
+    return 'Wypełniono z ustawień domyślnych dla $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultUse => 'Użyj jako domyślnych';
+
+  @override
+  String inventoryProfileDefaultFor(String product) {
+    return 'dla $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultNeedsMaterial => 'Najpierw podaj materiał';
+
+  @override
+  String get inventoryProfileDefaultScope => 'Dotyczy';
+
+  @override
+  String get inventoryProfileDefaultAllColors => 'Wszystkie kolory';
+
+  @override
+  String inventoryProfileDefaultColorOnly(String color) {
+    return 'Tylko $color';
+  }
+
+  @override
+  String get inventoryProfileDefaultSaveFailed =>
+      'Szpula zapisana, ustawienia domyślne — nie.';
+
+  @override
   String get inventoryFieldMaterial => 'Materiał';
 
   @override

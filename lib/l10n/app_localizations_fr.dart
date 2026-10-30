@@ -2810,6 +2810,38 @@ class AppLocalizationsFr extends AppLocalizations {
       'Bobine enregistrée, mais ses préréglages par modèle ne l\'ont pas été.';
 
   @override
+  String inventoryProfileDefaultPrefilled(String product) {
+    return 'Rempli d\'après les valeurs par défaut de $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultUse => 'Utiliser par défaut';
+
+  @override
+  String inventoryProfileDefaultFor(String product) {
+    return 'pour $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultNeedsMaterial =>
+      'Indiquez d\'abord le matériau';
+
+  @override
+  String get inventoryProfileDefaultScope => 'S\'applique à';
+
+  @override
+  String get inventoryProfileDefaultAllColors => 'Toutes les couleurs';
+
+  @override
+  String inventoryProfileDefaultColorOnly(String color) {
+    return 'Seulement $color';
+  }
+
+  @override
+  String get inventoryProfileDefaultSaveFailed =>
+      'Bobine enregistrée, mais pas ses valeurs par défaut.';
+
+  @override
   String get inventoryFieldMaterial => 'Matériau';
 
   @override

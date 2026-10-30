@@ -10,6 +10,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'contract_harness.dart';
+import 'sent_writes.dart';
 
 /// Profile defaults (server #1326): saved per product, laid over every spool the
 /// server creates, listed, applied to the stock and deleted — and, on a server
@@ -306,6 +307,49 @@ void main() {
         'X1C',
       );
     });
+
+    test(
+      'the write the spool form sends is accepted and stored as sent',
+      () async {
+        if (!hasRoutes) {
+          markTestSkipped('server has no profile defaults');
+          return;
+        }
+        final sent = recordedWrites('inventory_profile_default_save').single;
+        final recorded = sent.body! as Map<String, dynamic>;
+        // Another product, so the replay cannot lay a default over the PLA spools
+        // other tests create; and a printer this server has.
+        final body = {
+          ...recorded,
+          'material': 'PD-form-$stamp',
+          'k_profiles': [
+            for (final k in recorded['k_profiles'] as List)
+              {...(k as Map<String, dynamic>), 'printer_id': printerId},
+          ],
+        };
+
+        final answers = await replayWrites(dio, [
+          (method: sent.method, path: sent.path, body: body),
+        ]);
+
+        expect(
+          answers.single.statusCode,
+          200,
+          reason: '${answers.single.data}',
+        );
+        final saved = ProfileDefault.fromJson(
+          answers.single.data as Map<String, dynamic>,
+        );
+        defaultIds.add(saved.id);
+        expect(saved.slicerFilament, recorded['slicer_filament']);
+        expect(saved.presets.single.slicerFilament, 'GFA00_X1C');
+        expect(saved.kProfiles.single['k_value'], 0.02);
+        expect(
+          (await defaults.list()).where((d) => d.id == saved.id),
+          hasLength(1),
+        );
+      },
+    );
 
     test('a save without a material is refused, a delete is a 404 the '
         'second time', () async {

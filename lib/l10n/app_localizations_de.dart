@@ -2797,6 +2797,38 @@ class AppLocalizationsDe extends AppLocalizations {
       'Spule gespeichert, modellspezifische Profile jedoch nicht.';
 
   @override
+  String inventoryProfileDefaultPrefilled(String product) {
+    return 'Aus der Vorgabe für $product übernommen';
+  }
+
+  @override
+  String get inventoryProfileDefaultUse => 'Als Vorgabe verwenden';
+
+  @override
+  String inventoryProfileDefaultFor(String product) {
+    return 'für $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultNeedsMaterial =>
+      'Zuerst das Material angeben';
+
+  @override
+  String get inventoryProfileDefaultScope => 'Gilt für';
+
+  @override
+  String get inventoryProfileDefaultAllColors => 'Alle Farben';
+
+  @override
+  String inventoryProfileDefaultColorOnly(String color) {
+    return 'Nur $color';
+  }
+
+  @override
+  String get inventoryProfileDefaultSaveFailed =>
+      'Spule gespeichert, die Vorgabe jedoch nicht.';
+
+  @override
   String get inventoryFieldMaterial => 'Material';
 
   @override

@@ -2765,6 +2765,37 @@ class AppLocalizationsEn extends AppLocalizations {
       'Spool saved, its per-model presets were not.';
 
   @override
+  String inventoryProfileDefaultPrefilled(String product) {
+    return 'Filled from the default for $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultUse => 'Use as default';
+
+  @override
+  String inventoryProfileDefaultFor(String product) {
+    return 'for $product';
+  }
+
+  @override
+  String get inventoryProfileDefaultNeedsMaterial => 'Enter the material first';
+
+  @override
+  String get inventoryProfileDefaultScope => 'Applies to';
+
+  @override
+  String get inventoryProfileDefaultAllColors => 'All colors';
+
+  @override
+  String inventoryProfileDefaultColorOnly(String color) {
+    return 'Only $color';
+  }
+
+  @override
+  String get inventoryProfileDefaultSaveFailed =>
+      'Spool saved, its default was not.';
+
+  @override
   String get inventoryFieldMaterial => 'Material';
 
   @override

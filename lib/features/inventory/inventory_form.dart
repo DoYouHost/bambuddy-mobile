@@ -52,6 +52,30 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   Map<String, SpoolPresetOverride>? _overrides;
   bool _overridesDirty = false;
 
+  /// What a new spool of the typed product starts with (server #1326), as the
+  /// web's spool form fills its presets tab: the default only fills what the
+  /// user left empty, and gives way to the next product's default when the
+  /// product changes. [_defaultOverrides] are the rows it put in [_overrides]
+  /// and nobody touched since; [_touchedModels] are the models the user chose or
+  /// cleared, which no default fills again. Neither marks [_overridesDirty]:
+  /// the server applies the same default on create by itself.
+  Map<String, SpoolPresetOverride> _defaultOverrides = {};
+  final Set<String> _touchedModels = {};
+
+  /// Whether [_slicerFilament] is the default's rather than the user's.
+  bool _slicerFromDefault = false;
+
+  /// The product the form was filled for, while it holds anything of a default.
+  String? _prefilledFrom;
+  Timer? _resolveTimer;
+  int _resolveEpoch = 0;
+  String? _lastResolvedKey;
+
+  /// "Use as default": the form's presets are saved as the default of the
+  /// product, for every colour or only the typed one.
+  bool _saveAsDefault = false;
+  bool _defaultForColor = false;
+
   /// The drying date as the form shows it (#2863). Written only once the user
   /// changed it, so saving an unrelated edit cannot put back a date an AMS run
   /// stamped while the sheet was open.
@@ -93,6 +117,19 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   static const _maxQuantity = 100;
 
   bool get _isEdit => widget.existing != null;
+
+  /// Only a fresh create starts from a default: an edit shows the spool's own
+  /// profiles and a copy the copied ones.
+  bool get _startsFromDefault => !_isEdit && widget.copyOf == null;
+
+  static const _productKeys = ['material', 'brand', 'subtype', 'colorName'];
+
+  ProfileProduct _product() => ProfileProduct(
+    material: _c['material']!.text,
+    brand: _c['brand']!.text,
+    subtype: _c['subtype']!.text,
+    colorName: _c['colorName']!.text,
+  );
 
   @override
   void initState() {
@@ -138,10 +175,16 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         _LinkDraft(link, keepPurchaseSource: copy == null),
     ];
     _linksDirty = copy != null;
+    if (_startsFromDefault) {
+      for (final key in _productKeys) {
+        _c[key]!.addListener(_scheduleResolve);
+      }
+    }
   }
 
   @override
   void dispose() {
+    _resolveTimer?.cancel();
     for (final c in _c.values) {
       c.dispose();
     }
@@ -285,6 +328,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final linkWriter = writeLinks
         ? ref.read(suppliersRepositoryProvider)
         : null;
+    final writeDefault = _defaultWriter();
     try {
       final String message;
       // Which spool the per-model presets belong to. Null for a restock, which
@@ -342,9 +386,26 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         // The spool write reloaded the shelf before these landed.
         unawaited(notifier.refresh());
       }
+      var defaultFailed = false;
+      if (writeDefault != null) {
+        try {
+          await writeDefault();
+        } on AppApiException catch (e) {
+          // Not a reason to keep the sheet: the spool is saved, and a retry of a
+          // restock would create the spools again. The web warns and closes too.
+          defaultFailed = true;
+          showApiFailure(
+            mounted ? messenger : null,
+            e,
+            l10n,
+            action: 'spool_form.default',
+            message: l10n.inventoryProfileDefaultSaveFailed,
+          );
+        }
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
-      messenger.snack(message);
+      if (!defaultFailed) messenger.snack(message);
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
       showApiFailure(
@@ -445,6 +506,18 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final models = showOverrides
         ? ref.watch(printerModelsProvider).value ?? const <String>[]
         : const <String>[];
+    ref.listen(profileDefaultsSupportedProvider, (_, next) {
+      // Typed before the server had answered: look the product up now.
+      if (next.orFalse) {
+        _lastResolvedKey = null;
+        _scheduleResolve();
+      }
+    });
+    // Saving the presets as the default is a replacement of the default's
+    // presets, so it waits until the form knows the rows it would send.
+    final showDefault =
+        ref.watch(profileDefaultsSupportedProvider).orFalse &&
+        (_overrides != null || !showOverrides);
 
     return DraggableSheetSurface(
       initialSize: 0.9,
@@ -607,6 +680,20 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
 
             if (showOverrides) ..._presetOverridesSection(l10n, stored, models),
+
+            if (showDefault)
+              ListenableBuilder(
+                listenable: Listenable.merge([
+                  for (final key in _productKeys) _c[key]!,
+                ]),
+                builder: (context, _) => _ProfileDefaultRow(
+                  product: _product(),
+                  value: _saveAsDefault,
+                  onChanged: (on) => setState(() => _saveAsDefault = on),
+                  forColor: _defaultForColor,
+                  onScope: (color) => setState(() => _defaultForColor = color),
+                ),
+              ),
 
             if (showSuppliers)
               _SupplierLinksSection(
@@ -819,6 +906,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         onPressed: () => setState(() {
           _slicerFilament = null;
           _slicerFilamentName = null;
+          _slicerFromDefault = false;
         }),
       ),
     );
@@ -835,6 +923,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     setState(() {
       _slicerFilament = picked.id;
       _slicerFilamentName = picked.name;
+      _slicerFromDefault = false;
       final mat = picked.filamentType?.trim();
       if (_c['material']!.text.trim().isEmpty &&
           mat != null &&
@@ -862,6 +951,105 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     // A copy's rows are the source spool's: the new one has none on the
     // server until they are written.
     _overridesDirty = widget.copyOf != null && rows.isNotEmpty;
+  }
+
+  /// Looks the typed product up once the typing stops, as the web does. The
+  /// controllers call this on every change of a product field, selection moves
+  /// included, so [_lastResolvedKey] drops the ones that ask the same question.
+  void _scheduleResolve() {
+    if (!_startsFromDefault) return;
+    _resolveTimer?.cancel();
+    _resolveTimer = Timer(const Duration(milliseconds: 300), _resolveDefault);
+  }
+
+  Future<void> _resolveDefault() async {
+    if (!mounted || !ref.read(profileDefaultsSupportedProvider).orFalse) return;
+    final product = _product();
+    final key = product.matchKey;
+    if (key == _lastResolvedKey) return;
+    _lastResolvedKey = key;
+    final epoch = ++_resolveEpoch;
+    final repo = ref.read(profileDefaultsRepositoryProvider);
+    ResolvedProfileDefault? resolved;
+    if (product.material.trim().isNotEmpty) {
+      try {
+        resolved = await repo.resolve(product);
+      } on AppApiException {
+        // Not fatal: the server lays the default on the spool at create anyway.
+        _lastResolvedKey = null;
+        return;
+      }
+    }
+    if (!mounted || epoch != _resolveEpoch) return;
+    setState(() => _applyDefault(resolved, product));
+  }
+
+  /// Puts [resolved] into the form without touching what the user chose, and
+  /// takes out what the previous product's default put there.
+  void _applyDefault(ResolvedProfileDefault? resolved, ProfileProduct product) {
+    final rows = _overrides ??= {};
+    for (final MapEntry(:key, :value) in _defaultOverrides.entries) {
+      if (identical(rows[key], value)) rows.remove(key);
+    }
+    final filled = <String, SpoolPresetOverride>{};
+    for (final row in resolved?.presets ?? const <SpoolPresetOverride>[]) {
+      if (rows.containsKey(row.key) || _touchedModels.contains(row.key)) {
+        continue;
+      }
+      rows[row.key] = row;
+      filled[row.key] = row;
+    }
+    _defaultOverrides = filled;
+    final code = resolved?.slicerFilament ?? '';
+    if (code.isNotEmpty &&
+        ((_slicerFilament ?? '').isEmpty || _slicerFromDefault)) {
+      _slicerFilament = code;
+      _slicerFilamentName = resolved!.slicerFilamentName;
+      _slicerFromDefault = true;
+    } else if (code.isEmpty && _slicerFromDefault) {
+      _slicerFilament = null;
+      _slicerFilamentName = null;
+      _slicerFromDefault = false;
+    }
+    _prefilledFrom = resolved == null || resolved.isEmpty
+        ? null
+        : product.label;
+  }
+
+  /// The write behind "Use as default", or null when it is off or cannot be
+  /// made. Everything it needs is read here, before the spool's own write: a
+  /// form that is gone by then has no `ref` left.
+  ///
+  /// The save replaces the whole default and the form has no K profile editor,
+  /// so it sends back the K profiles the server holds for this exact product.
+  Future<void> Function()? _defaultWriter() {
+    final product = _product();
+    if (!_saveAsDefault ||
+        product.material.trim().isEmpty ||
+        !ref.read(profileDefaultsSupportedProvider).orFalse) {
+      return null;
+    }
+    final target = _defaultForColor && product.colorName.trim().isNotEmpty
+        ? product
+        : product.allColours;
+    final presets =
+        _overrides?.values.toList() ?? const <SpoolPresetOverride>[];
+    final (preset, name) = (_slicerFilament, _slicerFilamentName);
+    final repo = ref.read(profileDefaultsRepositoryProvider);
+    return () async {
+      final stored = (await repo.list())
+          .where((d) => d.product.matchKey == target.matchKey)
+          .firstOrNull;
+      await repo.save(
+        ProfileDefaultDraft(
+          product: target,
+          slicerFilament: preset,
+          slicerFilamentName: name,
+          presets: presets,
+          kProfiles: stored?.kProfiles ?? const [],
+        ),
+      );
+    };
   }
 
   /// Keeps a new spool full while the label weight is being typed.
@@ -916,6 +1104,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         icon: Icons.info_outline,
         padding: const EdgeInsets.only(bottom: DashSpace.xs),
       ),
+      if (_prefilledFrom case final product?)
+        InlineNote(
+          l10n.inventoryProfileDefaultPrefilled(product),
+          icon: Icons.auto_awesome,
+          padding: const EdgeInsets.only(bottom: DashSpace.xs),
+        ),
       if (loadFailed)
         InlineNote(l10n.inventoryPrinterPresetsLoadFailed, urgent: true)
       else if (loading)
@@ -954,6 +1148,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         tooltip: l10n.clear,
         onPressed: () => setState(() {
           _overrides?.remove(row.key);
+          _touchedModels.add(row.key);
           _overridesDirty = true;
         }),
       ),
@@ -977,6 +1172,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     if (picked == null || !mounted) return;
     setState(() {
       (_overrides ??= {})[row.key] = row.withPreset(picked.id, picked.name);
+      _touchedModels.add(row.key);
       _overridesDirty = true;
     });
   }
