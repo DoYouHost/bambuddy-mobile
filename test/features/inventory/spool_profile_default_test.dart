@@ -453,6 +453,65 @@ void main() {
       );
     });
 
+    testWidgets('typing in another field while a lookup is in flight does not '
+        'ask again and drop its answer', (tester) async {
+      final gate = Completer<void>();
+      await openForm(
+        tester,
+        resolver: (_) => _basic(),
+        gate: gate,
+        holdWhen: (_) => true,
+      );
+      await typeCombo(tester, materialField(), 'PLA');
+      // The same product spelled another way: the key is trimmed and folded.
+      await tester.enterText(materialField(), 'pla ');
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump(const Duration(milliseconds: 400));
+
+      gate.complete();
+      await afterTyping(tester);
+
+      expect(lookups(), ['PLA']);
+      expect(find.text('Bambu PLA Basic @BBL X1C'), findsOneWidget);
+    });
+
+    testWidgets('the note goes when the user replaces what it was about', (
+      tester,
+    ) async {
+      await openForm(
+        tester,
+        resolver: (_) => {
+          'slicer_filament': 'GFA00',
+          'slicer_filament_name': 'Bambu PLA Basic',
+          'presets': [],
+        },
+        presets: const [
+          SlicerPreset(
+            source: 'cloud',
+            id: 'MINE',
+            name: 'My own PLA',
+            filamentType: 'PLA',
+          ),
+        ],
+      );
+      await typeCombo(tester, materialField(), 'PLA');
+      expect(
+        find.text(pl.inventoryProfileDefaultPrefilled('PLA')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Bambu PLA Basic'));
+      await settle(tester);
+      await tester.tap(find.text('My own PLA'));
+      await settle(tester);
+
+      expect(find.text('My own PLA'), findsOneWidget);
+      expect(
+        find.text(pl.inventoryProfileDefaultPrefilled('PLA')),
+        findsNothing,
+      );
+    });
+
     testWidgets('a model the user cleared is not filled again', (tester) async {
       await openForm(tester, resolver: (_) => _basic());
       await typeCombo(tester, materialField(), 'PLA');

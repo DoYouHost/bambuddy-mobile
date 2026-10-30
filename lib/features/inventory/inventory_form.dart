@@ -975,7 +975,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     if (!mounted || !ref.read(profileDefaultsSupportedProvider).orFalse) return;
     final product = _product();
     final key = product.matchKey;
-    if (key == _lastResolvedKey) return;
+    // Shown already, or being asked for: a second request would only drop the
+    // first one's answer.
+    if (key == _lastResolvedKey || key == _inFlightKey) return;
     final epoch = ++_resolveEpoch;
     _inFlightKey = key;
     final repo = ref.read(profileDefaultsRepositoryProvider);
@@ -987,6 +989,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       } on AppApiException {
         // Not fatal: the server lays the default on the spool at create anyway.
         failed = true;
+      } on Object {
+        // A bug, not a refusal: it must reach the report, but not leave the
+        // product marked as being asked for.
+        if (epoch == _resolveEpoch) _inFlightKey = null;
+        rethrow;
       }
     }
     if (!mounted || epoch != _resolveEpoch) return;
@@ -1030,6 +1037,14 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         ? product.label
         : null;
   }
+
+  /// Whether anything the default put in is still there: a preset or a row the
+  /// user has since replaced or cleared no longer makes the note true.
+  bool get _stillFromDefault =>
+      _slicerFromDefault ||
+      _defaultOverrides.entries.any(
+        (e) => identical(_overrides?[e.key], e.value),
+      );
 
   /// The write behind "Use as default", or null when it is off or cannot be
   /// made. Everything it needs is read here, before the spool's own write: a
@@ -1119,7 +1134,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         icon: Icons.info_outline,
         padding: const EdgeInsets.only(bottom: DashSpace.xs),
       ),
-      if (_prefilledFrom case final product?)
+      if (_prefilledFrom case final product? when _stillFromDefault)
         InlineNote(
           l10n.inventoryProfileDefaultPrefilled(product),
           icon: Icons.auto_awesome,
