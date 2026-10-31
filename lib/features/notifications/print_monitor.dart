@@ -7,7 +7,9 @@ import '../../core/notifications/notification_service.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/notif_probe.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/models/next_pause.dart';
 import '../../core/models/printer_status.dart';
+import '../../core/models/queue_settings.dart';
 import '../../core/notifications/background_api.dart';
 import '../../core/notifications/hms_actions.dart';
 import '../../core/notifications/hms_catalog.dart';
@@ -40,6 +42,8 @@ const int _errorAlertBase = 8 * alertBandWidth;
 const int _lowFilamentAlertBase = 9 * alertBandWidth;
 const int _humidityAlertBase = 10 * alertBandWidth;
 const int _bedCooledAlertBase = 11 * alertBandWidth;
+// 12–16 belong to maintenance, the outcome prompt and billing alerts.
+const int _pauseAlertBase = 17 * alertBandWidth;
 
 /// Progress milestone thresholds (%).
 const List<int> _milestones = [25, 50, 75];
@@ -121,6 +125,11 @@ class _PrinterMemo {
 
   final Set<int> milestonesSent = {};
 
+  /// Layers of the pauses this print has already been warned about — warned or
+  /// seen inside the lead time when the monitor started, which is not a warning
+  /// either (docs/notification-rules.md, "Pause coming up").
+  final Set<int> pauseWarnedLayers = {};
+
   /// Whether this printer counts as offline, and the wait that keeps a flicker
   /// from alerting. The printer card follows the same rule.
   final OfflineDebounce offline;
@@ -166,6 +175,7 @@ class _PrinterMemo {
       once.reset();
     }
     milestonesSent.clear();
+    pauseWarnedLayers.clear();
     awaitingBedCool = false;
     previousJob = null;
   }
@@ -250,7 +260,11 @@ class PrintMonitor {
     TimerFactory? timerFactory,
     String? Function(HmsError)? hmsDescribe,
     this._onPrintEnded,
-  }) : _l10n = l10n ?? systemAppLocalizations,
+    int Function()? pauseLeadMinutes,
+  }) : _pauseLeadMinutes =
+           pauseLeadMinutes ??
+           (() => QueueSetting.pauseWarningMinutes.serverDefault),
+       _l10n = l10n ?? systemAppLocalizations,
        _formats = formats ?? DateTimeFormats.system,
        _timer = timerFactory ?? Timer.new,
        // ignore: prefer_initializing_formals — private field with a named param
@@ -262,6 +276,10 @@ class PrintMonitor {
   /// button tapped after a switch is not sent to another server's printer.
   final String _serverUrl;
   final NotificationPrefs _prefs;
+
+  /// How many minutes before a pause to warn, read per frame: the setting is the
+  /// server's, and the isolate refreshes it while this monitor lives.
+  final int Function() _pauseLeadMinutes;
   final AppLocalizations Function() _l10n;
 
   /// Read per notification rather than cached: the user can flip the system
@@ -392,6 +410,11 @@ class PrintMonitor {
       // baseline reading, deliberately without the window's ceiling; the two
       // are one pair in [PrinterStatus.firstLayerPassed].
       if (status.firstLayerPassed) memo.once(PrintOnce.firstLayer).claim();
+      // A pause already inside the lead time was announced by whatever watched
+      // before this monitor, or never will be; recorded, not warned about.
+      if (_pauseDue(status) case final pause?) {
+        memo.pauseWarnedLayers.add(pause.layer);
+      }
       if (status.progress != null) {
         final pct = status.progress!.round();
         for (final m in _milestones) {
@@ -535,6 +558,21 @@ class PrintMonitor {
       }
     }
 
+    // 4b) A slicer pause coming up (server #2984): once per pause layer, when it
+    // is as close as the server's lead time says — the server's own rule, kept
+    // so the two alerts agree (docs/notification-rules.md, "Pause coming up").
+    if (isPrinting && describesThisPrint) {
+      if (_pauseDue(status) case final pause?
+          when memo.pauseWarnedLayers.add(pause.layer)) {
+        _alertOrRecordOff(
+          id,
+          NotifEvent.pauseUpcoming,
+          () => _alertPauseUpcoming(id, status, pause),
+          fields: {'layer': pause.layer, 'minutes': pause.minutes},
+        );
+      }
+    }
+
     // 5) "Plate not empty" is NOT detected from status here — field
     // `awaiting_plate_clear` is a queue gate that bambuddy raises at EVERY print end,
     // so it would fire alongside "print finished". True event comes on separate WS
@@ -554,6 +592,18 @@ class PrintMonitor {
 
     // 10) Bed cooled (only after print ends).
     _processBedCooled(id, status, memo);
+  }
+
+  /// The next pause when it is within the lead time, null otherwise — and null
+  /// while the server cannot say how far it is (`minutes` null: the start of a
+  /// print, or a speed mode other than standard), since a warning by time with
+  /// no time in it would be a guess.
+  NextPause? _pauseDue(PrinterStatus status) {
+    final pause = status.nextPause;
+    final minutes = pause?.minutes;
+    return pause != null && minutes != null && minutes <= _pauseLeadMinutes()
+        ? pause
+        : null;
   }
 
   /// Whether this frame says the first layer is behind us, on the terms of bambuddy's
@@ -983,6 +1033,22 @@ class PrintMonitor {
       id: _firstLayerAlertBase + id,
       title: l.notifFirstLayerTitle,
       body: l.notifFirstLayerBody(jobLabel(status, l)),
+      payload: 'printer:$id',
+    );
+  }
+
+  void _alertPauseUpcoming(int id, PrinterStatus status, NextPause pause) {
+    final l = _l10n();
+    _notifications.showAlert(
+      event: NotifEvent.pauseUpcoming,
+      printerId: id,
+      id: _pauseAlertBase + id,
+      title: l.notifPauseUpcomingTitle,
+      body: l.notifPauseUpcomingBody(
+        jobLabel(status, l),
+        pause.minutes ?? 0,
+        pause.layer,
+      ),
       payload: 'printer:$id',
     );
   }

@@ -1587,6 +1587,33 @@
   "@pauseWarningDesc": {
     "description": "What the pause warning setting is: shared with the server, not a phone preference."
   },
+  "notifEvtPauseUpcoming": "Pause coming up",
+  "@notifEvtPauseUpcoming": {
+    "description": "Label of the pause coming up switch in the notification events list."
+  },
+  "notifEvtPauseUpcomingDesc": "Warns before a pause the slicer put into the print",
+  "@notifEvtPauseUpcomingDesc": {
+    "description": "Description under the pause coming up switch."
+  },
+  "notifPauseUpcomingTitle": "Pause coming up",
+  "@notifPauseUpcomingTitle": {
+    "description": "Title of the notification posted before a slicer pause."
+  },
+  "notifPauseUpcomingBody": "{name}: pause in {minutes, plural, =0{under a minute} one{{minutes} minute} other{{minutes} minutes}}, at layer {layer}",
+  "@notifPauseUpcomingBody": {
+    "description": "Body of the notification posted before a slicer pause: the job, the minutes to it and its layer.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      },
+      "layer": {
+        "type": "int"
+      }
+    }
+  },
   "notifHumidityThreshold": "AMS humidity above {value}%",
   "@notifHumidityThreshold": {
     "placeholders": {

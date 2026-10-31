@@ -1266,6 +1266,10 @@
   "pauseWarningTitle": "Pausenwarnung",
   "pauseWarningLabel": "Vorwarnzeit: {duration}",
   "pauseWarningDesc": "Eine Servereinstellung: Sie bestimmt auch, wann der Server selbst warnt, und gilt für jedes Gerät.",
+  "notifEvtPauseUpcoming": "Pause steht bevor",
+  "notifEvtPauseUpcomingDesc": "Warnt vor einer Pause, die der Slicer in den Druck eingefügt hat",
+  "notifPauseUpcomingTitle": "Pause steht bevor",
+  "notifPauseUpcomingBody": "{name}: Pause in {minutes, plural, =0{weniger als einer Minute} one{{minutes} Minute} other{{minutes} Minuten}}, bei Schicht {layer}",
   "notifHumidityThreshold": "AMS-Feuchtigkeit über {value}%",
   "@notifHumidityThreshold": {
     "placeholders": {

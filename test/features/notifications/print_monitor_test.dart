@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/notif_probe.dart';
 import 'package:bambuddy_mobile/core/format/datetime_format.dart';
+import 'package:bambuddy_mobile/core/models/next_pause.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
@@ -38,6 +39,7 @@ PrinterStatus _status({
   List<AmsUnit>? ams,
   List<AmsTray>? vtTray,
   Map<String, double>? temps,
+  NextPause? pause,
 }) => PrinterStatus(
   id: id,
   name: name,
@@ -53,6 +55,7 @@ PrinterStatus _status({
   ams: ams,
   vtTray: vtTray,
   temperatures: temps,
+  nextPause: pause,
 );
 
 /// An AMS tray with a remaining amount and a type (non-empty), for low-filament
@@ -625,6 +628,164 @@ void main() {
     fake.alerts.clear();
     m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 3)});
     expect(alertById(fake, bandId(4)), isNull); // no repeat
+  });
+
+  group('a slicer pause coming up', () {
+    /// Every event the cases above use, plus this one, with the lead time the
+    /// server would give.
+    PrintMonitor withPause(
+      RecordingNotifications fake, {
+      int Function()? lead,
+      NotificationPrefs? prefs,
+    }) => PrintMonitor(
+      fake,
+      serverUrl: _server,
+      prefs:
+          prefs ??
+          NotificationPrefs(
+            enabled: {..._allOn.enabled, NotifEvent.pauseUpcoming},
+          ),
+      l10n: () => en,
+      pauseLeadMinutes: lead,
+    );
+
+    /// The first frame a monitor sees is its baseline and warns of nothing, so
+    /// every case opens with one that is still far from the pause.
+    PrinterStatus frame(
+      int? minutes, {
+      int layer = 120,
+      int id = 1,
+      String job = 'bracket',
+      int printing = 40,
+    }) => _status(
+      id: id,
+      state: 'RUNNING',
+      job: job,
+      layerNum: printing,
+      pause: NextPause(layer: layer, minutes: minutes),
+    );
+
+    Map<String, Object?>? warning(RecordingNotifications fake, [int id = 1]) =>
+        alertById(fake, bandId(17, id));
+
+    testAt('warns once when the pause is as close as the lead time, and says '
+        'when and where', (_) {
+      final fake = RecordingNotifications();
+      final m = withPause(fake);
+      m.update({1: frame(12)});
+      m.update({1: frame(6)});
+      expect(warning(fake), isNull);
+
+      m.update({1: frame(5)});
+      expect(warning(fake)?['title'], 'Pause coming up');
+      expect(warning(fake)?['body'], contains('pause in 5 minutes'));
+      expect(warning(fake)?['body'], contains('at layer 120'));
+
+      fake.alerts.clear();
+      m.update({1: frame(4)});
+      m.update({1: frame(1)});
+      expect(warning(fake), isNull, reason: 'one warning per pause');
+    });
+
+    testAt('the lead time is the server\'s, read on every frame', (_) {
+      final fake = RecordingNotifications();
+      var lead = 30;
+      final m = withPause(fake, lead: () => lead);
+      m.update({1: frame(40)});
+      expect(warning(fake), isNull);
+
+      lead = 10; // an administrator changed it on the server
+      m.update({1: frame(25)});
+      expect(warning(fake), isNull, reason: '25 is outside the new lead');
+      m.update({1: frame(10)});
+      expect(warning(fake), isNotNull);
+    });
+
+    testAt('the next pause is a warning of its own', (_) {
+      final fake = RecordingNotifications();
+      final m = withPause(fake);
+      m.update({1: frame(40)});
+      m.update({1: frame(5)});
+      expect(fake.alerts, hasLength(1));
+
+      m.update({1: frame(3, layer: 200)});
+      expect(fake.alerts, hasLength(2));
+      expect(warning(fake)?['body'], contains('at layer 200'));
+    });
+
+    testAt('no minutes, no warning: a layer alone is not a time', (_) {
+      final fake = RecordingNotifications();
+      final m = withPause(fake);
+      m.update({1: frame(40)});
+      m.update({1: frame(null)});
+      m.update({1: frame(null, layer: 2)});
+      expect(warning(fake), isNull);
+    });
+
+    testAt('a pause that is here says so', (_) {
+      final fake = RecordingNotifications();
+      final m = withPause(fake);
+      m.update({1: frame(40)});
+      m.update({1: frame(0)});
+      // The one-letter word is glued to the next one (`just l10n-glue`).
+      expect(warning(fake)?['body'], matches(RegExp(r'under a\s+minute')));
+    });
+
+    testAt('a pause already inside the lead when the monitor starts is '
+        'recorded, not warned about', (_) {
+      final fake = RecordingNotifications();
+      final m = withPause(fake);
+      m.update({1: frame(3)});
+      m.update({1: frame(2)});
+      expect(warning(fake), isNull);
+
+      // Another pause is a new one.
+      m.update({1: frame(3, layer: 200)});
+      expect(warning(fake), isNotNull);
+    });
+
+    testAt('a new print is warned about again, even at the same layer', (_) {
+      final fake = RecordingNotifications();
+      final m = withPause(fake);
+      m.update({1: frame(40)});
+      m.update({1: frame(4)});
+      expect(fake.alerts.where((a) => a['id'] == bandId(17)), hasLength(1));
+
+      m.update({1: _status(state: 'FINISH')});
+      m.update({1: _status(state: 'IDLE')});
+      // The next job, with numbers of its own, and the same pause layer.
+      m.update({1: frame(40, job: 'other', printing: 2)});
+      m.update({1: frame(4, job: 'other', printing: 3)});
+      expect(fake.alerts.where((a) => a['id'] == bandId(17)), hasLength(2));
+    });
+
+    testAt('each printer has its own', (_) {
+      final fake = RecordingNotifications();
+      final m = withPause(fake);
+      m.update({1: frame(40), 2: frame(40, id: 2)});
+      m.update({1: frame(4), 2: frame(40, id: 2)});
+      expect(warning(fake, 1), isNotNull);
+      expect(warning(fake, 2), isNull);
+
+      m.update({1: frame(3), 2: frame(4, id: 2)});
+      expect(warning(fake, 2), isNotNull);
+    });
+
+    testAt('switched off, it stays quiet', (_) {
+      final fake = RecordingNotifications();
+      final m = withPause(fake, prefs: _allOn);
+      m.update({1: frame(40)});
+      m.update({1: frame(4)});
+      expect(warning(fake), isNull);
+    });
+
+    testAt('on by default', (_) {
+      final fake = RecordingNotifications();
+      final m = withPause(fake, prefs: NotificationPrefs.defaults);
+      m.update({1: frame(40)});
+      m.update({1: frame(4)});
+      expect(warning(fake), isNotNull);
+    });
   });
 
   group('a print sent while the previous one is still on the wire', () {

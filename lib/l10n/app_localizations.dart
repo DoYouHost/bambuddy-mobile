@@ -4010,6 +4010,30 @@ abstract class AppLocalizations {
   /// **'A server setting: it also sets when the server itself warns, and applies to every device.'**
   String get pauseWarningDesc;
 
+  /// Label of the pause coming up switch in the notification events list.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause coming up'**
+  String get notifEvtPauseUpcoming;
+
+  /// Description under the pause coming up switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Warns before a pause the slicer put into the print'**
+  String get notifEvtPauseUpcomingDesc;
+
+  /// Title of the notification posted before a slicer pause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause coming up'**
+  String get notifPauseUpcomingTitle;
+
+  /// Body of the notification posted before a slicer pause: the job, the minutes to it and its layer.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: pause in {minutes, plural, =0{under a minute} one{{minutes} minute} other{{minutes} minutes}}, at layer {layer}'**
+  String notifPauseUpcomingBody(String name, int minutes, int layer);
+
   /// No description provided for @notifHumidityThreshold.
   ///
   /// In en, this message translates to:

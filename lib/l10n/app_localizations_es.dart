@@ -2420,6 +2420,28 @@ class AppLocalizationsEs extends AppLocalizations {
       'Es un ajuste del servidor: también fija cuándo avisa el propio servidor y vale para todos los dispositivos.';
 
   @override
+  String get notifEvtPauseUpcoming => 'Pausa próxima';
+
+  @override
+  String get notifEvtPauseUpcomingDesc =>
+      'Avisa antes de una pausa que el slicer puso en la impresión';
+
+  @override
+  String get notifPauseUpcomingTitle => 'Pausa próxima';
+
+  @override
+  String notifPauseUpcomingBody(String name, int minutes, int layer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minutos',
+      one: '$minutes minuto',
+      zero: 'menos de un minuto',
+    );
+    return '$name: pausa en $_temp0, en la capa $layer';
+  }
+
+  @override
   String notifHumidityThreshold(int value) {
     return 'Humedad del AMS por encima del $value%';
   }

@@ -1266,6 +1266,10 @@
   "pauseWarningTitle": "Avertissement de pause",
   "pauseWarningLabel": "Prévenir {duration} avant une pause",
   "pauseWarningDesc": "Réglage du serveur : il fixe aussi le moment où le serveur prévient lui-même, et s'applique à tous les appareils.",
+  "notifEvtPauseUpcoming": "Pause à venir",
+  "notifEvtPauseUpcomingDesc": "Avertissement avant une pause placée par le slicer dans l'impression",
+  "notifPauseUpcomingTitle": "Pause à venir",
+  "notifPauseUpcomingBody": "{name} : une pause dans {minutes, plural, =0{moins d'une minute} one{{minutes} minute} other{{minutes} minutes}}, à la couche {layer}",
   "notifHumidityThreshold": "Humidité AMS au-dessus de {value} %",
   "@notifHumidityThreshold": {
     "placeholders": {

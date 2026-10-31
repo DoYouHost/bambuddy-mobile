@@ -2449,6 +2449,29 @@ class AppLocalizationsPl extends AppLocalizations {
       'Ustawienie serwera: wyznacza też, kiedy ostrzega sam serwer, i obowiązuje na każdym urządzeniu.';
 
   @override
+  String get notifEvtPauseUpcoming => 'Zbliża się pauza';
+
+  @override
+  String get notifEvtPauseUpcomingDesc =>
+      'Ostrzega przed pauzą wstawioną w slicerze';
+
+  @override
+  String get notifPauseUpcomingTitle => 'Zbliża się pauza';
+
+  @override
+  String notifPauseUpcomingBody(String name, int minutes, int layer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minut',
+      few: '$minutes minuty',
+      one: '$minutes minutę',
+      zero: 'mniej niż minutę',
+    );
+    return '$name: pauza za $_temp0, warstwa $layer';
+  }
+
+  @override
   String notifHumidityThreshold(int value) {
     return 'Wilgotność AMS powyżej $value%';
   }
