@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/dash_theme.dart';
+import '../../core/models/queue_settings.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
 import '../admin/admin_screen.dart';
+import 'queue_settings_providers.dart';
 
 /// One entry for everything this app can change **on the server** — the
 /// configuration every user of that server shares.
@@ -41,6 +43,21 @@ class ServerSettingsScreen extends ConsumerWidget {
               onTap: () => context.push('/settings/queue'),
               id: 'server_settings.queue',
             ),
+            // Only for a server that answers the key: a write to one that does
+            // not is dropped in silence, so it is not offered.
+            if (ref
+                    .watch(queueSettingsProvider)
+                    .value
+                    ?.known
+                    .contains(QueueSetting.pauseWarningMinutes) ??
+                false)
+              SettingsEntryTile(
+                icon: Icons.pause_circle_outline,
+                title: l10n.pauseWarningTitle,
+                subtitle: l10n.serverSettingsPauseWarningSubtitle,
+                onTap: () => context.push('/settings/pause-warning'),
+                id: 'server_settings.pause_warning',
+              ),
             SettingsEntryTile(
               icon: Icons.build_outlined,
               title: l10n.maintenanceSettingsTitle,

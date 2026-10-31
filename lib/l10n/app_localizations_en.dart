@@ -2382,6 +2382,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get serverSettingsPauseWarningSubtitle =>
+      'How long before a pause to warn';
+
+  @override
+  String get pauseWarningTitle => 'Pause warning';
+
+  @override
+  String pauseWarningLabel(String duration) {
+    return 'Warn $duration before a pause';
+  }
+
+  @override
+  String get pauseWarningDesc =>
+      'A server setting: it also sets when the server itself warns, and applies to every device.';
+
+  @override
   String notifHumidityThreshold(int value) {
     return 'AMS humidity above $value%';
   }

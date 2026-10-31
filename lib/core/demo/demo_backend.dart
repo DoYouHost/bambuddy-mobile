@@ -771,6 +771,8 @@ class DemoBackend {
     'queue_keep_bed_warm': true,
     'queue_keep_warm_bed_temp': 95,
     'queue_keep_warm_max_minutes': 45,
+    // Off the server's default of 5, like the rows above it.
+    'pause_warning_minutes': 10,
   };
 
   Map<String, dynamic> get _demoUser => {

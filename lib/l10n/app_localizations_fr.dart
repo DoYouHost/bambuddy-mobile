@@ -2422,6 +2422,22 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get serverSettingsPauseWarningSubtitle =>
+      'Combien de temps avant une pause prévenir';
+
+  @override
+  String get pauseWarningTitle => 'Avertissement de pause';
+
+  @override
+  String pauseWarningLabel(String duration) {
+    return 'Prévenir $duration avant une pause';
+  }
+
+  @override
+  String get pauseWarningDesc =>
+      'Réglage du serveur : il fixe aussi le moment où le serveur prévient lui-même, et s\'applique à tous les appareils.';
+
+  @override
   String notifHumidityThreshold(int value) {
     return 'Humidité AMS au-dessus de $value %';
   }

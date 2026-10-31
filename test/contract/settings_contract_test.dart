@@ -121,6 +121,49 @@ void main() {
       expect(decoded!.keys, contains('X1C'));
     });
 
+    test('pause_warning_minutes: sent from the server that has it, taken '
+        'from 1 to 120, refused outside', () async {
+      // The pause warning screen offers its slider only when GET answers this
+      // key, so a key that is absent on an older server is the whole gate, and
+      // the bounds are the server's own: 422, never a clamp.
+      final before = (await dio.get<Map<String, dynamic>>(
+        Endpoints.appSettings,
+      )).data!;
+      if (!before.containsKey('pause_warning_minutes')) {
+        markTestSkipped('server predates pause_warning_minutes');
+        return;
+      }
+      final original = before['pause_warning_minutes'];
+      expect(original, isA<int>());
+      addTearDown(
+        () => dio.put<dynamic>(
+          Endpoints.appSettingsUpdate,
+          data: {'pause_warning_minutes': original},
+        ),
+      );
+
+      Future<Response<dynamic>> put(int minutes) => dio.put<dynamic>(
+        Endpoints.appSettingsUpdate,
+        data: {'pause_warning_minutes': minutes},
+        options: Options(validateStatus: (_) => true),
+      );
+
+      final ok = await put(7);
+      expect(ok.statusCode, 200);
+      expect((ok.data as Map)['pause_warning_minutes'], 7);
+      final after = (await dio.get<Map<String, dynamic>>(
+        Endpoints.appSettings,
+      )).data!;
+      expect(after['pause_warning_minutes'], 7);
+
+      for (final minutes in [1, 120]) {
+        expect((await put(minutes)).statusCode, 200, reason: '$minutes');
+      }
+      for (final minutes in [0, 121]) {
+        expect((await put(minutes)).statusCode, 422, reason: '$minutes');
+      }
+    });
+
     test('the server parses the blob rather than storing it whole', () async {
       // A well-formed JSON array is still refused: the field is specified as an
       // object keyed by printer model. Worth pinning because it tells us the

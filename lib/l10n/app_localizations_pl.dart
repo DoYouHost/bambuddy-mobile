@@ -2434,6 +2434,21 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get serverSettingsPauseWarningSubtitle => 'Ile przed pauzą ostrzegać';
+
+  @override
+  String get pauseWarningTitle => 'Ostrzeżenie o pauzie';
+
+  @override
+  String pauseWarningLabel(String duration) {
+    return 'Ostrzegaj $duration przed pauzą';
+  }
+
+  @override
+  String get pauseWarningDesc =>
+      'Ustawienie serwera: wyznacza też, kiedy ostrzega sam serwer, i obowiązuje na każdym urządzeniu.';
+
+  @override
   String notifHumidityThreshold(int value) {
     return 'Wilgotność AMS powyżej $value%';
   }

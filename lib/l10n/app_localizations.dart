@@ -3986,6 +3986,30 @@ abstract class AppLocalizations {
   /// **'Next pause at layer {layer}'**
   String printPauseA11yLayer(int layer);
 
+  /// Subtitle of the Pause warning entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'How long before a pause to warn'**
+  String get serverSettingsPauseWarningSubtitle;
+
+  /// Title of the pause warning screen and of its entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause warning'**
+  String get pauseWarningTitle;
+
+  /// Label of the slider that sets the server's pause warning lead time.
+  ///
+  /// In en, this message translates to:
+  /// **'Warn {duration} before a pause'**
+  String pauseWarningLabel(String duration);
+
+  /// What the pause warning setting is: shared with the server, not a phone preference.
+  ///
+  /// In en, this message translates to:
+  /// **'A server setting: it also sets when the server itself warns, and applies to every device.'**
+  String get pauseWarningDesc;
+
   /// No description provided for @notifHumidityThreshold.
   ///
   /// In en, this message translates to:

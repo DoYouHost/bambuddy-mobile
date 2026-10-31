@@ -1262,6 +1262,10 @@
   "printPauseAtLayer": "couche {layer}",
   "printPauseA11yIn": "Pause suivante dans {duration}, à la couche {layer}",
   "printPauseA11yLayer": "Prochaine pause à la couche {layer}",
+  "serverSettingsPauseWarningSubtitle": "Combien de temps avant une pause prévenir",
+  "pauseWarningTitle": "Avertissement de pause",
+  "pauseWarningLabel": "Prévenir {duration} avant une pause",
+  "pauseWarningDesc": "Réglage du serveur : il fixe aussi le moment où le serveur prévient lui-même, et s'applique à tous les appareils.",
   "notifHumidityThreshold": "Humidité AMS au-dessus de {value} %",
   "@notifHumidityThreshold": {
     "placeholders": {
