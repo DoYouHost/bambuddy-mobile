@@ -9483,6 +9483,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get announcementsEmpty => 'No announcements right now.';
 
   @override
+  String get linkedAppsTitle => 'Linked apps';
+
+  @override
+  String get linkedAppsEmpty => 'No linked apps.';
+
+  @override
   String announcementsEarlier(int count) {
     return 'Earlier ($count)';
   }

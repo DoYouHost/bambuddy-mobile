@@ -11,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../dashboard/smart_plugs_providers.dart';
 import '../maintenance/maintenance_providers.dart';
+import '../links/external_links_providers.dart';
 import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../queue/queue_providers.dart';
 import '../tour/tour_beacon.dart';
@@ -23,11 +24,13 @@ import '../tour/tour_beacon.dart';
 ///
 /// Only answers something waits on: `/settings` behind every [serverGate], the
 /// version behind every versioned [capabilityGate] (which then derives on the
-/// frame it is read), and a probe-backed gate that hides an entry point.
+/// frame it is read), a probe-backed gate that hides an entry point, and the
+/// sidebar links, whose being empty is what hides the drawer's tile.
 void warmServerAnswers(void Function(ProviderListenable<Object?>) keep) {
   keep(serverSettingsProvider);
   keep(serverVersionProvider);
   keep(pipelinesSupportedProvider);
+  keep(externalLinksProvider);
 }
 
 /// Main shell scaffold with the modernized ("2a") bottom navigation bar.
