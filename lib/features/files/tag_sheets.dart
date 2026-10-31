@@ -362,6 +362,9 @@ class _FileTagsSheetState extends ConsumerState<_FileTagsSheet>
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
       failed(e, 'file_tags.save');
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
@@ -471,6 +474,9 @@ class _BulkTagsSheetState extends ConsumerState<_BulkTagsSheet>
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
       failed(e, 'bulk_tags.${action.name}');
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 

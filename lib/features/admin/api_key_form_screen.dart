@@ -219,54 +219,58 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
     final repo = ref.read(apiKeysRepositoryProvider);
     final existing = widget.existing;
     setState(() => _saving = true);
+    try {
+      final name = _name.text.trim();
+      final printerIds = _printerIds?.toList()?..sort();
+      String? created;
 
-    final name = _name.text.trim();
-    final printerIds = _printerIds?.toList()?..sort();
-    String? created;
-
-    final result = await runAction(() async {
-      if (existing == null) {
-        final answer = await repo.create(
-          ApiKeyCreateInput(
-            name: name,
-            scopes: _scopes,
-            printerIds: printerIds,
-            expiresAt: _expiresAt,
-          ),
+      final result = await runAction(() async {
+        if (existing == null) {
+          final answer = await repo.create(
+            ApiKeyCreateInput(
+              name: name,
+              scopes: _scopes,
+              printerIds: printerIds,
+              expiresAt: _expiresAt,
+            ),
+          );
+          created = answer.key;
+          return;
+        }
+        final body = ApiKeyUpdateInput(
+          name: name == existing.name ? null : name,
+          scopes: _sameScopes(existing.scopes) ? null : _scopes,
+          printerIds: _printerIds == null ? null : printerIds,
+          // Null on the wire is the only way to say "all printers again".
+          clearPrinterIds: _printerIds == null && existing.printerIds != null,
+          enabled: _enabled == existing.enabled ? null : _enabled,
+          expiresAt: _expiresAt == existing.expiresAt ? null : _expiresAt,
         );
-        created = answer.key;
+        if (body.isEmpty) return;
+        await repo.update(existing.id, body);
+      }, logId: 'api_key_form.save');
+
+      await ref.read(apiKeysListProvider.notifier).refresh();
+      if (!mounted) return;
+      setState(() => _saving = false);
+
+      if (!result.isOk) {
+        messenger.snack(userWriteMessage(l10n, result));
         return;
       }
-      final body = ApiKeyUpdateInput(
-        name: name == existing.name ? null : name,
-        scopes: _sameScopes(existing.scopes) ? null : _scopes,
-        printerIds: _printerIds == null ? null : printerIds,
-        // Null on the wire is the only way to say "all printers again".
-        clearPrinterIds: _printerIds == null && existing.printerIds != null,
-        enabled: _enabled == existing.enabled ? null : _enabled,
-        expiresAt: _expiresAt == existing.expiresAt ? null : _expiresAt,
-      );
-      if (body.isEmpty) return;
-      await repo.update(existing.id, body);
-    }, logId: 'api_key_form.save');
-
-    await ref.read(apiKeysListProvider.notifier).refresh();
-    if (!mounted) return;
-    setState(() => _saving = false);
-
-    if (!result.isOk) {
-      messenger.snack(userWriteMessage(l10n, result));
-      return;
-    }
-    // Leave the form first: the key dialog is the last chance to read the key,
-    // and it should not be sitting on top of a screen that can be popped by a
-    // back gesture into nothing.
-    navigator.pop();
-    final key = created;
-    if (key != null && key.isNotEmpty) {
-      await showCreatedKeyDialog(navigator.context, key);
-    } else {
-      messenger.snack(l10n.apiKeysSaved);
+      // Leave the form first: the key dialog is the last chance to read the key,
+      // and it should not be sitting on top of a screen that can be popped by a
+      // back gesture into nothing.
+      navigator.pop();
+      final key = created;
+      if (key != null && key.isNotEmpty) {
+        await showCreatedKeyDialog(navigator.context, key);
+      } else {
+        messenger.snack(l10n.apiKeysSaved);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 

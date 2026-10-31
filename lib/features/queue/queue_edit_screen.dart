@@ -1527,32 +1527,39 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
     _heldForReview = ref.read(awaitingReviewProvider);
     setState(() => _saving = true);
-    _logGcodeInjection();
-    _sentMapping = _modelMode ? null : await _matchMapping();
+    try {
+      _logGcodeInjection();
+      _sentMapping = _modelMode ? null : await _matchMapping();
 
-    final result = await ref
-        .read(queueProvider.notifier)
-        .runOnRepository(
-          widget._isCreate ? _create : _update,
-          widget._isCreate ? 'queue_edit.create' : 'queue_edit.save',
-        );
+      final result = await ref
+          .read(queueProvider.notifier)
+          .runOnRepository(
+            widget._isCreate ? _create : _update,
+            widget._isCreate ? 'queue_edit.create' : 'queue_edit.save',
+          );
 
-    // Remember the toggles only once a job was really created with them.
-    // Editing an existing item is about THAT item — treating it as "what I print
-    // with" would let a one-off tweak follow the user into every later job.
-    if (widget._isCreate && result.isOk) {
-      await ref.read(settingsRepositoryProvider).savePrintOptions(_options);
+      // Remember the toggles only once a job was really created with them.
+      // Editing an existing item is about THAT item — treating it as "what I print
+      // with" would let a one-off tweak follow the user into every later job.
+      if (widget._isCreate && result.isOk) {
+        await ref.read(settingsRepositoryProvider).savePrintOptions(_options);
+      }
+
+      if (!mounted) return;
+      setState(() => _saving = false);
+      final ok = !widget._isCreate
+          ? l10n.queueEditSaved
+          : (_orderRefused
+                ? l10n.queueEditOrderRefused
+                : l10n.queueCreateAdded);
+      messenger.snack(queueWriteMessage(l10n, result) ?? ok);
+      // Create pops `true` — its caller (a list of archives or files) refreshes
+      // what it shows only when something was really added.
+      if (result.isOk) navigator.pop(widget._isCreate);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
-
-    if (!mounted) return;
-    setState(() => _saving = false);
-    final ok = !widget._isCreate
-        ? l10n.queueEditSaved
-        : (_orderRefused ? l10n.queueEditOrderRefused : l10n.queueCreateAdded);
-    messenger.snack(queueWriteMessage(l10n, result) ?? ok);
-    // Create pops `true` — its caller (a list of archives or files) refreshes
-    // what it shows only when something was really added.
-    if (result.isOk) navigator.pop(widget._isCreate);
   }
 
   /// The web's rule for the filament overrides when the target model or the

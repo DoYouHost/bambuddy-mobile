@@ -1281,6 +1281,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         message: sliceRefusalMessage(l10n, e),
       );
       return;
+    } catch (_) {
+      if (mounted) setState(() => _submitting = false);
+      rethrow;
     }
     if (!mounted) return;
     final ok =

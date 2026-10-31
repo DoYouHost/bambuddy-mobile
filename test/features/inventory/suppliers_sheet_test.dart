@@ -52,6 +52,30 @@ void main() {
   Finder field(String label) =>
       find.ancestor(of: find.text(label), matching: find.byType(TextFormField));
 
+  testWidgets('a save that fails with an unexpected error unlocks the sheet, '
+      'and still reports it', (tester) async {
+    final unreadable = StateError('unreadable answer');
+    final suppliers = FakeSuppliers()..failNextWrite = unreadable;
+    await pumpShelf(tester, suppliers);
+    await openSheet(tester);
+    await tester.tap(byLogId('suppliers.add'));
+    await settle(tester);
+    await tester.enterText(
+      field('${pl.inventorySupplierFieldName} *'),
+      'Extrudr',
+    );
+    await tester.ensureVisible(byLogId('supplier_form.save'));
+    await settle(tester);
+    final errors = await tapCapturingErrors(
+      tester,
+      byLogId('supplier_form.save'),
+      animated: true,
+    );
+
+    expect(errors.single, same(unreadable));
+    expect(buttonAt(tester, 'supplier_form.save').onPressed, isNotNull);
+  });
+
   testWidgets('no entry at all on a server without suppliers', (tester) async {
     await pumpShelf(tester, FakeSuppliers(supported: false));
     expect(byLogId('inventory.suppliers'), findsNothing);

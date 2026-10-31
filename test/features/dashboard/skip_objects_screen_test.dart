@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/printable_object.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
@@ -192,6 +194,44 @@ void main() {
       expect(find.text(pl.skipObjectsSkippedToast(2, '')), findsOneWidget);
       // Selection and the bottom bar clear after success.
       expect(find.text(pl.skipObjectsSkip), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a skip that fails with an unexpected error leaves the bar usable, '
+    'and the error is still reported',
+    (tester) async {
+      final repo = await pumpScreen(tester);
+      repo.error = StateError('unreadable answer');
+      await tapRow(tester, 'Divider_left.stl');
+
+      // The skip carries on after the confirmation closes, in the zone of the
+      // tap that opened it, so the whole flow is captured together.
+      final errors = <Object>[];
+      await runZonedGuarded(() async {
+        await tester.tap(find.text(pl.skipObjectsSkip));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.descendant(
+            of: find.byType(AlertDialog),
+            matching: find.text(pl.skipObjectsSkip),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }, (e, _) => errors.add(e));
+      repo.error = null;
+      await tester.tap(find.text(pl.skipObjectsSkip));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(pl.skipObjectsSkip),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(errors.single, isA<StateError>());
+      expect(repo.skipCalls.length, 2, reason: 'the retry went out');
     },
   );
 

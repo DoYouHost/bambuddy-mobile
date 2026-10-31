@@ -25,6 +25,15 @@ class _FakeInventory extends FixedInventory {
   Future<void> refresh({bool askBackend = false}) async => refreshes++;
 }
 
+/// A server answer the app cannot read: Apply fails with something that is not
+/// an `AppApiException`.
+class _UnreadableDefaults extends ProfileDefaultsRepository {
+  _UnreadableDefaults(super.dio, super.backend);
+
+  @override
+  Future<int> apply(int id) async => throw StateError('unreadable answer');
+}
+
 ResponseBody _json(Object? body, [int status = 200]) => ResponseBody.fromString(
   jsonEncode(body),
   status,
@@ -69,6 +78,7 @@ void main() {
     List<Map<String, dynamic>>? stored,
     Object? Function(RequestOptions o)? onWrite,
     double textScale = 1,
+    ProfileDefaultsRepository Function(Dio dio)? repoOn,
   }) async {
     rows = [
       ...(stored ?? [_row(1, presets: 2, k: 3), _row(2, color: 'Red')]),
@@ -96,7 +106,11 @@ void main() {
         noServerProfileOverride,
         inventoryProvider.overrideWith(() => inventory),
         profileDefaultsRepositoryProvider.overrideWithValue(
-          ProfileDefaultsRepository(dio, () async => InventoryBackend.native),
+          repoOn?.call(dio) ??
+              ProfileDefaultsRepository(
+                dio,
+                () async => InventoryBackend.native,
+              ),
         ),
       ],
     );
@@ -110,6 +124,26 @@ void main() {
 
   int listReads() =>
       server.requests.where((r) => r.method == 'GET' && r.path == _list).length;
+
+  testWidgets('an Apply that fails with an unexpected error unlocks the '
+      'screen, and still reports it', (tester) async {
+    await open(
+      tester,
+      repoOn: (dio) =>
+          _UnreadableDefaults(dio, () async => InventoryBackend.native),
+    );
+    final apply = find.ancestor(
+      of: find.text(pl.profileDefaultsApply).first,
+      matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+    );
+    final errors = await tapCapturingErrors(
+      tester,
+      find.text(pl.profileDefaultsApply).first,
+    );
+
+    expect(errors.single, isA<StateError>());
+    expect(tester.widget<ButtonStyleButton>(apply).onPressed, isNotNull);
+  });
 
   testWidgets('lists each default with its scope and what it holds', (
     tester,

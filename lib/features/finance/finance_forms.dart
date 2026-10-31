@@ -324,29 +324,34 @@ class _CostCenterFormState extends ConsumerState<_CostCenterForm> {
     final existing = widget.existing;
     final name = _name.text.trim();
     setState(() => _saving = true);
-    final ok = await runFinanceWrite(
-      context,
-      action: 'finance_form.save_center',
-      done: existing == null
-          ? l10n.financeCostCenterCreated
-          : l10n.financeCostCenterUpdated,
-      write: (repo) async {
-        if (existing == null) {
-          await repo.createCostCenter(name: name, budget: _budget);
-          return;
-        }
-        // A personal center's name field is locked, so only a shared one differs.
-        if (name != existing.name) {
-          await repo.updateCostCenter(existing.id, name: name);
-        }
-        await repo.setBudget(existing.id, _budget);
-      },
-    );
-    if (!mounted) return;
-    if (ok) {
-      Navigator.of(context).pop();
-    } else {
-      setState(() => _saving = false);
+    try {
+      final ok = await runFinanceWrite(
+        context,
+        action: 'finance_form.save_center',
+        done: existing == null
+            ? l10n.financeCostCenterCreated
+            : l10n.financeCostCenterUpdated,
+        write: (repo) async {
+          if (existing == null) {
+            await repo.createCostCenter(name: name, budget: _budget);
+            return;
+          }
+          // A personal center's name field is locked, so only a shared one differs.
+          if (name != existing.name) {
+            await repo.updateCostCenter(existing.id, name: name);
+          }
+          await repo.setBudget(existing.id, _budget);
+        },
+      );
+      if (!mounted) return;
+      if (ok) {
+        Navigator.of(context).pop();
+      } else {
+        setState(() => _saving = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
@@ -467,24 +472,29 @@ class _WalletAdjustFormState extends ConsumerState<_WalletAdjustForm> {
     if (!valid || _userId == null) return;
     final l10n = AppLocalizations.of(context);
     setState(() => _saving = true);
-    final description = _description.text.trim();
-    final ok = await runFinanceWrite(
-      context,
-      action: 'finance_form.save_adjust',
-      done: _deposit ? l10n.financeDepositDone : l10n.financeWithdrawDone,
-      write: (repo) => repo.adjustWallet(
-        _userId!,
-        amount: parseUserDecimal(_amount.text)!,
-        deposit: _deposit,
-        description: description.isEmpty ? null : description,
-        costCenterId: _centerId,
-      ),
-    );
-    if (!mounted) return;
-    if (ok) {
-      Navigator.of(context).pop();
-    } else {
-      setState(() => _saving = false);
+    try {
+      final description = _description.text.trim();
+      final ok = await runFinanceWrite(
+        context,
+        action: 'finance_form.save_adjust',
+        done: _deposit ? l10n.financeDepositDone : l10n.financeWithdrawDone,
+        write: (repo) => repo.adjustWallet(
+          _userId!,
+          amount: parseUserDecimal(_amount.text)!,
+          deposit: _deposit,
+          description: description.isEmpty ? null : description,
+          costCenterId: _centerId,
+        ),
+      );
+      if (!mounted) return;
+      if (ok) {
+        Navigator.of(context).pop();
+      } else {
+        setState(() => _saving = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
@@ -609,23 +619,28 @@ class _ManualPrintFormState extends ConsumerState<_ManualPrintForm> {
     if (!valid || _userId == null || _centerId == null) return;
     final l10n = AppLocalizations.of(context);
     setState(() => _saving = true);
-    final description = _description.text.trim();
-    final ok = await runFinanceWrite(
-      context,
-      action: 'finance_form.save_manual',
-      done: l10n.financeManualPrintDone,
-      write: (repo) => repo.addManualPrint(
-        userId: _userId!,
-        costCenterId: _centerId!,
-        amount: parseUserDecimal(_amount.text)!.abs(),
-        description: description.isEmpty ? null : description,
-      ),
-    );
-    if (!mounted) return;
-    if (ok) {
-      Navigator.of(context).pop();
-    } else {
-      setState(() => _saving = false);
+    try {
+      final description = _description.text.trim();
+      final ok = await runFinanceWrite(
+        context,
+        action: 'finance_form.save_manual',
+        done: l10n.financeManualPrintDone,
+        write: (repo) => repo.addManualPrint(
+          userId: _userId!,
+          costCenterId: _centerId!,
+          amount: parseUserDecimal(_amount.text)!.abs(),
+          description: description.isEmpty ? null : description,
+        ),
+      );
+      if (!mounted) return;
+      if (ok) {
+        Navigator.of(context).pop();
+      } else {
+        setState(() => _saving = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
@@ -736,27 +751,32 @@ class _TransactionEditFormState extends ConsumerState<_TransactionEditForm> {
     final amount = parseUserDecimal(_amount.text);
     final description = _description.text.trim();
     setState(() => _saving = true);
-    // Only what changed goes out: the server marks any description it is sent
-    // as an admin edit, and rebuilds the ledger for each.
-    final ok = await runFinanceWrite(
-      context,
-      action: 'finance_form.save_transaction',
-      done: l10n.financeTransactionEdited,
-      write: (repo) => repo.editTransaction(
-        tx.id,
-        userId: _userId != tx.userId ? _userId : null,
-        costCenterId: _centerId != tx.costCenterId ? _centerId : null,
-        amount: amount != null && amount != tx.amount ? amount : null,
-        description: description.isNotEmpty && description != tx.description
-            ? description
-            : null,
-      ),
-    );
-    if (!mounted) return;
-    if (ok) {
-      Navigator.of(context).pop();
-    } else {
-      setState(() => _saving = false);
+    try {
+      // Only what changed goes out: the server marks any description it is sent
+      // as an admin edit, and rebuilds the ledger for each.
+      final ok = await runFinanceWrite(
+        context,
+        action: 'finance_form.save_transaction',
+        done: l10n.financeTransactionEdited,
+        write: (repo) => repo.editTransaction(
+          tx.id,
+          userId: _userId != tx.userId ? _userId : null,
+          costCenterId: _centerId != tx.costCenterId ? _centerId : null,
+          amount: amount != null && amount != tx.amount ? amount : null,
+          description: description.isNotEmpty && description != tx.description
+              ? description
+              : null,
+        ),
+      );
+      if (!mounted) return;
+      if (ok) {
+        Navigator.of(context).pop();
+      } else {
+        setState(() => _saving = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
@@ -857,18 +877,23 @@ class _MembersSheetState extends ConsumerState<_MembersSheet> {
     String? done,
   }) async {
     setState(() => _busy = true);
-    final ok = await runFinanceWrite(
-      context,
-      action: action,
-      write: write,
-      done: done,
-    );
-    if (!mounted) return;
-    if (ok) ref.invalidate(costCenterDetailProvider(widget.center.id));
-    setState(() {
-      _busy = false;
-      if (ok) _newUser = null;
-    });
+    try {
+      final ok = await runFinanceWrite(
+        context,
+        action: action,
+        write: write,
+        done: done,
+      );
+      if (!mounted) return;
+      if (ok) ref.invalidate(costCenterDetailProvider(widget.center.id));
+      setState(() {
+        _busy = false;
+        if (ok) _newUser = null;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      rethrow;
+    }
   }
 
   @override

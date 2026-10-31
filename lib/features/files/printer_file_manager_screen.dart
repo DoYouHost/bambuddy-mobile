@@ -419,38 +419,43 @@ class _PrinterFileManagerScreenState
     if (!confirmed || !mounted) return;
 
     setState(() => _busy = true);
-    final repo = ref.read(printerFilesRepositoryProvider);
-    var deleted = 0;
-    final failures = <AppApiException>[];
-    for (final path in paths) {
-      try {
-        await repo.deleteFile(widget.printerId, path);
-        deleted++;
-      } on AppApiException catch (e) {
-        failures.add(e);
+    try {
+      final repo = ref.read(printerFilesRepositoryProvider);
+      var deleted = 0;
+      final failures = <AppApiException>[];
+      for (final path in paths) {
+        try {
+          await repo.deleteFile(widget.printerId, path);
+          deleted++;
+        } on AppApiException catch (e) {
+          failures.add(e);
+        }
       }
-    }
-    // Each refusal is its own call and worth its own record, but only the last
-    // one's wording becomes the snack — and none of it is delivered if the
-    // screen went away while the batch ran. Recording them all as told would
-    // say a dozen people were stopped where one message appeared, or none.
-    final delivered = mounted;
-    for (var i = 0; i < failures.length; i++) {
-      recordActionFailure(
-        failures[i],
-        action: 'printer_files.delete',
-        shown: delivered && i == failures.length - 1,
+      // Each refusal is its own call and worth its own record, but only the last
+      // one's wording becomes the snack — and none of it is delivered if the
+      // screen went away while the batch ran. Recording them all as told would
+      // say a dozen people were stopped where one message appeared, or none.
+      final delivered = mounted;
+      for (var i = 0; i < failures.length; i++) {
+        recordActionFailure(
+          failures[i],
+          action: 'printer_files.delete',
+          shown: delivered && i == failures.length - 1,
+        );
+      }
+      if (!mounted) return;
+      setState(() => _busy = false);
+      _snack(
+        failures.isEmpty
+            ? l10n.pfmDeleted(deleted)
+            : failures.last.localized(l10n),
       );
+      await _load();
+      await _loadStorage();
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      rethrow;
     }
-    if (!mounted) return;
-    setState(() => _busy = false);
-    _snack(
-      failures.isEmpty
-          ? l10n.pfmDeleted(deleted)
-          : failures.last.localized(l10n),
-    );
-    await _load();
-    await _loadStorage();
   }
 
   void _snack(String message) =>

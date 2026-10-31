@@ -340,25 +340,30 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
     if (!confirmed || !mounted) return;
 
     setState(() => _skipping = true);
-    // From `objs`, not `_selected`: the background poll can drop an object
-    // between selecting it and confirming (a 3MF reload) or mark it skipped,
-    // and `objs` is exactly what the dialog just showed — the request must
-    // match that, or an id the user never saw confirmed would go out anyway.
-    final ids = objs.map((o) => o.id).toList();
-    final result = await ref
-        .read(skipObjectsProvider(widget.printerId).notifier)
-        .skip(ids);
-    if (!mounted) return;
-    setState(() {
-      _skipping = false;
-      if (result.isForbidden) _forbidden = true;
-      if (result.isOk) _selected.clear();
-    });
+    try {
+      // From `objs`, not `_selected`: the background poll can drop an object
+      // between selecting it and confirming (a 3MF reload) or mark it skipped,
+      // and `objs` is exactly what the dialog just showed — the request must
+      // match that, or an id the user never saw confirmed would go out anyway.
+      final ids = objs.map((o) => o.id).toList();
+      final result = await ref
+          .read(skipObjectsProvider(widget.printerId).notifier)
+          .skip(ids);
+      if (!mounted) return;
+      setState(() {
+        _skipping = false;
+        if (result.isForbidden) _forbidden = true;
+        if (result.isOk) _selected.clear();
+      });
 
-    final msg =
-        result.messageFor(l10n) ??
-        l10n.skipObjectsSkippedToast(objs.length, names);
-    ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
+      final msg =
+          result.messageFor(l10n) ??
+          l10n.skipObjectsSkippedToast(objs.length, names);
+      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
+    } catch (_) {
+      if (mounted) setState(() => _skipping = false);
+      rethrow;
+    }
   }
 }
 

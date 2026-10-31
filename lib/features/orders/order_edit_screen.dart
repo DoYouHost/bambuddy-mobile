@@ -162,6 +162,9 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
             : orderRefusal(l10n, e, _editRefusals),
       );
       if (mounted) setState(() => _saving = false);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     } finally {
       inFlight.state = {...inFlight.state}..remove(_b.id);
     }

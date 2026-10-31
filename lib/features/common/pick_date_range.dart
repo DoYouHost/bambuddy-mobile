@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// How far back a range may start.
@@ -10,7 +11,7 @@ Future<DateTimeRange?> pickDateRange(
   BuildContext context, {
   DateTimeRange? initial,
 }) {
-  final now = DateTime.now();
+  final now = clock.now();
   return showDateRangePicker(
     context: context,
     firstDate: DateTime(now.year - _yearsBack),

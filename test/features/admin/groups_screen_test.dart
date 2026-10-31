@@ -90,6 +90,14 @@ class _FakeGroups implements GroupsRepository {
       removed = (groupId, userId);
 }
 
+/// A server answer the app cannot read: the write fails with something that is
+/// not an [AppApiException], which the app must report rather than swallow.
+class _UnreadableGroups extends _FakeGroups {
+  @override
+  Future<GroupSummary> create(GroupCreateInput body) async =>
+      throw StateError('unreadable answer');
+}
+
 /// A catalog with one everyday category and one that belongs behind the fold.
 const _catalog = PermissionCatalog(
   categories: [
@@ -296,6 +304,34 @@ void main() {
       expect(repo.created?.name, 'Domownicy');
       expect(repo.created?.permissions, ['queue:create']);
     });
+
+    testWidgets(
+      'unlocks the form when the save fails with an unexpected error, '
+      'and still reports it',
+      (tester) async {
+        await tester.pumpWidget(
+          _app(
+            const GroupFormScreen(),
+            repo: _UnreadableGroups(),
+            signedInAs: _admin,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.widgetWithText(TextFormField, pl.groupsFieldName),
+          'Domownicy',
+        );
+        final errors = await tapCapturingErrors(
+          tester,
+          find.text(pl.usersSave),
+        );
+
+        // Reported, not swallowed: it is what lands in the bug report.
+        expect(errors.single, isA<StateError>());
+        // And the form is not left locked with a save button that never wakes.
+        expect(buttonAt(tester, 'group_form.save').onPressed, isNotNull);
+      },
+    );
 
     testWidgets('keeps the permissions it never showed', (tester) async {
       // The group holds `users:read`, which lives behind the fold. Saving

@@ -349,6 +349,25 @@ void main() {
       expect(commands.calls, isEmpty);
     });
 
+    testWidgets('a jog that fails with an unexpected error does not lock the '
+        'pad, and the error is still reported', (tester) async {
+      await pump(tester, _status());
+      commands.error = StateError('unreadable answer');
+
+      final errors = await tapCapturingErrors(
+        tester,
+        byLogId('controller.jog_x_plus').first,
+        animated: true,
+      );
+      commands
+        ..calls.clear()
+        ..error = null;
+      await tap(tester, 'controller.jog_x_plus');
+
+      expect(errors.single, isA<StateError>());
+      expect(commands.calls, isNotEmpty, reason: 'the next jog goes out');
+    });
+
     testWidgets('a session the server refuses is told so and locked out', (
       tester,
     ) async {

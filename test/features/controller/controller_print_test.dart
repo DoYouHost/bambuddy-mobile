@@ -21,6 +21,8 @@ import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/features/queue/job_cost_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_drafts.dart';
 import 'package:bambuddy_mobile/features/common/color_catalog.dart';
+import 'package:bambuddy_mobile/core/api/action_outcome.dart';
+import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -144,6 +146,16 @@ Rect _onScreen(WidgetTester tester, Finder finder) {
   );
 }
 
+/// The queue's write fails with something that is not an `AppApiException`: a
+/// server answer the app cannot read.
+class _UnreadableQueue extends QueueNotifier {
+  @override
+  Future<ActionOutcome> runOnRepository(
+    Future<void> Function(QueueRepository repo) action,
+    String logId,
+  ) async => throw StateError('unreadable answer');
+}
+
 void main() {
   setUp(setUpQueueForm);
 
@@ -247,6 +259,22 @@ void main() {
     await tester.tap(byLogId('controller.print.submit'));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('a send that fails with an unexpected error unlocks the screen, '
+      'and still reports it', (tester) async {
+    await pump(
+      tester,
+      extra: [queueProvider.overrideWith(_UnreadableQueue.new)],
+    );
+
+    final errors = await tapCapturingErrors(
+      tester,
+      byLogId('controller.print.submit'),
+    );
+
+    expect(errors.single, isA<StateError>());
+    expect(buttonAt(tester, 'controller.print.submit').onPressed, isNotNull);
+  });
 
   /// Saves the mapping dialog.
   Future<void> confirmSheet(WidgetTester tester) async {

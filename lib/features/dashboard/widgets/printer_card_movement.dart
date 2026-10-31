@@ -110,15 +110,25 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
       _busy = true;
       _spin = btn;
     });
-    final result = await action();
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _spin = null;
-    });
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      messenger.snack(msg, clearQueue: true);
+    try {
+      final result = await action();
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _spin = null;
+      });
+      final msg = result.messageFor(l10n);
+      if (msg != null) {
+        messenger.snack(msg, clearQueue: true);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _spin = null;
+        });
+      }
+      rethrow;
     }
   }
 
@@ -135,14 +145,24 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
       _busy = true;
       _spin = 'home';
     });
-    final result = await _notifier.homeAxes(widget.printerId);
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _spin = null;
-    });
-    final msg = result.messageFor(l10n) ?? l10n.ctrlMoveHomeStarted;
-    messenger.snack(msg, clearQueue: true);
+    try {
+      final result = await _notifier.homeAxes(widget.printerId);
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _spin = null;
+      });
+      final msg = result.messageFor(l10n) ?? l10n.ctrlMoveHomeStarted;
+      messenger.snack(msg, clearQueue: true);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _spin = null;
+        });
+      }
+      rethrow;
+    }
   }
 
   @override

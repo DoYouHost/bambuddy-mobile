@@ -227,6 +227,9 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
         l10n,
         action: 'pipeline_edit.save',
       );
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 }

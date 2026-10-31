@@ -309,6 +309,9 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
         l10n,
         action: 'pipeline_run.start',
       );
+    } catch (_) {
+      if (mounted) setState(() => _starting = false);
+      rethrow;
     }
   }
 }

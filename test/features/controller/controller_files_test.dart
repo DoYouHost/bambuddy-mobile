@@ -1022,6 +1022,37 @@ void main() {
       expect(enabled(tester, 'controller.files.dialog.delete'), isTrue);
       expect(find.byType(SnackBar), findsOneWidget);
     });
+
+    testWidgets('a Delete that fails with an unexpected error keeps the dialog '
+        'usable, and the error is still reported', (tester) async {
+      final repo = _Repo()..deleteFails = StateError('unreadable answer');
+      await pump(
+        tester,
+        lib: _Library(
+          folders: const [LibraryFolder(id: 1, name: 'Alpha')],
+          startFolderId: 1,
+          filesByFolder: {
+            1: [_file(10, 'benchy.gcode.3mf', folderId: 1)],
+          },
+        ),
+        extra: [libraryRepositoryProvider.overrideWithValue(repo)],
+      );
+      await openFiles(tester);
+      await openDialog(tester, 'benchy.gcode.3mf');
+
+      // The delete carries on after the confirmation closes, in the zone of the
+      // tap that opened it, so the whole flow is captured together.
+      final errors = <Object>[];
+      await runZonedGuarded(() async {
+        await tester.tap(byLogId('controller.files.dialog.delete'));
+        await settle(tester);
+        await tester.tap(find.text(pl.fmDelete).last);
+        await settle(tester);
+      }, (e, _) => errors.add(e));
+
+      expect(errors.single, isA<StateError>());
+      expect(enabled(tester, 'controller.files.dialog.delete'), isTrue);
+    });
   });
 
   group('the search', () {

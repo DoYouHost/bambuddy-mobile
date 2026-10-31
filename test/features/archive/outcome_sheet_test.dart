@@ -199,6 +199,26 @@ void main() {
     expect(find.text(pl.outcomeSavedGood), findsNothing);
   });
 
+  testWidgets('a save that fails with an unexpected error unlocks the sheet, '
+      'and still reports it', (tester) async {
+    await open(tester, testArchive(confirmRequested: true));
+    repo.error = StateError('unreadable answer');
+
+    final errors = await tapCapturingErrors(
+      tester,
+      find.text(pl.outcomeGood).last,
+    );
+    repo.error = null;
+    await tapText(tester, pl.outcomeGood);
+
+    expect(errors.single, isA<StateError>());
+    expect(
+      repo.sent.single.verdict,
+      PrintVerdict.good,
+      reason: 'the second try goes out: the sheet was not left locked',
+    );
+  });
+
   // The sheet's navigator outlives the sheet: popping it after a dismissal
   // closed whatever screen the user had gone back to.
   testWidgets('a sheet dismissed during the save leaves the screen alone', (

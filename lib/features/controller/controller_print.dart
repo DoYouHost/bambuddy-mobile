@@ -918,56 +918,64 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
     final providers = ProviderScope.containerOf(context, listen: false);
     final held = ref.read(awaitingReviewProvider);
     setState(() => _saving = true);
-
-    final mapping = await _matchMapping();
-    final outcome = await ref
-        .read(queueProvider.notifier)
-        .runOnRepository(
-          (repo) => createQueueJobs(
-            repo: repo,
-            providers: providers,
-            archiveId: _source.archiveId,
-            libraryFileId: _isArchive ? null : _source.libraryFileId,
-            sourceName: _source.displayName,
-            printerId: _printer.id,
-            copies: _copies,
-            insertAtTop: _when == QueueScheduleType.asap,
-            plateId: _plateToSend,
-            confirmOutcomeChoice: _extras.confirmOutcome,
-            confirmOutcomeSticky: _confirmOutcomeSticky,
-            buildOptions: () => QueueCreateOptions(
-              amsMapping: mapping,
-              scheduledTime: _when == QueueScheduleType.scheduled
-                  ? _scheduledTime?.toUtc().toIso8601String()
-                  : null,
-              requirePreviousSuccess: _extras.requirePreviousSuccess,
-              autoOffAfter: _extras.autoOffAfter,
-              // A user held for review always waits, whatever they chose.
-              manualStart: held || _extras.requireManualStart,
-              bedLevelling: _options.bedLevelling,
-              flowCali: _options.flowCali,
-              vibrationCali: _options.vibrationCali,
-              layerInspect: _options.layerInspect,
-              timelapse: _options.timelapse,
-              nozzleOffsetCali: _dualNozzle ? _options.nozzleOffsetCali : null,
-              gcodeInjection: _injectionPayload,
-              preheatOverride: _extras.preheatOverride,
-              preheatChamberTargetOverride: _chamberPayload,
-              costCenterId: _costCenterPayload,
-              nozzleRackChoice: _rack,
+    try {
+      final mapping = await _matchMapping();
+      final outcome = await ref
+          .read(queueProvider.notifier)
+          .runOnRepository(
+            (repo) => createQueueJobs(
+              repo: repo,
+              providers: providers,
+              archiveId: _source.archiveId,
+              libraryFileId: _isArchive ? null : _source.libraryFileId,
+              sourceName: _source.displayName,
+              printerId: _printer.id,
+              copies: _copies,
+              insertAtTop: _when == QueueScheduleType.asap,
+              plateId: _plateToSend,
+              confirmOutcomeChoice: _extras.confirmOutcome,
+              confirmOutcomeSticky: _confirmOutcomeSticky,
+              buildOptions: () => QueueCreateOptions(
+                amsMapping: mapping,
+                scheduledTime: _when == QueueScheduleType.scheduled
+                    ? _scheduledTime?.toUtc().toIso8601String()
+                    : null,
+                requirePreviousSuccess: _extras.requirePreviousSuccess,
+                autoOffAfter: _extras.autoOffAfter,
+                // A user held for review always waits, whatever they chose.
+                manualStart: held || _extras.requireManualStart,
+                bedLevelling: _options.bedLevelling,
+                flowCali: _options.flowCali,
+                vibrationCali: _options.vibrationCali,
+                layerInspect: _options.layerInspect,
+                timelapse: _options.timelapse,
+                nozzleOffsetCali: _dualNozzle
+                    ? _options.nozzleOffsetCali
+                    : null,
+                gcodeInjection: _injectionPayload,
+                preheatOverride: _extras.preheatOverride,
+                preheatChamberTargetOverride: _chamberPayload,
+                costCenterId: _costCenterPayload,
+                nozzleRackChoice: _rack,
+              ),
             ),
-          ),
-          'controller_print.create',
-        );
+            'controller_print.create',
+          );
 
-    // Remembered only once a job was really created with them.
-    if (outcome.isOk) {
-      await ref.read(settingsRepositoryProvider).savePrintOptions(_options);
+      // Remembered only once a job was really created with them.
+      if (outcome.isOk) {
+        await ref.read(settingsRepositoryProvider).savePrintOptions(_options);
+      }
+      if (!mounted) return;
+      setState(() => _saving = false);
+      messenger.snack(
+        queueWriteMessage(l10n, outcome) ?? l10n.queueCreateAdded,
+      );
+      if (outcome.isOk) navigator.pop(true);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
-    if (!mounted) return;
-    setState(() => _saving = false);
-    messenger.snack(queueWriteMessage(l10n, outcome) ?? l10n.queueCreateAdded);
-    if (outcome.isOk) navigator.pop(true);
   }
 
   /// Off sends no target; otherwise the stepper's, within what the server takes.

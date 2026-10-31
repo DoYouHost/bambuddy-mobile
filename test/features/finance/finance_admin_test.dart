@@ -49,9 +49,14 @@ class _Server extends FinanceRepository {
   /// When set, every write is refused with it.
   AppApiException? refuse;
 
+  /// When set, every write fails with it: something the app cannot read, not a
+  /// refusal from the server.
+  Object? explode;
+
   Future<void> _write(String line) async {
     calls.add(line);
     if (refuse != null) throw refuse!;
+    if (explode != null) throw explode!;
   }
 
   @override
@@ -235,6 +240,92 @@ void main() {
     await tester.tap(byLogId(id));
     await tester.pumpAndSettle();
   }
+
+  /// Taps the save button [id] and returns what escaped the handler.
+  Future<List<Object>> saveFailing(WidgetTester tester, String id) async {
+    await tester.ensureVisible(byLogId(id));
+    return tapCapturingErrors(tester, byLogId(id));
+  }
+
+  group('a write that fails with something the app cannot read', () {
+    // Reported, not swallowed — and the form is not left locked behind it.
+    final unreadable = StateError('unreadable answer');
+
+    testWidgets('unlocks the cost center form', (tester) async {
+      final server = _Server()..explode = unreadable;
+      await pump(tester, server);
+      await tester.tap(byLogId('finance.create_center'));
+      await tester.pumpAndSettle();
+      await type(tester, 'finance_form.name', 'Club');
+      final errors = await saveFailing(tester, 'finance_form.save_center');
+
+      expect(errors.single, same(unreadable));
+      expect(buttonAt(tester, 'finance_form.save_center').onPressed, isNotNull);
+    });
+
+    testWidgets('unlocks the wallet adjustment', (tester) async {
+      final server = _Server()..explode = unreadable;
+      await pump(tester, server);
+      await tester.tap(byLogId('finance.adjust_wallet'));
+      await tester.pumpAndSettle();
+      await pick(tester, 'finance_form.user', 1);
+      await type(tester, 'finance_form.amount', '12');
+      final errors = await saveFailing(tester, 'finance_form.save_adjust');
+
+      expect(errors.single, same(unreadable));
+      expect(buttonAt(tester, 'finance_form.save_adjust').onPressed, isNotNull);
+    });
+
+    testWidgets('unlocks the manual print', (tester) async {
+      final server = _Server()..explode = unreadable;
+      await pump(tester, server);
+      await tester.tap(byLogId('finance.manual_print'));
+      await tester.pumpAndSettle();
+      await pick(tester, 'finance_form.user', 2);
+      await pick(tester, 'finance_form.center', 1);
+      await type(tester, 'finance_form.amount', '4');
+      final errors = await saveFailing(tester, 'finance_form.save_manual');
+
+      expect(errors.single, same(unreadable));
+      expect(buttonAt(tester, 'finance_form.save_manual').onPressed, isNotNull);
+    });
+
+    testWidgets('unlocks the transaction edit', (tester) async {
+      final server = _Server()..explode = unreadable;
+      await pump(tester, server);
+      await tester.tap(byLogId('finance.transaction_menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('finance.transaction_menu.edit'));
+      await tester.pumpAndSettle();
+      await type(tester, 'finance_form.amount', '-4,5');
+      final errors = await saveFailing(tester, 'finance_form.save_transaction');
+
+      expect(errors.single, same(unreadable));
+      expect(
+        buttonAt(tester, 'finance_form.save_transaction').onPressed,
+        isNotNull,
+      );
+    });
+
+    testWidgets('unlocks the member list', (tester) async {
+      final server = _Server()..explode = unreadable;
+      await pump(tester, server);
+      await tester.tap(byLogId('finance.center_menu').last);
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('finance.center_menu.members'));
+      await tester.pumpAndSettle();
+      final errors = await tapCapturingErrors(
+        tester,
+        byLogId('finance_form.member_remove'),
+      );
+
+      expect(errors.single, same(unreadable));
+      expect(
+        buttonAt(tester, 'finance_form.member_remove').onPressed,
+        isNotNull,
+      );
+    });
+  });
 
   group('who sees the administrator\'s view', () {
     testWidgets('a user with no finance permission beyond their own does not', (

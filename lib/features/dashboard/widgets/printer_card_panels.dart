@@ -202,7 +202,7 @@ class _PrintPanel extends StatelessWidget {
       ?pauseMetaItem(context, l10n, status),
     ];
 
-    final stage = _preparingStage(status);
+    final stage = status.preparingStage;
     final showStage = stage != null;
 
     final nameBlock = Column(
@@ -281,14 +281,6 @@ class _PrintPanel extends StatelessWidget {
   }
 }
 
-/// The stage a print is still preparing through (heating, bed levelling), or
-/// `null` once it prints. While there is one, the bar runs indeterminate and no
-/// percentage is shown — a 0% there reads as a stalled job.
-String? _preparingStage(PrinterStatus status) {
-  final stage = status.stgCurName?.trim();
-  return status.isPreparing && stage != null && stage.isNotEmpty ? stage : null;
-}
-
 /// The print's progress bar, shared by the print panel and the collapsed card.
 class _PrintProgressBar extends StatelessWidget {
   const _PrintProgressBar({
@@ -308,14 +300,14 @@ class _PrintProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = status.progress;
     final bar = DashProgressBar(
-      value: _preparingStage(status) != null || progress == null
+      value: status.preparingStage != null || progress == null
           ? null
           : (progress / 100).clamp(0.0, 1.0),
       height: height,
     );
     // Not on the indeterminate bar of a printer still preparing: it has no
     // scale for a tick to sit on.
-    return showPause && _preparingStage(status) == null
+    return showPause && status.preparingStage == null
         ? PauseTick(
             fraction: pauseTickFraction(status),
             barHeight: height,
@@ -685,14 +677,19 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
     final navigator = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
-    final result = await ref
-        .read(controlsProvider.notifier)
-        .setFanSpeed(widget.printerId, widget.fan, speed);
-    if (!mounted) return;
-    navigator.pop();
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      messenger.snack(msg, clearQueue: true);
+    try {
+      final result = await ref
+          .read(controlsProvider.notifier)
+          .setFanSpeed(widget.printerId, widget.fan, speed);
+      if (!mounted) return;
+      navigator.pop();
+      final msg = result.messageFor(l10n);
+      if (msg != null) {
+        messenger.snack(msg, clearQueue: true);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      rethrow;
     }
   }
 

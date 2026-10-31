@@ -26,7 +26,7 @@ class FakeArchives implements ArchiveRepository {
 
   /// Whether the server stored a verdict, and what it refuses it with.
   bool applied = true;
-  AppApiException? error;
+  Object? error;
 
   /// Set before a verdict to leave it in flight until completed.
   Completer<void>? held;

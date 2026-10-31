@@ -339,6 +339,9 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
     } on AppApiException catch (e) {
       showApiFailure(mounted ? messenger : null, e, l10n, action: logId);
       if (mounted) setState(() => _saving = false);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 }

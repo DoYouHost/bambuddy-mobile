@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' show CheckedState;
@@ -46,6 +47,19 @@ class _FakeRepo extends PrinterFilesRepository {
   }) async {
     await File(savePath).writeAsString('a printed thing');
   }
+}
+
+/// The printer answers with something the app cannot read: a delete fails with
+/// something that is not an `AppApiException`.
+class _UnreadableRepo extends _FakeRepo {
+  _UnreadableRepo(super.listing);
+
+  @override
+  Future<bool> supportsDownloadJobs() async => false;
+
+  @override
+  Future<void> deleteFile(int printerId, String path) async =>
+      throw StateError('unreadable answer');
 }
 
 /// A server that prepares downloads (server #2850). [poll] decides what each
@@ -128,6 +142,45 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  group('an action that fails with an unexpected error', () {
+    const listing = PrinterFileListing(
+      files: [
+        PrinterFile(
+          name: 'Benchy.gcode.3mf',
+          path: '/Benchy.gcode.3mf',
+          isDirectory: false,
+          size: 2048,
+        ),
+      ],
+    );
+
+    Future<void> select(WidgetTester tester) async {
+      await pumpWith(tester, listing, repo: _UnreadableRepo(listing));
+      await tester.tap(find.text('Benchy.gcode.3mf'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a delete leaves the screen free, and is reported', (
+      tester,
+    ) async {
+      await select(tester);
+
+      // The whole flow in one zone: the delete carries on after the dialog
+      // closes, in the zone of the tap that opened it.
+      final errors = <Object>[];
+      await runZonedGuarded(() async {
+        await tester.tap(find.text(pl.pfmDelete));
+        await tester.pumpAndSettle();
+        await tester.tap(byLogId('printer_files_delete.confirm'));
+        await settle(tester);
+      }, (e, _) => errors.add(e));
+
+      expect(errors.single, isA<StateError>());
+      expect(find.text(pl.pfmDownloading), findsNothing);
+      expect(find.text(pl.pfmSelected(1)), findsOneWidget);
+    });
+  });
 
   testWidgets('an empty folder still reads as an empty folder', (tester) async {
     await pumpWith(tester, const PrinterFileListing());

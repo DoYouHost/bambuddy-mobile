@@ -64,6 +64,14 @@ class _FakeUsers implements UsersRepository {
       AdvancedAuthStatus.legacy;
 }
 
+/// A server answer the app cannot read: the write fails with something that is
+/// not an `AppApiException`.
+class _UnreadableUsers extends _FakeUsers {
+  @override
+  Future<CurrentUser> create(UserCreateInput body) async =>
+      throw StateError('unreadable answer');
+}
+
 Widget _app(
   Widget child, {
   required _FakeUsers repo,
@@ -94,6 +102,31 @@ void main() {
   setUp(() => repo = _FakeUsers());
 
   group('creating an account', () {
+    testWidgets('unlocks the form when the save fails with an unexpected '
+        'error, and still reports it', (tester) async {
+      await tester.pumpWidget(
+        _app(const UserFormScreen(), repo: _UnreadableUsers()),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, pl.usersFieldUsername),
+        'zosia',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, pl.usersFieldPassword),
+        'Sekret!23',
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, pl.usersFieldConfirmPassword),
+        'Sekret!23',
+      );
+      final errors = await tapCapturingErrors(tester, find.text(pl.usersSave));
+
+      expect(errors.single, isA<StateError>());
+      expect(buttonAt(tester, 'user_form.save').onPressed, isNotNull);
+    });
+
     testWidgets('will not send a password the server would reject', (
       tester,
     ) async {

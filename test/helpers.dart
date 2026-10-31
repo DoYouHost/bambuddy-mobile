@@ -142,6 +142,8 @@ Future<void> pumpPhone(
 /// Pumps a wear widget with mock preferences, an in-memory credentials store and
 /// a handle on the container. [wrapInApp] is false for `WearApp`, which builds its
 /// own `MaterialApp`. The scope owns the container on purpose; see docs/test-harness.md.
+/// [animated] is for a screen that never stops animating (an indeterminate bar):
+/// it takes `settle`'s three frames, where `pumpAndSettle` would never return.
 Future<ProviderContainer> pumpWear(
   WidgetTester tester,
   Widget child, {
@@ -149,6 +151,7 @@ Future<ProviderContainer> pumpWear(
   bool wrapInApp = true,
   WearShape shape = WearShape.round,
   Size face = wearFaceSmall,
+  bool animated = false,
 }) async {
   useWatchFace(tester, shape, face);
   SharedPreferences.setMockInitialValues({});
@@ -170,7 +173,11 @@ Future<ProviderContainer> pumpWear(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (animated) {
+    await settle(tester);
+  } else {
+    await tester.pumpAndSettle();
+  }
   return container;
 }
 
@@ -187,6 +194,27 @@ ButtonStyleButton buttonAt(WidgetTester tester, String id) => tester.widget(
     matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
   ),
 );
+
+/// Taps [target] and returns what escaped the tap handler — what the app's error
+/// reporter receives — once the screen has settled.
+///
+/// For a write that fails with something that is not an `AppApiException`: the
+/// app rethrows it so it reaches the bug report, but the screen must not stay
+/// locked behind it. [animated] is for a screen that never stops animating.
+Future<List<Object>> tapCapturingErrors(
+  WidgetTester tester,
+  Finder target, {
+  bool animated = false,
+}) async {
+  final errors = <Object>[];
+  await runZonedGuarded(() => tester.tap(target), (e, _) => errors.add(e));
+  if (animated) {
+    await settle(tester);
+  } else {
+    await tester.pumpAndSettle();
+  }
+  return errors;
+}
 
 /// A window of [size] logical pixels at density 1, given back with the test.
 void useLogicalWindow(WidgetTester tester, Size size) {

@@ -65,6 +65,14 @@ class _FakeKeys implements ApiKeysRepository {
   Future<void> delete(int keyId) async => deleted = keyId;
 }
 
+/// A server answer the app cannot read: the write fails with something that is
+/// not an `AppApiException`.
+class _UnreadableKeys extends _FakeKeys {
+  @override
+  Future<CreatedApiKey> create(ApiKeyCreateInput body) async =>
+      throw StateError('unreadable answer');
+}
+
 const _admin = CurrentUser(id: 1, username: 'admin', isAdmin: true);
 
 /// `api_keys:read` and nothing else — the list, no buttons.
@@ -152,6 +160,26 @@ void main() {
   });
 
   group('issuing a key', () {
+    testWidgets('unlocks the form when the save fails with an unexpected '
+        'error, and still reports it', (tester) async {
+      await tester.pumpWidget(
+        _app(
+          const ApiKeyFormScreen(),
+          repo: _UnreadableKeys(),
+          signedInAs: _admin,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, pl.apiKeysFieldName),
+        'SpoolBuddy',
+      );
+      final errors = await tapCapturingErrors(tester, find.text(pl.usersSave));
+
+      expect(errors.single, isA<StateError>());
+      expect(buttonAt(tester, 'api_key_form.save').onPressed, isNotNull);
+    });
+
     testWidgets('starts read-only and sends what was ticked', (tester) async {
       await tester.pumpWidget(
         _app(const ApiKeyFormScreen(), repo: repo, signedInAs: _admin),

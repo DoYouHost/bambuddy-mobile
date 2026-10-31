@@ -37,7 +37,7 @@ class _CollapsedCard extends ConsumerWidget {
     final printing = !offline && (status?.isPrinting ?? false);
     final progress = status?.progress;
     final showPercent =
-        printing && progress != null && _preparingStage(status!) == null;
+        printing && progress != null && status!.preparingStage == null;
 
     return _CardShell(
       tokens: t,

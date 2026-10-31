@@ -37,11 +37,16 @@ class _ProfileDefaultsScreenState extends ConsumerState<ProfileDefaultsScreen> {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
-    final result = await runAction(write, logId: logId);
-    if (!mounted) return;
-    setState(() => _busy = false);
-    final message = result.messageFor(l10n) ?? success(l10n);
-    if (message.isNotEmpty) messenger.snack(message);
+    try {
+      final result = await runAction(write, logId: logId);
+      if (!mounted) return;
+      setState(() => _busy = false);
+      final message = result.messageFor(l10n) ?? success(l10n);
+      if (message.isNotEmpty) messenger.snack(message);
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      rethrow;
+    }
   }
 
   Future<void> _apply(ProfileDefault row) async {

@@ -257,63 +257,67 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     final repo = ref.read(usersRepositoryProvider);
     final existing = widget.existing;
     setState(() => _saving = true);
+    try {
+      final username = _username.text.trim();
+      final email = _email.text.trim();
+      final password = _password.text;
+      final groupIds = _groupIds.toList()..sort();
 
-    final username = _username.text.trim();
-    final email = _email.text.trim();
-    final password = _password.text;
-    final groupIds = _groupIds.toList()..sort();
-
-    final result = await runAction(() async {
-      if (existing == null) {
-        await repo.create(
-          UserCreateInput(
-            username: username,
-            // With advanced authentication on the server generates it; sending
-            // one anyway would be ignored, so nothing is sent.
-            password: password.isEmpty ? null : password,
-            email: email.isEmpty ? null : email,
-            // The role is deliberately left at its default and never offered as a
-            // field: admin is granted by putting the account in the
-            // Administrators group, which is the one path bambuddy's own UI
-            // shows. `is_admin` is computed from either
-            // (`backend/app/models/user.py::get_permissions`), so the group is
-            // enough.
-            groupIds: groupIds,
-          ),
+      final result = await runAction(() async {
+        if (existing == null) {
+          await repo.create(
+            UserCreateInput(
+              username: username,
+              // With advanced authentication on the server generates it; sending
+              // one anyway would be ignored, so nothing is sent.
+              password: password.isEmpty ? null : password,
+              email: email.isEmpty ? null : email,
+              // The role is deliberately left at its default and never offered as a
+              // field: admin is granted by putting the account in the
+              // Administrators group, which is the one path bambuddy's own UI
+              // shows. `is_admin` is computed from either
+              // (`backend/app/models/user.py::get_permissions`), so the group is
+              // enough.
+              groupIds: groupIds,
+            ),
+          );
+          return;
+        }
+        final body = UserUpdateInput(
+          username: username == existing.username ? null : username,
+          password: password.isEmpty ? null : password,
+          // An empty field on an account that had an e-mail is a deliberate
+          // clearing, and the server takes "" for that — null would mean
+          // "unchanged" (`users.py::update_user`).
+          email: email == (existing.email ?? '') ? null : email,
+          isActive: _isActive == existing.isActive ? null : _isActive,
+          groupIds: _sameGroups(existing.groups, groupIds) ? null : groupIds,
         );
-        return;
+        if (body.isEmpty) return;
+        await repo.update(existing.id, body);
+      }, logId: 'user_form.save');
+
+      await ref.read(usersListProvider.notifier).refresh();
+      // Editing your own account can change your own role, groups and therefore
+      // what the app offers you — re-read the identity rather than keep the one
+      // from before the edit.
+      if (result.isOk && existing != null) {
+        final self = ref.read(currentUserProvider).value;
+        if (self != null && self.id == existing.id) {
+          await ref.read(currentUserProvider.notifier).refresh();
+        }
       }
-      final body = UserUpdateInput(
-        username: username == existing.username ? null : username,
-        password: password.isEmpty ? null : password,
-        // An empty field on an account that had an e-mail is a deliberate
-        // clearing, and the server takes "" for that — null would mean
-        // "unchanged" (`users.py::update_user`).
-        email: email == (existing.email ?? '') ? null : email,
-        isActive: _isActive == existing.isActive ? null : _isActive,
-        groupIds: _sameGroups(existing.groups, groupIds) ? null : groupIds,
+      if (!mounted) return;
+      setState(() => _saving = false);
+
+      messenger.snack(
+        result.isOk ? l10n.usersSaved : userWriteMessage(l10n, result),
       );
-      if (body.isEmpty) return;
-      await repo.update(existing.id, body);
-    }, logId: 'user_form.save');
-
-    await ref.read(usersListProvider.notifier).refresh();
-    // Editing your own account can change your own role, groups and therefore
-    // what the app offers you — re-read the identity rather than keep the one
-    // from before the edit.
-    if (result.isOk && existing != null) {
-      final self = ref.read(currentUserProvider).value;
-      if (self != null && self.id == existing.id) {
-        await ref.read(currentUserProvider.notifier).refresh();
-      }
+      if (result.isOk) navigator.pop();
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
-    if (!mounted) return;
-    setState(() => _saving = false);
-
-    messenger.snack(
-      result.isOk ? l10n.usersSaved : userWriteMessage(l10n, result),
-    );
-    if (result.isOk) navigator.pop();
   }
 
   static bool _sameGroups(List<UserGroup> current, List<int> picked) {

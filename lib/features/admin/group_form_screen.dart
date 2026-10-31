@@ -256,52 +256,56 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     final repo = ref.read(groupsRepositoryProvider);
     final existing = widget.existing;
     setState(() => _saving = true);
+    try {
+      final name = _name.text.trim();
+      final description = _description.text.trim();
+      final permissions = _permissions.toList()..sort();
 
-    final name = _name.text.trim();
-    final description = _description.text.trim();
-    final permissions = _permissions.toList()..sort();
-
-    final result = await runAction(() async {
-      if (existing == null) {
-        await repo.create(
-          GroupCreateInput(
-            name: name,
-            description: description.isEmpty ? null : description,
-            permissions: permissions,
-          ),
+      final result = await runAction(() async {
+        if (existing == null) {
+          await repo.create(
+            GroupCreateInput(
+              name: name,
+              description: description.isEmpty ? null : description,
+              permissions: permissions,
+            ),
+          );
+          return;
+        }
+        final body = GroupUpdateInput(
+          name: _locked || name == existing.name ? null : name,
+          description: description == (existing.description ?? '')
+              ? null
+              : description,
+          // Sending the set of a system group is refused outright, and it cannot
+          // have changed anyway — the editor was disabled.
+          permissions: _locked || _samePermissions(existing.permissions)
+              ? null
+              : permissions,
         );
-        return;
+        if (body.isEmpty) return;
+        await repo.update(existing.id, body);
+      }, logId: 'group_form.save');
+
+      ref.invalidate(groupsListProvider);
+      if (existing != null) {
+        ref.invalidate(groupDetailProvider(existing.id));
       }
-      final body = GroupUpdateInput(
-        name: _locked || name == existing.name ? null : name,
-        description: description == (existing.description ?? '')
-            ? null
-            : description,
-        // Sending the set of a system group is refused outright, and it cannot
-        // have changed anyway — the editor was disabled.
-        permissions: _locked || _samePermissions(existing.permissions)
-            ? null
-            : permissions,
+      // What a group grants is where a member's permissions come from — your own
+      // included.
+      await ref.read(currentUserProvider.notifier).refresh();
+      ref.invalidate(usersListProvider);
+      if (!mounted) return;
+      setState(() => _saving = false);
+
+      messenger.snack(
+        result.isOk ? l10n.groupsSaved : userWriteMessage(l10n, result),
       );
-      if (body.isEmpty) return;
-      await repo.update(existing.id, body);
-    }, logId: 'group_form.save');
-
-    ref.invalidate(groupsListProvider);
-    if (existing != null) {
-      ref.invalidate(groupDetailProvider(existing.id));
+      if (result.isOk) navigator.pop();
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
-    // What a group grants is where a member's permissions come from — your own
-    // included.
-    await ref.read(currentUserProvider.notifier).refresh();
-    ref.invalidate(usersListProvider);
-    if (!mounted) return;
-    setState(() => _saving = false);
-
-    messenger.snack(
-      result.isOk ? l10n.groupsSaved : userWriteMessage(l10n, result),
-    );
-    if (result.isOk) navigator.pop();
   }
 
   bool _samePermissions(List<String> current) {

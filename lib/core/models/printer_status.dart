@@ -571,6 +571,16 @@ class PrinterStatus {
   /// instead of 0% bar in UI.
   bool get isPreparing => isPrinting && (progress ?? 0) <= 0;
 
+  /// The stage a print is still preparing through (heating, bed levelling), or
+  /// `null` once it prints or while the server names none. A screen shows it
+  /// instead of a percentage and runs its bar indeterminate: a 0% there reads as
+  /// a stalled job. The phone's card and the watch read it from here, so they
+  /// cannot disagree.
+  String? get preparingStage {
+    final stage = stgCurName?.trim();
+    return isPreparing && stage != null && stage.isNotEmpty ? stage : null;
+  }
+
   /// Ordering key for "which machine frees up first" — sort ascending.
   ///
   /// [remainingTime] alone cannot answer it. The server's field defaults to

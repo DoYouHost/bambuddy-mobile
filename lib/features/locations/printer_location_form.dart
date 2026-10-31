@@ -94,6 +94,9 @@ class _PrinterLocationFormState extends ConsumerState<_PrinterLocationForm> {
       if (!_nameTaken) {
         showApiFailure(messenger, e, l10n, action: 'location_form.save');
       }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 

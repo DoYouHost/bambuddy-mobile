@@ -331,6 +331,9 @@ class _SupplierFormSheetState extends ConsumerState<_SupplierFormSheet> {
       if (!_nameTaken) {
         showApiFailure(messenger, e, l10n, action: 'supplier_form.save');
       }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 

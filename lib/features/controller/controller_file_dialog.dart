@@ -76,24 +76,29 @@ class _FileDialogState extends ConsumerState<_FileDialog> {
     );
     if (!ok || !mounted) return;
     setState(() => _deleting = true);
-    final nav = Navigator.of(context);
-    // The listing is the screen's, not the dialog's: it is refreshed through the
-    // container, which outlives this dialog if it is closed mid-request.
-    final container = ProviderScope.containerOf(context);
     try {
-      await container.read(libraryRepositoryProvider).deleteFile(_file.id);
-      container.invalidate(libraryStatsProvider);
-      await container.read(fileManagerProvider.notifier).refresh();
-      messenger.snack(l10n.fmDeleted);
-      if (mounted) nav.pop();
-    } on AppApiException catch (e) {
+      final nav = Navigator.of(context);
+      // The listing is the screen's, not the dialog's: it is refreshed through the
+      // container, which outlives this dialog if it is closed mid-request.
+      final container = ProviderScope.containerOf(context);
+      try {
+        await container.read(libraryRepositoryProvider).deleteFile(_file.id);
+        container.invalidate(libraryStatsProvider);
+        await container.read(fileManagerProvider.notifier).refresh();
+        messenger.snack(l10n.fmDeleted);
+        if (mounted) nav.pop();
+      } on AppApiException catch (e) {
+        if (mounted) setState(() => _deleting = false);
+        showApiFailure(
+          mounted ? messenger : null,
+          e,
+          l10n,
+          action: 'controller.files.dialog.delete',
+        );
+      }
+    } catch (_) {
       if (mounted) setState(() => _deleting = false);
-      showApiFailure(
-        mounted ? messenger : null,
-        e,
-        l10n,
-        action: 'controller.files.dialog.delete',
-      );
+      rethrow;
     }
   }
 

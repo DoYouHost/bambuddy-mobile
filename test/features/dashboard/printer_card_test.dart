@@ -5,7 +5,8 @@ import 'package:bambuddy_mobile/core/models/firmware.dart';
 import 'package:bambuddy_mobile/core/models/heater_history.dart';
 import 'package:bambuddy_mobile/data/heater_history_repository.dart';
 import 'package:clock/clock.dart';
-import 'package:dash_kit/dash_kit.dart' show ContentGrid, DashTracking;
+import 'package:dash_kit/dash_kit.dart'
+    show ContentGrid, DashSpinner, DashTracking;
 import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/core/models/next_pause.dart';
@@ -660,6 +661,147 @@ void main() {
       handle.dispose();
     });
   }
+
+  testWidgets('a temperature that fails with an unexpected error unlocks the '
+      'sheet, and still reports it', (tester) async {
+    final commands = RecordingCommands()..error = StateError('unreadable');
+    await tester.pumpWidget(
+      historyCard(
+        extra: [printerCommandsRepositoryProvider.overrideWithValue(commands)],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('DYSZA'));
+    await tester.pumpAndSettle();
+
+    final errors = await tapCapturingErrors(
+      tester,
+      byLogId('temperature.off'),
+      animated: true,
+    );
+
+    expect(commands.calls, ['nozzle:3:0:0']);
+    expect(errors.single, isA<StateError>());
+    expect(
+      find.descendant(
+        of: byLogId('temperature.set'),
+        matching: find.byType(DashSpinner),
+      ),
+      findsNothing,
+      reason: 'the sheet is not left waiting for a write that is not coming',
+    );
+  });
+
+  group('the movement sheet, when a move fails with an unexpected error', () {
+    Future<RecordingCommands> openMovement(WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final commands = RecordingCommands();
+      await tester.pumpWidget(
+        _cardWithProviders(
+          const PrinterWithStatus(
+            printer: Printer(id: 3, name: 'X2D'),
+            status: PrinterStatus(id: 3, connected: true, state: 'IDLE'),
+          ),
+          extra: [
+            printerCommandsRepositoryProvider.overrideWithValue(commands),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('printer.details_toggle'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('printer.move'));
+      await tester.pumpAndSettle();
+      return commands;
+    }
+
+    testWidgets('a jog does not lock the pad, and the error is reported', (
+      tester,
+    ) async {
+      final commands = await openMovement(tester);
+      commands.error = StateError('unreadable answer');
+
+      final errors = await tapCapturingErrors(
+        tester,
+        find.byTooltip(pl.ctrlMoveAxisPlus('Y')),
+        animated: true,
+      );
+      commands
+        ..calls.clear()
+        ..error = null;
+      await tester.tap(find.text(pl.ctrlMoveHome));
+      await tester.pump();
+
+      expect(errors.single, isA<StateError>());
+      expect(commands.calls, isNotEmpty, reason: 'the next move goes out');
+    });
+
+    testWidgets('home does not lock the pad, and the error is reported', (
+      tester,
+    ) async {
+      final commands = await openMovement(tester);
+      commands.error = StateError('unreadable answer');
+
+      final errors = await tapCapturingErrors(
+        tester,
+        find.text(pl.ctrlMoveHome),
+        animated: true,
+      );
+      commands
+        ..calls.clear()
+        ..error = null;
+      await tester.tap(find.byTooltip(pl.ctrlMoveAxisPlus('Y')));
+      await tester.pump();
+
+      expect(errors.single, isA<StateError>());
+      expect(commands.calls, isNotEmpty, reason: 'the next move goes out');
+    });
+  });
+
+  testWidgets('a fan speed that fails with an unexpected error unlocks the '
+      'sheet, and still reports it', (tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final commands = RecordingCommands()..error = StateError('unreadable');
+    await tester.pumpWidget(
+      _cardWithProviders(
+        const PrinterWithStatus(
+          printer: Printer(id: 3, name: 'X2D'),
+          status: PrinterStatus(
+            id: 3,
+            connected: true,
+            state: 'IDLE',
+            coolingFanSpeed: 40,
+          ),
+        ),
+        extra: [printerCommandsRepositoryProvider.overrideWithValue(commands)],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(byLogId('printer.details_toggle'));
+    await tester.pumpAndSettle();
+    await tester.tap(byLogId('printer.fan_part'));
+    await tester.pumpAndSettle();
+
+    final errors = await tapCapturingErrors(
+      tester,
+      byLogId('fan.off'),
+      animated: true,
+    );
+
+    expect(commands.calls, ['fan:3:part:0']);
+    expect(errors.single, isA<StateError>());
+    expect(
+      find.descendant(
+        of: byLogId('fan.set'),
+        matching: find.byType(DashSpinner),
+      ),
+      findsNothing,
+    );
+  });
 
   testWidgets('the tile opens one sheet with a setting tab and a history tab', (
     tester,

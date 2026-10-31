@@ -372,26 +372,31 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
     final navigator = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
-    final notifier = ref.read(controlsProvider.notifier);
-    final result = switch (_reading.kind) {
-      TempKind.nozzle => await notifier.setNozzleTemp(
-        widget.printerId,
-        _reading.raw,
-        target,
-        nozzle: widget.nozzleIndex,
-      ),
-      TempKind.bed => await notifier.setBedTemp(widget.printerId, target),
-      TempKind.chamber => await notifier.setChamberTemp(
-        widget.printerId,
-        target,
-      ),
-      TempKind.unknown => ActionOutcome.ok,
-    };
-    if (!mounted) return;
-    navigator.pop();
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      messenger.snack(msg, clearQueue: true);
+    try {
+      final notifier = ref.read(controlsProvider.notifier);
+      final result = switch (_reading.kind) {
+        TempKind.nozzle => await notifier.setNozzleTemp(
+          widget.printerId,
+          _reading.raw,
+          target,
+          nozzle: widget.nozzleIndex,
+        ),
+        TempKind.bed => await notifier.setBedTemp(widget.printerId, target),
+        TempKind.chamber => await notifier.setChamberTemp(
+          widget.printerId,
+          target,
+        ),
+        TempKind.unknown => ActionOutcome.ok,
+      };
+      if (!mounted) return;
+      navigator.pop();
+      final msg = result.messageFor(l10n);
+      if (msg != null) {
+        messenger.snack(msg, clearQueue: true);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      rethrow;
     }
   }
 

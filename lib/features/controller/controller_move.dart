@@ -54,11 +54,16 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     setState(() => _spin = button);
-    final result = await action();
-    if (!mounted) return;
-    setState(() => _spin = null);
-    final msg = result.messageFor(l10n) ?? successMessage;
-    if (msg != null) messenger.snack(msg, clearQueue: true);
+    try {
+      final result = await action();
+      if (!mounted) return;
+      setState(() => _spin = null);
+      final msg = result.messageFor(l10n) ?? successMessage;
+      if (msg != null) messenger.snack(msg, clearQueue: true);
+    } catch (_) {
+      if (mounted) setState(() => _spin = null);
+      rethrow;
+    }
   }
 
   @override

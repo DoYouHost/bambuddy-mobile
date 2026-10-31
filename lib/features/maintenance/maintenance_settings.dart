@@ -414,17 +414,22 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
       wikiUrl: _wiki.text.trim().isEmpty ? null : _wiki.text.trim(),
     );
     setState(() => _saving = true);
-    final notifier = ref.read(maintenanceTypesProvider.notifier);
-    final result = _isEdit
-        ? await notifier.editType(widget.existing!.id, draft)
-        : await notifier.create(draft, _printers.toList());
-    if (!mounted) return;
-    if (result.isOk) {
-      Navigator.of(context).pop();
-      showMaintenanceResult(context, l10n, result);
-    } else {
-      setState(() => _saving = false);
-      showMaintenanceResult(context, l10n, result);
+    try {
+      final notifier = ref.read(maintenanceTypesProvider.notifier);
+      final result = _isEdit
+          ? await notifier.editType(widget.existing!.id, draft)
+          : await notifier.create(draft, _printers.toList());
+      if (!mounted) return;
+      if (result.isOk) {
+        Navigator.of(context).pop();
+        showMaintenanceResult(context, l10n, result);
+      } else {
+        setState(() => _saving = false);
+        showMaintenanceResult(context, l10n, result);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 

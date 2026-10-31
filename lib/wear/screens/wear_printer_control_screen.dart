@@ -155,12 +155,15 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
 
   Widget _progress(AppLocalizations l10n, PrinterStatus? s) {
     final pct = (s?.progress ?? 0).clamp(0, 100).toDouble();
+    // While the printer names a preparation stage, the stage takes the
+    // percentage's place and the bar runs indeterminate, as on the phone's card.
+    final stage = s?.preparingStage;
     final eta = formatEta(l10n, s?.remainingTime);
     final layers = (s?.layerNum != null && s?.totalLayers != null)
         ? 'L ${s!.layerNum}/${s.totalLayers}'
         : '';
     final line = [
-      '${pct.round()}%',
+      stage ?? '${pct.round()}%',
       if (eta.isNotEmpty) eta,
       if (layers.isNotEmpty) layers,
     ].join('  ·  ');
@@ -172,7 +175,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
         ClipRRect(
           borderRadius: BorderRadius.circular(barHeight),
           child: LinearProgressIndicator(
-            value: pct / 100,
+            value: stage != null ? null : pct / 100,
             minHeight: barHeight,
             backgroundColor: wearSurfaceHigh,
           ),

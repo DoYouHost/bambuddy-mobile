@@ -93,18 +93,23 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     setState(() => _saving = true);
-    final (:outcome, :result) = await ref
-        .read(queueProvider.notifier)
-        .bulkUpdate(widget.itemIds, _changes);
-    if (!mounted) return;
-    setState(() => _saving = false);
-    final failure = queueWriteMessage(l10n, outcome);
-    if (failure != null || result == null) {
-      if (failure != null) messenger.snack(failure);
-      return;
+    try {
+      final (:outcome, :result) = await ref
+          .read(queueProvider.notifier)
+          .bulkUpdate(widget.itemIds, _changes);
+      if (!mounted) return;
+      setState(() => _saving = false);
+      final failure = queueWriteMessage(l10n, outcome);
+      if (failure != null || result == null) {
+        if (failure != null) messenger.snack(failure);
+        return;
+      }
+      messenger.snack(queueBulkSummary(l10n, result));
+      navigator.pop(true);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
-    messenger.snack(queueBulkSummary(l10n, result));
-    navigator.pop(true);
   }
 
   @override

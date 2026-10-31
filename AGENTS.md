@@ -415,7 +415,9 @@ do not stay silent because it was not part of the task.
   go to `patrol_test/`; document how to run one in the test file's header.
 - **Non-API errors in actions are rolled back and rethrown**
   (`if (e is! AppApiException) rethrow;`), never wrapped into a generic snackbar,
-  so a bug in the app lands in the bug report as `err/uncaught`. `runAction`
+  so a bug in the app lands in the bug report as `err/uncaught`. A busy flag
+  (`_saving`, `_busy`) is lowered on that path too, by a `catch (_) { …; rethrow; }`:
+  the form must not stay locked behind the error it reported. `runAction`
   catches only `AppApiException`; a loop that tallies refusals catches only
   `ApiException`.
 - **Live verification is the maintainer's.** Do not run `flutter run`, install a

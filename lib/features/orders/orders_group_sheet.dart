@@ -101,6 +101,9 @@ class _GroupSheetState extends ConsumerState<_GroupSheet> {
         message: orderRefusal(l10n, e),
       );
       if (mounted) setState(() => _saving = false);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
