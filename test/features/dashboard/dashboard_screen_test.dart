@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/core/models/external_link.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
@@ -19,6 +20,9 @@ import 'package:bambuddy_mobile/core/notifications/finish_alert_memory.dart';
 import 'package:bambuddy_mobile/core/notifications/finish_photo_notifier.dart';
 import 'package:bambuddy_mobile/core/watch/wear_relay_handler.dart';
 import 'package:bambuddy_mobile/features/dashboard/dashboard_screen.dart';
+import 'package:bambuddy_mobile/features/links/external_links_providers.dart';
+import 'package:bambuddy_mobile/features/links/external_links_screen.dart'
+    show ExternalLinkBadge;
 import 'package:bambuddy_mobile/features/notifications/finish_photo_providers.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
@@ -159,6 +163,7 @@ List<Override> _overrides(DashboardState state) => [
   inertSmartPlugsOverride,
   inertFirmwareOverride,
   inertAnnouncementsOverride,
+  inertExternalLinksOverride,
   inertTotalPrintHoursOverride,
   sharedPreferencesProvider.overrideWithValue(_prefs),
   // Touched on the very first frame (taking over from a surviving service), so
@@ -375,6 +380,69 @@ void main() {
     await settle(tester);
   }
 
+  group('drawer: linked apps', () {
+    ExternalLink link(int id, int? badge) => ExternalLink(
+      id: id,
+      name: 'App $id',
+      url: 'http://app$id.lan',
+      badgeCount: badge,
+    );
+
+    Future<void> openWith(
+      WidgetTester tester,
+      List<ExternalLink> links, {
+      TextScaler textScaler = TextScaler.noScaling,
+    }) async {
+      // Tall, so the drawer builds every tile: at 200% text the new one sits
+      // below the fold of the default window, and a lazy list does not build it.
+      useLogicalWindow(tester, const Size(360, 3000));
+      await tester.pumpWidget(
+        _app(
+          const DashboardState(),
+          extra: [externalLinksProvider.overrideWith((ref) async => links)],
+          textScaler: textScaler,
+        ),
+      );
+      tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+      await settle(tester);
+    }
+
+    testWidgets('shows one tile with the sum of every count', (tester) async {
+      await openWith(tester, [link(1, 3), link(2, null), link(3, 12)]);
+
+      expect(find.text(pl.linkedAppsTitle), findsOneWidget);
+      expect(find.text('15'), findsOneWidget);
+      // One tile however many links: the links themselves are not in the drawer.
+      expect(find.text('App 1'), findsNothing);
+    });
+
+    testWidgets('shows the tile without a count when none is reported', (
+      tester,
+    ) async {
+      await openWith(tester, [link(1, 0), link(2, null)]);
+
+      expect(find.text(pl.linkedAppsTitle), findsOneWidget);
+      expect(find.byType(ExternalLinkBadge), findsNothing);
+    });
+
+    testWidgets('has no tile when there is nothing to open', (tester) async {
+      await openWith(tester, const []);
+
+      expect(find.text(pl.linkedAppsTitle), findsNothing);
+    });
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      testWidgets('fits at ${scale * 100}% text', (tester) async {
+        await openWith(tester, [
+          link(1, 1234),
+        ], textScaler: TextScaler.linear(scale));
+
+        expect(find.text(pl.linkedAppsTitle), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  });
+
   testWidgets(
     'the drawer list does not stretch, the printer list still does',
     (tester) async {
@@ -521,6 +589,8 @@ void main() {
             serverUiFlagsProvider.overrideWith((ref) async => const {}),
             serverVersionProvider.overrideWith((ref) => null),
             serverVersionLabelProvider.overrideWith((ref) => null),
+            // Warmed with the rest, and not what this test is about.
+            externalLinksProvider.overrideWith((ref) async => const []),
           ],
         ),
       );

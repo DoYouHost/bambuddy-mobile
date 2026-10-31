@@ -6793,6 +6793,8 @@
     }
   },
   "announcementsEmpty": "No announcements right now.",
+  "linkedAppsTitle": "Linked apps",
+  "linkedAppsEmpty": "No linked apps.",
   "announcementsEarlier": "Earlier ({count})",
   "@announcementsEarlier": {
     "placeholders": {

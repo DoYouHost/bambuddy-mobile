@@ -19,6 +19,7 @@ import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
 import 'package:bambuddy_mobile/core/models/print_batch.dart';
 import 'package:bambuddy_mobile/core/models/cost_center.dart';
+import 'package:bambuddy_mobile/data/external_links_repository.dart';
 import 'package:bambuddy_mobile/data/finance_repository.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
@@ -1379,6 +1380,25 @@ void main() {
       // A location nobody measures answers with nothing, not a 404.
       expect(await repo.readings(1), isEmpty);
     });
+  });
+
+  group('external links', () {
+    test(
+      'parse, with a count, none, a count past 99 and no field at all',
+      () async {
+        final links = await ExternalLinksRepository(dio).fetch();
+
+        expect(links.map((l) => l.name), [
+          'Bambuddy Orders',
+          'Spoolman',
+          'Home Assistant',
+          'Print farm wiki',
+        ]);
+        expect(links.map((l) => l.badge), [3, 0, 128, 0]);
+        expect(links.map((l) => l.badgeCount), [3, 0, 128, null]);
+        expect(links.every((l) => l.address.isNotEmpty), isTrue);
+      },
+    );
   });
 
   group('projects', () {

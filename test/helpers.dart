@@ -4,6 +4,7 @@ import 'package:app_test_kit/app_test_kit.dart';
 import 'package:app_report_ui/app_report_ui.dart';
 import 'package:bambuddy_mobile/core/models/announcement.dart';
 import 'package:bambuddy_mobile/features/announcements/announcements_providers.dart';
+import 'package:bambuddy_mobile/features/links/external_links_providers.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'dart:async';
 import 'dart:io';
@@ -65,6 +66,11 @@ class _InertAnnouncements extends AnnouncementsNotifier {
   @override
   Future<AnnouncementFeed> build() async => AnnouncementFeed.hidden;
 }
+
+/// No linked apps: the shell warms the list and the drawer reads it for its tile.
+final inertExternalLinksOverride = externalLinksProvider.overrideWith(
+  (ref) async => const [],
+);
 
 /// No total print time: the printer card reads it from the maintenance overview.
 final inertTotalPrintHoursOverride = printerTotalPrintHoursProvider

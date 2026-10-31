@@ -9577,6 +9577,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get announcementsEmpty => 'Derzeit keine Ankündigungen.';
 
   @override
+  String get linkedAppsTitle => 'Verknüpfte Apps';
+
+  @override
+  String get linkedAppsEmpty => 'Keine verknüpften Apps.';
+
+  @override
   String announcementsEarlier(int count) {
     return 'Frühere ($count)';
   }

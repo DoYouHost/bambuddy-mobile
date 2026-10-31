@@ -95,6 +95,7 @@ final _dashboardOverrides = [
   inertSmartPlugsOverride,
   inertFirmwareOverride,
   inertAnnouncementsOverride,
+  inertExternalLinksOverride,
   inertTotalPrintHoursOverride,
   ...a11yPlatformOverrides,
   wsConnectionStateProvider.overrideWith(

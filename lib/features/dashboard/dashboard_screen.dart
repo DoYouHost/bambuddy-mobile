@@ -12,6 +12,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart' show bugReportRoute;
 import '../../core/format/duration_format.dart';
 import '../../core/models/current_user.dart' show Permissions;
+import '../../core/models/external_link.dart' show externalLinksBadgeTotal;
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/background_sync.dart';
 import '../../core/notifications/battery_optimization.dart';
@@ -19,6 +20,8 @@ import '../../core/settings/sign_in_reason.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../links/external_links_providers.dart';
+import '../links/external_links_screen.dart' show ExternalLinkBadge;
 import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../common/dash_async.dart';
 import '../notifications/finish_photo_providers.dart';
@@ -511,7 +514,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         backgroundColor: Colors.transparent,
         drawer: _AppDrawer(profileLabel: profile?.label),
         onDrawerChanged: (open) {
-          if (open) ref.read(tourBeaconProvider)?.signal('dashboard.drawer');
+          if (open) {
+            ref.read(tourBeaconProvider)?.signal('dashboard.drawer');
+            // A count moves while the app stays open; the tile should not
+            // show the one from the last return to the foreground.
+            ref.invalidate(externalLinksProvider);
+          }
         },
         appBar: loggedAppBar(
           AppBar(
@@ -1061,6 +1069,24 @@ class _AppDrawer extends ConsumerWidget {
                     },
                     id: 'drawer.projects',
                   ),
+                  // Absent for a session that may not read links, a server
+                  // without any and one without the route — the list is empty
+                  // in all three. The count is every link's together.
+                  if (ref.watch(externalLinksProvider).value case final links?
+                      when links.isNotEmpty)
+                    _DrawerTile(
+                      icon: Icons.link_rounded,
+                      label: l10n.linkedAppsTitle,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/links');
+                      },
+                      id: 'drawer.linked_apps',
+                      trailing: switch (externalLinksBadgeTotal(links)) {
+                        0 => null,
+                        final total => ExternalLinkBadge(count: total),
+                      },
+                    ),
                   _DrawerTile(
                     icon: Icons.bar_chart_rounded,
                     label: l10n.menuStatistics,
@@ -1305,11 +1331,15 @@ class _DrawerTile extends StatelessWidget {
     required this.label,
     required this.onTap,
     required this.id,
+    this.trailing,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+
+  /// Between the label and the chevron, e.g. a count.
+  final Widget? trailing;
 
   /// Name for the diagnostic log; the visible label is localized and is not
   /// recorded.
@@ -1348,6 +1378,10 @@ class _DrawerTile extends StatelessWidget {
                     ),
                     const SizedBox(width: DashSpace.lg),
                     Expanded(child: Text(label, style: t.bodyStrong)),
+                    if (trailing != null) ...[
+                      trailing!,
+                      const SizedBox(width: DashSpace.sm),
+                    ],
                     Icon(
                       Icons.chevron_right_rounded,
                       size: DashIcon.md,

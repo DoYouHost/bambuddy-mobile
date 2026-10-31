@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart';
 import 'features/announcements/announcements_screen.dart';
+import 'features/links/external_links_screen.dart';
 import 'features/about/about_screen.dart';
 import 'features/admin/admin_screen.dart';
 import 'features/admin/api_keys_screen.dart';
@@ -209,6 +210,9 @@ GoRouter buildAppRouter({
         path: '/announcements',
         builder: (_, _) => const AnnouncementsScreen(),
       ),
+
+      // The server's sidebar links — full screen outside shell (pushed from drawer).
+      GoRoute(path: '/links', builder: (_, _) => const ExternalLinksScreen()),
 
       // Archive statistics — full screen outside shell (pushed from drawer).
       GoRoute(path: '/stats', builder: (_, _) => const StatisticsScreen()),

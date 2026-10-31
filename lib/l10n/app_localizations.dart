@@ -15836,6 +15836,18 @@ abstract class AppLocalizations {
   /// **'No announcements right now.'**
   String get announcementsEmpty;
 
+  /// No description provided for @linkedAppsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked apps'**
+  String get linkedAppsTitle;
+
+  /// No description provided for @linkedAppsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No linked apps.'**
+  String get linkedAppsEmpty;
+
   /// No description provided for @announcementsEarlier.
   ///
   /// In en, this message translates to:

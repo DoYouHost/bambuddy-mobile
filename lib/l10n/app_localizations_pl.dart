@@ -9645,6 +9645,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get announcementsEmpty => 'Na razie nie ma żadnych ogłoszeń.';
 
   @override
+  String get linkedAppsTitle => 'Powiązane aplikacje';
+
+  @override
+  String get linkedAppsEmpty => 'Brak powiązanych aplikacji.';
+
+  @override
   String announcementsEarlier(int count) {
     return 'Wcześniejsze ($count)';
   }

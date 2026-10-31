@@ -9604,6 +9604,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get announcementsEmpty => 'No hay anuncios por ahora.';
 
   @override
+  String get linkedAppsTitle => 'Apps vinculadas';
+
+  @override
+  String get linkedAppsEmpty => 'No hay apps vinculadas.';
+
+  @override
   String announcementsEarlier(int count) {
     return 'Anteriores ($count)';
   }

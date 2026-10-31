@@ -1450,6 +1450,24 @@ abstract final class Endpoints {
   static String announcementRead(String id) =>
       '$apiPrefix/announcements/$id/read';
 
+  // --- External links (the web's sidebar apps) ---
+  //
+  // Read only here. `PUT /external-links/badge` is for the app a link points
+  // at, to report its own count (`can_send_notifications`); this app is never
+  // that app. Reading is `external_links:read`, which an API key holds as
+  // `can_read_status`; every write is outside the key scope allowlist.
+
+  /// `GET` → `[{id, name, url, icon, custom_icon, open_in_new_tab, sort_order,
+  /// badge_count}]` in `sort_order`. `badge_count` is `null` unless the app
+  /// behind the link reported within ten minutes. 403 without the permission;
+  /// an older server may not have the route.
+  static const externalLinks = '$apiPrefix/external-links/';
+
+  /// `GET` (image, auth via `?token=` [mediaToken]) the uploaded picture; 404
+  /// for a link without one. The format is whatever was uploaded, SVG included.
+  static String externalLinkIcon(int id) =>
+      '$apiPrefix/external-links/$id/icon';
+
   // --- MakerWorld + Bambu Cloud ---
 
   /// MakerWorld integration status (`GET`): `{has_cloud_token, can_download}`.

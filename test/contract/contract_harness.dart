@@ -92,11 +92,14 @@ Future<Map<String, dynamic>> rawLogin() async {
 
 /// Holds back a successful write's answer for a moment before the test sees it.
 ///
-/// Bambuddy commits in `get_db` after the response has been sent (FastAPI's
-/// request-scoped `yield` dependency), so a read issued straight after a write
-/// can miss it: a new row is a 404, an edited one reads its old value. Measured
-/// at about 1 in 300 on 1.2.5, latest and daily; CI hit it in the wear-cost
-/// project test. Reported upstream as maziggy/bambuddy#3320.
+/// Bambuddy up to 1.3.0 commits in `get_db` after the response has been sent
+/// (FastAPI's request-scoped `yield` dependency), so a read issued straight
+/// after a write can miss it: a new row is a 404, an edited one reads its old
+/// value. Measured at about 1 in 300 on 1.2.5 and latest; CI hit it in the
+/// wear-cost project test. Fixed in 1.3.1 (maziggy/bambuddy#3320, `d8375fa`:
+/// every `Depends(get_db)` is `scope="function"`), and still needed for the older
+/// servers the app talks to. `commit_before_response_contract_test.dart` proves
+/// the fix; it cannot rely on this lag, which is shorter than the delay it uses.
 // ponytail: a fixed lag narrows the window and does not close it; a read that
 // must not miss still polls (pollUntil).
 class _CommitLag extends Interceptor {

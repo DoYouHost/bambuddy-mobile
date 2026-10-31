@@ -4446,6 +4446,8 @@
   "announcementsTitle": "Annonces",
   "announcementsUnread": "Annonces non lues : {count}",
   "announcementsEmpty": "Aucune annonce pour le moment.",
+  "linkedAppsTitle": "Applications liées",
+  "linkedAppsEmpty": "Aucune application liée.",
   "announcementsEarlier": "Précédentes ({count})",
   "announcementsNew": "Nouveau",
   "announcementsReadMore": "En savoir plus",

@@ -45,6 +45,7 @@ import 'data/archive_repository.dart';
 import 'data/cloud_repository.dart';
 import 'data/discovery_repository.dart';
 import 'data/finance_repository.dart';
+import 'data/external_links_repository.dart';
 import 'data/firmware_repository.dart';
 import 'data/groups_repository.dart';
 import 'data/heater_history_repository.dart';
@@ -1133,6 +1134,11 @@ final makerworldRecentImportsProvider =
     FutureProvider.autoDispose<List<MakerWorldRecentImport>>(
       (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
     );
+
+/// The server's sidebar links and their counts, read only.
+final externalLinksRepositoryProvider = Provider<ExternalLinksRepository>(
+  (ref) => ExternalLinksRepository(ref.watch(apiClientProvider).dio),
+);
 
 /// Announcements from the Bambuddy maintainers.
 final announcementsRepositoryProvider = Provider<AnnouncementsRepository>(

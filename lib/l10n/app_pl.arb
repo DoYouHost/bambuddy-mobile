@@ -3757,6 +3757,8 @@
   "announcementsTitle": "Ogłoszenia",
   "announcementsUnread": "Nieprzeczytane ogłoszenia: {count}",
   "announcementsEmpty": "Na razie nie ma żadnych ogłoszeń.",
+  "linkedAppsTitle": "Powiązane aplikacje",
+  "linkedAppsEmpty": "Brak powiązanych aplikacji.",
   "announcementsEarlier": "Wcześniejsze ({count})",
   "announcementsNew": "Nowe",
   "announcementsReadMore": "Czytaj więcej",

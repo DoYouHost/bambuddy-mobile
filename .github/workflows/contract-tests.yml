@@ -265,6 +265,27 @@ jobs:
         # checked "id gone" read another file's new row (run 34723538872).
         run: flutter test test/contract --concurrency=1 --reporter expanded
 
+      # maziggy/bambuddy#3320: a write that answered 200 must already be
+      # committed. The race it leaves is about 1 in 300, so running the suite
+      # again would catch it by luck. This makes the server commit a second late,
+      # the way the issue reproduces it, and runs one file against it: on a
+      # fixed server (1.3.1+) the write's answer is a second late and the next
+      # read finds the row, on an unfixed one it does not. The file skips itself
+      # on servers older than the fix. Last, because the restart touches the
+      # server every other file shares.
+      - name: Commit before response
+        env:
+          BAMBUDDY_CONTRACT_URL: ${{ steps.server.outputs.base }}
+          BAMBUDDY_CONTRACT_USER: ${{ env.ADMIN_USER }}
+          BAMBUDDY_CONTRACT_PASS: ${{ env.ADMIN_PASS }}
+          BAMBUDDY_CONTRACT_COMMIT_DELAY: "1"
+          TZ: Europe/Warsaw
+        run: |
+          bash tool/ci/delay_commit.sh \
+            "${{ steps.server.outputs.name }}" "${{ steps.server.outputs.base }}"
+          flutter test test/contract/commit_before_response_contract_test.dart \
+            --reporter expanded
+
       - name: Logs on failure
         if: failure()
         run: |

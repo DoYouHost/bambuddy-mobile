@@ -200,6 +200,39 @@ Run the setup wizard, enable authentication, turn on TOTP in Settings, and feed 
 base32 secret shown there to `oathtool --totp -b <secret>` — no authenticator app
 needed. An Android emulator reaches the host at `10.0.2.2:8000`.
 
+## Linked apps (`/api/v1/external-links/`)
+
+The web sidebar's other apps (Bambuddy Orders, Spoolman, a wiki), with the count each
+app reports for itself. One drawer tile, one screen, read only
+([external_links_screen.dart](../lib/features/links/external_links_screen.dart)).
+
+- **The write is not ours.** `PUT /external-links/badge` is for the app a link points at
+  (`can_send_notifications`); this app is never that app. Creating, editing and ordering a
+  link are outside the API-key scope allowlist and stay in the web UI.
+- **Reading is `external_links:read`, a key holds it as `can_read_status`.** The tile is
+  gated on that permission and on the list being non-empty; a 403 or a 404 on the list
+  both read as "no links" (`ExternalLinksRepository.fetch`), because the list handler
+  looks up no row by id. This is a feed, not a `capabilityGate`: the screen needs the
+  payload anyway, as Manyfold's tab does ([server-gates.md](server-gates.md)).
+  `externalLinksProvider` is warmed by the shell so the tile is in the drawer's first
+  frame, and re-read when the drawer opens, because a count moves while the app stays open.
+- **A count is hidden at 0 and when absent**, and capped at `99+`, as the web's sidebar
+  does (`Layout.tsx`, `badge_count ?? 0`). The server drops a count ten minutes after its
+  app last reported (`BADGE_FRESH_FOR`), so an absent one means "stopped reporting", not
+  zero. The pill is amber, as on the web. The drawer tile carries the sum of all counts.
+- **Deviations from the web.** Every link opens in the browser: the web shows the ones with
+  `open_in_new_tab` off in a frame, which a phone has no place for. A link's Lucide icon
+  name is not mapped to a Material icon; an uploaded picture is drawn through `MediaImage`
+  and the name's first letter stands in when there is none, while it loads and when it
+  cannot be drawn (an SVG, which `Image.network` does not decode). Order is the server's
+  `sort_order`, not the user's own sidebar order.
+- **A URL can carry a login** (`http://user:pass@host`). It is opened but never shown or
+  logged: `ExternalLink.address` is host and port only. A scheme other than http(s) is
+  refused by `openWebLink` before anything is launched.
+- Seen on `:latest` (1.2.5.7) and `:daily` (1.3.1b1): the route and the list exist on
+  both; only `daily` has `badge_count` and `PUT /badge`. `external_links_contract_test.dart`
+  passes on both and skips the badge half on the older one.
+
 ## Bug report recording bar
 
 The report feature itself is documented in [diagnostics-log.md](diagnostics-log.md)

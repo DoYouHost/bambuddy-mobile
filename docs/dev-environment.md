@@ -155,6 +155,12 @@ another's new row. A non-UTC `TZ` (the workflow uses `Europe/Warsaw`) because in
 a naive timestamp read as local or as UTC is the same instant, and the timestamp
 tests would pass whatever the parser did.
 
+The write-then-read guarantee (maziggy/bambuddy#3320, fixed in 1.3.1) has its own file,
+`commit_before_response_contract_test.dart`, skipped unless `BAMBUDDY_CONTRACT_COMMIT_DELAY`
+is set. Run it last, against a server `tool/ci/delay_commit.sh <container> <url>` has made
+commit a second late: the script patches `get_db` inside the container and restarts it, so
+use a container of your own. `_CommitLag` in the harness stays for servers older than 1.3.1.
+
 Working with the seeded server: it has a library file but no archive; one is made by
 `POST /archives/upload` with that file's bytes. A print is driven with
 `publishReport` in [contract_harness.dart](../test/contract/contract_harness.dart)

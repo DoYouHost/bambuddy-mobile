@@ -154,6 +154,11 @@ abstract final class Permissions {
   static const pipelinesWrite = 'pipelines:write';
   static const pipelinesRun = 'pipelines:run';
 
+  /// The server's sidebar links, read-only here. An API key holds it as
+  /// `can_read_status`; creating, editing and deleting a link is outside the key
+  /// scope allowlist (`core/auth.py`).
+  static const externalLinksRead = 'external_links:read';
+
   /// Editing a printer, which is what every Printer Locations write asks for
   /// (`routes/printer_locations.py`). **An API-key session never holds it**: it
   /// is outside the key scope allowlist, so the screen is read-only for a key
