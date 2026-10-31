@@ -365,12 +365,15 @@ void main() {
     WidgetTester tester, {
     DashboardState state = const DashboardState(),
     String? version,
+    List<Override> extra = const [],
     TextScaler textScaler = TextScaler.noScaling,
   }) async {
     await tester.pumpWidget(
       _app(
         state,
-        extra: [serverVersionLabelProvider.overrideWith((ref) => version)],
+        extra: layerOverrides([
+          serverVersionLabelProvider.overrideWith((ref) => version),
+        ], extra),
         textScaler: textScaler,
       ),
     );
@@ -396,15 +399,11 @@ void main() {
       // Tall, so the drawer builds every tile: at 200% text the new one sits
       // below the fold of the default window, and a lazy list does not build it.
       useLogicalWindow(tester, const Size(360, 3000));
-      await tester.pumpWidget(
-        _app(
-          const DashboardState(),
-          extra: [externalLinksProvider.overrideWith((ref) async => links)],
-          textScaler: textScaler,
-        ),
+      await openDrawer(
+        tester,
+        extra: [externalLinksProvider.overrideWith((ref) async => links)],
+        textScaler: textScaler,
       );
-      tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
-      await settle(tester);
     }
 
     testWidgets('shows one tile with the sum of every count', (tester) async {

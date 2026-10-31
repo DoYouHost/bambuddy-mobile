@@ -21,47 +21,16 @@ void main() {
   group('API key contract', skip: contractSkipReason, () {
     late Dio dio;
     late ApiKeysRepository keys;
-    final minted = <int>[];
 
-    Future<CreatedApiKey> mint(String name, Set<ApiKeyScope> scopes) async {
-      final created = await keys.create(
-        ApiKeyCreateInput(name: name, scopes: scopes),
-      );
-      minted.add(created.apiKey.id);
-      // The create route only flushes; `get_db` commits after the reply has
-      // gone out, so a key used at once can still be unknown and answer 401
-      // (1 in 100 on a throttled container, CI run 36677355174). The listing
-      // shows the row once it is committed.
-      await pollUntil(
-        'key ${created.apiKey.id} to be committed',
-        () async => (await keys.list()).any((k) => k.id == created.apiKey.id)
-            ? true
-            : null,
-        within: const Duration(seconds: 10),
-        every: const Duration(milliseconds: 100),
-      );
-      return created;
-    }
+    Future<CreatedApiKey> mint(String name, Set<ApiKeyScope> scopes) =>
+        mintContractApiKey(dio, scopes, name: name);
 
-    /// A client that authenticates the way a key-configured app does: the
-    /// `X-API-Key` header and no bearer token at all.
     Dio clientFor(String key) =>
-        commitLagged(Dio(BaseOptions(baseUrl: contractBaseUrl)))
-          ..options.headers['X-API-Key'] = key
-          ..options.validateStatus = (_) => true;
+        apiKeyClient(key)..options.validateStatus = (_) => true;
 
     setUpAll(() async {
       dio = await authenticatedDio();
       keys = ApiKeysRepository(dio);
-    });
-
-    tearDownAll(() async {
-      for (final id in minted) {
-        await dio.delete<dynamic>(
-          Endpoints.apiKeyById(id),
-          options: Options(validateStatus: (_) => true),
-        );
-      }
     });
 
     test('a key reads settings', () async {

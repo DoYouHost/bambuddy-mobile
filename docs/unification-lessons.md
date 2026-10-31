@@ -40,7 +40,7 @@ is the map and the decisions.
 | `testWithClock`, `identifiersIn`, `byLogId`, `settle`, `usePhoneWindow`, `ScriptedAdapter`, `RequestLog` | `app_test_kit` package, re-exported by [test/helpers.dart](../test/helpers.dart) |
 | `dashAsync`, `dashAsyncStrip`, `BusyLine` | [dash_async.dart](../lib/features/common/dash_async.dart) |
 | `plate_clear`, `openWebLink`, `showApiFailure`, `MediaImage` | `lib/features/common/` (`plate_clear.dart`, `web_link.dart`, `api_failure_snack.dart`, `media_image.dart`) |
-| `ObservedCapability`, `ActionOutcome`, `mapDioException`, `MediaAuthService` | `lib/core/api/` (`observed_capability.dart`, `action_outcome.dart`, `api_exceptions.dart`, `media_auth.dart`) |
+| `ObservedCapability`, `ActionOutcome`, `mapDioException`, `guard` and its variants (`guardAbsent`: named statuses mean "nothing here", the rest is mapped), `MediaAuthService` | `lib/core/api/` (`observed_capability.dart`, `action_outcome.dart`, `api_exceptions.dart`, `media_auth.dart`) |
 | `dateTimeFromJson`: server times are converted with `toLocal()` once, here, and nowhere else | [json_utils.dart](../lib/core/models/json_utils.dart) |
 | `detachFrom`, the handles of a flow that outlives its widget | [app_context.dart](../lib/core/app_context.dart), see [riverpod-traps.md](riverpod-traps.md) §6 |
 | `TimerFactory`, the injectable timer | [offline_debounce.dart](../lib/core/printers/offline_debounce.dart) |
@@ -53,6 +53,7 @@ is the map and the decisions.
 | `controllerPrintBlock`: why the controller may not print a file or an archive | [controller_print.dart](../lib/features/controller/controller_print.dart) |
 | `buttonAt`, `useLogicalWindow`, `mockImmersiveChannels`, `landscapeRedmi` / `landscapePixel`; `FakeQueue`; `FakeArchives`; `pumpControllerScreen` | [test/helpers.dart](../test/helpers.dart), [queue_fakes.dart](../test/features/queue/queue_fakes.dart), [archive_fakes.dart](../test/features/archive/archive_fakes.dart), [controller_harness.dart](../test/features/controller/controller_harness.dart) |
 | `writesOf` / `expectSentAsRecorded` / `replayWrites`: a screen's writes recorded by its widget test and replayed by a contract test | [test/contract/sent_writes.dart](../test/contract/sent_writes.dart) |
+| `mintContractApiKey`, `apiKeyClient`, `contractApiKeyDio`: a contract test's API key, waited for until committed and deleted with the test | [test/contract/contract_harness.dart](../test/contract/contract_harness.dart) |
 
 ## Traps that cost real debugging
 
@@ -133,6 +134,13 @@ more than the lines it saves.
   [inventory_providers.dart](../lib/features/inventory/inventory_providers.dart) and
   the announcements' "mark all" each report and stop differently (progress and
   names, a bare count, stop at the first error); a flag per difference.
+- **The drawer openers outside the dashboard test.** `announcements_test.dart` opens
+  its own two-widget host with a tap, and `dashboard_a11y_test.dart` settles with
+  the a11y harness's clock; neither builds the dashboard. Only the dashboard test's
+  `openWith` was a copy of `openDrawer`, and it now calls it.
+- **`ws_billing_contract_test.dart`'s key block.** The key is minted by a
+  non-admin user and proved usable by calling the server with the key itself, not by
+  the owner's key listing, so it does not go through `mintContractApiKey`.
 - **`_goneWithin` (projects contract test) vs `pollUntil`** (`contract_harness.dart`):
   there a timeout is the answer ("it never went away"), not an error.
 

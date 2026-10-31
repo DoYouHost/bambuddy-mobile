@@ -2,7 +2,6 @@ import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/models/api_key.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/external_link.dart';
-import 'package:bambuddy_mobile/data/api_keys_repository.dart';
 import 'package:bambuddy_mobile/data/external_links_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -118,29 +117,10 @@ void main() {
 
     test('an API key with read-status reads them', () async {
       if (skipOld()) return;
-      final keys = ApiKeysRepository(dio);
-      final key = await keys.create(
-        ApiKeyCreateInput(
-          name: 'contract links',
-          scopes: {ApiKeyScope.readStatus},
-        ),
-      );
-      addTearDown(
-        () => dio.delete<dynamic>(
-          Endpoints.apiKeyById(key.apiKey.id),
-          options: Options(validateStatus: (_) => true),
-        ),
-      );
-      await pollUntil(
-        'key ${key.apiKey.id} to be committed',
-        () async =>
-            (await keys.list()).any((k) => k.id == key.apiKey.id) ? true : null,
-        within: const Duration(seconds: 10),
-        every: const Duration(milliseconds: 100),
-      );
       final asKey = ExternalLinksRepository(
-        Dio(BaseOptions(baseUrl: contractBaseUrl))
-          ..options.headers['X-API-Key'] = key.key,
+        await contractApiKeyDio(dio, {
+          ApiKeyScope.readStatus,
+        }, name: 'contract links'),
       );
       expect((await asKey.fetch()).any((l) => l.id == linkId), isTrue);
     });

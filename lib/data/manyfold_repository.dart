@@ -16,18 +16,16 @@ class ManyfoldRepository {
   /// `null` when this server has no Manyfold routes (404, every release before
   /// it) or this session may not browse them (403) — the screen then has no
   /// Manyfold tab, as the web hides it without `manyfold:view`.
-  Future<ManyfoldStatus?> status() async {
-    try {
+  Future<ManyfoldStatus?> status() => guardAbsent<ManyfoldStatus?>(
+    () async {
       final res = await _dio.get<Map<String, dynamic>>(
         Endpoints.manyfoldStatus,
       );
       return ManyfoldStatus.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      if (status == 404 || status == 403) return null;
-      throw mapDioException(e);
-    }
-  }
+    },
+    null,
+    statuses: {404, 403},
+  );
 
   Future<ManyfoldModelPage> models({String query = '', int page = 1}) =>
       _call(() async {

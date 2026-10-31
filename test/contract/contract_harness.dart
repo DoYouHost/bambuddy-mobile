@@ -20,11 +20,13 @@ import 'package:bambuddy_mobile/core/api/api_client.dart';
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
+import 'package:bambuddy_mobile/core/models/api_key.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/group_write.dart';
 import 'package:bambuddy_mobile/core/models/user_write.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/account_repository.dart';
+import 'package:bambuddy_mobile/data/api_keys_repository.dart';
 import 'package:bambuddy_mobile/data/groups_repository.dart';
 import 'package:bambuddy_mobile/data/users_repository.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -195,6 +197,54 @@ Future<void> _quietly(Future<Object?> cleanup) async {
     await cleanup;
   } on DioException catch (_) {}
 }
+
+/// An API key minted through [owner]'s session, usable at once, and deleted when
+/// the test is over.
+///
+/// The create route only flushes; `get_db` commits after the reply has gone
+/// out, so a key used straight away can still be unknown and answer 401 (1 in
+/// 100 on a throttled container, CI run 36677355174). The listing shows the row
+/// once it is committed, so the helper waits for that.
+Future<CreatedApiKey> mintContractApiKey(
+  Dio owner,
+  Set<ApiKeyScope> scopes, {
+  String name = 'contract probe',
+}) async {
+  final keys = ApiKeysRepository(owner);
+  final created = await keys.create(
+    ApiKeyCreateInput(name: name, scopes: scopes),
+  );
+  addTearDown(
+    () => _quietly(
+      owner.delete<dynamic>(
+        Endpoints.apiKeyById(created.apiKey.id),
+        options: Options(validateStatus: (_) => true),
+      ),
+    ),
+  );
+  await pollUntil(
+    'key ${created.apiKey.id} to be committed',
+    () async =>
+        (await keys.list()).any((k) => k.id == created.apiKey.id) ? true : null,
+    within: const Duration(seconds: 10),
+    every: const Duration(milliseconds: 100),
+  );
+  return created;
+}
+
+/// A client that authenticates the way a key-configured app does: the
+/// `X-API-Key` header and no bearer token at all.
+Dio apiKeyClient(String key) =>
+    commitLagged(Dio(BaseOptions(baseUrl: contractBaseUrl)))
+      ..options.headers['X-API-Key'] = key;
+
+/// [apiKeyClient] on a key just minted by [owner] with [scopes].
+Future<Dio> contractApiKeyDio(
+  Dio owner,
+  Set<ApiKeyScope> scopes, {
+  String name = 'contract probe',
+}) async =>
+    apiKeyClient((await mintContractApiKey(owner, scopes, name: name)).key);
 
 /// The app's providers on top of [dio], for a test that has to follow a
 /// reading through the same chain a screen does rather than through one

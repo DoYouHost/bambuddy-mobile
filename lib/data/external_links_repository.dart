@@ -17,17 +17,15 @@ class ExternalLinksRepository {
   /// row by id, so a 404 can only mean the route is absent. Anything else is an
   /// error, and one row that is not an object is dropped rather than failing the
   /// list.
-  Future<List<ExternalLink>> fetch() async {
-    try {
+  Future<List<ExternalLink>> fetch() => guardAbsent(
+    () async {
       final res = await _dio.get<List<dynamic>>(Endpoints.externalLinks);
       return [
         for (final row in res.data ?? const [])
           if (row is Map<String, dynamic>) ExternalLink.fromJson(row),
       ];
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      if (status == 404 || status == 403) return const [];
-      throw mapDioException(e);
-    }
-  }
+    },
+    const [],
+    statuses: {404, 403},
+  );
 }
