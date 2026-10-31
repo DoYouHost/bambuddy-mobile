@@ -186,6 +186,11 @@ class NotificationSettingsScreen extends ConsumerWidget {
       l.notifEvtBedCooledDesc,
     ),
     _EventRow(
+      NotifEvent.pauseUpcoming,
+      l.notifEvtPauseUpcoming,
+      l.notifEvtPauseUpcomingDesc,
+    ),
+    _EventRow(
       NotifEvent.maintenanceDue,
       l.notifEvtMaintenance,
       l.notifEvtMaintenanceDesc,

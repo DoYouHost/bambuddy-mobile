@@ -8,7 +8,10 @@ import 'package:clock/clock.dart';
 import 'package:dash_kit/dash_kit.dart' show ContentGrid, DashTracking;
 import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:dio/dio.dart';
+import 'package:bambuddy_mobile/core/models/next_pause.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
+import 'package:bambuddy_mobile/core/format/duration_format.dart';
+import 'package:bambuddy_mobile/features/dashboard/widgets/pause_marker.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/scheduled_drying.dart';
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
@@ -4757,6 +4760,112 @@ void main() {
       await tester.tap(find.text(pl.ctrlMoveZUp));
       await tester.pumpAndSettle();
       expect(repo.distances, [-10.0]);
+    });
+  });
+
+  group('the next pause on the print panel', () {
+    PrinterWithStatus printing({NextPause? pause}) => PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'X1C'),
+      status: PrinterStatus(
+        id: 1,
+        connected: true,
+        state: 'RUNNING',
+        progress: 20,
+        remainingTime: 80,
+        layerNum: 40,
+        totalLayers: 200,
+        nextPause: pause,
+      ),
+    );
+
+    Finder tick() => find.byType(PauseTick);
+
+    testWidgets('shows the minutes to it in the meta row and a tick on the '
+        'bar', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        _cardWithProviders(
+          printing(pause: const NextPause(layer: 120, minutes: 40)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(formatMinutes(pl, 40)), findsOneWidget);
+      expect(find.byIcon(Icons.pause_circle_outline), findsOneWidget);
+      expect(tester.widget<PauseTick>(tick()).fraction, closeTo(0.6, 1e-9));
+      // The words are for a screen reader, and merge into the card's own node.
+      expect(
+        tester.getSemantics(find.byIcon(Icons.pause_circle_outline)).label,
+        contains(pl.printPauseA11yIn(formatMinutes(pl, 40), 120)),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('without minutes it names the layer', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        _cardWithProviders(printing(pause: const NextPause(layer: 120))),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.printPauseAtLayer(120)), findsOneWidget);
+      expect(
+        tester.getSemantics(find.byIcon(Icons.pause_circle_outline)).label,
+        contains(pl.printPauseA11yLayer(120)),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('no pause ahead: no item and no tick', (tester) async {
+      await tester.pumpWidget(_cardWithProviders(printing()));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.pause_circle_outline), findsNothing);
+      expect(tester.widget<PauseTick>(tick()).fraction, isNull);
+    });
+
+    testWidgets('a printer still preparing has no tick on its bar', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _cardWithProviders(
+          const PrinterWithStatus(
+            printer: Printer(id: 1, name: 'X1C'),
+            status: PrinterStatus(
+              id: 1,
+              connected: true,
+              state: 'RUNNING',
+              progress: 0,
+              stgCurName: 'Auto bed leveling',
+              totalLayers: 200,
+              nextPause: NextPause(layer: 50, minutes: 5),
+            ),
+          ),
+        ),
+      );
+      // Not pumpAndSettle: an indeterminate bar animates for as long as it is
+      // there.
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(tick(), findsNothing, reason: 'the bar has no scale yet');
+    });
+
+    testWidgets('the collapsed card leaves the tick out', (tester) async {
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(
+              child: PrinterCard(
+                item: printing(pause: const NextPause(layer: 120, minutes: 40)),
+                collapsed: true,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tick(), findsNothing);
     });
   });
 }

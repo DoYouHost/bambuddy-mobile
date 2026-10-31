@@ -2398,6 +2398,59 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String printPauseAtLayer(int layer) {
+    return 'Schicht $layer';
+  }
+
+  @override
+  String printPauseA11yIn(String duration, int layer) {
+    return 'Nächste Pause, Schicht $layer: $duration';
+  }
+
+  @override
+  String printPauseA11yLayer(int layer) {
+    return 'Nächste Pause bei Schicht $layer';
+  }
+
+  @override
+  String get serverSettingsPauseWarningSubtitle =>
+      'Wie lange vor einer Pause gewarnt wird';
+
+  @override
+  String get pauseWarningTitle => 'Pausenwarnung';
+
+  @override
+  String pauseWarningLabel(String duration) {
+    return 'Vorwarnzeit: $duration';
+  }
+
+  @override
+  String get pauseWarningDesc =>
+      'Eine Servereinstellung: Sie bestimmt auch, wann der Server selbst warnt, und gilt für jedes Gerät.';
+
+  @override
+  String get notifEvtPauseUpcoming => 'Pause steht bevor';
+
+  @override
+  String get notifEvtPauseUpcomingDesc =>
+      'Warnt vor einer Pause, die der Slicer in den Druck eingefügt hat';
+
+  @override
+  String get notifPauseUpcomingTitle => 'Pause steht bevor';
+
+  @override
+  String notifPauseUpcomingBody(String name, int minutes, int layer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes Minuten',
+      one: '$minutes Minute',
+      zero: 'weniger als einer Minute',
+    );
+    return '$name: Pause in $_temp0, bei Schicht $layer';
+  }
+
+  @override
   String notifHumidityThreshold(int value) {
     return 'AMS-Feuchtigkeit über $value%';
   }

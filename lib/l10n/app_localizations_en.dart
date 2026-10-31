@@ -2367,6 +2367,59 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String printPauseAtLayer(int layer) {
+    return 'layer $layer';
+  }
+
+  @override
+  String printPauseA11yIn(String duration, int layer) {
+    return 'Next pause in $duration, at layer $layer';
+  }
+
+  @override
+  String printPauseA11yLayer(int layer) {
+    return 'Next pause at layer $layer';
+  }
+
+  @override
+  String get serverSettingsPauseWarningSubtitle =>
+      'How long before a pause to warn';
+
+  @override
+  String get pauseWarningTitle => 'Pause warning';
+
+  @override
+  String pauseWarningLabel(String duration) {
+    return 'Warn $duration before a pause';
+  }
+
+  @override
+  String get pauseWarningDesc =>
+      'A server setting: it also sets when the server itself warns, and applies to every device.';
+
+  @override
+  String get notifEvtPauseUpcoming => 'Pause coming up';
+
+  @override
+  String get notifEvtPauseUpcomingDesc =>
+      'Warns before a pause the slicer put into the print';
+
+  @override
+  String get notifPauseUpcomingTitle => 'Pause coming up';
+
+  @override
+  String notifPauseUpcomingBody(String name, int minutes, int layer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minutes',
+      one: '$minutes minute',
+      zero: 'under a minute',
+    );
+    return '$name: pause in $_temp0, at layer $layer';
+  }
+
+  @override
   String notifHumidityThreshold(int value) {
     return 'AMS humidity above $value%';
   }

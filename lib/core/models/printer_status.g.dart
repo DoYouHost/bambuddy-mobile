@@ -48,6 +48,7 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       filaSwitch: _toFilaSwitchOrNull(json['fila_switch']),
       amsFilamentBackup: json['ams_filament_backup'] as bool?,
       extruderSlots: _toExtruderSlotMapOrNull(json['extruder_slots']),
+      nextPause: nextPauseFromJson(json['next_pause']),
     );
 
 AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(

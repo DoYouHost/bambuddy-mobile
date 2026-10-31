@@ -6,7 +6,9 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
+import 'package:app_util/app_util.dart';
 import '../../data/maintenance_repository.dart';
+import '../../data/server_settings_repository.dart';
 import '../../features/dashboard/ws_providers.dart' show wsUrlFor;
 import '../../features/notifications/maintenance_monitor.dart';
 import '../../features/notifications/print_monitor.dart';
@@ -37,6 +39,7 @@ import '../diagnostics/session_facts.dart';
 import '../demo/demo_ws.dart';
 import '../format/datetime_format.dart';
 import '../models/printer_status.dart';
+import '../models/queue_settings.dart';
 import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
 import '../watch/wear_relay_claim.dart';
@@ -52,6 +55,10 @@ import '../diagnostics/report_config.dart';
 /// How often to poll REST for maintenance status. Operating hours only accumulate
 /// during printing, so infrequent checks suffice and don't burden the server.
 const Duration _maintenanceCheckInterval = Duration(minutes: 30);
+
+/// How often the pause warning lead time is read again. An administrator can
+/// change it on the server while the service runs.
+const Duration _pauseLeadRefreshInterval = Duration(minutes: 30);
 
 /// Entry point for the background isolate. Must be top-level and marked
 /// with `@pragma('vm:entry-point')` — flutter_foreground_task launches it
@@ -76,6 +83,12 @@ class PrintMonitorTaskHandler extends TaskHandler {
   FgsNotificationService? _fgs;
   MaintenanceMonitor? _maintenance;
   Timer? _maintenanceTimer;
+
+  /// How many minutes before a slicer pause the monitor warns: the server's
+  /// `pause_warning_minutes`, read at start and again every
+  /// [_pauseLeadRefreshInterval], and the server's own default until it answers.
+  var _pauseLeadMinutes = QueueSetting.pauseWarningMinutes.serverDefault;
+  Timer? _pauseLeadTimer;
   ProactiveTokenRefresher? _tokenRefresher;
   final Map<int, PrinterStatus> _statuses = {};
   // Watch relay (plan 05 M-R4): while the app is backgrounded/swiped away this
@@ -250,12 +263,14 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // Maintenance: REST monitor (if enabled) + reminder after print.
     // Set up before [PrintMonitor] to wire the `onPrintEnded` callback.
     _setUpMaintenance(api, notify, prefs, notifPrefs);
+    _setUpPauseLead(api);
 
     _monitor = PrintMonitor(
       notify,
       serverUrl: profile.baseUrl,
       prefs: notifPrefs,
       hmsDescribe: catalog.describe,
+      pauseLeadMinutes: () => _pauseLeadMinutes,
       // `catchError`, because a throw inside the reminder used to become an
       // uncaught error in this isolate with nothing to show for it: the repo lets
       // auth failures out on purpose and nobody is awaiting this.
@@ -446,6 +461,31 @@ class PrintMonitorTaskHandler extends TaskHandler {
   /// Builds [MaintenanceMonitor] on the shared authenticated client (if
   /// `maintenanceDue` event is enabled) and starts periodic REST polling.
   /// Dedup set stored in SharedPreferences (re-armed after perform).
+  /// Reads the server's pause warning lead time now and then. Best-effort like
+  /// every read of `GET /settings`: a failed one keeps the last value, and a
+  /// server that does not send the key keeps the default it would use itself.
+  void _setUpPauseLead(ApiClient? api) {
+    if (api == null) return;
+    final settings = ServerSettingsRepository(api.dio);
+    Future<void> refresh() async {
+      final minutes = toIntOrNull(
+        (await settings.fetch())['pause_warning_minutes'],
+      );
+      if (minutes != null) {
+        _pauseLeadMinutes = minutes.clamp(
+          QueueSetting.pauseWarningMinutes.min!,
+          QueueSetting.pauseWarningMinutes.max!,
+        );
+      }
+    }
+
+    unawaited(refresh());
+    _pauseLeadTimer = Timer.periodic(
+      _pauseLeadRefreshInterval,
+      (_) => unawaited(refresh()),
+    );
+  }
+
   void _setUpMaintenance(
     ApiClient? api,
     NotificationService notify,
@@ -632,6 +672,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
   @override
   Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {
     _maintenanceTimer?.cancel();
+    _pauseLeadTimer?.cancel();
     _tokenRefresher?.stop();
     _monitor?.dispose();
     // Awaited like the rest: the claim release is a prefs write, and this

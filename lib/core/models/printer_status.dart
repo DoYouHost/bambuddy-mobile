@@ -4,6 +4,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 import '../ams/fts_routing.dart';
 import '../ams/slot_addressing.dart';
+import 'next_pause.dart';
 
 part 'printer_status.g.dart';
 
@@ -58,6 +59,7 @@ class PrinterStatus {
     this.filaSwitch,
     this.amsFilamentBackup,
     this.extruderSlots,
+    this.nextPause,
   });
 
   factory PrinterStatus.fromJson(Map<String, dynamic> json) =>
@@ -242,6 +244,15 @@ class PrinterStatus {
   /// near-empty spool (`effectivePreferLowest`).
   final bool? amsFilamentBackup;
 
+  /// The next pause the slicer put into the running print, null when none is
+  /// ahead — and on a server that does not send it (docs/server-gates.md).
+  /// **Not inherited by [mergedWith]**: the server writes the key into every
+  /// status, REST and WebSocket alike, with null for "none ahead", so a frame
+  /// without a pause is the answer. Carrying the last one forward would keep a
+  /// marker for a pause the print is already past.
+  @JsonKey(fromJson: nextPauseFromJson)
+  final NextPause? nextPause;
+
   /// Which AMS slot each hotend is fed from, keyed by extruder id (0 = right /
   /// main, 1 = left / deputy). Null on servers and printers that do not report
   /// it; [trayNow] is printer-wide and cannot answer the same question, because
@@ -332,6 +343,7 @@ class PrinterStatus {
     filaSwitch,
     extruderSlots,
     amsFilamentBackup,
+    nextPause,
   ];
 
   /// Value equality — `ingestPoll` uses this to skip publishing a merged
@@ -419,6 +431,7 @@ class PrinterStatus {
       filaSwitch: filaSwitch ?? previous.filaSwitch,
       extruderSlots: extruderSlots ?? previous.extruderSlots,
       amsFilamentBackup: amsFilamentBackup ?? previous.amsFilamentBackup,
+      nextPause: nextPause,
     )._clearedIfOffline();
   }
 

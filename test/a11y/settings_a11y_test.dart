@@ -3,6 +3,7 @@ import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
 import 'package:bambuddy_mobile/features/settings/app_settings_screen.dart';
 import 'package:bambuddy_mobile/features/settings/cloud_account_screen.dart';
+import 'package:bambuddy_mobile/features/settings/pause_warning_screen.dart';
 import 'package:bambuddy_mobile/features/settings/queue_settings_screen.dart';
 import 'package:bambuddy_mobile/features/settings/server_settings_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -24,6 +25,7 @@ import 'a11y_harness.dart';
 void main() {
   _serverSettings();
   _queueSettings();
+  _pauseWarning();
   _cloudAccount();
   _appSettings();
 }
@@ -95,6 +97,25 @@ void _queueSettings() {
     ],
     home: () => const QueueSettingsScreen(),
     shows: find.text(pl.queueSettingsUnavailable),
+  );
+}
+
+void _pauseWarning() {
+  a11ySurface(
+    'pause warning',
+    home: () => const PauseWarningScreen(),
+    shows: find.text(pl.pauseWarningDesc),
+  );
+
+  a11ySurface(
+    'pause warning, read-only for an API key',
+    demo: false,
+    overrides: [
+      fakeServerProfileOverride(authMode: AuthMode.apiKey),
+      serverSettingsOverride(const {'pause_warning_minutes': 10}),
+    ],
+    home: () => const PauseWarningScreen(),
+    shows: find.text(pl.queueSettingsReadOnlyApiKey),
   );
 }
 

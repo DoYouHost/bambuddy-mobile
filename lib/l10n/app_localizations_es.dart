@@ -2389,6 +2389,59 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String printPauseAtLayer(int layer) {
+    return 'capa $layer';
+  }
+
+  @override
+  String printPauseA11yIn(String duration, int layer) {
+    return 'Próxima pausa en $duration, en la capa $layer';
+  }
+
+  @override
+  String printPauseA11yLayer(int layer) {
+    return 'Próxima pausa en la capa $layer';
+  }
+
+  @override
+  String get serverSettingsPauseWarningSubtitle =>
+      'Cuánto antes de una pausa avisar';
+
+  @override
+  String get pauseWarningTitle => 'Aviso de pausa';
+
+  @override
+  String pauseWarningLabel(String duration) {
+    return 'Avisar $duration antes de una pausa';
+  }
+
+  @override
+  String get pauseWarningDesc =>
+      'Es un ajuste del servidor: también fija cuándo avisa el propio servidor y vale para todos los dispositivos.';
+
+  @override
+  String get notifEvtPauseUpcoming => 'Pausa próxima';
+
+  @override
+  String get notifEvtPauseUpcomingDesc =>
+      'Avisa antes de una pausa que el slicer puso en la impresión';
+
+  @override
+  String get notifPauseUpcomingTitle => 'Pausa próxima';
+
+  @override
+  String notifPauseUpcomingBody(String name, int minutes, int layer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minutos',
+      one: '$minutes minuto',
+      zero: 'menos de un minuto',
+    );
+    return '$name: pausa en $_temp0, en la capa $layer';
+  }
+
+  @override
   String notifHumidityThreshold(int value) {
     return 'Humedad del AMS por encima del $value%';
   }

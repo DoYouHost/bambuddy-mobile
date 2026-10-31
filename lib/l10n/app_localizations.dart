@@ -3968,6 +3968,72 @@ abstract class AppLocalizations {
   /// **'Bed cooled below {temp}°C'**
   String notifBedCooledThreshold(int temp);
 
+  /// What the next-pause item of the print panel says while the server gives no minutes: the layer the pause is on.
+  ///
+  /// In en, this message translates to:
+  /// **'layer {layer}'**
+  String printPauseAtLayer(int layer);
+
+  /// Screen reader text of the next-pause item: minutes to the pause and its layer.
+  ///
+  /// In en, this message translates to:
+  /// **'Next pause in {duration}, at layer {layer}'**
+  String printPauseA11yIn(String duration, int layer);
+
+  /// Screen reader text of the next-pause item while the server gives no minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Next pause at layer {layer}'**
+  String printPauseA11yLayer(int layer);
+
+  /// Subtitle of the Pause warning entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'How long before a pause to warn'**
+  String get serverSettingsPauseWarningSubtitle;
+
+  /// Title of the pause warning screen and of its entry in the server settings hub.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause warning'**
+  String get pauseWarningTitle;
+
+  /// Label of the slider that sets the server's pause warning lead time.
+  ///
+  /// In en, this message translates to:
+  /// **'Warn {duration} before a pause'**
+  String pauseWarningLabel(String duration);
+
+  /// What the pause warning setting is: shared with the server, not a phone preference.
+  ///
+  /// In en, this message translates to:
+  /// **'A server setting: it also sets when the server itself warns, and applies to every device.'**
+  String get pauseWarningDesc;
+
+  /// Label of the pause coming up switch in the notification events list.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause coming up'**
+  String get notifEvtPauseUpcoming;
+
+  /// Description under the pause coming up switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Warns before a pause the slicer put into the print'**
+  String get notifEvtPauseUpcomingDesc;
+
+  /// Title of the notification posted before a slicer pause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause coming up'**
+  String get notifPauseUpcomingTitle;
+
+  /// Body of the notification posted before a slicer pause: the job, the minutes to it and its layer.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: pause in {minutes, plural, =0{under a minute} one{{minutes} minute} other{{minutes} minutes}}, at layer {layer}'**
+  String notifPauseUpcomingBody(String name, int minutes, int layer);
+
   /// No description provided for @notifHumidityThreshold.
   ///
   /// In en, this message translates to:

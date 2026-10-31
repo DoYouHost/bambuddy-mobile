@@ -1536,6 +1536,84 @@
       }
     }
   },
+  "printPauseAtLayer": "layer {layer}",
+  "@printPauseAtLayer": {
+    "description": "What the next-pause item of the print panel says while the server gives no minutes: the layer the pause is on.",
+    "placeholders": {
+      "layer": {
+        "type": "int"
+      }
+    }
+  },
+  "printPauseA11yIn": "Next pause in {duration}, at layer {layer}",
+  "@printPauseA11yIn": {
+    "description": "Screen reader text of the next-pause item: minutes to the pause and its layer.",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      },
+      "layer": {
+        "type": "int"
+      }
+    }
+  },
+  "printPauseA11yLayer": "Next pause at layer {layer}",
+  "@printPauseA11yLayer": {
+    "description": "Screen reader text of the next-pause item while the server gives no minutes.",
+    "placeholders": {
+      "layer": {
+        "type": "int"
+      }
+    }
+  },
+  "serverSettingsPauseWarningSubtitle": "How long before a pause to warn",
+  "@serverSettingsPauseWarningSubtitle": {
+    "description": "Subtitle of the Pause warning entry in the server settings hub."
+  },
+  "pauseWarningTitle": "Pause warning",
+  "@pauseWarningTitle": {
+    "description": "Title of the pause warning screen and of its entry in the server settings hub."
+  },
+  "pauseWarningLabel": "Warn {duration} before a pause",
+  "@pauseWarningLabel": {
+    "description": "Label of the slider that sets the server's pause warning lead time.",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "pauseWarningDesc": "A server setting: it also sets when the server itself warns, and applies to every device.",
+  "@pauseWarningDesc": {
+    "description": "What the pause warning setting is: shared with the server, not a phone preference."
+  },
+  "notifEvtPauseUpcoming": "Pause coming up",
+  "@notifEvtPauseUpcoming": {
+    "description": "Label of the pause coming up switch in the notification events list."
+  },
+  "notifEvtPauseUpcomingDesc": "Warns before a pause the slicer put into the print",
+  "@notifEvtPauseUpcomingDesc": {
+    "description": "Description under the pause coming up switch."
+  },
+  "notifPauseUpcomingTitle": "Pause coming up",
+  "@notifPauseUpcomingTitle": {
+    "description": "Title of the notification posted before a slicer pause."
+  },
+  "notifPauseUpcomingBody": "{name}: pause in {minutes, plural, =0{under a minute} one{{minutes} minute} other{{minutes} minutes}}, at layer {layer}",
+  "@notifPauseUpcomingBody": {
+    "description": "Body of the notification posted before a slicer pause: the job, the minutes to it and its layer.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      },
+      "layer": {
+        "type": "int"
+      }
+    }
+  },
   "notifHumidityThreshold": "AMS humidity above {value}%",
   "@notifHumidityThreshold": {
     "placeholders": {

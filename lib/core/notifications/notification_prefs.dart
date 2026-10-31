@@ -28,6 +28,11 @@ enum NotifEvent {
   /// one. Source: the `kill_switch_triggered` and `billing_charge_failed`
   /// frames, which only a server with billing on sends.
   billingAlert,
+
+  /// A pause the slicer put into the print is as many minutes away as the server's `pause_warning_minutes`.
+  /// Source: `next_pause` on the status frames (server #2984), so it needs
+  /// no route and works with an API key.
+  pauseUpcoming,
 }
 
 /// User's notification preferences: which events trigger notifications and with what thresholds.
@@ -86,6 +91,9 @@ class NotificationPrefs {
     NotifEvent.outcomeRequest,
     // On: both mean money or a print went wrong without anybody asking.
     NotifEvent.billingAlert,
+    // On: the print stands still and waits for somebody at the pause, and
+    // missing it costs more than a warning nobody needed.
+    NotifEvent.pauseUpcoming,
   };
 
   static const NotificationPrefs defaults = NotificationPrefs(

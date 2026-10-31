@@ -85,6 +85,39 @@ void main() {
       );
     });
 
+    test(
+      'a key reads the pause warning lead time, and cannot move it',
+      () async {
+        // The pause warning screen shows the server's value to a key and the app
+        // warns by it; both rest on the read and on the refused write.
+        final all = (await dio.get<Map<String, dynamic>>(
+          Endpoints.appSettings,
+        )).data!;
+        if (!all.containsKey('pause_warning_minutes')) {
+          markTestSkipped('server predates pause_warning_minutes');
+          return;
+        }
+        final created = await mint('contract probe: pause warning', {
+          ApiKeyScope.readStatus,
+        });
+        final client = clientFor(created.key);
+
+        final read = await client.get<dynamic>(Endpoints.appSettings);
+        // A number, not a value compared with the account's read: the settings
+        // contract test moves it on the same server at the same time.
+        expect(
+          (read.data as Map)['pause_warning_minutes'],
+          isA<int>(),
+          reason: 'the key is not blanked: it is no secret',
+        );
+        final write = await client.put<dynamic>(
+          Endpoints.appSettingsUpdate,
+          data: {'pause_warning_minutes': 3},
+        );
+        expect(write.statusCode, 403);
+      },
+    );
+
     test('a key cannot write settings, and is refused with 403', () async {
       // The other half, and the reason every settings write in the app demands
       // a password login. The status code is load-bearing on its own: the app

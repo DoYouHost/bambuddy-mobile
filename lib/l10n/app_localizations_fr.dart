@@ -2407,6 +2407,59 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String printPauseAtLayer(int layer) {
+    return 'couche $layer';
+  }
+
+  @override
+  String printPauseA11yIn(String duration, int layer) {
+    return 'Pause suivante dans $duration, à la couche $layer';
+  }
+
+  @override
+  String printPauseA11yLayer(int layer) {
+    return 'Prochaine pause à la couche $layer';
+  }
+
+  @override
+  String get serverSettingsPauseWarningSubtitle =>
+      'Combien de temps avant une pause prévenir';
+
+  @override
+  String get pauseWarningTitle => 'Avertissement de pause';
+
+  @override
+  String pauseWarningLabel(String duration) {
+    return 'Prévenir $duration avant une pause';
+  }
+
+  @override
+  String get pauseWarningDesc =>
+      'Réglage du serveur : il fixe aussi le moment où le serveur prévient lui-même, et s\'applique à tous les appareils.';
+
+  @override
+  String get notifEvtPauseUpcoming => 'Pause à venir';
+
+  @override
+  String get notifEvtPauseUpcomingDesc =>
+      'Avertissement avant une pause placée par le slicer dans l\'impression';
+
+  @override
+  String get notifPauseUpcomingTitle => 'Pause à venir';
+
+  @override
+  String notifPauseUpcomingBody(String name, int minutes, int layer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minutes',
+      one: '$minutes minute',
+      zero: 'moins d\'une minute',
+    );
+    return '$name : une pause dans $_temp0, à la couche $layer';
+  }
+
+  @override
   String notifHumidityThreshold(int value) {
     return 'Humidité AMS au-dessus de $value %';
   }
