@@ -163,6 +163,7 @@ List<Override> _overrides(DashboardState state) => [
   inertSmartPlugsOverride,
   inertFirmwareOverride,
   inertAnnouncementsOverride,
+  inertExternalLinksOverride,
   inertTotalPrintHoursOverride,
   sharedPreferencesProvider.overrideWithValue(_prefs),
   // Touched on the very first frame (taking over from a surviving service), so

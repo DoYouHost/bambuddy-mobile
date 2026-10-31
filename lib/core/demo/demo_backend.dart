@@ -629,6 +629,12 @@ class DemoBackend {
         }
         return _notFound();
 
+      case 'external-links':
+        // Read only, as the app is. The count is what an app behind a link
+        // reports; the demo's apps report once and never change.
+        if (s.length == 1 && m == 'GET') return _ok(_externalLinks);
+        return _notFound();
+
       case 'manyfold':
         if (at(1, 'import') && m == 'POST') return _manyfoldImport(body);
         return _manyfold.route(m, s, q, body);
@@ -6946,6 +6952,16 @@ class DemoBackend {
 
   // --- Manyfold ---
 
+  /// The sidebar apps of a print farm: one with a count, one past the 99+ cap,
+  /// one that reports nothing and one an older server would send without the
+  /// field. No uploaded icons — the screen then draws each name's first letter.
+  late final _externalLinks = <Map<String, dynamic>>[
+    _demoExternalLink(1, 'Bambuddy Orders', 'http://orders.farm.lan:8080', 3),
+    _demoExternalLink(2, 'Spoolman', 'http://spoolman.farm.lan:7912', 0),
+    _demoExternalLink(3, 'Home Assistant', 'http://ha.farm.lan:8123', 128),
+    _demoExternalLink(4, 'Print farm wiki', 'https://wiki.farm.lan', null),
+  ];
+
   /// Two unread messages at different levels, for the dot, the count and the
   /// level labels, and an expired one under "Earlier".
   late final _announcements = <Map<String, dynamic>>[
@@ -6992,6 +7008,24 @@ class DemoBackend {
       expired: true,
     ),
   ];
+
+  static Map<String, dynamic> _demoExternalLink(
+    int id,
+    String name,
+    String url,
+    int? badge,
+  ) => {
+    'id': id,
+    'name': name,
+    'url': url,
+    'icon': 'link',
+    'custom_icon': null,
+    'open_in_new_tab': true,
+    'sort_order': id,
+    'created_at': _iso(_daysAgo(30)),
+    'updated_at': _iso(_daysAgo(30)),
+    'badge_count': badge,
+  };
 
   static Map<String, dynamic> _demoAnnouncement(
     String id,
