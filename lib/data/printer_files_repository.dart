@@ -169,17 +169,13 @@ class PrinterFilesRepository {
   /// Deliberately does not touch the capability latch: a 404 here is about the
   /// job, not about the route family, and recording it as absence would send
   /// the next download down the legacy path over an expired staging folder.
-  Future<PrinterDownloadJob?> downloadJob(int printerId, String jobId) async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.printerFilesJobStatus(printerId, jobId),
-      );
-      return PrinterDownloadJob.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) return null;
-      throw mapDioException(e);
-    }
-  }
+  Future<PrinterDownloadJob?> downloadJob(int printerId, String jobId) =>
+      guardAbsent<PrinterDownloadJob?>(() async {
+        final res = await _dio.get<Map<String, dynamic>>(
+          Endpoints.printerFilesJobStatus(printerId, jobId),
+        );
+        return PrinterDownloadJob.fromJson(res.data ?? const {});
+      }, null);
 
   /// Stops a job and deletes whatever it had already staged, including a bundle
   /// that was already `ready`.
@@ -187,16 +183,11 @@ class PrinterFilesRepository {
   /// A job the server no longer knows is not an error: cancelling something
   /// that has already finished, expired or been cancelled elsewhere leaves
   /// exactly the state the caller asked for.
-  Future<void> cancelDownloadJob(int printerId, String jobId) async {
-    try {
-      await _dio.delete<dynamic>(
-        Endpoints.printerFilesJobStatus(printerId, jobId),
-      );
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) return;
-      throw mapDioException(e);
-    }
-  }
+  Future<void> cancelDownloadJob(int printerId, String jobId) => guardAbsent(
+    () =>
+        _dio.delete<dynamic>(Endpoints.printerFilesJobStatus(printerId, jobId)),
+    null,
+  );
 
   /// Streams a `ready` job's bundle into [savePath].
   ///

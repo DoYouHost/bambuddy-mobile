@@ -145,8 +145,9 @@ do not stay silent because it was not part of the task.
   `serverValue`. **Read it before adding a permission check or a provider.**
 - [docs/server-gates.md](docs/server-gates.md) — why each `ServerFeature` row
   exists, what an older server does without it and what being early costs, and
-  how a capability travels from its latch to a screen. **Read it before adding
-  a gate**; the enum keeps one line per member.
+  how a capability travels from its latch to a screen, and the demo backend that
+  must show every feature. **Read it before adding a gate or a route family**; the
+  enum keeps one line per member.
 - [docs/billing.md](docs/billing.md) — how the app meets a server with billing on: the
   cost center select and the states it has, why "refused" is not "none", the routes
   that cannot take a center, and the Finance screen's personal and admin halves.
@@ -160,10 +161,6 @@ do not stay silent because it was not part of the task.
   `PrintMonitor` decides to alert: the baseline frame, which frame describes this
   print, the first-layer window, HMS grace and hold, the humidity band, the
   ongoing notification. **Read it before changing a rule or adding an event.**
-- [docs/queue-bulk-and-resume.md](docs/queue-bulk-and-resume.md) — bulk edit and the
-  resume-after-failure banner: what the 200 from `/queue/bulk` hides, why the banner
-  has a request of its own, and where the app follows the print form instead of the
-  web. **Read it before touching the queue's selection mode or `queue_resume_banner.dart`.**
 - [docs/ui-primitives.md](docs/ui-primitives.md) — why the shared fields, selects and
   async helpers behave as they do: the 40 dp select arrow, the null any-row,
   "unresolved is off", restoring an optimistically removed row by neighbours.
@@ -187,17 +184,19 @@ do not stay silent because it was not part of the task.
   `ScalingLazyColumn`), and what each tunable in `wear_geometry.dart` was paid
   for.
 - [docs/dependency-upgrades.md](docs/dependency-upgrades.md) — the pubspec
-  entries a `pub upgrade` cannot move on its own, and what unblocks each.
-  **`flutter_secure_storage` 11 is pending and order-sensitive**: it drops the
-  ciphers version 9 wrote, so it may only ship after a release that ran 10 and
-  migrated the installed base.
-- [docs/scheduled-workflows.md](docs/scheduled-workflows.md) — why
-  `server-drift` and `contract-tests` are dispatched by Dagu on `lxc-dagu`
-  instead of a `schedule:` trigger, and where to change their times.
+  entries a `pub upgrade` cannot move on its own, and what unblocks each, plus the
+  `DoYouHost.app-shared` packages: the six `app_diagnostics` seams this app fills, the
+  ref-pinning trap between `app_report_client` and `app_diagnostics`, and how a shared
+  release reaches `pubspec.yaml` (**read that before touching those refs or
+  `report_config.dart`**). **`flutter_secure_storage` 11 is pending and
+  order-sensitive**: it drops the ciphers version 9 wrote, so it may only ship after
+  a release that ran 10 and migrated the installed base.
 - [docs/conventions.md](docs/conventions.md) — the reasoning, numbers and examples
   behind the short rules in Conventions below: copy and l10n checks, comment ratio
   and what to cut, `dart format`, confirm dialogs, spacing, button measurement, finder
-  strings. **Read the section before changing what it governs.**
+  strings, and the Polish names of printer parts as the slicer spells them (**read
+  those before naming a part in copy**). **Read the section before changing what it
+  governs.**
 - [docs/foreground-service.md](docs/foreground-service.md) — why the background
   monitor is a `connectedDevice` FGS with no wakelock (Android vitals, the 6 h
   `dataSync` limit, Doze), why dropping the lock loses latency and not events, the
@@ -207,22 +206,21 @@ do not stay silent because it was not part of the task.
 - [docs/server-contract-traps.md](docs/server-contract-traps.md) — how the bambuddy
   contract really behaves: versions that prove nothing, UTC times with a stray `Z`,
   WebSocket frames and auth, what an API key can and cannot do, queue and archive
-  quirks. **Read it before parsing a new field, touching `WsClient`, or choosing a
+  quirks, and what the contract hides in library tags, projects, MakerWorld and
+  Manyfold. **Read it before parsing a new field, touching `WsClient`, or choosing a
   feature that must work with an API key.**
 - [docs/riverpod-traps.md](docs/riverpod-traps.md) — Riverpod lifecycle traps the
   analyzer does not see: `ref.watch` in a sheet builder, writes in `initState`,
   `FutureProvider` loading frames, `autoDispose` vs retry windows, `AsyncLoading`
   carrying the previous value. **Read it before a provider that a sheet watches, an
   `initState` seed or a value derived from an async source.**
-- [docs/shared-packages.md](docs/shared-packages.md) — the `DoYouHost.app-shared`
-  packages: the six `app_diagnostics` seams this app fills, the ref-pinning trap
-  between `app_report_client` and `app_diagnostics`, and how a shared release reaches
-  `pubspec.yaml`. **Read it before touching those refs or `report_config.dart`.**
 - [docs/release.md](docs/release.md) — how a version leaves the repo: the
   `versionCode` scheme and why its offset exists, why the server creates the tag,
   `ship-dev` slots, the frozen `applicationId`, the Play API, Pages and Data Safety
-  decisions. **Read it before touching `ship`, `ship-dev`, `release-publish` or
-  `play-internal`.**
+  decisions, and why `server-drift` and `contract-tests` are dispatched by Dagu on
+  `lxc-dagu` instead of a `schedule:` trigger (and where to change their times).
+  **Read it before touching `ship`, `ship-dev`, `release-publish`, `play-internal` or
+  those two workflows' triggers.**
 - [docs/play-compliance.md](docs/play-compliance.md) — every Google requirement
   that applies (Wear `WO-*`, core app quality, Play policy, target API) and what
   checks each one. **Go through it before every Play upload** — `ship`,
@@ -237,8 +235,7 @@ do not stay silent because it was not part of the task.
   single-printer touch controller (#54): everything scoped to the one selected
   printer, landscape, the bouncing screen saver and its wake rules, dual-nozzle
   behaviour, the server facts it leans on. **Read it before touching
-  `lib/features/controller/`**; the research behind it is
-  [single-printer-controller-research.md](docs/single-printer-controller-research.md).
+  `lib/features/controller/`**; the research behind it is its §10.
 - [docs/tv-flavor.md](docs/tv-flavor.md) — plan and decisions for a TV flavor and
   the always-on wall mode. There is **no `tv` flavor** (only `mobile` and `wear`);
   the wall mode lives in `lib/features/wall/`. **Read it before touching either.**
@@ -246,23 +243,21 @@ do not stay silent because it was not part of the task.
   toolchain, emulators (narrow AVD, locale, font scale), on-device tests, the local
   contract-test stack, the server reference clone, LanguageTool endpoint.
   **Read it before running anything on a device or against a docker server.**
-- [docs/glossary.md](docs/glossary.md) — the Polish names of printer parts, as the
-  slicer spells them. **Read it before naming a part in copy.**
 - [docs/unification-lessons.md](docs/unification-lessons.md) — where each shared
   helper lives, what was deliberately not unified and why, and the rules the
   refactors settled on. **Read it before extracting or merging a widget or helper.**
 - [docs/queue-and-pipelines.md](docs/queue-and-pipelines.md) — the queue, orders,
   slicer pipelines and the slice screen: the three ways an item leaves the queue,
-  what the socket covers, the preset rule. **Read it before touching `lib/features/queue/`,
-  orders or the slice screen.**
+  what the socket covers, the preset rule, bulk edit and the resume-after-failure
+  banner (what the 200 from `/queue/bulk` hides, why the banner has a request of its
+  own). **Read it before touching `lib/features/queue/`, the queue's selection mode,
+  `queue_resume_banner.dart`, orders or the slice screen.**
 - [docs/api-keys-and-settings.md](docs/api-keys-and-settings.md) — what an API key
   may do per surface, and the server-settings hub: who may write which setting and
   the route traps. **Read it before reading or writing a server setting.**
 - [docs/inventory.md](docs/inventory.md) — the two inventory backends, slot
   numbering, assigning a spool, blanking a field, Spoolman mode, the QR scanner.
   **Read it before touching `lib/features/inventory/` or slot addressing.**
-- [docs/library-and-projects.md](docs/library-and-projects.md) — library tags,
-  projects and model sources (MakerWorld, Manyfold): what the contract hides.
 - [docs/appearance.md](docs/appearance.md) — the accent colour and light/dark
   choice: the three accent sources and why "System" falls back, the watch's colours
   chosen on the phone, why the grounds belong to the brand, what is deliberately not
@@ -271,8 +266,6 @@ do not stay silent because it was not part of the task.
 - [docs/screens.md](docs/screens.md) — decisions behind the dashboard printer
   status and smart plugs, maintenance, statistics, two-factor login and printer
   locations.
-- [docs/demo.md](docs/demo.md) — the demo backend: what it must show and its
-  slicer and picture rules. **Read it before adding a gate or a route family.**
 - [docs/android-platform.md](docs/android-platform.md) — the Android 16 Live Update,
   the camera stream and its ANR history, home-screen widgets, the overscroll
   stutter. **Read it before touching `OngoingNotificationHost`, the widgets or the

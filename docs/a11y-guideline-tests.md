@@ -177,85 +177,49 @@ verified.
   would take the drag from the page. Details and the numbers:
   `docs/single-printer-controller.md` §2 and §9.
 
-## State (2026-10-28, end of the day)
+## State
 
-**597 of 6779 tests in `test/a11y` fail**, from 2478 at the start of the work (1843 at the
-start of that day, 1018 at the last full run before the harness changes, 629 after
-them). A whole run is about 10 minutes (`just test-a11y`, four files at a time).
+**Nothing is red** in `test/a11y` (about 6800 tests; `just test-a11y` runs four files at
+a time, about 10 minutes). Two things are decided and left on purpose: the colour wheel
+stays as it is and its nodes are exempt from the label rule (`A11yLabeledTapTargets`;
+everything else in those dialogs is still checked), and the calendar behind the
+date-range dialog's icon keeps Flutter's 42 dp day cell and is not tested. Contrast
+findings are 0; the two `genuine` rows of the report are the `65°` fixture (see
+Running it), nothing to fix.
 
-Left, by file. One surface is 8 tests (three accents in both themes at 100 %, then 150
-and 200 %). Tap targets and missing labels come in pairs wherever a control is both, so
-check both before counting.
+Four harness faults were found on the way, so they are not rediscovered: a cut control
+was read as a small one; paging ran without overlap; `a11yTap` tapped the old place;
+and tests were arranged only for the normal text size.
 
-| File | Fails | Surfaces |
-|---|---|---|
-| queue | 0 (was 126, fixed 2026-10-29) | the submit pill was 40 dp; the controller's mapping dialog is now measured in the landscape window |
-| inventory | 0 (was 109) | the labels, the detail sheet, and the material menu (the harness closes an open menu before paging, see below) |
-| files | 0 (was 88) | the quick-nav chips lost their 48 dp area to the bar's padding; the file photo tiles take the section title as their tooltip |
-| archive | 0 (was 60) | the colour swatches got a 48 dp cell and the colour code as their name; the timelapse trim strip, surface and seek bar are named from strings the app already has |
-| locations | 0 (was 48) | the location header was 44 dp tall |
-| common | 0 (was 33) | the colour wheel is exempt from the label rule (see below) |
-| controller | 0 (was 33 of 520) | see the controller section below |
-| projects | 0 (was 24) | the bill-of-materials checkbox takes the item name; the project link is 48 dp |
-| dashboard sheets | 0 (was 22) | the movement sheet buttons are 48 dp |
-| admin | 0 (was 19) | the advanced permissions row is 48 dp; the API key is read as one label |
-| swatches | 0 (was 16) | the delete button takes the Material delete tooltip |
-| print log, stats | 0 (was 16) | the range dialog opens on typed entry (`pickDateRange`); the calendar behind its icon keeps Flutter's 42 dp day cell and is not tested |
-| dashboard, model sources | 0 (was 3) | the MakerWorld "imported" snack's action label is short in all five languages |
-
-**0 red (2026-10-29)**, with two things decided and not fixed: the colour wheel stays as it is and its nodes are exempt from the label rule (`A11yLabeledTapTargets`; everything else in those dialogs is still checked), and the date-range calendar is opened second, behind the dialog's icon, and is not tested.
-What the day fixed, in short, so it is not redone: the pickers (`PickerTile`), 558
-missing labels, the controller's rail and its reflow from 1.3x text, the print-settings
-screen and every dialog it opens, the Prints items' dialog, the date picker in
-landscape, and four harness faults (a cut control read as a small one; paging without
-overlap; `a11yTap` tapping the old place; tests arranged only for the normal text size).
-Contrast findings in the output: 0; the two `genuine` rows of the report are the `65°`
-fixture (see Running it), nothing to fix.
-
-## Controller, 2026-10-29
-
-All 520 controller surfaces pass, and 45 more on a window 360 dp tall at 120, 150 and
-200 % (`short window` in `controller_a11y_test.dart`; without the height trigger in
-`ScaleToFit` 27 of them fail). The last 33 failures had three causes, none of them a
-`ScaleToFit` shrink on the Redmi's window (its height factor is 1.1 there): the search
-chip was 40 dp (now 48); the fault chip lived only in the rail's open panel (it is on
-the Overview picture now); the four-heater Heat tab at 200 % was squeezed by a fixed
-440 dp box (42.5 dp buttons). The last is why every tab that could be squeezed is now a
-`ControllerPage` (see `single-printer-controller.md` §2). **Known limit, unchanged:** a
-window narrower than about 890 dp shrinks the body by its width (800 dp of window: 0.89,
-a 48 dp button is 42.7 dp). A surface on such a window fails the tap-target guideline; the
+**Controller.** All 520 controller surfaces pass, and 45 more on a window 360 dp tall
+at 120, 150 and 200 % (`short window` in `controller_a11y_test.dart`; without the height
+trigger in `ScaleToFit` 27 of them fail). The four-heater Heat tab at 200 % was squeezed
+by a fixed 440 dp box (42.5 dp buttons), which is why every tab that could be squeezed is
+now a `ControllerPage` (see `single-printer-controller.md` §2). **Known limit:** a window
+narrower than about 890 dp shrinks the body by its width (800 dp of window: 0.89, a
+48 dp button is 42.7 dp). A surface on such a window fails the tap-target guideline; the
 short-window surfaces use 891 dp for that reason. Reflowing for width is not done.
 
 ## Open, in this order
 
-1. **The controller is done** (above). Design and rules: `docs/single-printer-controller.md` §2 and §9.
-2. **Nothing red.** Two things are decided and left on purpose: the colour wheel (a
-   library gesture node that cannot be named without rebuilding the picker) and the
-   calendar behind the range dialog's icon (a 42 dp day cell Flutter does not expose).
-   A menu a surface leaves open is measured and then closed (Escape) before the paging
+1. A menu a surface leaves open is measured and then closed (Escape) before the paging
    starts: the paging jumps the list the menu hangs off, the field leaves the lazy
    list, and Flutter lays the overlay out at NaN (`TransformLayer is constructed with
    an invalid matrix`). A finger cannot do that, since the menu's barrier takes the
    first drag and only closes it. Without `_closeMenu` the spool form's material menu
    fails again.
-3. No widget test yet for the swatches section header, the queue-edit schedule row,
+2. No widget test yet for the swatches section header, the queue-edit schedule row,
    the archive colour-filter row and the timelapse info row (the a11y suite covers
    them), nor for the maintenance type sheet and the project form (only the a11y suite
    builds them). The wall tile caption has a test, but its render is black (camera).
-4. Unification: two `SectionCard` classes (`stats_common.dart`,
+3. Unification: two `SectionCard` classes (`stats_common.dart`,
    `project_detail_sections.dart`) and two `_StatTile`s that differ in look; needs a
    decision before merging.
-5. Waiting for the maintainer: new screen-reader copy in five languages (the picker
+4. Waiting for the maintainer: new screen-reader copy in five languages (the picker
    tiles say the icon key or the colour code today; the X/Y jog arrows say "Move X plus"
    and the like; the plate and chamber steppers say `Plate −1` and `−5°` from existing
    words and signs; the spool colour wheel and the QR torch button have no name), how
    many accents after a `timeit`, `°C` on the temperature tiles if wanted.
-6. **The shared packages.** `app-shared` has `PickerTile`, the search field's clear
-   tooltip and `pickDate(initialEntryMode)` on `master` (`5b8a74a`, pushed directly past
-   the pull-request rule). This branch builds against the sibling checkout
-   (`pubspec_overrides.yaml`) only: `pubspec.yaml` still pins `dash_kit` and `dash_ui` at
-   `v0.14.4`, which has none of that. CI goes green after a shared release and a ref bump
-   (`docs/shared-packages.md`). Not raised unprompted.
 
 ## How to prove a change
 
@@ -275,9 +239,7 @@ short-window surfaces use 891 dp for that reason. Reflowing for width is not don
 
 ## Working rules
 
-- No commit and no push without the maintainer's word; a commit message is one
-  Conventional Commits line.
+- The commit, push and platform-guidance rules are in [AGENTS.md](../AGENTS.md)
+  ("Conventions", "Platform guidance first"); nothing here overrides them.
 - Do not raise tags, pins, CI or push order unprompted: the shared packages come from
   the sibling checkout until the work is done.
-- Before proposing a custom solution where Google or Flutter recommends one, read what
-  they recommend (context7 or the official docs) and cite it.

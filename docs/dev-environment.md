@@ -220,4 +220,4 @@ sends its own. After touching the check, `grep -rn` the repo for your instance's
 there must be no hit.
 
 Terminology the check cannot judge (printer part names in Polish) is in
-[glossary.md](glossary.md).
+[conventions.md](conventions.md#polish-names-of-printer-parts).

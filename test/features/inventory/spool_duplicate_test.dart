@@ -16,12 +16,11 @@ import 'package:mocktail/mocktail.dart';
 
 import '../../helpers.dart';
 
-class _FakeInventory extends InventoryNotifier {
+class _FakeInventory extends FixedInventory {
+  _FakeInventory() : super(InventoryState());
+
   final List<String> writes = [];
   SpoolDraft? created;
-
-  @override
-  Future<InventoryState> build() async => InventoryState();
 
   @override
   Future<Spool?> createSpool(SpoolDraft draft) async {

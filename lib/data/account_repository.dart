@@ -12,12 +12,8 @@ class AccountRepository {
   final Dio _dio;
 
   /// GET /auth/me — who this session belongs to, and what it may do.
-  Future<CurrentUser> me() async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(Endpoints.authMe);
-      return CurrentUser.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<CurrentUser> me() => guard(() async {
+    final res = await _dio.get<Map<String, dynamic>>(Endpoints.authMe);
+    return CurrentUser.fromJson(res.data ?? const {});
+  });
 }

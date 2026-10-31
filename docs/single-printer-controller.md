@@ -1,9 +1,8 @@
 # Single-printer controller — design decisions (issue #54)
 
 What the controller is, what it shows and the rules it keeps. The research it
-rests on, including the maintainer's first decisions, is
-[single-printer-controller-research.md](single-printer-controller-research.md);
-this file is what was decided while designing the screens, on 2026-10-16.
+rests on is in §10; this file is what was decided while designing the screens, on
+2026-10-16.
 Wall mode ([tv-flavor.md](tv-flavor.md) §13) is the sibling this borrows its
 mechanics from.
 
@@ -383,21 +382,14 @@ phone screens and the web: they are not things done at the printer (maintainer,
 - A dialog's choice is acted on from the view's context, not the tile's: a refresh
   while the dialog is open may take the tile away.
 
-## 9. Left to do (end of 2026-10-28)
+## 9. Left to do
 
-The rail and the large-text reflow are committed on `test/a11y-guidelines` (two
-commits, not pushed). Open, most useful first:
+Open, most useful first:
 
 1. **Slot number badge on Filament** (the circle with the digit) overlapped the
    material name at 200 % on a first render, when the spool was small. Check it with
    the header gone; the latest renders look right.
-2. ~~Drying is still blue~~ done: it takes the accent and its ink like Load and
-   Unload (`controller_filament_test.dart`, "takes the theme accent").
-3. ~~No state on the collapsed rail~~ done (2026-10-29): the fault chip moved out of
-   the panel onto the Overview's picture (top right, 48 dp, opaque under its tint), so
-   a fault is on screen without opening anything. The printer's state and name are
-   still only in the open panel.
-4. ~~The print-settings route is not reflowed~~ done (2026-10-28): the factor is about
+2. **The print-settings route at large text** (done 2026-10-28): the factor is about
    1.07, from 1.3x text the job and its options stack on the left and the mapping gets
    the wider right side, every card is as tall as its content (`ControllerCard.single(
    shrink: true)`) and the page scrolls with the buttons pinned. The Prints items' dialog
@@ -408,17 +400,79 @@ commits, not pushed). Open, most useful first:
    a disabled button has no reason on screen; pinning one line costs 30-40 dp of a window
    that has about 200 dp at 200 %. Pin only the notes that disable the button if someone
    reports it.
-5. **Settings at a large size** show one card at a time behind a [Screen saver |
+3. **Settings at a large size** show one card at a time behind a [Screen saver |
    Display] choice. The maintainer disliked splits in general and did not say
    whether this one stays.
-6. **Unit temperature** is not shown on Filament at a large size; say if it should
+4. **Unit temperature** is not shown on Filament at a large size; say if it should
    come back (the row of units has room for one more number).
-7. **Tests**: the L/R mark's reader label is mutation-checked, the colour tests too;
+5. **Tests**: the L/R mark's reader label is mutation-checked, the colour tests too;
    `ControllerRailPanel`'s width test only checks the number. No contract test is
    needed (nothing new is read from the server).
-8. **Not pushed.** The local commits of this branch are ahead of origin; `pubspec.lock`
-   is modified only by the sibling `app-shared` override and is never committed.
-   `PickerTile` in `app-shared` is still uncommitted there (see
-   a11y-guideline-tests.md, open item 6).
-9. A second Argon round on the Filament and Move changes was not done; the first one
+6. A second Argon round on the Filament and Move changes was not done; the first one
     (the rail, `_IconScale`, the large-text scroll) found three real bugs, all fixed.
+
+## 10. Reference research: the BTT screen (issue #54)
+
+Researched 2026-10-16 from BIGTREETECH's public pages, official screenshots and the
+UI string table they publish; the `en-US.img` language pack and the v1.0.8.0 firmware
+`.bin` were opened only as far as their structure and readable strings (no
+disassembly, no bitmap extraction). Nothing from them is copied into this repo.
+
+**The device.** "BTT" below is BIGTREETECH's 5" 800×480 ESP32-S3 touch screen
+(about 686×411 dp) that talks to Bambu printers directly, in LAN mode or through the
+Bambu Cloud. A phone in landscape is wider and a little shorter, so **height is the
+layout constraint**. Our app already did most of what the BTT screen does, through the
+bambuddy server; what was missing was a single-printer landscape layout, not new API.
+
+**Licence, and what follows from it.** `bigtreetech/PandaTouch` is public but has
+`license: null` (all rights reserved) and **no firmware source**; BIGTREETECH said in
+writing (issue #351) that it will not publish it. So nothing in it — strings, bitmaps,
+layout — is reusable as ours. This is an engineering judgement, not legal advice; BTT's
+terms of sale were not read.
+
+- Functions are not protected, a copied interface can be: same *kinds* of screens
+  (a printer list, a filament view, a file browser are generic), own layout, icons,
+  colours and wording.
+- Do not copy their artwork (the mascot, the AMS spool drawing, the icon set), and do not
+  use the product's name or BIGTREETECH branding in the app, the store listing or the
+  in-app copy. Naming it in internal docs is fine.
+
+**The firmware** is an MQTT client of the printer plus an FTPS client for uploads;
+temperatures, fans and jogging go out as plain G-code. None of that matters here: the
+app calls the bambuddy server, which already exposes the same operations as REST routes.
+
+**Ideas carried over** because the server allows them: the guided load/unload sequence
+with a failure hint per step, per-fault answer buttons, confirmation wording that names
+the consequence ("cannot be resumed"), a *read only* state with a reason, a pre-flight
+reminder on start. The vendor's own warning on "Always On" (burn-in) supports the screen
+saver (§3).
+
+**Mapping to the app.** Route constants are in
+[endpoints.dart](../lib/core/api/endpoints.dart), actions in
+[controls_providers.dart](../lib/features/dashboard/controls_providers.dart).
+
+| BTT screen | In the app |
+|---|---|
+| Pause / resume / stop | `printPause` / `printResume` / `printStop` |
+| Chamber light, speed profile | `chamberLight`, `printSpeed` |
+| Nozzle / bed / chamber target | `nozzleTemperature`, `bedTemperature`, `chamberTemperature` (chamber only on models with an active heater, version-gated) |
+| Fans | `fanSpeed` (part / aux / chamber) |
+| Axis / extruder | the `move` and `extruder` control actions, `bed_jog.dart` |
+| AMS view, load/unload, edit slot | AMS slot configuration, `ControlAction.ams` |
+| Filament drying | `dry`, AMS drying route |
+| HMS list, dismissal | `hmsClear`, `hmsExecuteAction` |
+| File browser of the printer | `printerFiles*` routes (needs `PRINTERS_FILES`) |
+| Skip objects | skip-objects screen |
+| Multi-printer list | dashboard / wall mode |
+| Print screensaver | the controller's screen saver (`controller_saver.dart`) |
+
+No equivalent, and none wanted (the server owns it): Wi-Fi and printer setup,
+cloud-mode login, firmware OTA, USB drive, power-module binding (the server's
+smart plugs cover power), groups and group printing (the queue covers it).
+
+Sources: the [PandaTouch repository](https://github.com/bigtreetech/PandaTouch) (releases,
+v1.0.8.0 release notes, `Translation/en-GB.yml` and its README), its issues
+[#351](https://github.com/bigtreetech/PandaTouch/issues/351),
+[#39](https://github.com/bigtreetech/PandaTouch/issues/39) and
+[#3](https://github.com/bigtreetech/PandaTouch/issues/3), and the
+[BIGTREETECH wiki](https://global.bttwiki.com/PandaTouch.html).

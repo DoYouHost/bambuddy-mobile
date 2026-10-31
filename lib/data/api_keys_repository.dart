@@ -31,18 +31,14 @@ class ApiKeysRepository {
   );
 
   /// GET /api-keys/ — newest first, as the server orders them.
-  Future<List<ApiKey>> list() async {
-    try {
-      final res = await _dio.get<List<dynamic>>(Endpoints.apiKeys);
-      notificationScopeCapability.observeKey(
-        res.data?.firstOrNull,
-        ApiKeyScope.sendNotifications.wire,
-      );
-      return parseJsonList(res.data, ApiKey.fromJson);
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<List<ApiKey>> list() => guard(() async {
+    final res = await _dio.get<List<dynamic>>(Endpoints.apiKeys);
+    notificationScopeCapability.observeKey(
+      res.data?.firstOrNull,
+      ApiKeyScope.sendNotifications.wire,
+    );
+    return parseJsonList(res.data, ApiKey.fromJson);
+  });
 
   /// POST /api-keys/ — the only response that carries the key itself. The
   /// caller must show it and let it go: there is no route that returns it

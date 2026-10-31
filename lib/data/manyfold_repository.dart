@@ -44,19 +44,14 @@ class ManyfoldRepository {
   });
 
   /// The preview image, or `null` for a model without one (404).
-  Future<Uint8List?> preview(String id) async {
-    try {
-      final res = await _dio.get<List<int>>(
-        Endpoints.manyfoldPreview(id),
-        options: Options(responseType: ResponseType.bytes),
-      );
-      final bytes = res.data;
-      return bytes == null || bytes.isEmpty ? null : Uint8List.fromList(bytes);
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) return null;
-      throw mapDioException(e);
-    }
-  }
+  Future<Uint8List?> preview(String id) => guardAbsent<Uint8List?>(() async {
+    final res = await _dio.get<List<int>>(
+      Endpoints.manyfoldPreview(id),
+      options: Options(responseType: ResponseType.bytes),
+    );
+    final bytes = res.data;
+    return bytes == null || bytes.isEmpty ? null : Uint8List.fromList(bytes);
+  }, null);
 
   /// [folderId] `null` files it under the server's "Manyfold" folder.
   Future<ManyfoldImportResult> import({

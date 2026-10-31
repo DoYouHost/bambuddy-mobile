@@ -17,11 +17,7 @@ class AnnouncementsRepository {
     return AnnouncementFeed.fromJson(res.data ?? const {});
   }, AnnouncementFeed.hidden);
 
-  Future<void> markRead(String id) async {
-    try {
-      await _dio.post<void>(Endpoints.announcementRead(id));
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<void> markRead(String id) => guard(() async {
+    await _dio.post<void>(Endpoints.announcementRead(id));
+  });
 }

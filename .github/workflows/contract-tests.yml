@@ -23,7 +23,7 @@ name: Contract tests
 
 on:
   # Daily, 04:23 UTC, dispatched by Dagu on lxc-dagu rather than a `schedule:`
-  # here — see docs/scheduled-workflows.md. The server moves ~100 commits a
+  # here — see docs/release.md (Scheduled workflows). The server moves ~100 commits a
   # fortnight, so most breakage arrives without a commit of ours to hang it on.
   # server-drift.yml reads that as a diff; this catches the half that a diff
   # cannot judge.

@@ -28,11 +28,10 @@ import '../../helpers.dart';
 /// The profile-default calls run through the real repository over a scripted
 /// server, so what these tests count and record is what leaves the phone. The
 /// spool's own write is the fake notifier's, as in `spool_model_presets_test`.
-class _FakeInventory extends InventoryNotifier {
-  final List<String> writes = [];
+class _FakeInventory extends FixedInventory {
+  _FakeInventory() : super(InventoryState(spools: []));
 
-  @override
-  Future<InventoryState> build() async => InventoryState(spools: []);
+  final List<String> writes = [];
 
   @override
   Future<Spool?> createSpool(SpoolDraft draft) async {

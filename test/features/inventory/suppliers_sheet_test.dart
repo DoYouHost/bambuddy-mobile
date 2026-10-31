@@ -9,17 +9,12 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';
 import 'fake_suppliers.dart';
 
-class _Shelf extends InventoryNotifier {
+class _Shelf extends FixedInventory {
   _Shelf([
-    this.spools = const [
+    List<Spool> spools = const [
       Spool(id: 1, material: 'PLA', brand: 'Bambu', suppliers: []),
     ],
-  ]);
-
-  final List<Spool> spools;
-
-  @override
-  Future<InventoryState> build() async => InventoryState(spools: spools);
+  ]) : super(InventoryState(spools: spools));
 }
 
 void main() {

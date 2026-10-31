@@ -16,11 +16,10 @@ import '../../helpers.dart';
 /// Settings → Profile defaults: the list, Apply and Delete. The repository is
 /// the real one over a scripted server, so the requests counted are the ones a
 /// tap sends.
-class _FakeInventory extends InventoryNotifier {
-  int refreshes = 0;
+class _FakeInventory extends FixedInventory {
+  _FakeInventory() : super(InventoryState(spools: []));
 
-  @override
-  Future<InventoryState> build() async => InventoryState(spools: []);
+  int refreshes = 0;
 
   @override
   Future<void> refresh({bool askBackend = false}) async => refreshes++;

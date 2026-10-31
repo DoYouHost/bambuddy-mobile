@@ -30,7 +30,7 @@ name: Server drift
 
 on:
   # Weekly, Monday 06:37 UTC, dispatched by Dagu on lxc-dagu rather than a
-  # `schedule:` here — see docs/scheduled-workflows.md. The server does ~100
+  # `schedule:` here — see docs/release.md (Scheduled workflows). The server does ~100
   # commits a fortnight but touches the contract in about 20 files, so a daily
   # run would mostly report nothing.
   workflow_dispatch:

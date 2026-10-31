@@ -237,7 +237,7 @@ app reports for itself. One drawer tile, one screen, read only
 
 The report feature itself is documented in [diagnostics-log.md](diagnostics-log.md)
 and [logging-guide.md](logging-guide.md); the bar lives in the shared package
-`app_report_ui` ([shared-packages.md](shared-packages.md)). One trap for whoever
+`app_report_ui` ([dependency-upgrades.md](dependency-upgrades.md#shared-packages-app-shared)). One trap for whoever
 touches how it is mounted: it is placed in `MaterialApp.builder`, **above the
 `Navigator`**, so there is no `Overlay` there and a `tooltip:` inside it throws.
 Use a `Semantics` label, and in a test mount the widget through `builder:`, not
