@@ -97,8 +97,9 @@ does not ask what the server has configured.
   warned and says nothing, like every other event ([above](#baseline-the-first-frame-fires-nothing)).
 - **On by default,** including for an install that predates it: it was not in the saved
   manifest, so it takes the default it ships with. The latch is set whatever the
-  preference says, as for the first layer, so switching it on mid-print does not warn
-  about a pause that was already inside the lead.
+  preference says, as for the first layer. Preferences are read once per service
+  start, so a switch changed mid-print takes effect with the next start, whose
+  baseline records a pause already inside the lead without warning about it.
 
 ## HMS faults
 

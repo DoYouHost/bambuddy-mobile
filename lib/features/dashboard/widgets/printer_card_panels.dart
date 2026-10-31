@@ -313,7 +313,9 @@ class _PrintProgressBar extends StatelessWidget {
           : (progress / 100).clamp(0.0, 1.0),
       height: height,
     );
-    return showPause
+    // Not on the indeterminate bar of a printer still preparing: it has no
+    // scale for a tick to sit on.
+    return showPause && _preparingStage(status) == null
         ? PauseTick(
             fraction: pauseTickFraction(status),
             barHeight: height,

@@ -4824,6 +4824,32 @@ void main() {
       expect(tester.widget<PauseTick>(tick()).fraction, isNull);
     });
 
+    testWidgets('a printer still preparing has no tick on its bar', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _cardWithProviders(
+          const PrinterWithStatus(
+            printer: Printer(id: 1, name: 'X1C'),
+            status: PrinterStatus(
+              id: 1,
+              connected: true,
+              state: 'RUNNING',
+              progress: 0,
+              stgCurName: 'Auto bed leveling',
+              totalLayers: 200,
+              nextPause: NextPause(layer: 50, minutes: 5),
+            ),
+          ),
+        ),
+      );
+      // Not pumpAndSettle: an indeterminate bar animates for as long as it is
+      // there.
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(tick(), findsNothing, reason: 'the bar has no scale yet');
+    });
+
     testWidgets('the collapsed card leaves the tick out', (tester) async {
       await tester.pumpWidget(
         _scope(

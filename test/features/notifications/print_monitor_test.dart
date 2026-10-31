@@ -744,6 +744,28 @@ void main() {
       expect(warning(fake), isNotNull);
     });
 
+    testAt('a pause already due is recorded even when the first frame is the '
+        'printer in a stage of its own', (_) {
+      final fake = RecordingNotifications();
+      final m = withPause(fake);
+      // Bed levelling on the first frame: not a job being laid down, but the
+      // pause is ahead all the same.
+      m.update({
+        1: _status(
+          state: 'RUNNING',
+          job: 'bracket',
+          layerNum: 3,
+          stgCur: 1,
+          pause: const NextPause(layer: 120, minutes: 3),
+        ),
+      });
+      // The stage ends, with job numbers of their own.
+      m.update({1: frame(2, printing: 4)});
+      m.update({1: frame(1, printing: 5)});
+
+      expect(warning(fake), isNull);
+    });
+
     testAt('a new print is warned about again, even at the same layer', (_) {
       final fake = RecordingNotifications();
       final m = withPause(fake);

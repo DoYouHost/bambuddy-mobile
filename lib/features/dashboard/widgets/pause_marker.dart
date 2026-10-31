@@ -13,11 +13,13 @@ import 'print_meta_row.dart';
 /// share of the print done, so the pause sits that far plus the share its
 /// minutes are of the whole print. Without them (the start of a print, a speed
 /// mode other than standard) it falls back to its layer's share of the layers,
-/// which is only roughly where the fill will be then.
+/// which is only roughly where the fill will be then, and never behind it.
 double? pauseTickFraction(PrinterStatus status) {
   final pause = status.nextPause;
   if (pause == null) return null;
   final progress = status.progress;
+  // A finished bar has nothing ahead of it to mark.
+  if (progress != null && progress >= 100) return null;
   final remaining = status.remainingTime;
   final minutes = pause.minutes;
   if (progress != null &&
@@ -31,7 +33,9 @@ double? pauseTickFraction(PrinterStatus status) {
   }
   final layers = status.totalLayers;
   if (layers != null && layers > 0 && pause.layer <= layers) {
-    return pause.layer / layers;
+    // Never behind the fill: the layers' share and the bar's share (time) drift
+    // apart, and a pause ahead drawn inside the done part reads as one passed.
+    return (pause.layer / layers).clamp((progress ?? 0) / 100, 1.0);
   }
   return null;
 }

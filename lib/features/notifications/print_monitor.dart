@@ -410,17 +410,19 @@ class PrintMonitor {
       // baseline reading, deliberately without the window's ceiling; the two
       // are one pair in [PrinterStatus.firstLayerPassed].
       if (status.firstLayerPassed) memo.once(PrintOnce.firstLayer).claim();
-      // A pause already inside the lead time was announced by whatever watched
-      // before this monitor, or never will be; recorded, not warned about.
-      if (_pauseDue(status) case final pause?) {
-        memo.pauseWarnedLayers.add(pause.layer);
-      }
       if (status.progress != null) {
         final pct = status.progress!.round();
         for (final m in _milestones) {
           if (pct >= m) memo.milestonesSent.add(m);
         }
       }
+    }
+    // A pause already inside the lead time was announced by whatever watched
+    // before this monitor, or never will be; recorded, not warned about. Outside
+    // the job branch above: a printer in a named stage on its first frame still
+    // has the pause ahead, and the next frame would otherwise warn about it.
+    if (_pauseDue(status) case final pause?) {
+      memo.pauseWarnedLayers.add(pause.layer);
     }
     memo.offline.seed(status.connected);
     final errors = status.hmsErrors;

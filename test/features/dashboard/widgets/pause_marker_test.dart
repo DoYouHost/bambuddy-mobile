@@ -76,6 +76,34 @@ void main() {
       );
     });
 
+    test('the layers\' share is never drawn behind the fill', () {
+      // 60% done, yet only layer 45 of 100: the tick is on the fill's edge,
+      // not inside the part already printed.
+      final at = pauseTickFraction(
+        _status(
+          pause: const NextPause(layer: 45),
+          progress: 60,
+          remaining: 0,
+          layers: 100,
+        ),
+      );
+      expect(at, 0.6);
+    });
+
+    test('a finished bar has no tick, whatever the layers say', () {
+      expect(
+        pauseTickFraction(
+          _status(
+            pause: const NextPause(layer: 50),
+            progress: 100,
+            remaining: 0,
+            layers: 100,
+          ),
+        ),
+        isNull,
+      );
+    });
+
     test('no pause, no tick', () {
       expect(pauseTickFraction(_status()), isNull);
     });
