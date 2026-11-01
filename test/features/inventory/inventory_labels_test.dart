@@ -14,10 +14,12 @@ import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_providers.dart';
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
+import 'package:bambuddy_mobile/l10n/error_messages.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show StateProvider;
@@ -87,6 +89,9 @@ class _RecordingLabelPrinter extends LabelPrinterRepository {
   bool? cutAtEnd;
   int? cutEvery;
 
+  /// What the next send fails with.
+  Object? error;
+
   @override
   Future<void> printPdf(
     Uint8List pdf, {
@@ -95,6 +100,7 @@ class _RecordingLabelPrinter extends LabelPrinterRepository {
     bool cutAtEnd = true,
     int cutEvery = 0,
   }) async {
+    if (error != null) throw error!;
     sent = pdf;
     this.copies = copies;
     this.cutAtEnd = cutAtEnd;
@@ -124,10 +130,14 @@ class _PngPrefs extends LabelPrintPrefsNotifier {
 /// A cache directory that fails, but not at once — after the label sheet has
 /// closed, which is when the hand-off runs.
 class _SlowFailingPaths extends PathProviderPlatform {
+  _SlowFailingPaths(this.error);
+
+  final Object error;
+
   @override
   Future<String?> getTemporaryPath() async {
     await Future<void>.delayed(const Duration(seconds: 1));
-    throw const FileSystemException('disk full');
+    throw error;
   }
 }
 
@@ -477,6 +487,19 @@ void main() {
       expect(find.text('LABEL PRINTER'), findsOneWidget);
     });
 
+    testWidgets('a label server that refuses the login says so after the '
+        'sheet closed', (tester) async {
+      const refusal = AuthException(AppErrorCode.unauthorized);
+      final printer = _RecordingLabelPrinter()..error = refusal;
+      await openOptions(tester, chosen: true, printer: printer);
+
+      await tester.tap(find.text(pl.inventoryLabelsPrint));
+      await settle(tester);
+
+      expect(find.text(refusal.localized(pl)), findsOneWidget);
+      expect(find.text(pl.labelPrinterSent), findsNothing);
+    });
+
     testWidgets('a chosen server is where the labels go by default', (
       tester,
     ) async {
@@ -761,33 +784,38 @@ void main() {
       expect(find.text(pl.labelFormatTitle), findsOneWidget);
     });
 
-    testWidgets('a hand-off that fails after the sheet closed still says so', (
-      tester,
-    ) async {
-      final previous = PathProviderPlatform.instance;
-      PathProviderPlatform.instance = _SlowFailingPaths();
-      addTearDown(() => PathProviderPlatform.instance = previous);
+    // The device failing, not a bug: a full disk, a missing print service.
+    for (final (name, error) in <(String, Object)>[
+      ('a file error', const FileSystemException('disk full')),
+      ('a platform error', PlatformException(code: 'no_print_service')),
+    ]) {
+      testWidgets('a hand-off that fails with $name after the sheet closed '
+          'still says so', (tester) async {
+        final previous = PathProviderPlatform.instance;
+        PathProviderPlatform.instance = _SlowFailingPaths(error);
+        addTearDown(() => PathProviderPlatform.instance = previous);
 
-      final container = await openOptions(tester, fieldsGate: true);
-      rendering.bytes = Uint8List.fromList([
-        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, //
-      ]);
-      await pickOption(tester, pl.labelFormatTitle, 'PNG');
-      await tapOption(tester, find.text(pl.inventoryLabelsPrint));
-      expect(
-        container.read(labelPrintPrefsProvider).format,
-        SpoolLabelFormat.png,
-      );
+        final container = await openOptions(tester, fieldsGate: true);
+        rendering.bytes = Uint8List.fromList([
+          0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, //
+        ]);
+        await pickOption(tester, pl.labelFormatTitle, 'PNG');
+        await tapOption(tester, find.text(pl.inventoryLabelsPrint));
+        expect(
+          container.read(labelPrintPrefsProvider).format,
+          SpoolLabelFormat.png,
+        );
 
-      // The sheet closes at once; the cache directory fails a second later.
-      // In steps: one long pump fires the timer before the frame that takes
-      // the sheet down, and the sheet would still be there to report it.
-      for (var i = 0; i < 20; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
-      await settle(tester);
+        // The sheet closes at once; the cache directory fails a second later.
+        // In steps: one long pump fires the timer before the frame that takes
+        // the sheet down, and the sheet would still be there to report it.
+        for (var i = 0; i < 20; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        await settle(tester);
 
-      expect(find.text(pl.inventoryLabelsFailed), findsOneWidget);
-    });
+        expect(find.text(pl.inventoryLabelsFailed), findsOneWidget);
+      });
+    }
   });
 }

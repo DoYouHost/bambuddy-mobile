@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
+import '../../core/format/fixed_format.dart';
 import '../../core/models/archive.dart';
 import '../../data/archive_repository.dart';
 import '../../core/theme/dash_theme.dart';
@@ -52,9 +53,7 @@ enum FilamentGramsError { notANumber, outOfRange }
 /// because the alternative is a field that opens on 12.344999999999999.
 String filamentGramsText(double? grams) {
   if (grams == null) return '';
-  final fixed = grams.toStringAsFixed(2);
-  if (!fixed.contains('.')) return fixed;
-  return fixed.replaceFirst(RegExp(r'\.?0+$'), '');
+  return trimFixedZeros(grams.toStringAsFixed(2));
 }
 
 /// What the runs of this file say about its filament, as a line under the

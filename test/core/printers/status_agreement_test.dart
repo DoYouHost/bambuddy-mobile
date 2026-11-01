@@ -58,9 +58,18 @@ void main() {
 
   for (final entry in cases.entries) {
     test('the widget and the watch word "${entry.key}" as the filter does', () {
-      final bucket = classifyPrinter(entry.value);
+      final bucket = classifyPrinter(
+        entry.value,
+        describe: HmsCatalog.instance.describe,
+      );
       if (entry.value != null) {
-        expect(WidgetStatus.keyFor(entry.value!), bucket.name);
+        expect(
+          WidgetStatus.keyFor(
+            entry.value!,
+            describe: HmsCatalog.instance.describe,
+          ),
+          bucket.name,
+        );
       }
       expect(wearStateOf(entry.value).name, bucket.name);
     });
@@ -74,16 +83,36 @@ void main() {
   });
 
   test('a failed job is finished, never a state of its own', () {
-    expect(WidgetStatus.keyFor(_status(state: 'FAILED')), 'finished');
+    expect(
+      WidgetStatus.keyFor(
+        _status(state: 'FAILED'),
+        describe: HmsCatalog.instance.describe,
+      ),
+      'finished',
+    );
     expect(wearStateOf(_status(state: 'FAILED')), WearState.finished);
   });
 
   test('a fault is the error bucket and still leaves a job to act on', () {
     final s = _status(state: 'RUNNING', hms: const [_fault]);
-    expect(WidgetStatus.keyFor(s), 'error');
+    expect(
+      WidgetStatus.keyFor(s, describe: HmsCatalog.instance.describe),
+      'error',
+    );
     expect(wearStateOf(s), WearState.error);
     expect(s.isJobActive, isTrue);
     expect(WidgetStatus.isActive(s), isTrue);
+  });
+
+  test('the catalogue handed in decides, never the one of this isolate', () {
+    // `_fault` has no sentence of its own: only a catalogue can name it. The
+    // test isolate has one loaded, and a background isolate may not.
+    final s = _status(state: 'RUNNING', hms: const [_fault]);
+    expect(WidgetStatus.keyFor(s, describe: null), 'printing');
+    expect(
+      WidgetStatus.keyFor(s, describe: HmsCatalog.instance.describe),
+      'error',
+    );
   });
 
   test('a preparing printer is idle by bucket and active by job', () {

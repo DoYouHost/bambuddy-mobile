@@ -1,9 +1,9 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:app_util/app_util.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format/datetime_format.dart';
+import '../../core/format/money_format.dart';
 import '../../core/models/cost_center.dart';
 import '../../core/models/current_user.dart' show Permissions;
 import '../../core/models/wallet.dart';
@@ -386,7 +386,7 @@ class _SectionHeader extends StatelessWidget {
 /// `-$1.50`: the sign leads, the symbol follows it, two decimals.
 String _money(String currency, double amount, {bool plus = false}) {
   final sign = amount < 0 ? '-' : (plus && amount > 0 ? '+' : '');
-  return '$sign${formatMoney(currency, amount.abs().toStringAsFixed(2))}';
+  return '$sign${formatMoneyValue(currency, amount.abs())}';
 }
 
 class _BalanceCard extends ConsumerWidget {

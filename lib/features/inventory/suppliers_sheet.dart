@@ -302,9 +302,9 @@ class _SupplierFormSheetState extends ConsumerState<_SupplierFormSheet> {
     final container = ProviderScope.containerOf(context);
     final draft = SupplierDraft(
       name: _c['name']!.text.trim(),
-      website: _trimmedField(_c, 'website'),
-      customerNumber: _trimmedField(_c, 'customerNumber'),
-      note: _trimmedField(_c, 'note'),
+      website: trimmedOrNull(_c['website']!.text),
+      customerNumber: trimmedOrNull(_c['customerNumber']!.text),
+      note: trimmedOrNull(_c['note']!.text),
     );
     setState(() => _saving = true);
     try {

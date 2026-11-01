@@ -3,6 +3,7 @@ import 'package:app_util/app_util.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/models/printer_location.dart';
+import '../../core/notifications/hms_catalog.dart';
 import '../../core/printers/printer_bucket.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
@@ -220,7 +221,10 @@ class LocationPrinterRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final bucket = classifyPrinter(printer.status);
+    final bucket = classifyPrinter(
+      printer.status,
+      describe: HmsCatalog.instance.describe,
+    );
     final (accent, ink) = switch (bucket) {
       PrinterStatusBucket.printing => (t.accentOrange, t.accentOrangeInk),
       PrinterStatusBucket.paused => (t.warning, t.warningInk),

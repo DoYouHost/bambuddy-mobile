@@ -502,9 +502,7 @@ class _JobCard extends StatelessWidget {
         ),
         PrintMetaItem(
           icon: Icons.flag_outlined,
-          text: l10n.eta(
-            fmt.time(DateTime.now().add(Duration(minutes: remaining))),
-          ),
+          text: l10n.eta(etaClock(fmt, remaining)),
         ),
       ],
       // The least used of the three: left out where there is room for two.

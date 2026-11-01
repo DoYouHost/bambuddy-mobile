@@ -15,9 +15,6 @@ enum PrinterStatusBucket {
   offline,
 }
 
-/// This isolate's catalogue as a `describe` callback — [classifyPrinter]'s default.
-String? catalogHmsDescription(HmsError e) => HmsCatalog.instance.describe(e);
-
 /// Classify a printer's live [status] into one bucket — the web's
 /// `classifyPrinterStatus` (`PrintersPage.tsx`), state for state: offline (no
 /// connection, or none reported) wins, then error (a displayable HMS error —
@@ -26,12 +23,14 @@ String? catalogHmsDescription(HmsError e) => HmsCatalog.instance.describe(e);
 /// cancellation included, so it counts as finished; a preparing printer and any
 /// other state fall back to idle.
 ///
-/// [describe] names an HMS code; it defaults to this isolate's catalogue. A
-/// background isolate passes its own, and an explicit `null` means "none loaded".
+/// [describe] names an HMS code and is required, as for the other HMS filters:
+/// no isolate is handed another's catalogue. The UI passes
+/// `HmsCatalog.instance.describe`, a background isolate its own, and `null`
+/// means "none loaded".
 /// Never returns [PrinterStatusBucket.all] (that's the "no filter" sentinel).
 PrinterStatusBucket classifyPrinter(
   PrinterStatus? status, {
-  String? Function(HmsError)? describe = catalogHmsDescription,
+  required String? Function(HmsError)? describe,
 }) {
   if (!(status?.connected ?? false)) return PrinterStatusBucket.offline;
   // The same displayable HMS errors the card surfaces, through the shared

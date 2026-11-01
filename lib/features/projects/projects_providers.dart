@@ -9,6 +9,7 @@ import '../../core/models/project.dart';
 import '../../core/models/queue_item.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
+import '../common/reload_in_place.dart';
 
 /// A mutation that is not an [AppApiException] never reached the server, so
 /// there is no reason to report beyond the failure itself.
@@ -22,6 +23,28 @@ ActionOutcome _mapError(Object e, String action) => e is AppApiException
         action: action,
       );
 
+/// Runs a mutation of one project, then reloads its list and drops its detail
+/// so the stats the server recomputes show. Only [AppApiException]s are
+/// answers; each maps through [_mapError].
+Future<ActionOutcome> _mutateProject(
+  Future<void> Function() action,
+  String logId, {
+  required Ref ref,
+  required int projectId,
+  required Future<void> Function() refresh,
+}) async {
+  try {
+    await action();
+    if (!ref.mounted) return ActionOutcome.ok;
+    await refresh();
+    if (!ref.mounted) return ActionOutcome.ok;
+    ref.invalidate(projectDetailProvider(projectId));
+    return ActionOutcome.ok;
+  } on AppApiException catch (e) {
+    return _mapError(e, logId);
+  }
+}
+
 /// Active status filter for the projects list (`null` = all).
 final projectStatusFilterProvider = StateProvider<String?>((_) => null);
 
@@ -33,7 +56,8 @@ final projectsListProvider =
 
 /// Projects list with optional status filter. Rebuilds on profile or filter
 /// change. Delete is optimistic; create just refreshes (server computes stats).
-class ProjectsListNotifier extends AsyncNotifier<List<ProjectListResponse>> {
+class ProjectsListNotifier extends AsyncNotifier<List<ProjectListResponse>>
+    with ReloadInPlace<List<ProjectListResponse>> {
   @override
   Future<List<ProjectListResponse>> build() async {
     ref.watch(serverProfileProvider);
@@ -41,16 +65,11 @@ class ProjectsListNotifier extends AsyncNotifier<List<ProjectListResponse>> {
     return ref.read(projectsRepositoryProvider).list(status: status);
   }
 
-  Future<void> refresh() async {
-    state = const AsyncLoading<List<ProjectListResponse>>();
-    final next = await AsyncValue.guard(
-      () => ref
-          .read(projectsRepositoryProvider)
-          .list(status: ref.read(projectStatusFilterProvider)),
-    );
-    if (!ref.mounted) return;
-    state = next;
-  }
+  Future<void> refresh() => reloadInPlace(
+    () => ref
+        .read(projectsRepositoryProvider)
+        .list(status: ref.read(projectStatusFilterProvider)),
+  );
 
   /// Optimistic delete: remove locally, call server, put the row back on
   /// failure.
@@ -97,7 +116,8 @@ final projectDetailProvider = AsyncNotifierProvider.autoDispose
     );
 
 /// Full project detail keyed by id. Refresh after edits (stats recompute server-side).
-class ProjectDetailNotifier extends AsyncNotifier<ProjectResponse> {
+class ProjectDetailNotifier extends AsyncNotifier<ProjectResponse>
+    with ReloadInPlace<ProjectResponse> {
   ProjectDetailNotifier(this.arg);
 
   final int arg;
@@ -107,14 +127,8 @@ class ProjectDetailNotifier extends AsyncNotifier<ProjectResponse> {
     return ref.read(projectsRepositoryProvider).get(arg);
   }
 
-  Future<void> refresh() async {
-    state = const AsyncLoading<ProjectResponse>();
-    final next = await AsyncValue.guard(
-      () => ref.read(projectsRepositoryProvider).get(arg),
-    );
-    if (!ref.mounted) return;
-    state = next;
-  }
+  Future<void> refresh() =>
+      reloadInPlace(() => ref.read(projectsRepositoryProvider).get(arg));
 
   /// PATCH the project and replace state with the server response.
   Future<ActionOutcome> save(ProjectUpdate body) async {
@@ -131,65 +145,13 @@ class ProjectDetailNotifier extends AsyncNotifier<ProjectResponse> {
   }
 }
 
-final projectArchivesProvider = AsyncNotifierProvider.autoDispose
-    .family<ProjectArchivesNotifier, List<ArchivePreview>, int>(
-      ProjectArchivesNotifier.new,
-    );
-
-/// Archives linked to a project, with add/remove that also refresh the detail
-/// (counts/stats change). Keyed by project id.
-class ProjectArchivesNotifier extends AsyncNotifier<List<ArchivePreview>> {
-  ProjectArchivesNotifier(this.arg);
-
-  final int arg;
-  @override
-  Future<List<ArchivePreview>> build() async {
-    ref.watch(serverProfileProvider);
-    return ref.read(projectsRepositoryProvider).archives(arg);
-  }
-
-  Future<void> refresh() async {
-    state = const AsyncLoading<List<ArchivePreview>>();
-    final next = await AsyncValue.guard(
-      () => ref.read(projectsRepositoryProvider).archives(arg),
-    );
-    if (!ref.mounted) return;
-    state = next;
-  }
-
-  Future<ActionOutcome> add(List<int> archiveIds) => _mutate(
-    () => ref.read(projectsRepositoryProvider).addArchives(arg, archiveIds),
-    'project.archive_add',
-  );
-
-  Future<ActionOutcome> remove(int archiveId) => _mutate(
-    () => ref.read(projectsRepositoryProvider).removeArchives(arg, [archiveId]),
-    'project.archive_remove',
-  );
-
-  Future<ActionOutcome> _mutate(
-    Future<void> Function() action,
-    String logId,
-  ) async {
-    try {
-      await action();
-      if (!ref.mounted) return ActionOutcome.ok;
-      await refresh();
-      if (!ref.mounted) return ActionOutcome.ok;
-      ref.invalidate(projectDetailProvider(arg));
-      return ActionOutcome.ok;
-    } on AppApiException catch (e) {
-      return _mapError(e, logId);
-    }
-  }
-}
-
 final projectBomProvider = AsyncNotifierProvider.autoDispose
     .family<ProjectBomNotifier, List<BomItem>, int>(ProjectBomNotifier.new);
 
 /// BOM items for a project with full CRUD. Mutations refresh the list and the
 /// detail (BOM totals feed project stats). Keyed by project id.
-class ProjectBomNotifier extends AsyncNotifier<List<BomItem>> {
+class ProjectBomNotifier extends AsyncNotifier<List<BomItem>>
+    with ReloadInPlace<List<BomItem>> {
   ProjectBomNotifier(this.arg);
 
   final int arg;
@@ -199,45 +161,32 @@ class ProjectBomNotifier extends AsyncNotifier<List<BomItem>> {
     return ref.read(projectsRepositoryProvider).bom(arg);
   }
 
-  Future<void> refresh() async {
-    state = const AsyncLoading<List<BomItem>>();
-    final next = await AsyncValue.guard(
-      () => ref.read(projectsRepositoryProvider).bom(arg),
-    );
-    if (!ref.mounted) return;
-    state = next;
-  }
+  Future<void> refresh() =>
+      reloadInPlace(() => ref.read(projectsRepositoryProvider).bom(arg));
 
-  Future<ActionOutcome> add(BomItemInput body) => _mutate(
+  Future<ActionOutcome> add(BomItemInput body) => _mutateProject(
     () => ref.read(projectsRepositoryProvider).addBomItem(arg, body),
     'bom_item.save',
+    ref: ref,
+    projectId: arg,
+    refresh: refresh,
   );
 
-  Future<ActionOutcome> edit(int itemId, BomItemInput body) => _mutate(
+  Future<ActionOutcome> edit(int itemId, BomItemInput body) => _mutateProject(
     () => ref.read(projectsRepositoryProvider).updateBomItem(arg, itemId, body),
     'bom_menu.edit',
+    ref: ref,
+    projectId: arg,
+    refresh: refresh,
   );
 
-  Future<ActionOutcome> delete(int itemId) => _mutate(
+  Future<ActionOutcome> delete(int itemId) => _mutateProject(
     () => ref.read(projectsRepositoryProvider).deleteBomItem(arg, itemId),
     'bom_menu.delete',
+    ref: ref,
+    projectId: arg,
+    refresh: refresh,
   );
-
-  Future<ActionOutcome> _mutate(
-    Future<void> Function() action,
-    String logId,
-  ) async {
-    try {
-      await action();
-      if (!ref.mounted) return ActionOutcome.ok;
-      await refresh();
-      if (!ref.mounted) return ActionOutcome.ok;
-      ref.invalidate(projectDetailProvider(arg));
-      return ActionOutcome.ok;
-    } on AppApiException catch (e) {
-      return _mapError(e, logId);
-    }
-  }
 }
 
 /// Queue items linked to a project (read-only list).

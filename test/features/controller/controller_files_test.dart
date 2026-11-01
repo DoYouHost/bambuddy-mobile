@@ -56,6 +56,9 @@ class _Library extends FileManagerNotifier {
   final Completer<void>? openGate;
   final Completer<void>? refreshGate;
 
+  /// Held until completed by the NEXT build only: a retry in flight.
+  Completer<void>? holdBuild;
+
   /// How often the library was built, which is how often it is fetched.
   final builds = <int>[];
 
@@ -70,6 +73,7 @@ class _Library extends FileManagerNotifier {
     builds.add(builds.length + 1);
     ref.onDispose(() => disposals.add(disposals.length + 1));
     await gate?.future;
+    await holdBuild?.future;
     if (failWith != null) throw failWith!;
     return FileManagerState(
       allFolders: folders,
@@ -563,6 +567,28 @@ void main() {
 
       expect(find.text(pl.connectFailed), findsOneWidget);
       expect(find.text('benchy.gcode.3mf'), findsNothing);
+    });
+
+    testWidgets('a retry under way shows neither the old folder nor the '
+        'failure', (tester) async {
+      await pump(tester, lib: tree(openFailsWith: Exception('down')));
+      await openFiles(tester);
+      await tester.tap(find.text('Alpha'));
+      await settle(tester);
+      expect(find.text(pl.connectFailed), findsOneWidget);
+
+      final hold = Completer<void>();
+      library.holdBuild = hold;
+      await tester.tap(byLogId('controller.files.retry'));
+      await tester.pump();
+
+      expect(find.text('benchy.gcode.3mf'), findsNothing);
+      expect(find.text(pl.connectFailed), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      hold.complete();
+      await settle(tester);
+      expect(find.text('benchy.gcode.3mf'), findsOneWidget);
     });
 
     testWidgets('while a step is under way Up and the folders wait', (

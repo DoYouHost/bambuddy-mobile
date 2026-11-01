@@ -1,8 +1,8 @@
-import 'package:app_util/app_util.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ams/job_cost.dart';
 import '../../core/ams/slot_addressing.dart';
+import '../../core/format/money_format.dart';
 import '../../data/inventory_source.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -77,7 +77,7 @@ String jobCostText(
   JobCost cost,
   int copies,
 ) {
-  String money(double v) => formatMoney(currency, v.toStringAsFixed(2));
+  String money(double v) => formatMoneyValue(currency, v);
   final priced = cost.total > 0 || cost.anyPrice;
   return [
     l10n.queueEstimatedCost(

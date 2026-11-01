@@ -192,7 +192,7 @@ class _PrintPanel extends StatelessWidget {
       if (remaining != null && remaining > 0)
         PrintMetaItem(
           icon: Icons.flag_outlined,
-          text: l10n.eta(_etaTime(DateTimeFormats.of(context), remaining)),
+          text: l10n.eta(etaClock(DateTimeFormats.of(context), remaining)),
         ),
       if (status.layerNum != null && status.totalLayers != null)
         PrintMetaItem(

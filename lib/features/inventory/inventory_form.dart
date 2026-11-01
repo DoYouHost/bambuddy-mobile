@@ -197,7 +197,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     super.dispose();
   }
 
-  String? _trim(String key) => _trimmedField(_c, key);
+  String? _trim(String key) => trimmedOrNull(_c[key]!.text);
 
   /// Whether the form offers the material number at all: the server has to
   /// store it and the backend has to take a write (Spoolman's is read-only).
@@ -1444,14 +1444,6 @@ Widget _spoolCombo(
       ],
     ),
   );
-}
-
-/// A trimmed field value, or null when the user left it blank. Blank means
-/// "unset" on both sheets: the form sends no key rather than an empty string,
-/// and the mass-edit patch leaves the field alone.
-String? _trimmedField(Map<String, TextEditingController> c, String key) {
-  final v = c[key]!.text.trim();
-  return v.isEmpty ? null : v;
 }
 
 /// An integer-typed field, parsed with the same tolerance as its validator:

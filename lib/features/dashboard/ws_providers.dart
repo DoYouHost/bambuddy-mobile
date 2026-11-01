@@ -217,7 +217,13 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
         resetCover: WidgetCoverCache.reset,
       ).catchError((_) {}),
     );
-    unawaited(MultiWidgetPublisher.publish(state, l10n).catchError((_) {}));
+    unawaited(
+      MultiWidgetPublisher.publish(
+        state,
+        l10n,
+        describeHms: HmsCatalog.instance.describe,
+      ).catchError((_) {}),
+    );
   }
 
   /// Fetch cover of current print to file (auth via the media credential). Raw

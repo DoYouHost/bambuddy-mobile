@@ -32,6 +32,9 @@ PrinterStatus _status({
   List<HmsError>? hms,
 }) => PrinterStatus(id: 1, connected: connected, state: state, hmsErrors: hms);
 
+PrinterStatusBucket _classify(PrinterStatus? s) =>
+    classifyPrinter(s, describe: HmsCatalog.instance.describe);
+
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -47,33 +50,33 @@ void main() {
   group('classifyPrinter', () {
     test('an uncataloged code leaves the print state alone', () {
       expect(
-        classifyPrinter(_status(state: 'RUNNING', hms: const [_uncataloged])),
+        _classify(_status(state: 'RUNNING', hms: const [_uncataloged])),
         PrinterStatusBucket.printing,
       );
       expect(
-        classifyPrinter(_status(state: 'IDLE', hms: const [_uncataloged])),
+        _classify(_status(state: 'IDLE', hms: const [_uncataloged])),
         PrinterStatusBucket.idle,
       );
       expect(
-        classifyPrinter(_status(state: 'PAUSE', hms: const [_uncataloged])),
+        _classify(_status(state: 'PAUSE', hms: const [_uncataloged])),
         PrinterStatusBucket.paused,
       );
     });
 
     test('a catalogued code outranks the print state', () {
       expect(
-        classifyPrinter(_status(state: 'RUNNING', hms: const [_catalogued])),
+        _classify(_status(state: 'RUNNING', hms: const [_catalogued])),
         PrinterStatusBucket.error,
       );
       expect(
-        classifyPrinter(_status(state: 'IDLE', hms: const [_catalogued])),
+        _classify(_status(state: 'IDLE', hms: const [_catalogued])),
         PrinterStatusBucket.error,
       );
     });
 
     test('one nameable code among noise is still an error', () {
       expect(
-        classifyPrinter(
+        _classify(
           _status(state: 'RUNNING', hms: const [_uncataloged, _catalogued]),
         ),
         PrinterStatusBucket.error,
@@ -82,44 +85,38 @@ void main() {
 
     test('FAILED with no HMS is finished, as on the web — a cancelled print '
         'is not a fault', () {
-      expect(
-        classifyPrinter(_status(state: 'FAILED')),
-        PrinterStatusBucket.finished,
-      );
+      expect(_classify(_status(state: 'FAILED')), PrinterStatusBucket.finished);
     });
 
     test('FAILED with a displayable HMS error is an error', () {
       expect(
-        classifyPrinter(_status(state: 'FAILED', hms: const [_catalogued])),
+        _classify(_status(state: 'FAILED', hms: const [_catalogued])),
         PrinterStatusBucket.error,
       );
     });
 
     test('a preparing printer is idle, as on the web', () {
-      expect(
-        classifyPrinter(_status(state: 'PREPARE')),
-        PrinterStatusBucket.idle,
-      );
+      expect(_classify(_status(state: 'PREPARE')), PrinterStatusBucket.idle);
     });
 
     test('offline outranks any carried-forward code', () {
       // mergedWith keeps hms_errors across a disconnect on purpose; the bucket
       // must still read OFFLINE rather than blame a printer that isn't there.
       expect(
-        classifyPrinter(
+        _classify(
           _status(state: 'RUNNING', connected: false, hms: const [_catalogued]),
         ),
         PrinterStatusBucket.offline,
       );
-      expect(classifyPrinter(null), PrinterStatusBucket.offline);
+      expect(_classify(null), PrinterStatusBucket.offline);
     });
 
     test('an empty or absent error list is not an error', () {
       expect(
-        classifyPrinter(_status(state: 'IDLE', hms: const [])),
+        _classify(_status(state: 'IDLE', hms: const [])),
         PrinterStatusBucket.idle,
       );
-      expect(classifyPrinter(_status(state: 'IDLE')), PrinterStatusBucket.idle);
+      expect(_classify(_status(state: 'IDLE')), PrinterStatusBucket.idle);
     });
   });
 }

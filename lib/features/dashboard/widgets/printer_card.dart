@@ -36,6 +36,7 @@ import '../../common/media_image.dart';
 import '../../common/dash_async.dart';
 import '../../../core/app_context.dart';
 import '../../common/plate_clear.dart';
+import '../../common/speed_name.dart';
 import '../../common/web_link.dart';
 import '../../files/printer_file_manager_screen.dart';
 import 'pause_marker.dart';

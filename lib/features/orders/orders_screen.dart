@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:app_util/app_util.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:material_ui/material_ui.dart';
@@ -9,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
+import '../../core/format/money_format.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/print_batch.dart';
 import '../../core/theme/dash_theme.dart';
@@ -559,7 +559,7 @@ class _Numbers extends ConsumerWidget {
     final t = DashTokens.of(context);
     final b = batch;
     final currency = ref.watch(currencySymbolProvider);
-    String money(double v) => formatMoney(currency, v.toStringAsFixed(2));
+    String money(double v) => formatMoneyValue(currency, v);
     final parts = <String>[
       if (b.printingCount > 0) l10n.ordersPrinting(b.printingCount),
       if (b.pendingCount > 0) l10n.ordersPending(b.pendingCount),

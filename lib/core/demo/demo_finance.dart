@@ -1,6 +1,7 @@
 import 'package:app_util/app_util.dart';
 
 import '../app_context.dart';
+import 'demo_result.dart';
 
 /// The demo's billing: three users, their cost centers and one shared ledger, kept
 /// as state so what an administrator changes is what the next listing shows.
@@ -143,7 +144,7 @@ class DemoFinance {
     'print_run_id': null,
     'print_archive_id': null,
     'print_queue_id': null,
-    'created_at': at.toUtc().toIso8601String(),
+    'created_at': isoUtc(at),
   };
 
   /// Every row's `balance_after`, as the server's `repair_wallet_ledger_internal`
@@ -257,20 +258,20 @@ class DemoFinance {
   /// passes, else the refusal.
   DemoResult? budgetRefusal(Object? costCenterId, double cost) {
     if (costCenterId == null) {
-      return _refuse(400, 'Cost center is required when billing is enabled');
+      return demoRefuse(400, 'Cost center is required when billing is enabled');
     }
     final center = _find(costCenterId);
-    if (center == null) return _refuse(404, 'Cost center not found');
+    if (center == null) return demoRefuse(404, 'Cost center not found');
     if (center['is_active'] != true) {
-      return _refuse(400, 'Cost center is inactive');
+      return demoRefuse(400, 'Cost center is inactive');
     }
-    final mine = this.mine().where((c) => c['id'] == costCenterId).firstOrNull;
+    final mine = rowById(this.mine(), costCenterId);
     if (mine == null || mine['can_print'] != true) {
-      return _refuse(403, 'You cannot print with this cost center');
+      return demoRefuse(403, 'You cannot print with this cost center');
     }
     final available = (mine['budget_available'] as num?)?.toDouble();
     if (available != null && cost > available) {
-      return _refuse(
+      return demoRefuse(
         400,
         'Estimated print cost exceeds available cost center budget '
         '(${cost.toStringAsFixed(2)} > ${available.toStringAsFixed(2)})',
@@ -279,8 +280,7 @@ class DemoFinance {
     return null;
   }
 
-  Map<String, dynamic>? _find(Object? id) =>
-      _centers.where((c) => c['id'] == id).firstOrNull;
+  Map<String, dynamic>? _find(Object? id) => rowById(_centers, id);
 
   // --- The routes ---
 
@@ -291,13 +291,12 @@ class DemoFinance {
     Map<String, String> query,
     Map<String, dynamic> body,
   ) {
-    DemoResult ok(Object? b) => (status: 200, body: b);
     final head = s.firstOrNull;
     int? idAt(int i) => s.length > i ? int.tryParse(s[i]) : null;
 
     if (head == 'me' && s.length == 2 && method == 'GET') {
       if (s[1] == 'balance') {
-        return ok({
+        return demoOk({
           'user_id': userId,
           'balance': balance,
           'currency': 'USD',
@@ -305,12 +304,12 @@ class DemoFinance {
         });
       }
       if (s[1] == 'transactions') {
-        return ok(_page(query, userId: userId));
+        return demoOk(_page(query, userId: userId));
       }
     }
     if (head == 'rebuild-balance-ledger' && method == 'POST') {
       _rebuild(_ledger);
-      return ok({
+      return demoOk({
         'status': 'success',
         'transactions_rebuilt': _ledger.length,
         'message': 'Rebuilt ${_ledger.length} wallet ledger values',
@@ -321,12 +320,12 @@ class DemoFinance {
       return _adjust(idAt(1), deposit: s[2] == 'deposit', body: body);
     }
     if (head == 'cost-centers') return _centersRoute(method, s, query, body);
-    return (status: 404, body: {'detail': 'Not Found'});
+    return demoNotFound();
   }
 
   Map<String, dynamic> _page(Map<String, String> query, {int? userId}) {
-    final limit = int.tryParse(query['limit'] ?? '') ?? 50;
-    final offset = int.tryParse(query['offset'] ?? '') ?? 0;
+    final limit = intQuery(query, 'limit', 50);
+    final offset = intQuery(query, 'offset', 0);
     final rows = [
       for (final r in _ledger)
         if (userId == null || r['user_id'] == userId) r,
@@ -355,11 +354,15 @@ class DemoFinance {
       final user = body['user_id'];
       final center = body['cost_center_id'];
       if (!users.any((u) => u['id'] == user)) {
-        return _refuse(404, 'User not found');
+        return demoRefuse(404, 'User not found');
       }
-      if (_find(center) == null) return _refuse(404, 'Cost center not found');
+      if (_find(center) == null) {
+        return demoRefuse(404, 'Cost center not found');
+      }
       final given = (body['amount'] as num?)?.toDouble() ?? 0;
-      if (given <= 0) return _refuse(422, 'Amount must be greater than zero');
+      if (given <= 0) {
+        return demoRefuse(422, 'Amount must be greater than zero');
+      }
       final amount = -given;
       final row = _row(
         user: user as int,
@@ -373,8 +376,8 @@ class DemoFinance {
       return (status: 200, body: row);
     }
     final id = s.length == 2 ? int.tryParse(s[1]) : null;
-    final row = _ledger.where((r) => r['id'] == id).firstOrNull;
-    if (row == null) return _refuse(404, 'Transaction not found');
+    final row = rowById(_ledger, id);
+    if (row == null) return demoRefuse(404, 'Transaction not found');
     if (method == 'DELETE') {
       _ledger.remove(row);
       _rebuild(_ledger);
@@ -383,14 +386,14 @@ class DemoFinance {
     if (method == 'PATCH') {
       if (body['user_id'] != null) {
         if (!users.any((u) => u['id'] == body['user_id'])) {
-          return _refuse(404, 'User not found');
+          return demoRefuse(404, 'User not found');
         }
         row['user_id'] = body['user_id'];
       }
       if (body.containsKey('cost_center_id')) {
         if (body['cost_center_id'] != null &&
             _find(body['cost_center_id']) == null) {
-          return _refuse(404, 'Cost center not found');
+          return demoRefuse(404, 'Cost center not found');
         }
         row['cost_center_id'] = body['cost_center_id'];
       }
@@ -404,7 +407,7 @@ class DemoFinance {
       _rebuild(_ledger);
       return (status: 200, body: row);
     }
-    return (status: 404, body: {'detail': 'Not Found'});
+    return demoNotFound();
   }
 
   void _insert(Map<String, dynamic> row) {
@@ -421,13 +424,13 @@ class DemoFinance {
     required Map<String, dynamic> body,
   }) {
     if (!users.any((u) => u['id'] == user)) {
-      return _refuse(404, 'User not found');
+      return demoRefuse(404, 'User not found');
     }
     final amount = (body['amount'] as num?)?.toDouble() ?? 0;
-    if (amount <= 0) return _refuse(422, 'Amount must be greater than zero');
+    if (amount <= 0) return demoRefuse(422, 'Amount must be greater than zero');
     final center = body['cost_center_id'];
     if (center != null && _find(center) == null) {
-      return _refuse(404, 'Cost center not found');
+      return demoRefuse(404, 'Cost center not found');
     }
     final row = _row(
       user: user!,
@@ -453,19 +456,20 @@ class DemoFinance {
     Map<String, String> query,
     Map<String, dynamic> body,
   ) {
-    DemoResult ok(Object? b) => (status: 200, body: b);
-    if (s.length == 2 && s[1] == 'mine' && method == 'GET') return ok(mine());
+    if (s.length == 2 && s[1] == 'mine' && method == 'GET') {
+      return demoOk(mine());
+    }
     if (s.length == 1) {
       if (method == 'GET') {
         final all = query['include_inactive'] == 'true';
-        return ok([
+        return demoOk([
           for (final c in _centers)
             if (all || c['is_active'] == true) _summary(c),
         ]);
       }
       if (method == 'POST') {
         final name = (body['name'] as String?)?.trim() ?? '';
-        if (name.isEmpty) return _refuse(422, 'Name is required');
+        if (name.isEmpty) return demoRefuse(422, 'Name is required');
         final monthly = (body['monthly_budget'] as num?)?.toDouble();
         final total = (body['total_budget'] as num?)?.toDouble();
         final created = _center(
@@ -477,20 +481,20 @@ class DemoFinance {
           limit: monthly ?? total,
         );
         _centers.add(created);
-        return ok(_summary(created));
+        return demoOk(_summary(created));
       }
     }
     final id = s.length >= 2 ? int.tryParse(s[1]) : null;
     final center = _find(id);
-    if (center == null) return _refuse(404, 'Cost center not found');
+    if (center == null) return demoRefuse(404, 'Cost center not found');
     final private = center['is_private'] == true;
     if (s.length == 2) {
       if (method == 'GET') {
-        return ok({..._summary(center), 'members': _membersOf(id!)});
+        return demoOk({..._summary(center), 'members': _membersOf(id!)});
       }
       if (method == 'PATCH') {
         if (private) {
-          return _refuse(
+          return demoRefuse(
             400,
             'Private cost centers cannot be deactivated or renamed; set '
             'their budget to 0 to prevent printing',
@@ -500,21 +504,21 @@ class DemoFinance {
           center['name'] = (body['name'] as String).trim();
         }
         if (body['is_active'] != null) center['is_active'] = body['is_active'];
-        return ok(_summary(center));
+        return demoOk(_summary(center));
       }
       if (method == 'DELETE') {
         if (private) {
-          return _refuse(400, 'Private cost centers cannot be deleted');
+          return demoRefuse(400, 'Private cost centers cannot be deleted');
         }
         if (_ledger.any((r) => r['cost_center_id'] == id)) {
-          return _refuse(
+          return demoRefuse(
             400,
             'Cost center cannot be deleted while transactions reference it',
           );
         }
         _centers.remove(center);
         _members.remove(id);
-        return ok({'status': 'success'});
+        return demoOk({'status': 'success'});
       }
     }
     if (s.length == 3 && s[2] == 'budgets' && method == 'PATCH') {
@@ -524,11 +528,11 @@ class DemoFinance {
           ? 'monthly'
           : (total != null ? 'total' : 'none');
       center['limit'] = monthly ?? total;
-      return ok(_summary(center));
+      return demoOk(_summary(center));
     }
     if (s.length >= 3 && s[2] == 'members') {
       if (private) {
-        return _refuse(
+        return demoRefuse(
           400,
           'Private cost center memberships cannot be modified',
         );
@@ -537,7 +541,7 @@ class DemoFinance {
       if (s.length == 3 && method == 'POST') {
         final user = body['user_id'];
         if (!users.any((u) => u['id'] == user)) {
-          return _refuse(404, 'User not found');
+          return demoRefuse(404, 'User not found');
         }
         final existing = members.where((m) => m['user_id'] == user).firstOrNull;
         if (existing == null) {
@@ -548,7 +552,7 @@ class DemoFinance {
         } else {
           existing['can_print'] = body['can_print'] != false;
         }
-        return ok({
+        return demoOk({
           'id': 1,
           'cost_center_id': id,
           'user_id': user,
@@ -559,11 +563,11 @@ class DemoFinance {
         final before = members.length;
         members.removeWhere((m) => m['user_id'] == int.tryParse(s[3]));
         return members.length == before
-            ? _refuse(404, 'Membership not found')
-            : ok({'status': 'success'});
+            ? demoRefuse(404, 'Membership not found')
+            : demoOk({'status': 'success'});
       }
     }
-    return (status: 404, body: {'detail': 'Not Found'});
+    return demoNotFound();
   }
 
   List<Map<String, dynamic>> _membersOf(int id) => [
@@ -572,10 +576,7 @@ class DemoFinance {
         'id': i + 1,
         'cost_center_id': id,
         ...m,
-        'created_at': DateTime.now().toUtc().toIso8601String(),
+        'created_at': isoUtc(DateTime.now()),
       },
   ];
-
-  static DemoResult _refuse(int status, String detail) =>
-      (status: status, body: {'detail': detail});
 }

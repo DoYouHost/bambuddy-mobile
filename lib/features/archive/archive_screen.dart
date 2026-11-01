@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:app_util/app_util.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +15,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import 'archive_media_sheet.dart';
 import '../common/api_failure_snack.dart';
+import '../common/search_debouncer.dart';
 import '../gcode/gcode_viewer_route.dart';
 import '../common/dash_async.dart';
 import '../common/print_thumbnail.dart';
@@ -46,7 +45,7 @@ class ArchiveScreen extends ConsumerStatefulWidget {
 }
 
 class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
-  Timer? _debounce;
+  final _debounce = SearchDebouncer(const Duration(milliseconds: 200));
 
   /// Purge-stats choice from the delete dialog, carried from `confirmDismiss`
   /// to `onDismissed` (only one swipe is in flight at a time).
@@ -75,17 +74,16 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
+    _debounce.dispose();
     super.dispose();
   }
 
   /// Search is a client-side filter; debounce only to avoid re-filtering the
   /// whole list on every keystroke.
   void _onSearchChanged(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 200), () {
+    _debounce.run(q, (trimmed) {
       final notifier = ref.read(archiveFiltersProvider.notifier);
-      notifier.state = notifier.state.copyWith(query: q.trim());
+      notifier.state = notifier.state.copyWith(query: trimmed);
     });
   }
 

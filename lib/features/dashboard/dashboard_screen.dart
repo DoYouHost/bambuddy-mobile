@@ -16,6 +16,7 @@ import '../../core/models/current_user.dart' show Permissions;
 import '../../core/models/external_link.dart' show externalLinksBadgeTotal;
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/background_sync.dart';
+import '../../core/notifications/hms_catalog.dart';
 import '../../core/notifications/battery_optimization.dart';
 import '../../core/settings/sign_in_reason.dart';
 import '../../data/printers_repository.dart';
@@ -684,7 +685,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final filtered = sortPrinters([
       for (final p in printers)
         if ((q.isEmpty || p.printer.name.toLowerCase().contains(q)) &&
-            filters.matches(classifyPrinter(p.status), p.printer.location))
+            filters.matches(
+              classifyPrinter(p.status, describe: HmsCatalog.instance.describe),
+              p.printer.location,
+            ))
           p,
     ], sort);
     final groups = groupPrinters(filtered, sort);

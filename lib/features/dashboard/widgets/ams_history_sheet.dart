@@ -5,7 +5,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
-import '../../../core/format/datetime_format.dart';
 import '../../../core/models/ams_history.dart';
 import '../../../core/settings/server_settings.dart';
 import '../../../core/theme/dash_theme.dart';
@@ -105,8 +104,6 @@ class AmsHistorySheet extends ConsumerStatefulWidget {
 }
 
 class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
-  static const _ranges = [6, 24, 48, 168];
-
   late AmsHistoryMetric _metric = widget.initialMetric;
   int _hours = 24;
 
@@ -165,7 +162,7 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
               ),
               const SizedBox(height: DashSpace.sm),
               HistoryRangeSelector(
-                ranges: _ranges,
+                ranges: historyRanges,
                 selected: _hours,
                 labelOf: (h) => sensorRangeLabel(l10n, h),
                 onChanged: (h) => setState(() => _hours = h),
@@ -282,11 +279,7 @@ class _Content extends StatelessWidget {
     final axis = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
-    // Fix X domain to the full window so a sparse series still reads correctly.
-    final maxX = DateTime.now().millisecondsSinceEpoch.toDouble();
-    final minX = maxX - hours * 3600 * 1000;
-    final fmt = DateTimeFormats.of(context);
-    final axisLabel = hours > 24 ? fmt.dayMonthNumeric : fmt.time;
+    final window = historyWindow(context, hours);
 
     // Humidity has a natural 0..100 scale; temperature auto-scales but must keep
     // the Good/Fair lines in view, so widen the range to include them.
@@ -306,8 +299,8 @@ class _Content extends StatelessWidget {
     }
 
     return LineChartData(
-      minX: minX,
-      maxX: maxX,
+      minX: window.minX,
+      maxX: window.maxX,
       minY: minY,
       maxY: maxY,
       gridData: const FlGridData(show: true, drawVerticalLine: false),
@@ -318,34 +311,7 @@ class _Content extends StatelessWidget {
           _thresholdLine(fair, const Color(0xFFD4A017), l10n.amsHistoryFair),
         ],
       ),
-      titlesData: FlTitlesData(
-        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles: const AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: DashSize.d40,
-            getTitlesWidget: (v, meta) =>
-                Text(v.toInt().toString(), style: axis),
-          ),
-        ),
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: DashSize.d24,
-            interval: (maxX - minX) / 4,
-            getTitlesWidget: (v, meta) => Padding(
-              padding: const EdgeInsets.only(top: DashSpace.xs),
-              child: Text(
-                axisLabel(DateTime.fromMillisecondsSinceEpoch(v.toInt())),
-                style: axis,
-              ),
-            ),
-          ),
-        ),
-      ),
+      titlesData: historyAxes(axis: axis, window: window),
       lineBarsData: [dashLineSeries(spots, c)],
     );
   }

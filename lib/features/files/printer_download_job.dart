@@ -1,8 +1,10 @@
 import 'package:clock/clock.dart';
 import 'package:dio/dio.dart';
 
+import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer_download_job.dart';
 import '../../data/printer_files_repository.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Why a prepared download produced no file.
 enum PrinterDownloadStopped {
@@ -35,6 +37,32 @@ class PrinterDownloadFailure implements Exception {
   /// generic sentence that would replace it.
   final String? detail;
 }
+
+String prepareFailureText(
+  PrinterDownloadFailure failure,
+  AppLocalizations l10n,
+) => switch (failure.reason) {
+  PrinterDownloadStopped.cancelled => l10n.pfmDownloadCancelled,
+  // The server's own sentence names the limit or the file it stopped on,
+  // which is worth more than the generic line — see
+  // [PrinterDownloadFailure.detail] on why it is not localized.
+  PrinterDownloadStopped.failed =>
+    failure.detail ?? l10n.pfmDownloadPrepareFailed,
+  PrinterDownloadStopped.lost => l10n.pfmDownloadPrepareFailed,
+};
+
+/// The three refusals the download routes explain in a way the user can act
+/// on: the bundle exceeds what the server will build, the server has no disk
+/// space to build it in, or it ran past its own preparation ceiling. Null for
+/// everything else, which keeps the shared wording — and null on older
+/// servers too, which answer none of these.
+String? downloadRefusalText(AppApiException error, AppLocalizations l10n) =>
+    switch (error.statusCode) {
+      413 => l10n.pfmDownloadTooLarge,
+      504 => l10n.pfmDownloadTookTooLong,
+      507 => l10n.pfmDownloadNoServerSpace,
+      _ => null,
+    };
 
 /// Runs one printer-file download through the server's preparation job (server
 /// #2850): start it, watch it, then stream what it staged.

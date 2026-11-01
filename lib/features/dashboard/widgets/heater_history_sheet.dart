@@ -5,7 +5,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
-import '../../../core/format/datetime_format.dart';
 import '../../../core/models/heater_history.dart';
 import '../../../core/theme/dash_theme.dart';
 import '../../../l10n/app_localizations.dart';
@@ -59,8 +58,6 @@ class HeaterHistoryPanel extends ConsumerStatefulWidget {
 }
 
 class _HeaterHistoryPanelState extends ConsumerState<HeaterHistoryPanel> {
-  static const _ranges = [6, 24, 48, 168];
-
   int _hours = 24;
 
   @override
@@ -81,7 +78,7 @@ class _HeaterHistoryPanelState extends ConsumerState<HeaterHistoryPanel> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           HistoryRangeSelector(
-            ranges: _ranges,
+            ranges: historyRanges,
             selected: _hours,
             labelOf: (h) => sensorRangeLabel(l10n, h),
             onChanged: (h) => setState(() => _hours = h),
@@ -202,11 +199,7 @@ class _Content extends StatelessWidget {
     final axis = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
-    // Fix X domain to the full window so a sparse series still reads correctly.
-    final maxX = DateTime.now().millisecondsSinceEpoch.toDouble();
-    final minX = maxX - hours * 3600 * 1000;
-    final fmt = DateTimeFormats.of(context);
-    final axisLabel = hours > 24 ? fmt.dayMonthNumeric : fmt.time;
+    final window = historyWindow(context, hours);
 
     // Auto-scale to the readings AND the setpoints — a cold nozzle under a 250°
     // target would otherwise push the dashed line off the top of the chart.
@@ -218,40 +211,13 @@ class _Content extends StatelessWidget {
     }
 
     return LineChartData(
-      minX: minX,
-      maxX: maxX,
+      minX: window.minX,
+      maxX: window.maxX,
       minY: math.max(0, lo - 5),
       maxY: hi + 5,
       gridData: const FlGridData(show: true, drawVerticalLine: false),
       borderData: FlBorderData(show: false),
-      titlesData: FlTitlesData(
-        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles: const AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: DashSize.d40,
-            getTitlesWidget: (v, meta) =>
-                Text(v.toInt().toString(), style: axis),
-          ),
-        ),
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: DashSize.d24,
-            interval: (maxX - minX) / 4,
-            getTitlesWidget: (v, meta) => Padding(
-              padding: const EdgeInsets.only(top: DashSpace.xs),
-              child: Text(
-                axisLabel(DateTime.fromMillisecondsSinceEpoch(v.toInt())),
-                style: axis,
-              ),
-            ),
-          ),
-        ),
-      ),
+      titlesData: historyAxes(axis: axis, window: window),
       lineBarsData: [
         if (targets.isNotEmpty)
           LineChartBarData(

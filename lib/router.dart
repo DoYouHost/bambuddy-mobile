@@ -387,10 +387,7 @@ GoRouter buildAppRouter({
       // rather than opening a player with nothing to play.
       GoRoute(
         path: '/timelapse',
-        redirect: (_, state) =>
-            int.tryParse(state.uri.queryParameters['archive'] ?? '') == null
-            ? '/archive'
-            : null,
+        redirect: (_, state) => _archiveOrBack(state),
         builder: (_, state) {
           final q = state.uri.queryParameters;
           return TimelapseScreen(
@@ -403,10 +400,7 @@ GoRouter buildAppRouter({
       // Photos of a finished print — same shape as the timelapse route above.
       GoRoute(
         path: '/archive/photos',
-        redirect: (_, state) =>
-            int.tryParse(state.uri.queryParameters['archive'] ?? '') == null
-            ? '/archive'
-            : null,
+        redirect: (_, state) => _archiveOrBack(state),
         builder: (_, state) {
           final q = state.uri.queryParameters;
           return ArchivePhotosScreen(
@@ -420,10 +414,7 @@ GoRouter buildAppRouter({
       // when the server re-encoded, which is the player's cue to reload.
       GoRoute(
         path: '/timelapse/edit',
-        redirect: (_, state) =>
-            int.tryParse(state.uri.queryParameters['archive'] ?? '') == null
-            ? '/archive'
-            : null,
+        redirect: (_, state) => _archiveOrBack(state),
         builder: (_, state) {
           final q = state.uri.queryParameters;
           return TimelapseEditorScreen(
@@ -492,3 +483,10 @@ GoRouter buildAppRouter({
     ],
   );
 }
+
+/// The archive-id routes read `archive` with `int.parse`, so a missing or
+/// malformed id is sent back to the list instead of reaching the builder.
+String? _archiveOrBack(GoRouterState state) =>
+    int.tryParse(state.uri.queryParameters['archive'] ?? '') == null
+    ? '/archive'
+    : null;

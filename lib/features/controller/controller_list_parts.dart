@@ -413,26 +413,26 @@ class ControllerListBody<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    final failed = switch (async) {
-      AsyncError(:final error) => error,
-      _ => null,
-    };
+    // `hasError`, not the type: a retry in flight is a loading state that still
+    // carries the failure, and what the failure put on screen must hold through
+    // it instead of blinking out and back.
+    final error = async.hasError ? async.error : null;
     final shown = value;
     final Widget child;
-    if (failed != null &&
+    if (error != null &&
         (onFailure == ControllerListFailureMode.replace || shown == null)) {
-      child = ControllerListFailure(
-        error: failed,
-        retryId: retryId,
-        onRetry: onRetry,
-      );
+      // The failure is the whole card, so a retry under way is the spinner: not
+      // the listing it replaced, and not a failure that is being retried.
+      child = async.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ControllerListFailure(
+              error: error,
+              retryId: retryId,
+              onRetry: onRetry,
+            );
     } else if (shown == null) {
       child = const Center(child: CircularProgressIndicator());
     } else {
-      // `hasError`, not the type: a retry in flight is a loading state that
-      // still carries the failure, and the line must stay up through it
-      // instead of blinking out and back.
-      final error = async.hasError ? async.error : null;
       child = Column(
         children: [
           if (async.isLoading) const LinearProgressIndicator(),

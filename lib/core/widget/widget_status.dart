@@ -1,6 +1,27 @@
+import 'package:home_widget/home_widget.dart';
+
 import '../../l10n/app_localizations.dart';
 import '../models/printer_status.dart';
 import '../printers/printer_bucket.dart';
+
+/// Asks the launcher to redraw [androidProvider] with the data just saved. The
+/// qualified name must carry the applicationId, or the update goes nowhere.
+Future<void> refreshWidgetProvider(String androidProvider) async {
+  await HomeWidget.updateWidget(
+    androidName: androidProvider,
+    qualifiedAndroidName:
+        'page.codeberg.morganmlgman.bambuddy_mobile.$androidProvider',
+  );
+}
+
+/// The file being printed, or the prep stage while the server has no file name
+/// yet; empty when neither is known. A blank `currentPrint` does not fall back to
+/// `gcodeFile`: it goes straight to the stage.
+String activePrintLabel(PrinterStatus s) {
+  final name = (s.currentPrint ?? s.gcodeFile)?.trim();
+  if (name != null && name.isNotEmpty) return name;
+  return s.stgCurName?.trim() ?? '';
+}
 
 /// The status vocabulary both home-screen widgets publish, and the reads that
 /// derive it from a [PrinterStatus].
@@ -21,7 +42,7 @@ abstract final class WidgetStatus {
   /// finished, and a fault under error.
   static String keyFor(
     PrinterStatus s, {
-    String? Function(HmsError)? describe = catalogHmsDescription,
+    required String? Function(HmsError)? describe,
   }) => classifyPrinter(s, describe: describe).name;
 
   static String label(AppLocalizations l10n, String key) {

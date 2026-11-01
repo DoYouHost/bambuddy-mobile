@@ -72,6 +72,27 @@ class SettingsRepository {
   static Future<SettingsRepository> opened() async =>
       SettingsRepository(await SharedPreferences.getInstance()).reloaded();
 
+  /// Absent, empty, unparsable or not an object all read as [fallback].
+  T _loadJson<T>(
+    String key,
+    T fallback,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
+    final raw = _prefs.getString(key);
+    if (raw == null) return fallback;
+    try {
+      return fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } on Object {
+      return fallback;
+    }
+  }
+
+  Future<void> _saveJson(String key, Map<String, dynamic> json) =>
+      _prefs.setString(key, jsonEncode(json));
+
+  Future<void> _setOrRemove(String key, String? value) =>
+      value == null ? _prefs.remove(key) : _prefs.setString(key, value);
+
   ServerProfile? loadProfile() {
     final raw = _prefs.getString(_profileKey);
     if (raw == null) return null;
@@ -187,46 +208,33 @@ class SettingsRepository {
   /// secret: the server has no authentication.
   String? loadLabelPrinterUrl() => _prefs.getString(_labelPrinterUrlKey);
 
-  Future<void> saveLabelPrinterUrl(String? url) => url == null
-      ? _prefs.remove(_labelPrinterUrlKey)
-      : _prefs.setString(_labelPrinterUrlKey, url);
+  Future<void> saveLabelPrinterUrl(String? url) =>
+      _setOrRemove(_labelPrinterUrlKey, url);
 
   /// The mDNS instance name of the chosen label print server, kept so its
   /// address can be found again when the router hands it a new one. Null for an
   /// address typed by hand.
   String? loadLabelPrinterName() => _prefs.getString(_labelPrinterNameKey);
 
-  Future<void> saveLabelPrinterName(String? name) => name == null
-      ? _prefs.remove(_labelPrinterNameKey)
-      : _prefs.setString(_labelPrinterNameKey, name);
+  Future<void> saveLabelPrinterName(String? name) =>
+      _setOrRemove(_labelPrinterNameKey, name);
 
-  LabelPrintPrefs loadLabelPrintPrefs() {
-    final raw = _prefs.getString(_labelPrintPrefsKey);
-    if (raw == null) return const LabelPrintPrefs();
-    try {
-      return LabelPrintPrefs.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-    } on Object {
-      return const LabelPrintPrefs();
-    }
-  }
+  LabelPrintPrefs loadLabelPrintPrefs() => _loadJson(
+    _labelPrintPrefsKey,
+    const LabelPrintPrefs(),
+    LabelPrintPrefs.fromJson,
+  );
 
   Future<void> saveLabelPrintPrefs(LabelPrintPrefs prefs) =>
-      _prefs.setString(_labelPrintPrefsKey, jsonEncode(prefs.toJson()));
+      _saveJson(_labelPrintPrefsKey, prefs.toJson());
 
   /// The dashboard's filters, sort and folded sections as one JSON object —
   /// empty when nothing was saved or it cannot be read.
-  Map<String, dynamic> loadDashboardView() {
-    final raw = _prefs.getString(_dashboardViewKey);
-    if (raw == null) return const {};
-    try {
-      return jsonDecode(raw) as Map<String, dynamic>;
-    } on Object {
-      return const {};
-    }
-  }
+  Map<String, dynamic> loadDashboardView() =>
+      _loadJson(_dashboardViewKey, const <String, dynamic>{}, (json) => json);
 
   Future<void> saveDashboardView(Map<String, dynamic> view) =>
-      _prefs.setString(_dashboardViewKey, jsonEncode(view));
+      _saveJson(_dashboardViewKey, view);
 
   bool loadWallKeepAwake() => _prefs.getBool(_wallKeepAwakeKey) ?? true;
 
@@ -248,47 +256,35 @@ class SettingsRepository {
 
   /// The single-printer controller's settings; absent or unreadable reads as
   /// the defaults.
-  ControllerPrefs loadControllerPrefs() {
-    final raw = _prefs.getString(_controllerPrefsKey);
-    if (raw == null) return const ControllerPrefs();
-    try {
-      return ControllerPrefs.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-    } on Object {
-      return const ControllerPrefs();
-    }
-  }
+  ControllerPrefs loadControllerPrefs() => _loadJson(
+    _controllerPrefsKey,
+    const ControllerPrefs(),
+    ControllerPrefs.fromJson,
+  );
 
   Future<void> saveControllerPrefs(ControllerPrefs prefs) =>
-      _prefs.setString(_controllerPrefsKey, jsonEncode(prefs.toJson()));
+      _saveJson(_controllerPrefsKey, prefs.toJson());
 
   /// The accent and light/dark choice; absent or unreadable reads as the
   /// defaults, which are the look the app had before the choice existed.
-  AppearancePrefs loadAppearancePrefs() {
-    final raw = _prefs.getString(_appearancePrefsKey);
-    if (raw == null) return const AppearancePrefs();
-    try {
-      return AppearancePrefs.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-    } on Object {
-      return const AppearancePrefs();
-    }
-  }
+  AppearancePrefs loadAppearancePrefs() => _loadJson(
+    _appearancePrefsKey,
+    const AppearancePrefs(),
+    AppearancePrefs.fromJson,
+  );
 
   Future<void> saveAppearancePrefs(AppearancePrefs prefs) =>
-      _prefs.setString(_appearancePrefsKey, jsonEncode(prefs.toJson()));
+      _saveJson(_appearancePrefsKey, prefs.toJson());
 
   /// PHONE side: what a paired watch is told to colour itself with.
-  WatchAppearance loadWatchAppearance() {
-    final raw = _prefs.getString(_watchAppearanceKey);
-    if (raw == null) return const WatchAppearance();
-    try {
-      return WatchAppearance.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-    } on Object {
-      return const WatchAppearance();
-    }
-  }
+  WatchAppearance loadWatchAppearance() => _loadJson(
+    _watchAppearanceKey,
+    const WatchAppearance(),
+    WatchAppearance.fromJson,
+  );
 
   Future<void> saveWatchAppearance(WatchAppearance value) =>
-      _prefs.setString(_watchAppearanceKey, jsonEncode(value.toJson()));
+      _saveJson(_watchAppearanceKey, value.toJson());
 
   /// WATCH side: whether the phone told the watch to take its colours from
   /// its face.
@@ -449,9 +445,8 @@ class SettingsRepository {
   /// `wear_relay_native_contract_test` is what notices.
   String? loadWearRelayClaim() => _prefs.getString(_wearRelayClaimKey);
 
-  Future<void> saveWearRelayClaim(String? claim) => claim == null
-      ? _prefs.remove(_wearRelayClaimKey)
-      : _prefs.setString(_wearRelayClaimKey, claim);
+  Future<void> saveWearRelayClaim(String? claim) =>
+      _setOrRemove(_wearRelayClaimKey, claim);
 
   /// The watch's last fleet, so a cold start paints it instead of a spinner —
   /// see `WearFleetCache`, which owns the shape stored here.

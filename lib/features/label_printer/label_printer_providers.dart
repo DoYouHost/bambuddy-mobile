@@ -51,11 +51,7 @@ class LabelPrinterUrlNotifier extends Notifier<String?> {
     if (await ref.read(labelPrinterRepositoryProvider)?.info() != null) return;
     final answers =
         verify ??
-        (String baseUrl) async =>
-            await LabelPrinterRepository(
-              createLabelPrinterDio(baseUrl),
-            ).info() !=
-            null;
+        (String baseUrl) async => await probeLabelPrinter(baseUrl) != null;
     try {
       final Stream<List<DiscoveredLabelPrinter>> Function() search =
           discover ?? ref.read(labelPrinterDiscoveryProvider);
@@ -91,6 +87,11 @@ Dio createLabelPrinterDio(String baseUrl) {
   }
   return dio;
 }
+
+/// The server's identity when [baseUrl] answers as a label print server; null
+/// when nothing there does.
+Future<LabelPrinterInfo?> probeLabelPrinter(String baseUrl) =>
+    LabelPrinterRepository(createLabelPrinterDio(baseUrl)).info();
 
 /// The search for label print servers on the LAN — the demo's own in demo mode,
 /// which has no network to search.

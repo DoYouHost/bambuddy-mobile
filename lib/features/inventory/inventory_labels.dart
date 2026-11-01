@@ -382,16 +382,13 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
         l10n,
         action: 'labels.print',
       );
-    } on FileSystemException {
-      // The device (disk full, no write access), not a bug. The sheet may
-      // already be closed: the hand-off runs after it, so the message goes to
-      // the screen behind.
+    } catch (e) {
       if (mounted) setState(() => _busy = false);
+      // The device (disk full, no write access, no print or share service), not
+      // a bug: say so, on the screen behind, since the sheet may be closed
+      // already. Anything else reaches the bug report.
+      if (e is! FileSystemException && e is! PlatformException) rethrow;
       messenger.snack(l10n.inventoryLabelsFailed);
-    } catch (_) {
-      // A bug, not a refusal: lower the flag and let it reach the bug report.
-      if (mounted) setState(() => _busy = false);
-      rethrow;
     }
   }
 
@@ -457,6 +454,10 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
       );
     } on NetworkException {
       messenger.snack(l10n.labelPrinterUnreachable);
+    } on AppApiException catch (e) {
+      // The sheet is gone, so [_print] would drop this one for want of a
+      // mounted screen: say it here, on the messenger captured before the pop.
+      showApiFailure(messenger, e, l10n, action: 'labels.print');
     }
   }
 

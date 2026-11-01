@@ -13,6 +13,7 @@ import '../../core/models/printer.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
+import '../common/reload_in_place.dart';
 
 /// Upper bound on how many archives we load in one shot. Filtering/sorting runs
 /// client-side over the full set (matching bambuddy), so we fetch everything
@@ -221,7 +222,8 @@ final archiveDetailProvider = FutureProvider.autoDispose.family<Archive, int>(
 
 /// Full archive list, loaded once and filtered client-side (M5, filters M7).
 /// All filtering/sorting lives in [applyArchiveFilters] over this list.
-class ArchiveNotifier extends AsyncNotifier<List<Archive>> {
+class ArchiveNotifier extends AsyncNotifier<List<Archive>>
+    with ReloadInPlace<List<Archive>> {
   @override
   Future<List<Archive>> build() async {
     ref.watch(serverProfileProvider);
@@ -231,16 +233,11 @@ class ArchiveNotifier extends AsyncNotifier<List<Archive>> {
   }
 
   /// Pull-to-refresh: reload the full list.
-  Future<void> refresh() async {
-    state = const AsyncLoading<List<Archive>>();
-    final next = await AsyncValue.guard(
-      () => ref
-          .read(archiveRepositoryProvider)
-          .list(limit: _fullListLimit, offset: 0),
-    );
-    if (!ref.mounted) return;
-    state = next;
-  }
+  Future<void> refresh() => reloadInPlace(
+    () => ref
+        .read(archiveRepositoryProvider)
+        .list(limit: _fullListLimit, offset: 0),
+  );
 
   /// Archives whose favorite toggle is still waiting for the server.
   final _favoriteInFlight = <int>{};

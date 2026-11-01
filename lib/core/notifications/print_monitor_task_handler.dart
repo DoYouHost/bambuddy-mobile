@@ -347,6 +347,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
         MultiWidgetPublisher.publish(
           Map.of(_statuses),
           l10n,
+          describeHms: _hmsCatalog?.describe,
         ).catchError((_) {}),
       );
     });

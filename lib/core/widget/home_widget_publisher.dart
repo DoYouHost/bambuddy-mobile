@@ -217,11 +217,7 @@ class HomeWidgetPublisher {
       await HomeWidget.saveWidgetData<String>('cover_path', coverPath);
     }
 
-    await HomeWidget.updateWidget(
-      androidName: _androidProvider,
-      qualifiedAndroidName:
-          'page.codeberg.morganmlgman.bambuddy_mobile.$_androidProvider',
-    );
+    await refreshWidgetProvider(_androidProvider);
   }
 
   /// The first fault worth showing, or `null` — the same filter the card and the
@@ -254,13 +250,8 @@ class HomeWidgetPublisher {
 
   /// Print name to show: when printing — current file (or stage if progress not yet available);
   /// when not printing — empty (UI hides the row).
-  static String _printName(PrinterStatus s) {
-    if (!WidgetStatus.isActive(s)) return '';
-    final name = s.currentPrint ?? s.gcodeFile;
-    if (name != null && name.trim().isNotEmpty) return name.trim();
-    // Prep phase without file name — show stage if server provides it.
-    return s.stgCurName?.trim() ?? '';
-  }
+  static String _printName(PrinterStatus s) =>
+      WidgetStatus.isActive(s) ? activePrintLabel(s) : '';
 
   /// ETA row: remaining time + finish time. Empty outside printing or if
   /// server doesn't provide remaining time.
@@ -269,7 +260,6 @@ class HomeWidgetPublisher {
     final mins = s.remainingTime ?? 0;
     if (mins <= 0) return '';
     final dur = formatMinutes(l10n, mins);
-    final at = DateTime.now().add(Duration(minutes: mins));
-    return '$dur · ${DateTimeFormats.system().time(at)}';
+    return '$dur · ${etaClock(DateTimeFormats.system(), mins)}';
   }
 }

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
+import '../../core/format/fixed_format.dart';
+import '../../core/format/money_format.dart';
 import '../../core/models/archive.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -29,7 +31,7 @@ String archiveGrams(double grams) => '${grams.toStringAsFixed(1)} g';
 
 /// Money as the web card prints it, always to two decimals.
 String archiveMoney(String currency, double amount) =>
-    formatMoney(currency, amount.toStringAsFixed(2));
+    formatMoneyValue(currency, amount);
 
 /// The time badge's text and tone, `time_accuracy - 100` signed: green within
 /// ±5 %, blue when the print beat the estimate, orange when it ran over — the
@@ -332,7 +334,8 @@ class ArchiveStatsPanel extends ConsumerWidget {
     final height = archive.layerHeight;
     final parts = [
       if (layers != null && layers > 0) l10n.archiveLayerCount(layers),
-      if (height != null && height > 0) '${_trimZeros(height)} mm',
+      if (height != null && height > 0)
+        '${trimFixedZeros(height.toStringAsFixed(3))} mm',
     ];
     if (parts.isEmpty) return null;
     return _Stat(icon: Icons.layers_outlined, text: parts.join(' · '));
@@ -466,9 +469,6 @@ class ArchiveStatsPanel extends ConsumerWidget {
 
   static const _iconSize = 16.0;
 }
-
-String _trimZeros(double v) =>
-    v.toStringAsFixed(3).replaceFirst(RegExp(r'\.?0+$'), '');
 
 class _Stat extends StatelessWidget {
   const _Stat({required this.icon, required this.text});

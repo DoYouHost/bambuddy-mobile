@@ -10,6 +10,7 @@ import '../../core/models/swatch_code.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/device_files.dart';
+import '../common/trimmed_or_null.dart';
 import '../inventory/inventory_providers.dart'
     show colorCatalogProvider, inventoryProvider;
 import '../inventory/inventory_screen.dart' show parseSpoolColor;
@@ -721,11 +722,6 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
 
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    String? clean(TextEditingController c) {
-      final v = c.text.trim();
-      return v.isEmpty ? null : v;
-    }
-
     var rgba = _rgba.text.trim();
     if (rgba.startsWith('#')) rgba = rgba.substring(1);
 
@@ -734,9 +730,9 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
       SwatchCode(
         code: normalizeSwatchCode(_code.text),
         material: _material.text.trim(),
-        brand: clean(_brand),
-        variant: clean(_variant),
-        colorName: clean(_colorName),
+        brand: trimmedOrNull(_brand.text),
+        variant: trimmedOrNull(_variant.text),
+        colorName: trimmedOrNull(_colorName.text),
         rgba: rgba.isEmpty ? null : rgba,
         createdAt:
             widget.initial?.createdAt ??

@@ -24,16 +24,20 @@ class MultiWidgetPublisher {
 
   /// Saves the fleet state and updates the multi widget. Safe to call often —
   /// no-ops when nothing visible changed, and drops the call if one is in flight.
+  ///
+  /// [describeHms] names an HMS code with this isolate's own catalogue, as for
+  /// [HomeWidgetPublisher.publish]; `null` means none is loaded.
   static Future<void> publish(
     Map<int, PrinterStatus> statuses,
-    AppLocalizations l10n,
-  ) async {
-    final sig = _signature(statuses);
+    AppLocalizations l10n, {
+    required String? Function(HmsError)? describeHms,
+  }) async {
+    final sig = _signature(statuses, describeHms);
     if (sig == _lastSig || _publishing) return;
 
     _publishing = true;
     try {
-      await _doPublish(statuses, l10n);
+      await _doPublish(statuses, l10n, describeHms);
       _lastSig = sig;
     } finally {
       _publishing = false;
@@ -43,12 +47,17 @@ class MultiWidgetPublisher {
   static Future<void> _doPublish(
     Map<int, PrinterStatus> statuses,
     AppLocalizations l10n,
+    String? Function(HmsError)? describeHms,
   ) async {
-    final ranked = _ranked(statuses);
+    final ranked = _ranked(statuses, describeHms);
     final total = ranked.length;
     final printing = ranked.where(WidgetStatus.isActive).length;
     final offline = ranked
-        .where((s) => WidgetStatus.keyFor(s) == WidgetStatus.offline)
+        .where(
+          (s) =>
+              WidgetStatus.keyFor(s, describe: describeHms) ==
+              WidgetStatus.offline,
+        )
         .length;
     final idle = total - printing - offline;
 
@@ -85,7 +94,7 @@ class MultiWidgetPublisher {
     for (var i = 0; i < _maxRows; i++) {
       if (i < shown.length) {
         final s = shown[i];
-        final key = WidgetStatus.keyFor(s);
+        final key = WidgetStatus.keyFor(s, describe: describeHms);
         final active = WidgetStatus.isActive(s);
         await HomeWidget.saveWidgetData<String>(
           'multi_name_$i',
@@ -108,49 +117,49 @@ class MultiWidgetPublisher {
       }
     }
 
-    await HomeWidget.updateWidget(
-      androidName: _androidProvider,
-      qualifiedAndroidName:
-          'page.codeberg.morganmlgman.bambuddy_mobile.$_androidProvider',
-    );
+    await refreshWidgetProvider(_androidProvider);
   }
 
   /// Printers ordered for display: active first, then idle-ish, then offline;
   /// within each group by ascending `id` (stable).
-  static List<PrinterStatus> _ranked(Map<int, PrinterStatus> statuses) {
+  static List<PrinterStatus> _ranked(
+    Map<int, PrinterStatus> statuses,
+    String? Function(HmsError)? describeHms,
+  ) {
     final list = statuses.values.toList()
       ..sort((a, b) {
-        final ra = _rank(a);
-        final rb = _rank(b);
+        final ra = _rank(a, describeHms);
+        final rb = _rank(b, describeHms);
         if (ra != rb) return ra.compareTo(rb);
         return a.id.compareTo(b.id);
       });
     return list;
   }
 
-  static int _rank(PrinterStatus s) {
+  static int _rank(PrinterStatus s, String? Function(HmsError)? describeHms) {
     if (WidgetStatus.isActive(s)) return 0;
-    if (WidgetStatus.keyFor(s) == WidgetStatus.offline) return 2;
+    if (WidgetStatus.keyFor(s, describe: describeHms) == WidgetStatus.offline) {
+      return 2;
+    }
     return 1;
   }
 
   /// Sub-label: the print file name while active, otherwise the status word.
   static String _sub(PrinterStatus s, AppLocalizations l10n, String key) {
-    if (WidgetStatus.isActive(s)) {
-      final name = (s.currentPrint ?? s.gcodeFile)?.trim();
-      if (name != null && name.isNotEmpty) return name;
-      return s.stgCurName?.trim() ?? '';
-    }
+    if (WidgetStatus.isActive(s)) return activePrintLabel(s);
     return WidgetStatus.label(l10n, key);
   }
 
   /// A compact signature of everything the widget shows — to skip no-op publishes.
-  static String _signature(Map<int, PrinterStatus> statuses) {
-    final ranked = _ranked(statuses);
+  static String _signature(
+    Map<int, PrinterStatus> statuses,
+    String? Function(HmsError)? describeHms,
+  ) {
+    final ranked = _ranked(statuses, describeHms);
     return ranked
         .map(
           (s) =>
-              '${s.id}:${WidgetStatus.keyFor(s)}:${s.progressPercent}:'
+              '${s.id}:${WidgetStatus.keyFor(s, describe: describeHms)}:${s.progressPercent}:'
               '${(s.currentPrint ?? s.gcodeFile)?.trim() ?? ''}',
         )
         .join('|');

@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/label_printer.dart';
 import '../../core/network/label_printer_discovery.dart';
 import '../../core/theme/dash_theme.dart';
-import '../../data/label_printer_repository.dart';
 import '../../l10n/app_localizations.dart';
 import 'label_printer_providers.dart';
 
@@ -91,9 +90,7 @@ class _LabelPrinterSettingsState extends ConsumerState<LabelPrinterSettings> {
       _checking = true;
       _notAServer = false;
     });
-    final info = await LabelPrinterRepository(
-      createLabelPrinterDio(url),
-    ).info();
+    final info = await probeLabelPrinter(url);
     if (!mounted) return;
     if (info == null) {
       setState(() {

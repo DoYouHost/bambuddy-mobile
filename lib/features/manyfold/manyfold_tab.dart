@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +8,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
+import '../common/search_debouncer.dart';
 import 'manyfold_connection.dart';
 import 'manyfold_model_screen.dart';
 import 'manyfold_providers.dart';
@@ -28,7 +27,7 @@ class ManyfoldTab extends ConsumerStatefulWidget {
 }
 
 class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
-  Timer? _debounce;
+  final _debounce = SearchDebouncer(const Duration(milliseconds: 400));
   String _query = '';
   int _page = 1;
 
@@ -48,18 +47,17 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
+    _debounce.dispose();
     super.dispose();
   }
 
   /// Every query is a round trip to the user's Manyfold, so typing waits for a
   /// pause instead of asking per keystroke (the web asks on submit).
   void _onSearchChanged(String text) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () {
-      if (!mounted || text.trim() == _query) return;
+    _debounce.run(text, (trimmed) {
+      if (!mounted || trimmed == _query) return;
       setState(() {
-        _query = text.trim();
+        _query = trimmed;
         _page = 1;
       });
     });

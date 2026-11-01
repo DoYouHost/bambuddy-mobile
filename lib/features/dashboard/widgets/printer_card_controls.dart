@@ -508,7 +508,7 @@ class _SpeedControl extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final label = _speedName(l10n, level) ?? l10n.ctrlSpeed;
+    final label = speedName(l10n, level) ?? l10n.ctrlSpeed;
 
     return PopupMenuButton<int>(
       enabled: !busy,
@@ -521,7 +521,7 @@ class _SpeedControl extends StatelessWidget {
             checked: level == m,
             // Named by level: which speed was chosen is the record, and the
             // level is the printer's own scale, not the user's data.
-            child: logTag('controls.speed.$m', Text(_speedName(l10n, m)!)),
+            child: logTag('controls.speed.$m', Text(speedName(l10n, m)!)),
           ),
       ],
       child: Container(
@@ -555,11 +555,3 @@ class _SpeedControl extends StatelessWidget {
     ).tagged('controls.speed');
   }
 }
-
-String? _speedName(AppLocalizations l10n, int? level) => switch (level) {
-  1 => l10n.speedSilent,
-  2 => l10n.speedStandard,
-  3 => l10n.speedSport,
-  4 => l10n.speedLudicrous,
-  _ => null,
-};

@@ -21,6 +21,7 @@ import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../gcode/gcode_viewer_route.dart';
 import '../common/device_files.dart';
+import '../common/search_debouncer.dart';
 import '../queue/queue_edit_screen.dart';
 import '../queue/queue_removal.dart';
 import '../slicer/slice_providers.dart';
@@ -50,7 +51,7 @@ class FileManagerScreen extends ConsumerStatefulWidget {
 
 class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   final _searchController = TextEditingController();
-  Timer? _debounce;
+  final _debounce = SearchDebouncer(const Duration(milliseconds: 250));
 
   @override
   void initState() {
@@ -69,7 +70,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
+    _debounce.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -78,9 +79,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   ScaffoldMessengerState get _messenger => ScaffoldMessenger.of(context);
 
   void _onSearchChanged(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 250), () {
-      ref.read(fileManagerProvider.notifier).setQuery(q.trim());
+    _debounce.run(q, (trimmed) {
+      ref.read(fileManagerProvider.notifier).setQuery(trimmed);
     });
   }
 

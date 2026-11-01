@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:app_util/app_util.dart';
 
 import 'package:material_ui/material_ui.dart';
@@ -19,6 +18,7 @@ import '../common/dash_async.dart';
 import '../common/pick_date_range.dart';
 import '../common/print_run_labels.dart';
 import '../common/print_thumbnail.dart';
+import '../common/search_debouncer.dart';
 import '../stats/stats_common.dart' show fmtGrams, fmtNum;
 import '../stats/stats_providers.dart' show statsUsersProvider;
 import 'print_log_classify_sheet.dart';
@@ -38,21 +38,20 @@ class PrintLogScreen extends ConsumerStatefulWidget {
 }
 
 class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
-  Timer? _debounce;
+  final _debounce = SearchDebouncer(const Duration(milliseconds: 350));
 
   @override
   void dispose() {
-    _debounce?.cancel();
+    _debounce.dispose();
     super.dispose();
   }
 
   /// Unlike the archive's, this search is a server-side filter — every
   /// keystroke would be a request, so the debounce is doing real work.
   void _onSearchChanged(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () {
+    _debounce.run(q, (trimmed) {
       if (!mounted) return;
-      ref.read(printLogFiltersProvider.notifier).setQuery(q.trim());
+      ref.read(printLogFiltersProvider.notifier).setQuery(trimmed);
     });
   }
 

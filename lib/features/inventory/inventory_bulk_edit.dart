@@ -78,7 +78,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     super.dispose();
   }
 
-  String? _trim(String key) => _trimmedField(_c, key);
+  String? _trim(String key) => trimmedOrNull(_c[key]!.text);
 
   int? _int(String key) => _intField(_c, key);
 

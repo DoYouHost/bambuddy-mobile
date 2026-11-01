@@ -8,6 +8,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/speed_name.dart';
 import '../dashboard/controls_providers.dart';
 import '../dashboard/smart_plug_actions.dart';
 import '../dashboard/smart_plugs_providers.dart';
@@ -277,13 +278,6 @@ class _ReadingTile extends ConsumerWidget {
 /// The speed levels the printer has, 1 (silent) to 4 (ludicrous).
 const _speedLevels = [1, 2, 3, 4];
 
-String _speedName(AppLocalizations l10n, int level) => switch (level) {
-  1 => l10n.speedSilent,
-  2 => l10n.speedStandard,
-  3 => l10n.speedSport,
-  _ => l10n.speedLudicrous,
-};
-
 /// The print speed as one select. Built only where [controllerSpeedVisible] says
 /// so. A select, not four buttons: it frees the column's height for the rest.
 class ControllerSpeed extends ConsumerWidget {
@@ -306,7 +300,7 @@ class ControllerSpeed extends ConsumerWidget {
     final current = pending.speedLevel ?? status.speedLevel;
     final busy = pending.isBusy(ControlAction.speed);
     String entry(int level) =>
-        '${_speedName(l10n, level)} · ${PrinterStatus.speedPercentFor(level)}%';
+        '${speedName(l10n, level) ?? l10n.speedLudicrous} · ${PrinterStatus.speedPercentFor(level)}%';
     return dashCombo<int>(
       context,
       id: 'controller.speed',

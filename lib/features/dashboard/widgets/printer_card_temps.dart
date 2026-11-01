@@ -278,10 +278,6 @@ class _StateChip extends StatelessWidget {
   }
 }
 
-/// ETA as a clock reading = now + remaining minutes.
-String _etaTime(DateTimeFormats fmt, int remainingMinutes) =>
-    fmt.time(DateTime.now().add(Duration(minutes: remainingMinutes)));
-
 /// Bottom sheet of a temperature tile. Its "Ustaw" tab sets the sensor's target
 /// temperature: a slider with fine −/+ steppers, plus Off/Set. Its "Historia
 /// temperatur" tab draws the sensor's history ([HeaterHistoryPanel]); the tabs

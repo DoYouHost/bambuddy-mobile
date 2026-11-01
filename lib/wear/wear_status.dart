@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/format/duration_format.dart';
 import '../core/models/printer_status.dart';
+import '../core/notifications/hms_catalog.dart';
 import '../core/printers/printer_bucket.dart';
 import '../l10n/app_localizations.dart';
 
@@ -13,14 +14,15 @@ enum WearState { offline, printing, paused, finished, error, idle }
 /// The watch's name for the printer's bucket — the one classification
 /// ([classifyPrinter], the web's) every surface reads, so the watch never says
 /// something else than the phone's filter or the widget.
-WearState wearStateOf(PrinterStatus? s) => switch (classifyPrinter(s)) {
-  PrinterStatusBucket.offline => WearState.offline,
-  PrinterStatusBucket.printing => WearState.printing,
-  PrinterStatusBucket.paused => WearState.paused,
-  PrinterStatusBucket.finished => WearState.finished,
-  PrinterStatusBucket.error => WearState.error,
-  PrinterStatusBucket.idle || PrinterStatusBucket.all => WearState.idle,
-};
+WearState wearStateOf(PrinterStatus? s) =>
+    switch (classifyPrinter(s, describe: HmsCatalog.instance.describe)) {
+      PrinterStatusBucket.offline => WearState.offline,
+      PrinterStatusBucket.printing => WearState.printing,
+      PrinterStatusBucket.paused => WearState.paused,
+      PrinterStatusBucket.finished => WearState.finished,
+      PrinterStatusBucket.error => WearState.error,
+      PrinterStatusBucket.idle || PrinterStatusBucket.all => WearState.idle,
+    };
 
 extension WearStateView on WearState {
   /// Same wording as the home-screen widget statuses.

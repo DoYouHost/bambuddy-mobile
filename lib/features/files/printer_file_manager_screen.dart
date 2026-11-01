@@ -267,14 +267,14 @@ class _PrinterFileManagerScreenState
       }
     } on PrinterDownloadFailure catch (e) {
       _recordPreparedDownload(e.reason.name);
-      if (mounted) _snack(_prepareFailureText(e, l10n));
+      if (mounted) _snack(prepareFailureText(e, l10n));
     } on AppApiException catch (e) {
       showApiFailure(
         mounted ? ScaffoldMessenger.of(context) : null,
         e,
         l10n,
         action: 'printer_files.download',
-        message: _downloadFailure(e, l10n),
+        message: downloadRefusalText(e, l10n),
       );
     } finally {
       // The save dialog copies the file on the platform side and returns only
@@ -377,32 +377,6 @@ class _PrinterFileManagerScreenState
       },
     );
   }
-
-  String _prepareFailureText(
-    PrinterDownloadFailure failure,
-    AppLocalizations l10n,
-  ) => switch (failure.reason) {
-    PrinterDownloadStopped.cancelled => l10n.pfmDownloadCancelled,
-    // The server's own sentence names the limit or the file it stopped on,
-    // which is worth more than the generic line — see
-    // [PrinterDownloadFailure.detail] on why it is not localized.
-    PrinterDownloadStopped.failed =>
-      failure.detail ?? l10n.pfmDownloadPrepareFailed,
-    PrinterDownloadStopped.lost => l10n.pfmDownloadPrepareFailed,
-  };
-
-  /// The three refusals the download routes explain in a way the user can act
-  /// on: the bundle exceeds what the server will build, the server has no disk
-  /// space to build it in, or it ran past its own preparation ceiling. Null for
-  /// everything else, which keeps the shared wording — and null on older
-  /// servers too, which answer none of these.
-  String? _downloadFailure(AppApiException e, AppLocalizations l10n) =>
-      switch (e.statusCode) {
-        413 => l10n.pfmDownloadTooLarge,
-        504 => l10n.pfmDownloadTookTooLong,
-        507 => l10n.pfmDownloadNoServerSpace,
-        _ => null,
-      };
 
   Future<void> _delete() async {
     if (_selected.isEmpty || _busy) return;
