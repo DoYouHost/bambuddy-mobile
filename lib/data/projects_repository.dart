@@ -117,16 +117,12 @@ class ProjectsRepository {
     required String filename,
     void Function(double? progress)? onProgress,
   }) => guard(() async {
-    final form = FormData.fromMap(<String, dynamic>{
-      'file': await MultipartFile.fromFile(filePath, filename: filename),
-    });
-    final res = await _dio.post<Map<String, dynamic>>(
+    final res = await postFile<Map<String, dynamic>>(
+      _dio,
       Endpoints.projectsImportFile,
-      data: form,
-      options: uploadOptions(),
-      onSendProgress: onProgress == null
-          ? null
-          : (sent, total) => onProgress(transferFraction(sent, total)),
+      filePath: filePath,
+      filename: filename,
+      onProgress: onProgress,
     );
     return ProjectResponse.fromJson(res.data ?? const {});
   });
@@ -231,16 +227,12 @@ class ProjectsRepository {
     required String filename,
     void Function(double? progress)? onProgress,
   }) => guard(() async {
-    final form = FormData.fromMap(<String, dynamic>{
-      'file': await MultipartFile.fromFile(filePath, filename: filename),
-    });
-    await _dio.post<dynamic>(
+    await postFile<dynamic>(
+      _dio,
       Endpoints.projectAttachments(id),
-      data: form,
-      options: uploadOptions(),
-      onSendProgress: onProgress == null
-          ? null
-          : (sent, total) => onProgress(transferFraction(sent, total)),
+      filePath: filePath,
+      filename: filename,
+      onProgress: onProgress,
     );
   });
 
@@ -267,13 +259,11 @@ class ProjectsRepository {
     required String filePath,
     required String filename,
   }) => guard(() async {
-    final form = FormData.fromMap(<String, dynamic>{
-      'file': await MultipartFile.fromFile(filePath, filename: filename),
-    });
-    await _dio.post<dynamic>(
+    await postFile<dynamic>(
+      _dio,
       Endpoints.projectCoverImage(id),
-      data: form,
-      options: uploadOptions(),
+      filePath: filePath,
+      filename: filename,
     );
   });
 

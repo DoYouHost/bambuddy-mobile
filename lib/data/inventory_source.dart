@@ -4,6 +4,7 @@ import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/inventory.dart';
 import '../core/models/inventory_bulk.dart';
@@ -245,8 +246,7 @@ Future<List<SpoolPresetOverride>> _getPresetOverrides(
   Dio dio,
   String path,
 ) async {
-  final res = await dio.get<List<dynamic>>(path);
-  return parseJsonList(res.data, SpoolPresetOverride.fromJson);
+  return dio.getList(path, SpoolPresetOverride.fromJson);
 }
 
 Future<void> _putPresetOverrides(
@@ -372,26 +372,24 @@ class NativeInventorySource implements SpoolInventorySource {
 
   @override
   Future<List<Spool>> fetchSpools({bool includeArchived = false}) async {
-    final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(
+    return guard(
+      () => _dio.getList(
         Endpoints.inventorySpools,
-        queryParameters: {'include_archived': includeArchived},
-      );
-      return res.data ?? const [];
-    });
-    return parseJsonList(body, Spool.fromNative);
+        Spool.fromNative,
+        query: {'include_archived': includeArchived},
+      ),
+    );
   }
 
   @override
   Future<List<SpoolAssignment>> fetchAssignments({int? printerId}) async {
-    final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(
+    return guard(
+      () => _dio.getList(
         Endpoints.inventoryAssignments,
-        queryParameters: {'printer_id': ?printerId},
-      );
-      return res.data ?? const [];
-    });
-    return parseJsonList(body, SpoolAssignment.fromNative);
+        SpoolAssignment.fromNative,
+        query: {'printer_id': ?printerId},
+      ),
+    );
   }
 
   @override
@@ -424,13 +422,12 @@ class NativeInventorySource implements SpoolInventorySource {
 
   @override
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) async {
-    final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(
+    return guard(
+      () => _dio.getList(
         Endpoints.inventorySpoolUsage(spoolId),
-      );
-      return res.data ?? const [];
-    });
-    return parseJsonList(body, SpoolUsageEntry.fromNative);
+        SpoolUsageEntry.fromNative,
+      ),
+    );
   }
 
   @override
@@ -525,29 +522,23 @@ class NativeInventorySource implements SpoolInventorySource {
 
   @override
   Future<List<CoreWeightEntry>> fetchCoreWeights() async {
-    final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(Endpoints.inventoryCatalog);
-      return res.data ?? const [];
-    });
-    return parseJsonList(body, CoreWeightEntry.fromJson);
+    return guard(
+      () => _dio.getList(Endpoints.inventoryCatalog, CoreWeightEntry.fromJson),
+    );
   }
 
   @override
   Future<List<ColorEntry>> fetchColors() async {
-    final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(Endpoints.inventoryColors);
-      return res.data ?? const [];
-    });
-    return parseJsonList(body, ColorEntry.fromJson);
+    return guard(
+      () => _dio.getList(Endpoints.inventoryColors, ColorEntry.fromJson),
+    );
   }
 
   @override
   Future<List<FilamentPreset>> fetchFilamentPresets() async {
-    final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(Endpoints.filamentCatalog);
-      return res.data ?? const [];
-    });
-    return parseJsonList(body, FilamentPreset.fromJson);
+    return guard(
+      () => _dio.getList(Endpoints.filamentCatalog, FilamentPreset.fromJson),
+    );
   }
 
   @override
@@ -572,14 +563,14 @@ class NativeInventorySource implements SpoolInventorySource {
     DateTime? from,
     DateTime? to,
   }) async {
-    final res = await _dio.get<List<dynamic>>(
+    return _dio.getList(
       Endpoints.inventoryMaterialNumberStats,
-      queryParameters: await withDayZone({
+      MaterialNumberStats.fromJson,
+      query: await withDayZone({
         if (from != null) 'date_from': calendarDateToJson(from),
         if (to != null) 'date_to': calendarDateToJson(to),
       }),
     );
-    return parseJsonList(res.data, MaterialNumberStats.fromJson);
   }
 
   @override
@@ -625,26 +616,24 @@ class SpoolmanInventorySource implements SpoolInventorySource {
 
   @override
   Future<List<Spool>> fetchSpools({bool includeArchived = false}) async {
-    final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(
+    return guard(
+      () => _dio.getList(
         Endpoints.spoolmanSpools,
-        queryParameters: {'include_archived': includeArchived},
-      );
-      return res.data ?? const [];
-    });
-    return parseJsonList(body, Spool.fromSpoolman);
+        Spool.fromSpoolman,
+        query: {'include_archived': includeArchived},
+      ),
+    );
   }
 
   @override
   Future<List<SpoolAssignment>> fetchAssignments({int? printerId}) async {
-    final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(
+    return guard(
+      () => _dio.getList(
         Endpoints.spoolmanAssignments,
-        queryParameters: {'printer_id': ?printerId},
-      );
-      return res.data ?? const [];
-    });
-    return parseJsonList(body, SpoolAssignment.fromSpoolman);
+        SpoolAssignment.fromSpoolman,
+        query: {'printer_id': ?printerId},
+      ),
+    );
   }
 
   @override

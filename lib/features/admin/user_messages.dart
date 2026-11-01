@@ -12,6 +12,14 @@ import '../../l10n/server_refusal.dart';
 String userWriteMessage(AppLocalizations l10n, ActionOutcome result) =>
     outcomeRefusal(l10n, result, _rules) ?? l10n.usersSaveFailed;
 
+/// The snackbar text for a finished account write: [okText] on success, the
+/// refusal otherwise.
+String userWriteText(
+  AppLocalizations l10n,
+  ActionOutcome result,
+  String okText,
+) => result.isOk ? okText : userWriteMessage(l10n, result);
+
 /// The three `last admin` rows come first and most-specific-first, so the bare
 /// one stays the fallback for a wording none of them recognize.
 final _rules = <RefusalRule>[

@@ -117,10 +117,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
         _busy = false;
         _spin = null;
       });
-      final msg = result.messageFor(l10n);
-      if (msg != null) {
-        messenger.snack(msg, clearQueue: true);
-      }
+      snackOutcome(messenger, result, l10n);
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -152,8 +149,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
         _busy = false;
         _spin = null;
       });
-      final msg = result.messageFor(l10n) ?? l10n.ctrlMoveHomeStarted;
-      messenger.snack(msg, clearQueue: true);
+      snackOutcome(messenger, result, l10n, fallback: l10n.ctrlMoveHomeStarted);
     } catch (_) {
       if (mounted) {
         setState(() {

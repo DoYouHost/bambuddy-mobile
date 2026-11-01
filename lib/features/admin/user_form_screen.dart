@@ -310,9 +310,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
 
-      messenger.snack(
-        result.isOk ? l10n.usersSaved : userWriteMessage(l10n, result),
-      );
+      messenger.snack(userWriteText(l10n, result, l10n.usersSaved));
       if (result.isOk) navigator.pop();
     } catch (_) {
       if (mounted) setState(() => _saving = false);

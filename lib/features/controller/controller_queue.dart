@@ -112,11 +112,7 @@ class _ControllerQueueState extends ConsumerState<ControllerQueue> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(queueProvider);
-    final model = ref.watch(
-      controllerPrinterProvider(
-        widget.printerId,
-      ).select((p) => p.item?.printer.model),
-    );
+    final model = ref.watch(controllerModelProvider(widget.printerId));
     final items = async.value == null
         ? null
         : queueForPrinter(

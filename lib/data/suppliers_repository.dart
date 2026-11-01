@@ -1,6 +1,7 @@
 import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -41,8 +42,7 @@ class SuppliersRepository {
   /// the latch has recorded why there is nothing to add.
   Future<List<Supplier>> listSuppliers() => capability.watching(
     () async {
-      final res = await _dio.get<List<dynamic>>(Endpoints.inventorySuppliers);
-      return parseJsonList(res.data, Supplier.fromJson);
+      return _dio.getList(Endpoints.inventorySuppliers, Supplier.fromJson);
     },
     absent: () => const [],
     observing: treat404AsAbsent,
@@ -101,14 +101,14 @@ class SuppliersRepository {
   Future<List<SupplierStats>> fetchStats({DateTime? from, DateTime? to}) =>
       capability.watching(
         () async {
-          final res = await _dio.get<List<dynamic>>(
+          return _dio.getList(
             Endpoints.inventorySupplierStats,
-            queryParameters: await withDayZone({
+            SupplierStats.fromJson,
+            query: await withDayZone({
               if (from != null) 'date_from': calendarDateToJson(from),
               if (to != null) 'date_to': calendarDateToJson(to),
             }),
           );
-          return parseJsonList(res.data, SupplierStats.fromJson);
         },
         absent: () => const [],
         observing: treat404AsAbsent,

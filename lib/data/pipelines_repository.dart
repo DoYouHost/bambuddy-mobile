@@ -2,6 +2,7 @@ import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/models/pipeline_run.dart';
@@ -166,15 +167,11 @@ class PipelinesRepository {
     int offset = 0,
     PipelineRunFilter filter = const PipelineRunFilter(),
   }) => readCapability.watching(() async {
-    final res = await _dio.get<Map<String, dynamic>>(
+    return _dio.getObject(
       Endpoints.pipelineRuns,
-      queryParameters: {
-        'limit': limit,
-        'offset': offset,
-        ...filter.queryParameters,
-      },
+      PipelineRunPage.fromJson,
+      query: {'limit': limit, 'offset': offset, ...filter.queryParameters},
     );
-    return PipelineRunPage.fromJson(res.data ?? const {});
   });
 
   /// One page of runs — the route's own default.
@@ -185,10 +182,7 @@ class PipelinesRepository {
 
   /// GET /pipeline-runs/{id}.
   Future<PipelineRun> runById(int runId) => readCapability.watching(() async {
-    final res = await _dio.get<Map<String, dynamic>>(
-      Endpoints.pipelineRun(runId),
-    );
-    return PipelineRun.fromJson(res.data ?? const {});
+    return _dio.getObject(Endpoints.pipelineRun(runId), PipelineRun.fromJson);
   });
 
   /// POST /pipeline-runs/{id}/cancel — idempotent; a terminal run comes back

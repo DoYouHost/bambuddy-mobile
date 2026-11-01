@@ -208,9 +208,7 @@ class _ApiKeyCard extends ConsumerWidget {
       logId: 'api_keys.revoke',
     );
     await ref.read(apiKeysListProvider.notifier).refresh();
-    messenger.snack(
-      result.isOk ? l10n.apiKeysRevoked : userWriteMessage(l10n, result),
-    );
+    messenger.snack(userWriteText(l10n, result, l10n.apiKeysRevoked));
   }
 }
 

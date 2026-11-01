@@ -1,7 +1,7 @@
-import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/maintenance.dart';
 
@@ -18,11 +18,12 @@ class MaintenanceRepository {
 
   /// `GET /maintenance/overview` — all active printers. Skip unparseable entries.
   Future<List<PrinterMaintenanceOverview>> fetchOverview() async {
-    final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(Endpoints.maintenanceOverview);
-      return res.data ?? const [];
-    });
-    return parseJsonList(body, PrinterMaintenanceOverview.fromJson);
+    return guard(
+      () => _dio.getList(
+        Endpoints.maintenanceOverview,
+        PrinterMaintenanceOverview.fromJson,
+      ),
+    );
   }
 
   /// `GET /maintenance/printers/{id}` — one printer. Auth errors bubble up
@@ -49,11 +50,9 @@ class MaintenanceRepository {
 
   /// `GET /maintenance/types` — full catalog (system + custom, non-deleted).
   Future<List<MaintenanceType>> fetchTypes() async {
-    final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(Endpoints.maintenanceTypes);
-      return res.data ?? const [];
-    });
-    return parseJsonList(body, MaintenanceType.fromJson);
+    return guard(
+      () => _dio.getList(Endpoints.maintenanceTypes, MaintenanceType.fromJson),
+    );
   }
 
   /// `POST /maintenance/types` — create a custom type. Returns it (with new id).
@@ -114,12 +113,11 @@ class MaintenanceRepository {
 
   /// `GET /maintenance/items/{id}/history` — execution history.
   Future<List<MaintenanceHistoryEntry>> fetchHistory(int itemId) async {
-    final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(
+    return guard(
+      () => _dio.getList(
         Endpoints.maintenanceHistory(itemId),
-      );
-      return res.data ?? const [];
-    });
-    return parseJsonList(body, MaintenanceHistoryEntry.fromJson);
+        MaintenanceHistoryEntry.fromJson,
+      ),
+    );
   }
 }

@@ -1,7 +1,7 @@
-import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -42,11 +42,11 @@ class ScheduledDryingRepository {
   Future<List<ScheduledDrying>> list({int? printerId}) =>
       schedulingCapability.watching(
         () async {
-          final res = await _dio.get<List<dynamic>>(
+          return _dio.getList(
             Endpoints.scheduledDryings,
-            queryParameters: {'printer_id': ?printerId},
+            ScheduledDrying.fromJson,
+            query: {'printer_id': ?printerId},
           );
-          return parseJsonList(res.data, ScheduledDrying.fromJson);
         },
         absent: () => const [],
         // The one call on this latch that may settle absence: the collection

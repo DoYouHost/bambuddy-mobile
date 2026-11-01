@@ -6,8 +6,8 @@ import '../../core/models/printer_status.dart';
 import '../../core/models/smart_plug.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/outcome_snack.dart';
 import '../common/speed_name.dart';
 import '../dashboard/controls_providers.dart';
 import '../dashboard/smart_plug_actions.dart';
@@ -331,10 +331,7 @@ class ControllerSpeed extends ConsumerWidget {
         .read(controlsProvider.notifier)
         .setSpeed(printerId, mode);
     if (!context.mounted) return;
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(ScaffoldMessenger.of(context), result, l10n);
   }
 }
 
@@ -411,10 +408,7 @@ class ControllerSwitches extends ConsumerWidget {
         .read(controlsProvider.notifier)
         .setLight(printerId, on: on);
     if (!context.mounted) return;
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(ScaffoldMessenger.of(context), result, l10n);
   }
 
   /// The printer card's plug rules: not while printing, not for a monitor-only

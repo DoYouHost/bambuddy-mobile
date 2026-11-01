@@ -32,6 +32,7 @@ import '../../../l10n/error_messages.dart';
 import '../../../providers.dart';
 import '../../camera/camera_view.dart';
 import '../../common/api_failure_snack.dart';
+import '../../common/outcome_snack.dart';
 import '../../common/media_image.dart';
 import '../../common/dash_async.dart';
 import '../../../core/app_context.dart';

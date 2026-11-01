@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/current_user.dart';
 
@@ -13,7 +14,6 @@ class AccountRepository {
 
   /// GET /auth/me — who this session belongs to, and what it may do.
   Future<CurrentUser> me() => guard(() async {
-    final res = await _dio.get<Map<String, dynamic>>(Endpoints.authMe);
-    return CurrentUser.fromJson(res.data ?? const {});
+    return _dio.getObject(Endpoints.authMe, CurrentUser.fromJson);
   });
 }

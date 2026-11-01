@@ -968,9 +968,7 @@ class _ControllerPrintScreenState extends ConsumerState<ControllerPrintScreen> {
       }
       if (!mounted) return;
       setState(() => _saving = false);
-      messenger.snack(
-        queueWriteMessage(l10n, outcome) ?? l10n.queueCreateAdded,
-      );
+      snackQueueOutcome(messenger, outcome, l10n, ok: l10n.queueCreateAdded);
       if (outcome.isOk) navigator.pop(true);
     } catch (_) {
       if (mounted) setState(() => _saving = false);

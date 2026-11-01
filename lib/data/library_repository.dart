@@ -366,13 +366,11 @@ class LibraryRepository {
     required String filePath,
     required String filename,
   }) => guardKeepingDetail(() async {
-    final form = FormData.fromMap(<String, dynamic>{
-      'file': await MultipartFile.fromFile(filePath, filename: filename),
-    });
-    await _dio.post<dynamic>(
+    await postFile<dynamic>(
+      _dio,
       Endpoints.libraryFilePhotos(fileId),
-      data: form,
-      options: uploadOptions(),
+      filePath: filePath,
+      filename: filename,
     );
   });
 
@@ -479,17 +477,13 @@ class LibraryRepository {
       'generate_stl_thumbnails': true,
     };
     await guard(() async {
-      final form = FormData.fromMap(<String, dynamic>{
-        'file': await MultipartFile.fromFile(filePath, filename: filename),
-      });
-      await _dio.post<dynamic>(
+      await postFile<dynamic>(
+        _dio,
         Endpoints.libraryFiles,
-        data: form,
-        queryParameters: query,
-        options: uploadOptions(),
-        onSendProgress: onProgress == null
-            ? null
-            : (sent, total) => onProgress(transferFraction(sent, total)),
+        filePath: filePath,
+        filename: filename,
+        query: query,
+        onProgress: onProgress,
       );
     });
   }

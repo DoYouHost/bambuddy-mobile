@@ -1,7 +1,7 @@
-import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/makerworld.dart';
 
@@ -17,10 +17,10 @@ class MakerWorldRepository {
 
   /// GET /makerworld/status — whether downloading is available (cloud token).
   Future<MakerWorldStatus> status() => guard(() async {
-    final res = await _dio.get<Map<String, dynamic>>(
+    return _dio.getObject(
       Endpoints.makerworldStatus,
+      MakerWorldStatus.fromJson,
     );
-    return MakerWorldStatus.fromJson(res.data ?? const {});
   });
 
   /// POST /makerworld/resolve — resolve model URL to design + instances.
@@ -51,13 +51,12 @@ class MakerWorldRepository {
 
   /// GET /makerworld/recent-imports — recent imports. Defensive parsing.
   Future<List<MakerWorldRecentImport>> recentImports({int limit = 20}) async {
-    final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(
+    return guard(
+      () => _dio.getList(
         Endpoints.makerworldRecentImports,
-        queryParameters: {'limit': limit},
-      );
-      return res.data ?? const [];
-    });
-    return parseJsonList(body, MakerWorldRecentImport.fromJson);
+        MakerWorldRecentImport.fromJson,
+        query: {'limit': limit},
+      ),
+    );
   }
 }

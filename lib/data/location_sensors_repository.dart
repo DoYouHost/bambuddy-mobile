@@ -1,6 +1,6 @@
-import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -36,10 +36,10 @@ class LocationSensorsRepository {
   Future<List<LocationSensorBinding>> listBindings() =>
       sensorsCapability.watching(
         () async {
-          final res = await _dio.get<List<dynamic>>(
+          return _dio.getList(
             Endpoints.locationHaSensors,
+            LocationSensorBinding.fromJson,
           );
-          return parseJsonList(res.data, LocationSensorBinding.fromJson);
         },
         absent: () => const [],
         // The collection: it addresses nothing, so its 404 is the route.
@@ -53,10 +53,10 @@ class LocationSensorsRepository {
   Future<List<LocationSensorReading>> readings(int locationId) =>
       sensorsCapability.watching(
         () async {
-          final res = await _dio.get<List<dynamic>>(
+          return _dio.getList(
             Endpoints.locationHaSensorReadings(locationId),
+            LocationSensorReading.fromJson,
           );
-          return parseJsonList(res.data, LocationSensorReading.fromJson);
         },
         absent: () => const [],
         // Addressed by location, but `by-location/{id}/readings` looks none up

@@ -1,3 +1,6 @@
+import 'package:dash_kit/dash_kit.dart';
+import 'package:material_ui/material_ui.dart';
+
 import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/queue_item.dart';
@@ -45,6 +48,18 @@ QueueRemoval queueRemovalFor(
 /// The queue screen's one way from an [ActionOutcome] to a sentence.
 String? queueWriteMessage(AppLocalizations l10n, ActionOutcome outcome) =>
     outcomeRefusal(l10n, outcome, _rules);
+
+/// Snacks what [queueWriteMessage] makes of [outcome], or [ok] on success — and
+/// nothing on success when [ok] is null, for a change the list already shows.
+void snackQueueOutcome(
+  ScaffoldMessengerState messenger,
+  ActionOutcome outcome,
+  AppLocalizations l10n, {
+  String? ok,
+}) {
+  final text = queueWriteMessage(l10n, outcome) ?? ok;
+  if (text != null) messenger.snack(text);
+}
 
 /// [queueWriteMessage] for a caller that holds the exception itself, such as a
 /// queue write made outside the queue's own notifier.

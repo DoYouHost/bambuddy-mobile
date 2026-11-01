@@ -2,6 +2,7 @@ import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/archive_slim.dart';
 import '../core/models/archive_stats.dart';
@@ -38,11 +39,11 @@ class StatsRepository {
       'created_by_id': createdById,
     }..removeWhere((_, v) => v == null);
     try {
-      final res = await _dio.get<Map<String, dynamic>>(
+      return await _dio.getObject(
         Endpoints.archivesStats,
-        queryParameters: await withDayZone(query),
+        ArchiveStats.fromJson,
+        query: await withDayZone(query),
       );
-      return ArchiveStats.fromJson(res.data ?? const {});
     } on DioException catch (e) {
       throw mapDioException(e);
     }
@@ -106,11 +107,11 @@ class StatsRepository {
       'created_by_id': createdById,
     }..removeWhere((_, v) => v == null);
     try {
-      final res = await _dio.get<Map<String, dynamic>>(
+      return await _dio.getObject(
         Endpoints.archivesFailures,
-        queryParameters: await withDayZone(query),
+        FailureAnalysis.fromJson,
+        query: await withDayZone(query),
       );
-      return FailureAnalysis.fromJson(res.data ?? const {});
     } on DioException catch (e) {
       throw mapDioException(e);
     }

@@ -220,9 +220,7 @@ class _GroupMenu extends ConsumerWidget {
     ref.invalidate(groupsListProvider);
     ref.invalidate(usersListProvider);
     await ref.read(currentUserProvider.notifier).refresh();
-    messenger.snack(
-      result.isOk ? l10n.groupsDeleted : userWriteMessage(l10n, result),
-    );
+    messenger.snack(userWriteText(l10n, result, l10n.groupsDeleted));
     if (result.isOk) navigator.pop();
   }
 }

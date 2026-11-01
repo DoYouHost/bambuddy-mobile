@@ -5,7 +5,7 @@ import '../../core/models/smart_plug.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/smart_plugs_repository.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
+import '../common/outcome_snack.dart';
 import 'smart_plugs_providers.dart';
 
 /// Switch a smart plug on or off after the user confirms — shared by the printer
@@ -35,8 +35,5 @@ Future<void> confirmAndSwitchPlug(
       .read(smartPlugsProvider.notifier)
       .control(plug.id, want ? SmartPlugAction.on : SmartPlugAction.off);
   if (!context.mounted) return;
-  final msg = result.messageFor(l10n);
-  if (msg != null) {
-    ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-  }
+  snackOutcome(ScaffoldMessenger.of(context), result, l10n);
 }

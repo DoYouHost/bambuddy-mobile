@@ -8,7 +8,7 @@ import '../../core/models/printer_status.dart';
 import '../../core/printers/bed_jog.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
+import '../common/outcome_snack.dart';
 import '../dashboard/controls_providers.dart';
 import 'controller_controls.dart';
 import 'controller_providers.dart';
@@ -58,8 +58,7 @@ class _ControllerMoveState extends ConsumerState<ControllerMove> {
       final result = await action();
       if (!mounted) return;
       setState(() => _spin = null);
-      final msg = result.messageFor(l10n) ?? successMessage;
-      if (msg != null) messenger.snack(msg, clearQueue: true);
+      snackOutcome(messenger, result, l10n, fallback: successMessage);
     } catch (_) {
       if (mounted) setState(() => _spin = null);
       rethrow;
@@ -643,9 +642,10 @@ class _NozzleChoice extends ConsumerWidget {
         .read(controlsProvider.notifier)
         .setExtruder(printerId, index);
     if (!context.mounted) return;
-    final msg = result.messageFor(AppLocalizations.of(context));
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(
+      ScaffoldMessenger.of(context),
+      result,
+      AppLocalizations.of(context),
+    );
   }
 }

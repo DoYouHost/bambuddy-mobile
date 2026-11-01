@@ -368,9 +368,7 @@ class _SheetActions extends ConsumerWidget {
       logId: 'user_detail.delete',
     );
     await ref.read(usersListProvider.notifier).refresh();
-    messenger.snack(
-      result.isOk ? l10n.usersDeleted : userWriteMessage(l10n, result),
-    );
+    messenger.snack(userWriteText(l10n, result, l10n.usersDeleted));
     // The sheet describes an account that is gone; close it either way — on a
     // refusal the list underneath still shows the account and its reason.
     if (sheet.canPop()) sheet.pop();

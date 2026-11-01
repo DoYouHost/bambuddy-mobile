@@ -11,6 +11,7 @@ import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/format/relative_time.dart';
 import '../../core/models/current_user.dart';
+import '../../core/models/json_utils.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -49,10 +50,7 @@ class QueueHistoryOrderNotifier extends Notifier<QueueHistoryOrder> {
     final prefs = ref.watch(sharedPreferencesProvider);
     final by = prefs.getString(_byKey);
     return (
-      by: QueueHistorySort.values.firstWhere(
-        (s) => s.name == by,
-        orElse: () => QueueHistorySort.date,
-      ),
+      by: enumByName(QueueHistorySort.values, by) ?? QueueHistorySort.date,
       ascending: prefs.getBool(_ascendingKey) ?? false,
     );
   }
@@ -756,11 +754,11 @@ class _HistoryRow extends ConsumerWidget {
         deleted ? l10n.queueHistoryRemoved : l10n.queueHistoryKeptForOrder,
       );
     } on AppApiException catch (e) {
-      final text = queueWriteMessage(
-        l10n,
+      snackQueueOutcome(
+        messenger,
         ActionOutcome.failed(e, action: 'queue_history.remove'),
+        l10n,
       );
-      if (text != null) messenger.snack(text);
     }
     await ref.read(queueHistoryProvider.notifier).refresh();
   }

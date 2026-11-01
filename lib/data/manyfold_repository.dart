@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/manyfold.dart';
 
@@ -18,10 +19,7 @@ class ManyfoldRepository {
   /// Manyfold tab, as the web hides it without `manyfold:view`.
   Future<ManyfoldStatus?> status() => guardAbsent<ManyfoldStatus?>(
     () async {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.manyfoldStatus,
-      );
-      return ManyfoldStatus.fromJson(res.data ?? const {});
+      return _dio.getObject(Endpoints.manyfoldStatus, ManyfoldStatus.fromJson);
     },
     null,
     statuses: {404, 403},
@@ -29,18 +27,15 @@ class ManyfoldRepository {
 
   Future<ManyfoldModelPage> models({String query = '', int page = 1}) =>
       _call(() async {
-        final res = await _dio.get<Map<String, dynamic>>(
+        return _dio.getObject(
           Endpoints.manyfoldModels,
-          queryParameters: {'q': query, 'page': page},
+          ManyfoldModelPage.fromJson,
+          query: {'q': query, 'page': page},
         );
-        return ManyfoldModelPage.fromJson(res.data ?? const {});
       });
 
   Future<ManyfoldModel> model(String id) => _call(() async {
-    final res = await _dio.get<Map<String, dynamic>>(
-      Endpoints.manyfoldModel(id),
-    );
-    return ManyfoldModel.fromJson(res.data ?? const {});
+    return _dio.getObject(Endpoints.manyfoldModel(id), ManyfoldModel.fromJson);
   });
 
   /// The preview image, or `null` for a model without one (404).
@@ -67,8 +62,7 @@ class ManyfoldRepository {
   });
 
   Future<ManyfoldConfig> config() => _call(() async {
-    final res = await _dio.get<Map<String, dynamic>>(Endpoints.manyfoldConfig);
-    return ManyfoldConfig.fromJson(res.data ?? const {});
+    return _dio.getObject(Endpoints.manyfoldConfig, ManyfoldConfig.fromJson);
   });
 
   /// An empty [clientSecret] keeps the stored one.

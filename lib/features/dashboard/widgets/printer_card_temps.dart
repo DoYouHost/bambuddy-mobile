@@ -386,10 +386,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet>
       };
       if (!mounted) return;
       navigator.pop();
-      final msg = result.messageFor(l10n);
-      if (msg != null) {
-        messenger.snack(msg, clearQueue: true);
-      }
+      snackOutcome(messenger, result, l10n);
     } catch (_) {
       if (mounted) setState(() => _busy = false);
       rethrow;

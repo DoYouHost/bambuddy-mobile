@@ -1552,7 +1552,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           : (_orderRefused
                 ? l10n.queueEditOrderRefused
                 : l10n.queueCreateAdded);
-      messenger.snack(queueWriteMessage(l10n, result) ?? ok);
+      snackQueueOutcome(messenger, result, l10n, ok: ok);
       // Create pops `true` — its caller (a list of archives or files) refreshes
       // what it shows only when something was really added.
       if (result.isOk) navigator.pop(widget._isCreate);

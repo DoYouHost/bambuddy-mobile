@@ -49,8 +49,11 @@ class QueueResumeBanners extends ConsumerWidget {
               final (:outcome, :restored) = await providers
                   .read(queueProvider.notifier)
                   .resumeAfterFailure(printer.printerId);
-              messenger.snack(
-                queueWriteMessage(l10n, outcome) ?? l10n.queueResumed(restored),
+              snackQueueOutcome(
+                messenger,
+                outcome,
+                l10n,
+                ok: l10n.queueResumed(restored),
               );
             },
           ),
@@ -63,8 +66,11 @@ class QueueResumeBanners extends ConsumerWidget {
                   .read(queueProvider.notifier)
                   .resumeModelAfterFailure(m.model);
               // Nothing is restored here: the jobs never left the queue.
-              messenger.snack(
-                queueWriteMessage(l10n, outcome) ?? l10n.queueResumed(0),
+              snackQueueOutcome(
+                messenger,
+                outcome,
+                l10n,
+                ok: l10n.queueResumed(0),
               );
             },
           ),

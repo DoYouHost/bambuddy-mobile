@@ -58,3 +58,29 @@ double? transferPercentStep(int done, int total) {
 /// which reads as the server refusing it.
 Options uploadOptions() =>
     Options(sendTimeout: Duration.zero, receiveTimeout: Duration.zero);
+
+/// POST a file as the multipart field [fieldName]. [onProgress] gets the sent
+/// fraction, or null while the size is unknown ([transferFraction]); left null,
+/// Dio is not asked to report at all.
+Future<Response<T>> postFile<T>(
+  Dio dio,
+  String path, {
+  required String filePath,
+  required String filename,
+  String fieldName = 'file',
+  Map<String, dynamic>? query,
+  void Function(double? progress)? onProgress,
+}) async {
+  final form = FormData.fromMap(<String, dynamic>{
+    fieldName: await MultipartFile.fromFile(filePath, filename: filename),
+  });
+  return dio.post<T>(
+    path,
+    data: form,
+    queryParameters: query,
+    options: uploadOptions(),
+    onSendProgress: onProgress == null
+        ? null
+        : (sent, total) => onProgress(transferFraction(sent, total)),
+  );
+}

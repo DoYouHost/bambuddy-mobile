@@ -450,9 +450,7 @@ class _Grid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final notifier = ref.read(fileManagerProvider.notifier);
-    final model = ref.watch(
-      controllerPrinterProvider(printerId).select((p) => p.item?.printer.model),
-    );
+    final model = ref.watch(controllerModelProvider(printerId));
     // A search or a tag filter spans the whole library, so the folders of the
     // directory the user stands in would be noise beside its results.
     final folders = state.isSearching || state.isTagFiltering

@@ -123,10 +123,11 @@ Future<void> dismissAllHmsErrors(
   final result = await ref
       .read(controlsProvider.notifier)
       .clearHmsErrors(printerId);
-  messenger.snack(
-    result.outcome.messageFor(l10n) ??
-        hmsDismissedMessage(l10n, result.remaining),
-    clearQueue: true,
+  snackOutcome(
+    messenger,
+    result.outcome,
+    l10n,
+    fallback: hmsDismissedMessage(l10n, result.remaining),
   );
 }
 
@@ -1431,10 +1432,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     final result = await action();
     if (!mounted) return;
     navigator.pop();
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      messenger.snack(msg, clearQueue: true);
-    }
+    snackOutcome(messenger, result, l10n);
   }
 
   /// Hands the run to the server's scheduler instead of the printer.

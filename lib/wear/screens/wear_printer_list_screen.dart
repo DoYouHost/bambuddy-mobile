@@ -34,10 +34,9 @@ class WearPrinterListBody extends ConsumerWidget {
           // Rows stay tappable — this screen only navigates, and the control
           // screen it opens does its own gating.
           if (fleet?.stale ?? false) ...[
-            Text(
+            wearBodyLine(
               AppLocalizations.of(context).wearWaitingForState,
-              textAlign: TextAlign.center,
-              style: WearText.body.copyWith(color: wearInert),
+              color: wearInert,
             ),
             const SizedBox(height: DashSpace.sm),
           ],

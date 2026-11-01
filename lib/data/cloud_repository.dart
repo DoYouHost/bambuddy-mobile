@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/cloud_auth.dart';
 
@@ -13,8 +14,7 @@ class CloudRepository {
 
   /// GET /cloud/status — login state (email/region if logged in).
   Future<CloudAuthStatus> status() => guard(() async {
-    final res = await _dio.get<Map<String, dynamic>>(Endpoints.cloudStatus);
-    return CloudAuthStatus.fromJson(res.data ?? const {});
+    return _dio.getObject(Endpoints.cloudStatus, CloudAuthStatus.fromJson);
   });
 
   /// POST /cloud/login — start login. `needs_verification=true` → [verify].

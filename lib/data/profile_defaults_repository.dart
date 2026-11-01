@@ -1,6 +1,7 @@
 import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -35,10 +36,10 @@ class ProfileDefaultsRepository {
   /// list: the latch has recorded why, and what reads this is additive.
   Future<List<ProfileDefault>> list() => capability.watching(
     () async {
-      final res = await _dio.get<List<dynamic>>(
+      return _dio.getList(
         Endpoints.inventoryProfileDefaults,
+        ProfileDefault.fromJson,
       );
-      return parseJsonList(res.data, ProfileDefault.fromJson);
     },
     absent: () => const [],
     observing: treat404AsAbsent,

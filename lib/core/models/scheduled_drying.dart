@@ -42,10 +42,7 @@ enum DryingWaitReason {
 
   static DryingWaitReason? fromWire(String? value) {
     if (value == null || value.isEmpty) return null;
-    for (final reason in values) {
-      if (reason.wire == value) return reason;
-    }
-    return unknown;
+    return enumByWire(values, value, (r) => r.wire) ?? unknown;
   }
 }
 

@@ -8,13 +8,14 @@ import '../format/duration_format.dart';
 import '../models/printer_status.dart';
 import 'widget_status.dart';
 import '../notifications/hms_catalog.dart';
+import '../models/value_equality.dart';
 
 /// Snapshot of the fields that actually show up on the widget — mirrors
 /// `_OngoingKey` in `print_monitor.dart`. Callers publish on every WS frame
 /// and every poll tick; without this, an hours-long print would redo the
 /// full 9x `saveWidgetData` + native broadcast (and a cover re-fetch check)
 /// on every single frame even though nothing visible changed.
-class WidgetPublishKey {
+class WidgetPublishKey with ValueEquality {
   const WidgetPublishKey({
     required this.printerId,
     required this.statusKey,
@@ -32,24 +33,14 @@ class WidgetPublishKey {
   final String? coverUrl;
 
   @override
-  bool operator ==(Object other) =>
-      other is WidgetPublishKey &&
-      other.printerId == printerId &&
-      other.statusKey == statusKey &&
-      other.progressPct == progressPct &&
-      other.etaMinutes == etaMinutes &&
-      other.layers == layers &&
-      other.coverUrl == coverUrl;
-
-  @override
-  int get hashCode => Object.hash(
+  List<Object?> get props => [
     printerId,
     statusKey,
     progressPct,
     etaMinutes,
     layers,
     coverUrl,
-  );
+  ];
 }
 
 /// Publishes the state of one selected printer to the native home screen widget

@@ -204,9 +204,7 @@ class _Grid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final model = ref.watch(
-      controllerPrinterProvider(printerId).select((p) => p.item?.printer.model),
-    );
+    final model = ref.watch(controllerModelProvider(printerId));
     if (page.items.isEmpty) {
       return ControllerListMessage(
         icon: Icons.history_rounded,
@@ -402,9 +400,7 @@ class _ArchiveDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final printer = ref.watch(
-      controllerPrinterProvider(printerId).select((p) => p.item?.printer),
-    );
+    final printer = ref.watch(controllerPrinterInfoProvider(printerId));
     final block = controllerPrintBlock(
       printerKnown: printer != null,
       refused: ref.watch(archiveReprintBlockProvider(archive.createdById)),

@@ -683,10 +683,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
           .setFanSpeed(widget.printerId, widget.fan, speed);
       if (!mounted) return;
       navigator.pop();
-      final msg = result.messageFor(l10n);
-      if (msg != null) {
-        messenger.snack(msg, clearQueue: true);
-      }
+      snackOutcome(messenger, result, l10n);
     } catch (_) {
       if (mounted) setState(() => _busy = false);
       rethrow;

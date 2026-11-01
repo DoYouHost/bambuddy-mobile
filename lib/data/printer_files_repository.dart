@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -171,10 +172,10 @@ class PrinterFilesRepository {
   /// the next download down the legacy path over an expired staging folder.
   Future<PrinterDownloadJob?> downloadJob(int printerId, String jobId) =>
       guardAbsent<PrinterDownloadJob?>(() async {
-        final res = await _dio.get<Map<String, dynamic>>(
+        return _dio.getObject(
           Endpoints.printerFilesJobStatus(printerId, jobId),
+          PrinterDownloadJob.fromJson,
         );
-        return PrinterDownloadJob.fromJson(res.data ?? const {});
       }, null);
 
   /// Stops a job and deletes whatever it had already staged, including a bundle

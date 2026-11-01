@@ -1,23 +1,21 @@
 import 'package:app_util/app_util.dart';
 
+import 'value_equality.dart';
+
 /// The next pause the slicer put into the running print (`next_pause`, server
 /// #2984): the layer it is on and the minutes until the printer gets there.
 ///
 /// [minutes] is null while the server cannot say: at the start of a print the
 /// printer reports no time left, and in a speed mode other than standard the
 /// slicer's times do not apply. The layer is known all the same.
-class NextPause {
+class NextPause with ValueEquality {
   const NextPause({required this.layer, this.minutes});
 
   final int layer;
   final int? minutes;
 
   @override
-  bool operator ==(Object other) =>
-      other is NextPause && other.layer == layer && other.minutes == minutes;
-
-  @override
-  int get hashCode => Object.hash(layer, minutes);
+  List<Object?> get props => [layer, minutes];
 }
 
 /// `next_pause` out of a status frame: null for the key's absence (an older

@@ -1,3 +1,5 @@
+import '../models/value_equality.dart';
+
 /// A server capability the app has to gate, because an older bambuddy either
 /// refuses it or — worse — accepts the request and silently ignores it.
 ///
@@ -107,7 +109,7 @@ enum ServerFeature {
 /// Parsing and ordering mirror `updates.py::parse_version` / `is_newer_version`
 /// so that "newer" means here what it means there — including the rule that a
 /// release outranks any prerelease of the same base.
-class ServerVersion implements Comparable<ServerVersion> {
+class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
   const ServerVersion({
     required this.raw,
     required this.major,
@@ -269,18 +271,14 @@ class ServerVersion implements Comparable<ServerVersion> {
   bool operator <(ServerVersion other) => compareTo(other) < 0;
 
   @override
-  bool operator ==(Object other) =>
-      other is ServerVersion &&
-      other.major == major &&
-      other.minor == minor &&
-      other.patch == patch &&
-      other.micro == micro &&
-      other.isPrerelease == isPrerelease &&
-      other.prereleaseNum == prereleaseNum;
-
-  @override
-  int get hashCode =>
-      Object.hash(major, minor, patch, micro, isPrerelease, prereleaseNum);
+  List<Object?> get props => [
+    major,
+    minor,
+    patch,
+    micro,
+    isPrerelease,
+    prereleaseNum,
+  ];
 
   @override
   String toString() => raw;

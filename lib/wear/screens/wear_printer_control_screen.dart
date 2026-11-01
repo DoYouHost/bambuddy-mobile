@@ -101,13 +101,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
       // The one thing on this screen that never reaches `WearScrollView`, so
       // the only one that has to ask for the round-safe rectangle itself.
       return WearFace(
-        child: Center(
-          child: Text(
-            l10n.wearPrinterUnavailable,
-            textAlign: TextAlign.center,
-            style: WearText.body,
-          ),
-        ),
+        child: Center(child: wearBodyLine(l10n.wearPrinterUnavailable)),
       );
     }
     final status = item.status;

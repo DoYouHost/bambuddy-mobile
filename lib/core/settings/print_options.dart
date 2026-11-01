@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../models/calibration_option.dart';
+import '../models/value_equality.dart';
 
 /// The per-print toggles of the print form (bed levelling, calibrations,
 /// inspection, timelapse), remembered between jobs.
@@ -16,7 +17,7 @@ import '../models/calibration_option.dart';
 ///
 /// After the first print the form starts from [SettingsRepository.loadPrintOptions]
 /// instead: what the user chose last time is a better guess than any constant.
-class PrintOptions {
+class PrintOptions with ValueEquality {
   const PrintOptions({
     required this.bedLevelling,
     required this.flowCali,
@@ -120,18 +121,7 @@ class PrintOptions {
   }
 
   @override
-  bool operator ==(Object other) =>
-      other is PrintOptions &&
-      other.bedLevelling == bedLevelling &&
-      other.flowCali == flowCali &&
-      other.vibrationCali == vibrationCali &&
-      other.layerInspect == layerInspect &&
-      other.timelapse == timelapse &&
-      other.nozzleOffsetCali == nozzleOffsetCali &&
-      other.gcodeInjection == gcodeInjection;
-
-  @override
-  int get hashCode => Object.hash(
+  List<Object?> get props => [
     bedLevelling,
     flowCali,
     vibrationCali,
@@ -139,5 +129,5 @@ class PrintOptions {
     timelapse,
     nozzleOffsetCali,
     gcodeInjection,
-  );
+  ];
 }

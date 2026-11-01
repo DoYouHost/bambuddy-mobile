@@ -99,11 +99,8 @@ class _QueueBulkEditScreenState extends ConsumerState<QueueBulkEditScreen> {
           .bulkUpdate(widget.itemIds, _changes);
       if (!mounted) return;
       setState(() => _saving = false);
-      final failure = queueWriteMessage(l10n, outcome);
-      if (failure != null || result == null) {
-        if (failure != null) messenger.snack(failure);
-        return;
-      }
+      snackQueueOutcome(messenger, outcome, l10n);
+      if (!outcome.isOk || result == null) return;
       messenger.snack(queueBulkSummary(l10n, result));
       navigator.pop(true);
     } catch (_) {

@@ -87,7 +87,7 @@ Future<void> _sendQueuedPrint(
   // is released as it stands — what the web's Start does for every job.
   if (item.isCrossModel) {
     final result = await providers.read(queueProvider.notifier).start(item.id);
-    messenger.snack(queueWriteMessage(l10n, result) ?? l10n.queuePrintStarted);
+    snackQueueOutcome(messenger, result, l10n, ok: l10n.queuePrintStarted);
     return;
   }
   // A claim is only offered on a job with a printer on it
@@ -160,7 +160,7 @@ Future<void> _sendQueuedPrint(
   final result = claims
       ? await notifier.start(item.id)
       : await notifier.startOnPrinter(item, printerId, amsMapping: mapping);
-  messenger.snack(queueWriteMessage(l10n, result) ?? l10n.queuePrintStarted);
+  snackQueueOutcome(messenger, result, l10n, ok: l10n.queuePrintStarted);
 }
 
 /// Whether [printerId] still has a finished job on the plate AND the scheduler
@@ -315,9 +315,8 @@ Future<void> removeFromQueue(
       logId: 'queue.action.cancel',
     ),
   };
-  final failure = queueWriteMessage(l10n, result);
-  if (failure != null) {
-    messenger.snack(failure);
+  if (!result.isOk) {
+    snackQueueOutcome(messenger, result, l10n);
     return;
   }
   final done = switch (removal) {

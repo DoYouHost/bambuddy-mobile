@@ -4,7 +4,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/api/action_outcome.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/queue_item.dart';
@@ -350,7 +349,7 @@ class _QueueList extends ConsumerWidget {
         final result = await ref
             .read(queueProvider.notifier)
             .reorder(oldIndex + offset, newIndex + offset);
-        _snackFailure(messenger, l10n, result);
+        snackQueueOutcome(messenger, result, l10n);
       },
       itemBuilder: (context, i) => _QueueCard(
         key: ValueKey(reorderable[i].id),
@@ -525,7 +524,7 @@ class _QueueCard extends ConsumerWidget {
         final result = await ref.read(queueProvider.notifier).delete(item.id);
         // The swipe hits `DELETE`, which refuses a row that started printing
         // between the list being drawn and the finger arriving.
-        _snackFailure(messenger, l10n, result);
+        snackQueueOutcome(messenger, result, l10n);
       },
       child: card,
     ).tagged('queue.swipe_delete').tourTarget('queue.swipe_delete.${item.id}');
@@ -723,7 +722,7 @@ class _QueueActions extends ConsumerWidget {
             // no mapping then — saving [] would clear the stored one.
             if (mapping == null || mapping.isEmpty) return;
             final r = await notifier.saveMapping(item.id, mapping);
-            messenger.snack(queueWriteMessage(l10n, r) ?? l10n.mappingSaved);
+            snackQueueOutcome(messenger, r, l10n, ok: l10n.mappingSaved);
             return;
           }
 
@@ -830,17 +829,4 @@ class _QueueActions extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Says nothing on success: the change is already visible in the list.
-/// Says nothing when [result] succeeded — the row leaving the list is the
-/// confirmation — and otherwise what [queueWriteMessage] made of the refusal.
-void _snackFailure(
-  ScaffoldMessengerState messenger,
-  AppLocalizations l10n,
-  ActionOutcome result,
-) {
-  final text = queueWriteMessage(l10n, result);
-  if (text == null) return;
-  messenger.snack(text);
 }

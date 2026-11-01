@@ -198,10 +198,7 @@ class _LightSwitchRow extends ConsumerWidget {
         .read(controlsProvider.notifier)
         .setLight(printerId, on: on);
     if (!context.mounted) return;
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(ScaffoldMessenger.of(context), result, l10n);
   }
 }
 
@@ -485,10 +482,7 @@ class _SpeedControlTile extends ConsumerWidget {
         .read(controlsProvider.notifier)
         .setSpeed(printerId, mode);
     if (!context.mounted) return;
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(ScaffoldMessenger.of(context), result, l10n);
   }
 }
 

@@ -298,9 +298,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
 
-      messenger.snack(
-        result.isOk ? l10n.groupsSaved : userWriteMessage(l10n, result),
-      );
+      messenger.snack(userWriteText(l10n, result, l10n.groupsSaved));
       if (result.isOk) navigator.pop();
     } catch (_) {
       if (mounted) setState(() => _saving = false);

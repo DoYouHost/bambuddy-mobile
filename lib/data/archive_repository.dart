@@ -2,6 +2,7 @@ import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -211,14 +212,11 @@ class ArchiveRepository {
     required int olderThanDays,
     bool purgeStats = false,
   }) => guard(() async {
-    final res = await _dio.get<Map<String, dynamic>>(
+    return _dio.getObject(
       Endpoints.archivesPurgePreview,
-      queryParameters: {
-        'older_than_days': olderThanDays,
-        'purge_stats': purgeStats,
-      },
+      ArchivePurgePreview.fromJson,
+      query: {'older_than_days': olderThanDays, 'purge_stats': purgeStats},
     );
-    return ArchivePurgePreview.fromJson(res.data ?? const {});
   });
 
   /// GET /archives/{id}/plates — the plates of a multi-plate 3MF.
@@ -283,11 +281,11 @@ class ArchiveRepository {
   Future<ArchivePrinterMedia?> printerMedia(int archiveId) =>
       printerMediaCapability.watching(
         () async {
-          final res = await _dio.get<Map<String, dynamic>>(
+          return _dio.getObject(
             Endpoints.archivePrinterMedia(archiveId),
+            ArchivePrinterMedia.fromJson,
             options: Options(receiveTimeout: const Duration(seconds: 60)),
           );
-          return ArchivePrinterMedia.fromJson(res.data ?? const {});
         },
         absent: () => null,
         // Not a 403: the sheet is open because the user asked for the

@@ -1,11 +1,14 @@
 import 'package:material_ui/material_ui.dart' show ThemeMode;
 
+import '../models/json_utils.dart';
+import '../models/value_equality.dart';
+
 /// Where the accent comes from. Wire values are the enum names.
 enum AccentSource { bambuddy, system, blue, purple, orange, pink, graphite }
 
 /// The app's colour and light/dark choice, kept per device. One JSON object,
 /// so a damaged field costs that field and nothing else.
-class AppearancePrefs {
+class AppearancePrefs with ValueEquality {
   const AppearancePrefs({
     this.accent = AccentSource.bambuddy,
     this.mode = ThemeMode.system,
@@ -22,19 +25,15 @@ class AppearancePrefs {
   factory AppearancePrefs.fromJson(Map<String, dynamic> json) =>
       AppearancePrefs(
         accent:
-            _byName(AccentSource.values, json['accent']) ??
+            enumByName(AccentSource.values, json['accent']) ??
             AccentSource.bambuddy,
-        mode: _byName(ThemeMode.values, json['mode']) ?? ThemeMode.system,
+        mode: enumByName(ThemeMode.values, json['mode']) ?? ThemeMode.system,
       );
 
   Map<String, dynamic> toJson() => {'accent': accent.name, 'mode': mode.name};
 
   @override
-  bool operator ==(Object other) =>
-      other is AppearancePrefs && other.accent == accent && other.mode == mode;
-
-  @override
-  int get hashCode => Object.hash(accent, mode);
+  List<Object?> get props => [accent, mode];
 }
 
 /// Where a paired watch takes its colours from: its face, this phone's
@@ -43,7 +42,7 @@ enum WatchThemeSource { face, phone, preset }
 
 /// The watch's colours, chosen on the phone. Same tolerant JSON as
 /// [AppearancePrefs]: anything unreadable is the default, the phone's accent.
-class WatchAppearance {
+class WatchAppearance with ValueEquality {
   const WatchAppearance({
     this.source = WatchThemeSource.phone,
     this.preset = AccentSource.bambuddy,
@@ -61,10 +60,10 @@ class WatchAppearance {
       );
 
   factory WatchAppearance.fromJson(Map<String, dynamic> json) {
-    final preset = _byName(AccentSource.values, json['preset']);
+    final preset = enumByName(AccentSource.values, json['preset']);
     return WatchAppearance(
       source:
-          _byName(WatchThemeSource.values, json['source']) ??
+          enumByName(WatchThemeSource.values, json['source']) ??
           WatchThemeSource.phone,
       preset: preset == null || preset == AccentSource.system
           ? AccentSource.bambuddy
@@ -78,14 +77,5 @@ class WatchAppearance {
   };
 
   @override
-  bool operator ==(Object other) =>
-      other is WatchAppearance &&
-      other.source == source &&
-      other.preset == preset;
-
-  @override
-  int get hashCode => Object.hash(source, preset);
+  List<Object?> get props => [source, preset];
 }
-
-T? _byName<T extends Enum>(List<T> values, Object? name) =>
-    values.where((v) => v.name == name).firstOrNull;

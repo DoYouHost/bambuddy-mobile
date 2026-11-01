@@ -106,11 +106,7 @@ class _FileDialogState extends ConsumerState<_FileDialog> {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final printer = ref.watch(
-      controllerPrinterProvider(
-        widget.printerId,
-      ).select((p) => p.item?.printer),
-    );
+    final printer = ref.watch(controllerPrinterInfoProvider(widget.printerId));
     final block = controllerPrintBlock(
       printerKnown: printer != null,
       refused: ref.watch(permissionProvider(Permissions.queueCreate))

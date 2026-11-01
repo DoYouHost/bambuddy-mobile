@@ -9,8 +9,8 @@ import '../../core/models/printer_capabilities.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/outcome_snack.dart';
 import '../dashboard/controls_providers.dart';
 import '../dashboard/temp_readings.dart';
 import 'controller_controls.dart';
@@ -458,10 +458,11 @@ class _HeaterCard extends ConsumerWidget {
       TempKind.unknown => ActionOutcome.ok,
     };
     if (!context.mounted) return;
-    final msg = result.messageFor(AppLocalizations.of(context));
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(
+      ScaffoldMessenger.of(context),
+      result,
+      AppLocalizations.of(context),
+    );
   }
 }
 
@@ -595,10 +596,11 @@ class _NozzleSwitch extends ConsumerWidget {
         .read(controlsProvider.notifier)
         .setExtruder(printerId, hardwareIndex);
     if (!context.mounted) return;
-    final msg = result.messageFor(AppLocalizations.of(context));
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(
+      ScaffoldMessenger.of(context),
+      result,
+      AppLocalizations.of(context),
+    );
   }
 }
 
@@ -690,10 +692,11 @@ class _AirductSwitch extends ConsumerWidget {
         .read(controlsProvider.notifier)
         .setAirduct(printerId, heating: heating);
     if (!context.mounted) return;
-    final msg = result.messageFor(AppLocalizations.of(context));
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(
+      ScaffoldMessenger.of(context),
+      result,
+      AppLocalizations.of(context),
+    );
   }
 }
 
@@ -1130,9 +1133,10 @@ class _FanCardState extends ConsumerState<_FanCard> {
         .read(controlsProvider.notifier)
         .setFanSpeed(widget.printerId, widget.fan, value.round());
     if (!mounted) return;
-    final msg = result.messageFor(AppLocalizations.of(context));
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(
+      ScaffoldMessenger.of(context),
+      result,
+      AppLocalizations.of(context),
+    );
   }
 }
