@@ -155,6 +155,20 @@ another's new row. A non-UTC `TZ` (the workflow uses `Europe/Warsaw`) because in
 a naive timestamp read as local or as UTC is the same instant, and the timestamp
 tests would pass whatever the parser did.
 
+**Pass the files in name order.** The suite relies on it: the `ws_…` files move the
+seeded printer and are named to run last. `flutter test test/contract` takes the
+directory's own listing order, which on one laptop was not alphabetical, and then
+`seeded_state_contract_test.dart` failed with `FINISH` where it expected `RUNNING`
+and `outcome-probe.3mf` where it expected `contract-probe.3mf` (alone, on a fresh
+server, it passes). Hand over the sorted list instead:
+`flutter test $(ls test/contract/*_test.dart | LC_ALL=C sort) --concurrency=1`. A red
+pair like that after a green CI run is this, not a regression.
+
+A host without `openssl` (NixOS) can make the broker's certificate in a throwaway
+container: `docker run --rm --user "$(id -u):$(id -g)" -v "$certs:/certs"
+alpine/openssl req -x509 -newkey rsa:2048 -nodes -days 2 -keyout /certs/server.key
+-out /certs/server.crt -subj /CN=fake-bambu`.
+
 The write-then-read guarantee (maziggy/bambuddy#3320, fixed in 1.3.1) has its own file,
 `commit_before_response_contract_test.dart`, skipped unless `BAMBUDDY_CONTRACT_COMMIT_DELAY`
 is set. Run it last, against a server `tool/ci/delay_commit.sh <container> <url>` has made
