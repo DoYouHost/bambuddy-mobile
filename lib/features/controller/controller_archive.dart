@@ -151,7 +151,6 @@ class ControllerArchive extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final provider = controllerArchiveProvider(printerId);
     final async = ref.watch(provider);
@@ -177,25 +176,13 @@ class ControllerArchive extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: DashSpace.md),
-          Expanded(
-            child: Container(
-              decoration: t.cardBox,
-              padding: const EdgeInsets.all(DashSpace.sm),
-              child: switch ((page, async)) {
-                (_, AsyncError(:final error)) => ControllerListFailure(
-                  error: error,
-                  retryId: 'controller.archive.retry',
-                  onRetry: notifier.refresh,
-                ),
-                (final p?, _) => _Grid(
-                  page: p,
-                  printerId: printerId,
-                  refreshing: async.isLoading,
-                  onMore: notifier.loadMore,
-                ),
-                _ => const Center(child: CircularProgressIndicator()),
-              },
-            ),
+          ControllerListBody<ControllerArchivePage>(
+            async: async,
+            value: page,
+            retryId: 'controller.archive.retry',
+            onRetry: notifier.refresh,
+            grid: (p) =>
+                _Grid(page: p, printerId: printerId, onMore: notifier.loadMore),
           ),
         ],
       ),
@@ -207,13 +194,11 @@ class _Grid extends ConsumerWidget {
   const _Grid({
     required this.page,
     required this.printerId,
-    required this.refreshing,
     required this.onMore,
   });
 
   final ControllerArchivePage page;
   final int printerId;
-  final bool refreshing;
   final VoidCallback onMore;
 
   @override
@@ -228,43 +213,34 @@ class _Grid extends ConsumerWidget {
         text: l10n.controllerArchiveEmpty,
       );
     }
-    return Column(
-      children: [
-        if (refreshing) const LinearProgressIndicator(),
-        Expanded(
-          child: CustomScrollView(
-            slivers: [
-              SliverGrid.builder(
-                gridDelegate: controllerTileGrid(context),
-                itemCount: page.items.length,
-                // The grid's context, not the tile's: a refresh while the
-                // dialog is open may take the tile away.
-                itemBuilder: (_, i) {
-                  // The grid builds a tile only as it comes near the screen,
-                  // so building one of the last two rows is the end coming
-                  // near. The notifier asks one page at a time; after a
-                  // failure the footer's Retry does.
-                  if (page.hasMore &&
-                      page.moreFailed == null &&
-                      i >= page.items.length - controllerGridColumns * 2) {
-                    WidgetsBinding.instance.addPostFrameCallback(
-                      (_) => onMore(),
-                    );
-                  }
-                  return _ArchiveTile(
-                    archive: page.items[i],
-                    printerModel: model,
-                    onTap: () => _open(context, ref, page.items[i]),
-                  );
-                },
-              ),
-              if (page.hasMore)
-                SliverToBoxAdapter(
-                  child: _More(page: page, onMore: onMore),
-                ),
-            ],
-          ),
+    return CustomScrollView(
+      slivers: [
+        SliverGrid.builder(
+          gridDelegate: controllerTileGrid(context),
+          itemCount: page.items.length,
+          // The grid's context, not the tile's: a refresh while the
+          // dialog is open may take the tile away.
+          itemBuilder: (_, i) {
+            // The grid builds a tile only as it comes near the screen,
+            // so building one of the last two rows is the end coming
+            // near. The notifier asks one page at a time; after a
+            // failure the footer's Retry does.
+            if (page.hasMore &&
+                page.moreFailed == null &&
+                i >= page.items.length - controllerGridColumns * 2) {
+              WidgetsBinding.instance.addPostFrameCallback((_) => onMore());
+            }
+            return _ArchiveTile(
+              archive: page.items[i],
+              printerModel: model,
+              onTap: () => _open(context, ref, page.items[i]),
+            );
+          },
         ),
+        if (page.hasMore)
+          SliverToBoxAdapter(
+            child: _More(page: page, onMore: onMore),
+          ),
       ],
     );
   }

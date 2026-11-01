@@ -102,7 +102,6 @@ class _ControllerFilesState extends ConsumerState<ControllerFiles> {
 
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
     final async = ref.watch(fileManagerProvider);
     // Kept while a refresh is under way, so the grid does not blink out.
     final state = async.value;
@@ -117,28 +116,20 @@ class _ControllerFilesState extends ConsumerState<ControllerFiles> {
           onUpload: state == null ? null : () => _upload(state),
         ),
         const SizedBox(height: DashSpace.md),
-        Expanded(
-          child: Container(
-            decoration: t.cardBox,
-            padding: const EdgeInsets.all(DashSpace.sm),
-            // The error first: a failed refresh or a failed step into a folder
-            // keeps the listing it came from as `value`, and showing that
-            // would leave the user looking at the old folder with no word.
-            child: switch ((state, async)) {
-              (_, AsyncError(:final error)) => ControllerListFailure(
-                error: error,
-                retryId: 'controller.files.retry',
-                onRetry: () => ref.invalidate(fileManagerProvider),
-              ),
-              (final s?, _) => _Grid(
-                state: s,
-                printerId: widget.printerId,
-                refreshing: async.isLoading,
-                // What a tap would act on is about to change.
-                locked: async.isLoading || _uploading,
-              ),
-              _ => const Center(child: CircularProgressIndicator()),
-            },
+        ControllerListBody<FileManagerState>(
+          async: async,
+          value: state,
+          retryId: 'controller.files.retry',
+          onRetry: () => ref.invalidate(fileManagerProvider),
+          // The error first: a failed refresh or a failed step into a folder
+          // keeps the listing it came from as `value`, and showing that would
+          // leave the user looking at the old folder with no word.
+          onFailure: ControllerListFailureMode.replace,
+          grid: (s) => _Grid(
+            state: s,
+            printerId: widget.printerId,
+            // What a tap would act on is about to change.
+            locked: async.isLoading || _uploading,
           ),
         ),
       ],
@@ -446,13 +437,11 @@ class _Grid extends ConsumerWidget {
   const _Grid({
     required this.state,
     required this.printerId,
-    required this.refreshing,
     required this.locked,
   });
 
   final FileManagerState state;
   final int printerId;
-  final bool refreshing;
 
   /// Nothing opens: a listing is on its way, or a file is being sent.
   final bool locked;
@@ -489,34 +478,21 @@ class _Grid extends ConsumerWidget {
             : l10n.fmEmpty,
       );
     }
-    return Column(
-      children: [
-        if (refreshing) const LinearProgressIndicator(),
-        Expanded(
-          child: GridView.builder(
-            gridDelegate: controllerTileGrid(context),
-            itemCount: folders.length + files.length,
-            itemBuilder: (context, i) => i < folders.length
-                ? _FolderTile(
-                    folder: folders[i],
-                    onTap: locked
-                        ? null
-                        : () => notifier.openFolder(folders[i].id),
-                  )
-                : _FileTile(
-                    file: files[i - folders.length],
-                    printerModel: model,
-                    onTap: locked
-                        ? null
-                        : () => _openFile(
-                            context,
-                            ref,
-                            files[i - folders.length],
-                          ),
-                  ),
-          ),
-        ),
-      ],
+    return GridView.builder(
+      gridDelegate: controllerTileGrid(context),
+      itemCount: folders.length + files.length,
+      itemBuilder: (context, i) => i < folders.length
+          ? _FolderTile(
+              folder: folders[i],
+              onTap: locked ? null : () => notifier.openFolder(folders[i].id),
+            )
+          : _FileTile(
+              file: files[i - folders.length],
+              printerModel: model,
+              onTap: locked
+                  ? null
+                  : () => _openFile(context, ref, files[i - folders.length]),
+            ),
     );
   }
 

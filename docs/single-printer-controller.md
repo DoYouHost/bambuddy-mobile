@@ -334,6 +334,16 @@ and an archive's delete, favourite, verdict, media, search and filters, stay on 
 phone screens and the web: they are not things done at the printer (maintainer,
 2026-10-23).
 
+All three lists (Files, Queue, Archive) sit in `ControllerListBody`, which says what
+a failed refresh does to a listing already on screen (`ControllerListFailureMode`).
+The Archive keeps its tiles and puts the failure and a retry under them, since a
+dropped connection takes nothing from tiles that are still true (maintainer,
+2026-11-01; it replaced them before), and the line stays up through the retry.
+The Queue keeps its tiles and says nothing: it is polled every ten seconds, and a
+bar that came and went with each failed poll would flicker. Files replaces the
+tiles with the failure: its old answer can be another folder's, and a user looking
+at it with no word would be misled.
+
 ### Queue
 
 - **What is listed** is what the server's own per-printer filter returns

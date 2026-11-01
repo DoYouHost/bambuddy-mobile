@@ -262,6 +262,33 @@ void main() {
       expect(byLogId('controller.archive.more_retry'), findsNothing);
     });
 
+    testWidgets('a refresh that failed leaves the prints, with the failure '
+        'under them', (tester) async {
+      await open(tester, _prints(3));
+      repo.listError = const ApiException(AppErrorCode.connectionError);
+
+      await tester.tap(byLogId('controller.archive.refresh'));
+      await settle(tester);
+
+      expect(find.text('Print 1'), findsOneWidget);
+      expect(find.text(pl.connectFailed), findsOneWidget);
+
+      // The retry in flight: the line stays up instead of blinking out and
+      // back, which a poll or a second failure would otherwise make of it.
+      final hold = Completer<void>();
+      repo.listHeld = hold;
+      await tester.tap(byLogId('controller.archive.retry'));
+      await tester.pump();
+      expect(find.text('Print 1'), findsOneWidget);
+      expect(find.text(pl.connectFailed), findsOneWidget);
+
+      hold.complete();
+      await settle(tester);
+
+      expect(find.text('Print 1'), findsOneWidget);
+      expect(find.text(pl.connectFailed), findsNothing);
+    });
+
     testWidgets('Print again opens the print screen on the archive', (
       tester,
     ) async {

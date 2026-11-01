@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/api/api_exceptions.dart';
@@ -8,6 +9,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import 'controller_controls.dart';
+import 'controller_detail_dialog.dart';
 import 'scale_to_fit.dart';
 
 /// Height of a tile in a Prints view's grid: its thumbnail and a margin, so a
@@ -270,6 +272,10 @@ class ControllerChip extends StatelessWidget {
   }
 }
 
+/// A refusal is the account's, so a retry changes nothing.
+bool _isRefusal(Object error) =>
+    error is AppApiException && error.code == AppErrorCode.forbidden;
+
 /// A listing that could not be had: the server refused it, or was not there.
 class ControllerListFailure extends StatelessWidget {
   const ControllerListFailure({
@@ -286,9 +292,7 @@ class ControllerListFailure extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final refused =
-        error is AppApiException &&
-        (error as AppApiException).code == AppErrorCode.forbidden;
+    final refused = _isRefusal(error);
     return ControllerListMessage(
       icon: refused ? Icons.lock_outline_rounded : Icons.cloud_off_rounded,
       text: refused
@@ -308,6 +312,146 @@ class ControllerListFailure extends StatelessWidget {
                 child: Text(l10n.retry),
               ),
             ),
+    );
+  }
+}
+
+/// The failure of a refresh under a listing that is still on screen: one line
+/// and a retry below the tiles, in the place the archive's "more" row already
+/// uses for its own.
+class ControllerListErrorStrip extends StatelessWidget {
+  const ControllerListErrorStrip({
+    super.key,
+    required this.error,
+    required this.retryId,
+    required this.onRetry,
+  });
+
+  final Object error;
+  final String retryId;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final refused = _isRefusal(error);
+    return Padding(
+      padding: const EdgeInsets.only(top: DashSpace.sm),
+      child: SizedBox(
+        height: controllerButtonHeight,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                refused
+                    ? (error as AppApiException).localized(l10n)
+                    : l10n.connectFailed,
+                style: t.bodySoft,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (!refused) ...[
+              const SizedBox(width: DashSpace.md),
+              ControllerDialogAction(
+                id: retryId,
+                icon: Icons.refresh_rounded,
+                label: l10n.retry,
+                onPressed: onRetry,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What a failed refresh does to a listing that is already on screen.
+enum ControllerListFailureMode {
+  /// The failure takes the tiles' place: the old answer would mislead, as
+  /// another folder's would.
+  replace,
+
+  /// The tiles stay and the failure goes under them with a retry: a dropped
+  /// connection takes nothing from what is still true.
+  below,
+
+  /// The tiles stay and nothing is said: a list that is polled tries again by
+  /// itself, and a bar that came and went with every poll would flicker.
+  hidden,
+}
+
+/// The card a Prints list sits in: the tiles, a bar while a refresh runs, and
+/// what a failed one does to them ([ControllerListFailureMode]). With no tiles
+/// yet, a failure is always the whole card.
+class ControllerListBody<T> extends StatelessWidget {
+  const ControllerListBody({
+    super.key,
+    required this.async,
+    required this.value,
+    required this.retryId,
+    required this.onRetry,
+    required this.grid,
+    this.onFailure = ControllerListFailureMode.below,
+  });
+
+  /// Read for its state only: loading, or failed.
+  final AsyncValue<Object?> async;
+
+  /// What to show: the last answer, kept while a refresh runs or fails, and
+  /// `null` until there is one.
+  final T? value;
+
+  /// The diagnostic id of the retry button, whichever of the two forms it is in.
+  final String retryId;
+  final VoidCallback onRetry;
+  final Widget Function(T value) grid;
+  final ControllerListFailureMode onFailure;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final failed = switch (async) {
+      AsyncError(:final error) => error,
+      _ => null,
+    };
+    final shown = value;
+    final Widget child;
+    if (failed != null &&
+        (onFailure == ControllerListFailureMode.replace || shown == null)) {
+      child = ControllerListFailure(
+        error: failed,
+        retryId: retryId,
+        onRetry: onRetry,
+      );
+    } else if (shown == null) {
+      child = const Center(child: CircularProgressIndicator());
+    } else {
+      // `hasError`, not the type: a retry in flight is a loading state that
+      // still carries the failure, and the line must stay up through it
+      // instead of blinking out and back.
+      final error = async.hasError ? async.error : null;
+      child = Column(
+        children: [
+          if (async.isLoading) const LinearProgressIndicator(),
+          Expanded(child: grid(shown)),
+          if (error != null && onFailure == ControllerListFailureMode.below)
+            ControllerListErrorStrip(
+              error: error,
+              retryId: retryId,
+              onRetry: onRetry,
+            ),
+        ],
+      );
+    }
+    return Expanded(
+      child: Container(
+        decoration: t.cardBox,
+        padding: const EdgeInsets.all(DashSpace.sm),
+        child: child,
+      ),
     );
   }
 }
