@@ -1,6 +1,6 @@
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
-import 'package:bambuddy_mobile/features/dashboard/dashboard_filters.dart';
+import 'package:bambuddy_mobile/core/printers/printer_bucket.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 

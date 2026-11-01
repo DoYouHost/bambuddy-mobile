@@ -1161,7 +1161,6 @@
   "widgetStatusPrinting": "Printing",
   "widgetStatusPaused": "Paused",
   "widgetStatusFinished": "Finished",
-  "widgetStatusFailed": "Failed",
   "widgetStatusIdle": "Idle",
   "widgetStatusOffline": "Offline",
   "widgetStatusError": "Error",
@@ -1842,7 +1841,6 @@
     }
   },
   "inventoryPrinterPresetsLoadFailed": "Not read — saving leaves them alone.",
-  "inventoryPrinterPresetsSaveFailed": "Spool saved, its per-model presets were not.",
   "inventoryProfileDefaultPrefilled": "Filled from the default for {product}",
   "@inventoryProfileDefaultPrefilled": {
     "description": "Note above the per-model presets of a new spool: its presets and slicer preset came from the saved default of the product typed so far.",
@@ -2034,8 +2032,6 @@
   "inventorySpoolArchived": "Spool archived",
   "inventorySpoolRestored": "Spool restored",
   "inventoryUsageReset": "Counter reset",
-  "inventorySaveFailed": "Could not save spool",
-  "inventoryActionFailed": "Action failed",
   "inventoryUnassign": "Unassign",
   "inventoryAssign": "Assign to slot",
   "inventoryAssignPrinter": "Printer",

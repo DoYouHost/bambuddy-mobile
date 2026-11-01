@@ -952,7 +952,7 @@ class PrintMonitor {
     }
 
     final lead = printing.first; // Finishes earliest
-    final percent = (lead.progress ?? 0).round().clamp(0, 100);
+    final percent = lead.progressPercent;
     // The mean over every printing machine, for the log only
     // (docs/notification-rules.md, "The ongoing notification").
     final reported = [for (final s in printing) ?s.progress?.clamp(0, 100)];

@@ -9,7 +9,6 @@ import '../core/watch/watch_config_sync.dart';
 import '../providers.dart';
 import 'wear_fleet_cache.dart';
 import 'wear_ongoing.dart';
-import 'wear_status.dart';
 import 'wear_transport.dart';
 
 /// Config the phone has pushed but the watch has not adopted — either it has no
@@ -183,12 +182,7 @@ class WearFleetNotifier extends AsyncNotifier<WearFleet> {
     final relaying =
         ref.read(wearTransportProvider).lastMode == WearTransportMode.relay;
     final active =
-        fleet?.printers.any(
-          (p) => switch (wearStateOf(p.status)) {
-            WearState.printing || WearState.paused => true,
-            _ => false,
-          },
-        ) ??
+        fleet?.printers.any((p) => p.status?.isJobActive ?? false) ??
         // Unknown fleet (fetch failed) → poll fast to recover quickly.
         true;
     // Also slower after a failed poll that left a frame on screen (docs/wear-fleet-poll.md, "Cadence").

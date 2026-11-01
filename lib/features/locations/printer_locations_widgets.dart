@@ -3,10 +3,10 @@ import 'package:app_util/app_util.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/models/printer_location.dart';
+import '../../core/printers/printer_bucket.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
-import '../dashboard/dashboard_filters.dart';
 import '../dashboard/widgets/dashboard_filter_sheet.dart'
     show statusBucketLabel;
 import 'printer_location_icons.dart';

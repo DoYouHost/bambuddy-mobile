@@ -1,3 +1,4 @@
+import '../../core/printers/printer_bucket.dart';
 import '../announcements/announcements_widgets.dart';
 import 'package:app_util/app_util.dart';
 import 'dart:async';
@@ -1754,7 +1755,7 @@ class _SummaryHeader extends ConsumerWidget {
     final p = next.status?.progress;
     final r = next.status?.remainingTime;
     final parts = [
-      if (p != null) '${p.toStringAsFixed(0)}%',
+      if (p != null) '${next.status!.progressPercent}%',
       if (r != null) formatMinutes(l10n, r),
     ];
     return parts.isEmpty ? '' : ' (${parts.join(' · ')})';

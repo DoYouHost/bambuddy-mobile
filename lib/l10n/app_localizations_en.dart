@@ -1875,9 +1875,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get widgetStatusFinished => 'Finished';
 
   @override
-  String get widgetStatusFailed => 'Failed';
-
-  @override
   String get widgetStatusIdle => 'Idle';
 
   @override
@@ -2814,10 +2811,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Not read — saving leaves them alone.';
 
   @override
-  String get inventoryPrinterPresetsSaveFailed =>
-      'Spool saved, its per-model presets were not.';
-
-  @override
   String inventoryProfileDefaultPrefilled(String product) {
     return 'Filled from the default for $product';
   }
@@ -3064,12 +3057,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryUsageReset => 'Counter reset';
-
-  @override
-  String get inventorySaveFailed => 'Could not save spool';
-
-  @override
-  String get inventoryActionFailed => 'Action failed';
 
   @override
   String get inventoryUnassign => 'Unassign';

@@ -105,7 +105,13 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
         for (final e in list)
           if (e is Map<String, dynamic>) SwatchCode.fromJson(e),
       ].where((c) => c.code.isNotEmpty).toList();
-    } on Object {
+    } on FormatException {
+      // The user's file, not the app: not JSON, or not UTF-8.
+      _snack(l10n.swatchImportFailed);
+      return;
+    } on TypeError {
+      // `SwatchCode.fromJson` casts, so a field of the wrong type in the file
+      // lands here too.
       _snack(l10n.swatchImportFailed);
       return;
     }

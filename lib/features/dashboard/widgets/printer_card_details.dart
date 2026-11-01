@@ -2573,8 +2573,6 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
         action: 'assign_spool.add_to_inventory',
         message: _registerFailure(e, l10n),
       );
-    } on Object {
-      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 
@@ -2720,8 +2718,6 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       messenger.snack(l10n.inventorySpoolAssigned);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'sheet.assign_spool');
-    } on Object {
-      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 
@@ -2739,8 +2735,6 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       messenger.snack(l10n.inventorySpoolUnassigned);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'printer.ams_slot');
-    } on Object {
-      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 }

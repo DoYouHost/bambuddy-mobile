@@ -1925,9 +1925,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get widgetStatusFinished => 'Zakończono';
 
   @override
-  String get widgetStatusFailed => 'Błąd';
-
-  @override
   String get widgetStatusIdle => 'Bezczynna';
 
   @override
@@ -2873,10 +2870,6 @@ class AppLocalizationsPl extends AppLocalizations {
       'Nie odczytano — zapis ich nie ruszy.';
 
   @override
-  String get inventoryPrinterPresetsSaveFailed =>
-      'Szpula zapisana, presety wg modelu — nie.';
-
-  @override
   String inventoryProfileDefaultPrefilled(String product) {
     return 'Wypełniono z ustawień domyślnych dla $product';
   }
@@ -3128,12 +3121,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryUsageReset => 'Wyzerowano licznik';
-
-  @override
-  String get inventorySaveFailed => 'Nie udało się zapisać szpuli';
-
-  @override
-  String get inventoryActionFailed => 'Operacja nie powiodła się';
 
   @override
   String get inventoryUnassign => 'Odepnij';

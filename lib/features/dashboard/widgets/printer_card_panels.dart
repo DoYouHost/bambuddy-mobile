@@ -267,7 +267,7 @@ class _PrintPanel extends StatelessWidget {
               ),
               if (progress != null && !showStage) ...[
                 const SizedBox(width: DashSpace.md),
-                Text('${progress.toStringAsFixed(0)}%', style: t.monoValue),
+                Text('${status.progressPercent}%', style: t.monoValue),
               ],
             ],
           ),

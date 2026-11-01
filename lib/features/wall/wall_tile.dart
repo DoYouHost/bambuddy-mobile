@@ -135,7 +135,7 @@ class _WallTileState extends State<WallTile> {
                     : printing && progress != null
                     ? FittedBox(
                         child: Text(
-                          '${progress.toStringAsFixed(0)}%',
+                          '${status!.progressPercent}%',
                           style: t.monoDisplay.copyWith(
                             fontSize: DashFontSize.numeral,
                           ),

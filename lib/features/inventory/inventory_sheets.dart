@@ -219,10 +219,10 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
         l10n,
         action: 'spool_assign.save',
       );
-    } on Object {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      messenger.snack(l10n.inventoryActionFailed);
+    } catch (_) {
+      // A bug, not a refusal: lower the flag and let it reach the bug report.
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 }
@@ -464,8 +464,6 @@ class _SpoolActions extends ConsumerWidget {
       messenger.snack(successMsg);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: logId);
-    } on Object {
-      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 }

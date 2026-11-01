@@ -382,11 +382,16 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
         l10n,
         action: 'labels.print',
       );
-    } on Object {
-      // The sheet may already be closed: the hand-off runs after it. The
-      // message goes to the screen behind, so it does not depend on it.
+    } on FileSystemException {
+      // The device (disk full, no write access), not a bug. The sheet may
+      // already be closed: the hand-off runs after it, so the message goes to
+      // the screen behind.
       if (mounted) setState(() => _busy = false);
       messenger.snack(l10n.inventoryLabelsFailed);
+    } catch (_) {
+      // A bug, not a refusal: lower the flag and let it reach the bug report.
+      if (mounted) setState(() => _busy = false);
+      rethrow;
     }
   }
 
@@ -450,7 +455,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
             ? l10n.labelPrinterRefused(detail)
             : l10n.labelPrinterFailed,
       );
-    } on Object {
+    } on NetworkException {
       messenger.snack(l10n.labelPrinterUnreachable);
     }
   }

@@ -2,8 +2,8 @@ import 'package:collection/collection.dart';
 import 'package:app_util/app_util.dart';
 
 import '../../core/models/printer_status.dart';
+import '../../core/printers/printer_bucket.dart';
 import '../../data/printers_repository.dart';
-import 'dashboard_filters.dart';
 
 /// What the printer list is ordered by — the web's `SortOption`
 /// (`PrintersPage.tsx`).

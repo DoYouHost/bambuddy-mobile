@@ -1906,9 +1906,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get widgetStatusFinished => 'Terminée';
 
   @override
-  String get widgetStatusFailed => 'Échouée';
-
-  @override
   String get widgetStatusIdle => 'Inactive';
 
   @override
@@ -2859,10 +2856,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Non lus — l\'enregistrement les laissera inchangés.';
 
   @override
-  String get inventoryPrinterPresetsSaveFailed =>
-      'Bobine enregistrée, mais ses préréglages par modèle ne l\'ont pas été.';
-
-  @override
   String inventoryProfileDefaultPrefilled(String product) {
     return 'Rempli d\'après les valeurs par défaut de $product';
   }
@@ -3113,12 +3106,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get inventoryUsageReset => 'Compteur réinitialisé';
-
-  @override
-  String get inventorySaveFailed => 'Impossible d\'enregistrer la bobine';
-
-  @override
-  String get inventoryActionFailed => 'Échec de l\'action';
 
   @override
   String get inventoryUnassign => 'Désassigner';

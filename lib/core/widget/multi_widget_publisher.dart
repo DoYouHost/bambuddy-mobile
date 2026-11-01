@@ -46,9 +46,7 @@ class MultiWidgetPublisher {
   ) async {
     final ranked = _ranked(statuses);
     final total = ranked.length;
-    final printing = ranked
-        .where((s) => WidgetStatus.isActive(WidgetStatus.keyFor(s)))
-        .length;
+    final printing = ranked.where(WidgetStatus.isActive).length;
     final offline = ranked
         .where((s) => WidgetStatus.keyFor(s) == WidgetStatus.offline)
         .length;
@@ -88,7 +86,7 @@ class MultiWidgetPublisher {
       if (i < shown.length) {
         final s = shown[i];
         final key = WidgetStatus.keyFor(s);
-        final active = WidgetStatus.isActive(key);
+        final active = WidgetStatus.isActive(s);
         await HomeWidget.saveWidgetData<String>(
           'multi_name_$i',
           s.name ?? l10n.widgetNoPrinter,
@@ -100,7 +98,7 @@ class MultiWidgetPublisher {
         );
         await HomeWidget.saveWidgetData<int>(
           'multi_pct_$i',
-          active ? WidgetStatus.progressPct(s) : -1,
+          active ? s.progressPercent : -1,
         );
       } else {
         // Clear leftover slots so a shrinking roster doesn't show stale rows.
@@ -122,23 +120,23 @@ class MultiWidgetPublisher {
   static List<PrinterStatus> _ranked(Map<int, PrinterStatus> statuses) {
     final list = statuses.values.toList()
       ..sort((a, b) {
-        final ra = _rank(WidgetStatus.keyFor(a));
-        final rb = _rank(WidgetStatus.keyFor(b));
+        final ra = _rank(a);
+        final rb = _rank(b);
         if (ra != rb) return ra.compareTo(rb);
         return a.id.compareTo(b.id);
       });
     return list;
   }
 
-  static int _rank(String key) {
-    if (WidgetStatus.isActive(key)) return 0;
-    if (key == WidgetStatus.offline) return 2;
+  static int _rank(PrinterStatus s) {
+    if (WidgetStatus.isActive(s)) return 0;
+    if (WidgetStatus.keyFor(s) == WidgetStatus.offline) return 2;
     return 1;
   }
 
   /// Sub-label: the print file name while active, otherwise the status word.
   static String _sub(PrinterStatus s, AppLocalizations l10n, String key) {
-    if (WidgetStatus.isActive(key)) {
+    if (WidgetStatus.isActive(s)) {
       final name = (s.currentPrint ?? s.gcodeFile)?.trim();
       if (name != null && name.isNotEmpty) return name;
       return s.stgCurName?.trim() ?? '';
@@ -152,7 +150,7 @@ class MultiWidgetPublisher {
     return ranked
         .map(
           (s) =>
-              '${s.id}:${WidgetStatus.keyFor(s)}:${WidgetStatus.progressPct(s)}:'
+              '${s.id}:${WidgetStatus.keyFor(s)}:${s.progressPercent}:'
               '${(s.currentPrint ?? s.gcodeFile)?.trim() ?? ''}',
         )
         .join('|');

@@ -163,10 +163,10 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
             ? l10n.inventoryBulkEditUnsupported
             : null,
       );
-    } on Object {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      messenger.snack(l10n.inventorySaveFailed);
+    } catch (_) {
+      // A bug, not a refusal: lower the flag and let it reach the bug report.
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 

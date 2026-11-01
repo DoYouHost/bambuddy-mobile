@@ -567,6 +567,18 @@ class PrinterStatus {
     return (progress ?? 0) > 0 && (remainingTime ?? 0) > 0;
   }
 
+  /// A job is on a printer that can be reached — the question "is there a print
+  /// to show progress for, and to pause or stop?". Not the same question as the
+  /// status bucket (`classifyPrinter`): a printing machine with an HMS fault is
+  /// in the error bucket and still has a job to stop, and a preparing one is in
+  /// the idle bucket and already has one.
+  bool get isJobActive => (connected ?? false) && isPrinting;
+
+  /// The print's progress as a whole percent, 0–100. The server sends `progress`
+  /// already as a percentage (`mc_percent`, a float), never a 0–1 fraction —
+  /// 0.5 is half a percent — and the web rounds and clamps it the same way.
+  int get progressPercent => (progress ?? 0).round().clamp(0, 100);
+
   /// Prep phase: active print but no real progress yet — show stage name
   /// instead of 0% bar in UI.
   bool get isPreparing => isPrinting && (progress ?? 0) <= 0;

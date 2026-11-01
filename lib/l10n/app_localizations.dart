@@ -3146,12 +3146,6 @@ abstract class AppLocalizations {
   /// **'Finished'**
   String get widgetStatusFinished;
 
-  /// No description provided for @widgetStatusFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed'**
-  String get widgetStatusFailed;
-
   /// No description provided for @widgetStatusIdle.
   ///
   /// In en, this message translates to:
@@ -4706,12 +4700,6 @@ abstract class AppLocalizations {
   /// **'Not read — saving leaves them alone.'**
   String get inventoryPrinterPresetsLoadFailed;
 
-  /// No description provided for @inventoryPrinterPresetsSaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Spool saved, its per-model presets were not.'**
-  String get inventoryPrinterPresetsSaveFailed;
-
   /// Note above the per-model presets of a new spool: its presets and slicer preset came from the saved default of the product typed so far.
   ///
   /// In en, this message translates to:
@@ -5101,18 +5089,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Counter reset'**
   String get inventoryUsageReset;
-
-  /// No description provided for @inventorySaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not save spool'**
-  String get inventorySaveFailed;
-
-  /// No description provided for @inventoryActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Action failed'**
-  String get inventoryActionFailed;
 
   /// No description provided for @inventoryUnassign.
   ///

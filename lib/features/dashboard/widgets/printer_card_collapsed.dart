@@ -44,7 +44,7 @@ class _CollapsedCard extends ConsumerWidget {
       child: _HeaderLine(
         leading: _leadIcon(context, ref, t, l10n),
         name: name,
-        afterName: showPercent ? '${progress.toStringAsFixed(0)}%' : null,
+        afterName: showPercent ? '${status.progressPercent}%' : null,
         belowName: printing
             ? Padding(
                 padding: const EdgeInsets.only(top: DashSpace.xs),

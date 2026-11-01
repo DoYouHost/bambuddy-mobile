@@ -418,7 +418,7 @@ class _SaverBox extends ConsumerWidget {
             ),
             child: Center(
               child: Text(
-                '${progress.toStringAsFixed(0)}%',
+                '${status.progressPercent}%',
                 style: t.monoDisplay.copyWith(
                   color: t.textPrimary,
                   fontSize: _percentFont,

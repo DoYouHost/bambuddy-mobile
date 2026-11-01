@@ -547,7 +547,7 @@ class _JobCard extends StatelessWidget {
                   children: [
                     if (progress != null && !preparing)
                       Text(
-                        '${progress.toStringAsFixed(0)}%',
+                        '${status.progressPercent}%',
                         style: t.monoValue.copyWith(fontSize: percentSize),
                         // Already the biggest figure on the screen: it keeps its
                         // size at any text size so the lines under it stay in the card.

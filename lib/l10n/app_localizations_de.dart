@@ -1897,9 +1897,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get widgetStatusFinished => 'Abgeschlossen';
 
   @override
-  String get widgetStatusFailed => 'Fehlgeschlagen';
-
-  @override
   String get widgetStatusIdle => 'Bereit';
 
   @override
@@ -2846,10 +2843,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Nicht gelesen — beim Speichern bleiben sie unverändert.';
 
   @override
-  String get inventoryPrinterPresetsSaveFailed =>
-      'Spule gespeichert, modellspezifische Profile jedoch nicht.';
-
-  @override
   String inventoryProfileDefaultPrefilled(String product) {
     return 'Aus der Vorgabe für $product übernommen';
   }
@@ -3099,12 +3092,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inventoryUsageReset => 'Zähler zurückgesetzt';
-
-  @override
-  String get inventorySaveFailed => 'Spule konnte nicht gespeichert werden';
-
-  @override
-  String get inventoryActionFailed => 'Aktion fehlgeschlagen';
 
   @override
   String get inventoryUnassign => 'Zuweisung aufheben';

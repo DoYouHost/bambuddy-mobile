@@ -2,6 +2,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/printers/printer_bucket.dart';
 import '../../../core/theme/dash_theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../dashboard_filters.dart';

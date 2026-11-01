@@ -370,7 +370,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           logId: 'spool_form.save_model_presets',
           l10n: l10n,
           messenger: messenger,
-          unexpected: l10n.inventoryPrinterPresetsSaveFailed,
         );
         if (!saved) return;
         _overridesDirty = false;
@@ -417,10 +416,10 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         l10n,
         action: 'spool_form.save',
       );
-    } on Object {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      messenger.snack(l10n.inventorySaveFailed);
+    } catch (_) {
+      // A bug, not a refusal: lower the flag and let it reach the bug report.
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
@@ -432,13 +431,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// write is a delete. A failure leaves the sheet open with the picks still in it — the
   /// spool itself is already saved, and the retry costs one PATCH of a spool
   /// that now exists either way (see [_createdSpoolId]). An unexpected error
-  /// goes on to [_save]'s own handler unless [unexpected] words it here.
+  /// goes on to [_save]'s own handler.
   Future<bool> _followUpWrite(
     Future<void> Function() write, {
     required String logId,
     required AppLocalizations l10n,
     required ScaffoldMessengerState messenger,
-    String? unexpected,
   }) async {
     try {
       await write();
@@ -446,11 +444,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
       showApiFailure(mounted ? messenger : null, e, l10n, action: logId);
-      return false;
-    } on Object {
-      if (unexpected == null) rethrow;
-      if (mounted) setState(() => _saving = false);
-      messenger.snack(unexpected);
       return false;
     }
   }

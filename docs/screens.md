@@ -105,6 +105,13 @@ Deviations from the web kept on purpose:
   (`PrinterStatus.isPrinting`); the status filter's "printing" chip counts `RUNNING`
   only, with pausing in a bucket of its own and preparing in idle
   (`classifyPrinter`, the web's `classifyPrinterStatus`).
+- That one classification (`lib/core/printers/printer_bucket.dart`) is also what the
+  home-screen widgets (`WidgetStatus.keyFor`) and the watch (`wearStateOf`) name a
+  printer by: a failed job is finished, a fault is error, an unreported connection is
+  offline. What they do with a job — progress, ETA, pause and stop — follows
+  `PrinterStatus.isJobActive`, not the bucket, so a printing machine with a fault
+  keeps its Stop. Progress is `PrinterStatus.progressPercent` everywhere: the server
+  sends a percentage, never a fraction.
 - The web reverses location and model sections twice on a descending sort; the app
   reverses once.
 
