@@ -107,6 +107,18 @@ void main() {
       expect(ids(all, moving), [4]);
     });
 
+    test('offers nothing for an external folder', () {
+      final moving = f(1, external: true);
+
+      expect(ids([moving, f(2), f(3)], moving), isEmpty);
+    });
+
+    test('still leaves out the subtree when the list omits the folder', () {
+      final moving = f(2, parent: 1);
+
+      expect(ids([f(1), f(3, parent: 2), f(4)], moving), [4]);
+    });
+
     test('leaves out a folder the user may not write to', () {
       final moving = f(1);
       final all = [moving, f(2, canWrite: false), f(3)];

@@ -104,7 +104,11 @@ List<LibraryFolder> folderMoveTargets(
   List<LibraryFolder> all,
   LibraryFolder folder,
 ) {
-  final byId = {for (final f in all) f.id: f};
+  // A mount stays where the scan put it (the server answers 400), so it has no
+  // target at all.
+  if (folder.isExternal) return const [];
+  // [folder] is seeded in case [all] was filtered and no longer lists it.
+  final byId = {for (final f in all) f.id: f, folder.id: folder};
   bool blocked(LibraryFolder f) {
     final seen = <int>{};
     for (

@@ -785,8 +785,8 @@ class SpoolAssignmentDraft {
 
   /// Take the spool out of every other slot in the same commit
   /// (`SpoolAssignmentCreate.move`). Only for a server that has the field:
-  /// below `ServerFeature.assignmentMove` it is dropped and the spool stays
-  /// in both slots.
+  /// below `ServerFeature.assignmentMove` the server ignores it and the spool
+  /// stays in both slots.
   final bool move;
 
   Map<String, dynamic> toNativeJson() => {
