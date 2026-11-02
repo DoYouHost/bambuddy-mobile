@@ -33,9 +33,9 @@ topic ──merge──▶ dev ──merge a SHA──▶ release/X.Y.Z ──PR
    comes over from there, so the bump commit stays the only commit that exists on
    the release branch alone.
 3. Push and **monitor the runs** (`gh run list --branch release/X.Y.Z`, `gh run
-   watch <id>`): CI is the draft PR's run. The contract tests are not run on release
-   branches (see below); check the latest run on `dev` instead. Fix what is red on
-   the release branch and carry the fix to `dev`.
+   watch <id>`): CI is the draft PR's run, and so are the contract tests when the PR
+   touches the contract code (see below). Fix what is red on the release branch and
+   carry the fix to `dev`.
 4. `just ship X.Y.Z` once the runs are green — bumps, tests, builds, publishes the
    GitHub release and the Play internal track, then marks the PR ready. A branch
    that had nothing ahead of `master` at step 1 gets its PR here instead. The bump
@@ -59,12 +59,15 @@ in step 3 is what keeps a red build from reaching Obtainium; `just ship` still r
 UI. It also requires one approval and a green `analyze · test · build`. The
 ruleset's bypass actor (repository admin) can override all of it; do not.
 
-## Why the contract tests are not a gate
+## Contract tests
 
-`contract-tests.yml` runs on the one runner that has the Docker socket, and the
-org runner group lets it take a workflow only from an exact ref (`dev`, `master`).
-The group refuses a wildcard such as `release/*` (it checks that the ref exists), so
-making the tests a required check on release PRs would mean adding every
-`release/X.Y.Z` to the group by hand with an `admin:org` token. That was tried for
-0.17.1 and dropped: the run waits for a runner until the entry exists, then passes.
+`contract-tests.yml` runs on GitHub-hosted runners (Docker is there, each job is a
+throwaway VM), one VM per server version. It runs on a pull request into `master`
+that touches `lib/core/`, `lib/data/` or `test/contract/`, and daily when Dagu
+dispatches it. It is not a required check: making it one would leave a PR that
+touches none of those paths waiting for a check that never arrives.
+
+It used to run on a self-hosted runner with the Docker socket, whose org runner
+group accepted a workflow only from an exact ref and refused a wildcard such as
+`release/*`; that runner is no longer used by any workflow.
 

@@ -11,13 +11,13 @@ Every pull request into `master` runs
 `flutter analyze`, `flutter test`, a debug APK build of both flavors, and a check
 of what the watch APK ships. A pull request that only touches `docs/`, `site/`,
 `store-assets/` or `*.md` skips everything after the path check and still
-reports green. The pull request is opened as a draft by `just release-start`, so
-CI runs on every push to `release/X.Y.Z` through it (there is no `push` trigger,
-which would start a second run and time both out), and master's ruleset requires
-it, so a pull request into `master` merges only once it is green.
-`contract-tests.yml` is not part of that gate: it runs on pushes to `dev` and
-`master` that touch the contract code, and daily. Pull requests into `dev` and
-topic branches get no CI run of their own.
+reports green. It runs on GitHub-hosted runners as parallel jobs (analyze, test,
+a11y in three shards, build) behind one `analyze · test · build` job, the status
+master requires. The pull request is opened as a draft by `just release-start`, so
+CI runs on every push to `release/X.Y.Z` through it; there is no `push` trigger,
+which would run it twice. `contract-tests.yml` is not part of that gate: it runs on
+pull requests into `master` that touch the contract code, and daily. Pull requests
+into `dev` and topic branches get no CI run of their own.
 
 **Before you ask a question, check the CI result and fix what is red.** Analyzer
 errors, failing tests, broken builds and missing imports are yours to resolve —

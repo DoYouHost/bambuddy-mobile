@@ -3,16 +3,14 @@ name: Contract tests
 # Does our parsing still match what the real server sends? A real bambuddy behind
 # the real Dio client; `flutter test` only replays fixtures we wrote.
 #
-# Runs on the one `ci-docker` runner, which has the Docker daemon, so a job there
-# can own the host. There is no `pull_request` trigger on purpose: the repo is
-# public and a fork PR must never reach that runner. Branch pushes and manual
-# dispatch only; the org runner group is also restricted to this workflow file.
+# GitHub-hosted runners: every job is a throwaway VM and uses no secrets, so a fork
+# pull request cannot reach anything.
 
 on:
   # Daily 04:23 UTC, dispatched by Dagu rather than `schedule:` (docs/release.md).
   workflow_dispatch:
-  push:
-    branches: [dev, master]
+  pull_request:
+    branches: [master]
     paths:
       - "lib/core/**"
       - "lib/data/**"
@@ -20,13 +18,14 @@ on:
       - ".github/workflows/contract-tests.yml"
 
 concurrency:
-  group: contract-tests
-  cancel-in-progress: false
+  group: contract-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 env:
+  FLUTTER_VERSION: "3.47.7"
   # DoYouHost/brother-ql-print-server, pinned: the label tests assert its behaviour.
   LABEL_PRINTER_REF: b6c91c44bba43ed8f75f45c0cb3ac6878753b27c
   ADMIN_USER: ci-admin
@@ -36,15 +35,13 @@ env:
 jobs:
   contract:
     name: parse real server responses (${{ matrix.tag }})
-    runs-on: [self-hosted, ci-docker]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     # `latest` is the last release, `daily` the development branch, `1.2.5` a fixed
     # older release. Tests detect which one they got and assert the matching half.
-    # One at a time: the jobs share one runner and one bridge-gateway port.
     # fail-fast is off so a break on `daily` never hides the release result.
     strategy:
       fail-fast: false
-      max-parallel: 1
       matrix:
         tag: [latest, daily, "1.2.5"]
     env:
@@ -55,11 +52,13 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Toolchain
-        run: flutter --version
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
 
-      # The containers are siblings of this job, so "localhost" is not shared:
-      # publish on the bridge gateway, which nothing on the LAN can reach.
+      # Published on the bridge gateway, which nothing outside the VM can reach.
       - name: Start bambuddy and the stand-in printer
         id: server
         run: |
@@ -144,7 +143,6 @@ jobs:
           docker create --rm --name "$name" \
             -e SECRET_KEY_BASE="$(openssl rand -hex 64)" \
             ghcr.io/manyfold3d/manyfold-solo:latest >/dev/null
-          # docker cp rather than -v: the daemon's filesystem is not the runner's.
           docker cp "$library/." "$name":/libraries
           docker start "$name" >/dev/null
           ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$name")"
