@@ -219,7 +219,11 @@ jobs:
           # read as local or as UTC. Any zone but UTC works.
           TZ: Europe/Warsaw
         # One file at a time: they share a server, and SQLite reuses a deleted row's id.
-        run: flutter test test/contract --concurrency=1 --reporter expanded
+        run: |
+          # The suite relies on name order (the ws_ files move the seeded printer);
+          # a directory's own listing order is not alphabetical on every host.
+          mapfile -t files < <(find test/contract -maxdepth 1 -name '*_test.dart' | LC_ALL=C sort)
+          flutter test "${files[@]}" --concurrency=1 --reporter expanded
 
       # maziggy/bambuddy#3320: a write answered 200 must already be committed. The
       # server is made to commit a second late and one file runs against it; it
