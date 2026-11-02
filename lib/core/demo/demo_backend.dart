@@ -7518,6 +7518,10 @@ class DemoBackend {
         if (folder == null) return _fallback(m);
         if (m == 'PUT') {
           if (body.containsKey('name')) folder['name'] = body['name'];
+          // `0` lifts the folder to the root, as on the server.
+          if (body['parent_id'] case final int parent) {
+            folder['parent_id'] = parent == 0 ? null : parent;
+          }
           return demoOk(folder);
         }
         if (m == 'DELETE') {

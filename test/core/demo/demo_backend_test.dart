@@ -1463,6 +1463,22 @@ void main() {
       expect(stats.totalFiles, all.length);
       expect(await repo.listTrash(), isEmpty);
     });
+
+    test('a folder moves into another one and back to the root', () async {
+      final repo = LibraryRepository(dio);
+
+      await repo.moveFolder(2, parentId: 1);
+      expect(
+        (await repo.listFolders()).firstWhere((f) => f.id == 2).parentId,
+        1,
+      );
+
+      await repo.moveFolder(2);
+      expect(
+        (await repo.listFolders()).firstWhere((f) => f.id == 2).parentId,
+        isNull,
+      );
+    });
   });
 
   group('misc endpoints', () {
