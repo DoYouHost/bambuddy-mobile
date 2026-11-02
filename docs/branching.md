@@ -33,7 +33,7 @@ topic ──merge──▶ dev ──merge a SHA──▶ release/X.Y.Z ──PR
    comes over from there, so the bump commit stays the only commit that exists on
    the release branch alone.
 3. Push and **monitor the runs** (`gh run list --branch release/X.Y.Z`, `gh run
-   watch <id>`): CI (a push run and the draft PR's run) and the contract tests
+   watch <id>`): CI (the draft PR's run) and the contract tests
    (push-only, see its header). Fix what is red on the release branch and carry the
    fix to `dev`.
 4. `just ship X.Y.Z` once the runs are green — bumps, tests, builds, publishes the

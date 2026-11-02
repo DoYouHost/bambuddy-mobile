@@ -11,9 +11,10 @@ Every pull request into `master` runs
 `flutter analyze`, `flutter test`, a debug APK build of both flavors, and a check
 of what the watch APK ships. A pull request that only touches `docs/`, `site/`,
 `store-assets/` or `*.md` skips everything after the path check and still
-reports green. CI also runs on every push to `release/X.Y.Z` (the pull request is
-opened as a draft by `just release-start`, so a push starts two runs);
-`contract-tests.yml` runs on every one of those pushes too. Master's ruleset
+reports green. The pull request is opened as a draft by `just release-start`, so
+CI runs on every push to `release/X.Y.Z` through it (there is no `push` trigger,
+which would start a second run and time both out); `contract-tests.yml` runs on
+every one of those pushes. Master's ruleset
 requires both, so a pull request into `master` merges only once they are green.
 Pull requests into `dev` and topic branches get no CI run of their own.
 
