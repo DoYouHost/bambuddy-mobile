@@ -17,10 +17,11 @@ name: Contract tests
 #
 # This repository is public. A fork PR is code written by a stranger, and
 # letting it reach a runner with the Docker socket hands that stranger the box.
-# Pushes to `release/**` and manual dispatch only; the org runner group is
-# additionally restricted to this workflow file, so even a matching `runs-on`
-# elsewhere gets no runner. A release branch is what stands in for the pull
-# request: every change reaches master through one (docs/branching.md).
+# Branch pushes and manual dispatch only; the org runner group is additionally
+# restricted to this workflow file, so even a matching `runs-on` elsewhere gets
+# no runner. That restriction lists exact refs (dev, master) and refuses a
+# wildcard, so a `release/**` trigger would wait for a runner until somebody
+# added each branch by hand — not required on master for the same reason.
 
 on:
   # Daily, 04:23 UTC, dispatched by Dagu on lxc-dagu rather than a `schedule:`
@@ -29,11 +30,13 @@ on:
   # server-drift.yml reads that as a diff; this catches the half that a diff
   # cannot judge.
   workflow_dispatch:
-  # No `paths` on purpose: the three jobs below are required checks on master, and
-  # a push that touches none of the old paths (the bump commit is the last one)
-  # would leave the head commit without them, so its PR could never merge.
   push:
-    branches: ["release/**"]
+    branches: [dev, master]
+    paths:
+      - "lib/core/**"
+      - "lib/data/**"
+      - "test/contract/**"
+      - ".github/workflows/contract-tests.yml"
 
 concurrency:
   group: contract-tests

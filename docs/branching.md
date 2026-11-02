@@ -33,9 +33,9 @@ topic ──merge──▶ dev ──merge a SHA──▶ release/X.Y.Z ──PR
    comes over from there, so the bump commit stays the only commit that exists on
    the release branch alone.
 3. Push and **monitor the runs** (`gh run list --branch release/X.Y.Z`, `gh run
-   watch <id>`): CI (the draft PR's run) and the contract tests
-   (push-only, see its header). Fix what is red on the release branch and carry the
-   fix to `dev`.
+   watch <id>`): CI is the draft PR's run. The contract tests are not run on release
+   branches (see below); check the latest run on `dev` instead. Fix what is red on
+   the release branch and carry the fix to `dev`.
 4. `just ship X.Y.Z` once the runs are green — bumps, tests, builds, publishes the
    GitHub release and the Play internal track, then marks the PR ready. A branch
    that had nothing ahead of `master` at step 1 gets its PR here instead. The bump
@@ -56,8 +56,15 @@ in step 3 is what keeps a red build from reaching Obtainium; `just ship` still r
 
 `protect-master` allows only the **Merge commit** method
 (`allowed_merge_methods: ["merge"]`), so step 5 cannot be done wrong from the web
-UI. It also requires one approval and four checks on the head commit: `analyze ·
-test · build` and the three `parse real server responses (latest | daily | 1.2.5)`
-jobs. Only a branch named `release/**` gets the contract jobs, so any other PR
-into `master` cannot merge. The ruleset's bypass actor (repository admin) can
-override all of it; do not.
+UI. It also requires one approval and a green `analyze · test · build`. The
+ruleset's bypass actor (repository admin) can override all of it; do not.
+
+## Why the contract tests are not a gate
+
+`contract-tests.yml` runs on the one runner that has the Docker socket, and the
+org runner group lets it take a workflow only from an exact ref (`dev`, `master`).
+The group refuses a wildcard such as `release/*` (it checks that the ref exists), so
+making the tests a required check on release PRs would mean adding every
+`release/X.Y.Z` to the group by hand with an `admin:org` token. That was tried for
+0.17.1 and dropped: the run waits for a runner until the entry exists, then passes.
+
