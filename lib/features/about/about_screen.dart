@@ -1,12 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/dash_icon_tile.dart';
-import '../common/server_version_text.dart';
+import '../../core/app_context.dart';
 import '../common/web_link.dart';
 
 /// Public source URL — app is AGPL-3.0, so code link is license requirement

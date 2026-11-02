@@ -1,8 +1,8 @@
 import '../announcements/announcements_widgets.dart';
-import '../common/dash_icon_tile.dart';
+import 'package:app_util/app_util.dart';
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -11,6 +11,7 @@ import '../../core/auth/auth_headers.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart' show bugReportRoute;
 import '../../core/format/duration_format.dart';
+import '../../core/models/current_user.dart' show Permissions;
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/background_sync.dart';
 import '../../core/notifications/battery_optimization.dart';
@@ -20,13 +21,9 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../common/dash_async.dart';
-import '../common/filter_controls.dart';
-import '../common/sliver_search_bar.dart';
 import '../notifications/finish_photo_providers.dart';
-import '../../core/api/server_reachability.dart';
 import '../../providers.dart';
-import '../common/server_version_text.dart';
-import '../common/dash_search_field.dart';
+import '../../core/app_context.dart';
 import 'card_collapse_providers.dart';
 import 'dashboard_filters.dart';
 import 'dashboard_sort.dart';
@@ -38,6 +35,9 @@ import '../../core/theme/dash_theme.dart';
 import 'widgets/connection_banner.dart';
 import 'widgets/connection_mode_chip.dart';
 import 'widgets/dashboard_filter_sheet.dart';
+import '../controller/controller_picker.dart';
+import '../tour/tour_beacon.dart';
+import '../tour/tour_screen.dart';
 import 'widgets/power_breakdown_sheet.dart';
 import 'widgets/printer_card.dart';
 import 'ws_providers.dart';
@@ -51,7 +51,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String _query = '';
-  late final AppLifecycleListener _lifecycle;
+  AppLifecycleListener? _lifecycle;
 
   /// Whether the "sign in again" warning already ran in this launch.
   bool _signInWarned = false;
@@ -69,6 +69,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    // The tour's dashboard runs over the demo next to the real one, which keeps
+    // owning the background service, the watch relay and the first-run prompts.
+    if (ref.read(tourBeaconProvider) != null) return;
     // Lifecycle (Model A: background service takes over during background).
     // - Background: if background monitoring is enabled, start foreground service —
     //   its separate isolate is the ONLY notification owner with its own
@@ -153,8 +156,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Future<void> _onFirstFrame() async {
     await _takeOverFromSurvivingService();
+    // Before the permission prompt: the tour explains the app the prompt is
+    // asking about.
+    await _maybeRunTour();
     await _maybeOnboardNotifications();
     await _maybeWarnSignInRequired();
+  }
+
+  /// The guided tour, once, after the first sign-in on this install. Marked
+  /// seen only when it ends, so a tour cut short by the app being killed runs
+  /// again on the next start.
+  Future<void> _maybeRunTour() async {
+    final settings = ref.read(settingsRepositoryProvider);
+    if (!settings.tourDue || !mounted) return;
+    await TourHost.open(context);
+    await settings.saveTourSeen();
   }
 
   /// Stops a service that outlived the app it was started from.
@@ -364,7 +380,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       cancelLabel: l10n.batteryOptLater,
       id: 'battery_opt',
     );
-    if (open) await battery.request();
+    if (open) await battery.openSettings();
     return true;
   }
 
@@ -443,7 +459,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   void dispose() {
-    _lifecycle.dispose();
+    _lifecycle?.dispose();
     super.dispose();
   }
 
@@ -494,6 +510,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         drawer: _AppDrawer(profileLabel: profile?.label),
+        onDrawerChanged: (open) {
+          if (open) ref.read(tourBeaconProvider)?.signal('dashboard.drawer');
+        },
         appBar: loggedAppBar(
           AppBar(
             backgroundColor: Colors.transparent,
@@ -501,7 +520,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             scrolledUnderElevation: 0,
             // Same button AppBar would build implicitly, but named for the log —
             // this screen always has a drawer, so there is no condition to keep.
-            leading: logTag('chrome.drawer', const AnnouncementsDrawerButton()),
+            leading: logTag(
+              'chrome.drawer',
+              const TourTarget(
+                id: 'chrome.drawer',
+                child: AnnouncementsDrawerButton(),
+              ),
+            ),
             title: Text(
               l10n.printersTitle,
               style: t.displayLg.copyWith(letterSpacing: -0.5),
@@ -535,8 +560,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     // Push, never go: the wall runs on this screen's lifecycle.
                     () => context.push('/wall'),
                   ),
+                  _menuItem(
+                    'dashboard.controller',
+                    Icons.touch_app_outlined,
+                    l10n.controllerTitle,
+                    () => openController(context, ref),
+                  ),
                 ],
-              ).tagged('dashboard.menu'),
+              ).tagged('dashboard.menu').tourTarget('dashboard.menu'),
             ],
             // Only friendly profile label (if set) — no URL.
             bottom: profile?.label == null
@@ -872,6 +903,7 @@ class _AppDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
+    final inTour = ref.watch(tourBeaconProvider) != null;
     // The asset is 512x512, so without this it decodes at full size for a
     // 52 dp tile. Width alone, as in `MediaImage`.
     final iconDecodeWidth = (_iconSize * MediaQuery.devicePixelRatioOf(context))
@@ -1026,6 +1058,23 @@ class _AppDrawer extends ConsumerWidget {
                     },
                     id: 'drawer.stats',
                   ),
+                  // Only where billing is on and this account has a ledger: no
+                  // API key can read one, so a key session never sees the entry.
+                  if (ref.watch(billingEnabledProvider) &&
+                      ref.watch(
+                        identifiedPermissionProvider(
+                          Permissions.costCentersReadOwn,
+                        ),
+                      ))
+                    _DrawerTile(
+                      icon: Icons.account_balance_wallet_outlined,
+                      label: l10n.financeMenu,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/finance');
+                      },
+                      id: 'drawer.finance',
+                    ),
                   // Absent until a call has proved the routes are there and this
                   // session may read them: an older server 404s, and an API key
                   // was refused every pipeline permission before server 1.2.5.3.
@@ -1070,24 +1119,28 @@ class _AppDrawer extends ConsumerWidget {
                     endIndent: DashSpace.gutter,
                     height: DashSpace.lg,
                   ),
-                  _DrawerTile(
-                    icon: Icons.swap_horiz_rounded,
-                    label: l10n.changeServer,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _confirmChangeServer(context, ref, l10n);
-                    },
-                    id: 'drawer.change_server',
-                  ),
-                  _DrawerTile(
-                    icon: Icons.bug_report_outlined,
-                    label: l10n.bugReportMenu,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push(bugReportRoute);
-                    },
-                    id: 'drawer.bug_report',
-                  ),
+                  // Neither belongs to the tour's demo: one would sign the tour
+                  // out of it, the other would record a report about it.
+                  if (!inTour) ...[
+                    _DrawerTile(
+                      icon: Icons.swap_horiz_rounded,
+                      label: l10n.changeServer,
+                      onTap: () {
+                        Navigator.pop(context);
+                        _confirmChangeServer(context, ref, l10n);
+                      },
+                      id: 'drawer.change_server',
+                    ),
+                    _DrawerTile(
+                      icon: Icons.bug_report_outlined,
+                      label: l10n.bugReportMenu,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push(bugReportRoute);
+                      },
+                      id: 'drawer.bug_report',
+                    ),
+                  ],
                   _DrawerTile(
                     icon: Icons.info_outline_rounded,
                     label: l10n.aboutMenu,
@@ -1260,24 +1313,32 @@ class _DrawerTile extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: logTag(
           id,
-          InkWell(
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: DashSpace.md,
-                vertical: DashSpace.sm,
-              ),
-              child: Row(
-                children: [
-                  DashIconTile(icon: icon, size: 40, radius: 12, iconSize: 21),
-                  const SizedBox(width: DashSpace.lg),
-                  Expanded(child: Text(label, style: t.bodyStrong)),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: 20,
-                    color: t.textTertiary,
-                  ),
-                ],
+          TourTarget(
+            id: id,
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DashSpace.md,
+                  vertical: DashSpace.sm,
+                ),
+                child: Row(
+                  children: [
+                    DashIconTile(
+                      icon: icon,
+                      size: 40,
+                      radius: 12,
+                      iconSize: 21,
+                    ),
+                    const SizedBox(width: DashSpace.lg),
+                    Expanded(child: Text(label, style: t.bodyStrong)),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: t.textTertiary,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1650,6 +1711,6 @@ PopupMenuItem<VoidCallback> _menuItem(
         // system text size runs past.
         Flexible(child: Text(label)),
       ],
-    ),
+    ).tourTarget(id),
   ),
 );

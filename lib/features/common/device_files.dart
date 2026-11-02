@@ -2,22 +2,15 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 
-/// The system file dialogs — choosing a file to send up, saving a small one
-/// down — in one place.
+/// The system file dialogs — choosing a file to send up, saving a small one down —
+/// in one place. Every caller needs the same three answers apart: it happened, the
+/// user backed out, or the platform refused. Backing out is silent and a refusal is
+/// worth a message; [DeviceFileOutcome] is that distinction, made once.
 ///
-/// Every caller needs the same three answers apart: it happened, the user backed
-/// out, or the platform refused. Backing out is silent and a refusal is worth
-/// a message, so a helper that returns only `null` forces each screen to keep
-/// its own `try`/`catch` around the picker to tell them apart — which is how
-/// four screens ended up with four copies of the same eight lines.
-/// [DeviceFileOutcome] is that distinction, made once.
-///
-/// **Saving is for small files only.** On Android the save dialog cannot take a
-/// path or a stream, only bytes (`file_picker`'s `saveFile` refuses without
-/// them), so everything handed to it sits in memory first. Anything that can
-/// run to hundreds of megabytes — a printer's file, a timelapse — goes through
-/// `file_export.dart` instead, which streams it to disk and hands the file to
-/// the share sheet.
+/// **Saving is for small files only.** On Android the save dialog cannot take a path
+/// or a stream, only bytes, so everything handed to it sits in memory first. Anything
+/// that can run to hundreds of megabytes goes through `file_export.dart` instead,
+/// which streams it to disk and hands the file to the share sheet.
 enum DeviceFileOutcome {
   /// The user chose a file, or the file was written.
   done,

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
@@ -13,9 +13,6 @@ import '../../l10n/server_refusal.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
-import '../common/date_time_picker.dart';
-import '../common/dash_input.dart';
-import '../common/dash_stepper.dart';
 import 'orders_providers.dart';
 import 'orders_screen.dart';
 

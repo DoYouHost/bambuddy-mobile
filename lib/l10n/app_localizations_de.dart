@@ -41,7 +41,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get wsReconnecting =>
-      'Keine Live-Verbindung — Aktualisierung alle 5 s';
+      'Keine Live-Verbindung — Aktualisierung alle 5 s';
 
   @override
   String get connLive => 'Live';
@@ -54,7 +54,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get connPollingTooltip =>
-      'Keine Live-Verbindung — Aktualisierung alle 5 s (REST)';
+      'Keine Live-Verbindung — Aktualisierung alle 5 s (REST)';
 
   @override
   String get connectFailed => 'Verbindung zum Server fehlgeschlagen';
@@ -385,6 +385,21 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlFanExhaustShort => 'Abluft';
 
   @override
+  String get ctrlFanPartLabel => 'Bauteilkühlung';
+
+  @override
+  String get ctrlFanAuxLabel => 'Zusatz';
+
+  @override
+  String get ctrlFanAux2Label => 'Zusatz links';
+
+  @override
+  String get ctrlFanChamberLabel => 'Kammer';
+
+  @override
+  String get ctrlFanExhaustLabel => 'Abluft';
+
+  @override
   String get ctrlSpeed => 'Geschwindigkeit';
 
   @override
@@ -398,6 +413,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get ctrlAirductHeating => 'Heizen';
+
+  @override
+  String get ctrlAirductPrintTitle => 'Kammer während des Drucks umschalten?';
+
+  @override
+  String get ctrlAirductPrintBody =>
+      'Der Wechsel zwischen Heizen und Kühlen während des Drucks verändert die Temperatur, bei der gedruckt wird, und kann den Druck ruinieren.';
 
   @override
   String get ctrlOff => 'Aus';
@@ -438,7 +460,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String ctrlDryHours(int h) {
-    return '$h h';
+    return '$h h';
   }
 
   @override
@@ -538,7 +560,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlMoveStep => 'Schritt';
 
   @override
-  String get ctrlMoveZ => 'Z (Bettabstand)';
+  String get ctrlMoveZ => 'Z (Bettabstand)';
 
   @override
   String get ctrlMoveZUp => 'Hoch';
@@ -547,7 +569,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlMoveZDown => 'Runter';
 
   @override
-  String get ctrlMoveZToolhead => 'Z (Druckkopf)';
+  String get ctrlMoveZToolhead => 'Z (Druckkopf)';
 
   @override
   String get ctrlMoveZUnknownDirection =>
@@ -555,7 +577,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get ctrlMoveZNoModel =>
-      'Für diesen Drucker ist in Bambuddy kein Modell hinterlegt, daher weiß die App nicht, ob sich in Z das Druckbett oder der Druckkopf bewegt, und Z-Bewegungen sind hier deaktiviert. Hinterlege das Druckermodell in Bambuddy, um sie zu nutzen.';
+      'Für diesen Drucker ist in Bambuddy kein Modell hinterlegt, daher weiß die App nicht, ob sich in Z das Druckbett oder der Druckkopf bewegt, und Z-Bewegungen sind hier deaktiviert. Hinterlege das Druckermodell in Bambuddy, um sie zu nutzen.';
 
   @override
   String get ctrlMoveExtrude => 'Extrudieren';
@@ -731,7 +753,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String powerWatts(int watts) {
-    return '$watts W';
+    return '$watts W';
   }
 
   @override
@@ -811,6 +833,135 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get queueRemovalStatusChanged =>
       'Dieser Eintrag befindet sich nicht mehr im angezeigten Status. Aktualisiere die Warteschlange und versuche es erneut.';
+
+  @override
+  String queueResumeBanner(String printer, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Aufträge übersprungen',
+      one: '1 Auftrag übersprungen',
+    );
+    return '$printer: $_temp0 nach fehlgeschlagenem Druck';
+  }
+
+  @override
+  String queueResumeModelBanner(String model, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Aufträge warten',
+      one: '1 Auftrag wartet',
+    );
+    return 'Beliebiger $model: $_temp0 nach einem fehlgeschlagenen Druck';
+  }
+
+  @override
+  String queueResumeModelConfirmBody(String model) {
+    return 'Die wartenden Aufträge starten auf dem nächsten freien $model. Sind die Drucker bereit?';
+  }
+
+  @override
+  String get queueResumeButton => 'Fortsetzen';
+
+  @override
+  String get queueResumeConfirmTitle =>
+      'Warteschlange nach einem Fehler fortsetzen?';
+
+  @override
+  String queueResumeConfirmBody(int count, String printer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count übersprungene Aufträge kommen',
+      one: '1 übersprungener Auftrag kommt',
+    );
+    return '$_temp0 zurück in die Warteschlange von $printer. Ist der Drucker bereit?';
+  }
+
+  @override
+  String queueResumed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Aufträge wieder in der Warteschlange',
+      one: '1 Auftrag wieder in der Warteschlange',
+      zero: 'Warteschlange fortgesetzt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ausgewählt',
+      one: '1 ausgewählt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueSelectAll => 'Alle wartenden auswählen';
+
+  @override
+  String get queueBulkEdit => 'Auswahl bearbeiten';
+
+  @override
+  String queueBulkTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge bearbeiten',
+      one: '1 Eintrag bearbeiten',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkIntro =>
+      'Nur deine Auswahl wird geändert. Tippe erneut darauf, um sie aufzuheben.';
+
+  @override
+  String get queueBulkNoChange => 'Keine Änderung';
+
+  @override
+  String get queueBulkUnassigned => 'Kein Drucker (nicht zugewiesen)';
+
+  @override
+  String get queueBulkQueueOptions => 'Warteschlangenoptionen';
+
+  @override
+  String get queueBulkApply => 'Änderungen anwenden';
+
+  @override
+  String get queueOptUseAms => 'AMS verwenden';
+
+  @override
+  String queueBulkUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge geändert',
+      one: '1 Eintrag geändert',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkNothingUpdated => 'Nichts geändert';
+
+  @override
+  String queueBulkSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count übersprungen',
+      one: '1 übersprungen',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get queueNoFreePrinters => 'Derzeit keine freien Drucker verfügbar';
@@ -922,6 +1073,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get archiveAddToQueue => 'Zur Warteschlange hinzufügen';
 
   @override
+  String get archiveReprintNoQueue =>
+      'Sie haben keine Berechtigung, zur Warteschlange hinzuzufügen';
+
+  @override
+  String get archiveReprintNotAllowed =>
+      'Sie haben keine Berechtigung, dies erneut zu drucken';
+
+  @override
   String get archiveTimelapse => 'Zeitraffer ansehen';
 
   @override
@@ -1029,7 +1188,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String archiveFilamentGrams(String grams) {
-    return '$grams g';
+    return '$grams g';
   }
 
   @override
@@ -1061,7 +1220,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String archiveFilamentOutOfRange(String max) {
-    return 'Ein Gewicht zwischen 0 und $max g.';
+    return 'Ein Gewicht zwischen 0 und $max g.';
   }
 
   @override
@@ -1414,7 +1573,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get cameraDemoUnavailable =>
-      'Kameravorschau ist im Demo-Modus nicht verfügbar';
+      'Dieser Demo-Drucker ist offline, daher gibt es kein Kamerabild.';
 
   @override
   String get externalSpool => 'Externe Spule';
@@ -1533,7 +1692,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String amsSlotConfigKProfileDefault(String value) {
-    return 'Standard (K $value)';
+    return 'Standard (K $value)';
   }
 
   @override
@@ -1554,7 +1713,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String amsSlotConfigKProfileValue(String value) {
-    return 'K $value';
+    return 'K $value';
   }
 
   @override
@@ -1612,16 +1771,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sensorHistoryMax => 'Max.';
 
   @override
-  String get sensorHistoryRange6h => '6 h';
+  String get sensorHistoryRange6h => '6 h';
 
   @override
-  String get sensorHistoryRange24h => '24 h';
+  String get sensorHistoryRange24h => '24 h';
 
   @override
-  String get sensorHistoryRange48h => '48 h';
+  String get sensorHistoryRange48h => '48 h';
 
   @override
-  String get sensorHistoryRange7d => '7 d';
+  String get sensorHistoryRange7d => '7 d';
 
   @override
   String get amsHistoryGood => 'Gut';
@@ -1799,7 +1958,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get loginExplain =>
-      'Eine Sitzung läuft nach 24 h ab. Aktiviere „Angemeldet bleiben“, damit sich die App automatisch wieder anmeldet.';
+      'Eine Sitzung läuft nach 24 h ab. Aktiviere „Angemeldet bleiben“, damit sich die App automatisch wieder anmeldet.';
 
   @override
   String get usernameLabel => 'Benutzername oder E-Mail';
@@ -2081,7 +2240,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String notifBedCooledBody(String printer, int temp) {
-    return 'Druckbett von $printer auf $temp°C abgekühlt';
+    return 'Druckbett von $printer auf $temp°C abgekühlt';
   }
 
   @override
@@ -2188,7 +2347,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String notifBedCooledThreshold(int temp) {
-    return 'Druckbett unter $temp°C abgekühlt';
+    return 'Druckbett unter $temp°C abgekühlt';
   }
 
   @override
@@ -2223,6 +2382,17 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get hmsDismissed => 'Fehler auf dem Drucker gelöscht';
+
+  @override
+  String hmsStillReported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Der Drucker meldet weiterhin $count Fehler',
+      one: 'Der Drucker meldet weiterhin 1 Fehler',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get hmsActionSent => 'An den Drucker gesendet';
@@ -2347,6 +2517,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get bgServiceText => 'Drucker werden überwacht';
 
   @override
+  String get wearOngoingChannel => 'Druckfortschritt';
+
+  @override
   String get bgMonitoringToggle => 'Hintergrundüberwachung';
 
   @override
@@ -2447,7 +2620,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String inventoryRemaining(String grams) {
-    return '$grams g übrig';
+    return '$grams g übrig';
   }
 
   @override
@@ -2457,7 +2630,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String inventoryOfTotal(int total) {
-    return 'von $total g';
+    return 'von $total g';
   }
 
   @override
@@ -2480,7 +2653,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String inventoryUsageWeight(String grams) {
-    return '$grams g';
+    return '$grams g';
   }
 
   @override
@@ -2488,7 +2661,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String inventoryKProfileLine(String nozzle, String k) {
-    return '$nozzle mm · K $k';
+    return '$nozzle mm · K $k';
   }
 
   @override
@@ -2653,7 +2826,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inventoryMaterialNumberHint =>
-      'Gilt für alle Spulen eines Produkts. Eine neue Spule eines bekannten Produkts erhält sie automatisch.';
+      'Gilt für alle Spulen eines Produkts.';
 
   @override
   String get inventorySpoolmanCannotClear =>
@@ -2692,7 +2865,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String inventoryRemainingOfLabel(int total) {
-    return 'von $total g';
+    return 'von $total g';
   }
 
   @override
@@ -3156,7 +3329,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String maintenanceTotalHours(int hours) {
-    return '$hours h gesamt';
+    return '$hours h gesamt';
   }
 
   @override
@@ -3166,12 +3339,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String maintenanceDueIn(int hours) {
-    return 'Fällig in $hours h';
+    return 'Fällig in $hours h';
   }
 
   @override
   String maintenanceOverdueBy(int hours) {
-    return 'Seit $hours h überfällig';
+    return 'Seit $hours h überfällig';
   }
 
   @override
@@ -3248,7 +3421,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String maintenanceEveryHours(int count) {
-    return 'Alle $count h';
+    return 'Alle $count h';
   }
 
   @override
@@ -3440,7 +3613,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String statsHours(String hours) {
-    return '$hours h';
+    return '$hours h';
   }
 
   @override
@@ -3754,6 +3927,18 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other: 'Wo sollen $count Dateien gedruckt werden?',
       one: 'Wo soll diese Datei gedruckt werden?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String fmQueueCostCenterTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Auf welche Kostenstelle sollen diese $count Aufträge gebucht werden?',
+      one: 'Auf welche Kostenstelle soll dieser Auftrag gebucht werden?',
     );
     return '$_temp0';
   }
@@ -4552,7 +4737,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get swatchCodeInvalid =>
-      'Verwende 6 Zeichen: Ziffern und Buchstaben, ohne 0, 1, I, L oder O';
+      'Verwende 6 Zeichen: Ziffern und Buchstaben, ohne 0, 1, I, L oder O';
 
   @override
   String get swatchCodeTaken => 'Dieser Code wird bereits verwendet';
@@ -5212,7 +5397,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String sliceResultFilament(String grams) {
-    return 'Filament: $grams g';
+    return 'Filament: $grams g';
   }
 
   @override
@@ -5980,19 +6165,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get wearConfirm => 'Bestätigen';
 
   @override
-  String get wearServerUrl => 'Server-URL';
-
-  @override
-  String get wearConnect => 'Verbinden';
-
-  @override
   String get wearAuthKey => 'Schlüssel';
 
   @override
   String get wearAuthLogin => 'Anmelden';
-
-  @override
-  String get wearUsername => 'Benutzername';
 
   @override
   String get wearSetupPhoneTitle => 'Vom Smartphone einrichten';
@@ -6008,13 +6184,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String get wearSetupPhoneEmpty => 'Noch nichts vom Smartphone.';
 
   @override
-  String get wearSetupManual => 'Manuell eingeben';
+  String get wearPhoneAppMissing => 'Noch nicht auf dem Smartphone?';
+
+  @override
+  String get wearPhoneAppInstall => 'Auf dem Smartphone installieren';
+
+  @override
+  String get wearPhoneAppOpened => 'Weiter auf dem Smartphone';
+
+  @override
+  String get wearPhoneAppOpenFailed => 'Smartphone nicht erreichbar.';
 
   @override
   String get wearSetupDemo => 'Demo';
-
-  @override
-  String get wearSetupTapToType => 'Tippen zur Eingabe';
 
   @override
   String get wearSettingsTitle => 'Einstellungen';
@@ -6079,6 +6261,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueEditSpecificPrinter => 'Bestimmter Drucker';
+
+  @override
+  String get queueEditPrinter => 'Drucker';
 
   @override
   String queueEditAnyModel(String model) {
@@ -6854,7 +7039,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueSettingsKeepWarmTempDesc =>
-      '90 hält die Kammerwärme in einem geschlossenen Drucker aufrecht und aktiviert nachgerüstete Kammerheizungen, die meist bei 80 °C Betttemperatur einschalten. Eine höhere Betttemperatur aus der Datei hat immer Vorrang.';
+      '90 hält die Kammerwärme in einem geschlossenen Drucker aufrecht und aktiviert nachgerüstete Kammerheizungen, die meist bei 80 °C Betttemperatur einschalten. Eine höhere Betttemperatur aus der Datei hat immer Vorrang.';
 
   @override
   String get queueSettingsKeepWarmMaxDesc =>
@@ -7319,6 +7504,68 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appSettingsTitle => 'App-Einstellungen';
 
   @override
+  String get appearanceTitle => 'Darstellung';
+
+  @override
+  String get appearanceAccent => 'Akzentfarbe';
+
+  @override
+  String get appearanceAccentBambuddy => 'Bambuddy-Grün';
+
+  @override
+  String get appearanceAccentSystem => 'System (Material You)';
+
+  @override
+  String get appearanceAccentBlue => 'Blau';
+
+  @override
+  String get appearanceAccentPurple => 'Lila';
+
+  @override
+  String get appearanceAccentOrange => 'Orange';
+
+  @override
+  String get appearanceAccentPink => 'Pink';
+
+  @override
+  String get appearanceAccentGraphite => 'Grafit';
+
+  @override
+  String get appearanceMode => 'Design';
+
+  @override
+  String get appearanceModeSystem => 'System';
+
+  @override
+  String get appearanceModeLight => 'Hell';
+
+  @override
+  String get appearanceModeDark => 'Dunkel';
+
+  @override
+  String get appSettingsPhone => 'Telefon';
+
+  @override
+  String get appSettingsLabelPrinter => 'Drucker';
+
+  @override
+  String get watchSettingsTitle => 'Uhr';
+
+  @override
+  String get watchThemeFromFace => 'Design vom Zifferblatt';
+
+  @override
+  String get watchThemeFromFaceDesc =>
+      'Wear OS 6 oder neuer. Liefert das Zifferblatt keine Farben, übernimmt die Uhr das Design des Telefons.';
+
+  @override
+  String get watchThemeFromPhone => 'Design vom Telefon';
+
+  @override
+  String get watchThemeFromPhoneDesc =>
+      'Dieselbe Akzentfarbe wie in dieser App.';
+
+  @override
   String get appSettingsNotificationsSubtitle =>
       'Welche Ereignisse eine Benachrichtigung senden und ab welchen Schwellenwerten';
 
@@ -7409,22 +7656,16 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String ordersCostToGo(String amount) {
-    return 'Noch $amount';
-  }
-
-  @override
   String ordersStrandedNotice(int runs, int owed) {
-    return '$runs der $owed offenen Drucke können nicht eingereiht werden: Für ihre Platte gibt es keinen eingereihten oder fertigen Druck mehr, von dem die Einstellungen übernommen werden können. Reihe die Platte einmal aus der Datei ein oder storniere den Auftrag.';
+    return '$runs von $owed offenen Drucken lassen sich nicht einreihen: Reihe ihre Platte einmal aus der Datei ein.';
   }
 
   @override
-  String get ordersStrandedPlate =>
-      'Nichts mehr, von dem Einstellungen übernommen werden können';
+  String get ordersStrandedPlate => 'Platte einmal aus der Datei einreihen';
 
   @override
   String ordersPlateProgress(int completed, int target) {
-    return '$completed von $target fertig';
+    return '$completed von $target';
   }
 
   @override
@@ -7432,13 +7673,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String ordersDispatchRemaining(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count offene Drucke einreihen',
-      one: '1 offenen Druck einreihen',
-    );
-    return '$_temp0';
+    return 'Offene einreihen ($count)';
   }
 
   @override
@@ -7604,9 +7839,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get queueEditCopiesLabel => 'Wie oft drucken';
-
-  @override
   String get queueEditCopies => 'Kopien';
 
   @override
@@ -7749,6 +7981,32 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wenn ein Druck mit Ergebnisabfrage fertig ist — „Gut“ oder „Ausschuss“ direkt aus der Benachrichtigung';
 
   @override
+  String get notifEvtBilling => 'Abrechnungsprobleme';
+
+  @override
+  String get notifEvtBillingDesc =>
+      'Wenn der Server einen nicht autorisierten Druck stoppt oder einen beendeten Druck nicht abrechnen kann';
+
+  @override
+  String get notifBillingKillTitle => 'Nicht autorisierter Druck gestoppt';
+
+  @override
+  String notifBillingKillBody(String printer, String filename) {
+    return 'Der Abrechnungs-Notschalter hat einen nicht autorisierten Druck auf $printer gestoppt: $filename';
+  }
+
+  @override
+  String get notifBillingChargeTitle => 'Abrechnung fehlgeschlagen';
+
+  @override
+  String notifBillingChargeBody(String printer, String filename) {
+    return 'Die Abrechnung von $filename auf $printer ist fehlgeschlagen. Die Budgetreservierung wurde beibehalten – bitte die Server-Logs prüfen.';
+  }
+
+  @override
+  String get notifBillingUnknownFile => 'unbekannte Datei';
+
+  @override
   String outcomeNotifTitle(String name) {
     return 'Wie ist $name geworden?';
   }
@@ -7819,6 +8077,241 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get wallAllHidden =>
       'Alle Drucker sind auf dieser Wand ausgeblendet — blende sie in den Einstellungen ein.';
+
+  @override
+  String get controllerTitle => 'Controller';
+
+  @override
+  String get controllerExit => 'Controller verlassen';
+
+  @override
+  String get controllerSwitchPrinter => 'Drucker wechseln';
+
+  @override
+  String get controllerTabOverview => 'Übersicht';
+
+  @override
+  String get controllerPrinterGone =>
+      'Dieser Drucker ist nicht mehr auf dem Server.';
+
+  @override
+  String get controllerLiveBadge => 'LIVE';
+
+  @override
+  String get controllerPreviewBadge => 'DATEI-VORSCHAU';
+
+  @override
+  String get controllerNoPreview => 'Keine Vorschau';
+
+  @override
+  String get controllerPower => 'Strom';
+
+  @override
+  String get controllerTabHeat => 'Heizen';
+
+  @override
+  String get controllerNoChamberHeater => 'Keine Kammerheizung';
+
+  @override
+  String get controllerMoveLocked =>
+      'Die Achsen sind während des Drucks gesperrt';
+
+  @override
+  String get controllerTabFilament => 'Filament';
+
+  @override
+  String get controllerTabFiles => 'Dateien';
+
+  @override
+  String get controllerTabPrints => 'Drucke';
+
+  @override
+  String controllerQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Aufträge',
+      one: '1 Auftrag',
+      zero: 'Keine Aufträge',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerQueueEmpty => 'Für diesen Drucker wartet kein Auftrag';
+
+  @override
+  String get controllerQueueCrossModel =>
+      'Dieser Auftrag hat Druckeralternativen und startet auf dem ersten freien Drucker.';
+
+  @override
+  String get controllerQueueNoStart =>
+      'Ihr Konto kann diesen Auftrag nicht starten.';
+
+  @override
+  String get controllerArchiveEmpty =>
+      'Auf diesem Drucker wurde noch nichts gedruckt';
+
+  @override
+  String get controllerArchiveLoadingMore => 'Ältere Drucke werden geladen…';
+
+  @override
+  String get controllerFileNotSliced => 'Nicht geslict';
+
+  @override
+  String get controllerFileReasonNotSliced =>
+      'Nur geslicte Dateien lassen sich drucken.';
+
+  @override
+  String controllerFileReasonModel(String model) {
+    return 'Für $model geslict, das dieser Drucker nicht annimmt.';
+  }
+
+  @override
+  String get controllerFilesReadOnly => 'Dieser Ordner ist schreibgeschützt.';
+
+  @override
+  String get controllerPrintTitle => 'Druck einrichten';
+
+  @override
+  String get controllerPrintNow => 'Jetzt';
+
+  @override
+  String get controllerPrintNowAction => 'Jetzt drucken';
+
+  @override
+  String controllerPrintAutoMatched(String printer) {
+    return 'Automatisch zugeordnet: $printer';
+  }
+
+  @override
+  String get controllerPrintManualMapping => 'Manuelle Zuordnung';
+
+  @override
+  String get controllerPrintResetMapping => 'Zurück zu Auto';
+
+  @override
+  String get controllerPrintNotLoaded => 'Nicht geladen';
+
+  @override
+  String controllerPrintUnmapped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Filamente haben keinen passenden Slot',
+      one: '1 Filament hat keinen passenden Slot',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerPrintBusy =>
+      'Der Drucker ist belegt. Der Auftrag startet, sobald er frei ist.';
+
+  @override
+  String get controllerPrintOffline =>
+      'Der Drucker ist offline. Der Auftrag wartet, bis er zurück ist.';
+
+  @override
+  String get controllerPrintJob => 'Auftrag';
+
+  @override
+  String get controllerPrintOptions => 'Optionen';
+
+  @override
+  String get controllerPrintMore => 'Mehr';
+
+  @override
+  String get controllerPrintMoreTitle => 'Weitere Optionen';
+
+  @override
+  String controllerPrintCostCenter(String name) {
+    return 'Kostenstelle: $name';
+  }
+
+  @override
+  String get controllerPrintNoCostCenter => 'Keine Kostenstelle zum Drucken';
+
+  @override
+  String get controllerPrintCostCentersRefused =>
+      'Dieser Login sieht keine Kostenstellen';
+
+  @override
+  String get controllerPrintChamber => 'Kammerziel';
+
+  @override
+  String controllerPrintWrongModel(String model, String printer) {
+    return 'Für $model geslict; dieser Drucker ist ein $printer.';
+  }
+
+  @override
+  String get controllerExtruder => 'Extruder';
+
+  @override
+  String get controllerEditSlot => 'Slot bearbeiten';
+
+  @override
+  String get controllerTouchToWake => 'Zum Aufwecken berühren';
+
+  @override
+  String get controllerPrintPaused => 'Druck pausiert';
+
+  @override
+  String get controllerTabSettings => 'Einstellungen';
+
+  @override
+  String get controllerSaverTitle => 'Bildschirmschoner';
+
+  @override
+  String get controllerSaverAfter => 'Startet nach';
+
+  @override
+  String get controllerSaverNever => 'Nie';
+
+  @override
+  String get controllerSaverNeverTitle => 'Bildschirm nie abdunkeln?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'Ein Bild, das sich nie bewegt, kann sich in den Bildschirm einbrennen, vor allem bei OLED. Schalte den Bildschirmschoner nur aus, wenn du dieses Risiko in Kauf nimmst.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Ausschalten';
+
+  @override
+  String get controllerSaverBrightness => 'Helligkeit';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Bildschirmhelligkeit, solange der Bildschirmschoner läuft';
+
+  @override
+  String get controllerWakeOnWarnings => 'Bei Warnungen aufwecken';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Fehler, die den Druck pausieren, wecken ihn immer.';
+
+  @override
+  String get controllerSaverPreview => 'Vorschau';
+
+  @override
+  String get controllerDisplayTitle => 'Anzeige';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'Das Handy schaltet den Bildschirm nicht selbst aus. Der Bildschirmschoner läuft weiter.';
+
+  @override
+  String get controllerLiveCameraHint =>
+      'Aus zeigt die Vorschau aus der Datei.';
+
+  @override
+  String get controllerKeepAwake => 'Bildschirm immer an';
+
+  @override
+  String get controllerSaverNeedsAwake =>
+      'Ohne diese Option ist der Bildschirmschoner aus.';
 
   @override
   String get inventorySuppliersTitle => 'Lieferanten';
@@ -7968,6 +8461,16 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get inventoryDetailConsumedSinceReset =>
       'Seit Zurücksetzen verbraucht';
+
+  @override
+  String get inventoryLastDried => 'Zuletzt getrocknet';
+
+  @override
+  String get inventoryLastDriedNow => 'Jetzt';
+
+  @override
+  String get inventoryLastDriedHelp =>
+      'Wird nach einer AMS-Trocknung eingetragen. Für eine anderswo getrocknete Spule von Hand setzen.';
 
   @override
   String inventorySupplierArchivedCount(int count) {
@@ -8146,14 +8649,361 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueBillingUseWeb =>
-      'Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, die die App noch nicht setzen kann. Reihe diesen Auftrag in Bambuddy im Browser ein, bearbeite und starte ihn dort.';
+      'Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, die diese Aktion nicht setzen kann. Öffne den Auftrag in der App, um eine auszuwählen, oder nutze Bambuddy im Browser.';
+
+  @override
+  String get financeMenu => 'Finanzen';
+
+  @override
+  String get financeTitle => 'Finanzen';
+
+  @override
+  String get financeBalance => 'Persönlicher Kontostand';
+
+  @override
+  String get financeMyCostCenters => 'Meine Kostenstellen';
+
+  @override
+  String get financeNoCostCenters => 'Keine Kostenstellen gefunden.';
+
+  @override
+  String financeAccountBalance(String amount) {
+    return 'Kontostand: $amount';
+  }
+
+  @override
+  String get financeUnlimited => 'Unbegrenzt';
+
+  @override
+  String get financeBudgetMonthly => 'Monatsbudget';
+
+  @override
+  String get financeBudgetTotal => 'Gesamtbudget';
+
+  @override
+  String get financeBudgetNone => 'Kein Budget';
+
+  @override
+  String get financeRecentTransactions => 'Letzte Transaktionen';
+
+  @override
+  String get financeType => 'Typ';
+
+  @override
+  String get financeAllTypes => 'Alle Typen';
+
+  @override
+  String get financeCostCenter => 'Kostenstelle';
+
+  @override
+  String get financeAllCostCenters => 'Alle Kostenstellen';
+
+  @override
+  String get financeTypePrintCharge => 'Druckkosten';
+
+  @override
+  String get financeTypeDeposit => 'Einzahlung';
+
+  @override
+  String get financeTypeWithdraw => 'Auszahlung';
+
+  @override
+  String get financeTypeAdjustment => 'Korrektur';
+
+  @override
+  String get financeNoTransactions => 'Keine Transaktionen vorhanden.';
+
+  @override
+  String get financeNoTransactionsForFilter =>
+      'Keine Transaktion entspricht den gewählten Filtern.';
+
+  @override
+  String financeBalanceAfter(String amount) {
+    return 'Saldo danach: $amount';
+  }
+
+  @override
+  String get financePartialAborted => 'Abgebrochen';
+
+  @override
+  String get financePartialFailed => 'Fehlgeschlagen';
+
+  @override
+  String get financePartialCancelled => 'Storniert';
+
+  @override
+  String get financeLoadMore => 'Mehr laden';
+
+  @override
+  String financeShowing(int shown, int total) {
+    return '$shown von $total';
+  }
+
+  @override
+  String get financeLoadFailed =>
+      'Die Finanzdaten konnten nicht geladen werden.';
+
+  @override
+  String get financeAddCharge => 'Belastung hinzufügen';
+
+  @override
+  String get financeButtonNewCenter => 'Neue Kostenstelle';
+
+  @override
+  String get financeButtonWallet => 'Guthaben';
+
+  @override
+  String get financeButtonManualPrint => 'Manueller Druck';
+
+  @override
+  String get financeAddManualPrint => 'Manuellen Druck hinzufügen';
+
+  @override
+  String get financeAddMember => 'Mitglied hinzufügen';
+
+  @override
+  String get financeAdjustWallet => 'Guthaben anpassen';
+
+  @override
+  String get financeAdminView => 'Admin-Ansicht';
+
+  @override
+  String get financeAmount => 'Betrag';
+
+  @override
+  String get financeAmountInvalid => 'Der Betrag muss eine gültige Zahl sein';
+
+  @override
+  String get financeAmountPositive => 'Der Betrag muss größer als null sein';
+
+  @override
+  String get financeApplyAdjustment => 'Anpassung anwenden';
+
+  @override
+  String get financeBudgetType => 'Budgetart';
+
+  @override
+  String get financeCanPrint => 'Darf drucken';
+
+  @override
+  String financeConfirmDeleteCostCenter(String name) {
+    return 'Kostenstelle „$name“ löschen?';
+  }
+
+  @override
+  String get financeCostCenterCreated => 'Kostenstelle erstellt';
+
+  @override
+  String get financeCostCenterDeleted => 'Kostenstelle gelöscht';
+
+  @override
+  String get financeCostCenterName => 'Name';
+
+  @override
+  String get financeCostCenterNameRequired =>
+      'Der Name der Kostenstelle ist erforderlich';
+
+  @override
+  String get financeCostCenterRequired => 'Bitte eine Kostenstelle auswählen';
+
+  @override
+  String get financeCostCenters => 'Kostenstellen';
+
+  @override
+  String get financeCostCenterUpdated => 'Kostenstelle aktualisiert';
+
+  @override
+  String get financeCreate => 'Erstellen';
+
+  @override
+  String get financeCreateCostCenter => 'Kostenstelle erstellen';
+
+  @override
+  String get financeDelete => 'Löschen';
+
+  @override
+  String get financeDeleteBlockedReservations =>
+      'Diese Kostenstelle kann nicht gelöscht werden, solange Aufträge in der Warteschlange einen Teil ihres Budgets reservieren.';
+
+  @override
+  String get financeDeleteBlockedTransactions =>
+      'Diese Kostenstelle kann nicht gelöscht werden, solange Transaktionen darauf verweisen.';
+
+  @override
+  String get financeDeleteCostCenter => 'Kostenstelle löschen';
+
+  @override
+  String get financeDeleteTransaction => 'Transaktion löschen';
+
+  @override
+  String get financeDeleteTransactionConfirm =>
+      'Diese Transaktion löschen? Die Salden werden automatisch neu berechnet.';
+
+  @override
+  String get financeRebuildLedger => 'Wallet-Kontobuch neu aufbauen';
+
+  @override
+  String get financeRebuildLedgerConfirm =>
+      'Dadurch werden die laufenden Salden im Wallet-Kontobuch neu berechnet, um historische Werte zu reparieren. Führe das nur aus, wenn du weißt, was du tust.';
+
+  @override
+  String get financeRebuildLedgerRun => 'Ausführen';
+
+  @override
+  String get financeLedgerRebuilt => 'Wallet-Kontobuch neu aufgebaut';
+
+  @override
+  String get financeDepositDone => 'Einzahlung erfolgreich';
+
+  @override
+  String get financeDescription => 'Beschreibung (optional)';
+
+  @override
+  String get financeEdit => 'Bearbeiten';
+
+  @override
+  String get financeEditCostCenter => 'Kostenstelle bearbeiten';
+
+  @override
+  String get financeEditTransaction => 'Transaktion bearbeiten';
+
+  @override
+  String get financeManageMembers => 'Mitglieder der Kostenstelle verwalten';
+
+  @override
+  String get financeManualPrintDone =>
+      'Manuelle Druckbelastung hinzugefügt und Buch neu berechnet';
+
+  @override
+  String get financeMemberCanPrint => 'Mitglied darf drucken';
+
+  @override
+  String get financeMemberCanPrintHint =>
+      'Ohne das sieht das Mitglied die Kostenstelle, kann aber keine Drucke darauf buchen.';
+
+  @override
+  String get financeMemberRemoved => 'Mitglied entfernt';
+
+  @override
+  String get financeMembers => 'Mitglieder';
+
+  @override
+  String get financeMemberSaved => 'Mitglied gespeichert';
+
+  @override
+  String get financeNoCostCenter => 'Keine Kostenstelle';
+
+  @override
+  String get financeNoEligibleUsers => 'Keine geeigneten Benutzer verfügbar';
+
+  @override
+  String get financeNoMembers => 'Keine Mitglieder zugewiesen.';
+
+  @override
+  String get financePersonalView => 'Persönliche Ansicht';
+
+  @override
+  String get financePrivateBudgetOnly =>
+      'Eine persönliche Kostenstelle behält ihren Namen; nur das Budget lässt sich ändern. Mit 0 wird das Drucken gesperrt.';
+
+  @override
+  String get financeRemoveMember => 'Mitglied entfernen';
+
+  @override
+  String get financeSave => 'Speichern';
+
+  @override
+  String get financeNoUser => 'Kein Benutzer';
+
+  @override
+  String get financeDeletedUser => 'Gelöschter Benutzer';
+
+  @override
+  String get financeShared => 'Geteilt';
+
+  @override
+  String get financeTransactionDeleted => 'Transaktion gelöscht';
+
+  @override
+  String get financeTransactionEdited =>
+      'Transaktion aktualisiert und Buch neu berechnet';
+
+  @override
+  String get financeTransactions => 'Transaktionen';
+
+  @override
+  String get financeUser => 'Benutzer';
+
+  @override
+  String get financeUserRequired => 'Bitte einen Benutzer auswählen';
+
+  @override
+  String financeUserWithId(int id) {
+    return 'Benutzer Nr. $id';
+  }
+
+  @override
+  String get financeWithdrawDone => 'Auszahlung erfolgreich';
+
+  @override
+  String get queueBillingCostCentersRefused =>
+      'Auf diesem Server ist die Abrechnung aktiv, daher braucht jeder Druckauftrag eine Kostenstelle, doch dieses Konto kann seine Kostenstellen in der App nicht abrufen. Reihe diesen Auftrag in Bambuddy im Browser ein, bearbeite und starte ihn dort.';
+
+  @override
+  String get queueBillingNoCostCenter =>
+      'Keine aktive Kostenstelle steht zum Drucken zur Verfügung. Bitte einen Administrator, dir Druckzugriff zu geben.';
+
+  @override
+  String get queueCostCenterTitle => 'Kostenstelle';
+
+  @override
+  String queueCostCenterPersonal(String name) {
+    return '$name (persönlich)';
+  }
+
+  @override
+  String get queueCostCenterUnlimited =>
+      'Unbegrenzt – es ist kein Budget festgelegt.';
+
+  @override
+  String get queueCostCenterLoadFailed =>
+      'Die Kostenstellen konnten nicht geladen werden.';
+
+  @override
+  String queueEstimatedCost(String amount) {
+    return 'Geschätzte Kosten: $amount';
+  }
+
+  @override
+  String get queueCostNotAvailable => 'k. A.';
+
+  @override
+  String queueEstimatedCostForCopies(String amount) {
+    return 'gesamt: $amount';
+  }
+
+  @override
+  String get queueInsufficientBudget =>
+      'Das Budget dieser Kostenstelle ist überschritten.';
+
+  @override
+  String get queueBillingEstimateRequired =>
+      'Der Server konnte die Kosten dieses Auftrags nicht berechnen, weil die Datei keinen Filamentverbrauch angibt – eine Kostenstelle braucht ihn.';
+
+  @override
+  String get queueBillingCostCenterInactive =>
+      'Diese Kostenstelle ist nicht mehr aktiv. Wähle eine andere.';
+
+  @override
+  String get queueBillingCostCenterNoAccess =>
+      'Du darfst mit dieser Kostenstelle nicht drucken. Wähle eine andere.';
+
+  @override
+  String get queueBillingBudgetExceeded =>
+      'Dieser Auftrag kostet mehr als das verbleibende Budget dieser Kostenstelle.';
 
   @override
   String get labelPrinterTitle => 'Etikettendrucker';
-
-  @override
-  String get labelPrinterEntrySubtitle =>
-      'Spulenetiketten über einen Brother-QL-Druckserver im Netzwerk drucken';
 
   @override
   String get labelPrinterIntro =>
@@ -8606,4 +9456,116 @@ class AppLocalizationsDe extends AppLocalizations {
   String archiveSlot(int slot) {
     return 'Slot $slot';
   }
+
+  @override
+  String get tourDemoNote =>
+      'Demodaten: Nichts, was du hier tust, erreicht deine Drucker.';
+
+  @override
+  String get tourSkip => 'Tour überspringen';
+
+  @override
+  String get tourNext => 'Weiter';
+
+  @override
+  String get tourFinish => 'Fertig';
+
+  @override
+  String tourStepCounter(int current, int total) {
+    return 'Schritt $current von $total';
+  }
+
+  @override
+  String get tourStepTabs =>
+      'In der Leiste unten liegen die Hauptbereiche: Warteschlange, Archiv, Wartung und Filamente. Öffne jeden davon.';
+
+  @override
+  String get tourStepDrawer =>
+      'Öffne das Menü. Dort liegen die übrigen Bereiche: Dateimanager, Statistiken, Projekte, Modellquellen und die Einstellungen.';
+
+  @override
+  String get tourStepEditPrinter =>
+      'Halte den Namen eines Druckers gedrückt, um den Drucker zu bearbeiten.';
+
+  @override
+  String get tourStepReorder =>
+      'Greife den Griff und ziehe den Auftrag, um die Druckreihenfolge zu ändern.';
+
+  @override
+  String get tourStepSwipe =>
+      'Wische einen Auftrag nach links, um ihn aus der Warteschlange zu entfernen.';
+
+  @override
+  String get tourStepSelect =>
+      'Halte einen Druck gedrückt, um mehrere auf einmal auszuwählen. Im Dateimanager und bei den Filamenten geht das genauso.';
+
+  @override
+  String get tourStepWall =>
+      'Der Wandmodus zeigt die ganze Farm auf einem Bildschirm, etwa auf einem Tablet neben den Druckern. Du öffnest ihn über dieses Menü.';
+
+  @override
+  String get tourStepStats =>
+      'Die Statistiken zeigen Filamentverbrauch, Kosten und wie viele Drucke gelingen. Tippe auf Statistiken, um sie zu öffnen.';
+
+  @override
+  String get tourStepDone =>
+      'Das ist alles. Alle Gesten findest du unter App-Einstellungen → Tipps, dort kannst du diese Tour auch erneut starten.';
+
+  @override
+  String get tipsTitle => 'Tipps';
+
+  @override
+  String get tipsSubtitle => 'Versteckte Gesten und die Tour';
+
+  @override
+  String get tipsRunTour => 'Tour starten';
+
+  @override
+  String get tipsEditPrinterTitle => 'Drucker bearbeiten';
+
+  @override
+  String get tipsEditPrinterBody =>
+      'Halte den Namen des Druckers auf seiner Karte gedrückt.';
+
+  @override
+  String get tipsReorderTitle => 'Druckreihenfolge';
+
+  @override
+  String get tipsReorderBody =>
+      'Ziehe in der Warteschlange einen Auftrag am Griff links.';
+
+  @override
+  String get tipsSwipeTitle => 'Entfernen';
+
+  @override
+  String get tipsSwipeBody =>
+      'Wische einen Auftrag in der Warteschlange oder einen Druck im Archiv nach links.';
+
+  @override
+  String get tipsSelectTitle => 'Mehrere auswählen';
+
+  @override
+  String get tipsSelectBody =>
+      'Halte einen Eintrag im Archiv, im Dateimanager oder bei den Filamenten gedrückt.';
+
+  @override
+  String get tipsZoomTitle => 'Objekte überspringen';
+
+  @override
+  String get tipsZoomBody =>
+      'Zieh mit zwei Fingern auf, um die Platte zu vergrößern; tippe doppelt, um wieder herauszuzoomen.';
+
+  @override
+  String get tipsTrimTitle => 'Zeitraffer kürzen';
+
+  @override
+  String get tipsTrimBody =>
+      'Ziehe die Griffe auf dem Filmstreifen; tippe oder ziehe an einer anderen Stelle, um den Abspielkopf zu bewegen.';
+
+  @override
+  String get tipsWallTitle => 'Wandmodus';
+
+  @override
+  String get tipsWallBody =>
+      'Öffne auf dem Bildschirm Drucker das Menü ⋮ und wähle Wandmodus.';
 }

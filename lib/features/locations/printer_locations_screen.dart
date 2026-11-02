@@ -1,5 +1,5 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
@@ -11,9 +11,6 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
-import '../common/dash_input.dart';
-import '../common/dash_search_field.dart';
-import '../common/inline_note.dart';
 import '../dashboard/providers.dart';
 import '../dashboard/ws_providers.dart';
 import 'printer_location_form.dart';
@@ -225,6 +222,8 @@ class _PrinterLocationsScreenState
         ),
         floatingActionButton: canEdit && bar == null && !_selecting
             ? FloatingActionButton.extended(
+                backgroundColor: DashTokens.of(context).accentGreen,
+                foregroundColor: DashTokens.of(context).onAccent,
                 onPressed: _busy
                     ? null
                     : () => openPrinterLocationForm(context),

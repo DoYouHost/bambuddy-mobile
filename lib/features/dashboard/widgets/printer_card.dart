@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:app_util/app_util.dart';
 import 'package:clock/clock.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/ams/drying_presets.dart';
@@ -17,6 +17,7 @@ import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';
 import '../../../core/models/scheduled_drying.dart';
 import '../../../core/printers/bed_jog.dart';
+import '../../../core/printers/hms_readback.dart';
 import '../../../core/printers/offline_debounce.dart';
 import '../../../core/models/smart_plug.dart';
 import '../../../core/notifications/hms_actions.dart';
@@ -25,7 +26,6 @@ import '../../../core/settings/server_profile.dart';
 import '../../../data/inventory_source.dart';
 import '../../../data/printer_commands_repository.dart';
 import '../../../data/printers_repository.dart';
-import '../../../data/smart_plugs_repository.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/error_messages.dart';
 import '../../../providers.dart';
@@ -33,11 +33,7 @@ import '../../camera/camera_view.dart';
 import '../../common/api_failure_snack.dart';
 import '../../common/media_image.dart';
 import '../../common/dash_async.dart';
-import '../../common/dash_input.dart';
-import '../../common/dash_search_field.dart';
-import '../../common/date_time_picker.dart';
-import '../../common/detached_flow.dart';
-import '../../common/dashed_line.dart';
+import '../../../core/app_context.dart';
 import '../../common/plate_clear.dart';
 import '../../common/web_link.dart';
 import '../../files/printer_file_manager_screen.dart';
@@ -49,6 +45,10 @@ import '../../inventory/spool_scanner_screen.dart';
 import '../../maintenance/maintenance_providers.dart';
 import '../add_printer_screen.dart';
 import '../controls_providers.dart';
+import '../print_lifecycle.dart';
+import '../smart_plug_actions.dart';
+import 'pill_switch.dart';
+import '../temp_readings.dart';
 import '../drying_schedule.dart';
 import '../scheduled_drying_providers.dart';
 import '../firmware_providers.dart';
@@ -60,10 +60,8 @@ import 'ams_slot_config_sheet.dart';
 import 'ams_history_sheet.dart';
 import 'heater_history_sheet.dart';
 import 'temp_gauge.dart';
-import '../../../core/diagnostics/log_tag_material.dart';
-import '../../common/dash_icon_tile.dart';
-import '../../common/dash_progress_bar.dart';
-import '../../common/sheet_surface.dart';
+import '../../../core/diagnostics/filament_material.dart';
+import '../../tour/tour_beacon.dart';
 
 part 'printer_card_details.dart';
 part 'printer_card_scheduled_drying.dart';
@@ -235,7 +233,7 @@ class _PrinterCardState extends State<PrinterCard> {
     }
 
     final printing = status?.isPrinting ?? false;
-    final readings = _buildReadings(
+    final readings = buildTempReadings(
       status?.temperatures,
       status?.airductIsHeating,
     );
@@ -499,12 +497,16 @@ class _HeaderLine extends StatelessWidget {
   final String? afterName;
   final Widget? belowName;
 
-  /// The glyph square, and with it the height the line starts at.
-  ///
-  /// Also the width [build] reserves for the leading square when it hands the
-  /// rest to the name and the buttons — so a square built to any other number
-  /// spends the name's guaranteed [_minNameWidth] without saying so.
+  /// The glyph square. Also the width [build] reserves for the leading square
+  /// when it hands the rest to the name and the buttons — so a square built to
+  /// any other number spends the name's guaranteed [_minNameWidth] without
+  /// saying so.
   static const glyphSquare = 36.0;
+
+  /// The height the line starts at: the touch target of the buttons on it and
+  /// of the name's long press, so both looks of the card keep the name where
+  /// it was when one is swapped for the other.
+  static const _lineHeight = kMinInteractiveDimension;
 
   static const _minNameWidth = 48.0;
   static const _afterNameGap = 8.0;
@@ -518,7 +520,7 @@ class _HeaderLine extends StatelessWidget {
     // A minimum rather than a fixed height: at a large system text size the
     // name is taller than the glyph, and a fixed line would overflow.
     Widget line(Widget child) => ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: glyphSquare),
+      constraints: const BoxConstraints(minHeight: _lineHeight),
       child: child,
     );
     final belowName = this.belowName;
@@ -536,7 +538,10 @@ class _HeaderLine extends StatelessWidget {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            leading,
+            SizedBox(
+              height: _lineHeight,
+              child: Center(child: leading),
+            ),
             const SizedBox(width: _leadingGap),
             Expanded(
               child: Column(
@@ -578,7 +583,7 @@ class _HeaderLine extends StatelessWidget {
             ConstrainedBox(
               constraints: BoxConstraints(
                 maxWidth: trailingMaxWidth,
-                minHeight: glyphSquare,
+                minHeight: _lineHeight,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -619,13 +624,25 @@ class _EditableName extends ConsumerWidget {
       onLongPressHint: AppLocalizations.of(context).editPrinterTitle,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onLongPress: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => AddPrinterScreen(printer: printer),
+        onLongPress: () {
+          ref.read(tourBeaconProvider)?.signal('printer.edit');
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => AddPrinterScreen(printer: printer),
+            ),
+          );
+        },
+        // As tall as a touch target, not as the line of text it holds.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
+          ),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: child,
           ),
         ),
-        child: child,
-      ).tagged('printer.edit'),
+      ).tagged('printer.edit').tourTarget('printer.edit.${printer.id}'),
     );
   }
 }

@@ -1,12 +1,12 @@
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/core/widget/home_widget_publisher.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../hms_samples.dart';
+import '../../helpers.dart';
 
 /// Catalog resolver that gives every HMS code a description → makes it
 /// "displayable", so the publisher would treat it as an active error.
@@ -103,8 +103,8 @@ void main() {
         () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(const MethodChannel('home_widget'), null),
       );
-      final pl = HmsCatalog();
-      await pl.load(const Locale('pl'));
+      final catalog = HmsCatalog();
+      await catalog.load(const Locale('pl'));
 
       await HomeWidgetPublisher.publish(
         {
@@ -116,8 +116,8 @@ void main() {
             hmsErrors: [hmsX2dChamberHeater.fault],
           ),
         },
-        lookupAppLocalizations(const Locale('pl')),
-        describeHms: pl.describe,
+        pl,
+        describeHms: catalog.describe,
       );
 
       expect(saved['status_key'], 'error');

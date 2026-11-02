@@ -25,6 +25,24 @@ void main() {
 
   tearDown(() => plugin.cancelAll());
 
+  /// The notifications with [id] once the shade agrees with [settled]. Android
+  /// posts and cancels asynchronously — `show` returns before the system has
+  /// the notification — so a single read right after it lost the race about one
+  /// run in five. Gives up after three seconds and returns what it last saw.
+  Future<List<ActiveNotification>> shade(
+    int id,
+    bool Function(List<ActiveNotification>) settled,
+  ) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 3));
+    while (true) {
+      final found = (await android.getActiveNotifications())
+          .where((n) => n.id == id)
+          .toList();
+      if (settled(found) || DateTime.now().isAfter(deadline)) return found;
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+  }
+
   setUpAll(() async {
     await plugin.initialize(
       settings: const InitializationSettings(
@@ -49,16 +67,12 @@ void main() {
       payload: 'printer:1',
     );
 
-    final active = await android.getActiveNotifications();
-    final posted = active.where((n) => n.id == 4242);
+    final posted = await shade(4242, (n) => n.isNotEmpty);
     expect(posted, hasLength(1));
     expect(posted.single.title, 'Print finished');
 
     await plugin.cancel(id: 4242);
-    expect(
-      (await android.getActiveNotifications()).where((n) => n.id == 4242),
-      isEmpty,
-    );
+    expect(await shade(4242, (n) => n.isEmpty), isEmpty);
   });
 
   testWidgets('a notification carrying an action button still posts', (
@@ -82,10 +96,7 @@ void main() {
       ),
     );
 
-    expect(
-      (await android.getActiveNotifications()).where((n) => n.id == 4243),
-      hasLength(1),
-    );
+    expect(await shade(4243, (n) => n.isNotEmpty), hasLength(1));
     await plugin.cancel(id: 4243);
   });
 }

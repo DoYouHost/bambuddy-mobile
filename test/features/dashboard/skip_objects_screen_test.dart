@@ -8,7 +8,7 @@ import 'package:bambuddy_mobile/features/dashboard/skip_objects_screen.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -110,12 +110,17 @@ void main() {
     PrintableObjects objects = _twoObjects,
     int layerNum = 2,
     ObjectPickMask? mask,
+    Size? landscape,
   }) async {
     // The test window defaults to 800×600 (wider than tall) — the square plate
     // preview (AspectRatio 1) would then claim the whole viewport height, and
     // the sliver never builds the list rows underneath it. A phone-shaped
     // window fixes that the same way other screen tests in this repo do.
     usePhoneWindow(tester, dp: 1200);
+    if (landscape != null) {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = landscape;
+    }
 
     final repo = _StubRepo(objects);
     await pumpPhone(
@@ -146,20 +151,20 @@ void main() {
       final repo = await pumpScreen(tester);
 
       // Nothing selected yet, so no bottom confirmation bar.
-      expect(find.text('Pomiń'), findsNothing);
+      expect(find.text(pl.skipObjectsSkip), findsNothing);
 
       await tapRow(tester, 'Divider_left.stl');
       await tapRow(tester, 'Divider_right.stl');
 
       // Bottom bar: selected-count label + "Skip" button.
-      expect(find.text('Zaznaczono: 2'), findsOneWidget);
-      expect(find.text('Pomiń'), findsOneWidget);
+      expect(find.text(pl.skipObjectsSelectedCount(2)), findsOneWidget);
+      expect(find.text(pl.skipObjectsSkip), findsOneWidget);
 
-      await tester.tap(find.text('Pomiń'));
+      await tester.tap(find.text(pl.skipObjectsSkip));
       await tester.pumpAndSettle();
 
       // The dialog asks about both names at once; 2-4 is the "obiekty" plural.
-      expect(find.text('Pominąć 2 obiekty?'), findsOneWidget);
+      expect(find.text(pl.skipObjectsConfirmTitle(2)), findsOneWidget);
       expect(
         find.textContaining('Divider_left.stl, Divider_right.stl'),
         findsOneWidget,
@@ -168,7 +173,7 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byType(AlertDialog),
-          matching: find.text('Pomiń'),
+          matching: find.text(pl.skipObjectsSkip),
         ),
       );
       await tester.pumpAndSettle();
@@ -177,9 +182,9 @@ void main() {
       expect(repo.skipCalls, [
         [421, 512],
       ]);
-      expect(find.text('Pominięto 2 obiekty'), findsOneWidget);
+      expect(find.text(pl.skipObjectsSkippedToast(2, '')), findsOneWidget);
       // Selection and the bottom bar clear after success.
-      expect(find.text('Pomiń'), findsNothing);
+      expect(find.text(pl.skipObjectsSkip), findsNothing);
     },
   );
 
@@ -189,12 +194,59 @@ void main() {
     final repo = await pumpScreen(tester);
 
     await tapRow(tester, 'Divider_left.stl');
-    expect(find.text('Zaznaczono: 1'), findsOneWidget);
+    expect(find.text(pl.skipObjectsSelectedCount(1)), findsOneWidget);
 
     await tapRow(tester, 'Divider_left.stl');
 
-    expect(find.text('Pomiń'), findsNothing);
+    expect(find.text(pl.skipObjectsSkip), findsNothing);
     expect(repo.skipCalls, isEmpty);
+  });
+
+  testWidgets('in landscape the plate and the list sit side by side', (
+    tester,
+  ) async {
+    await pumpScreen(tester, landscape: const Size(844, 390));
+    final handle = tester.ensureSemantics();
+
+    final marker = tester.getRect(
+      find.bySemanticsIdentifier('skip_objects.marker').first,
+    );
+    final row = tester.getRect(
+      find.bySemanticsIdentifier('skip_objects.object_tile').first,
+    );
+    expect(marker.right, lessThan(row.left), reason: 'plate left, list right');
+    expect(row.top, lessThan(390), reason: 'the list is on screen, not below');
+    expect(tester.takeException(), isNull);
+    handle.dispose();
+  });
+
+  testWidgets('in landscape Skip sits under the list, not across the plate', (
+    tester,
+  ) async {
+    await pumpScreen(tester, landscape: const Size(844, 390));
+    final handle = tester.ensureSemantics();
+    final plateBefore = tester.getRect(
+      find.bySemanticsIdentifier('skip_objects.marker').first,
+    );
+
+    await tester.tap(
+      find.bySemanticsIdentifier('skip_objects.object_tile').first,
+    );
+    await tester.pump();
+
+    final skip = tester.getRect(byLogId('skip_objects.skip'));
+    final row = tester.getRect(
+      find.bySemanticsIdentifier('skip_objects.object_tile').first,
+    );
+    expect(skip.left, greaterThanOrEqualTo(row.left), reason: 'list column');
+    expect(skip.bottom, lessThanOrEqualTo(390));
+    expect(
+      tester.getRect(find.bySemanticsIdentifier('skip_objects.marker').first),
+      plateBefore,
+      reason: 'the plate keeps its place and size',
+    );
+    expect(tester.takeException(), isNull);
+    handle.dispose();
   });
 
   testWidgets('without a mask the plate draws one tappable marker per object', (
@@ -232,8 +284,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pump();
 
-      expect(find.text('Zaznaczono: 1'), findsOneWidget);
-      await tester.tap(find.text('Pomiń'));
+      expect(find.text(pl.skipObjectsSelectedCount(1)), findsOneWidget);
+      await tester.tap(find.text(pl.skipObjectsSkip));
       await tester.pumpAndSettle();
       final dialog = find.byType(AlertDialog);
       expect(
@@ -259,7 +311,7 @@ void main() {
 
     await tapRow(tester, 'Divider_left.stl');
 
-    expect(find.text('Pomiń'), findsNothing);
+    expect(find.text(pl.skipObjectsSkip), findsNothing);
   });
 
   testWidgets(
@@ -269,12 +321,12 @@ void main() {
       repo.error = const AuthException(AppErrorCode.forbidden);
 
       await tapRow(tester, 'Divider_left.stl');
-      await tester.tap(find.text('Pomiń'));
+      await tester.tap(find.text(pl.skipObjectsSkip));
       await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(
           of: find.byType(AlertDialog),
-          matching: find.text('Pomiń'),
+          matching: find.text(pl.skipObjectsSkip),
         ),
       );
       await tester.pumpAndSettle();
@@ -282,7 +334,7 @@ void main() {
       expect(repo.skipCalls, hasLength(1));
       // Selection survives the failure, but the bar is now locked out.
       final button = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Pomiń'),
+        find.widgetWithText(FilledButton, pl.skipObjectsSkip),
       );
       expect(button.onPressed, isNull);
     },
@@ -295,7 +347,7 @@ void main() {
 
       await tapRow(tester, 'Divider_left.stl');
       await tapRow(tester, 'Divider_right.stl');
-      expect(find.text('Zaznaczono: 2'), findsOneWidget);
+      expect(find.text(pl.skipObjectsSelectedCount(2)), findsOneWidget);
 
       // Someone else (another client, or the printer itself) skips 512 while it
       // sits in the selection. Delivered through the screen's own
@@ -321,13 +373,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // The bar counts what is still skippable, not the raw selection.
-      expect(find.text('Zaznaczono: 1'), findsOneWidget);
+      expect(find.text(pl.skipObjectsSelectedCount(1)), findsOneWidget);
 
-      await tester.tap(find.text('Pomiń'));
+      await tester.tap(find.text(pl.skipObjectsSkip));
       await tester.pumpAndSettle();
 
       final dialog = find.byType(AlertDialog);
-      expect(find.text('Pominąć ten obiekt?'), findsOneWidget);
+      expect(find.text(pl.skipObjectsConfirmTitle(1)), findsOneWidget);
       expect(
         find.descendant(
           of: dialog,
@@ -337,7 +389,7 @@ void main() {
       );
 
       await tester.tap(
-        find.descendant(of: dialog, matching: find.text('Pomiń')),
+        find.descendant(of: dialog, matching: find.text(pl.skipObjectsSkip)),
       );
       await tester.pumpAndSettle();
 
@@ -357,7 +409,7 @@ void main() {
 
       await tapRow(tester, 'Divider_left.stl');
       await tapRow(tester, 'Divider_right.stl');
-      expect(find.text('Zaznaczono: 2'), findsOneWidget);
+      expect(find.text(pl.skipObjectsSelectedCount(2)), findsOneWidget);
 
       // The background poll (or a pull-to-refresh) reloads the objects from the
       // 3MF and 512 is no longer in it — while it's still in `_selected`. Drive
@@ -376,17 +428,17 @@ void main() {
       await tester.pump();
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Pomiń'));
+      await tester.tap(find.text(pl.skipObjectsSkip));
       await tester.pumpAndSettle();
 
       // The dialog only shows the survivor — singular phrasing, no trace of 512.
-      expect(find.text('Pominąć ten obiekt?'), findsOneWidget);
+      expect(find.text(pl.skipObjectsConfirmTitle(1)), findsOneWidget);
       expect(find.textContaining('512'), findsNothing);
 
       await tester.tap(
         find.descendant(
           of: find.byType(AlertDialog),
-          matching: find.text('Pomiń'),
+          matching: find.text(pl.skipObjectsSkip),
         ),
       );
       await tester.pumpAndSettle();

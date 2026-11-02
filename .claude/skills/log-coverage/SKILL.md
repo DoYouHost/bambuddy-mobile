@@ -15,14 +15,14 @@ Paths are relative to the repo root.
 ## Step 1 — run the scan
 
 ```bash
-python3 .claude/skills/log-coverage/log_coverage.py
+dart run app_guards:log_coverage
 ```
 
 | flag | effect |
 |---|---|
 | `--limit N` | list only the first N gaps (the summary is always complete) |
 | `--kind TextField` | one widget kind |
-| `--wear` | include `lib/wear` (excluded by default — the recorder is a phone feature) |
+| `--all-dirs` | include the `skip_dirs` of `tool/log_coverage.toml` — `lib/wear`, excluded by default because the recorder is a phone feature |
 | `--json` | machine-readable, for counting per file or feeding a diff |
 
 Output: totals, a table per widget kind, the worst files, then every gap as
@@ -56,9 +56,12 @@ carries with it counts, and the scanner scores those rows on that rule alone.
 it cannot follow a widget assigned to a local variable and inserted into a tagged
 tree later (the spool form's core-weight field does that), nor one passed through
 a `Widget` field. Open the file before believing the line — and when the gap is
-real but the fix belongs in the scanner, fix the scanner.
+real but the fix belongs in the scanner, fix the scanner — it lives in the
+`app_guards` package (`tool/log_coverage.py` there), shared with lubelogger-mobile;
+what names a control in this app (`logTag`, `.tagged`, `dashAppBar`, …) is
+`tool/log_coverage.toml` here.
 
-`lib/` (phone flavour) reports **zero** unnamed controls; `--wear` still lists the
+`lib/` (phone flavour) reports **zero** unnamed controls; `--all-dirs` still lists the
 watch app, which has no recorder. The one control the scan leaves out is
 `SnackBarAction`: `SnackBar.action` is typed to it, so it cannot be wrapped and
 has no child to tag — the two in the app record as a bare `button`, and naming

@@ -1,16 +1,16 @@
 import 'dart:async';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/settings_rows.dart';
 import '../../core/models/queue_item.dart';
 import '../dashboard/ws_providers.dart';
+import '../queue/queue_item_view.dart';
 import '../queue/queue_providers.dart';
 import 'wall_faults.dart';
 import 'wall_layout.dart';
@@ -30,7 +30,11 @@ const _landscape = [
 /// foreground service and the token refreshers, which must keep running under
 /// the wall.
 class WallScreen extends ConsumerStatefulWidget {
-  const WallScreen({super.key});
+  const WallScreen({super.key, this.preview = false});
+
+  /// The guided tour's miniature: the wall as drawn, without anything it does
+  /// to the phone — no landscape lock, no hidden bars, no screen kept awake.
+  final bool preview;
 
   /// Below this width the side panel starts as a rail (D16). Provisional:
   /// set from the spike screenshots — phones in landscape stay under it, a
@@ -62,7 +66,7 @@ class WallScreen extends ConsumerStatefulWidget {
 class _WallScreenState extends ConsumerState<WallScreen> {
   // Read once here: `dispose` must still reach it, and `ref` is gone by then.
   late final ScreenAwake _awake;
-  late final AppLifecycleListener _lifecycle;
+  AppLifecycleListener? _lifecycle;
   Timer? _burnIn;
   int _shift = 0;
   Timer? _queuePoll;
@@ -72,6 +76,7 @@ class _WallScreenState extends ConsumerState<WallScreen> {
   void initState() {
     super.initState();
     _awake = ref.read(screenAwakeProvider);
+    if (widget.preview) return;
     unawaited(SystemChrome.setPreferredOrientations(_landscape));
     unawaited(
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky),
@@ -95,15 +100,9 @@ class _WallScreenState extends ConsumerState<WallScreen> {
 
   void _startQueuePoll() {
     _queuePoll?.cancel();
-    // The queue provider outlives this screen (the nav badge keeps it), so
-    // what it holds may be old: refresh on entry, then on the poll. One that
-    // is still loading its first answer needs no second request beside it.
-    if (ref.read(queueProvider).hasValue) {
-      unawaited(ref.read(queueProvider.notifier).refresh());
-    }
-    _queuePoll = Timer.periodic(
+    _queuePoll = pollQueue(
+      ProviderScope.containerOf(context, listen: false),
       WallScreen.queuePoll,
-      (_) => unawaited(ref.read(queueProvider.notifier).refresh()),
     );
   }
 
@@ -130,9 +129,13 @@ class _WallScreenState extends ConsumerState<WallScreen> {
 
   @override
   void dispose() {
-    _lifecycle.dispose();
+    _lifecycle?.dispose();
     _stopQueuePoll();
     _stopBurnIn();
+    if (widget.preview) {
+      super.dispose();
+      return;
+    }
     // Every way out lands here — Back, the exit button, and `/setup` replacing
     // the whole stack when the session expires — so the rest of the app gets
     // its free rotation, its bars and its screen timeout back on each of them.
@@ -171,7 +174,9 @@ class _WallScreenState extends ConsumerState<WallScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<bool>(wallKeepAwakeProvider, (_, on) => _awake.set(on));
+    if (!widget.preview) {
+      ref.listen<bool>(wallKeepAwakeProvider, (_, on) => _awake.set(on));
+    }
     final choice = ref.watch(wallPanelExpandedProvider);
 
     return DashBackground(
@@ -249,11 +254,10 @@ class _WallGrid extends ConsumerWidget {
     final inTouchSince = ref
         .read(printerStatusesProvider.notifier)
         .inTouchSince;
-    // No live tile count cap (D12). The demo serves no MJPEG, so its tiles
-    // stay status-only.
-    final profile = ref.watch(serverProfileProvider);
+    // No live tile count cap (D12).
     final camera =
-        profile != null && !profile.isDemo && ref.watch(wallLiveCameraProvider);
+        ref.watch(serverProfileProvider) != null &&
+        ref.watch(wallLiveCameraProvider);
     return LayoutBuilder(
       builder: (context, box) {
         final cols = wallColumns(
@@ -547,17 +551,7 @@ class _QueueRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final model = item.targetModel;
-    // Where the job will run, worded as the queue screen words it.
-    final target =
-        item.printerName ??
-        (item.isCrossModel
-            ? l10n.queueAnyOfModels(
-                [for (final v in item.variants) v.targetModel].join(', '),
-              )
-            : model != null
-            ? l10n.queueEditAnyModel(model)
-            : l10n.printLogAnyPrinter);
+    final target = item.printerName ?? queueTargetLabel(l10n, item);
     final waiting = item.waitingReason;
     return _PanelItem(
       children: [

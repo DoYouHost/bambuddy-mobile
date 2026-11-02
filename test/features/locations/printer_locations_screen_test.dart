@@ -6,9 +6,7 @@ import 'package:bambuddy_mobile/data/printer_locations_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/locations/printer_locations_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
@@ -70,13 +68,10 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  AppLocalizations l10n(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(Scaffold).first));
-
   testWidgets('lists the locations with their counts and the printers '
       'that have none', (tester) async {
     await pumpScreen(tester);
-    final l = l10n(tester);
+    final l = pl;
 
     expect(find.text('Workshop'), findsOneWidget);
     expect(find.text(l.printerLocationsPrinterCount(2)), findsOneWidget);
@@ -95,7 +90,7 @@ void main() {
     tester,
   ) async {
     await pumpScreen(tester);
-    final l = l10n(tester);
+    final l = pl;
 
     await tester.tap(find.text('Workshop'));
     await tester.pumpAndSettle();
@@ -113,7 +108,7 @@ void main() {
     tester,
   ) async {
     await pumpScreen(tester);
-    final l = l10n(tester);
+    final l = pl;
 
     await tester.enterText(byLogId('locations.search'), 'zzz');
     await tester.pumpAndSettle();
@@ -216,7 +211,7 @@ void main() {
     tester,
   ) async {
     await pumpScreen(tester, authMode: AuthMode.apiKey);
-    final l = l10n(tester);
+    final l = pl;
 
     expect(find.text('Workshop'), findsOneWidget);
     expect(find.text(l.printerLocationsReadOnly), findsOneWidget);
@@ -248,7 +243,7 @@ void main() {
     tester,
   ) async {
     await pumpScreen(tester);
-    final l = l10n(tester);
+    final l = pl;
     adapter.onPost(
       _path,
       (s) =>

@@ -1,16 +1,16 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/ams/filament_naming.dart';
+import '../../common/spool_colour_wheel.dart';
 import '../../../core/ams/filament_preset_catalog.dart';
 import '../../../core/ams/k_profile_match.dart';
 import '../../../core/ams/preset_colours.dart';
 import '../../../core/ams/printer_model_match.dart';
 import '../../../core/ams/slot_configuration.dart';
 import '../../../core/api/action_outcome.dart';
-import '../../../core/diagnostics/log_tag_material.dart';
+import '../../../core/diagnostics/filament_material.dart';
 import '../../../core/format/filament_colour.dart';
 import '../../../core/models/ams_filament_preset.dart';
 import '../../../core/models/inventory_reference.dart';
@@ -18,8 +18,6 @@ import '../../../core/models/k_profile.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../../core/theme/dash_theme.dart';
-import '../../common/dash_input.dart';
-import '../../common/dash_search_field.dart';
 import '../../../l10n/error_messages.dart';
 import '../../inventory/inventory_providers.dart' show colorCatalogProvider;
 import '../../inventory/inventory_screen.dart'
@@ -964,18 +962,7 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
               ),
               _label(t, l10n.amsSlotConfigColourCustom),
             ],
-            ColorPicker(
-              pickerColor: _picked,
-              onColorChanged: _onWheel,
-              // The printer has no use for a transparent filament: a zero alpha
-              // is how it reports an *empty* slot, so the picker never offers
-              // it.
-              enableAlpha: false,
-              hexInputBar: true,
-              labelTypes: const [],
-              portraitOnly: true,
-              pickerAreaHeightPercent: 0.7,
-            ),
+            SpoolColourWheel(color: _picked, onChanged: _onWheel),
           ],
         ),
       ),

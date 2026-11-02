@@ -3,12 +3,13 @@ import 'dart:io';
 
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
 import 'package:bambuddy_mobile/features/wall/wall_camera.dart';
 import 'package:bambuddy_mobile/features/wall/wall_tile.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -170,7 +171,7 @@ void main() {
     expect(find.text('RUNNING'), findsOneWidget);
     expect(find.text('64%'), findsOneWidget);
     expect(find.text('L 142/220'), findsOneWidget);
-    expect(find.text('1h 12min'), findsOneWidget);
+    expect(find.text(pl.durationHoursMinutes(1, 12)), findsOneWidget);
   });
 
   testWidgets('a paused print keeps its progress', (tester) async {
@@ -233,7 +234,7 @@ void main() {
       ),
     );
 
-    expect(find.text('OFFLINE'), findsOneWidget);
+    expect(find.text(pl.statusOffline), findsOneWidget);
     expect(find.text('64%'), findsNothing, reason: 'the last frame is stale');
     expect(find.text('0300_8004'), findsNothing);
     expect(find.byIcon(Icons.cloud_off_rounded), findsOneWidget);
@@ -251,7 +252,7 @@ void main() {
   testWidgets('a printer with no status yet reads offline too', (tester) async {
     await pumpTile(tester, null);
 
-    expect(find.text('OFFLINE'), findsOneWidget);
+    expect(find.text(pl.statusOffline), findsOneWidget);
   });
 
   testWidgets('a disconnect is believed only after the card\'s 15 s', (
@@ -262,10 +263,10 @@ void main() {
       tester,
       const PrinterStatus(id: 1, connected: false, state: 'RUNNING'),
     );
-    expect(find.text('OFFLINE'), findsNothing);
+    expect(find.text(pl.statusOffline), findsNothing);
 
     await tester.pump(const Duration(seconds: 15));
-    expect(find.text('OFFLINE'), findsOneWidget);
+    expect(find.text(pl.statusOffline), findsOneWidget);
   });
 
   testWidgets('a long name and a fault fit the smallest tile', (tester) async {
@@ -317,7 +318,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Podgląd wstrzymany'), findsOneWidget);
+      expect(find.text(pl.wallLivePaused), findsOneWidget);
       final shot = tester.widget<RawImage>(find.byType(RawImage).first);
       expect(shot.image, isNotNull, reason: 'the snapshot was decoded');
     });
@@ -566,7 +567,48 @@ void main() {
       );
 
       expect(byLogId('wall.tile'), findsNothing);
-      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text(pl.statusOffline), findsOneWidget);
     });
+  });
+
+  // A camera tile re-themes itself dark over its picture; it must keep the brand the
+  // user chose rather than fall back to the green one.
+  testWidgets('the tile keeps the chosen brand in its dark theme', (
+    tester,
+  ) async {
+    const blue = DashBrand(
+      dark: DashAccent(fill: Color(0xFF9FC5FF), ink: Color(0xFF9FC5FF)),
+      light: DashAccent(fill: Color(0xFF4A7FD0), ink: Color(0xFF2A5AA0)),
+      onAccent: Color(0xFF0A1830),
+    );
+    await pumpPhone(
+      tester,
+      Theme(
+        data: buildDashThemeData(Brightness.light, brand: blue),
+        child: Center(
+          child: SizedBox(
+            width: 260,
+            height: 170,
+            child: WallTile(
+              item: const PrinterWithStatus(
+                printer: _printer,
+                status: _printing,
+              ),
+              camera: true,
+            ),
+          ),
+        ),
+      ),
+      overrides: [
+        fakeServerProfileOverride(),
+        cameraTokenProvider.overrideWith((ref) async => 'tok'),
+      ],
+    );
+
+    await tester.pump();
+
+    final t = DashTokens.of(tester.element(find.text('X1C-01')));
+    expect(t.brightness, Brightness.dark);
+    expect(t.brand, blue);
   });
 }

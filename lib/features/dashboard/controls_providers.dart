@@ -8,6 +8,7 @@ import '../../core/settings/server_profile.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/ams_filament_preset.dart';
 import '../../core/printers/bed_jog.dart';
+import '../../core/printers/hms_readback.dart';
 import '../../data/ams_slot_config_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../../providers.dart';
@@ -57,6 +58,16 @@ enum ControlPermission {
 /// whose name was not remembered is configured correctly and *labelled wrongly*
 /// — the sheet keeps showing whatever preset the server still has on file.
 typedef SlotConfigOutcome = ({ActionOutcome outcome, SlotNameOutcome name});
+
+/// Result of "dismiss all": how the request went, and how many faults the
+/// printer was still reporting once it had had time to answer — `null` when the
+/// status could not be read back.
+///
+/// Two answers because the server's 200 only says the command was published. An
+/// `hms[]` fault is the printer's own state, rebuilt from every report it sends,
+/// so one whose cause is still there comes straight back
+/// (docs/server-contract-traps.md, "Clearing HMS errors").
+typedef HmsClearOutcome = ({ActionOutcome outcome, int? remaining});
 
 /// What happened to the slot→preset mapping.
 enum SlotNameOutcome {
@@ -269,8 +280,19 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// button on the card on purpose: the firmware handles one error command at a
   /// time, and a second tap while the first is in the air is how a resume and a
   /// stop race each other.
-  Future<ActionOutcome> clearHmsErrors(int id) =>
-      _run(id, ControlAction.hms, () => _repo.clearHmsErrors(id));
+  ///
+  /// The in-flight marker stays up until the status has been read back, so the
+  /// buttons wait for the answer to "did it work".
+  Future<HmsClearOutcome> clearHmsErrors(int id) async {
+    int? remaining;
+    final outcome = await _run(id, ControlAction.hms, () async {
+      await _repo.clearHmsErrors(id);
+      remaining = await hmsStillReported(
+        () => ref.read(printersRepositoryProvider).fetchStatus(id),
+      );
+    });
+    return (outcome: outcome, remaining: outcome.isOk ? remaining : null);
+  }
 
   Future<ActionOutcome> executeHmsAction(
     int id, {

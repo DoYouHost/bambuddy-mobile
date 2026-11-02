@@ -89,6 +89,11 @@ enum ServerFeature {
   /// `GET /inventory/stats/material-numbers` (#2870). Taken and ignored below
   /// it by both spool schemas.
   spoolMaterialNumber,
+
+  /// `last_dried_at` / `last_dried_temp` / `last_dried_hours` on a spool, and
+  /// `last_dried_at` on its update (#2863). The update key is taken and ignored
+  /// below it.
+  spoolLastDried,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -195,6 +200,7 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.apiKeyNotificationScope: (1, 2, 6, 0),
     ServerFeature.spoolSuppliers: (1, 2, 6, 0),
     ServerFeature.spoolMaterialNumber: (1, 2, 5, 7),
+    ServerFeature.spoolLastDried: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

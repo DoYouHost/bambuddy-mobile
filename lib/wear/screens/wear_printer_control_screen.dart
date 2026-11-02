@@ -1,5 +1,5 @@
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
@@ -7,15 +7,15 @@ import '../../core/theme/dash_theme.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_actions.dart';
 import '../../core/notifications/hms_catalog.dart';
+import '../../core/printers/hms_readback.dart';
 import '../../data/printers_repository.dart';
 import '../../features/common/plate_clear.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../wear_action.dart';
-import '../wear_error.dart';
+import '../wear_theme.dart';
 import '../wear_providers.dart';
 import '../wear_status.dart';
-import '../wear_theme.dart';
 import '../wear_transport.dart';
 import '../widgets/wear_center_message.dart';
 import '../widgets/wear_confirm_dialog.dart';
@@ -118,15 +118,11 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
         wearDimIfStale(
           stale: fleet?.stale ?? false,
           child: WearScrollView(
-            // Short items all the way down — a title, a chip, a readout, buttons
-            // — which is what the curve is for. The one exception carries itself:
-            // a fault card is taller than the radius, so `WearFaceCurve` clips it
-            // to the round-safe band exactly as the rectangle viewport used to.
             curved: true,
             onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
             children: [
               WearHeader(item.printer.name),
-              const SizedBox(height: DashSpace.sm),
+              const SizedBox(height: WearSpace.titleToContent),
               Center(child: WearStatusChip(state: state)),
               // Why the screen is dim and why nothing can be pressed. Without
               // it a cached frame is a control screen whose every button is
@@ -136,7 +132,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
                 Text(
                   l10n.wearWaitingForState,
                   textAlign: TextAlign.center,
-                  style: WearText.small.copyWith(color: wearInert),
+                  style: WearText.body.copyWith(color: wearInert),
                 ),
               ],
               const SizedBox(height: DashSpace.md),
@@ -230,6 +226,8 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
 
     final actions = ref.read(wearActionsProvider);
     final id = widget.printerId;
+    // What "dismiss all" found when it read the printer back; the toast words it.
+    int? stillReported;
     return [
       for (final fault in faults)
         Padding(
@@ -255,8 +253,8 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
         child: _btn(
           l10n.hmsDismissAll,
           Icons.done_all,
-          () => actions.clearHmsErrors(id),
-          okMsg: l10n.hmsDismissed,
+          () async => stillReported = await actions.clearHmsErrors(id),
+          okText: () => hmsDismissedMessage(l10n, stillReported),
         ),
       ),
     ];
@@ -370,7 +368,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
     return [
       for (final b in buttons)
         Padding(
-          padding: const EdgeInsets.only(bottom: DashSpace.sm),
+          padding: const EdgeInsets.only(bottom: WearSpace.inGroup),
           child: b,
         ),
     ];
@@ -381,12 +379,13 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
     IconData icon,
     Future<void> Function() action, {
     String? okMsg,
+    String Function()? okText,
     Color? color,
     _WearFailureText? errMsg,
   }) => FilledButton.icon(
     onPressed: busy || _stale
         ? null
-        : () => _run(action, okMsg: okMsg, errMsg: errMsg),
+        : () => _run(action, okMsg: okMsg, okText: okText, errMsg: errMsg),
     icon: Icon(icon),
     label: _label(label),
     style: color != null
@@ -446,6 +445,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
   Future<void> _run(
     Future<void> Function() action, {
     String? okMsg,
+    String Function()? okText,
     _WearFailureText? errMsg,
   }) async {
     // The buttons are already disabled while [_stale]; this is the backstop for
@@ -458,8 +458,10 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
         await ref.read(wearFleetProvider.notifier).refresh();
       },
       onDone: () {
-        if (okMsg != null) {
-          wearToast(context, okMsg, tone: WearToastTone.success);
+        // [okText] for a sentence that depends on what the action found out.
+        final text = okText?.call() ?? okMsg;
+        if (text != null) {
+          wearToast(context, text, tone: WearToastTone.success);
         }
       },
       onError: (error) => wearToast(
@@ -534,7 +536,7 @@ class _WearFaultState extends State<_WearFault> {
               Expanded(
                 child: Text(
                   widget.fault.displayCode,
-                  style: WearText.small.copyWith(
+                  style: WearText.body.copyWith(
                     color: wearFaultText,
                     fontWeight: FontWeight.w600,
                   ),

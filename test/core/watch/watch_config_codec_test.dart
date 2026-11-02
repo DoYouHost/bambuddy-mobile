@@ -1,6 +1,7 @@
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   group('WatchConfigCodec.encode', () {
@@ -142,6 +143,74 @@ void main() {
         configFor('http://h', AuthMode.none).isSameServerAs(null),
         isFalse,
       );
+    });
+  });
+
+  group('accent', () {
+    const profile = ServerProfile(
+      baseUrl: 'http://host',
+      authMode: AuthMode.none,
+    );
+
+    test('travels with its variant', () {
+      const accent = (
+        seed: Color(0xFF607D8B),
+        variant: DynamicSchemeVariant.monochrome,
+      );
+      final config = WatchConfigCodec.decode(
+        WatchConfigCodec.encode(
+          profile: profile,
+          theme: (accent: accent, face: false),
+        ),
+      );
+      expect(config?.accent, accent);
+      expect(config?.watchFace, isFalse);
+    });
+
+    // The accent rides along for a watch whose face gives no colours.
+    test('the face choice travels with the accent behind it', () {
+      const accent = (
+        seed: Color(0xFF2E7DD7),
+        variant: DynamicSchemeVariant.tonalSpot,
+      );
+      final config = WatchConfigCodec.decode(
+        WatchConfigCodec.encode(
+          profile: profile,
+          theme: (accent: accent, face: true),
+        ),
+      );
+      expect(config?.watchFace, isTrue);
+      expect(config?.accent, accent);
+    });
+
+    // An older phone, or the green brand, which the watch draws untold.
+    test('absent is no accent', () {
+      final map = WatchConfigCodec.encode(profile: profile);
+      expect(map.containsKey('accentSeed'), isFalse);
+      expect(map.containsKey('watchFace'), isFalse);
+      expect(WatchConfigCodec.decode(map)?.accent, isNull);
+      expect(WatchConfigCodec.decode(map)?.watchFace, isFalse);
+    });
+
+    test('a variant this build does not know draws as tonalSpot', () {
+      final config = WatchConfigCodec.decode({
+        'baseUrl': 'http://host',
+        'authMode': 'none',
+        'accentSeed': 0xFF2E7DD7,
+        'accentVariant': 'fromTheFuture',
+      });
+      expect(config?.accent?.variant, DynamicSchemeVariant.tonalSpot);
+      expect(config?.accent?.seed, const Color(0xFF2E7DD7));
+    });
+
+    test('a seed that is not a number is no accent, not a broken config', () {
+      final config = WatchConfigCodec.decode({
+        'baseUrl': 'http://host',
+        'authMode': 'none',
+        'accentSeed': '#2E7DD7',
+      });
+      expect(config, isNotNull);
+      expect(config!.accent, isNull);
     });
   });
 }

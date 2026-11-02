@@ -1,20 +1,18 @@
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
-import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/features/archive/archive_details.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/print_outcome.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations_pl.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
-
-final _l10n = AppLocalizationsPl();
+import 'archive_fakes.dart';
 
 /// The archive #237 from the web card the feature was copied from.
 const _part = Archive(
@@ -61,7 +59,7 @@ void main() {
       await _pump(tester, const ArchiveRowMeta(archive: _part));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Workshop X2D'), findsOneWidget);
+      expect(find.textContaining('Workshop\u00A0X2D'), findsOneWidget);
       expect(find.textContaining(' · 21'), findsOneWidget);
       expect(find.text('PETG'), findsOneWidget);
       expect(find.text(' · 6.7 g'), findsOneWidget);
@@ -100,6 +98,44 @@ void main() {
       expect(find.text(''), findsNothing);
     });
 
+    testWidgets('a narrow row wraps between the facts and loses none', (
+      tester,
+    ) async {
+      final archive = _part.copyWith(
+        printTimeSeconds: 5700,
+        actualTimeSeconds: 5700,
+        createdAt: DateTime(2026, 10, 13),
+      );
+      final facts = find.byWidgetPredicate(
+        (w) => w is Text && (w.data ?? '').contains('Workshop'),
+      );
+      Future<RenderParagraph> factsAt(double width) async {
+        await _pump(
+          tester,
+          SizedBox(
+            width: width,
+            child: ArchiveRowMeta(archive: archive),
+          ),
+        );
+        await tester.pumpAndSettle();
+        return tester.renderObject<RenderParagraph>(facts);
+      }
+
+      final wide = await factsAt(1000);
+      final oneLine = wide.size.height;
+      // Two thirds of what the facts take on one line: the row has to wrap,
+      // whatever font measures them, and two lines (its limit) hold them.
+      final narrow = await factsAt(
+        wide.getMaxIntrinsicWidth(double.infinity) * 2 / 3,
+      );
+
+      expect(narrow.size.height, greaterThan(oneLine * 1.5));
+      expect(narrow.didExceedMaxLines, isFalse);
+      final text = tester.widget<Text>(facts).data!;
+      expect(text, contains('Workshop\u00A0X2D'));
+      expect(text, contains('1h\u00A035min'));
+    });
+
     testWidgets('a long material list does not wrap the row', (tester) async {
       await _pump(
         tester,
@@ -128,11 +164,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('-10%'), findsOneWidget);
-      expect(find.text(_l10n.archiveLayerCount(66)), findsNothing);
-      expect(find.text('${_l10n.archiveLayerCount(66)} · 0.18 mm'), findsOne);
-      expect(find.text(_l10n.archiveObjectCount(3)), findsOneWidget);
-      expect(find.bySemanticsLabel(_l10n.archiveSlicedFor('X2D')), findsOne);
-      expect(find.text(_l10n.archivePrintCost), findsOneWidget);
+      expect(find.text(pl.archiveLayerCount(66)), findsNothing);
+      expect(find.text('${pl.archiveLayerCount(66)} · 0.18 mm'), findsOne);
+      expect(find.text(pl.archiveObjectCount(3)), findsOneWidget);
+      expect(find.bySemanticsLabel(pl.archiveSlicedFor('X2D')), findsOne);
+      expect(find.text(pl.archivePrintCost), findsOneWidget);
       expect(find.text('0.42'), findsOneWidget);
       expect(find.text('0.17'), findsOneWidget);
       expect(find.text('0.07'), findsOneWidget);
@@ -176,7 +212,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text(_l10n.archiveSlot(1)), findsOneWidget);
+      expect(find.text(pl.archiveSlot(1)), findsOneWidget);
       expect(find.text('18.2 g'), findsOneWidget);
       expect(find.text('4.1 g'), findsOneWidget);
       // The joined field would say the same twice, unpaired.
@@ -227,7 +263,7 @@ void main() {
 
   testWidgets('the link button needs a link', (tester) async {
     await _pump(tester, const ArchiveLinkButton(archive: _part));
-    expect(find.text(_l10n.archiveOpenLink), findsNothing);
+    expect(find.text(pl.archiveOpenLink), findsNothing);
 
     await _pump(
       tester,
@@ -235,15 +271,15 @@ void main() {
         archive: _part.copyWith(makerworldUrl: 'https://makerworld.com/m/1'),
       ),
     );
-    expect(find.text(_l10n.archiveOpenLink), findsOneWidget);
+    expect(find.text(pl.archiveOpenLink), findsOneWidget);
   });
 
   group('verdict thumbs', () {
-    late _FakeArchives repo;
+    late FakeArchives repo;
     var rejected = 0;
 
     Future<void> open(WidgetTester tester, Archive archive) async {
-      repo = _FakeArchives(archive);
+      repo = FakeArchives(archive: archive);
       rejected = 0;
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
@@ -269,10 +305,10 @@ void main() {
     testWidgets('a thumb up records a good part', (tester) async {
       await open(tester, testArchive(confirmRequested: true));
 
-      await tester.tap(thumb(_l10n.outcomeGood));
+      await tester.tap(thumb(pl.outcomeGood));
       await tester.pumpAndSettle();
 
-      expect(repo.sent.single, PrintVerdict.good);
+      expect(repo.sent.single.verdict, PrintVerdict.good);
       expect(rejected, 0);
     });
 
@@ -283,19 +319,19 @@ void main() {
 
       expect(find.byIcon(Icons.thumb_up_alt), findsOneWidget);
       expect(find.byIcon(Icons.thumb_down_alt_outlined), findsOneWidget);
-      await tester.tap(thumb(_l10n.outcomeGood));
+      await tester.tap(thumb(pl.outcomeGood));
       await tester.pumpAndSettle();
 
-      expect(repo.sent.single, isNull);
+      expect(repo.sent.single.verdict, isNull);
     });
 
     testWidgets('a thumb down records the reject and asks why', (tester) async {
       await open(tester, testArchive(confirmRequested: true));
 
-      await tester.tap(thumb(_l10n.outcomeReject));
+      await tester.tap(thumb(pl.outcomeReject));
       await tester.pumpAndSettle();
 
-      expect(repo.sent.single, PrintVerdict.reject);
+      expect(repo.sent.single.verdict, PrintVerdict.reject);
       expect(rejected, 1);
     });
 
@@ -309,46 +345,25 @@ void main() {
         testArchive(confirmRequested: true).copyWith(failureReason: 'warping'),
       );
 
-      await tester.tap(thumb(_l10n.outcomeReject));
+      await tester.tap(thumb(pl.outcomeReject));
       await tester.pumpAndSettle();
 
-      expect(repo.reasons.single, (reason: 'warping', clearReason: false));
+      expect(repo.sent.single, (
+        verdict: PrintVerdict.reject,
+        reason: 'warping',
+        clearReason: false,
+      ));
     });
 
     testWidgets('a reject the server dropped does not ask why', (tester) async {
       await open(tester, testArchive(confirmRequested: true));
       repo.applied = false;
 
-      await tester.tap(thumb(_l10n.outcomeReject));
+      await tester.tap(thumb(pl.outcomeReject));
       await tester.pumpAndSettle();
 
       expect(rejected, 0);
-      expect(find.text(_l10n.outcomeUnsupported), findsOneWidget);
+      expect(find.text(pl.outcomeUnsupported), findsOneWidget);
     });
   });
-}
-
-class _FakeArchives implements ArchiveRepository {
-  _FakeArchives(this.archive);
-
-  final Archive archive;
-  bool applied = true;
-  final sent = <PrintVerdict?>[];
-  final reasons = <({String? reason, bool clearReason})>[];
-
-  @override
-  Future<({Archive archive, bool applied})> setVerdict(
-    int archiveId,
-    PrintVerdict? verdict, {
-    String? reason,
-    bool clearReason = false,
-  }) async {
-    sent.add(verdict);
-    reasons.add((reason: reason, clearReason: clearReason));
-    return (archive: archive, applied: applied);
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError('${invocation.memberName} is not this test\'s');
 }

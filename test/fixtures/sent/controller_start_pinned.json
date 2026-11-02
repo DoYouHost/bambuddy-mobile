@@ -1,0 +1,16 @@
+[
+  {
+    "method": "PATCH",
+    "path": "/api/v1/queue/11",
+    "body": {
+      "ams_mapping": [
+        1
+      ]
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/queue/11/start",
+    "body": null
+  }
+]

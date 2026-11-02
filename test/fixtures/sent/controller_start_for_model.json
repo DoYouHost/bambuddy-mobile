@@ -1,0 +1,24 @@
+[
+  {
+    "method": "PATCH",
+    "path": "/api/v1/queue/12",
+    "body": {
+      "printer_id": 1,
+      "target_model": null
+    }
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/queue/12",
+    "body": {
+      "ams_mapping": [
+        1
+      ]
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/queue/12/start",
+    "body": null
+  }
+]

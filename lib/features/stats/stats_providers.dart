@@ -7,7 +7,6 @@ import '../../core/models/archive_stats.dart';
 import '../../core/models/failure_analysis.dart';
 import '../../core/models/inventory.dart' show MaterialNumberStats;
 import '../../core/models/supplier.dart';
-import '../../core/models/user_summary.dart';
 import '../../data/failure_analysis_cache.dart';
 import '../../data/inventory_source.dart';
 import '../../l10n/app_localizations.dart';

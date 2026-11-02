@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
 import '../../providers.dart';
 import 'media_image.dart';
-import 'thumbnail_box.dart';
+import '../../core/theme/dash_theme.dart';
 
 /// Print thumbnail from archive (queue + archive). Auth via the media
 /// credential — the Bearer header does NOT work for this resource,
@@ -81,10 +81,9 @@ class PrintThumbnail extends ConsumerWidget {
             : (archiveId == null
                   ? null
                   : Endpoints.archiveThumbnail(archiveId!)));
-    // Neither demo mode nor an unconfigured app has a render to serve, and
-    // neither is a broken thumbnail — say nothing rather than draw a fault.
-    final profile = ref.watch(serverProfileProvider);
-    if (route == null || profile == null || profile.isDemo) {
+    // An unconfigured app has no render to serve, and that is not a broken
+    // thumbnail — say nothing rather than draw a fault.
+    if (route == null || ref.watch(serverProfileProvider) == null) {
       return placeholder();
     }
 

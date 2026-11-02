@@ -16,21 +16,25 @@ Bambuddy
 ## Short description (max 80 chars)
 
 ```
-Unofficial companion for your self-hosted bambuddy Bambu Lab printer manager.
+Unofficial Bambu Lab printer monitor and control app for your bambuddy server.
 ```
 
 ## Full description (max 4000 chars)
 
 ```
-Bambuddy mobile is an unofficial, open-source Android companion for a self-hosted
-"bambuddy" server that manages your Bambu Lab 3D printers. It is NOT an official
-Bambu Lab app and is not affiliated with or endorsed by Bambu Lab.
+Bambuddy mobile is an Android and Wear OS app for monitoring and controlling Bambu Lab 3D
+printers through your own self-hosted "bambuddy" server. It works with the Bambu Lab
+printers your server supports, including the X1, P1, A1, H2 and P2 series.
 
-IMPORTANT: Bambuddy mobile requires your own running bambuddy server. It does not connect
-to Bambu Lab cloud on its own and will not work without a server to point it at.
+It is an unofficial, open-source app: NOT an official Bambu Lab app, and not affiliated with
+or endorsed by Bambu Lab.
+
+IMPORTANT: Bambuddy mobile requires your own running bambuddy server. It does not connect to
+Bambu Lab cloud on its own and will not work without a server to point it at.
 
 MONITOR YOUR PRINTS
 • Live printer status: state, progress, layer, ETA and temperatures
+• Live camera view
 • Persistent notification during a print so you always know what's happening
 • Configurable alerts for print events and hardware (HMS) errors
 
@@ -38,6 +42,7 @@ CONTROL YOUR PRINTERS
 • Pause, resume and stop prints
 • Clear the plate and start the next job in the queue
 • Reorder and manage the print queue
+• Slice files with your server's slicer
 
 MANAGE FILAMENT & HARDWARE
 • Track your spool inventory and assign spools to AMS slots
@@ -47,6 +52,7 @@ MANAGE FILAMENT & HARDWARE
 
 MORE
 • Print archive and statistics
+• File library with MakerWorld and Manyfold import
 • Projects, plates and parts overview
 • Wall mode: always-on landscape view for a phone or tablet on a stand, with live camera and status tiles, side panel for active errors and the print queue
 • Home-screen widget with printer status and a quick spool-scan shortcut
@@ -74,20 +80,24 @@ independent, community-built companion app and is not affiliated with Bambu Lab.
 
 ### Short description (max 80 chars)
 ```
-Nieoficjalny towarzysz Twojego self-hostowanego menedżera drukarek Bambu Lab.
+Nieoficjalny klient bambuddy: obsługa i podgląd drukarek Bambu Lab.
 ```
 
 ### Full description
 ```
-Bambuddy mobile to nieoficjalna aplikacja towarzysząca (open source) dla self-hostowanego
-serwera „bambuddy", który zarządza drukarkami 3D Bambu Lab. To NIE jest oficjalna
-aplikacja Bambu Lab i nie jest z Bambu Lab powiązana ani przez nią wspierana.
+Bambuddy mobile to aplikacja na Androida i Wear OS do monitorowania drukarek 3D Bambu Lab
+i sterowania nimi przez własny, self-hostowany serwer „bambuddy”. Działa z drukarkami Bambu
+Lab, które obsługuje Twój serwer, w tym z seriami X1, P1, A1, H2 i P2.
 
-WAŻNE: Bambuddy mobile wymaga własnego, działającego serwera bambuddy. Bez serwera, do
-którego ją skierujesz, aplikacja nie działa.
+To nieoficjalna aplikacja open source: NIE jest oficjalną aplikacją Bambu Lab i nie jest
+z Bambu Lab powiązana ani przez nią wspierana.
+
+WAŻNE: Bambuddy mobile wymaga własnego, działającego serwera bambuddy. Nie łączy się sama
+z chmurą Bambu Lab i bez serwera, do którego ją skierujesz, nie działa.
 
 MONITOROWANIE
 • Status drukarki na żywo: stan, postęp, warstwa, ETA i temperatury
+• Podgląd z kamery na żywo
 • Stałe powiadomienie w trakcie wydruku
 • Konfigurowalne alerty o zdarzeniach i błędach sprzętowych (HMS)
 
@@ -95,6 +105,7 @@ STEROWANIE
 • Pauza, wznów, zatrzymaj wydruk
 • Zwolnij stół i uruchom kolejne zadanie z kolejki
 • Zarządzanie kolejką wydruków
+• Cięcie plików slicerem z Twojego serwera
 
 FILAMENT I SPRZĘT
 • Magazyn szpul i przypisywanie do slotów AMS
@@ -104,6 +115,7 @@ FILAMENT I SPRZĘT
 
 WIĘCEJ
 • Archiwum i statystyki wydruków, projekty
+• Biblioteka plików z importem z MakerWorld i Manyfold
 • Tryb ściany: stały podgląd w poziomie na telefonie lub tablecie na stojaku — kafelki z kamerą na żywo i statusem, panel błędów i kolejki, ekran bez wygaszania
 • Widget na ekran główny
 • Wersja na Wear OS
@@ -128,14 +140,18 @@ aplikacją społecznościową, niepowiązaną z Bambu Lab.
 
 ### Short description (max 80 chars)
 ```
-Inoffizielle Begleit-App für deinen bambuddy-Server für Bambu-Lab-Drucker.
+Inoffizielle App: Bambu-Lab-Drucker über deinen bambuddy-Server überwachen.
 ```
 
 ### Full description
 ```
-Bambuddy mobile ist eine inoffizielle Open-Source-Begleit-App für einen selbst gehosteten
-„bambuddy“-Server, der deine Bambu-Lab-3D-Drucker verwaltet. Dies ist KEINE offizielle
-App von Bambu Lab und steht in keiner Verbindung zu Bambu Lab.
+Bambuddy mobile ist eine Android- und Wear-OS-App zum Überwachen und Steuern von
+Bambu-Lab-3D-Druckern über deinen eigenen, selbst gehosteten „bambuddy“-Server. Sie
+funktioniert mit den Bambu-Lab-Druckern, die dein Server unterstützt, darunter die Serien
+X1, P1, A1, H2 und P2.
+
+Sie ist eine inoffizielle Open-Source-App: KEINE offizielle App von Bambu Lab, und sie steht
+in keiner Verbindung zu Bambu Lab.
 
 WICHTIG: Bambuddy mobile erfordert deinen eigenen, laufenden bambuddy-Server. Die App
 verbindet sich nicht eigenständig mit der Bambu-Lab-Cloud und funktioniert ohne einen
@@ -143,6 +159,7 @@ konfigurierten Server nicht.
 
 DRUCKER ÜBERWACHEN
 • Live-Druckerstatus: Zustand, Fortschritt, Schicht, ETA und Temperaturen
+• Live-Kamerabild
 • Dauerhafte Benachrichtigung während des Drucks, um stets den Status zu sehen
 • Konfigurierbare Benachrichtigungen für Druckereignisse und Hardware-Fehler (HMS)
 
@@ -150,6 +167,7 @@ DRUCKER STEUERN
 • Drucke pausieren, fortsetzen und stoppen
 • Druckplatte freigeben und nächsten Auftrag aus der Warteschlange starten
 • Druck-Warteschlange neu anordnen und verwalten
+• Dateien mit dem Slicer deines Servers slicen
 
 FILAMENT & HARDWARE
 • Spulenbestand verwalten und Spulen AMS-Slots zuweisen
@@ -159,6 +177,7 @@ FILAMENT & HARDWARE
 
 WEITERES
 • Druckarchiv und Statistiken
+• Dateibibliothek mit Import aus MakerWorld und Manyfold
 • Übersicht über Projekte, Druckplatten und Bauteile
 • Wandmodus: dauerhafte Querformat-Ansicht für Smartphone oder Tablet auf einem Ständer — Kacheln mit Live-Kamera und Status, Seitenleiste für aktive Fehler und Warteschlange, Option für dauerhaft aktiven Bildschirm
 • Startbildschirm-Widget mit Druckerstatus und Schnellzugriff auf den Spulenscan
@@ -188,20 +207,25 @@ zu Bambu Lab.
 
 ### Short description (max 80 chars)
 ```
-Cliente no oficial para tu servidor bambuddy de impresoras Bambu Lab.
+App no oficial para supervisar y controlar impresoras Bambu Lab con bambuddy.
 ```
 
 ### Full description
 ```
-Bambuddy mobile es una app complementaria no oficial de código abierto para un servidor
-autoalojado «bambuddy» que gestiona tus impresoras 3D Bambu Lab. NO es una aplicación
-oficial de Bambu Lab y no está afiliada ni respaldada por Bambu Lab.
+Bambuddy mobile es una app de Android y Wear OS para supervisar y controlar impresoras 3D
+Bambu Lab a través de tu propio servidor «bambuddy» autoalojado. Funciona con las impresoras
+Bambu Lab que admita tu servidor, incluidas las series X1, P1, A1, H2 y P2.
+
+Es una app no oficial y de código abierto. NO es una aplicación oficial de Bambu Lab y no
+está afiliada ni respaldada por Bambu Lab.
 
 IMPORTANTE: Bambuddy mobile requiere tu propio servidor bambuddy en funcionamiento. No se
-conecta por sí sola a la nube de Bambu Lab y no funcionará sin un servidor al que apuntar.
+conecta por sí sola a la nube de Bambu Lab y no funcionará sin un servidor al que
+conectarse.
 
 MONITORIZACIÓN
 • Estado de la impresora en directo: estado, progreso, capa, tiempo restante (ETA) y temperaturas
+• Vista en directo de la cámara
 • Notificación permanente durante la impresión para saber siempre qué ocurre
 • Alertas configurables para eventos de impresión y errores de hardware (HMS)
 
@@ -209,6 +233,7 @@ CONTROL
 • Pausar, reanudar y detener impresiones
 • Despejar la placa e iniciar el siguiente trabajo de la cola
 • Reordenar y gestionar la cola de impresión
+• Laminar archivos con el slicer de tu servidor
 
 FILAMENTO Y HARDWARE
 • Control de inventario de bobinas y asignación a ranuras AMS
@@ -218,6 +243,7 @@ FILAMENTO Y HARDWARE
 
 MÁS
 • Archivo de impresiones y estadísticas
+• Biblioteca de archivos con importación desde MakerWorld y Manyfold
 • Vista general de proyectos, placas y piezas
 • Modo pared: vista horizontal permanente para teléfono o tableta en soporte — mosaicos con cámara en directo y estado, panel lateral de errores activos y cola de impresión, y opción de mantener la pantalla encendida
 • Widget para la pantalla de inicio con estado de la impresora y acceso rápido al escaneo de bobinas
@@ -246,22 +272,26 @@ a Bambu Lab.
 
 ### Short description (max 80 chars)
 ```
-Compagnon non officiel pour votre serveur bambuddy d'imprimantes Bambu Lab.
+Appli non officielle pour surveiller vos imprimantes Bambu Lab via bambuddy.
 ```
 
 ### Full description
 ```
-Bambuddy mobile est une application compagnon open source non officielle pour un
-serveur « bambuddy » auto-hébergé qui gère vos imprimantes 3D Bambu Lab. Ce n'est PAS une
-application officielle de Bambu Lab et elle n'est ni affiliée à Bambu Lab ni approuvée par
-celle-ci.
+Bambuddy mobile est une application Android et Wear OS pour surveiller et piloter des
+imprimantes 3D Bambu Lab via votre propre serveur « bambuddy » auto-hébergé. Elle fonctionne
+avec les imprimantes Bambu Lab prises en charge par votre serveur, dont les séries X1, P1,
+A1, H2 et P2.
+
+C'est une application open source non officielle : ce n'est PAS une application officielle
+de Bambu Lab et elle n'est ni affiliée à Bambu Lab ni approuvée par celle-ci.
 
 IMPORTANT : Bambuddy mobile nécessite votre propre serveur bambuddy en fonctionnement.
-L'application ne se connecte pas au cloud Bambu Lab de manière autonome et ne
-fonctionnera pas sans serveur vers lequel pointer.
+L'application ne se connecte pas au cloud Bambu Lab de manière autonome et ne fonctionnera
+pas sans serveur vers lequel pointer.
 
 SURVEILLANCE
 • État de l'imprimante en direct : statut, progression, couche, temps restant (ETA) et températures
+• Vue en direct de la caméra
 • Notification persistante pendant l'impression pour suivre l'avancement en temps réel
 • Alertes configurables pour les événements d'impression et les erreurs matérielles (HMS)
 
@@ -269,6 +299,7 @@ CONTRÔLE
 • Mettre en pause, reprendre et arrêter les impressions
 • Dégager le plateau et lancer la tâche suivante dans la file d'attente
 • Réorganiser et gérer la file d'attente d'impression
+• Découper des fichiers avec le slicer de votre serveur
 
 GESTION DU FILAMENT ET DU MATÉRIEL
 • Suivi de l'inventaire des bobines et assignation aux emplacements AMS
@@ -278,6 +309,7 @@ GESTION DU FILAMENT ET DU MATÉRIEL
 
 AUTRES FONCTIONNALITÉS
 • Archives d'impression et statistiques
+• Bibliothèque de fichiers avec import depuis MakerWorld et Manyfold
 • Vue d'ensemble des projets, plateaux et pièces
 • Mode mural : affichage paysage permanent pour téléphone ou tablette sur support — vignettes avec caméra en direct et statut, panneau latéral des erreurs actives et file d'attente, avec maintien de l'écran allumé
 • Widget pour l'écran d'accueil avec statut de l'imprimante et raccourci pour scanner une bobine

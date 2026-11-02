@@ -7,7 +7,7 @@ import '../auth/auth_headers.dart';
 import '../auth/credentials_store.dart';
 import '../settings/server_profile.dart';
 import 'camera_token.dart';
-import 'media_token.dart';
+import 'cached_token_service.dart';
 
 /// The credential a media request carries. `Image.network` and the video player
 /// build their own request, so the Dio interceptor never sees these — each URL

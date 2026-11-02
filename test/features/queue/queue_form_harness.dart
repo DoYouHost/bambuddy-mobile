@@ -12,10 +12,9 @@ import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
@@ -34,7 +33,6 @@ import '../../helpers.dart';
 
 /// The labels the form is rendered with — `plApp` forces Polish, so a finder
 /// asking for one reads it from here rather than repeating the translation.
-final formL10n = lookupAppLocalizations(const Locale('pl'));
 
 /// Body of the last write the form sent, captured before the mock answers.
 ///
@@ -53,6 +51,9 @@ Map<String, dynamic>? get capturedBody {
       ? null
       : written.last.data as Map<String, dynamic>?;
 }
+
+/// Every request the form's repository sent, oldest first.
+List<RequestOptions> get sentRequests => _sent?.requests ?? const [];
 
 /// Preferences the form reads its remembered print options from, and writes
 /// them back to. Valid from [setUpQueueForm] onwards.
@@ -190,28 +191,62 @@ Widget queueFormScreen(
 }) => ProviderScope(
   overrides: [
     noServerProfileOverride,
-    queueRepositoryProvider.overrideWithValue(
-      queueFormRepo(triState: triState, createStatus: createStatus),
+    ...queueFormOverrides(
+      triState: triState,
+      snippets: snippets,
+      plates: plates,
+      printers: printers,
+      requirements: requirements,
+      live: live,
+      nozzleRack: nozzleRack,
+      availableFilaments: availableFilaments,
+      createStatus: createStatus,
+      platesDelay: platesDelay,
     ),
-    allPrintersProvider.overrideWith((ref) async => printers),
-    sharedPreferencesProvider.overrideWithValue(queueFormPrefs),
-    triStateCalibrationProvider.overrideWithValue(AsyncData(triState)),
-    gcodeSnippetModelsProvider.overrideWithValue(AsyncValue.data(snippets)),
-    plateListProvider.overrideWith((ref, arg) async {
-      if (platesDelay != null) await Future<void>.delayed(platesDelay);
-      return plates;
-    }),
-    printRequirementsProvider.overrideWith((ref, arg) async => requirements),
-    printersRepositoryProvider.overrideWithValue(
-      _LivePrinters(live, nozzleRack),
-    ),
-    availableFilamentsProvider.overrideWith((ref, arg) => availableFilaments),
     ...extra,
   ],
   child: plApp(
     QueueEditScreen(item: item, mode: mode, initialSchedule: schedule),
   ),
 );
+
+/// The overrides that keep the print form off the network, for a test that
+/// reaches it through another screen. Same knobs as [queueFormScreen]; call
+/// [setUpQueueForm] first, the form reads its remembered options from there.
+/// [asked] collects the keys the plate list and the filament requirements were
+/// read with — which source, which plate.
+List<Override> queueFormOverrides({
+  bool triState = false,
+  Set<String> snippets = const {},
+  PlateList plates = PlateList.none,
+  List<Printer> printers = const [printerX2D],
+  List<FilamentRequirement> requirements = const [],
+  Map<int, PrinterStatus> live = const {},
+  List<NozzleRackSlot>? nozzleRack,
+  List<AvailableFilament> availableFilaments = const [],
+  int createStatus = 200,
+  Duration? platesDelay,
+  List<Object>? asked,
+}) => [
+  queueRepositoryProvider.overrideWithValue(
+    queueFormRepo(triState: triState, createStatus: createStatus),
+  ),
+  allPrintersProvider.overrideWith((ref) async => printers),
+  sharedPreferencesProvider.overrideWithValue(queueFormPrefs),
+  triStateCalibrationProvider.overrideWithValue(AsyncData(triState)),
+  gcodeSnippetModelsProvider.overrideWithValue(AsyncValue.data(snippets)),
+  plateListProvider.overrideWith((ref, arg) async {
+    asked?.add(arg);
+    if (platesDelay != null) await Future<void>.delayed(platesDelay);
+    return plates;
+  }),
+  printRequirementsProvider.overrideWith((ref, arg) async {
+    asked?.add(arg);
+    return requirements;
+  }),
+  printersRepositoryProvider.overrideWithValue(_LivePrinters(live, nozzleRack)),
+  availableFilamentsProvider.overrideWith((ref, arg) => availableFilaments),
+];
 
 /// A reprint draft of an archive, sliced for [model].
 QueueItem archiveDraft({
@@ -233,8 +268,28 @@ Future<void> submitQueueForm(WidgetTester tester, {bool edit = false}) async {
   await tester.tap(
     find.widgetWithText(
       FilledButton,
-      edit ? formL10n.queueEditSave : formL10n.queueCreateSubmit,
+      edit ? pl.queueEditSave : pl.queueCreateSubmit,
     ),
   );
+  await tester.pumpAndSettle();
+}
+
+/// Opens a folded section of the form by its header's diagnostic id; the print
+/// options and preheat start closed.
+Future<void> openQueueFormSection(WidgetTester tester, String id) async {
+  await tester.ensureVisible(byLogId(id));
+  await tester.tap(byLogId(id));
+  await tester.pumpAndSettle();
+}
+
+/// Opens the printer select of the Target section by its arrow: the field is
+/// filterable, so a tap on the text only focuses it.
+Future<void> openQueueFormPrinterSelect(WidgetTester tester) async {
+  final arrow = find.descendant(
+    of: byLogId('queue_edit.printer_select'),
+    matching: find.byIcon(Icons.arrow_drop_down),
+  );
+  await tester.ensureVisible(arrow);
+  await tester.tap(arrow);
   await tester.pumpAndSettle();
 }

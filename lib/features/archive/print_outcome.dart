@@ -1,5 +1,5 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format/datetime_format.dart';
@@ -11,7 +11,7 @@ import '../../providers.dart';
 import '../../core/api/api_exceptions.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
-import '../common/detached_flow.dart';
+import '../../core/app_context.dart';
 import 'outcome_sheet.dart';
 
 /// Whether this server records a user's verdict on a printed part (#1898).

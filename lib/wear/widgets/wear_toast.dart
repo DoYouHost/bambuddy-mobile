@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -159,7 +159,7 @@ class WearToast extends StatelessWidget {
                 // so that waiting out the three seconds looks like a choice.
                 Text(
                   l10n.wearOk,
-                  style: WearText.small.copyWith(color: wearMuted),
+                  style: WearText.body.copyWith(color: wearMuted),
                 ),
               ],
             ),

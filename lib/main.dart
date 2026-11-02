@@ -1,17 +1,18 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
 import 'core/demo/demo_backend.dart';
+import 'core/theme/appearance_providers.dart';
 import 'core/theme/dash_theme.dart';
 import 'core/notifications/hms_catalog.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/settings/settings_repository.dart';
 import 'core/watch/wear_relay_engine.dart';
-import 'l10n/app_locale.dart';
+import 'core/app_context.dart';
 import 'providers.dart';
 import 'features/bug_report/report_wiring.dart';
 
@@ -22,6 +23,7 @@ Future<void> main() async {
   // in the APK reaches the licence page no other way.
   registerDashFontLicenses();
   final prefs = await SharedPreferences.getInstance();
+  await SettingsRepository(prefs).settleTourForExistingInstall();
   // The demo's printer count, before anything can ask the demo for a status.
   // Read here rather than from the provider that owns the setting: nothing
   // watches that provider until the settings screen is opened, so on a cold
@@ -62,10 +64,15 @@ Future<void> main() async {
     ),
   );
 
+  // Before runApp, so the first frame already wears the "System" accent; a
+  // platform without a palette answers null.
+  final systemSchemes = await readSystemSchemes();
+
   runApp(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        initialSystemSchemesProvider.overrideWithValue(systemSchemes),
         notificationServiceProvider.overrideWithValue(notifications),
         reportBindingsOverride,
       ],

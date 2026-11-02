@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:app_util/app_util.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
@@ -14,14 +14,11 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/dash_search_field.dart';
-import '../common/sliver_search_bar.dart';
 import '../common/device_files.dart';
 import '../common/file_export.dart';
 import 'printer_download_job.dart';
 import 'printer_selection_download.dart';
 import '../../data/streamed_download.dart';
-import '../../core/format/text_compare.dart';
 
 /// Client-side sort keys for the printer file list (the endpoint doesn't sort).
 enum PrinterFileSort { nameAsc, nameDesc, sizeAsc, sizeDesc, dateAsc, dateDesc }

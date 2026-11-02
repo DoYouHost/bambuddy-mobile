@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
@@ -53,14 +55,23 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
 
   /// Pull-to-refresh / refresh after mutation. Keeps previous list underneath
   /// (AsyncLoading with previous) so UI doesn't flicker with spinner.
+  ///
+  /// Also reloads [queueSkippedProvider] while something shows it: a resume
+  /// banner has to follow the list it sits over. Only then — reading the
+  /// notifier of an unwatched provider builds it, which is one request, and the
+  /// refresh is a second, both thrown away a moment later.
   Future<void> refresh() async {
     // No profile (mid server-change) → nothing to fetch; mirrors [build].
     if (ref.read(serverProfileProvider) == null) return;
     state = const AsyncValue<List<QueueItem>>.loading().copyWithPrevious(state);
+    final skipped = ref.exists(queueSkippedProvider)
+        ? ref.read(queueSkippedProvider.notifier).refresh()
+        : Future<void>.value();
     state = await AsyncValue.guard(
       () async =>
           _activeSorted(await ref.read(queueRepositoryProvider).fetchActive()),
     );
+    await skipped;
   }
 
   /// Optimistic reorder (drag&drop). Indices in `onReorderItem` convention from
@@ -193,6 +204,55 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     'queue.stop',
   );
 
+  /// The same [changes] on every item of [itemIds]
+  /// (`PATCH /queue/bulk`). A success is not "all done": [result] says how many
+  /// the server left alone. The list is reloaded on success.
+  Future<({ActionOutcome outcome, QueueBulkResult? result})> bulkUpdate(
+    List<int> itemIds,
+    QueueBulkChanges changes,
+  ) async {
+    QueueBulkResult? result;
+    final outcome = await runAction(
+      () async {
+        result = await ref
+            .read(queueRepositoryProvider)
+            .bulkUpdate(itemIds, changes);
+      },
+      logId: 'queue_bulk.apply',
+      onSuccess: refresh,
+    );
+    return (outcome: outcome, result: result);
+  }
+
+  /// Clear the previous-print gate on [printerId] and restore the jobs it
+  /// skipped (`POST /queue/printer/{id}/resume`). [restored] is how many came
+  /// back, for the sentence the caller shows; both lists are reloaded on success.
+  Future<({ActionOutcome outcome, int restored})> resumeAfterFailure(
+    int printerId,
+  ) async {
+    var restored = 0;
+    final outcome = await runAction(
+      () async {
+        restored =
+            (await ref
+                    .read(queueRepositoryProvider)
+                    .resumeAfterFailure(printerId))
+                .restored;
+      },
+      logId: 'queue.resume',
+      onSuccess: refresh,
+    );
+    return (outcome: outcome, restored: restored);
+  }
+
+  /// Clear the previous-print gate on every printer of [model]
+  /// (`POST /queue/model/{model}/resume`); the waiting jobs it held then start
+  /// on the next free one.
+  Future<ActionOutcome> resumeModelAfterFailure(String model) => _serverAction(
+    () => ref.read(queueRepositoryProvider).resumeModelAfterFailure(model),
+    'queue.resume_model',
+  );
+
   /// Persist a filament→AMS-slot mapping without starting (e.g. for items the
   /// queue may auto-dispatch later). On success, refresh list.
   Future<ActionOutcome> saveMapping(int itemId, List<int> mapping) =>
@@ -231,6 +291,64 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     Future<void> Function() send,
     String logId,
   ) => runAction(send, logId: logId, onSuccess: refresh);
+}
+
+/// Refreshes [queueProvider] once this frame is built and then every [every],
+/// for a screen that shows the queue outside its own tab. The provider outlives
+/// such a screen (the nav badge keeps it), so what it holds may be old, or a
+/// failure from before; one with an answer on its way needs no second request
+/// beside it. The caller cancels the timer.
+///
+/// Not at once: the callers start it from `initState`, where a provider write
+/// throws ([docs/riverpod-traps.md] §2), and `refresh` writes before it awaits.
+Timer pollQueue(ProviderContainer providers, Duration every) {
+  void refresh() {
+    if (providers.read(queueProvider).isLoading) return;
+    unawaited(providers.read(queueProvider.notifier).refresh());
+  }
+
+  final timer = Timer.periodic(every, (_) => refresh());
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (timer.isActive) refresh();
+  });
+  return timer;
+}
+
+/// The jobs the scheduler skipped, which is where a failed print's hold on a
+/// printer shows (`gateBlockedPrinters`). A request of its own, because the
+/// queue itself holds only what is waiting or printing ([QueueRepository.fetchActive]),
+/// and one the screen makes only for a user who may resume: the route asks for
+/// `queue:update_all`, as the web's banner does. A failed reload leaves the
+/// banner as it was: an error has no place over a list that is otherwise fine.
+final queueSkippedProvider =
+    AutoDisposeAsyncNotifierProvider<QueueSkippedNotifier, List<QueueItem>>(
+      QueueSkippedNotifier.new,
+    );
+
+class QueueSkippedNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
+  @override
+  Future<List<QueueItem>> build() {
+    // Watched here, read in [_load]: a profile or a permission that changes
+    // rebuilds the list, while a refresh only repeats the request.
+    ref
+      ..watch(serverProfileProvider)
+      ..watch(permissionProvider(Permissions.queueUpdateAll));
+    return _load();
+  }
+
+  Future<List<QueueItem>> _load() async {
+    if (ref.read(serverProfileProvider) == null ||
+        !ref.read(permissionProvider(Permissions.queueUpdateAll))) {
+      return const [];
+    }
+    return ref.read(queueRepositoryProvider).fetch(status: 'skipped');
+  }
+
+  /// Keeps the banner on screen while the new answer is out.
+  Future<void> refresh() async {
+    state = const AsyncValue<List<QueueItem>>.loading().copyWithPrevious(state);
+    state = await AsyncValue.guard(_load);
+  }
 }
 
 /// Candidate for target printer in "start next". Carries printer itself plus

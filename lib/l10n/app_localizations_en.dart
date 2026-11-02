@@ -22,25 +22,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signInRequiredBody =>
-      'The server rejected your saved password, so the app stopped retrying it — repeated attempts get an account locked out. Sign in again, and use a new password if it was changed.';
+      'The server rejected your saved password, so the app stopped retrying it — repeated attempts get an account locked out. Sign in again, and use a new password if it was changed.';
 
   @override
   String get signInRequiredAction => 'Sign in';
 
   @override
   String get signInRequiredTwoFactorBody =>
-      'Your account now asks for a second factor, and the app cannot supply one in the background — so it stopped signing in on its own. Sign in again and enter the code.';
+      'Your account now asks for a second factor, and the app cannot supply one in the background — so it stopped signing in on its own. Sign in again and enter the code.';
 
   @override
   String get signInRequiredMissingBody =>
-      'A security update or a restored backup invalidated the key that encrypted your saved sign-in. Nothing else was lost.';
+      'A security update or a restored backup invalidated the key that encrypted your saved sign-in. Nothing else was lost.';
 
   @override
   String get serverUnreachableStale =>
       'Server unreachable — data may be out of date';
 
   @override
-  String get wsReconnecting => 'No live connection — refreshing every 5 s';
+  String get wsReconnecting => 'No live connection — refreshing every 5 s';
 
   @override
   String get connLive => 'Live';
@@ -52,7 +52,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connPolling => 'Polling';
 
   @override
-  String get connPollingTooltip => 'No live link — refreshing every 5 s (REST)';
+  String get connPollingTooltip => 'No live link — refreshing every 5 s (REST)';
 
   @override
   String get connectFailed => 'Could not connect to the server';
@@ -151,7 +151,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addPrinterConnectionNote =>
-      'The server verifies the connection before saving, so a wrong IP or access code is reported and nothing is created.';
+      'The server verifies the connection before saving, so a wrong IP or access code is reported and nothing is created.';
 
   @override
   String get addPrinterRequiredField => 'Required';
@@ -165,7 +165,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addPrinterErrDuplicate =>
-      'A printer with this serial number already exists';
+      'A printer with this serial number already exists';
 
   @override
   String get addPrinterErrForbidden =>
@@ -209,7 +209,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Added to new prints only. Leave empty to turn it off.';
 
   @override
-  String get editPrinterWearCostInvalid => 'Enter a number from 0 to 100000';
+  String get editPrinterWearCostInvalid => 'Enter a number from 0 to 100000';
 
   @override
   String get editPrinterPreflightWarning =>
@@ -256,7 +256,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addPrinterSubnetCustomNote =>
-      'Use a custom subnet if your printer is on a different network than the server. The FTP (990) and MQTT (8883) ports must be reachable across the routing boundary.';
+      'Use a custom subnet if your printer is on a different network than the server. The FTP (990) and MQTT (8883) ports must be reachable across the routing boundary.';
 
   @override
   String get addPrinterDiagnostic => 'Run diagnostic';
@@ -375,6 +375,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlFanExhaustShort => 'Exhaust';
 
   @override
+  String get ctrlFanPartLabel => 'Part cooling';
+
+  @override
+  String get ctrlFanAuxLabel => 'Aux';
+
+  @override
+  String get ctrlFanAux2Label => 'Left aux';
+
+  @override
+  String get ctrlFanChamberLabel => 'Chamber';
+
+  @override
+  String get ctrlFanExhaustLabel => 'Exhaust';
+
+  @override
   String get ctrlSpeed => 'Speed';
 
   @override
@@ -388,6 +403,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ctrlAirductHeating => 'Heating';
+
+  @override
+  String get ctrlAirductPrintTitle => 'Switch the chamber during a print?';
+
+  @override
+  String get ctrlAirductPrintBody =>
+      'Changing between heating and cooling mid-print changes the temperature the print is made at, and can ruin it.';
 
   @override
   String get ctrlOff => 'Off';
@@ -412,7 +434,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ctrlDryNotRunningHint =>
-      'The printer holds a drying timer, but it is not counting down, and the AMS reports no drying. The cycle never started or was paused, for example by the power limit or the current print.';
+      'The printer holds a drying timer, but it is not counting down, and the AMS reports no drying. The cycle never started or was paused, for example by the power limit or the current print.';
 
   @override
   String get ctrlDryStart => 'Start';
@@ -428,7 +450,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String ctrlDryHours(int h) {
-    return '$h h';
+    return '$h h';
   }
 
   @override
@@ -453,7 +475,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlDryStartAt => 'At time';
 
   @override
-  String get ctrlDryPickTime => 'Pick a time';
+  String get ctrlDryPickTime => 'Pick a time';
 
   @override
   String get ctrlDrySchedule => 'Schedule';
@@ -462,7 +484,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlDryScheduled => 'Drying scheduled';
 
   @override
-  String get ctrlDryScheduleTimePast => 'Pick a time in the future';
+  String get ctrlDryScheduleTimePast => 'Pick a time in the future';
 
   @override
   String ctrlDryScheduledFor(String time) {
@@ -526,7 +548,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlMoveStep => 'Step';
 
   @override
-  String get ctrlMoveZ => 'Z (bed gap)';
+  String get ctrlMoveZ => 'Z (bed gap)';
 
   @override
   String get ctrlMoveZUp => 'Up';
@@ -535,15 +557,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlMoveZDown => 'Down';
 
   @override
-  String get ctrlMoveZToolhead => 'Z (toolhead)';
+  String get ctrlMoveZToolhead => 'Z (toolhead)';
 
   @override
   String get ctrlMoveZUnknownDirection =>
-      'This printer\'s Z direction depends on the server version, which could not be confirmed, so Z moves are turned off here. Update the server or reopen this panel once it is reachable.';
+      'This printer\'s Z direction depends on the server version, which could not be confirmed, so Z moves are turned off here. Update the server or reopen this panel once it is reachable.';
 
   @override
   String get ctrlMoveZNoModel =>
-      'This printer has no model set in Bambuddy, so the app cannot tell whether Z moves the plate or the toolhead, and Z moves are turned off here. Set the printer\'s model in Bambuddy to use them.';
+      'This printer has no model set in Bambuddy, so the app cannot tell whether Z moves the plate or the toolhead, and Z moves are turned off here. Set the printer\'s model in Bambuddy to use them.';
 
   @override
   String get ctrlMoveExtrude => 'Extrude';
@@ -661,7 +683,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get skipObjectsEmptyHint =>
-      'Objects load when a print starts. Reload if a print is running.';
+      'Objects load when a print starts. Reload if a print is running.';
 
   @override
   String get skipObjectsReload => 'Reload';
@@ -717,7 +739,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String powerWatts(int watts) {
-    return '$watts W';
+    return '$watts W';
   }
 
   @override
@@ -727,7 +749,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get powerBreakdownTitle => 'Power draw';
 
   @override
-  String get powerUnassignedPlugs => 'Not assigned to a printer';
+  String get powerUnassignedPlugs => 'Not assigned to a printer';
 
   @override
   String get plugStateOn => 'On';
@@ -796,6 +818,134 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get queueRemovalStatusChanged =>
       'This item is no longer in the state shown. Refresh the queue and try again.';
+
+  @override
+  String queueResumeBanner(String printer, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jobs skipped',
+      one: '1 job skipped',
+    );
+    return '$printer: $_temp0 after a failed print';
+  }
+
+  @override
+  String queueResumeModelBanner(String model, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jobs wait',
+      one: '1 job waits',
+    );
+    return 'Any $model: $_temp0 after a failed print';
+  }
+
+  @override
+  String queueResumeModelConfirmBody(String model) {
+    return 'The waiting jobs start on the next free $model. Are the printers ready?';
+  }
+
+  @override
+  String get queueResumeButton => 'Resume';
+
+  @override
+  String get queueResumeConfirmTitle => 'Resume the queue after a failure?';
+
+  @override
+  String queueResumeConfirmBody(int count, String printer) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count skipped jobs go',
+      one: '1 skipped job goes',
+    );
+    return '$_temp0 back into the queue of $printer. Is the printer ready?';
+  }
+
+  @override
+  String queueResumed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jobs back in the queue',
+      one: '1 job back in the queue',
+      zero: 'Queue resumed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count selected',
+      one: '1 selected',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueSelectAll => 'Select all waiting';
+
+  @override
+  String get queueBulkEdit => 'Edit selected';
+
+  @override
+  String queueBulkTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Edit $count items',
+      one: 'Edit 1 item',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkIntro =>
+      'Only what you pick changes. Tap a choice again to undo it.';
+
+  @override
+  String get queueBulkNoChange => 'No change';
+
+  @override
+  String get queueBulkUnassigned => 'No printer (unassigned)';
+
+  @override
+  String get queueBulkQueueOptions => 'Queue options';
+
+  @override
+  String get queueBulkApply => 'Apply changes';
+
+  @override
+  String get queueOptUseAms => 'Use AMS';
+
+  @override
+  String queueBulkUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items updated',
+      one: '1 item updated',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueBulkNothingUpdated => 'Nothing changed';
+
+  @override
+  String queueBulkSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count skipped',
+      one: '1 skipped',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get queueNoFreePrinters => 'No free printers right now';
@@ -906,6 +1056,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveAddToQueue => 'Add to queue';
 
   @override
+  String get archiveReprintNoQueue =>
+      'You don\'t have permission to add to the queue';
+
+  @override
+  String get archiveReprintNotAllowed =>
+      'You don\'t have permission to reprint this';
+
+  @override
   String get archiveTimelapse => 'Watch timelapse';
 
   @override
@@ -996,7 +1154,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String archivePlateDetail(int plate) {
-    return 'Plate $plate of a multi-plate file';
+    return 'Plate $plate of a multi-plate file';
   }
 
   @override
@@ -1013,7 +1171,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String archiveFilamentGrams(String grams) {
-    return '$grams g';
+    return '$grams g';
   }
 
   @override
@@ -1041,11 +1199,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get archiveFilamentNotANumber =>
-      'Enter a number, or leave it empty to clear the weight.';
+      'Enter a number, or leave it empty to clear the weight.';
 
   @override
   String archiveFilamentOutOfRange(String max) {
-    return 'A weight between 0 and $max g.';
+    return 'A weight between 0 and $max g.';
   }
 
   @override
@@ -1053,10 +1211,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get archiveFilamentUnsupported =>
-      'This server doesn\'t store a typed-in filament weight yet. Update bambuddy.';
+      'This server doesn\'t store a typed-in filament weight yet. Update bambuddy.';
 
   @override
-  String get archiveHasTimelapse => 'Has a timelapse';
+  String get archiveHasTimelapse => 'Has a timelapse';
 
   @override
   String archiveHasPhotos(int count) {
@@ -1064,7 +1222,7 @@ class AppLocalizationsEn extends AppLocalizations {
       count,
       locale: localeName,
       other: 'Has $count photos',
-      one: 'Has a photo',
+      one: 'Has a photo',
     );
     return '$_temp0';
   }
@@ -1140,7 +1298,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get timelapseEditProcessing =>
-      'The server is re-encoding the video. On a small host this takes minutes — leaving this screen does not stop it.';
+      'The server is re-encoding the video. On a small host this takes minutes — leaving this screen does not stop it.';
 
   @override
   String get timelapseEdited => 'Timelapse updated';
@@ -1233,7 +1391,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get archiveNo3mfBodyInternal =>
-      'Bambu Studio put the sliced file on the printer\'s internal storage instead of the card, so there was nothing to read over FTP. On H2-series and P2S the Print button always does that — switching the slicer setting on changes nothing. Those prints are still archived with their name and timing, just without a thumbnail or slicer metadata. For complete archives, start the print from Bambuddy or slice in OrcaSlicer — either way with a card or stick in the printer.';
+      'Bambu Studio put the sliced file on the printer\'s internal storage instead of the card, so there was nothing to read over FTP. On H2-series and P2S the Print button always does that — switching the slicer setting on changes nothing. Those prints are still archived with their name and timing, just without a thumbnail or slicer metadata. For complete archives, start the print from Bambuddy or slice in OrcaSlicer — either way with a card or stick in the printer.';
 
   @override
   String get archiveNo3mfTitleNoStorage =>
@@ -1375,7 +1533,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get pickPrinterTitle => 'Choose a printer';
+  String get pickPrinterTitle => 'Choose a printer';
 
   @override
   String get detailsShow => 'Details';
@@ -1394,7 +1552,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cameraDemoUnavailable =>
-      'Camera preview is not available in demo mode';
+      'This demo printer is offline, so there is no camera picture.';
 
   @override
   String get externalSpool => 'External spool';
@@ -1508,11 +1666,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amsSlotConfigCurrent => 'Currently set';
 
   @override
-  String get amsSlotConfigKProfile => 'K profile';
+  String get amsSlotConfigKProfile => 'K profile';
 
   @override
   String amsSlotConfigKProfileDefault(String value) {
-    return 'Default (K $value)';
+    return 'Default (K $value)';
   }
 
   @override
@@ -1520,11 +1678,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get amsSlotConfigKProfileNone =>
-      'This printer has no stored K profiles for this nozzle';
+      'This printer has no stored K profiles for this nozzle';
 
   @override
   String get amsSlotConfigKProfileUnavailable =>
-      'Could not read the printer\'s K profiles';
+      'Could not read the printer\'s K profiles';
 
   @override
   String amsSlotConfigNozzleGuess(String diameter) {
@@ -1533,7 +1691,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String amsSlotConfigKProfileValue(String value) {
-    return 'K $value';
+    return 'K $value';
   }
 
   @override
@@ -1751,7 +1909,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serverAddressHelper =>
-      'Remote access: use HTTPS via a reverse proxy';
+      'Remote access: use HTTPS via a reverse proxy';
 
   @override
   String get testConnection => 'Test connection';
@@ -1777,7 +1935,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginExplain =>
-      'A login session expires after 24 h. Tick “Remember me” to have the app sign in again automatically.';
+      'A login session expires after 24 h. Tick “Remember me” to have the app sign in again automatically.';
 
   @override
   String get usernameLabel => 'Username or email';
@@ -1813,11 +1971,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get twoFactorExplainEmail =>
-      'Have the server e-mail you a 6-digit code, then enter it here.';
+      'Have the server e-mail you a 6-digit code, then enter it here.';
 
   @override
   String get twoFactorExplainEmailSent =>
-      'A 6-digit code has been sent to the address on your account. It expires in 10 minutes.';
+      'A 6-digit code has been sent to the address on your account. It expires in 10 minutes.';
 
   @override
   String get twoFactorExplainBackup =>
@@ -1827,7 +1985,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get twoFactorCodeLabel => 'Code';
 
   @override
-  String get twoFactorSendEmail => 'E-mail me a code';
+  String get twoFactorSendEmail => 'E-mail me a code';
 
   @override
   String get twoFactorResendEmail => 'Send another code';
@@ -1836,11 +1994,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get twoFactorVerify => 'Confirm and connect';
 
   @override
-  String get twoFactorBack => 'Use a different account';
+  String get twoFactorBack => 'Use a different account';
 
   @override
   String get twoFactorSessionNote =>
-      'The app cannot renew a 2FA session on its own, so it will ask again when this one expires. An API key does not expire and skips this step.';
+      'The app cannot renew a 2FA session on its own, so it will ask again when this one expires. An API key does not expire and skips this step.';
 
   @override
   String get tryDemo => 'Try the demo';
@@ -1868,7 +2026,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errRequiresServerSetup =>
-      'The server needs initial setup — finish it in a browser and come back here.';
+      'The server needs initial setup — finish it in a browser and come back here.';
 
   @override
   String get errServerUnreachable => 'Server unreachable';
@@ -1915,7 +2073,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errTwoFactorChallengeExpired =>
-      'The sign-in attempt expired — enter your password again to get a new code.';
+      'The sign-in attempt expired — enter your password again to get a new code.';
 
   @override
   String get errTwoFactorMethodUnavailable =>
@@ -1934,7 +2092,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errTooManyAttempts =>
-      'Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.';
+      'Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.';
 
   @override
   String notifOngoingBody(int percent, String eta) {
@@ -1952,7 +2110,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get demoPrintingCountDesc =>
-      'How many of the demo\'s printers run a print at the same time — for seeing what several do to the dashboard and to the ongoing notification.';
+      'How many of the demo\'s printers run a print at the same time — for seeing what several do to the dashboard and to the ongoing notification.';
 
   @override
   String notifOngoingMultiBody(String printer, int percent, String eta) {
@@ -2062,7 +2220,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notifSettingsHint =>
-      'Choose which events trigger a notification. Changes apply the next time background monitoring starts.';
+      'Choose which events trigger a notification. Changes apply the next time background monitoring starts.';
 
   @override
   String get notifMasterTitle => 'Event notifications';
@@ -2082,7 +2240,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notifFinishPhotoDesc =>
-      'Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives';
+      'Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives';
 
   @override
   String get notifThresholdsHeader => 'Thresholds';
@@ -2091,19 +2249,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifEvtStarted => 'Print started';
 
   @override
-  String get notifEvtStartedDesc => 'When a print begins';
+  String get notifEvtStartedDesc => 'When a print begins';
 
   @override
   String get notifEvtFinished => 'Print finished';
 
   @override
-  String get notifEvtFinishedDesc => 'When a print completes successfully';
+  String get notifEvtFinishedDesc => 'When a print completes successfully';
 
   @override
   String get notifEvtFailed => 'Print failed';
 
   @override
-  String get notifEvtFailedDesc => 'When a print fails';
+  String get notifEvtFailedDesc => 'When a print fails';
 
   @override
   String get notifEvtFirstLayer => 'First layer done';
@@ -2128,7 +2286,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifEvtOffline => 'Printer offline';
 
   @override
-  String get notifEvtOfflineDesc => 'When a printer loses connection';
+  String get notifEvtOfflineDesc => 'When a printer loses connection';
 
   @override
   String get notifEvtError => 'Printer error (HMS)';
@@ -2154,7 +2312,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifEvtBedCooled => 'Bed cooled';
 
   @override
-  String get notifEvtBedCooledDesc => 'When the bed cools down after a print';
+  String get notifEvtBedCooledDesc => 'When the bed cools down after a print';
 
   @override
   String notifBedCooledThreshold(int temp) {
@@ -2193,6 +2351,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hmsDismissed => 'Errors cleared on the printer';
+
+  @override
+  String hmsStillReported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'The printer still reports $count errors',
+      one: 'The printer still reports 1 error',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get hmsActionSent => 'Sent to the printer';
@@ -2317,11 +2486,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bgServiceText => 'Monitoring printers';
 
   @override
+  String get wearOngoingChannel => 'Print progress';
+
+  @override
   String get bgMonitoringToggle => 'Background monitoring';
 
   @override
   String get bgMonitoringSubtitle =>
-      'Keep watching prints while the app is closed. Shows a persistent notification.';
+      'Keep watching prints while the app is closed. Shows a persistent notification.';
 
   @override
   String get bgMonitoringOn => 'Background monitoring on';
@@ -2417,7 +2589,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String inventoryRemaining(String grams) {
-    return '$grams g left';
+    return '$grams g left';
   }
 
   @override
@@ -2427,7 +2599,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String inventoryOfTotal(int total) {
-    return 'of $total g';
+    return 'of $total g';
   }
 
   @override
@@ -2450,7 +2622,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String inventoryUsageWeight(String grams) {
-    return '$grams g';
+    return '$grams g';
   }
 
   @override
@@ -2458,7 +2630,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String inventoryKProfileLine(String nozzle, String k) {
-    return '$nozzle mm · K $k';
+    return '$nozzle mm · K $k';
   }
 
   @override
@@ -2527,7 +2699,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryPrinterPresetsHint =>
-      'A pick here wins over the spool\'s own preset.';
+      'A pick here wins over the spool\'s own preset.';
 
   @override
   String get inventoryPrinterPresetDefault => 'As on the spool';
@@ -2579,15 +2751,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryFieldRequired => 'Required';
 
   @override
-  String get inventoryFieldInvalidNumber => 'Enter a number';
+  String get inventoryFieldInvalidNumber => 'Enter a number';
 
   @override
   String inventoryFieldRange(int min, int max) {
-    return 'Enter a value from $min to $max';
+    return 'Enter a value from $min to $max';
   }
 
   @override
-  String get inventoryFieldNegative => 'Enter a value of 0 or more';
+  String get inventoryFieldNegative => 'Enter a value of 0 or more';
 
   @override
   String get inventorySectionFilament => 'Filament';
@@ -2621,7 +2793,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryMaterialNumberHint =>
-      'Shared by every spool of a product. A new spool of a known product gets it filled in.';
+      'Shared by every spool of a product.';
 
   @override
   String get inventorySpoolmanCannotClear =>
@@ -2646,7 +2818,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryColorSearchHint => 'Search colors…';
 
   @override
-  String get inventoryColorPickTitle => 'Pick a color';
+  String get inventoryColorPickTitle => 'Pick a color';
 
   @override
   String get inventoryColorSelect => 'Select';
@@ -2659,7 +2831,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String inventoryRemainingOfLabel(int total) {
-    return 'of $total g';
+    return 'of $total g';
   }
 
   @override
@@ -2747,11 +2919,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryAssignCurrent => 'Currently in this slot';
 
   @override
-  String get inventoryAssignPick => 'Pick a spool';
+  String get inventoryAssignPick => 'Pick a spool';
 
   @override
   String get inventoryTagBound =>
-      'The spool in this slot has a tag, so it is linked by the tag rather than assigned here.';
+      'The spool in this slot has a tag, so it is linked by the tag rather than assigned here.';
 
   @override
   String get inventoryReassignTitle => 'Move spool?';
@@ -2782,7 +2954,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryFromSlotNoTag =>
-      'The printer no longer reports a tagged spool in this slot';
+      'The printer no longer reports a tagged spool in this slot';
 
   @override
   String get inventoryFromSlotOffline =>
@@ -2790,7 +2962,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryFromSlotUnsupported =>
-      'This server version cannot add a spool straight from a slot';
+      'This server version cannot add a spool straight from a slot';
 
   @override
   String get inventoryScanSpool => 'Scan QR';
@@ -2955,7 +3127,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryBulkEditUnsupported =>
-      'This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.';
+      'This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.';
 
   @override
   String get inventoryBulkEditConfirmSuppliers =>
@@ -2982,7 +3154,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryClimateSource =>
-      'The server reads these from Home Assistant. Sensors are bound to a location in Bambuddy\'s web interface.';
+      'The server reads these from Home Assistant. Sensors are bound to a location in Bambuddy\'s web interface.';
 
   @override
   String get inventoryClimateNoReading => 'no reading';
@@ -3048,7 +3220,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryLabelsShare => 'Share PDF instead of printing';
 
   @override
-  String get inventoryLabelsPickTemplate => 'Pick a label size to print:';
+  String get inventoryLabelsPickTemplate => 'Pick a label size to print:';
 
   @override
   String inventoryLabelsTooMany(int max) {
@@ -3107,7 +3279,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryLabelsStartHint =>
-      'Tap the slot the first label should print in — the ones before it stay blank, so a part-used sheet gets finished instead of started over.';
+      'Tap the slot the first label should print in — the ones before it stay blank, so a part-used sheet gets finished instead of started over.';
 
   @override
   String inventoryLabelsStartSlot(int position) {
@@ -3119,7 +3291,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String maintenanceTotalHours(int hours) {
-    return '$hours h total';
+    return '$hours h total';
   }
 
   @override
@@ -3129,12 +3301,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String maintenanceDueIn(int hours) {
-    return 'Due in $hours h';
+    return 'Due in $hours h';
   }
 
   @override
   String maintenanceOverdueBy(int hours) {
-    return 'Overdue by $hours h';
+    return 'Overdue by $hours h';
   }
 
   @override
@@ -3211,7 +3383,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String maintenanceEveryHours(int count) {
-    return 'Every $count h';
+    return 'Every $count h';
   }
 
   @override
@@ -3251,7 +3423,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get maintenanceIntervalDays => 'Days';
 
   @override
-  String get maintenanceIntervalInvalid => 'Enter a value ≥ 1';
+  String get maintenanceIntervalInvalid => 'Enter a value ≥ 1';
 
   @override
   String get maintenanceFieldIcon => 'Icon';
@@ -3270,7 +3442,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notifEvtMaintenanceDesc =>
-      'When a maintenance task becomes overdue';
+      'When a maintenance task becomes overdue';
 
   @override
   String get maintenanceNotifTitle => 'Maintenance due';
@@ -3403,7 +3575,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String statsHours(String hours) {
-    return '$hours h';
+    return '$hours h';
   }
 
   @override
@@ -3537,7 +3709,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutTagline =>
-      'Native Android client for bambuddy — a self-hosted Bambu Lab printer manager.';
+      'Native Android client for bambuddy — a self-hosted Bambu Lab printer manager.';
 
   @override
   String appVersionLabel(String version) {
@@ -3557,7 +3729,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutLicenseBody =>
-      'Bambuddy is free software released under the GNU Affero General Public License v3.0 (AGPL-3.0). You may use, study, share and modify it; if you run a modified version as a network service, you must offer its source to its users.';
+      'Bambuddy is free software released under the GNU Affero General Public License v3.0 (AGPL-3.0). You may use, study, share and modify it; if you run a modified version as a network service, you must offer its source to its users.';
 
   @override
   String get aboutViewLicense => 'Read the AGPL-3.0 license';
@@ -3720,11 +3892,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String fmQueueCostCenterTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Which cost center should these $count jobs be charged to?',
+      one: 'Which cost center should this job be charged to?',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get fmQueueTargetAuto => 'Model from the file';
 
   @override
   String get fmQueueTargetAutoHint =>
-      'Each file waits for a printer of the model it was sliced for';
+      'Each file waits for a printer of the model it was sliced for';
 
   @override
   String fmAddedToQueuePartial(int added, int total, String reason) {
@@ -3732,7 +3915,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get fmQueueErrWrongModel => 'Sliced for a different printer model.';
+  String get fmQueueErrWrongModel => 'Sliced for a different printer model.';
 
   @override
   String get fmQueueErrNotSliced =>
@@ -3748,7 +3931,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fmPhotoAdd => 'Add photo';
 
   @override
-  String get fmPhotoFromCamera => 'Take a photo';
+  String get fmPhotoFromCamera => 'Take a photo';
 
   @override
   String get fmPhotoFromGallery => 'Choose from gallery';
@@ -3964,7 +4147,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fmTagDeleted => 'Tag deleted';
 
   @override
-  String get fmTagExists => 'A tag with this name already exists';
+  String get fmTagExists => 'A tag with this name already exists';
 
   @override
   String get fmTagsSaved => 'Tags updated';
@@ -4220,7 +4403,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mfErrRateLimited =>
-      'Manyfold is limiting sign-ins. Try again in a few minutes.';
+      'Manyfold is limiting sign-ins. Try again in a few minutes.';
 
   @override
   String get mfErrUnreachable =>
@@ -4252,7 +4435,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mwIntro =>
-      'Paste a MakerWorld model URL to import and print it directly from Bambuddy.';
+      'Paste a MakerWorld model URL to import and print it directly from Bambuddy.';
 
   @override
   String get mwUrlHint =>
@@ -4262,7 +4445,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mwResolve => 'Resolve';
 
   @override
-  String get mwEnterUrl => 'Enter a MakerWorld URL';
+  String get mwEnterUrl => 'Enter a MakerWorld URL';
 
   @override
   String get mwUntitledModel => 'Untitled model';
@@ -4390,7 +4573,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get swatchNoCodes => 'No swatch codes yet';
 
   @override
-  String get swatchNoCodesHint => 'Create a code to label a filament sample.';
+  String get swatchNoCodesHint => 'Create a code to label a filament sample.';
 
   @override
   String swatchNoMatch(String query) {
@@ -4410,7 +4593,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get swatchGenerateCode => 'Generate code';
 
   @override
-  String get swatchExists => 'That filament already has a code';
+  String get swatchExists => 'That filament already has a code';
 
   @override
   String swatchCreatedSnack(String code) {
@@ -4506,7 +4689,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get swatchCodeInvalid =>
-      'Use 6 characters: digits and letters, no 0, 1, I, L or O';
+      'Use 6 characters: digits and letters, no 0, 1, I, L or O';
 
   @override
   String get swatchCodeTaken => 'That code is already in use';
@@ -4531,7 +4714,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get swatchNoCatalogColors =>
-      'No catalog colors available. Enter a color name and hex manually.';
+      'No catalog colors available. Enter a color name and hex manually.';
 
   @override
   String get projectsMenu => 'Projects';
@@ -4724,7 +4907,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectArchivesAdded => 'Added to project';
 
   @override
-  String get projectPickTitle => 'Pick a project';
+  String get projectPickTitle => 'Pick a project';
 
   @override
   String get projectBomEmpty => 'No BOM items';
@@ -4927,7 +5110,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get processSettingsTitle => 'Process settings';
 
   @override
-  String get sliceProcessSettingsNeedsProcess => 'Pick a process preset first';
+  String get sliceProcessSettingsNeedsProcess => 'Pick a process preset first';
 
   @override
   String get sliceProcessSettingsUnchanged => 'Using the preset as it is';
@@ -4975,15 +5158,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get processSettingsDefaultsOutdatedSidecar =>
-      'Showing slicer defaults: your slicer sidecar is older than this feature and cannot report a preset\'s values. Update the sidecar image to see them. Anything you do not change still uses the preset.';
+      'Showing slicer defaults: your slicer sidecar is older than this feature and cannot report a preset\'s values. Update the sidecar image to see them. Anything you do not change still uses the preset.';
 
   @override
   String get processSettingsDefaultsNotConfigured =>
-      'Showing slicer defaults: no slicer sidecar is configured, so a preset\'s values cannot be read. Anything you do not change still uses the preset.';
+      'Showing slicer defaults: no slicer sidecar is configured, so a preset\'s values cannot be read. Anything you do not change still uses the preset.';
 
   @override
   String get processSettingsDefaultsSidecarUnavailable =>
-      'Showing slicer defaults: the slicer sidecar did not answer, so a preset\'s values cannot be read. Anything you do not change still uses the preset.';
+      'Showing slicer defaults: the slicer sidecar did not answer, so a preset\'s values cannot be read. Anything you do not change still uses the preset.';
 
   @override
   String get processSettingsDefaultsUnavailable =>
@@ -5027,7 +5210,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sliceOnlyLoadedHint =>
-      'Filament profiles of the spools in the online printers of the selected model. A profile you pick yourself stays.';
+      'Filament profiles of the spools in the online printers of the selected model. A profile you pick yourself stays.';
 
   @override
   String get sliceNoneOnline =>
@@ -5035,7 +5218,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sliceNoneLoaded =>
-      'No loaded spool has a profile for this printer, so every filament profile is shown.';
+      'No loaded spool has a profile for this printer, so every filament profile is shown.';
 
   @override
   String get sliceLoadedNoneOfModel => 'No printer of this model is online.';
@@ -5094,7 +5277,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String sliceSpoolFrom(String source) {
-    return 'From a spool · $source';
+    return 'From a spool · $source';
   }
 
   @override
@@ -5148,10 +5331,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sliceRefusedStep =>
-      'STEP files cannot be sliced. Export the model as an STL or a 3MF from your CAD first.';
+      'STEP files cannot be sliced. Export the model as an STL or a 3MF from your CAD first.';
 
   @override
-  String get sliceRefusedFormat => 'The source has to be an STL or a 3MF.';
+  String get sliceRefusedFormat => 'The source has to be an STL or a 3MF.';
 
   @override
   String get sliceRefusedNoSource =>
@@ -5159,7 +5342,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String sliceResultFilament(String grams) {
-    return 'Filament: $grams g';
+    return 'Filament: $grams g';
   }
 
   @override
@@ -5202,7 +5385,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pipelineSaveHint =>
-      'The printer, process, filaments and plate above, under a name you can reapply to the next file.';
+      'The printer, process, filaments and plate above, under a name you can reapply to the next file.';
 
   @override
   String get pipelinesMenu => 'Pipelines';
@@ -5215,7 +5398,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pipelinesEmptyHint =>
-      'Save one from the slice form — printer, process, filaments and plate as a bundle you can reapply in one tap.';
+      'Save one from the slice form — printer, process, filaments and plate as a bundle you can reapply in one tap.';
 
   @override
   String pipelineFilamentsCount(int count) {
@@ -5241,7 +5424,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pipelineNeedsTarget =>
-      'Set a target before running this pipeline.';
+      'Set a target before running this pipeline.';
 
   @override
   String get pipelineNoTargetChip => 'No target';
@@ -5262,10 +5445,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pipelineTargetClass => 'Printer model';
 
   @override
-  String get pipelineTargetPickPrinter => 'Pick a printer';
+  String get pipelineTargetPickPrinter => 'Pick a printer';
 
   @override
-  String get pipelineTargetPickClass => 'Pick a model';
+  String get pipelineTargetPickClass => 'Pick a model';
 
   @override
   String get pipelineTargetNone => '— no target —';
@@ -5334,7 +5517,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nothing can take this run right now.';
 
   @override
-  String get pipelineEligibilityAdvisory => 'Worth a look before you start.';
+  String get pipelineEligibilityAdvisory => 'Worth a look before you start.';
 
   @override
   String get pipelineIssuePrinterNotSet =>
@@ -5356,7 +5539,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pipelineIssueFilamentColor =>
-      'The loaded filament is a different colour.';
+      'The loaded filament is a different colour.';
 
   @override
   String get pipelineIssueAmsSlotMissing =>
@@ -5426,7 +5609,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pipelineRunsFilterStatusHint =>
-      'Matches the last status written down, so a run can still answer to the step before the one it is on.';
+      'Matches the last status written down, so a run can still answer to the step before the one it is on.';
 
   @override
   String get pipelineRunsFilterTarget => 'Target';
@@ -5437,7 +5620,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pipelineRunsFilterPipelineHint =>
-      'Runs of a deleted pipeline cannot be filtered to.';
+      'Runs of a deleted pipeline cannot be filtered to.';
 
   @override
   String get pipelineRunsFilterClear => 'Clear filters';
@@ -5489,7 +5672,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get pipelineRunOverridden => 'Started past a failed check';
+  String get pipelineRunOverridden => 'Started past a failed check';
 
   @override
   String get pipelineRunDeletedPipeline => 'Deleted pipeline';
@@ -5550,7 +5733,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pipelineJobPending => 'Pending';
 
   @override
-  String get pipelineJobAwaitingPrinter => 'Waiting for a printer';
+  String get pipelineJobAwaitingPrinter => 'Waiting for a printer';
 
   @override
   String get pipelineJobQueued => 'Queued';
@@ -5600,7 +5783,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mappingStatusTypeNotFound => 'Type not found';
 
   @override
-  String get mappingTapToChange => 'Tap a filament to change its slot';
+  String get mappingTapToChange => 'Tap a filament to change its slot';
 
   @override
   String get mappingExactColor => 'Exact color match';
@@ -5645,7 +5828,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String mappingRackNeeds(String nozzle) {
-    return 'This filament needs a $nozzle nozzle.';
+    return 'This filament needs a $nozzle nozzle.';
   }
 
   @override
@@ -5653,7 +5836,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String mappingRackWrongNozzle(String has, String needs) {
-    return 'Holds a $has nozzle; this filament needs $needs';
+    return 'Holds a $has nozzle; this filament needs $needs';
   }
 
   @override
@@ -5730,7 +5913,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get plateClearNeedsOnline =>
-      'This server releases the plate only while the printer is connected. Update bambuddy to do it on a printer that is switched off.';
+      'This server releases the plate only while the printer is connected. Update bambuddy to do it on a printer that is switched off.';
 
   @override
   String get pfmTitle => 'File Manager';
@@ -5920,19 +6103,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wearConfirm => 'Confirm';
 
   @override
-  String get wearServerUrl => 'Server URL';
-
-  @override
-  String get wearConnect => 'Connect';
-
-  @override
   String get wearAuthKey => 'Key';
 
   @override
   String get wearAuthLogin => 'Login';
-
-  @override
-  String get wearUsername => 'Username';
 
   @override
   String get wearSetupPhoneTitle => 'Set up from your phone';
@@ -5948,13 +6122,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wearSetupPhoneEmpty => 'Nothing from the phone yet.';
 
   @override
-  String get wearSetupManual => 'Enter manually';
+  String get wearPhoneAppMissing => 'Not on your phone yet?';
+
+  @override
+  String get wearPhoneAppInstall => 'Install on phone';
+
+  @override
+  String get wearPhoneAppOpened => 'Continue on your phone';
+
+  @override
+  String get wearPhoneAppOpenFailed => 'Couldn\'t reach the phone.';
 
   @override
   String get wearSetupDemo => 'Demo';
-
-  @override
-  String get wearSetupTapToType => 'Tap to type';
 
   @override
   String get wearSettingsTitle => 'Settings';
@@ -5972,7 +6152,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wearAuthNone => 'No sign-in';
 
   @override
-  String get wearFromPhoneWaiting => 'The phone offers a different server.';
+  String get wearFromPhoneWaiting => 'The phone offers a different server.';
 
   @override
   String get wearCurrentServer => 'Current server';
@@ -6020,6 +6200,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queueEditSpecificPrinter => 'Specific Printer';
 
   @override
+  String get queueEditPrinter => 'Printer';
+
+  @override
   String queueEditAnyModel(String model) {
     return 'Any $model';
   }
@@ -6038,7 +6221,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueEditMappingNeedsPrinter =>
-      'Select a printer to map filaments';
+      'Select a printer to map filaments';
 
   @override
   String queueEditMappingSummary(int count) {
@@ -6194,10 +6377,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get queueEditNoModel => 'Select a target model';
+  String get queueEditNoModel => 'Select a target model';
 
   @override
-  String get queueEditNoPrinter => 'Select a printer';
+  String get queueEditNoPrinter => 'Select a printer';
 
   @override
   String get queueEditFilamentOverride => 'Filament Override';
@@ -6227,7 +6410,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String queueEditRackNoFit(String nozzle) {
-    return 'No rack position holds a $nozzle nozzle — fit one, or the printer decides for itself.';
+    return 'No rack position holds a $nozzle nozzle — fit one, or the printer decides for itself.';
   }
 
   @override
@@ -6237,10 +6420,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nozzleFlowHigh => 'High flow';
 
   @override
-  String get bugReportMenu => 'Report a bug or an idea';
+  String get bugReportMenu => 'Report a bug or an idea';
 
   @override
-  String get bugReportTitle => 'Report a bug or an idea';
+  String get bugReportTitle => 'Report a bug or an idea';
 
   @override
   String get bugReportLogScreens => 'Screens you open and buttons you press';
@@ -6427,7 +6610,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get usersNoSmtpWarning =>
-      'No mail server is configured, so that message will not arrive — the account would be created with a password nobody knows.';
+      'No mail server is configured, so that message will not arrive — the account would be created with a password nobody knows.';
 
   @override
   String get usersLdapPasswordNote =>
@@ -6439,7 +6622,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get usersPasswordRulesHint =>
-      'At least 8 characters, with an upper and lower case letter, a digit and a symbol.';
+      'At least 8 characters, with an upper and lower case letter, a digit and a symbol.';
 
   @override
   String get usersPasswordTooShort => 'At least 8 characters.';
@@ -6448,13 +6631,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get usersPasswordNoUppercase => 'Add an upper case letter.';
 
   @override
-  String get usersPasswordNoLowercase => 'Add a lower case letter.';
+  String get usersPasswordNoLowercase => 'Add a lower case letter.';
 
   @override
-  String get usersPasswordNoDigit => 'Add a digit.';
+  String get usersPasswordNoDigit => 'Add a digit.';
 
   @override
-  String get usersPasswordNoSpecial => 'Add a symbol.';
+  String get usersPasswordNoSpecial => 'Add a symbol.';
 
   @override
   String usersDeleteTitle(String username) {
@@ -6518,15 +6701,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get usersErrLdapPassword =>
-      'The password of a directory (LDAP) account cannot be set here.';
+      'The password of a directory (LDAP) account cannot be set here.';
 
   @override
   String get usersErrEmailRequired =>
-      'This server needs an e-mail address for a new account.';
+      'This server needs an e-mail address for a new account.';
 
   @override
   String get usersErrPasswordRequired =>
-      'This server needs a password for a new account.';
+      'This server needs a password for a new account.';
 
   @override
   String get usersErrGroupsInvalid =>
@@ -6546,7 +6729,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get groupsSystemNote =>
-      'A built-in group cannot be renamed and what it grants is fixed — only who is in it can change.';
+      'A built-in group cannot be renamed and what it grants is fixed — only who is in it can change.';
 
   @override
   String groupsMemberCount(int count) {
@@ -6648,7 +6831,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get groupsSystemFormNote =>
-      'A built-in group: its name and permissions are fixed by the server. Only the description can be changed here.';
+      'A built-in group: its name and permissions are fixed by the server. Only the description can be changed here.';
 
   @override
   String get groupsPermissionsHeader => 'PERMISSIONS';
@@ -6673,7 +6856,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serverSettingsQueueSubtitle =>
-      'Scheduling, preheat, holding a bed warm between prints, and asking how prints came out';
+      'Scheduling, preheat, holding a bed warm between prints, and asking how prints came out';
 
   @override
   String get serverSettingsMaintenanceSubtitle =>
@@ -6709,7 +6892,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueSettingsPlateClearDesc =>
-      'After a print the printer waits for someone to confirm the plate is empty.';
+      'After a print the printer waits for someone to confirm the plate is empty.';
 
   @override
   String get queueSettingsShortestFirstTitle => 'Shortest job first';
@@ -6727,11 +6910,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queueSettingsPreheatHeader => 'Preheat';
 
   @override
-  String get queueSettingsPreheatTitle => 'Preheat before a job';
+  String get queueSettingsPreheatTitle => 'Preheat before a job';
 
   @override
   String get queueSettingsPreheatDesc =>
-      'Warms the chamber before the file is sent. A single queued job can overrule it.';
+      'Warms the chamber before the file is sent. A single queued job can overrule it.';
 
   @override
   String queueSettingsPreheatMaxWait(String duration) {
@@ -6772,7 +6955,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueSettingsMaxUploadsDesc =>
-      'Before a queued job starts, its file is sent to the printer over FTP, which can take minutes. This is how many of those transfers run at once — it only does anything with several printers.';
+      'Before a queued job starts, its file is sent to the printer over FTP, which can take minutes. This is how many of those transfers run at once — it only does anything with several printers.';
 
   @override
   String get queueSettingsPreheatMaxWaitDesc =>
@@ -6784,11 +6967,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueSettingsKeepWarmTempDesc =>
-      '90 sustains chamber warmth on an enclosed printer and triggers add-on chamber heaters, which usually switch on at bed 80. A higher bed temperature from the file always wins.';
+      '90 sustains chamber warmth on an enclosed printer and triggers add-on chamber heaters, which usually switch on at bed 80. A higher bed temperature from the file always wins.';
 
   @override
   String get queueSettingsKeepWarmMaxDesc =>
-      'Set it to how long you realistically take to reach the printer. Too short only costs the next print a soak from cold; without a limit an uncleared plate would keep the bed hot indefinitely.';
+      'Set it to how long you realistically take to reach the printer. Too short only costs the next print a soak from cold; without a limit an uncleared plate would keep the bed hot indefinitely.';
 
   @override
   String get queueSettingsKeepWarmOffNote =>
@@ -6844,7 +7027,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get apiKeysRevokeBody =>
-      'Whatever uses this key stops working at once. This cannot be undone — a new key would have to be issued.';
+      'Whatever uses this key stops working at once. This cannot be undone — a new key would have to be issued.';
 
   @override
   String apiKeysLastUsed(String date) {
@@ -6898,7 +7081,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get apiKeysScopesHint =>
-      'A key can never manage accounts, groups, keys or settings — the server refuses those to every key.';
+      'A key can never manage accounts, groups, keys or settings — the server refuses those to every key.';
 
   @override
   String get apiKeysPrintersHeader => 'PRINTERS';
@@ -6918,7 +7101,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get apiKeysExpiryHint =>
-      'Tap to pick a date after which the key stops working.';
+      'Tap to pick a date after which the key stops working.';
 
   @override
   String get apiKeysExpiryClear => 'No expiry';
@@ -6928,7 +7111,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get apiKeysCreatedWarning =>
-      'Copy it now. The server keeps only a hash — this is the last time it can be shown.';
+      'Copy it now. The server keeps only a hash — this is the last time it can be shown.';
 
   @override
   String get apiKeysCopy => 'Copy';
@@ -6983,14 +7166,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get apiKeyScopeEnergyHint =>
-      'The one settings value a key may write — for a dynamic tariff.';
+      'The one settings value a key may write — for a dynamic tariff.';
 
   @override
   String get apiKeyScopeNotifications => 'Send notifications';
 
   @override
   String get apiKeyScopeNotificationsHint =>
-      'Lets another app post a message to the notification channels that accept messages from connected apps. The key\'s owner also needs permission to manage notifications.';
+      'Lets another app post a message to the notification channels that accept messages from connected apps. The key\'s owner also needs permission to manage notifications.';
 
   @override
   String get printLogTitle => 'Print log';
@@ -7139,11 +7322,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get printLogCountsAsFailure =>
-      'Counted as a failure — this run and its cause show up in failure analysis.';
+      'Counted as a failure — this run and its cause show up in failure analysis.';
 
   @override
   String get printLogNotCountedAsFailure =>
-      'Not counted as a failure, so the cause stays out of failure analysis.';
+      'Not counted as a failure, so the cause stays out of failure analysis.';
 
   @override
   String printLogStatusOneWay(String status) {
@@ -7247,8 +7430,69 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appSettingsTitle => 'App settings';
 
   @override
+  String get appearanceTitle => 'Appearance';
+
+  @override
+  String get appearanceAccent => 'Accent colour';
+
+  @override
+  String get appearanceAccentBambuddy => 'Bambuddy green';
+
+  @override
+  String get appearanceAccentSystem => 'System (Material You)';
+
+  @override
+  String get appearanceAccentBlue => 'Blue';
+
+  @override
+  String get appearanceAccentPurple => 'Purple';
+
+  @override
+  String get appearanceAccentOrange => 'Orange';
+
+  @override
+  String get appearanceAccentPink => 'Pink';
+
+  @override
+  String get appearanceAccentGraphite => 'Graphite';
+
+  @override
+  String get appearanceMode => 'Theme';
+
+  @override
+  String get appearanceModeSystem => 'System';
+
+  @override
+  String get appearanceModeLight => 'Light';
+
+  @override
+  String get appearanceModeDark => 'Dark';
+
+  @override
+  String get appSettingsPhone => 'Phone';
+
+  @override
+  String get appSettingsLabelPrinter => 'Printer';
+
+  @override
+  String get watchSettingsTitle => 'Watch';
+
+  @override
+  String get watchThemeFromFace => 'Theme from the watch face';
+
+  @override
+  String get watchThemeFromFaceDesc =>
+      'Wear OS 6 or later. When the face gives no colours, the watch takes the phone\'s theme.';
+
+  @override
+  String get watchThemeFromPhone => 'Theme from the phone';
+
+  @override
+  String get watchThemeFromPhoneDesc => 'The same accent colour as this app.';
+
+  @override
   String get appSettingsNotificationsSubtitle =>
-      'Which events send a notification, and at what thresholds';
+      'Which events send a notification, and at what thresholds';
 
   @override
   String get collapsePrinterCardsTitle => 'Collapsed printer cards';
@@ -7337,21 +7581,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String ordersCostToGo(String amount) {
-    return '$amount to go';
-  }
-
-  @override
   String ordersStrandedNotice(int runs, int owed) {
-    return 'Cannot queue $runs of the $owed runs still owed: their plate has no queued or finished run left to copy settings from. Queue that plate once from the file, or cancel the order.';
+    return '$runs of $owed owed runs cannot be queued: queue their plate once from the file.';
   }
 
   @override
-  String get ordersStrandedPlate => 'Nothing left to copy settings from';
+  String get ordersStrandedPlate => 'Queue this plate once from the file';
 
   @override
   String ordersPlateProgress(int completed, int target) {
-    return '$completed of $target done';
+    return '$completed of $target';
   }
 
   @override
@@ -7359,13 +7598,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String ordersDispatchRemaining(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Queue $count remaining runs',
-      one: 'Queue 1 remaining run',
-    );
-    return '$_temp0';
+    return 'Queue owed ($count)';
   }
 
   @override
@@ -7384,7 +7617,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ordersCancelBody =>
-      'Runs still waiting in the queue are cancelled, and the order stops asking for what it has not produced. A print that is already running keeps going.';
+      'Runs still waiting in the queue are cancelled, and the order stops asking for what it has not produced. A print that is already running keeps going.';
 
   @override
   String get ordersCancelled => 'Order cancelled';
@@ -7441,7 +7674,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderEditName => 'Name';
 
   @override
-  String get orderEditErrName => 'The order needs a name.';
+  String get orderEditErrName => 'The order needs a name.';
 
   @override
   String get orderEditDue => 'Due date';
@@ -7451,7 +7684,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orderEditDueHint =>
-      'The server can change a due date but not remove it.';
+      'The server can change a due date but not remove it.';
 
   @override
   String get orderEditProject => 'Project';
@@ -7471,7 +7704,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orderEditTargetsHint =>
-      'Lowering a target does not cancel runs already queued; 0 marks a plate as not needed.';
+      'Lowering a target does not cancel runs already queued; 0 marks a plate as not needed.';
 
   @override
   String orderEditPlateDone(int count) {
@@ -7483,7 +7716,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orderEditErrNothingAsked =>
-      'At least one plate needs a target above 0.';
+      'At least one plate needs a target above 0.';
 
   @override
   String get orderEditErrProject => 'That project no longer exists.';
@@ -7505,11 +7738,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ordersGroupHint =>
-      'Pick at least two waiting jobs that are not in a batch yet.';
+      'Pick at least two waiting jobs that are not in a batch yet.';
 
   @override
   String get ordersGroupEmpty =>
-      'Nothing to group: fewer than two waiting jobs are outside a batch.';
+      'Nothing to group: fewer than two waiting jobs are outside a batch.';
 
   @override
   String get ordersGroupConfirm => 'Group';
@@ -7531,9 +7764,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get queueEditCopiesLabel => 'How many times to print it';
-
-  @override
   String get queueEditCopies => 'Copies';
 
   @override
@@ -7541,7 +7771,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueEditCopiesOrder =>
-      'This becomes an order: a failed copy can be queued again from Batch orders.';
+      'This becomes an order: a failed copy can be queued again from Batch orders.';
 
   @override
   String get ordersGroupedNone => 'No job could be grouped.';
@@ -7554,7 +7784,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueEditOrderRefused =>
-      'The order could not be made, so the copies were queued as a plain batch.';
+      'The order could not be made, so the copies were queued as a plain batch.';
 
   @override
   String get inventoryQuantityLess => 'One spool fewer to add';
@@ -7578,7 +7808,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outcomeSourceDialog => 'Recorded in the app.';
 
   @override
-  String get outcomeSourceLink => 'Recorded with a one-tap link.';
+  String get outcomeSourceLink => 'Recorded with a one-tap link.';
 
   @override
   String get outcomeSourcePlateClear => 'Recorded when the plate was cleared.';
@@ -7590,7 +7820,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outcomeSourceApi => 'Recorded through the API.';
 
   @override
-  String get outcomeSourceReaction => 'Recorded with a reaction in chat.';
+  String get outcomeSourceReaction => 'Recorded with a reaction in chat.';
 
   @override
   String get outcomeTitle => 'How did your print come out?';
@@ -7648,7 +7878,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueSettingsOutcomeDefaultDesc =>
-      'New jobs ask for their outcome by default — in the print form, where each job can still change it, and where there is no form, such as adding several files to the queue at once or a pipeline run.';
+      'New jobs ask for their outcome by default — in the print form, where each job can still change it, and where there is no form, such as adding several files to the queue at once or a pipeline run.';
 
   @override
   String get queueSettingsOutcomeExternalTitle =>
@@ -7656,7 +7886,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueSettingsOutcomeExternalDesc =>
-      'A print started on the printer, in Bambu Studio or in Bambu Handy that Bambuddy archives gets the outcome question too.';
+      'A print started on the printer, in Bambu Studio or in Bambu Handy that Bambuddy archives gets the outcome question too.';
 
   @override
   String get queueSettingsOutcomePlateClearTitle =>
@@ -7664,14 +7894,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueSettingsOutcomePlateClearDesc =>
-      'When someone confirms the plate is clear — or, with that confirmation off, when the next queued job is sent to this printer — a completed print still awaiting its verdict is recorded as a good part. A notification link opened after that only shows what was recorded.';
+      'When someone confirms the plate is clear — or, with that confirmation off, when the next queued job is sent to this printer — a completed print still awaiting its verdict is recorded as a good part. A notification link opened after that only shows what was recorded.';
 
   @override
   String get notifEvtOutcome => 'Outcome question';
 
   @override
   String get notifEvtOutcomeDesc =>
-      'When a print that asks for its outcome completes — answer Good or Reject from the notification';
+      'When a print that asks for its outcome completes — answer Good or Reject from the notification';
+
+  @override
+  String get notifEvtBilling => 'Billing problems';
+
+  @override
+  String get notifEvtBillingDesc =>
+      'When the server stops an unauthorized print or cannot charge a finished one';
+
+  @override
+  String get notifBillingKillTitle => 'Unauthorized print stopped';
+
+  @override
+  String notifBillingKillBody(String printer, String filename) {
+    return 'The billing kill switch stopped an unauthorized print on $printer: $filename';
+  }
+
+  @override
+  String get notifBillingChargeTitle => 'Billing failed';
+
+  @override
+  String notifBillingChargeBody(String printer, String filename) {
+    return 'Billing failed for $filename on $printer. The budget reservation was kept; check the server logs.';
+  }
+
+  @override
+  String get notifBillingUnknownFile => 'unknown file';
 
   @override
   String outcomeNotifTitle(String name) {
@@ -7746,11 +8002,241 @@ class AppLocalizationsEn extends AppLocalizations {
       'Every printer is hidden from this wall — show them in the settings.';
 
   @override
+  String get controllerTitle => 'Controller';
+
+  @override
+  String get controllerExit => 'Exit controller';
+
+  @override
+  String get controllerSwitchPrinter => 'Switch printer';
+
+  @override
+  String get controllerTabOverview => 'Overview';
+
+  @override
+  String get controllerPrinterGone =>
+      'This printer is no longer on the server.';
+
+  @override
+  String get controllerLiveBadge => 'LIVE';
+
+  @override
+  String get controllerPreviewBadge => 'FILE PREVIEW';
+
+  @override
+  String get controllerNoPreview => 'No preview';
+
+  @override
+  String get controllerPower => 'Power';
+
+  @override
+  String get controllerTabHeat => 'Heat';
+
+  @override
+  String get controllerNoChamberHeater => 'No chamber heater';
+
+  @override
+  String get controllerMoveLocked => 'Axes are locked while a print is running';
+
+  @override
+  String get controllerTabFilament => 'Filament';
+
+  @override
+  String get controllerTabFiles => 'Files';
+
+  @override
+  String get controllerTabPrints => 'Prints';
+
+  @override
+  String controllerQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jobs',
+      one: '1 job',
+      zero: 'No jobs',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerQueueEmpty => 'No jobs wait for this printer';
+
+  @override
+  String get controllerQueueCrossModel =>
+      'This job has printer alternatives and starts on the first free one.';
+
+  @override
+  String get controllerQueueNoStart => 'Your account cannot start this job.';
+
+  @override
+  String get controllerArchiveEmpty => 'Nothing printed on this printer yet';
+
+  @override
+  String get controllerArchiveLoadingMore => 'Loading older prints…';
+
+  @override
+  String get controllerFileNotSliced => 'Not sliced';
+
+  @override
+  String get controllerFileReasonNotSliced =>
+      'Only sliced files can be printed.';
+
+  @override
+  String controllerFileReasonModel(String model) {
+    return 'Sliced for $model. This printer cannot take it.';
+  }
+
+  @override
+  String get controllerFilesReadOnly => 'This folder is read-only.';
+
+  @override
+  String get controllerPrintTitle => 'Print setup';
+
+  @override
+  String get controllerPrintNow => 'Now';
+
+  @override
+  String get controllerPrintNowAction => 'Print now';
+
+  @override
+  String controllerPrintAutoMatched(String printer) {
+    return 'Auto-matched to $printer';
+  }
+
+  @override
+  String get controllerPrintManualMapping => 'Manual mapping';
+
+  @override
+  String get controllerPrintResetMapping => 'Reset to auto';
+
+  @override
+  String get controllerPrintNotLoaded => 'Not loaded';
+
+  @override
+  String controllerPrintUnmapped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count filaments have no matching slot',
+      one: '1 filament has no matching slot',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get controllerPrintBusy =>
+      'The printer is busy. The job starts when it is free.';
+
+  @override
+  String get controllerPrintOffline =>
+      'The printer is offline. The job waits until it is back.';
+
+  @override
+  String get controllerPrintJob => 'Job';
+
+  @override
+  String get controllerPrintOptions => 'Options';
+
+  @override
+  String get controllerPrintMore => 'More';
+
+  @override
+  String get controllerPrintMoreTitle => 'More options';
+
+  @override
+  String controllerPrintCostCenter(String name) {
+    return 'Cost center: $name';
+  }
+
+  @override
+  String get controllerPrintNoCostCenter => 'No cost center to print on';
+
+  @override
+  String get controllerPrintCostCentersRefused =>
+      'Cost centers can\'t be read with this login';
+
+  @override
+  String get controllerPrintChamber => 'Chamber target';
+
+  @override
+  String controllerPrintWrongModel(String model, String printer) {
+    return 'Sliced for $model; this printer is a $printer.';
+  }
+
+  @override
+  String get controllerExtruder => 'Extruder';
+
+  @override
+  String get controllerEditSlot => 'Edit slot';
+
+  @override
+  String get controllerTouchToWake => 'Touch to wake';
+
+  @override
+  String get controllerPrintPaused => 'Print paused';
+
+  @override
+  String get controllerTabSettings => 'Settings';
+
+  @override
+  String get controllerSaverTitle => 'Screen saver';
+
+  @override
+  String get controllerSaverAfter => 'Starts after';
+
+  @override
+  String get controllerSaverNever => 'Never';
+
+  @override
+  String get controllerSaverNeverTitle => 'Never dim the screen?';
+
+  @override
+  String get controllerSaverNeverBody =>
+      'An image that never moves can burn into the screen, OLED panels above all. Turn the saver off only if you accept that risk.';
+
+  @override
+  String get controllerSaverNeverConfirm => 'Turn it off';
+
+  @override
+  String get controllerSaverBrightness => 'Brightness';
+
+  @override
+  String get controllerSaverBrightnessHint =>
+      'Screen brightness while the saver is up';
+
+  @override
+  String get controllerWakeOnWarnings => 'Wake on warnings';
+
+  @override
+  String get controllerWakeOnWarningsHint =>
+      'Faults that pause the print always wake it.';
+
+  @override
+  String get controllerSaverPreview => 'Preview';
+
+  @override
+  String get controllerDisplayTitle => 'Display';
+
+  @override
+  String get controllerKeepAwakeHint =>
+      'The phone won\'t turn the screen off. The saver still works.';
+
+  @override
+  String get controllerLiveCameraHint => 'Off shows the file preview.';
+
+  @override
+  String get controllerKeepAwake => 'Screen always on';
+
+  @override
+  String get controllerSaverNeedsAwake => 'Without this, the saver is off.';
+
+  @override
   String get inventorySuppliersTitle => 'Suppliers';
 
   @override
   String get inventorySuppliersHint =>
-      'Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can\'t be deleted.';
+      'Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can\'t be deleted.';
 
   @override
   String get inventorySuppliersEmpty => 'No suppliers yet';
@@ -7783,11 +8269,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventorySupplierNameSeparator =>
-      'A name can\'t contain a semicolon';
+      'A name can\'t contain a semicolon';
 
   @override
   String get inventorySupplierNameTaken =>
-      'A supplier with this name already exists';
+      'A supplier with this name already exists';
 
   @override
   String get inventorySupplierSaved => 'Supplier saved';
@@ -7817,7 +8303,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventorySupplierInUseUnknown =>
-      'Still assigned to a spool — remove it there first';
+      'Still assigned to a spool — remove it there first';
 
   @override
   String get inventorySupplierBoughtHere => 'Bought here';
@@ -7838,7 +8324,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryBulkSupplierLinksHint =>
-      'Added to every selected spool; the suppliers a spool already has stay. “Bought here” replaces its current purchase source.';
+      'Added to every selected spool; the suppliers a spool already has stay. “Bought here” replaces its current purchase source.';
 
   @override
   String get inventorySupplierAssign => 'Add supplier';
@@ -7892,6 +8378,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryDetailConsumedSinceReset => 'Consumed since reset';
 
   @override
+  String get inventoryLastDried => 'Last dried';
+
+  @override
+  String get inventoryLastDriedNow => 'Now';
+
+  @override
+  String get inventoryLastDriedHelp =>
+      'Filled in after an AMS drying. Set it by hand for a spool dried elsewhere.';
+
+  @override
   String inventorySupplierArchivedCount(int count) {
     return '$count archived';
   }
@@ -7914,12 +8410,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String timeHoursAgo(int count) {
-    return '$count h ago';
+    return '$count h ago';
   }
 
   @override
   String timeInHours(int count) {
-    return 'in $count h';
+    return 'in $count h';
   }
 
   @override
@@ -8067,18 +8563,360 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueBillingUseWeb =>
-      'Billing is on for this server, so every print job needs a cost center, which the app cannot set yet. Queue, edit and start this job in Bambuddy in a browser.';
+      'Billing is on for this server, so every print job needs a cost center, which this action cannot set. Open the job in the app to choose one, or use Bambuddy in a browser.';
+
+  @override
+  String get financeMenu => 'Finance';
+
+  @override
+  String get financeTitle => 'Finance';
+
+  @override
+  String get financeBalance => 'Personal account balance';
+
+  @override
+  String get financeMyCostCenters => 'My cost centers';
+
+  @override
+  String get financeNoCostCenters => 'No cost centers found.';
+
+  @override
+  String financeAccountBalance(String amount) {
+    return 'Account balance: $amount';
+  }
+
+  @override
+  String get financeUnlimited => 'Unlimited';
+
+  @override
+  String get financeBudgetMonthly => 'Monthly budget';
+
+  @override
+  String get financeBudgetTotal => 'Total budget';
+
+  @override
+  String get financeBudgetNone => 'No budget';
+
+  @override
+  String get financeRecentTransactions => 'Recent transactions';
+
+  @override
+  String get financeType => 'Type';
+
+  @override
+  String get financeAllTypes => 'All types';
+
+  @override
+  String get financeCostCenter => 'Cost center';
+
+  @override
+  String get financeAllCostCenters => 'All cost centers';
+
+  @override
+  String get financeTypePrintCharge => 'Print charge';
+
+  @override
+  String get financeTypeDeposit => 'Deposit';
+
+  @override
+  String get financeTypeWithdraw => 'Withdrawal';
+
+  @override
+  String get financeTypeAdjustment => 'Adjustment';
+
+  @override
+  String get financeNoTransactions => 'No transactions available.';
+
+  @override
+  String get financeNoTransactionsForFilter =>
+      'No transactions match the selected filters.';
+
+  @override
+  String financeBalanceAfter(String amount) {
+    return 'Balance after: $amount';
+  }
+
+  @override
+  String get financePartialAborted => 'Aborted';
+
+  @override
+  String get financePartialFailed => 'Failed';
+
+  @override
+  String get financePartialCancelled => 'Cancelled';
+
+  @override
+  String get financeLoadMore => 'Load more';
+
+  @override
+  String financeShowing(int shown, int total) {
+    return '$shown of $total';
+  }
+
+  @override
+  String get financeLoadFailed => 'Could not load your finances.';
+
+  @override
+  String get financeAddCharge => 'Add charge';
+
+  @override
+  String get financeButtonNewCenter => 'New center';
+
+  @override
+  String get financeButtonWallet => 'Wallet';
+
+  @override
+  String get financeButtonManualPrint => 'Manual print';
+
+  @override
+  String get financeAddManualPrint => 'Add manual print';
+
+  @override
+  String get financeAddMember => 'Add member';
+
+  @override
+  String get financeAdjustWallet => 'Adjust wallet';
+
+  @override
+  String get financeAdminView => 'Admin view';
+
+  @override
+  String get financeAmount => 'Amount';
+
+  @override
+  String get financeAmountInvalid => 'Amount must be a valid number';
+
+  @override
+  String get financeAmountPositive => 'Amount must be greater than zero';
+
+  @override
+  String get financeApplyAdjustment => 'Apply adjustment';
+
+  @override
+  String get financeBudgetType => 'Budget type';
+
+  @override
+  String get financeCanPrint => 'Can print';
+
+  @override
+  String financeConfirmDeleteCostCenter(String name) {
+    return 'Delete cost center “$name”?';
+  }
+
+  @override
+  String get financeCostCenterCreated => 'Cost center created';
+
+  @override
+  String get financeCostCenterDeleted => 'Cost center deleted';
+
+  @override
+  String get financeCostCenterName => 'Name';
+
+  @override
+  String get financeCostCenterNameRequired => 'Cost center name is required';
+
+  @override
+  String get financeCostCenterRequired => 'Please select a cost center';
+
+  @override
+  String get financeCostCenters => 'Cost centers';
+
+  @override
+  String get financeCostCenterUpdated => 'Cost center updated';
+
+  @override
+  String get financeCreate => 'Create';
+
+  @override
+  String get financeCreateCostCenter => 'Create cost center';
+
+  @override
+  String get financeDelete => 'Delete';
+
+  @override
+  String get financeDeleteBlockedReservations =>
+      'This cost center cannot be deleted while queued jobs still hold part of its budget.';
+
+  @override
+  String get financeDeleteBlockedTransactions =>
+      'This cost center cannot be deleted while transactions refer to it.';
+
+  @override
+  String get financeDeleteCostCenter => 'Delete cost center';
+
+  @override
+  String get financeDeleteTransaction => 'Delete transaction';
+
+  @override
+  String get financeDeleteTransactionConfirm =>
+      'Delete this transaction? Balances will be recalculated automatically.';
+
+  @override
+  String get financeRebuildLedger => 'Rebuild wallet ledger';
+
+  @override
+  String get financeRebuildLedgerConfirm =>
+      'This rebuilds the running balances of the wallet ledger to repair historical values. Run it only if you know what you are doing.';
+
+  @override
+  String get financeRebuildLedgerRun => 'Run';
+
+  @override
+  String get financeLedgerRebuilt => 'Wallet ledger rebuilt';
+
+  @override
+  String get financeDepositDone => 'Deposit successful';
+
+  @override
+  String get financeDescription => 'Description (optional)';
+
+  @override
+  String get financeEdit => 'Edit';
+
+  @override
+  String get financeEditCostCenter => 'Edit cost center';
+
+  @override
+  String get financeEditTransaction => 'Edit transaction';
+
+  @override
+  String get financeManageMembers => 'Manage cost center members';
+
+  @override
+  String get financeManualPrintDone =>
+      'Manual print charge added and ledger recalculated';
+
+  @override
+  String get financeMemberCanPrint => 'Member can print';
+
+  @override
+  String get financeMemberCanPrintHint =>
+      'Without it the member sees the cost center but cannot book prints to it.';
+
+  @override
+  String get financeMemberRemoved => 'Member removed';
+
+  @override
+  String get financeMembers => 'Members';
+
+  @override
+  String get financeMemberSaved => 'Member saved';
+
+  @override
+  String get financeNoCostCenter => 'No cost center';
+
+  @override
+  String get financeNoEligibleUsers => 'No eligible users available';
+
+  @override
+  String get financeNoMembers => 'No members assigned.';
+
+  @override
+  String get financePersonalView => 'Personal view';
+
+  @override
+  String get financePrivateBudgetOnly =>
+      'A personal cost center keeps its name; only its budget can change. Set it to 0 to stop it printing.';
+
+  @override
+  String get financeRemoveMember => 'Remove member';
+
+  @override
+  String get financeSave => 'Save';
+
+  @override
+  String get financeNoUser => 'No user';
+
+  @override
+  String get financeDeletedUser => 'Deleted user';
+
+  @override
+  String get financeShared => 'Shared';
+
+  @override
+  String get financeTransactionDeleted => 'Transaction deleted';
+
+  @override
+  String get financeTransactionEdited =>
+      'Transaction updated and ledger recalculated';
+
+  @override
+  String get financeTransactions => 'Transactions';
+
+  @override
+  String get financeUser => 'User';
+
+  @override
+  String get financeUserRequired => 'Please select a user';
+
+  @override
+  String financeUserWithId(int id) {
+    return 'User #$id';
+  }
+
+  @override
+  String get financeWithdrawDone => 'Withdrawal successful';
+
+  @override
+  String get queueBillingCostCentersRefused =>
+      'Billing is on for this server, so every print job needs a cost center, but this account cannot list its cost centers in the app. Queue, edit and start this job in Bambuddy in a browser.';
+
+  @override
+  String get queueBillingNoCostCenter =>
+      'No active cost center is available for printing. Ask an administrator to grant you print access.';
+
+  @override
+  String get queueCostCenterTitle => 'Cost center';
+
+  @override
+  String queueCostCenterPersonal(String name) {
+    return '$name (personal)';
+  }
+
+  @override
+  String get queueCostCenterUnlimited => 'Unlimited – no budget limit is set.';
+
+  @override
+  String get queueCostCenterLoadFailed => 'Couldn\'t load your cost centers.';
+
+  @override
+  String queueEstimatedCost(String amount) {
+    return 'Estimated cost: $amount';
+  }
+
+  @override
+  String get queueCostNotAvailable => 'N/A';
+
+  @override
+  String queueEstimatedCostForCopies(String amount) {
+    return 'total: $amount';
+  }
+
+  @override
+  String get queueInsufficientBudget => 'Budget exceeded for this cost center.';
+
+  @override
+  String get queueBillingEstimateRequired =>
+      'The server could not work out what this job costs because the file lists no filament usage, and a cost center needs that.';
+
+  @override
+  String get queueBillingCostCenterInactive =>
+      'That cost center is no longer active. Pick another one.';
+
+  @override
+  String get queueBillingCostCenterNoAccess =>
+      'You are not allowed to print with that cost center. Pick another one.';
+
+  @override
+  String get queueBillingBudgetExceeded =>
+      'This job costs more than the budget left in that cost center.';
 
   @override
   String get labelPrinterTitle => 'Label printer';
 
   @override
-  String get labelPrinterEntrySubtitle =>
-      'Print spool labels on a Brother QL print server on your network';
-
-  @override
   String get labelPrinterIntro =>
-      'A separate print server for Brother QL label printers. Spool labels go straight to it instead of the system print dialog.';
+      'A separate print server for Brother QL label printers. Spool labels go straight to it instead of the system print dialog.';
 
   @override
   String get labelPrinterNotSet => 'No label printer chosen';
@@ -8125,11 +8963,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get labelPrinterNotAServer =>
-      'Nothing at this address answers as a label print server';
+      'Nothing at this address answers as a label print server';
 
   @override
   String get labelPrinterVlanNote =>
-      'Discovery does not cross VLANs or a guest Wi-Fi; enter the address by hand there.';
+      'Discovery does not cross VLANs or a guest Wi-Fi; enter the address by hand there.';
 
   @override
   String get labelPrinterPrintOn => 'Print on the label printer';
@@ -8149,11 +8987,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get labelPrinterSetUp => 'Set up a label printer';
+  String get labelPrinterSetUp => 'Set up a label printer';
 
   @override
   String get labelPrinterSetUpHint =>
-      'Print these labels on a Brother QL print server in your network';
+      'Print these labels on a Brother QL print server in your network';
 
   @override
   String get labelOptionsTitle => 'Print options';
@@ -8205,7 +9043,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get labelFormatPngHint =>
-      'Match your printer\'s resolution. Several labels come as a ZIP.';
+      'Match your printer\'s resolution. Several labels come as a ZIP.';
 
   @override
   String get labelDpiTitle => 'Resolution';
@@ -8251,7 +9089,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String printerLocationsSubtitle(int grouped, int ungrouped) {
-    return 'In a location: $grouped, without one: $ungrouped';
+    return 'In a location: $grouped, without one: $ungrouped';
   }
 
   @override
@@ -8336,7 +9174,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String printerLocationsUngrouped(int count) {
-    return 'Printers without a location: $count';
+    return 'Printers without a location: $count';
   }
 
   @override
@@ -8362,7 +9200,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get printerLocationsTargetHint => 'Select a location';
+  String get printerLocationsTargetHint => 'Select a location';
 
   @override
   String get printerLocationsNoLocation => 'No location';
@@ -8377,7 +9215,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String printerLocationsDeleteMessage(String names, int count) {
-    return 'Delete $names? Printers left without a location: $count.';
+    return 'Delete $names? Printers left without a location: $count.';
   }
 
   @override
@@ -8398,11 +9236,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get printerLocationsNameTaken =>
-      'A location with this name already exists';
+      'A location with this name already exists';
 
   @override
   String get printerLocationsReadOnly =>
-      'Only a user account can change locations; an API key can only read them.';
+      'Only a user account can change locations; an API key can only read them.';
 
   @override
   String get dashboardSortTitle => 'Sort by';
@@ -8525,4 +9363,116 @@ class AppLocalizationsEn extends AppLocalizations {
   String archiveSlot(int slot) {
     return 'slot $slot';
   }
+
+  @override
+  String get tourDemoNote =>
+      'Demo data: nothing you do here reaches your printers.';
+
+  @override
+  String get tourSkip => 'Skip tour';
+
+  @override
+  String get tourNext => 'Next';
+
+  @override
+  String get tourFinish => 'Finish';
+
+  @override
+  String tourStepCounter(int current, int total) {
+    return 'Step $current of $total';
+  }
+
+  @override
+  String get tourStepTabs =>
+      'The bar at the bottom holds the main sections: Queue, Archive, Maintenance and Filaments. Open each of them.';
+
+  @override
+  String get tourStepDrawer =>
+      'Open the menu. The other sections are there: File Manager, Statistics, Projects, Model Sources and the settings.';
+
+  @override
+  String get tourStepEditPrinter =>
+      'Press and hold a printer\'s name to edit the printer.';
+
+  @override
+  String get tourStepReorder =>
+      'Grab the handle and drag the job to change the print order.';
+
+  @override
+  String get tourStepSwipe =>
+      'Swipe a job to the left to remove it from the queue.';
+
+  @override
+  String get tourStepSelect =>
+      'Press and hold a print to select several at once. File Manager and Filaments work the same way.';
+
+  @override
+  String get tourStepWall =>
+      'Wall mode shows the whole farm on one screen, for example on a tablet by the printers. You open it from this menu.';
+
+  @override
+  String get tourStepStats =>
+      'Statistics show filament use, costs and how many prints succeed. Tap Statistics to open them.';
+
+  @override
+  String get tourStepDone =>
+      'That\'s all. Every gesture is listed in App settings → Tips, and you can run this tour again from there.';
+
+  @override
+  String get tipsTitle => 'Tips';
+
+  @override
+  String get tipsSubtitle => 'Hidden gestures and the guided tour';
+
+  @override
+  String get tipsRunTour => 'Run the guided tour';
+
+  @override
+  String get tipsEditPrinterTitle => 'Editing a printer';
+
+  @override
+  String get tipsEditPrinterBody =>
+      'Press and hold the printer\'s name on its card.';
+
+  @override
+  String get tipsReorderTitle => 'Print order';
+
+  @override
+  String get tipsReorderBody =>
+      'In the Queue, drag a job by the handle on its left.';
+
+  @override
+  String get tipsSwipeTitle => 'Removing';
+
+  @override
+  String get tipsSwipeBody =>
+      'Swipe a job in the Queue or a print in the Archive to the left.';
+
+  @override
+  String get tipsSelectTitle => 'Selecting several';
+
+  @override
+  String get tipsSelectBody =>
+      'Press and hold an item in the Archive, File Manager or Filaments.';
+
+  @override
+  String get tipsZoomTitle => 'Skipping objects';
+
+  @override
+  String get tipsZoomBody =>
+      'Pinch to zoom in on the plate; double-tap to zoom back out.';
+
+  @override
+  String get tipsTrimTitle => 'Trimming a timelapse';
+
+  @override
+  String get tipsTrimBody =>
+      'Drag the handles on the filmstrip; tap or drag anywhere else to move the playback position.';
+
+  @override
+  String get tipsWallTitle => 'Wall mode';
+
+  @override
+  String get tipsWallBody =>
+      'On the Printers screen, open the ⋮ menu and choose Wall mode.';
 }

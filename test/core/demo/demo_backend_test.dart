@@ -5,7 +5,7 @@ import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
-import 'package:bambuddy_mobile/core/demo/demo_config.dart';
+import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:bambuddy_mobile/core/demo/demo_ws.dart';
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
 import 'package:bambuddy_mobile/core/slicer/loaded_spool_match.dart';
@@ -18,6 +18,8 @@ import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
 import 'package:bambuddy_mobile/core/models/print_batch.dart';
+import 'package:bambuddy_mobile/core/models/cost_center.dart';
+import 'package:bambuddy_mobile/data/finance_repository.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/core/models/location_sensor.dart';
@@ -53,6 +55,7 @@ import 'package:bambuddy_mobile/core/models/calibration_option.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
+import 'package:bambuddy_mobile/core/models/wallet.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -71,7 +74,11 @@ void main() {
       final all = await PrintersRepository(dio).fetchAll();
       // Five, not four: the second X1C exists so a pipeline can target the X1C
       // *class* and have more than one candidate — see `_statusSecondX1c`.
-      expect(all, hasLength(5));
+      // And a sixth, the H2D, for the one thing none of them has: two nozzles.
+      expect(all, hasLength(6));
+      final dual = all.firstWhere((p) => p.printer.id == 6);
+      expect(dual.printer.nozzleCount, 2);
+      expect(dual.status!.temperatures, contains('nozzle_2'));
       final printing = all.firstWhere((p) => p.printer.id == 1).status;
       expect(printing, isNotNull);
       expect(printing!.isPrinting, isTrue);
@@ -93,9 +100,7 @@ void main() {
     // Every part of the archive detail has a print to stand on.
     test('archives carry what the detail sheet shows', () async {
       final list = await ArchiveRepository(dio).list();
-      final drawer = list.firstWhere(
-        (a) => a.printName == 'Drawer organizer x4',
-      );
+      final drawer = list.firstWhere((a) => a.printName == 'Bag dispenser');
       expect(drawer.filamentSlots.map((s) => s.slot), [1, 2]);
       expect(drawer.filamentSlots.first.grams, closeTo(81.7, 1e-9));
       expect(drawer.projectName, isNotNull);
@@ -109,10 +114,193 @@ void main() {
     });
 
     test('queue has pending items', () async {
-      final items = await QueueRepository(dio).fetch();
+      final items = await QueueRepository(dio).fetch(status: 'pending');
       expect(items.length, greaterThanOrEqualTo(2));
-      expect(items.first.statusKind, QueueItemStatusKind.pending);
     });
+
+    test('the print on the X1 is the printing row of the queue', () async {
+      // The Printers tab and the queue describe one demo, so the job the
+      // simulation runs is the one the queue pins on top.
+      final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        );
+      final queue = QueueRepository(own);
+      final status = await PrintersRepository(own).fetchStatus(1);
+
+      final printing = await queue.fetch(status: 'printing');
+      expect(status!.isPrinting, isTrue);
+      expect(printing.single.printerId, 1);
+      expect(printing.single.displayName, 'Bag dispenser');
+
+      await queue.stop(printing.single.id);
+      expect(
+        await queue.fetch(status: 'printing'),
+        isEmpty,
+        reason: 'stopping it from the queue stops the simulated print',
+      );
+      expect(
+        (await PrintersRepository(own).fetchStatus(1))!.isPrinting,
+        isFalse,
+      );
+    });
+
+    test('the queue filters by status, as the server does', () async {
+      final repo = QueueRepository(dio);
+      final pending = await repo.fetch(status: 'pending');
+      final skipped = await repo.fetch(status: 'skipped');
+
+      expect(pending.map((i) => i.statusKind).toSet(), {
+        QueueItemStatusKind.pending,
+      });
+      expect(skipped, hasLength(2));
+      expect(skipped.map((i) => i.errorMessage).toSet(), {
+        kPreviousFailureGate,
+      });
+    });
+
+    test('a bulk edit changes the pending items and counts the rest', () async {
+      final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        );
+      final repo = QueueRepository(own);
+
+      // 101 and 102 wait; 105 was skipped and is not the route's to change.
+      final result = await repo.bulkUpdate(
+        [101, 102, 105],
+        const QueueBulkChanges(
+          printerId: null,
+          timelapse: true,
+          bedLevelling: CalibrationOption.on,
+        ),
+      );
+
+      expect(result, (updated: 2, skipped: 1));
+      final items = {for (final i in await repo.fetch()) i.id: i};
+      expect(items[101]!.printerId, isNull);
+      expect(items[102]!.timelapse, isTrue);
+      expect(
+        items[101]!.bedLevelling,
+        CalibrationOption.on,
+        reason: 'a boolean is stored as the tri-state the server keeps',
+      );
+      expect(items[105]!.timelapse, isFalse);
+      expect(items[103]!.timelapse, isFalse, reason: 'not named, not touched');
+    });
+
+    test(
+      'a bulk edit with nothing in it is refused, as on the server',
+      () async {
+        final repo = QueueRepository(dio);
+
+        await expectLater(
+          repo.bulkUpdate([101], const QueueBulkChanges()),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.detail,
+              'detail',
+              'No fields to update',
+            ),
+          ),
+        );
+      },
+    );
+
+    test('a failed print holds a printer, and resume releases it', () async {
+      // A demo of its own: resuming moves the skipped jobs back to pending.
+      final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        );
+      final repo = QueueRepository(own);
+      final held = gateBlockedPrinters(
+        await repo.fetch(status: 'skipped'),
+        fallbackName: (id) => '$id',
+      );
+      expect(held.map((p) => (p.name, p.skipped)), [('P1S', 2)]);
+
+      final first = await repo.resumeAfterFailure(held.single.printerId);
+      expect(first, (acknowledged: 1, restored: 2));
+      expect(
+        gateBlockedPrinters(
+          await repo.fetch(status: 'skipped'),
+          fallbackName: (id) => '$id',
+        ),
+        isEmpty,
+      );
+      expect(
+        (await repo.fetch(
+          status: 'pending',
+        )).where((i) => i.printerId == held.single.printerId),
+        hasLength(2),
+      );
+      expect(await repo.resumeAfterFailure(held.single.printerId), (
+        acknowledged: 0,
+        restored: 0,
+      ), reason: 'a second resume has nothing left to clear');
+    });
+
+    test('the history is paged and cleared as the newer server does', () async {
+      final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+        ..httpClientAdapter = DemoHttpClientAdapter(
+          DemoBackend.fresh().handle,
+          latency: Duration.zero,
+        );
+      final repo = QueueRepository(own);
+      final all = await repo.fetchHistoryPage(
+        sortBy: 'date',
+        reverse: false,
+        limit: 1000,
+      );
+      expect(all.serverOrdered, isTrue);
+      expect(all.total, greaterThan(1));
+
+      final one = await repo.fetchHistoryPage(
+        sortBy: 'date',
+        reverse: false,
+        limit: 1,
+      );
+      expect(one.total, all.total);
+      expect(one.items.first.id, all.items.first.id);
+
+      final cleared = await repo.clearHistory(const []);
+      expect(cleared.cleared, all.total);
+      expect(
+        (await repo.fetchHistoryPage(
+          sortBy: 'date',
+          reverse: false,
+          limit: 50,
+        )).items,
+        isEmpty,
+      );
+    });
+
+    test(
+      'an any-model job waits behind the gate, and resume clears it',
+      () async {
+        final own = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
+          ..httpClientAdapter = DemoHttpClientAdapter(
+            DemoBackend.fresh().handle,
+            latency: Duration.zero,
+          );
+        final repo = QueueRepository(own);
+        expect(gateBlockedModels(await repo.fetch(status: 'pending')), [
+          (model: 'P1S', waiting: 1),
+        ]);
+
+        expect(await repo.resumeModelAfterFailure('P1S'), 1);
+        expect(gateBlockedModels(await repo.fetch(status: 'pending')), isEmpty);
+        expect(
+          await repo.resumeModelAfterFailure('P1S'),
+          0,
+          reason: 'a second resume has nothing left to clear',
+        );
+      },
+    );
 
     test(
       'batches: an order, a shop order with a stranded plate, a grouping',
@@ -159,9 +347,13 @@ void main() {
       await queue.addFromArchive(
         1,
         quantity: 2,
-        options: QueueCreateOptions(batchId: order.id),
+        options: QueueCreateOptions(batchId: order.id, costCenterId: 1),
       );
-      await queue.addFromArchive(1, quantity: 3);
+      await queue.addFromArchive(
+        1,
+        quantity: 3,
+        options: const QueueCreateOptions(costCenterId: 1),
+      );
 
       final after = await batches.list();
       final filled = after.firstWhere((b) => b.id == order.id);
@@ -172,6 +364,238 @@ void main() {
         hasLength(1),
       );
     });
+
+    test('billing: the queue refuses a job as a billing server does', () async {
+      final queue = QueueRepository(dio);
+      Future<void> add(int? costCenter, {int quantity = 1}) =>
+          queue.addFromArchive(
+            1,
+            quantity: quantity,
+            options: QueueCreateOptions(costCenterId: costCenter),
+          );
+      // A 403 is an `AuthException` and a 400 an `ApiException`; the sentence is
+      // what tells the two refusals apart.
+      Matcher refusedWith(String text) => throwsA(
+        isA<AppApiException>().having(
+          (e) => e.detail,
+          'detail',
+          contains(text),
+        ),
+      );
+
+      // The flag the app reads, and the centers it lists.
+      expect(
+        (await ServerSettingsRepository(dio).fetchUiFlags())['billing_enabled'],
+        isTrue,
+      );
+      final mine = await FinanceRepository(dio).myCostCenters();
+      expect(mine.where((c) => c.isPrivate), hasLength(1));
+      expect(mine.where((c) => !c.canPrint), isNotEmpty);
+
+      await expectLater(add(null), refusedWith('Cost center is required'));
+      await expectLater(add(4), refusedWith('cannot print'));
+      // `Maker club` has 0.40 left; the archive's filament costs more.
+      await expectLater(add(3), refusedWith('exceeds available'));
+      await add(1);
+      await add(2, quantity: 2);
+
+      final added = (await queue.fetch()).where((i) => i.costCenterId != null);
+      expect(added.map((i) => i.costCenterId), containsAll([1, 2]));
+    });
+
+    test(
+      'finance: the ledger pages, and the balance is where it ends',
+      () async {
+        final finance = FinanceRepository(dio);
+        final first = await finance.myTransactions(limit: 50, offset: 0);
+        final rest = await finance.myTransactions(limit: 50, offset: 50);
+
+        expect(first.total, 60);
+        expect(first.items, hasLength(50));
+        expect(rest.items, hasLength(10));
+        // Newest first, and the ids do not repeat across the page edge.
+        expect({
+          for (final t in [...first.items, ...rest.items]) t.id,
+        }, hasLength(60));
+        // The personal wallet is where the newest row on no center, or on the
+        // user's own, left it; a row on a shared center moves that center's.
+        final personal = first.items.firstWhere(
+          (t) => t.costCenterId == null || t.costCenterId == 1,
+        );
+        expect(
+          (await finance.balance()).balance,
+          closeTo(personal.balanceAfter!, 1e-9),
+        );
+        expect(
+          first.items.any((t) => t.costCenterId == 2),
+          isTrue,
+          reason: 'the ledger holds charges to a shared center too',
+        );
+        expect(
+          [...first.items, ...rest.items].map((t) => t.type).toSet(),
+          containsAll([
+            WalletTransactionType.printCharge,
+            WalletTransactionType.deposit,
+          ]),
+        );
+        expect(
+          [
+            for (final t in first.items)
+              parsePrintCharge(t.description).partial,
+          ].nonNulls,
+          isNotEmpty,
+          reason: 'the demo shows a partial charge',
+        );
+      },
+    );
+
+    test(
+      'finance: an administrator\'s changes are what the next listing shows',
+      () async {
+        final finance = FinanceRepository(dio);
+        Future<AppApiException> refusal(Future<void> Function() write) async {
+          try {
+            await write();
+          } on AppApiException catch (e) {
+            return e;
+          }
+          fail('the demo should have refused');
+        }
+
+        // Every center, the private ones of other users and a closed one included.
+        final all = await finance.allCostCenters();
+        expect(all.where((c) => c.isPrivate), hasLength(3));
+        expect(all.where((c) => !c.isActive), isNotEmpty);
+
+        // A new shared center, with a budget that can be replaced and removed.
+        final made = await finance.createCostCenter(
+          name: 'Demo lab',
+          budget: const BudgetInput(CostCenterBudget.monthly, 50),
+        );
+        // The demo is one backend for the whole file: a failure half-way must not
+        // leave the center behind. Deleted already, on a pass.
+        addTearDown(() async {
+          try {
+            await finance.deleteCostCenter(made.id);
+          } on AppApiException {
+            // Gone, or still named by a row the test did not get to remove.
+          }
+        });
+        await finance.setBudget(
+          made.id,
+          const BudgetInput(CostCenterBudget.total, 9),
+        );
+        var detail = await finance.costCenter(made.id);
+        expect(detail.center.budget, CostCenterBudget.total);
+        expect(detail.center.budgetLimit, 9);
+        await finance.setBudget(made.id, BudgetInput.none);
+        expect(
+          (await finance.costCenter(made.id)).center.budget,
+          CostCenterBudget.none,
+        );
+
+        // Members come and go, and a personal center takes none.
+        await finance.setMember(made.id, 2, canPrint: false);
+        await finance.setMember(made.id, 2, canPrint: true);
+        detail = await finance.costCenter(made.id);
+        expect(detail.members.single.canPrint, isTrue);
+        await finance.removeMember(made.id, 2);
+        expect((await finance.costCenter(made.id)).members, isEmpty);
+        final private = all.firstWhere((c) => c.isPrivate);
+        expect(
+          (await refusal(
+            () => finance.setMember(private.id, 2, canPrint: true),
+          )).detail,
+          contains('Private cost center memberships'),
+        );
+        expect(
+          (await refusal(
+            () => finance.updateCostCenter(private.id, name: 'x'),
+          )).detail,
+          contains('cannot be deactivated or renamed'),
+        );
+
+        // A rebuild repairs nothing here, but it answers with the rows it went over
+        // and leaves the balance where it was.
+        final settled = (await finance.balance()).balance;
+        expect(await finance.rebuildLedger(), greaterThan(0));
+        expect((await finance.balance()).balance, closeTo(settled, 1e-9));
+
+        // The ledger. A deposit to the user's wallet raises the balance; one booked
+        // to a shared center raises the center's own, and leaves the wallet alone.
+        final before = (await finance.balance()).balance;
+        await finance.adjustWallet(
+          1,
+          amount: 10,
+          deposit: true,
+          costCenterId: made.id,
+        );
+        expect((await finance.balance()).balance, closeTo(before, 1e-9));
+        expect(
+          (await refusal(() => finance.deleteCostCenter(made.id))).detail,
+          contains('while transactions reference'),
+        );
+        final onCenter = (await finance.myTransactions(
+          limit: 1,
+          offset: 0,
+        )).items.single;
+        expect(onCenter.costCenterId, made.id);
+        expect(onCenter.balanceAfter, closeTo(10, 1e-9));
+        await finance.deleteTransaction(onCenter.id);
+
+        await finance.adjustWallet(1, amount: 10, deposit: true);
+        expect((await finance.balance()).balance, closeTo(before + 10, 0.11));
+        final top = (await finance.myTransactions(
+          limit: 1,
+          offset: 0,
+        )).items.single;
+        expect(top.type, WalletTransactionType.deposit);
+        expect(
+          top.balanceAfter,
+          closeTo((await finance.balance()).balance, 1e-9),
+        );
+
+        // Editing and deleting a row rebuild every balance after it.
+        await finance.editTransaction(top.id, amount: 20);
+        expect((await finance.balance()).balance, closeTo(before + 20, 0.11));
+        await finance.deleteTransaction(top.id);
+        expect((await finance.balance()).balance, closeTo(before, 0.11));
+        expect(
+          (await refusal(
+            () => finance.addManualPrint(
+              userId: 2,
+              costCenterId: made.id,
+              amount: 0,
+            ),
+          )).detail,
+          contains('greater than zero'),
+        );
+        // A charge counts against the center's budget.
+        await finance.setBudget(
+          made.id,
+          const BudgetInput(CostCenterBudget.total, 9),
+        );
+        await finance.addManualPrint(
+          userId: 2,
+          costCenterId: made.id,
+          amount: 4,
+        );
+        final spent = (await finance.allCostCenters()).firstWhere(
+          (c) => c.id == made.id,
+        );
+        expect(spent.budgetUsed, closeTo(4, 1e-9));
+        expect(spent.budgetAvailable, closeTo(5, 1e-9));
+        final others = await finance.transactions(
+          limit: 50,
+          offset: 0,
+          userId: 2,
+        );
+        expect(others.items.first.amount, -4);
+        expect(others.items.every((t) => t.userId == 2), isTrue);
+        await finance.deleteTransaction(others.items.first.id);
+        await finance.deleteCostCenter(made.id);
+      },
+    );
 
     test('the queue speaks the 1.2.5 contract, including auto', () async {
       // The demo is the only place tri-state calibrations can be exercised
@@ -231,7 +655,7 @@ void main() {
       final list = await repo.list();
       expect(list.length, greaterThanOrEqualTo(10));
       expect(list.first.printName, isNotNull);
-      final found = await repo.search('benchy');
+      final found = await repo.search('mikrus');
       expect(found, isNotEmpty);
       final preview = await repo.purgePreview(olderThanDays: 5);
       expect(preview.count, greaterThan(0));
@@ -347,7 +771,9 @@ void main() {
       expect(failures.failedPrints, greaterThan(0));
       expect(failures.failuresByReason, isNotEmpty);
       final users = await repo.fetchUsers();
-      expect(users, hasLength(1));
+      // The signed-in user, and two more for an administrator's pickers.
+      expect(users, hasLength(3));
+      expect(users.map((u) => u.username), contains(DemoConfig.username));
     });
   });
 
@@ -369,7 +795,7 @@ void main() {
       expect(failed.items, isNotEmpty);
       expect(failed.items.every((e) => e.status == 'failed'), isTrue);
 
-      final searched = await repo.list(search: 'benchy');
+      final searched = await repo.list(search: 'mikrus');
       expect(searched.items, hasLength(1));
       expect(searched.total, 1);
     });
@@ -695,7 +1121,7 @@ void main() {
       final overview = await repo.fetchOverview();
       expect(
         overview,
-        hasLength(5),
+        hasLength(6),
         reason: 'one row per printer in the fleet',
       );
       final x1c = overview.firstWhere((o) => o.printerId == 1);
@@ -1041,20 +1467,20 @@ void main() {
       final one = '${dir.path}/one.3mf';
       await PrinterFilesRepository(
         dio,
-      ).downloadFileTo(1, '/cache/Benchy.gcode.3mf', one);
+      ).downloadFileTo(1, '/cache/Mikrus slot.gcode.3mf', one);
       // The listing claims 2 108 509 bytes for this one; the cap is what lands.
       expect(File(one).lengthSync(), 2 * 1024 * 1024);
 
       final small = '${dir.path}/small.3mf';
       await PrinterFilesRepository(
         dio,
-      ).downloadFileTo(1, '/cache/Cable clips x8.gcode.3mf', small);
+      ).downloadFileTo(1, '/cache/Gridfinity bin 2×1×9.gcode.3mf', small);
       expect(File(small).lengthSync(), 1524736);
 
       final zip = '${dir.path}/bundle.zip';
       await PrinterFilesRepository(dio).downloadZipTo(1, const [
-        '/cache/Benchy.gcode.3mf',
-        '/cache/Cable clips x8.gcode.3mf',
+        '/cache/Mikrus slot.gcode.3mf',
+        '/cache/Gridfinity bin 2×1×9.gcode.3mf',
       ], zip);
       // The 22 bytes of an empty archive, starting with the ZIP signature.
       expect(File(zip).readAsBytesSync().take(4), [0x50, 0x4B, 0x05, 0x06]);
@@ -1066,8 +1492,8 @@ void main() {
     test('a download the server prepares first runs end to end', () async {
       final repo = PrinterFilesRepository(dio);
       final paths = const [
-        '/cache/Benchy.gcode.3mf',
-        '/cache/Cable clips x8.gcode.3mf',
+        '/cache/Mikrus slot.gcode.3mf',
+        '/cache/Gridfinity bin 2×1×9.gcode.3mf',
       ];
 
       final started = await repo.startDownloadJob(
@@ -1118,9 +1544,9 @@ void main() {
       final repo = PrinterFilesRepository(dio);
       final started = await repo.startDownloadJob(
         1,
-        paths: const ['/cache/Benchy.gcode.3mf'],
+        paths: const ['/cache/Mikrus slot.gcode.3mf'],
         sizes: const {},
-        filename: 'Benchy.gcode.3mf',
+        filename: 'Mikrus slot.gcode.3mf',
         asZip: false,
       );
 
@@ -1147,8 +1573,8 @@ void main() {
       // REST poll, and the service isolate — which polls no statuses of its
       // own — never: the notification said "2 printing" while the dashboard
       // said three.
-      expect(DemoBackend.printerIds, hasLength(5));
-      expect(DemoBackend.printerIds, containsAll([1, 2, 3, 4, 5]));
+      expect(DemoBackend.instance.printerIds, hasLength(6));
+      expect(DemoBackend.instance.printerIds, containsAll([1, 2, 3, 4, 5, 6]));
     });
 
     test('a poke broadcasts now, instead of at the next tick', () async {
@@ -1169,13 +1595,39 @@ void main() {
       await conn.close();
     });
 
+    test(
+      'a socket keeps the demo it opened on when the tour lends a fresh one',
+      () async {
+        // The app's own socket stays open, offstage, while the guided tour runs
+        // on a demo of its own; its frames must not start describing the tour.
+        final previous = DemoBackend.instance;
+        addTearDown(() => DemoBackend.instance = previous);
+        final own = DemoBackend.instance = DemoBackend.fresh();
+        own.handle('POST', Uri.parse('/api/v1/printers/1/print/pause'), null);
+        final conn = DemoWsConnection();
+
+        DemoBackend.instance = DemoBackend.fresh();
+        final frames = await conn.stream.take(5).toList();
+        await conn.close();
+
+        final first = [
+          for (final f in frames)
+            (parseWsMessage(f as String) as WsPrinterStatus).status,
+        ].firstWhere((s) => s.id == 1);
+        expect(first.state, 'PAUSE');
+      },
+    );
+
     test('the fleet frames cover the machines the count can pick', () async {
       DemoBackend.printingPrinters = DemoBackend.maxPrintingPrinters;
-      addTearDown(() => DemoBackend.printingPrinters = 1);
+      addTearDown(
+        () =>
+            DemoBackend.printingPrinters = DemoBackend.defaultPrintingPrinters,
+      );
 
       final conn = DemoWsConnection();
       final frames = await conn.stream
-          .take(DemoBackend.printerIds.length)
+          .take(DemoBackend.instance.printerIds.length)
           .toList();
       await conn.close();
 
@@ -1554,6 +2006,18 @@ void main() {
       expect(second.where((s) => s.usedInPlate).map((s) => s.slotId), [3, 4]);
     });
 
+    test('sliced output reports its grams, an un-sliced source none', () async {
+      final sliced = await slicer.filamentRequirements(id: 5, isArchive: false);
+      expect(sliced.single.usedGrams, closeTo(42.3, 1e-9));
+
+      final source = await slicer.filamentRequirements(
+        id: twoTone,
+        isArchive: false,
+        plateId: 1,
+      );
+      expect(source.map((s) => s.usedGrams), everyElement(0));
+    });
+
     test(
       'a source with no filament table falls back to one generic slot',
       () async {
@@ -1607,9 +2071,14 @@ void main() {
 
     test('only the archive that kept its source can be re-sliced', () async {
       final archives = await ArchiveRepository(dio).list();
-      final benchy = archives.firstWhere((a) => a.printName == 'Benchy');
-      final other = archives.firstWhere((a) => a.printName != 'Benchy');
-      expect((await slicer.archiveCapabilities(benchy.id)).sliceable, isTrue);
+      final sliceable = archives.firstWhere(
+        (a) => a.printName == 'Mikrus slot',
+      );
+      final other = archives.firstWhere((a) => a.printName != 'Mikrus slot');
+      expect(
+        (await slicer.archiveCapabilities(sliceable.id)).sliceable,
+        isTrue,
+      );
       expect((await slicer.archiveCapabilities(other.id)).sliceable, isFalse);
     });
 
@@ -1690,11 +2159,11 @@ void main() {
         DemoBackend.sliceSeconds = 1;
         addTearDown(() => DemoBackend.sliceSeconds = 9);
         final archives = ArchiveRepository(dio);
-        final benchy = (await archives.list()).firstWhere(
-          (a) => a.printName == 'Benchy',
+        final sliceable = (await archives.list()).firstWhere(
+          (a) => a.printName == 'Mikrus slot',
         );
 
-        final jobId = await slicer.sliceArchive(benchy.id, {
+        final jobId = await slicer.sliceArchive(sliceable.id, {
           'printer_preset': {'source': 'local', 'id': 'p-p1s-04'},
           'process_preset': {'source': 'local', 'id': 'q-020-std'},
           'filament_preset': {'source': 'local', 'id': 'f-petg-white'},
@@ -1704,13 +2173,13 @@ void main() {
 
         expect(
           result.printTimeSeconds,
-          benchy.printTimeSeconds,
+          sliceable.printTimeSeconds,
           reason:
               'same layer height as the source, so the same estimate — an '
               'archive knows what it costs and need not be guessed at',
         );
         final resliced = (await archives.list()).firstWhere(
-          (a) => a.printName == 'Benchy (re-sliced)',
+          (a) => a.printName == 'Mikrus slot (re-sliced)',
         );
         expect(resliced.slicedForModel, 'P1S');
         expect(resliced.completedAt, isNull, reason: 'sliced, never printed');
@@ -1722,26 +2191,41 @@ void main() {
   group('how many printers print at once', () {
     // A demo-only knob (app settings), so the screens that behave differently
     // with several machines running can be looked at at all.
-    tearDown(() => DemoBackend.printingPrinters = 1);
+    tearDown(
+      () => DemoBackend.printingPrinters = DemoBackend.defaultPrintingPrinters,
+    );
 
     String? stateOf(int id) =>
         DemoBackend.instance.statusJson(id)['state'] as String?;
 
-    test('one by default, so the other machines stand idle', () {
-      expect(DemoBackend.printingPrinters, 1);
+    test('two by default, the X1C and the dual-nozzle H2D', () {
+      expect(DemoBackend.printingPrinters, 2);
+      // Printer 1 carries the demo's own print, which another case in this
+      // file may have stopped, so the H2D beside it is what is asserted.
+      expect(stateOf(6), 'RUNNING');
+      // The head that is marked active is the one the print heats.
+      final h2d = DemoBackend.instance.statusJson(6);
+      final temps = h2d['temperatures'] as Map;
+      expect(h2d['active_extruder'], 1, reason: 'left head, the plain key');
+      expect(temps['nozzle_target'], greaterThan(0));
+      expect(temps['nozzle_2_target'], 0);
       for (final idle in [2, 4, 5]) {
         expect(stateOf(idle), 'IDLE', reason: 'printer $idle');
       }
+      expect(
+        DemoBackend.instance.statusJson(6)['temperatures'],
+        containsPair('nozzle_2', isA<num>()),
+      );
     });
 
     test('raising it takes machines in order, and never the offline one', () {
-      DemoBackend.printingPrinters = 3;
+      DemoBackend.printingPrinters = 4;
 
       // Printer 1 is left out of this one on purpose: it carries the demo's
       // own print, which another case in this file may have stopped, and the
       // order is what is being checked here.
-      expect([stateOf(2), stateOf(5)], everyElement('RUNNING'));
-      expect(stateOf(4), 'IDLE', reason: 'fourth in line, not asked for yet');
+      expect([stateOf(6), stateOf(2), stateOf(5)], everyElement('RUNNING'));
+      expect(stateOf(4), 'IDLE', reason: 'fifth in line, not asked for yet');
       // Printer 3 is the fixture that must stay unreachable: the offline card
       // and its grace window have nothing to show without it.
       expect(stateOf(3), isNull);
@@ -1759,7 +2243,7 @@ void main() {
       DemoBackend.printingPrinters = DemoBackend.maxPrintingPrinters;
 
       final percents = [
-        for (final id in [2, 4, 5])
+        for (final id in [6, 2, 4, 5])
           DemoBackend.instance.statusJson(id)['progress'] as num,
       ];
       // Identical numbers would hide what several printers are here to show:
@@ -1771,11 +2255,11 @@ void main() {
     });
 
     test('a machine put to work reports a print, not just a state', () {
-      DemoBackend.printingPrinters = 2;
+      DemoBackend.printingPrinters = 3;
       final status = DemoBackend.instance.statusJson(2);
 
-      expect(status['current_print'], 'Bracket v2.3mf');
-      expect(status['subtask_name'], 'Bracket v2');
+      expect(status['current_print'], 'Mop station.3mf');
+      expect(status['subtask_name'], 'Mop station');
       expect(status['total_layers'], greaterThan(0));
       expect(status['remaining_time'], greaterThan(0));
       // The card reads a target to call it heating rather than cooling.
@@ -1889,7 +2373,7 @@ void main() {
       final rows = await repo.list();
       final byName = {for (final l in rows) l.name: l};
 
-      expect(byName['Workshop']!.printerCount, 4);
+      expect(byName['Workshop']!.printerCount, 5);
       expect(byName['Workshop']!.icon, 'wrench');
       expect(byName['Office']!.printerCount, 1);
       expect(byName['Storage']!.printerCount, 0);

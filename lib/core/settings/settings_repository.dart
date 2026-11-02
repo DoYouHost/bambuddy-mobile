@@ -1,10 +1,15 @@
 import 'dart:convert';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:material_ui/material_ui.dart' show Color, DynamicSchemeVariant;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../demo/demo_backend.dart';
 import '../models/swatch_code.dart';
 import '../notifications/notification_prefs.dart';
+import '../theme/app_brand.dart' show AccentPreset;
+import 'appearance_prefs.dart';
+import 'controller_prefs.dart';
 import 'label_print_prefs.dart';
 import 'print_options.dart';
 import 'server_profile.dart';
@@ -40,6 +45,12 @@ class SettingsRepository {
   static const _dashboardViewKey = 'dashboard_view';
   static const _labelPrinterNameKey = 'label_printer_name';
   static const _wallHiddenPrintersKey = 'wall_hidden_printer_ids';
+  static const _controllerPrefsKey = 'controller_prefs';
+  static const _appearancePrefsKey = 'appearance_prefs';
+  static const _watchAppearanceKey = 'watch_appearance';
+  static const _wearFaceColoursKey = 'wear_face_colours';
+  static const _wearPhoneAccentKey = 'wear_phone_accent';
+  static const _tourSeenKey = 'tour_seen';
 
   final SharedPreferences _prefs;
 
@@ -77,6 +88,31 @@ class SettingsRepository {
       _prefs.setString(_profileKey, jsonEncode(profile.toJson()));
 
   Future<void> clearProfile() => _prefs.remove(_profileKey);
+
+  /// Whether the guided tour still has to run on its own. Absent on an install
+  /// that has not met it either way; see [markTourDue] and
+  /// [settleTourForExistingInstall] for how it gets a value.
+  bool get tourDue => _prefs.getBool(_tourSeenKey) == false;
+
+  /// The first successful sign-in on this install owes the user the tour.
+  /// Later sign-ins (change server) find the key already set and leave it.
+  Future<void> markTourDue() async {
+    if (!_prefs.containsKey(_tourSeenKey)) {
+      await _prefs.setBool(_tourSeenKey, false);
+    }
+  }
+
+  Future<void> saveTourSeen() => _prefs.setBool(_tourSeenKey, true);
+
+  /// An install that was signed in before the tour existed: its user knows the
+  /// app, so the tour waits in Tips instead of starting by itself. Runs on
+  /// every start and only ever acts once — a tour cut short by the app being
+  /// killed has its key set to `false` and is not mistaken for one of these.
+  Future<void> settleTourForExistingInstall() async {
+    if (loadProfile() != null && !_prefs.containsKey(_tourSeenKey)) {
+      await saveTourSeen();
+    }
+  }
 
   /// Whether the remembered login can no longer restore a session on its own,
   /// so the user has to sign in by hand again. Set from wherever that is
@@ -210,6 +246,86 @@ class SettingsRepository {
   Future<void> saveWallLiveCamera(bool on) =>
       _prefs.setBool(_wallLiveCameraKey, on);
 
+  /// The single-printer controller's settings; absent or unreadable reads as
+  /// the defaults.
+  ControllerPrefs loadControllerPrefs() {
+    final raw = _prefs.getString(_controllerPrefsKey);
+    if (raw == null) return const ControllerPrefs();
+    try {
+      return ControllerPrefs.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } on Object {
+      return const ControllerPrefs();
+    }
+  }
+
+  Future<void> saveControllerPrefs(ControllerPrefs prefs) =>
+      _prefs.setString(_controllerPrefsKey, jsonEncode(prefs.toJson()));
+
+  /// The accent and light/dark choice; absent or unreadable reads as the
+  /// defaults, which are the look the app had before the choice existed.
+  AppearancePrefs loadAppearancePrefs() {
+    final raw = _prefs.getString(_appearancePrefsKey);
+    if (raw == null) return const AppearancePrefs();
+    try {
+      return AppearancePrefs.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } on Object {
+      return const AppearancePrefs();
+    }
+  }
+
+  Future<void> saveAppearancePrefs(AppearancePrefs prefs) =>
+      _prefs.setString(_appearancePrefsKey, jsonEncode(prefs.toJson()));
+
+  /// PHONE side: what a paired watch is told to colour itself with.
+  WatchAppearance loadWatchAppearance() {
+    final raw = _prefs.getString(_watchAppearanceKey);
+    if (raw == null) return const WatchAppearance();
+    try {
+      return WatchAppearance.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } on Object {
+      return const WatchAppearance();
+    }
+  }
+
+  Future<void> saveWatchAppearance(WatchAppearance value) =>
+      _prefs.setString(_watchAppearanceKey, jsonEncode(value.toJson()));
+
+  /// WATCH side: whether the phone told the watch to take its colours from
+  /// its face.
+  bool loadWearFaceColours() => _prefs.getBool(_wearFaceColoursKey) ?? false;
+
+  Future<void> saveWearFaceColours(bool value) =>
+      _prefs.setBool(_wearFaceColoursKey, value);
+
+  /// WATCH side: the accent the phone last sent, kept so the first frame
+  /// already wears it. Null, also for a damaged entry, is the green brand.
+  AccentPreset? loadWearPhoneAccent() {
+    final raw = _prefs.getString(_wearPhoneAccentKey);
+    if (raw == null) return null;
+    try {
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+      return (
+        seed: Color(json['seed'] as int),
+        // As the codec reads it: an unknown variant still draws the seed.
+        variant:
+            DynamicSchemeVariant.values.asNameMap()[json['variant']] ??
+            DynamicSchemeVariant.tonalSpot,
+      );
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<void> saveWearPhoneAccent(AccentPreset? accent) => accent == null
+      ? _prefs.remove(_wearPhoneAccentKey)
+      : _prefs.setString(
+          _wearPhoneAccentKey,
+          jsonEncode({
+            'seed': accent.seed.toARGB32(),
+            'variant': accent.variant.name,
+          }),
+        );
+
   /// The slice form's two filters (#3172), remembered on this device as the
   /// web remembers them per browser. Absent reads as off, as there.
   bool loadSliceOnlyOnline() => _prefs.getBool(_sliceOnlyOnlineKey) ?? false;
@@ -237,7 +353,8 @@ class SettingsRepository {
 
   /// How many printers the demo runs a print on. Read by both isolates: the UI
   /// sets it, the service re-reads it on [BackgroundSync.demoPrinters].
-  int loadDemoPrintingCount() => _prefs.getInt(_demoPrintingKey) ?? 1;
+  int loadDemoPrintingCount() =>
+      _prefs.getInt(_demoPrintingKey) ?? DemoBackend.defaultPrintingPrinters;
 
   Future<void> saveDemoPrintingCount(int count) =>
       _prefs.setInt(_demoPrintingKey, count);

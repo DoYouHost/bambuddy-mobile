@@ -11,12 +11,9 @@ import 'ws_probe.dart';
 /// bambuddy's side of the two ports `app_diagnostics` leaves open, plus the one
 /// entry point the package deliberately does not carry.
 
-/// The WebSocket probe, told when a session opens and closes.
-///
-/// Both moments matter here. `WsProbe` reports *changes*, so state left by the
-/// previous session would make this one's first frame read as "unchanged"; and
-/// it aggregates repeat counts, so a session closed without a flush loses the
-/// tail of the socket's story.
+/// The WebSocket probe, told when a session opens and closes: it reports changes and
+/// aggregates repeats, so both moments matter (docs/logging-guide.md, "startActionRecording and the
+/// watch socket probe").
 class WsSessionListener implements DiagnosticSessionListener {
   const WsSessionListener();
 
@@ -27,24 +24,12 @@ class WsSessionListener implements DiagnosticSessionListener {
   void onSessionFlush() => WsProbe.flushAll();
 }
 
-/// `startBackground` for an isolate woken to do one job and gone a second
-/// later — a notification action, a request relayed from the watch. Null,
-/// the normal case, when there is nothing to record into.
-///
-/// Those paths run in whichever isolate the platform picked, and two of the
-/// three are already recording; there the records land in the stream they
-/// belong to for free (`docs/logging-guide.md` §4). [LogStream.action] is
-/// the third one's stream: `fgs` is the service's file for the same session
-/// and two writers would tear it.
-///
-/// Here rather than in the package because every argument below is
-/// bambuddy's: its settings repository, its keystore, its redactor and its
-/// ceiling. The package keeps the parameterised `startBackground` that this
-/// spells out for the one caller shape that recurs.
-///
-/// **Never throws.** The caller is carrying out the user's tap, and
-/// diagnostics must not be why it does not happen — [SettingsRepository.opened]
-/// alone is a platform read that a locked keystore can fail.
+/// `startBackground` for an isolate woken to do one job and gone a second later — a
+/// notification action, a request relayed from the watch. Null, the normal case, when
+/// there is nothing to record into. [LogStream.action] is the stream of the one such
+/// path that is not already recording. Here, not in the package, because every
+/// argument is bambuddy's own. **Never throws**: the caller is carrying out the user's
+/// tap (docs/logging-guide.md, "startActionRecording and the watch socket probe").
 Future<BackgroundRecording?> startActionRecording({
   Future<SettingsRepository> Function() openSettings =
       SettingsRepository.opened,

@@ -15,7 +15,7 @@ Most of it is automatic. The work is in the five places it is not.
 | `ws` | `lib/core/api/ws_client.dart` | a new frame field belongs to the printer, not the user (§6) |
 | `ui` route | `GoRouter` observers in `lib/router.dart` — one `ModalObserver` per `Navigator`, root **and** every shell branch | you add a shell branch; without its own observer, sheets opened from that tab are not logged (§5) |
 | `ui` tap | `InteractionProbe`, a global entry in `pointerRouter` resolved against the semantics tree | always — an untagged control records as `role=button` and nothing else (§1) |
-| `err` | `FlutterError.onError`, `PlatformDispatcher.instance.onError`, `runZonedGuarded` in `lib/main.dart` | never |
+| `err` | `ErrorProbe` (`app_diagnostics`) hooks `FlutterError.onError` and `PlatformDispatcher.instance.onError`; there is deliberately no guarded zone | never |
 
 So a new screen that calls the existing API client already logs its navigation,
 its requests and its crashes. What it does not log is which control the user
@@ -44,7 +44,7 @@ means an interpolated file name would ship intact.
 | ordinary widget | `logTag('area.thing', widget)` or `widget.tagged('area.thing')` (postfix, for long trees where wrapping would re-indent) |
 | confirmation dialog | `confirmDialog(context, id: 'area.what_it_confirms_confirm', …)` names both buttons |
 | `PopupMenuItem` | cannot be wrapped (`Semantics` is not a `PopupMenuEntry`) — the tag goes on its `child:` |
-| hand-built `AppBar` (camera, G-code, QR) | `loggedAppBar(AppBar(…))` from `lib/core/theme/dash_theme.dart`, or the back button is nameless |
+| hand-built `AppBar` (camera, G-code, QR) | `loggedAppBar(AppBar(…))` from `dash_kit`, or the back button is nameless |
 | you also need an a11y label | `Semantics(identifier: …, label: …)` directly — the scanner understands it |
 | the control is one of a set and currently the chosen one | `logTag(id, w, selected: …)` / `.tagged(id, selected: …)` — **not** a `Semantics(selected:)` wrapper of its own |
 | filament material | `logTagMaterial` / `.taggedMaterial` — the one on-screen value allowed into a log, and only from `FilamentMaterial.known` |
@@ -71,7 +71,7 @@ through. When several tiles of one kind exist (nozzle / nozzle 2 / bed, three
 fans), the **server's own key** goes into the id: `printer.temperature_nozzle_2`,
 `printer.fan_aux` — the same vocabulary as the WS frame.
 
-Target state: `python3 .claude/skills/log-coverage/log_coverage.py` (or
+Target state: `dart run app_guards:log_coverage` (or
 `/log-coverage`) reports **zero** unnamed controls. More than before your change
 is a regression.
 
@@ -82,23 +82,21 @@ endpoint also contributes its record count plus one record in full, because a
 200 hiding twenty rows and a 200 with nothing in it look identical otherwise.
 
 That list is `_sampledPaths` in `report_config.dart`, handed to the probe as
-`bambuddyHttpProbe` — an **allowlist**: forgetting an endpoint costs a
-diagnosis, forgetting one in a denylist costs a secret. `_neverSampled`
-(`token|api-keys`) is checked first and wins. Add your route when "the screen is
-empty / shows the wrong thing" is a question reports will ask about it. The
-probe itself is in `app_diagnostics` and samples nothing until an app hands it
-this config.
+`bambuddyHttpProbe` — an **allowlist**, with `_neverSampled` (`token|api-keys`)
+checked first (why: [diagnostics-log.md](diagnostics-log.md#what-never-enters-a-record)).
+Add your route when "the screen is empty / shows the wrong thing" is a question
+reports will ask about it. The probe itself is in `app_diagnostics` and samples
+nothing until an app hands it this config.
 
 If a route interpolates user text into the path, `loggablePath` masks the
-segment. Do not add a special case for it — the rule is measured against every
-route in `Endpoints` by a test, so an endpoint written in a style the rule eats
-fails CI instead of leaking into a report.
+segment. Do not add a special case for it: a test measures the rule against every
+route in `Endpoints`.
 
 ## 3. Record the refusal the user was shown
 
-The error response is already an `http` record. What it cannot say is whether
-anybody was *stopped*. `recordActionFailure` writes that, and it is reached
-through the two shapes of caller:
+`recordActionFailure` records that a failure was shown to the user (why it exists,
+and what its fields mean: [diagnostics-log.md](diagnostics-log.md#what-stopped-somebody-app-action_failed)).
+It is reached through the two shapes of caller:
 
 - a screen holds a `BuildContext` → `showApiFailure(…, action: 'area.thing')`;
 - a notifier does not → `ActionOutcome.failed(…, action: 'area.thing')`, worded
@@ -109,9 +107,8 @@ keeps the two in step. Pass `shown: false` where the message was built and then
 not delivered (the screen was left while the request was in flight); absent means
 it landed.
 
-Do not move the recording into `localized` or into a constructor: about twenty
-call sites there are error-state builders, and a widget stuck on an error
-rebuilds — the run would sweep the ring buffer clean.
+Do not move the recording into `localized` or into a constructor (reasons in the
+policy doc, same section).
 
 ## 4. Notifications and background isolates
 
@@ -124,10 +121,9 @@ notification the app decides *not* to post records as `suppressed` with a reason
 In a fresh isolate `DiagnosticRecorder.active` is null, and each isolate writes
 its own file:
 
-- **FGS** — a strict continuation of the UI stream. The session id travels
-  through `SharedPreferences`, the header is the UI's re-tagged, so both files
-  share one clock and the merge is a no-shift. **No readable UI header ⇒ the
-  isolate does not record at all** — there would be nothing to merge into.
+- **FGS** — a strict continuation of the UI stream (how the two merge:
+  [diagnostics-log.md](diagnostics-log.md#streams-and-the-merge)). **No readable UI
+  header ⇒ the isolate does not record at all.**
 - **an isolate woken for one job** — the notification action engine
   (`handleMaintenanceAction`, `handleHmsAction`, `handleOutcomeAction`,
   registered in three isolates) and the watch-relay engine (`wear_relay_engine.dart`, started by
@@ -142,10 +138,71 @@ its own file:
 
 Two rules for anything you add on those paths: write the record **before** the
 `await` that tears the isolate down (a closed `LogFileSink` drops lines
-silently), and never let the recorder throw — the service's `onStart` runs
-through a channel that swallows a Dart exception and reports success, so a
-recorder that throws leaves a service that says "monitoring" and monitors
-nothing.
+silently), and never let the recorder throw
+([why](diagnostics-log.md#the-durable-mirror)).
+
+### What the notification probe records, and why
+
+`NotifProbe` (`lib/core/diagnostics/notif_probe.dart`) records what the
+notification layer decided and what it decided *not* to do: the useful half is
+usually a decision not to post, which by definition leaves no trace on the
+device. Stateless and static like the other always-on probes, so an idle app pays
+nothing and the fakes in tests stay silent. `title` and `body` never enter a
+record, which is why `postError` logs the exception's *class*: the only strings in
+scope there are the two we may not keep.
+
+- **`finishPhoto`** says what became of the finish photo attached to an archive.
+  It is its own record, not a `NotifSkip`: the alert is already on screen, so this
+  decides only whether a photo reached it, and every way that fails (no alert to
+  update, swiped away, download failed) looks identical from outside.
+- **`primed`** is the baseline a fresh monitor latched from a printer's first
+  frame. The background isolate is rebuilt on every entry into the background and a
+  new monitor fires nothing from the first frame it sees (otherwise a print
+  started an hour ago would announce itself as just begun). That silence is
+  correct, invisible, and the answer to a whole class of "the app swallowed my
+  notification". It is *not* a `suppressed`: at priming no event was evaluated, so
+  calling it a suppression would describe a decision that never took place.
+- **`openSession`** opens the lane with the state that decides everything else:
+  which event types the user disabled, whether alerts are off wholesale, whether
+  the OS permission is granted and how important the alerts channel is. One line
+  instead of a record per suppressed event, and it works even when the recording
+  covers none of the moments an alert was due (prints run for hours; a session is
+  capped at `recordingLimit`). `permission` and `channelImportance` are injected so
+  it is testable, and either may answer null, logged as an absent field rather than
+  a guess. A granted permission with a muted channel is a real configuration and
+  looks identical from `areNotificationsEnabled` alone.
+- **`LoggingNotifications`** wraps the *outer* service in the foreground-service
+  isolate, not the `LocalNotificationService` inside it: that isolate's
+  `showOngoing` rewrites the service notification instead of delegating, so
+  wrapping from underneath would miss it. It is one decorator rather than a log
+  call at each site, so it cannot be forgotten in new code, and it is unused in the
+  UI isolate, where the ongoing methods are no-ops and a record would be a
+  fabrication.
+
+### `startActionRecording` and the watch socket probe
+
+`startActionRecording` is `startBackground` for an isolate woken to do one job and
+gone a second later. Two of the three such paths are already recording, and there
+the records land in the stream they belong to for free; `LogStream.action` is the
+third one's stream, because `fgs` is the service's file for the same session and
+two writers would tear it. It lives here, not in the package, because every
+argument is bambuddy's own (settings repository, keystore, redactor, ceiling). **It
+never throws**: the caller is carrying out the user's tap, and
+`SettingsRepository.opened` alone is a platform read a locked keystore can fail.
+
+`WsProbe` explains "the dashboard says Reconnecting and never stops": a 401
+handshake, a failed token mint, a server that accepts the socket and sends
+nothing, and a Wi-Fi roam leaving a half-open TCP all look identical from the UI,
+and only the last is the app's own fault. It writes through
+`DiagnosticRecorder.active` rather than holding a store, because a probe outlives
+any recording and recordings routinely start mid-connection. `WsSessionListener`
+tells it when a session opens and closes: it reports *changes*, so state left by
+the previous session would make the next one's first frame read as "unchanged",
+and it aggregates repeats, so a session closed without a flush loses the tail of
+the socket's story. `_temperatures` logs every temperature the server sent under
+its own name: the first version picked `nozzle`/`bed`/`chamber` and so logged
+neither the targets (a bed target of zero mid-print explains a whole report on its
+own) nor `nozzle_2`, half of what a dual-head X2D/H2D is doing.
 
 ### The service's lifecycle is one lane, written from two isolates
 
@@ -202,18 +259,15 @@ Both are covered by tests; both were live bugs first.
 
 - **Whose is the value?** Everything the printer or the server owns goes in
   (states, stages, temperatures with targets, fans, slots, HMS codes, AMS). The
-  user's own text — file, model, printer, spool and colour names — never does.
-  "Is it worth the line" is the wrong question; it produced a first version that
-  logged a third of a frame and left the rest to guess.
-- **The field's name is behaviour.** `LogRedactor` blanks by key name
-  (`token|api_key|key|secret|password|authorization|access_code|serial|cookie|username`),
-  so a boolean called `cookie` ships as `"[REDACTED]"` whatever it held — caught
-  live on the 2FA probe, where the record existed to tell two cases apart and
-  told nothing apart. Name the flag beside the list (`binding`), and pin a test
-  that it survives the redactor readably.
-- **Collapse bursts into a count.** `ErrorProbe`, `WsProbe` and
-  `InteractionProbe` each do this; a widget throwing in `build` throws sixty
-  times a second.
+  user's own text — file, model, printer, spool and colour names — never does
+  ([diagnostics-log.md](diagnostics-log.md#what-a-successful-answer-contributes)).
+- **The field's name is behaviour.** `LogRedactor` blanks by key name (the list is
+  split between `app_report_client`'s `LogRedactor` and this app's `_secretKey` in
+  `report_config.dart`), so a boolean called `cookie` ships as `"[REDACTED]"`
+  whatever it held. Name the flag beside the list (`binding`) and pin a test that
+  it survives the redactor readably.
+- **Collapse bursts into a count**, as `ErrorProbe`, `WsProbe` and
+  `InteractionProbe` do ([why](diagnostics-log.md#repeats)).
 - Use `LogStore.add(..., at:)` when the moment being recorded is not now — a
   button's handler runs before the probe sees the pointer lift, so a tap stamped
   at write time lands after the route change it caused.
@@ -230,14 +284,6 @@ Both are covered by tests; both were live bugs first.
 4. A live recording (the user runs it — see the run-app-emulator skill). Every
    `role` without an `id` is a control the scanner counted as covered on trust.
 5. Read the report preview: no user text, no host, no key.
-
-## Ceilings, so a truncated report reads right
-
-A session ends on whichever comes first and the closing record says which —
-`limit_reached`, not `recording_stopped`. **30 minutes** (`recordingLimit`) or
-**20 MB** (`recordingSizeLimit`, ~30× what a busy half hour produces). The ring's
-own caps — 20 000 records, 4 MB — are runaway guards, not budgets: the report is
-read back from the file, which nothing evicts from.
 
 ## Test patterns already in the repo
 

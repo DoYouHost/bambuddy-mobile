@@ -130,11 +130,9 @@ void main() {
       expect(status.progress, 61.0, reason: 'progress came in as a string');
       expect(status.remainingTime, 88);
       expect(status.layerNum, isNull);
-      expect(
-        status.temperatures,
-        {'nozzle': 25.0},
-        reason: '"off" is not a number — entry skipped, not crashed',
-      );
+      expect(status.temperatures, {
+        'nozzle': 25.0,
+      }, reason: '"off" is not a number — entry skipped, not crashed');
     });
 
     test(
@@ -149,11 +147,10 @@ void main() {
           },
         });
 
-        expect(
-          status.temperatures,
-          {'nozzle': 210.0, 'chamber': 30.0},
-          reason: 'a *_time key is a timestamp, not a sensor — not a tile',
-        );
+        expect(status.temperatures, {
+          'nozzle': 210.0,
+          'chamber': 30.0,
+        }, reason: 'a *_time key is a timestamp, not a sensor — not a tile');
       },
     );
 
@@ -1337,11 +1334,10 @@ void main() {
             }),
         ];
         expect(faults.map((e) => e.level), [1, 1]);
-        expect(
-          faults.map((e) => e.ecode),
-          ['030091000001000A', '030001000001000A'],
-          reason: 'one code, two parts: the key must keep them apart',
-        );
+        expect(faults.map((e) => e.ecode), [
+          '030091000001000A',
+          '030001000001000A',
+        ], reason: 'one code, two parts: the key must keep them apart');
         expect(faults.map((e) => e.jobId), [null, null]);
       },
     );

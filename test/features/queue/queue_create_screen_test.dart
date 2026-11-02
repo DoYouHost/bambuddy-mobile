@@ -1,14 +1,16 @@
 import 'package:bambuddy_mobile/core/models/calibration_option.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/plate_list.dart';
+import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/core/settings/print_options.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'queue_form_harness.dart';
+import '../../helpers.dart';
 
 /// Three plates, as a 3MF sliced for a plate farm answers.
 PlateList _threePlates() => PlateList.fromJson({
@@ -26,7 +28,7 @@ PlateList _threePlates() => PlateList.fromJson({
 });
 
 /// How the plate row spells plate [index] of [_threePlates].
-String _plate(int index) => formL10n.queueEditPlateNamed(index, 'Plate $index');
+String _plate(int index) => pl.queueEditPlateNamed(index, 'Plate $index');
 
 /// The state the form is in after the user has been through the mapping sheet:
 /// slots picked for the plate that was selected *then*.
@@ -98,7 +100,7 @@ void main() {
     await tester.pumpWidget(queueFormScreen(archiveDraft()));
     await tester.pumpAndSettle();
 
-    expect(find.text(formL10n.queueEditPlate), findsNothing);
+    expect(find.text(pl.queueEditPlate), findsNothing);
 
     await submitQueueForm(tester);
 
@@ -229,6 +231,7 @@ void main() {
   testWidgets('a successful create remembers the toggles', (tester) async {
     await tester.pumpWidget(queueFormScreen(archiveDraft()));
     await tester.pumpAndSettle();
+    await openQueueFormSection(tester, 'queue_edit.print_options_section');
 
     // The first switch is bed levelling (on by default).
     await tester.tap(find.byType(Switch).first);
@@ -258,6 +261,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await openQueueFormSection(tester, 'queue_edit.print_options_section');
 
     await tester.tap(find.byType(Switch).first);
     await tester.pumpAndSettle();
@@ -271,6 +275,7 @@ void main() {
   ) async {
     await tester.pumpWidget(queueFormScreen(archiveDraft()));
     await tester.pumpAndSettle();
+    await openQueueFormSection(tester, 'queue_edit.print_options_section');
 
     // The first switch in the options section is bed levelling (on by default).
     await tester.tap(find.byType(Switch).first);
@@ -280,6 +285,170 @@ void main() {
     expect(capturedBody?['bed_levelling'], false);
     expect(capturedBody?['vibration_cali'], true);
     expect(capturedBody?['preheat_override'], 'inherit');
+  });
+
+  group('printer select', () {
+    final farm = [
+      for (var i = 1; i <= 20; i++)
+        Printer(id: i, name: 'Farm-$i', model: 'X1C', ipAddress: '10.0.0.$i'),
+    ];
+
+    testWidgets('a farm is one field, not a tile per printer', (tester) async {
+      await tester.pumpWidget(
+        queueFormScreen(archiveDraft(printerId: 3), printers: farm),
+      );
+      await tester.pumpAndSettle();
+
+      expect(byLogId('queue_edit.printer'), findsNothing);
+      expect(find.text('Farm-3'), findsOneWidget);
+    });
+
+    testWidgets('typing narrows the list and the pick is what is sent', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        queueFormScreen(archiveDraft(printerId: 3), printers: farm),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.descendant(
+          of: byLogId('queue_edit.printer_select'),
+          matching: find.byType(TextField),
+        ),
+        'Farm-17',
+      );
+      await tester.pumpAndSettle();
+      expect(byLogId('queue_edit.printer'), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(
+          of: byLogId('queue_edit.printer'),
+          matching: find.text('Farm-17'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await submitQueueForm(tester);
+
+      expect(capturedBody?['printer_id'], 17);
+    });
+  });
+
+  group('any-printer target', () {
+    const lab = [
+      Printer(id: 1, name: 'Alpha', model: 'X1C', location: 'Lab'),
+      Printer(id: 2, name: 'Beta', model: 'P1S', location: 'Garage'),
+      Printer(id: 3, name: 'Gamma', model: 'X1C', location: 'Garage'),
+    ];
+
+    /// Opens the select tagged [id] by its arrow and takes the row showing [text].
+    Future<void> pick(WidgetTester tester, String id, String text) async {
+      final arrow = find.descendant(
+        of: byLogId(id),
+        matching: find.byIcon(Icons.arrow_drop_down),
+      );
+      await tester.ensureVisible(arrow);
+      await tester.tap(arrow);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: byLogId('$id.option'), matching: find.text(text)),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the model and the location picked are what is sent', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        queueFormScreen(
+          const QueueItem(
+            id: 0,
+            position: 0,
+            status: 'pending',
+            archiveId: 77,
+            archiveName: 'cube.3mf',
+          ),
+          printers: lab,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(pl.queueEditAnyModelGeneric));
+      await tester.pumpAndSettle();
+      await pick(tester, 'queue_edit.target_model', 'X1C');
+      await pick(tester, 'queue_edit.target_location', 'Garage');
+      await submitQueueForm(tester);
+
+      expect(capturedBody?['target_model'], 'X1C');
+      expect(capturedBody?['target_location'], 'Garage');
+      expect(capturedBody?.containsKey('printer_id'), isFalse);
+    });
+  });
+
+  testWidgets('each section on the form has its own edge colour', (
+    tester,
+  ) async {
+    usePhoneWindow(tester, dp: 3000);
+    await tester.pumpWidget(queueFormScreen(archiveDraft()));
+    await tester.pumpAndSettle();
+
+    final stripes = [
+      for (final paint in tester.widgetList<CustomPaint>(
+        find.byType(CustomPaint),
+      ))
+        if (paint.key case ValueKey<Color>(:final value)) value,
+    ];
+
+    // Target, filament, options, preheat and schedule on a plain create.
+    expect(stripes.length, greaterThanOrEqualTo(5));
+    expect(stripes.toSet().length, stripes.length);
+  });
+
+  group('folded sections', () {
+    const options = 'queue_edit.print_options_section';
+    const preheat = 'queue_edit.preheat_section';
+
+    testWidgets('print options and preheat start closed', (tester) async {
+      await tester.pumpWidget(queueFormScreen(archiveDraft()));
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.queueOptTimelapse), findsNothing);
+      expect(find.text(pl.queueEditPreheatDesc), findsNothing);
+      expect(find.text(pl.queueEditPrintOptions), findsOneWidget);
+      expect(find.text(pl.queueEditPreheat), findsOneWidget);
+    });
+
+    testWidgets('the header opens and closes its own section only', (
+      tester,
+    ) async {
+      await tester.pumpWidget(queueFormScreen(archiveDraft()));
+      await tester.pumpAndSettle();
+
+      await openQueueFormSection(tester, options);
+      expect(find.text(pl.queueOptTimelapse), findsOneWidget);
+      expect(find.text(pl.queueEditPreheatDesc), findsNothing);
+
+      await openQueueFormSection(tester, options);
+      expect(find.text(pl.queueOptTimelapse), findsNothing);
+
+      await openQueueFormSection(tester, preheat);
+      expect(find.text(pl.queueEditPreheatDesc), findsOneWidget);
+    });
+
+    testWidgets('a closed section still sends what was set in it', (
+      tester,
+    ) async {
+      await tester.pumpWidget(queueFormScreen(archiveDraft()));
+      await tester.pumpAndSettle();
+
+      await openQueueFormSection(tester, options);
+      await tester.tap(find.byType(Switch).first);
+      await tester.pumpAndSettle();
+      await openQueueFormSection(tester, options);
+      await submitQueueForm(tester);
+
+      expect(capturedBody?['bed_levelling'], false);
+    });
   });
 
   testWidgets('the filled action fits the bar at a large text size', (
@@ -296,7 +465,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(
-      find.widgetWithText(FilledButton, formL10n.queueCreateSubmit),
+      find.widgetWithText(FilledButton, pl.queueCreateSubmit),
       findsOneWidget,
     );
   });
@@ -310,18 +479,18 @@ void main() {
     await submitQueueForm(tester);
 
     expect(capturedBody, isNull);
-    expect(find.text(formL10n.queueEditNoPrinter), findsOneWidget);
+    expect(find.text(pl.queueEditNoPrinter), findsOneWidget);
   });
 
   group('auto-print G-code injection', () {
-    final label = formL10n.queueEditGcodeInjection;
+    final label = pl.queueEditGcodeInjection;
 
     /// The flags sit at the bottom of a long form, so they must be scrolled to
     /// before a finder can see them at all — "Power off" is the last row that is
     /// always there, which makes it the anchor.
     Future<void> revealFlags(WidgetTester tester) async {
       await tester.dragUntilVisible(
-        find.text(formL10n.queueEditPowerOff),
+        find.text(pl.queueEditPowerOff),
         find.byType(ListView),
         const Offset(0, -200),
       );
@@ -423,7 +592,7 @@ void main() {
         await revealFlags(tester);
 
         expect(
-          find.text(formL10n.queueEditGcodeInjectionNoSnippet('X2D')),
+          find.text(pl.queueEditGcodeInjectionNoSnippet('X2D')),
           findsNothing,
           reason: 'an unticked option has nothing to warn about',
         );
@@ -431,7 +600,7 @@ void main() {
         await tapInjection(tester);
 
         expect(
-          find.text(formL10n.queueEditGcodeInjectionNoSnippet('X2D')),
+          find.text(pl.queueEditGcodeInjectionNoSnippet('X2D')),
           findsAtLeastNWidgets(1),
         );
       },
@@ -451,7 +620,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text(formL10n.queueEditGcodeInjectionNoSnippet('X2D')),
+        find.text(pl.queueEditGcodeInjectionNoSnippet('X2D')),
         findsOneWidget,
         reason: 'the Target section is on the first screen of the form',
       );
@@ -472,9 +641,7 @@ void main() {
       await tester.pumpAndSettle();
       await revealFlags(tester);
 
-      final sentence = find.text(
-        formL10n.queueEditGcodeInjectionNoSnippet('X2D'),
-      );
+      final sentence = find.text(pl.queueEditGcodeInjectionNoSnippet('X2D'));
       expect(sentence, findsWidgets);
       expect(
         find.ancestor(
@@ -537,9 +704,10 @@ void main() {
     ) async {
       await tester.pumpWidget(queueFormScreen(archiveDraft()));
       await tester.pumpAndSettle();
+      await openQueueFormSection(tester, 'queue_edit.print_options_section');
 
       expect(
-        find.text(formL10n.commonAuto),
+        find.text(pl.commonAuto),
         findsNothing,
         reason: 'the server has nowhere to store auto — do not promise it',
       );
@@ -549,16 +717,18 @@ void main() {
     testWidgets('a 1.2.5 server offers Auto / On / Off', (tester) async {
       await tester.pumpWidget(queueFormScreen(archiveDraft(), triState: true));
       await tester.pumpAndSettle();
+      await openQueueFormSection(tester, 'queue_edit.print_options_section');
 
       // Three calibration fields on screen (levelling, flow, nozzle offset).
-      expect(find.text(formL10n.commonAuto), findsNWidgets(3));
+      expect(find.text(pl.commonAuto), findsNWidgets(3));
     });
 
     testWidgets('a chosen Auto reaches the server as auto', (tester) async {
       await tester.pumpWidget(queueFormScreen(archiveDraft(), triState: true));
       await tester.pumpAndSettle();
+      await openQueueFormSection(tester, 'queue_edit.print_options_section');
 
-      await tester.tap(find.text(formL10n.commonAuto).first);
+      await tester.tap(find.text(pl.commonAuto).first);
       await tester.pumpAndSettle();
       await submitQueueForm(tester);
 
@@ -574,8 +744,9 @@ void main() {
       // what matters here is that the form really saves it.
       await tester.pumpWidget(queueFormScreen(archiveDraft(), triState: true));
       await tester.pumpAndSettle();
+      await openQueueFormSection(tester, 'queue_edit.print_options_section');
 
-      await tester.tap(find.text(formL10n.commonAuto).first);
+      await tester.tap(find.text(pl.commonAuto).first);
       await tester.pumpAndSettle();
       await submitQueueForm(tester);
 
@@ -638,9 +809,10 @@ void main() {
 
       await tester.pumpWidget(queueFormScreen(archiveDraft()));
       await tester.pumpAndSettle();
+      await openQueueFormSection(tester, 'queue_edit.print_options_section');
 
       expect(
-        find.text(formL10n.commonAuto),
+        find.text(pl.commonAuto),
         findsNothing,
         reason: 'old server — there is no third state',
       );
@@ -694,6 +866,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await openQueueFormSection(tester, 'queue_edit.print_options_section');
 
       // The first switch is bed levelling — auto draws as ON, so tapping it
       // sets off.

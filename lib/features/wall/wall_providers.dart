@@ -24,6 +24,11 @@ class ScreenAwake {
 
   Future<void> set(bool on) =>
       platform.tell('keepScreenOn', arguments: {'on': on});
+
+  /// Dims this window's backlight to [level] (0..1); null gives it back to the
+  /// system setting. The controller's screen saver uses it.
+  Future<void> setBrightness(double? level) =>
+      platform.tell('screenBrightness', arguments: {'level': level});
 }
 
 final screenAwakeProvider = Provider<ScreenAwake>((ref) => const ScreenAwake());

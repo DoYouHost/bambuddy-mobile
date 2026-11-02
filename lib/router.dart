@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -42,8 +42,11 @@ import 'features/queue/queue_screen.dart';
 import 'features/setup/setup_screen.dart';
 import 'features/shell/root_scaffold.dart';
 import 'features/pipelines/pipelines_screen.dart';
+import 'features/finance/finance_screen.dart';
 import 'features/stats/statistics_screen.dart';
 import 'features/swatches/swatches_screen.dart';
+import 'features/tour/tips_screen.dart';
+import 'features/controller/controller_screen.dart';
 import 'features/wall/wall_screen.dart';
 import 'providers.dart';
 
@@ -51,18 +54,31 @@ import 'providers.dart';
 /// from home widget) outside widget tree.
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
-/// Navigator keys for each shell branch.
-final _dashboardNavigatorKey = GlobalKey<NavigatorState>(
-  debugLabel: 'dashboard',
+/// One navigator key per shell branch, plus the root one.
+///
+/// A record per router rather than top-level keys: the guided tour mounts a
+/// second router next to the app's, and a `GlobalKey` in two trees at once is
+/// an error.
+typedef AppNavigatorKeys = ({
+  GlobalKey<NavigatorState> root,
+  List<GlobalKey<NavigatorState>> branches,
+});
+
+AppNavigatorKeys newNavigatorKeys({GlobalKey<NavigatorState>? root}) => (
+  root: root ?? GlobalKey<NavigatorState>(debugLabel: 'root'),
+  branches: [
+    for (final label in const [
+      'dashboard',
+      'queue',
+      'archive',
+      'maintenance',
+      'inventory',
+    ])
+      GlobalKey<NavigatorState>(debugLabel: label),
+  ],
 );
-final _queueNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'queue');
-final _archiveNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'archive');
-final _maintenanceNavigatorKey = GlobalKey<NavigatorState>(
-  debugLabel: 'maintenance',
-);
-final _inventoryNavigatorKey = GlobalKey<NavigatorState>(
-  debugLabel: 'inventory',
-);
+
+final _appNavigatorKeys = newNavigatorKeys(root: rootNavigatorKey);
 
 /// App router with bottom navigation bar shell (Material 3).
 /// /setup route stays outside shell — shown without NavigationBar.
@@ -74,10 +90,32 @@ final routerProvider = Provider<GoRouter>((ref) {
   // observers cannot be added afterwards — and both log only while a recording
   // runs. One observer instance per navigator: Flutter asserts that.
   final probe = NavigationProbe();
-  final router = GoRouter(
-    navigatorKey: rootNavigatorKey,
-    observers: [ModalObserver()],
+  final router = buildAppRouter(
+    keys: _appNavigatorKeys,
     initialLocation: hasProfile ? '/' : '/setup',
+    hasProfile: hasProfile,
+  );
+  probe.watch(router);
+  // "Change server" (profile set→null→set) rebuilds a new GoRouter — dispose
+  // the old one so its listeners don't leak.
+  ref.onDispose(() {
+    probe.unwatch();
+    router.dispose();
+  });
+  return router;
+});
+
+/// Every route of the phone app. The app builds it once per profile state in
+/// [routerProvider]; the guided tour builds its own over the demo.
+GoRouter buildAppRouter({
+  required AppNavigatorKeys keys,
+  required String initialLocation,
+  required bool hasProfile,
+}) {
+  return GoRouter(
+    navigatorKey: keys.root,
+    observers: [ModalObserver()],
+    initialLocation: initialLocation,
     redirect: (context, state) {
       // The bug report stays reachable without a profile: a setup that fails is
       // exactly what someone needs to report, and the recorder runs fine with no
@@ -103,6 +141,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/settings/app',
         builder: (_, _) => const AppSettingsScreen(),
       ),
+
+      GoRoute(path: '/settings/tips', builder: (_, _) => const TipsScreen()),
 
       GoRoute(
         path: '/settings/label-printer',
@@ -145,6 +185,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       // from the dashboard, which has to stay mounted under it (WallScreen).
       GoRoute(path: '/wall', builder: (_, _) => const WallScreen()),
 
+      // Single-printer controller — outside the shell like the wall, and pushed
+      // from the dashboard for the same reason. An id that is not a number
+      // opens on "this printer is gone", never on another printer.
+      GoRoute(
+        path: '/controller/:id',
+        builder: (_, state) => ControllerScreen(
+          printerId: int.tryParse(state.pathParameters['id'] ?? '') ?? -1,
+        ),
+      ),
+
       GoRoute(
         path: '/announcements',
         builder: (_, _) => const AnnouncementsScreen(),
@@ -152,6 +202,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Archive statistics — full screen outside shell (pushed from drawer).
       GoRoute(path: '/stats', builder: (_, _) => const StatisticsScreen()),
+      GoRoute(path: '/finance', builder: (_, _) => const FinanceScreen()),
 
       // Slicer pipelines — full screen outside shell (pushed from drawer).
       // The runs dashboard is pushed from it rather than routed: it is only
@@ -375,7 +426,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         branches: [
           // Tab 0: Dashboard
           StatefulShellBranch(
-            navigatorKey: _dashboardNavigatorKey,
+            navigatorKey: keys.branches[0],
             observers: [ModalObserver()],
             routes: [
               GoRoute(path: '/', builder: (_, _) => const DashboardScreen()),
@@ -383,7 +434,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           // Tab 1: Queue
           StatefulShellBranch(
-            navigatorKey: _queueNavigatorKey,
+            navigatorKey: keys.branches[1],
             observers: [ModalObserver()],
             routes: [
               GoRoute(path: '/queue', builder: (_, _) => const QueueScreen()),
@@ -391,7 +442,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           // Tab 2: Archive
           StatefulShellBranch(
-            navigatorKey: _archiveNavigatorKey,
+            navigatorKey: keys.branches[2],
             observers: [ModalObserver()],
             routes: [
               GoRoute(
@@ -402,7 +453,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           // Tab 3: Maintenance
           StatefulShellBranch(
-            navigatorKey: _maintenanceNavigatorKey,
+            navigatorKey: keys.branches[3],
             observers: [ModalObserver()],
             routes: [
               GoRoute(
@@ -413,7 +464,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           // Tab 4: Filaments (spool inventory)
           StatefulShellBranch(
-            navigatorKey: _inventoryNavigatorKey,
+            navigatorKey: keys.branches[4],
             observers: [ModalObserver()],
             routes: [
               GoRoute(
@@ -426,12 +477,4 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
-  probe.watch(router);
-  // "Change server" (profile set→null→set) rebuilds a new GoRouter — dispose
-  // the old one so its listeners don't leak.
-  ref.onDispose(() {
-    probe.unwatch();
-    router.dispose();
-  });
-  return router;
-});
+}

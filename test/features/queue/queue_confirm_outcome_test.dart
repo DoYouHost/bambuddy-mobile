@@ -3,11 +3,12 @@ import 'dart:async';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'queue_form_harness.dart';
+import '../../helpers.dart';
 
 /// "Ask for outcome" on the print form (#1898). An older server takes the
 /// flag and drops it, so the switch is only there where the server keeps it,
@@ -15,7 +16,7 @@ import 'queue_form_harness.dart';
 void main() {
   setUp(setUpQueueForm);
 
-  final label = formL10n.queueOptConfirmOutcome;
+  final label = pl.queueOptConfirmOutcome;
 
   List<Override> outcome({
     required bool supported,
@@ -25,7 +26,11 @@ void main() {
     defaultConfirmOutcomeProvider.overrideWithValue(AsyncData(serverDefault)),
   ];
 
+  Future<void> openOptions(WidgetTester tester) =>
+      openQueueFormSection(tester, 'queue_edit.print_options_section');
+
   Future<void> tapSwitch(WidgetTester tester) async {
+    await openOptions(tester);
     await tester.ensureVisible(find.text(label));
     await tester.pumpAndSettle();
     // The title is not a tap target; the switch beside it is.
@@ -48,6 +53,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await openOptions(tester);
     expect(find.text(label), findsNothing);
     await submitQueueForm(tester);
     expect(capturedBody?.containsKey('confirm_outcome'), isFalse);
@@ -120,9 +126,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(
-      find.widgetWithText(FilledButton, formL10n.queueCreateSubmit),
-    );
+    await tester.tap(find.widgetWithText(FilledButton, pl.queueCreateSubmit));
     await tester.pump();
     settings.complete(true);
     await tester.pumpAndSettle();
@@ -150,7 +154,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(formL10n.queueOptConfirmOutcomeSticky), findsOneWidget);
+    await openOptions(tester);
+    expect(find.text(pl.queueOptConfirmOutcomeSticky), findsOneWidget);
     await submitQueueForm(tester);
     expect(capturedBody?['confirm_outcome'], true);
   });

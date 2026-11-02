@@ -1,6 +1,6 @@
 # Bambuddy mobile — Privacy Policy
 
-_Last updated: 9 August 2026_
+_Last updated: 26 October 2026_
 
 Bambuddy mobile is an unofficial, open-source Android companion app for a **self-hosted
 bambuddy server** that manages Bambu Lab 3D printers. It is **not affiliated with,
@@ -170,13 +170,16 @@ can to do that:
   Label printer: the app asks the local network, by mDNS, which label print servers are
   there. Nothing leaves your network. If you choose one, the spool labels you print are
   sent to it (a PDF of the labels, over plain HTTP on your LAN) and to nobody else.
-- **Camera** — used **only** when you open the spool QR scanner. Frames are processed
-  on-device to read a spool code; images are not stored or transmitted. The scanned
-  spool identifier is sent only to your bambuddy server.
-- **Notifications + foreground service (data sync)** — to keep a live connection to
-  your server while a print is running and show print status and alerts. No data
+- **Camera** — used **only** when you scan a QR code (a spool, or the API key shown by
+  your server during setup) or take a photo for a file in your library. Scanned frames
+  are processed on-device and are neither stored nor transmitted; the scanned code goes
+  only to your bambuddy server, and a photo you take is uploaded only to your bambuddy
+  server.
+- **Notifications + foreground service (connected device)** — to keep a live connection
+  to your server while a print is running and show print status and alerts. No data
   leaves your device beyond the connection to your server.
-- **Wake lock** — keeps the background print-status connection alive during a print.
+- **Wake lock** — requested by the notification and background-work libraries the app
+  uses. The app itself does not keep the device awake during a print.
 
 ## Wear OS companion
 

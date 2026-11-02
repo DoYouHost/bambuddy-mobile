@@ -155,7 +155,7 @@ class _TotalPrintTimeLine extends ConsumerWidget {
 }
 
 /// Parses filament color from hex RRGGBBAA to [Color]; null if invalid.
-Color? _parseTrayColor(String? hex) {
+Color? parseTrayColor(String? hex) {
   if (hex == null || hex.length != 8) return null;
   final rgb = int.tryParse(hex.substring(0, 6), radix: 16);
   final a = int.tryParse(hex.substring(6, 8), radix: 16);
@@ -352,7 +352,7 @@ class _TempGrid extends StatelessWidget {
     required this.printing,
   });
 
-  final List<_TempReading> readings;
+  final List<TempReading> readings;
   final int printerId;
   final String? model;
   final int? activeExtruder;
@@ -365,7 +365,7 @@ class _TempGrid extends StatelessWidget {
     // hardware index (0=right/default, 1=left). On single-nozzle machines the
     // plain `nozzle` is the default → index 0.
     final hasSecondNozzle = readings.any(
-      (r) => r.kind == _TempKind.nozzle && r.index != null,
+      (r) => r.kind == TempKind.nozzle && r.index != null,
     );
     // Built once for the whole grid: every tile's chart glyph opens the same
     // sheet, which switches between all of this printer's recorded sensors.
@@ -389,7 +389,7 @@ class _TempGrid extends StatelessWidget {
                   reading: r,
                   printerId: printerId,
                   model: model,
-                  nozzleIndex: r.kind != _TempKind.nozzle
+                  nozzleIndex: r.kind != TempKind.nozzle
                       ? null
                       : (r.index != null ? 0 : (hasSecondNozzle ? 1 : 0)),
                   dualNozzle: hasSecondNozzle,

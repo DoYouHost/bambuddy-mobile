@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'package:bambuddy_mobile/core/format/datetime_format.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/core/notifications/background_sync.dart';
 import 'package:bambuddy_mobile/core/notifications/print_monitor_task_handler.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -11,7 +10,6 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 // swapping this out is what keeps `stopService` off a channel no test has.
 import 'package:flutter_foreground_task/flutter_foreground_task_platform_interface.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -176,10 +174,8 @@ void main() {
           });
     }
 
-    FgsNotificationService build() => FgsNotificationService(
-      RecordingNotifications(),
-      lookupAppLocalizations(const Locale('en')),
-    );
+    FgsNotificationService build() =>
+        FgsNotificationService(RecordingNotifications(), en);
 
     setUp(() => calls = []);
 

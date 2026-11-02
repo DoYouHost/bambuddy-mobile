@@ -52,11 +52,9 @@ void main() {
       );
 
       expect(choices.matching.map((p) => p.slotId), [1]);
-      expect(
-        choices.other.map((p) => p.slotId),
-        [2],
-        reason: 'the rest stays reachable, just not first',
-      );
+      expect(choices.other.map((p) => p.slotId), [
+        2,
+      ], reason: 'the rest stays reachable, just not first');
     });
 
     test('"Generic PLA" is a preset name, not a manufacturer', () {

@@ -31,6 +31,25 @@ class SystemClockQuery {
   final PlatformQuery platform;
 
   Future<bool?> read() => platform.ask<bool?>('is24HourFormat', fallback: null);
+
+  /// The device's IANA zone (`Europe/Warsaw`), or null when nobody answers.
+  Future<String?> timeZone() =>
+      platform.ask<String?>('timeZone', fallback: null);
+}
+
+/// [query] with the device's zone as `tz` when it filters by calendar day, as
+/// the web's `addDayZone` does: the server reads `date_from`/`date_to` as days
+/// in that zone, and in its own TZ without one, so "Today" was shifted by the
+/// offset. A server older than the parameter ignores it.
+Future<Map<String, dynamic>> withDayZone(
+  Map<String, dynamic> query, {
+  SystemClockQuery clock = const SystemClockQuery(),
+}) async {
+  if (!query.containsKey('date_from') && !query.containsKey('date_to')) {
+    return query;
+  }
+  final zone = await clock.timeZone();
+  return zone == null ? query : {...query, 'tz': zone};
 }
 
 /// Writes the clock down for the isolates that cannot read it, then tells a

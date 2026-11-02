@@ -10,6 +10,7 @@ import '../core/models/inventory_bulk.dart';
 import '../core/models/inventory_reference.dart';
 import '../core/models/spool_label.dart';
 import '../core/models/spool_preset_override.dart';
+import '../core/format/system_clock_sync.dart';
 
 /// Filament inventory backend, decided by the server (see
 /// [detectInventoryBackend]).
@@ -573,10 +574,10 @@ class NativeInventorySource implements SpoolInventorySource {
   }) async {
     final res = await _dio.get<List<dynamic>>(
       Endpoints.inventoryMaterialNumberStats,
-      queryParameters: {
+      queryParameters: await withDayZone({
         if (from != null) 'date_from': calendarDateToJson(from),
         if (to != null) 'date_to': calendarDateToJson(to),
-      },
+      }),
     );
     return parseJsonList(res.data, MaterialNumberStats.fromJson);
   }

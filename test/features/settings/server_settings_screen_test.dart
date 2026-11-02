@@ -1,8 +1,6 @@
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/settings/server_settings_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -13,12 +11,6 @@ import '../../helpers.dart';
 /// have settings to read — an anonymous one on a server with authentication off
 /// has settings to *write*.
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   Future<void> pumpHub(
     WidgetTester tester, {
     AuthMode authMode = AuthMode.none,
@@ -38,11 +30,11 @@ void main() {
   testWidgets('an anonymous session gets the settings entries', (tester) async {
     await pumpHub(tester);
 
-    expect(find.text(l10n.queueSettingsTitle), findsOneWidget);
-    expect(find.text(l10n.maintenanceSettingsTitle), findsOneWidget);
-    expect(find.text(l10n.cloudAccountMenu), findsOneWidget);
+    expect(find.text(pl.queueSettingsTitle), findsOneWidget);
+    expect(find.text(pl.maintenanceSettingsTitle), findsOneWidget);
+    expect(find.text(pl.cloudAccountMenu), findsOneWidget);
     expect(
-      find.text(l10n.adminTitle),
+      find.text(pl.adminTitle),
       findsNothing,
       reason: 'nobody to attribute an account change to',
     );
@@ -51,9 +43,9 @@ void main() {
   testWidgets('an API-key session gets them too', (tester) async {
     await pumpHub(tester, authMode: AuthMode.apiKey);
 
-    expect(find.text(l10n.queueSettingsTitle), findsOneWidget);
+    expect(find.text(pl.queueSettingsTitle), findsOneWidget);
     expect(
-      find.text(l10n.adminTitle),
+      find.text(pl.adminTitle),
       findsNothing,
       reason: 'a key is refused every administrative permission',
     );
@@ -66,7 +58,7 @@ void main() {
       user: const CurrentUser(id: 1, username: 'ola', isAdmin: true),
     );
 
-    expect(find.text(l10n.queueSettingsTitle), findsOneWidget);
-    expect(find.text(l10n.adminTitle), findsOneWidget);
+    expect(find.text(pl.queueSettingsTitle), findsOneWidget);
+    expect(find.text(pl.adminTitle), findsOneWidget);
   });
 }

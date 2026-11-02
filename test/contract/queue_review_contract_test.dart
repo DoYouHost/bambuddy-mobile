@@ -4,12 +4,11 @@ import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/features/queue/queue_removal.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'contract_harness.dart';
+import '../helpers.dart';
 
 /// Server #1620: a user without `queue:start_unreviewed` has every job held
 /// for a reviewer. The app reads the gate off a printer row (#694), so what is
@@ -19,7 +18,6 @@ void main() {
     late Dio admin;
     late Dio student;
     late CurrentUser me;
-    final en = lookupAppLocalizations(const Locale('en'));
 
     setUpAll(() async {
       admin = await authenticatedDio();

@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:app_util/app_util.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
@@ -18,7 +18,6 @@ import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../common/device_files.dart';
 import '../common/file_export.dart';
-import '../common/inline_note.dart';
 import '../files/printer_download_job.dart';
 import '../files/printer_selection_download.dart';
 import '../../data/streamed_download.dart';

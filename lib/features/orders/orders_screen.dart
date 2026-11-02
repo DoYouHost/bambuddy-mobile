@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'package:app_util/app_util.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -16,10 +17,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/server_refusal.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/currency_symbol.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress_bar.dart';
-import '../common/refresh_when_shown.dart';
 import '../queue/queue_providers.dart';
 import '../stats/stats_common.dart' show fmtNum;
 import 'orders_group_sheet.dart';
@@ -63,6 +61,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
             ref.watch(batchGroupingProvider).orFalse &&
                 ref.watch(permissionProvider(Permissions.queueCreate))
             ? FloatingActionButton.extended(
+                backgroundColor: DashTokens.of(context).accentGreen,
+                foregroundColor: DashTokens.of(context).onAccent,
                 onPressed: () => showGroupSheet(context),
                 icon: const Icon(Icons.library_add_outlined),
                 label: Text(l10n.ordersGroup),
@@ -325,6 +325,10 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
         ),
     ];
     final total = b.progressTotal;
+    final platesShown = b.hasTargets && b.plates.isNotEmpty;
+    final dispatchablePlates = b.plates
+        .where((p) => p.dispatchable && p.remaining > 0)
+        .length;
 
     return logTag(
       'orders.card',
@@ -376,8 +380,10 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
               ),
             ),
             const SizedBox(height: DashSpace.sm),
-            _Numbers(batch: b, open: open),
-            if (open && b.stranded > 0)
+            _Numbers(batch: b, open: open, platesShown: platesShown),
+            // The plate rows say it each where it applies; this is for an order
+            // whose plates are not listed.
+            if (open && b.stranded > 0 && !platesShown)
               Padding(
                 padding: const EdgeInsets.only(
                   top: DashSpace.sm,
@@ -388,13 +394,15 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                   style: t.bodySoft.copyWith(color: t.accentOrangeInk),
                 ),
               ),
-            if (b.hasTargets && b.plates.isNotEmpty) ...[
+            if (platesShown) ...[
               const SizedBox(height: DashSpace.sm),
               Divider(height: 1, color: t.hairline),
               for (final p in b.plates)
                 _PlateRow(
                   plate: p,
-                  offerDispatch: canQueue && !busy,
+                  // With one plate to queue, the button below is the same
+                  // request; a second one on its row only repeats it.
+                  offerDispatch: canQueue && !busy && dispatchablePlates > 1,
                   showOwed: open,
                   onDispatch: () => _dispatch(p),
                 ),
@@ -527,14 +535,23 @@ class _Header extends StatelessWidget {
 }
 
 /// Counts, time and cost in one wrapped line, each shown only when it says
-/// something — as the web does.
+/// something. The cost still to go is left to the order's edit: next to the
+/// cost so far it made the line wrap on a phone.
 class _Numbers extends ConsumerWidget {
-  const _Numbers({required this.batch, required this.open});
+  const _Numbers({
+    required this.batch,
+    required this.open,
+    required this.platesShown,
+  });
 
   final PrintBatch batch;
 
   /// False on a cancelled order, which owes nothing any more.
   final bool open;
+
+  /// The plate rows below carry the failed and owed counts, so the line leaves
+  /// them out rather than saying them twice.
+  final bool platesShown;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -546,13 +563,11 @@ class _Numbers extends ConsumerWidget {
     final parts = <String>[
       if (b.printingCount > 0) l10n.ordersPrinting(b.printingCount),
       if (b.pendingCount > 0) l10n.ordersPending(b.pendingCount),
-      if (b.failedCount > 0) l10n.ordersFailed(b.failedCount),
-      if (open && b.hasTargets && b.remainingCount > 0)
+      if (b.failedCount > 0 && !platesShown) l10n.ordersFailed(b.failedCount),
+      if (open && b.hasTargets && b.remainingCount > 0 && !platesShown)
         l10n.ordersOwed(b.remainingCount),
       if (b.printTimeSeconds > 0) formatSeconds(l10n, b.printTimeSeconds),
       if (b.actualCost != null) l10n.ordersCostSoFar(money(b.actualCost!)),
-      if (open && b.actualCost != null && (b.estimatedRemainingCost ?? 0) > 0)
-        l10n.ordersCostToGo(money(b.estimatedRemainingCost!)),
       if (b.filamentUsedGrams != null && b.filamentUsedGrams! > 0)
         '${fmtNum(b.filamentUsedGrams!)} g',
     ];

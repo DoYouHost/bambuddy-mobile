@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:app_util/app_util.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,12 +19,6 @@ import 'archive_media_sheet.dart';
 import '../common/api_failure_snack.dart';
 import '../gcode/gcode_viewer_route.dart';
 import '../common/dash_async.dart';
-import '../common/refresh_when_shown.dart';
-import '../common/dash_input.dart';
-import '../common/dash_search_field.dart';
-import '../common/filter_controls.dart';
-import '../common/sheet_surface.dart';
-import '../common/sliver_search_bar.dart';
 import '../common/print_thumbnail.dart';
 import '../projects/project_common.dart';
 import '../queue/queue_edit_screen.dart';
@@ -39,6 +33,8 @@ import 'archive_providers.dart';
 import 'outcome_sheet.dart';
 import 'print_outcome.dart';
 import '../common/web_link.dart';
+import '../tour/tour_beacon.dart';
+import '../queue/queue_drafts.dart';
 
 /// Archive screen for prints (M5): browsing with search and thumbnails,
 /// reprint and add to queue (both require printer selection).
@@ -247,7 +243,12 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                               onTap: () => _selectionMode
                                   ? _toggleSelect(archive.id)
                                   : _openSheet(archive),
-                              onLongPress: () => _toggleSelect(archive.id),
+                              onLongPress: () {
+                                ref
+                                    .read(tourBeaconProvider)
+                                    ?.signal('archive.select');
+                                _toggleSelect(archive.id);
+                              },
                               // No favorite toggle while multi-selecting — taps
                               // there belong to the selection gesture.
                               onToggleFavorite: _selectionMode
@@ -255,9 +256,10 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                                   : () => _toggleFavorite(archive),
                             );
                             // No swipe-to-delete while multi-selecting.
-                            return _selectionMode
-                                ? card
-                                : _deletable(archive, card);
+                            return (_selectionMode
+                                    ? card
+                                    : _deletable(archive, card))
+                                .tourTarget('archive.item.${archive.id}');
                           },
                         ),
                       ),
@@ -781,6 +783,11 @@ class _ArchiveCard extends StatelessWidget {
                               child: ArchiveVerdictMark(archive: archive),
                             ),
                             Positioned(
+                              left: -4,
+                              bottom: -4,
+                              child: _PlateBadge(archive: archive),
+                            ),
+                            Positioned(
                               right: -4,
                               bottom: -4,
                               child: _MediaBadges(archive: archive),
@@ -830,6 +837,44 @@ class _ArchiveCard extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The plate a run printed, on the thumbnail's lower-left corner: a mark, not a
+/// line of text, so the row keeps its height. Only a run that printed a chosen
+/// plate of a multi-plate file carries one, which is exactly when the name alone
+/// cannot tell two rows apart; 0 is what the slicer's own API means by "every
+/// plate", not a plate.
+class _PlateBadge extends StatelessWidget {
+  const _PlateBadge({required this.archive});
+
+  final Archive archive;
+
+  @override
+  Widget build(BuildContext context) {
+    final plate = archive.plateId ?? 0;
+    if (plate <= 0) return const SizedBox.shrink();
+    final t = DashTokens.of(context);
+    return Semantics(
+      label: AppLocalizations.of(context).archivePlate(plate),
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.all(DashSpace.xs),
+        decoration: BoxDecoration(
+          color: t.subCard,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: t.subCardBorder),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.grid_view_outlined, size: 12, color: t.textSecondary),
+            const SizedBox(width: DashSpace.xs),
+            Text('$plate', style: t.monoMicro.copyWith(color: t.textSecondary)),
+          ],
         ),
       ),
     );
@@ -976,6 +1021,9 @@ class _ArchiveSheet extends ConsumerWidget {
                 ),
                 const SizedBox(height: DashSpace.lg),
                 _SheetPrimaryActions(
+                  block: ref.watch(
+                    archiveReprintBlockProvider(archive.createdById),
+                  ),
                   onAddToQueue: onAddToQueue,
                   onReprint: onReprint,
                 ),
@@ -1031,17 +1079,22 @@ class _ArchiveSheet extends ConsumerWidget {
 /// rule; this only names the buttons and their labels.
 class _SheetPrimaryActions extends StatelessWidget {
   const _SheetPrimaryActions({
+    required this.block,
     required this.onAddToQueue,
     required this.onReprint,
   });
 
+  /// Both buttons queue the archive, so one refusal turns off both, and the
+  /// line under them says why once.
+  final ArchiveReprintBlock? block;
   final VoidCallback onAddToQueue;
   final VoidCallback onReprint;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return ButtonPair(
+    final allowed = block == null;
+    final pair = ButtonPair(
       primaryLabel: l10n.archiveReprint,
       secondaryLabel: l10n.archiveAddToQueue,
       primary: logTag(
@@ -1049,7 +1102,7 @@ class _SheetPrimaryActions extends StatelessWidget {
         FilledButton.icon(
           icon: const Icon(Icons.print),
           label: Text(l10n.archiveReprint),
-          onPressed: onReprint,
+          onPressed: allowed ? onReprint : null,
         ),
       ),
       secondary: logTag(
@@ -1057,9 +1110,18 @@ class _SheetPrimaryActions extends StatelessWidget {
         OutlinedButton.icon(
           icon: const Icon(Icons.playlist_add),
           label: Text(l10n.archiveAddToQueue),
-          onPressed: onAddToQueue,
+          onPressed: allowed ? onAddToQueue : null,
         ),
       ),
+    );
+    if (allowed) return pair;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        pair,
+        const SizedBox(height: DashSpace.xs),
+        Text(block!.reason(l10n), style: Theme.of(context).textTheme.bodySmall),
+      ],
     );
   }
 }

@@ -58,16 +58,10 @@ enum NotifSkip {
   transient,
 }
 
-/// Records what the notification layer decided, and what it decided *not* to do
-/// — the useful half is usually a decision not to post, which by definition
-/// leaves no trace on the device.
-///
-/// Stateless and static like the other always-on probes, so an idle app pays
-/// nothing and the fakes in tests stay silent.
-///
-/// `title` and `body` never enter a record (`docs/diagnostics-log.md`), which is
-/// why [postError] logs the exception's *class*: the only strings in scope there
-/// are the two we may not keep.
+/// Records what the notification layer decided, and what it decided *not* to do —
+/// the useful half is usually a decision not to post, which leaves no trace on the
+/// device. `title` and `body` never enter a record, so [postError] logs the
+/// exception's *class* (docs/logging-guide.md, "What the notification probe records").
 class NotifProbe {
   const NotifProbe._();
 
@@ -109,12 +103,9 @@ class NotifProbe {
     },
   );
 
-  /// What became of the finish photo the server attached to an archive.
-  ///
-  /// Its own record rather than a [NotifSkip]: the alert is already on screen, so
-  /// this decides only whether a photo reached it — and every way that fails (no
-  /// alert to update, swiped away, download failed) looks identical from
-  /// outside. Ids only, as everywhere else here.
+  /// What became of the finish photo the server attached to an archive. Its own record,
+  /// not a [NotifSkip]: every way it fails looks identical from outside
+  /// (docs/logging-guide.md, "What the notification probe records").
   static void finishPhoto({
     required int archiveId,
     required String state,
@@ -152,16 +143,10 @@ class NotifProbe {
     },
   );
 
-  /// The baseline a fresh monitor latched from a printer's first frame.
-  ///
-  /// The background isolate is rebuilt on every entry into the background, and
-  /// a new monitor fires nothing from the first frame it sees — otherwise a
-  /// print started an hour ago would announce itself as just begun. That
-  /// silence is correct, invisible, and the answer to a whole class of "the app
-  /// swallowed my notification".
-  ///
-  /// Not a [suppressed]: at priming no event was evaluated, so calling it a
-  /// suppression would describe a decision that never took place.
+  /// The baseline a fresh monitor latched from a printer's first frame: the silence of a
+  /// new monitor is correct and invisible, so this one record answers "the app
+  /// swallowed my notification". Not a [suppressed]: no event was evaluated
+  /// (docs/logging-guide.md, "What the notification probe records").
   static void primed(int printerId, {Map<String, Object?> fields = const {}}) =>
       DiagnosticRecorder.active?.add(
         LogSource.notif,
@@ -273,18 +258,11 @@ class NotifProbe {
     fields: {'ok': false, 'cause': error.runtimeType.toString()},
   );
 
-  /// Opens the lane with the state that decides everything else: which event
-  /// types the user disabled, whether alerts are off wholesale, whether the OS
-  /// permission is granted, and how important the alerts channel is.
-  ///
-  /// One line instead of a record per suppressed event, and it works even when
-  /// the recording covers none of the moments an alert was due — prints run for
-  /// hours, a session is capped at `recordingLimit`.
-  ///
-  /// [permission] and [channelImportance] are injected so this is testable;
-  /// both may answer null, logged as an absent field rather than as a guess. A
-  /// granted permission with a muted channel is a real configuration and looks
-  /// identical from `areNotificationsEnabled` alone.
+  /// Opens the lane with the state that decides everything else: disabled event types,
+  /// alerts off wholesale, the OS permission and the alerts channel's importance. One
+  /// line instead of a record per suppressed event. [permission] and
+  /// [channelImportance] are injected for tests and may answer null, logged as an
+  /// absent field (docs/logging-guide.md, "What the notification probe records").
   static Future<void> openSession(
     NotificationPrefs prefs, {
     Future<bool?> Function()? permission,
@@ -319,14 +297,9 @@ class NotifProbe {
   }
 }
 
-/// Records every alert the app hands to the platform. One decorator rather than
-/// a log call at each site, so it cannot be forgotten in new code.
-///
-/// Wraps the *outer* service in the foreground-service isolate, not the
-/// `LocalNotificationService` inside it: that isolate's `showOngoing` rewrites
-/// the service notification instead of delegating, so wrapping from underneath
-/// would miss it. Unused in the UI isolate, where the ongoing methods are
-/// no-ops and a record would be a fabrication.
+/// Records every alert the app hands to the platform. One decorator rather than a log
+/// call at each site, wrapping the *outer* service in the foreground-service isolate;
+/// unused in the UI isolate (docs/logging-guide.md, "What the notification probe records").
 class LoggingNotifications implements NotificationService {
   const LoggingNotifications(this._inner);
 

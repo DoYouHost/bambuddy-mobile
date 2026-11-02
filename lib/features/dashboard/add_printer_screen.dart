@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:app_util/app_util.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -17,7 +17,6 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/dash_input.dart';
 import 'providers.dart';
 import '../../core/models/printer_location.dart';
 import '../locations/printer_locations_providers.dart';

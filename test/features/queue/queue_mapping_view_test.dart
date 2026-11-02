@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/ams/color_names.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
@@ -8,7 +10,7 @@ import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -19,13 +21,20 @@ import '../../helpers.dart';
 /// catalogue name with its nozzle and grams, each slot as
 /// `A1: <spool or variant> (<colour>)`, and why a pick is not a match.
 class _Printers extends PrintersRepository {
-  _Printers(this._status, [this._spools = const {}]) : super(Dio());
+  _Printers(this._status, [this._spools = const {}, this._answer])
+    : super(Dio());
 
   final PrinterStatus _status;
   final Map<int, SlotSpool> _spools;
 
+  /// Holds the status back until completed, to look at the sheet meanwhile.
+  final Completer<void>? _answer;
+
   @override
-  Future<PrinterStatus?> fetchStatus(int printerId) async => _status;
+  Future<PrinterStatus?> fetchStatus(int printerId) async {
+    await _answer?.future;
+    return _status;
+  }
 
   @override
   Future<SlotInventory> fetchInventoryRemain(int printerId) async =>
@@ -46,13 +55,15 @@ void main() {
     ColorCatalog catalog = ColorCatalog.empty,
     Map<String, String> names = const {},
     List<int>? stored,
+    Completer<void>? answer,
+    bool settle = true,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           fakeServerProfileOverride(),
           printersRepositoryProvider.overrideWithValue(
-            _Printers(status, spools),
+            _Printers(status, spools, answer),
           ),
           inventoryBackendOverride(),
           inventoryProvider.overrideWith(
@@ -88,7 +99,11 @@ void main() {
       ),
     );
     await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump(const Duration(milliseconds: 400));
+    }
   }
 
   PrinterStatus amsOf(List<AmsTray> trays, {Map<int, String>? inlets}) =>
@@ -100,6 +115,31 @@ void main() {
             ? null
             : const FilaSwitch(installed: true, ready: true),
       );
+
+  testWidgets(
+    'waiting for the printer, the sheet is no taller than its spinner',
+    (tester) async {
+      usePhoneWindow(tester);
+      final answer = Completer<void>();
+      await open(
+        tester,
+        status: amsOf([_tray(0, 'PLA', 'FF0000FF')]),
+        answer: answer,
+        settle: false,
+      );
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(BottomSheet)).height,
+        lessThan(
+          tester.view.physicalSize.height / tester.view.devicePixelRatio / 2,
+        ),
+        reason: 'a Center spinner takes the whole height a sheet offers',
+      );
+      answer.complete();
+      await tester.pumpAndSettle();
+    },
+  );
 
   testWidgets('a match reads ready, with the slot and its colour', (
     tester,
@@ -113,7 +153,7 @@ void main() {
       ]),
     );
 
-    expect(find.text('Gotowe'), findsOneWidget);
+    expect(find.text(pl.mappingStatusReady), findsOneWidget);
     expect(find.text('A1: PLA (Czerwony)'), findsOneWidget);
     expect(find.byIcon(Icons.check_circle), findsOneWidget);
   });
@@ -123,11 +163,9 @@ void main() {
   ) async {
     await open(tester, status: amsOf([_tray(0, 'PLA', '00FF00FF')]));
 
-    expect(find.text('Inny kolor'), findsOneWidget);
+    expect(find.text(pl.mappingStatusColorMismatch), findsOneWidget);
     expect(
-      find.text(
-        'Ten sam typ, inny kolor: potrzebny Czerwony, w slocie Zielony',
-      ),
+      find.text(pl.mappingSameTypeOtherColor('Czerwony', 'Zielony')),
       findsOneWidget,
     );
   });
@@ -138,8 +176,10 @@ void main() {
 
     expect(
       find.text(
-        'Ten sam typ, inny kolor: potrzebny Czerwony (#FF0000), '
-        'w slocie Czerwony (#A00000)',
+        pl.mappingSameTypeOtherColor(
+          'Czerwony (#FF0000)',
+          'Czerwony (#A00000)',
+        ),
       ),
       findsOneWidget,
     );
@@ -148,8 +188,8 @@ void main() {
   testWidgets('no slot of the type reads type not found', (tester) async {
     await open(tester, status: amsOf([_tray(0, 'PETG', 'FF0000FF')]));
 
-    expect(find.text('Brak filamentu tego typu'), findsOneWidget);
-    expect(find.text('Ten typ filamentu nie jest załadowany'), findsOneWidget);
+    expect(find.text(pl.mappingStatusTypeNotFound), findsOneWidget);
+    expect(find.text(pl.mappingTypeNotLoaded), findsOneWidget);
   });
 
   testWidgets('a slot goes by its spool, else by the variant and catalogue', (
@@ -194,8 +234,8 @@ void main() {
     );
 
     expect(find.text('Bambu PLA Basic'), findsOneWidget);
-    expect(find.text('L'), findsOneWidget);
-    expect(find.text(' (12 g)'), findsOneWidget);
+    expect(find.text(pl.extruderLeftShort), findsOneWidget);
+    expect(find.text(' (12\u00A0g)'), findsOneWidget);
   });
 
   testWidgets('the picker marks the exact colour and the switch inlet', (
@@ -208,7 +248,7 @@ void main() {
     await tester.tap(find.text('PLA').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('[L] · Dokładnie ten kolor'), findsOneWidget);
+    expect(find.text('[L] · ${pl.mappingExactColor}'), findsOneWidget);
   });
 
   testWidgets('a stored pick says it was picked by hand', (tester) async {
@@ -218,7 +258,7 @@ void main() {
       stored: [1],
     );
 
-    expect(find.text('Wybrany ręcznie'), findsOneWidget);
+    expect(find.text(pl.mappingManual), findsOneWidget);
   });
 
   group('the Filament Track Switch inlet', () {

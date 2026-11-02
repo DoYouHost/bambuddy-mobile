@@ -2,7 +2,7 @@ import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/admin/admin_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -34,10 +34,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Użytkownicy'), findsOneWidget);
-    expect(find.text('Grupy'), findsOneWidget);
-    expect(find.text('Klucze API'), findsOneWidget);
-    expect(find.textContaining('Zalogowany jako admin'), findsOneWidget);
+    expect(find.text(pl.usersTitle), findsOneWidget);
+    expect(find.text(pl.groupsTitle), findsOneWidget);
+    expect(find.text(pl.apiKeysTitle), findsOneWidget);
+    expect(find.textContaining(pl.adminSignedInAs('admin')), findsOneWidget);
   });
 
   testWidgets('each entry stands on its own permission', (tester) async {
@@ -55,9 +55,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Użytkownicy'), findsOneWidget);
-    expect(find.text('Grupy'), findsNothing);
-    expect(find.text('Klucze API'), findsNothing);
+    expect(find.text(pl.usersTitle), findsOneWidget);
+    expect(find.text(pl.groupsTitle), findsNothing);
+    expect(find.text(pl.apiKeysTitle), findsNothing);
   });
 
   group('canOpenAdminProvider', () {

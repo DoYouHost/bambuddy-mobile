@@ -1,6 +1,6 @@
 import 'package:app_util/app_util.dart' as util;
 
-import '../demo/demo_config.dart';
+import '../app_context.dart';
 
 /// Server authentication mode. EVERY code path that touches auth
 /// (headers, token minting, re-login) MUST branch on this enum —

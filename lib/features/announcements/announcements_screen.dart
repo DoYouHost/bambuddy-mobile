@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format/datetime_format.dart';
@@ -11,7 +11,6 @@ import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
 import '../common/web_link.dart';
 import 'announcements_providers.dart';
-import '../common/tappable_card.dart';
 
 /// The web's announcements panel as a screen: newest first, an unread one
 /// marked until it is opened — opening is what marks it read — and expired

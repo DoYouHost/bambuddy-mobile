@@ -1,21 +1,26 @@
+import 'package:bambuddy_mobile/core/models/cost_center.dart';
 import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_folder.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
 import 'package:bambuddy_mobile/core/models/library_tag.dart';
+import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/data/library_repository.dart';
+import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_screen.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
+import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../../helpers.dart';
+import '../queue/queue_form_harness.dart';
 
 class _FakeNotifier extends FileManagerNotifier {
   _FakeNotifier(this._state);
@@ -236,8 +241,6 @@ void main() {
   });
 
   group('add to queue (#3112)', () {
-    AppLocalizations l10n(WidgetTester tester) =>
-        AppLocalizations.of(tester.element(find.byType(FileManagerScreen)));
     const queuePath = '/api/v1/library/files/add-to-queue';
 
     /// Selection mode over one file, both repositories real on [dio].
@@ -247,8 +250,12 @@ void main() {
       required bool canTarget,
       Set<int> selected = const {1},
       bool billing = false,
+      List<Override> extra = const [],
+      LibraryFile? grouped,
+      QueueRepository? queue,
     }) async {
-      final file = _file(filename: 'thing.gcode.3mf', fileType: 'gcode');
+      final file =
+          grouped ?? _file(filename: 'thing.gcode.3mf', fileType: 'gcode');
       await pumpPhone(
         tester,
         const FileManagerScreen(),
@@ -256,13 +263,14 @@ void main() {
           noServerProfileOverride,
           libraryRepositoryProvider.overrideWithValue(LibraryRepository(dio)),
           printersRepositoryProvider.overrideWithValue(PrintersRepository(dio)),
+          if (queue != null) queueRepositoryProvider.overrideWithValue(queue),
           libraryQueueTargetProvider.overrideWithValue(AsyncData(canTarget)),
           fileManagerProvider.overrideWith(
             () => _FakeNotifier(
               FileManagerState(
                 files: [file],
-                selectionMode: true,
-                selected: selected,
+                selectionMode: grouped == null,
+                selected: grouped == null ? selected : const {},
               ),
             ),
           ),
@@ -277,24 +285,378 @@ void main() {
             (ref) async => {'billing_enabled': billing},
           ),
           serverSettingsOverride(const {}),
+          ...extra,
         ],
       );
       await tester.pumpAndSettle();
     }
 
-    testWidgets('a billing server is told to queue in the browser', (
+    // The bulk route takes no cost center, so on a billing server each file is
+    // its own `POST /queue/`, charged to the center asked for.
+    const lab = CostCenter(id: 5, name: 'Lab');
+    const mine = CostCenter(id: 3, name: 'demo', isPrivate: true);
+    final centersOverride = printableCostCentersProvider.overrideWith(
+      (ref) async => const [mine, lab],
+    );
+
+    /// A queue repository over [dio] that answers every create with 200.
+    ({QueueRepository repo, RequestLog log}) queueOn(Dio dio) {
+      final log = captureRequests(dio);
+      mockServer(dio)
+        ..onGet(
+          '/api/v1/updates/version',
+          (s) =>
+              s.reply(200, {'version': '0.2.4.9', 'repo': 'maziggy/bambuddy'}),
+        )
+        ..onPost(
+          '/api/v1/queue/',
+          (s) => s.reply(200, null),
+          data: Matchers.any,
+        );
+      return (repo: QueueRepository(dio, ServerVersionService(dio)), log: log);
+    }
+
+    /// Every write that left, whichever route it took.
+    List<String> writes(RequestLog log) => [
+      for (final r in log.requests)
+        if (r.method != 'GET') '${r.method} ${r.path}',
+    ];
+
+    List<Map<String, dynamic>> creates(RequestLog log) => [
+      for (final r in log.requests)
+        if (r.method == 'POST' && r.path == '/api/v1/queue/')
+          r.data as Map<String, dynamic>,
+    ];
+
+    testWidgets(
+      'on a billing server each file is charged to the center picked',
+      (tester) async {
+        final dio = testDio();
+        final (:repo, :log) = queueOn(dio);
+        await pumpQueueing(
+          tester,
+          dio: dio,
+          canTarget: false,
+          billing: true,
+          selected: const {1, 2},
+          queue: repo,
+          extra: [centersOverride],
+        );
+
+        await tester.tap(byLogId('files.add_to_queue'));
+        await tester.pumpAndSettle();
+        expect(find.text(pl.fmQueueCostCenterTitle(2)), findsOneWidget);
+        expect(find.text(pl.queueCostCenterPersonal('demo')), findsOneWidget);
+
+        await tester.tap(find.text('Lab'));
+        await tester.pumpAndSettle();
+
+        final bodies = creates(log);
+        expect([for (final b in bodies) b['library_file_id']], [1, 2]);
+        expect([for (final b in bodies) b['cost_center_id']], [5, 5]);
+        expect(find.text(pl.fmAddedToQueue), findsOneWidget);
+      },
+    );
+
+    testWidgets('backing out of the center sheet queues nothing', (
       tester,
     ) async {
-      // This route checks no budget: the job would be queued without a cost
-      // center and could never start. Nothing is mocked, so a request fails.
       final dio = testDio();
-      mockServer(dio);
-      await pumpQueueing(tester, dio: dio, canTarget: false, billing: true);
+      final (:repo, :log) = queueOn(dio);
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        selected: const {1, 2},
+        queue: repo,
+        extra: [centersOverride],
+      );
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('sheet.queue_cost_center'), findsNothing);
+      expect(writes(log), isEmpty);
+      expect(find.text(pl.fmAddedToQueue), findsNothing);
+    });
+
+    testWidgets('a session that cannot list its centers is told so', (
+      tester,
+    ) async {
+      final dio = testDio();
+      final (:repo, :log) = queueOn(dio);
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        selected: const {1, 2},
+        queue: repo,
+        extra: [printableCostCentersProvider.overrideWith((ref) async => null)],
+      );
 
       await tester.tap(byLogId('files.add_to_queue'));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n(tester).queueBillingUseWeb), findsOneWidget);
+      expect(find.text(pl.queueBillingCostCentersRefused), findsOneWidget);
+      expect(byLogId('sheet.queue_cost_center'), findsNothing);
+      expect(writes(log), isEmpty);
+    });
+
+    testWidgets('a user with no center to print on is told so', (tester) async {
+      final dio = testDio();
+      final (:repo, :log) = queueOn(dio);
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        selected: const {1, 2},
+        queue: repo,
+        extra: [
+          printableCostCentersProvider.overrideWith((ref) async => const []),
+        ],
+      );
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.queueBillingNoCostCenter), findsOneWidget);
+      expect(writes(log), isEmpty);
+    });
+
+    testWidgets('a file the server refuses does not stop the others', (
+      tester,
+    ) async {
+      final dio = testDio();
+      final log = captureRequests(dio);
+      mockServer(dio)
+        ..onGet(
+          '/api/v1/updates/version',
+          (s) =>
+              s.reply(200, {'version': '0.2.4.9', 'repo': 'maziggy/bambuddy'}),
+        )
+        ..onPost(
+          '/api/v1/queue/',
+          (s) => s.reply(200, null),
+          data: {'library_file_id': 1, 'quantity': 1, 'cost_center_id': 5},
+        )
+        ..onPost(
+          '/api/v1/queue/',
+          (s) => s.reply(400, {
+            'detail': 'Estimated cost is required for cost center prints',
+          }),
+          data: {'library_file_id': 2, 'quantity': 1, 'cost_center_id': 5},
+        )
+        ..onPost(
+          '/api/v1/queue/',
+          (s) => s.reply(200, null),
+          data: {'library_file_id': 3, 'quantity': 1, 'cost_center_id': 5},
+        );
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        selected: const {1, 2, 3},
+        queue: QueueRepository(dio, ServerVersionService(dio)),
+        extra: [centersOverride],
+      );
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lab'));
+      await tester.pumpAndSettle();
+
+      expect(creates(log), hasLength(3));
+      expect(
+        find.text(
+          pl.fmAddedToQueuePartial(2, 3, pl.queueBillingEstimateRequired),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('files that all fail say why, in the user\'s words', (
+      tester,
+    ) async {
+      final dio = testDio();
+      mockServer(dio)
+        ..onGet(
+          '/api/v1/updates/version',
+          (s) =>
+              s.reply(200, {'version': '0.2.4.9', 'repo': 'maziggy/bambuddy'}),
+        )
+        ..onPost(
+          '/api/v1/queue/',
+          (s) => s.reply(400, {'detail': 'Cost center is inactive'}),
+          data: Matchers.any,
+        );
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        selected: const {1, 2},
+        queue: QueueRepository(dio, ServerVersionService(dio)),
+        extra: [centersOverride],
+      );
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lab'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.queueBillingCostCenterInactive), findsOneWidget);
+      expect(find.text(pl.fmAddedToQueue), findsNothing);
+    });
+
+    testWidgets('on a billing server a group is queued on the center picked', (
+      tester,
+    ) async {
+      final dio = testDio();
+      final (:repo, :log) = queueOn(dio);
+      mockServer(dio).onGet(
+        '/api/v1/library/variant-groups/by-file/1',
+        (s) => s.reply(200, {
+          'id': 9,
+          'name': 'Benchy',
+          'members': [
+            {
+              'library_file_id': 1,
+              'target_model': 'X1C',
+              'filename': 'a.3mf',
+              'position': 0,
+            },
+            {
+              'library_file_id': 2,
+              'target_model': 'P1S',
+              'filename': 'b.3mf',
+              'position': 1,
+            },
+          ],
+        }),
+      );
+      final file = _file(variantCount: 2);
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        grouped: file,
+        queue: repo,
+        extra: [centersOverride],
+      );
+
+      await tester.tap(find.text(file.displayName));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('file_actions.queue_variants'));
+      await tester.pumpAndSettle();
+      expect(find.text(pl.fmQueueCostCenterTitle(1)), findsOneWidget);
+      await tester.tap(find.text('Lab'));
+      await tester.pumpAndSettle();
+
+      final body = creates(log).single;
+      expect(body['cost_center_id'], 5);
+      expect(body['variants'], hasLength(2));
+    });
+
+    testWidgets('on a billing server the file sheet opens the print form', (
+      tester,
+    ) async {
+      await setUpQueueForm();
+      final dio = testDio();
+      mockServer(dio);
+      final file = _file();
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        grouped: file,
+        extra: [
+          ...queueFormOverrides(),
+          printableCostCentersProvider.overrideWith((ref) async => const []),
+        ],
+      );
+
+      await tester.tap(find.text(file.displayName));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('file_actions.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(QueueEditScreen), findsOneWidget);
+    });
+
+    testWidgets('a job queued through the form ends the selection', (
+      tester,
+    ) async {
+      await setUpQueueForm();
+      usePhoneWindow(tester, dp: 2400);
+      final dio = testDio();
+      mockServer(dio);
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        extra: [
+          ...queueFormOverrides(),
+          printableCostCentersProvider.overrideWith(
+            (ref) async => const [CostCenter(id: 1, name: 'Alice')],
+          ),
+        ],
+      );
+      expect(byLogId('files.add_to_queue'), findsOneWidget);
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+      await openQueueFormPrinterSelect(tester);
+      // The name, not the tag: the tagged column's centre is the empty space
+      // beside a short name, which takes no tap.
+      await tester.tap(
+        find.descendant(
+          of: byLogId('queue_edit.printer'),
+          matching: find.text(printerX2D.name),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await submitQueueForm(tester);
+
+      expect(find.byType(QueueEditScreen), findsNothing);
+      expect(
+        byLogId('files.add_to_queue'),
+        findsNothing,
+        reason: 'the selection bar goes with the selection',
+      );
+    });
+
+    testWidgets('on a billing server one file opens the print form', (
+      tester,
+    ) async {
+      // The form carries the cost center picker the bulk route has no field for.
+      await setUpQueueForm();
+      final dio = testDio();
+      mockServer(dio);
+      await pumpQueueing(
+        tester,
+        dio: dio,
+        canTarget: false,
+        billing: true,
+        extra: [
+          ...queueFormOverrides(),
+          printableCostCentersProvider.overrideWith((ref) async => const []),
+        ],
+      );
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(QueueEditScreen), findsOneWidget);
+      expect(byLogId('sheet.queue_cost_center'), findsNothing);
     });
 
     testWidgets('asks where, offering only active printers and their models', (
@@ -325,14 +687,14 @@ void main() {
       await tester.tap(byLogId('files.add_to_queue'));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n(tester).queueEditAnyModel('X1C')), findsOneWidget);
-      expect(find.text(l10n(tester).queueEditAnyModel('P1S')), findsNothing);
+      expect(find.text(pl.queueEditAnyModel('X1C')), findsOneWidget);
+      expect(find.text(pl.queueEditAnyModel('P1S')), findsNothing);
       expect(find.text('Shed'), findsNothing);
 
       await tester.tap(find.text('Lab'));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n(tester).fmAddedToQueue), findsOneWidget);
+      expect(find.text(pl.fmAddedToQueue), findsOneWidget);
     });
 
     testWidgets('only inactive printers: nothing to choose, nothing asked', (
@@ -362,7 +724,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(byLogId('sheet.queue_target'), findsNothing);
-      expect(find.text(l10n(tester).fmAddedToQueue), findsOneWidget);
+      expect(find.text(pl.fmAddedToQueue), findsOneWidget);
     });
 
     testWidgets(
@@ -398,7 +760,7 @@ void main() {
         await tester.tap(byLogId('files.add_to_queue'));
         await tester.pumpAndSettle();
 
-        final l = l10n(tester);
+        final l = pl;
         expect(
           find.text(l.fmAddedToQueuePartial(1, 3, l.fmQueueErrWrongModel)),
           findsOneWidget,
@@ -426,7 +788,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(byLogId('sheet.queue_target'), findsNothing);
-      expect(find.text(l10n(tester).fmAddedToQueue), findsOneWidget);
+      expect(find.text(pl.fmAddedToQueue), findsOneWidget);
     });
 
     testWidgets('a batch that queued nothing says why, in the user\'s words', (
@@ -457,8 +819,8 @@ void main() {
       await tester.tap(byLogId('files.add_to_queue'));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n(tester).fmAddedToQueue), findsNothing);
-      expect(find.text(l10n(tester).fmQueueErrNotSliced), findsOneWidget);
+      expect(find.text(pl.fmAddedToQueue), findsNothing);
+      expect(find.text(pl.fmQueueErrNotSliced), findsOneWidget);
     });
   });
 
@@ -527,11 +889,11 @@ void main() {
 
       final sheet = find.byType(BottomSheet);
       await tester.dragUntilVisible(
-        find.text('Usuń'),
+        find.text(pl.fmDelete),
         sheet,
         const Offset(0, -60),
       );
-      expect(find.text('Usuń'), findsOneWidget);
+      expect(find.text(pl.fmDelete), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -554,8 +916,8 @@ void main() {
       await pump(tester, file: file);
       await openFileSheet(tester, file);
 
-      expect(find.text('Potnij'), findsOneWidget);
-      expect(find.text('Drukuj'), findsNothing);
+      expect(find.text(pl.sliceAction), findsOneWidget);
+      expect(find.text(pl.fmPrint), findsNothing);
     });
 
     testWidgets('slicing is not offered when the server has it switched off', (
@@ -564,7 +926,7 @@ void main() {
       final file = _file();
       await pump(tester, file: file, slicerEnabled: false);
       await openFileSheet(tester, file);
-      expect(find.text('Potnij'), findsNothing);
+      expect(find.text(pl.sliceAction), findsNothing);
     });
 
     testWidgets('a gcode file offers printing, not slicing', (tester) async {
@@ -573,15 +935,15 @@ void main() {
       await pump(tester, file: file);
       await openFileSheet(tester, file);
 
-      expect(find.text('Drukuj'), findsOneWidget);
-      expect(find.text('Potnij'), findsNothing);
+      expect(find.text(pl.fmPrint), findsOneWidget);
+      expect(find.text(pl.sliceAction), findsNothing);
     });
 
     testWidgets('a server with tags offers the tag action', (tester) async {
       final file = _file();
       await pump(tester, file: file);
       await openFileSheet(tester, file);
-      expect(find.textContaining('Tagi'), findsOneWidget);
+      expect(find.textContaining(pl.fmTags), findsOneWidget);
     });
 
     testWidgets('a server with no tag routes hides the tag action', (
@@ -591,7 +953,7 @@ void main() {
       await pump(tester, file: file, tags: null);
       await openFileSheet(tester, file);
       expect(find.textContaining('tag'), findsNothing);
-      expect(find.textContaining('Tagi'), findsNothing);
+      expect(find.textContaining(pl.fmTags), findsNothing);
     });
   });
 
@@ -645,7 +1007,7 @@ void main() {
   group('the sort sheet fits', () {
     testWidgets('six options do not overflow', (tester) async {
       await pump(tester, file: _file());
-      await tester.tap(find.byTooltip('Sortuj według'));
+      await tester.tap(find.byTooltip(pl.fmSortBy));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
@@ -667,7 +1029,6 @@ void main() {
       externalReadonly: true,
     );
     final file = _file();
-    final l10n = lookupAppLocalizations(const Locale('pl'));
 
     Future<void> pumpAt(WidgetTester tester, {int? folderId}) async {
       await pumpPhone(
@@ -734,7 +1095,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text(l10n.fmRoot), findsWidgets);
+      expect(find.text(pl.fmRoot), findsWidgets);
     });
 
     testWidgets('nothing can be added inside a folder that is not writable', (

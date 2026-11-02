@@ -1,0 +1,7 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/queue/history/clear",
+    "body": null
+  }
+]

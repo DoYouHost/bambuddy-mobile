@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'queue_form_harness.dart';
+import '../../helpers.dart';
 
 /// The filament overrides of a new model job across a plate switch — only a
 /// new job can change plate. The web drops them when the plate changes
@@ -60,15 +61,13 @@ void main() {
   testWidgets('another plate drops them', (tester) async {
     await pump(tester);
     await tester.scrollUntilVisible(
-      find.text(formL10n.queueEditPlateNamed(1, 'Plate 1')),
+      find.text(pl.queueEditPlateNamed(1, 'Plate 1')),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text(formL10n.queueEditPlateNamed(1, 'Plate 1')));
+    await tester.tap(find.text(pl.queueEditPlateNamed(1, 'Plate 1')));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.text(formL10n.queueEditPlateNamed(2, 'Plate 2')).last,
-    );
+    await tester.tap(find.text(pl.queueEditPlateNamed(2, 'Plate 2')).last);
     await tester.pumpAndSettle();
     await submitQueueForm(tester);
 

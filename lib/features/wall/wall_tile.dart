@@ -1,6 +1,6 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:clock/clock.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../core/format/duration_format.dart';
 import '../../core/models/printer_status.dart';
@@ -9,7 +9,7 @@ import '../../core/printers/offline_debounce.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
 import '../camera/camera_view.dart';
-import '../common/dash_progress_bar.dart';
+import '../dashboard/widgets/printer_state_pill.dart';
 import 'wall_camera.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -112,7 +112,7 @@ class _WallTileState extends State<WallTile> {
                   ),
                 ),
                 const SizedBox(width: DashSpace.sm),
-                _statePill(t, l10n, status, offline),
+                printerStatePill(t, l10n, status, offline: offline),
               ],
             ),
             if (fault != null) ...[
@@ -177,7 +177,10 @@ class _WallTileState extends State<WallTile> {
             ),
           ),
           child: Theme(
-            data: buildDashThemeData(Brightness.dark, brand: bambuddyBrand),
+            data: buildDashThemeData(
+              Brightness.dark,
+              brand: DashTokens.of(context).brand,
+            ),
             child: Builder(
               builder: (context) {
                 final t = DashTokens.of(context);
@@ -238,7 +241,12 @@ class _WallTileState extends State<WallTile> {
                                     ),
                                   ),
                                   const SizedBox(width: DashSpace.sm),
-                                  _statePill(t, l10n, status, false),
+                                  printerStatePill(
+                                    t,
+                                    l10n,
+                                    status,
+                                    offline: false,
+                                  ),
                                 ],
                               ),
                               if (printing) ...[
@@ -286,49 +294,6 @@ class _WallTileState extends State<WallTile> {
       const SizedBox(height: DashSpace.sm),
       _meta(t, l10n, status),
     ];
-  }
-
-  Widget _statePill(
-    DashTokens t,
-    AppLocalizations l10n,
-    PrinterStatus? status,
-    bool offline,
-  ) {
-    if (offline) {
-      return DashPill(
-        label: l10n.statusOffline,
-        accent: t.danger,
-        accentInk: t.dangerInk,
-        dense: true,
-      );
-    }
-    // Worded as the printer card's pill (`_stateChipLabel`), so the wall and
-    // the dashboard under it say the same thing about the same printer.
-    final label =
-        (status == null
-                ? l10n.statusUnavailable
-                : status.state ??
-                      ((status.connected ?? false)
-                          ? l10n.online
-                          : l10n.offline))
-            .toUpperCase();
-    if (status?.isPaused ?? false) {
-      return DashPill(
-        label: label,
-        accent: t.accentOrange,
-        accentInk: t.accentOrangeInk,
-        dense: true,
-      );
-    }
-    if (status?.isPrinting ?? false) {
-      return DashPill(
-        label: label,
-        accent: t.accentGreen,
-        accentInk: t.accentGreenInk,
-        dense: true,
-      );
-    }
-    return DashPill(label: label, accent: t.textSecondary, dense: true);
   }
 
   Widget _meta(DashTokens t, AppLocalizations l10n, PrinterStatus status) {

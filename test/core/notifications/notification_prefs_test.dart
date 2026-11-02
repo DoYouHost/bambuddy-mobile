@@ -111,6 +111,7 @@ void main() {
       expect(decoded.enabled, {
         NotifEvent.milestones,
         NotifEvent.outcomeRequest,
+        NotifEvent.billingAlert,
       });
     });
 

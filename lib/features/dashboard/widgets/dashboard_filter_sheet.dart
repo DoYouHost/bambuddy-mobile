@@ -1,11 +1,9 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/dash_theme.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../common/dash_input.dart';
-import '../../common/sheet_surface.dart';
 import '../dashboard_filters.dart';
 import '../dashboard_sort.dart';
 import '../providers.dart';

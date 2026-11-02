@@ -79,11 +79,25 @@ class InventoryRepository {
     _serverVersion,
   );
 
-  /// Settles [materialNumberCapability] from a listing: `SpoolResponse` sends
-  /// `material_number` on every row from the feature on. An empty inventory
-  /// says nothing either way.
-  void observeSpools(List<Spool> spools) => materialNumberCapability
-      .observeFirst(spools, (s) => s.materialNumberReported);
+  /// Whether this server records when a spool was last dried (#2863). One
+  /// latch for both backends: Spoolman rows carry the keys too, and both
+  /// backends take the date on an update.
+  late final lastDriedCapability = ObservedCapability(
+    ServerFeature.spoolLastDried,
+    _serverVersion,
+  );
+
+  /// Settles [materialNumberCapability] and [lastDriedCapability] from a
+  /// listing: `SpoolResponse` sends `material_number` and `last_dried_at` on
+  /// every row from their features on. An empty inventory says nothing either
+  /// way.
+  void observeSpools(List<Spool> spools) {
+    materialNumberCapability.observeFirst(
+      spools,
+      (s) => s.materialNumberReported,
+    );
+    lastDriedCapability.observeFirst(spools, (s) => s.lastDriedReported);
+  }
 
   Future<List<Spool>> fetchSpools({bool includeArchived = false}) =>
       _on((s) => s.fetchSpools(includeArchived: includeArchived));

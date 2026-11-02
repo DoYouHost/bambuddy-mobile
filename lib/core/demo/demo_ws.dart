@@ -28,17 +28,21 @@ class DemoWsConnection implements WsConnection {
   }
 
   late final StreamController<dynamic> _controller;
+
+  /// The backend at connect time, like the HTTP adapter's: the guided tour
+  /// lends the process a fresh demo while the app's own socket stays open.
+  final DemoBackend _demo = DemoBackend.instance;
   Timer? _timer;
   StreamSubscription<void>? _poke;
 
   void _emitAll() {
     if (_controller.isClosed) return;
-    for (final id in DemoBackend.printerIds) {
+    for (final id in _demo.printerIds) {
       _controller.add(
         jsonEncode({
           'type': 'printer_status',
           'printer_id': id,
-          'data': DemoBackend.instance.statusData(id),
+          'data': _demo.statusData(id),
         }),
       );
     }

@@ -1,4 +1,4 @@
-import 'package:bambuddy_mobile/wear/wear_error.dart';
+import 'package:bambuddy_mobile/wear/wear_theme.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// The trimming both watch screens now share. It runs on messages the user is

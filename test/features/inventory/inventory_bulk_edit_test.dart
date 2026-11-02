@@ -5,9 +5,8 @@ import 'package:bambuddy_mobile/core/models/supplier.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -67,12 +66,6 @@ class _FakeInventory extends InventoryNotifier {
 }
 
 void main() {
-  late AppLocalizations l10n;
-
-  setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
-  });
-
   /// Selects both spools and opens the mass-edit sheet from the overflow menu.
   Future<_FakeInventory> openSheet(
     WidgetTester tester, {
@@ -110,7 +103,7 @@ void main() {
     await settle(tester);
     await tester.tap(find.byIcon(Icons.more_vert));
     await settle(tester);
-    await tester.tap(find.text(l10n.inventoryBulkEdit));
+    await tester.tap(find.text(pl.inventoryBulkEdit));
     await settle(tester);
     // The sheet is a lazy ListView taller than the screen: Apply and the last
     // fields are not built until they scroll into range, and a finder cannot
@@ -120,12 +113,12 @@ void main() {
   }
 
   Finder applyButton() =>
-      find.widgetWithText(FilledButton, l10n.inventoryBulkEditApply(2));
+      find.widgetWithText(FilledButton, pl.inventoryBulkEditApply(2));
 
   /// The note field is the plain text one — the combos are `DropdownMenu`s and
   /// carry their label differently.
   Finder noteField() => find.ancestor(
-    of: find.text(l10n.inventoryFieldNote),
+    of: find.text(pl.inventoryFieldNote),
     matching: find.byType(TextFormField),
   );
 
@@ -144,7 +137,7 @@ void main() {
     await scrollSheetDown(tester, times: 4);
     await tester.tap(applyButton());
     await settle(tester);
-    await tester.tap(find.text(l10n.inventoryApply));
+    await tester.tap(find.text(pl.inventoryApply));
     await settle(tester);
 
     expect(fake.patch?.toNativeJson(), {'material_number': '15'});
@@ -162,7 +155,18 @@ void main() {
   ) async {
     final fake = await openSheet(tester);
     final colorField = byLogId('bulk_edit.color');
-    await tester.ensureVisible(colorField);
+    // openSheet scrolls down to Apply, past the field, which a lazy list then
+    // no longer builds: back up to it.
+    await tester.scrollUntilVisible(
+      colorField,
+      -100,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView).last,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await settle(tester);
     await tester.tap(colorField);
     await settle(tester);
@@ -175,12 +179,12 @@ void main() {
       containsAll(['bulk_edit_color.cancel', 'bulk_edit_color.confirm']),
     );
 
-    await tester.tap(find.text(l10n.inventoryColorSelect));
+    await tester.tap(find.text(pl.inventoryColorSelect));
     await settle(tester);
     await scrollSheetDown(tester, times: 4);
     await tester.tap(applyButton());
     await settle(tester);
-    await tester.tap(find.text(l10n.inventoryApply));
+    await tester.tap(find.text(pl.inventoryApply));
     await settle(tester);
 
     // Nothing was picked, so the wheel's starting white comes back, opaque.
@@ -206,8 +210,8 @@ void main() {
     // The pick alone is input enough; no other field was touched.
     await tester.tap(applyButton());
     await settle(tester);
-    expect(find.text(l10n.inventoryBulkEditConfirmSuppliers), findsOneWidget);
-    await tester.tap(find.text(l10n.inventoryApply));
+    expect(find.text(pl.inventoryBulkEditConfirmSuppliers), findsOneWidget);
+    await tester.tap(find.text(pl.inventoryApply));
     await settle(tester);
 
     expect(fake.patch!.isEmpty, isTrue);
@@ -242,8 +246,8 @@ void main() {
     await tester.tap(applyButton());
     await settle(tester);
     // The confirmation names both counts before anything is written.
-    expect(find.text(l10n.inventoryBulkEditConfirmTitle(2)), findsOneWidget);
-    await tester.tap(find.text(l10n.inventoryApply));
+    expect(find.text(pl.inventoryBulkEditConfirmTitle(2)), findsOneWidget);
+    await tester.tap(find.text(pl.inventoryApply));
     await settle(tester);
 
     expect(fake.ids, [1, 2]);
@@ -261,7 +265,7 @@ void main() {
 
     await tester.enterText(
       find.ancestor(
-        of: find.text(l10n.inventoryFieldCostPerKg),
+        of: find.text(pl.inventoryFieldCostPerKg),
         matching: find.byType(TextFormField),
       ),
       '89,50',
@@ -269,7 +273,7 @@ void main() {
     await tester.pump();
     await tester.tap(applyButton());
     await settle(tester);
-    await tester.tap(find.text(l10n.inventoryApply));
+    await tester.tap(find.text(pl.inventoryApply));
     await settle(tester);
 
     expect(fake.patch!.toNativeJson(), {'cost_per_kg': 89.5});
@@ -284,7 +288,7 @@ void main() {
 
     await tester.enterText(
       find.ancestor(
-        of: find.text(l10n.inventoryFieldCostPerKg),
+        of: find.text(pl.inventoryFieldCostPerKg),
         matching: find.byType(TextFormField),
       ),
       'darmowa',
@@ -293,7 +297,7 @@ void main() {
     await tester.tap(applyButton());
     await settle(tester);
 
-    expect(find.text(l10n.inventoryFieldInvalidNumber), findsOneWidget);
+    expect(find.text(pl.inventoryFieldInvalidNumber), findsOneWidget);
     expect(fake.patch, isNull);
   });
 
@@ -306,7 +310,7 @@ void main() {
 
     await tester.enterText(
       find.ancestor(
-        of: find.text(l10n.inventoryFieldLowStock),
+        of: find.text(pl.inventoryFieldLowStock),
         matching: find.byType(TextFormField),
       ),
       '150',
@@ -315,7 +319,7 @@ void main() {
     await tester.tap(applyButton());
     await settle(tester);
 
-    expect(find.text(l10n.inventoryFieldRange(1, 99)), findsOneWidget);
+    expect(find.text(pl.inventoryFieldRange(1, 99)), findsOneWidget);
     expect(fake.patch, isNull);
   });
 
@@ -329,7 +333,7 @@ void main() {
 
     await tester.enterText(
       find.ancestor(
-        of: find.text(l10n.inventoryFieldEmptySpoolWeight),
+        of: find.text(pl.inventoryFieldEmptySpoolWeight),
         matching: find.byType(TextFormField),
       ),
       '-250',
@@ -338,7 +342,7 @@ void main() {
     await tester.tap(applyButton());
     await settle(tester);
 
-    expect(find.text(l10n.inventoryFieldNegative), findsOneWidget);
+    expect(find.text(pl.inventoryFieldNegative), findsOneWidget);
     expect(fake.patch, isNull);
   });
 
@@ -347,10 +351,10 @@ void main() {
   ) async {
     await openSheet(tester, backend: InventoryBackend.spoolman);
 
-    expect(find.text(l10n.inventoryFieldCategory), findsNothing);
-    expect(find.text(l10n.inventoryFieldLowStock), findsNothing);
+    expect(find.text(pl.inventoryFieldCategory), findsNothing);
+    expect(find.text(pl.inventoryFieldLowStock), findsNothing);
     // The fields it does take are still there.
-    expect(find.text(l10n.inventoryFieldNote), findsOneWidget);
+    expect(find.text(pl.inventoryFieldNote), findsOneWidget);
   });
 
   testWidgets('a mixed tally reports all three counts', (tester) async {
@@ -363,13 +367,10 @@ void main() {
     await tester.pump();
     await tester.tap(applyButton());
     await settle(tester);
-    await tester.tap(find.text(l10n.inventoryApply));
+    await tester.tap(find.text(pl.inventoryApply));
     await settle(tester);
 
-    expect(
-      find.text(l10n.inventoryBulkPartialSkipped(1, 1, 1)),
-      findsOneWidget,
-    );
+    expect(find.text(pl.inventoryBulkPartialSkipped(1, 1, 1)), findsOneWidget);
   });
 
   testWidgets('a refusal leaves the sheet open with the values typed', (
@@ -384,7 +385,7 @@ void main() {
     await tester.pump();
     await tester.tap(applyButton());
     await settle(tester);
-    await tester.tap(find.text(l10n.inventoryApply));
+    await tester.tap(find.text(pl.inventoryApply));
     await settle(tester);
 
     expect(applyButton(), findsOneWidget);
@@ -403,9 +404,9 @@ void main() {
     await tester.pump();
     await tester.tap(applyButton());
     await settle(tester);
-    await tester.tap(find.text(l10n.inventoryApply));
+    await tester.tap(find.text(pl.inventoryApply));
     await settle(tester);
 
-    expect(find.text(l10n.inventoryBulkEditUnsupported), findsOneWidget);
+    expect(find.text(pl.inventoryBulkEditUnsupported), findsOneWidget);
   });
 }

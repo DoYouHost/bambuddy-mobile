@@ -5,21 +5,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
 import '../../core/api/ws_client.dart';
-import '../../core/api/ws_token.dart';
+import '../../core/api/cached_token_service.dart';
 import '../../core/auth/auth_headers.dart';
 import '../../core/demo/demo_ws.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_catalog.dart';
-import '../../core/notifications/outcome_prompt.dart';
+import '../../core/notifications/launch_relay.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/widget/home_widget_publisher.dart';
 import '../../core/widget/multi_widget_publisher.dart';
 import '../../core/widget/widget_cover_cache.dart';
 import '../../data/printers_repository.dart';
-import '../../l10n/app_locale.dart';
+import '../../core/app_context.dart';
 import '../../providers.dart';
 import '../maintenance/maintenance_providers.dart';
 import '../queue/queue_providers.dart';
+import '../tour/tour_beacon.dart';
 
 /// Builds WS URL from profile baseUrl: http→ws, https→wss, path `…/api/v1/ws`.
 Uri wsUrlFor(String baseUrl) {
@@ -204,6 +205,8 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
   /// after each [state] change (WS and poll). Localization from system — app
   /// follows system setting anyway. Publish error can't break stream.
   void _publishWidget() {
+    // The home-screen widget shows the user's printers, never the tour's demo.
+    if (ref.read(tourBeaconProvider) != null) return;
     final l10n = systemAppLocalizations();
     unawaited(
       HomeWidgetPublisher.publish(

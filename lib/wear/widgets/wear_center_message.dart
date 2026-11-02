@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -39,6 +39,7 @@ class WearCenterMessage extends StatelessWidget {
       // The reachable way out of a wrong server: a failed connection is
       // exactly when someone wants to change it, and retrying forever is
       // the only other thing this screen offers.
+      const SizedBox(height: WearSpace.inGroup),
       const WearSettingsEntry(),
     ],
   );

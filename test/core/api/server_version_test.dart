@@ -208,6 +208,11 @@ void main() {
     );
   });
 
+  test('the last-dried date arrives with the 1.2.6 dailies (#2863)', () {
+    expect(parse('1.2.5.7').supports(ServerFeature.spoolLastDried), isFalse);
+    expect(parse('1.2.6b1').supports(ServerFeature.spoolLastDried), isTrue);
+  });
+
   test('label lines, PNG and dpi arrive in 1.2.5.7 (#2981)', () {
     expect(parse('1.2.5.6').supports(ServerFeature.labelFields), isFalse);
     expect(parse('1.2.5.7').supports(ServerFeature.labelFields), isTrue);

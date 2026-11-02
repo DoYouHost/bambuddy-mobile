@@ -358,6 +358,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
       },
       clear: (
         id: 'bulk_edit.preset.clear',
+        tooltip: l10n.clear,
         onPressed: () => setState(() {
           _slicerFilament = null;
           _slicerFilamentName = null;
@@ -384,6 +385,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
       onTap: _pickColor,
       clear: (
         id: 'bulk_edit.color.clear',
+        tooltip: l10n.clear,
         onPressed: () => _c['rgba']!.clear(),
       ),
     );
@@ -398,7 +400,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     // Alpha is not editable here and every selected spool keeps its own, so the
     // patch always carries the opaque form.
     if (picked != null && mounted) {
-      _c['rgba']!.text = '${colorToHex(picked, enableAlpha: false)}FF';
+      _c['rgba']!.text = '${picked.hex}FF';
     }
   }
 }

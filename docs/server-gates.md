@@ -60,6 +60,11 @@ Queue and settings store `bed_levelling` / `flow_cali` / `nozzle_offset_cali` as
 booleans is a **422**, so this one is refused rather than dropped.
 `QueueRepository.triStateCapability` reads the real answer off the
 payload and outranks the row.
+The row cannot be trusted alone: bambuddy renumbered the 0.2.5 development cycle
+to 1.2.5 partway through, so `0.2.5b2` is a beta of the very release that
+introduced the options yet sorts below `1.2.5`, and no ordering of those two
+strings says whether that particular beta predates the change. The field's type
+says it outright.
 
 ### chamberTemp65 — 1.2.6 (server commit b04664c6)
 
@@ -389,11 +394,67 @@ Not on this path, on purpose: gates over `/settings` (`serverGate`, same idea
 over one warmed fetch), permissions from `/auth/me` (enter a gate as a
 synchronous input), and latches that choose *how* to call rather than whether a
 control exists (download jobs, media token, `StatsRepository._hasSlimListing`,
+`QueueRepository._hasHistoryRoute`,
 the inventory backend from `/spoolman/status`). Nor the Manyfold tab of Model
 Sources (#1471): the screen needs `/manyfold/status`'s payload anyway — whether
 a connection exists decides the tab too — so that one read, made each time the
 screen opens, answers 404 (older server) and 403 (no `manyfold:view`) as "no
 tab", and no latch would learn anything it does not.
+
+### Why the path is shaped like this
+
+- **The re-ask signal is `PrinterStatusesNotifier._sawServer`**: the first WebSocket frame
+  *or* poll after a gap, including every return from the background. It is the app's only
+  "the line is up". A WebSocket-only signal misses a server whose socket is blocked while
+  REST works; a resume-only one misses offline to online in the foreground.
+- **`serverContactEpochProvider` is never reset, not even per server.** Watching the
+  profile would make every gate test need a profile override, and a new server rebuilds
+  every latch and the version service anyway.
+- **`probeIfUnknown(epoch:)` remembers the epoch it failed at.** Without that, a failed
+  probe notifies, the gate rebuilds and probes again, as fast as being offline can fail.
+- **`whenUnknown: true` gates read `AsyncData(true)` while the version is in flight**,
+  otherwise the heater chart's glyph shifts its label when the answer lands.
+- **`capabilityGate` returns `AsyncError` when the repository cannot be built** (no
+  profile). The old `FutureProvider`s did so implicitly, and without it archive widget
+  tests threw into `build`.
+- **`forgetRefusalsBefore(epoch)` only marks the start on its first call.** Otherwise a
+  gate rebuilt for another reason would drop a refusal it had just heard. Refusals only:
+  invalidating the repositories would refetch the queue and every provider built on them.
+- **An async provider fed by a gate stays loading while the gate is unanswered**
+  (`Completer().future`) and fails on a gate error. Resolving `[]` from "unknown" is wrong:
+  the spool form seeds once and a save replaces the whole list.
+- **Tags have no probe.** The file manager watches the catalog while the gate is not "no";
+  a probe version fetched the catalog twice and opened the sheets on a spinner.
+
+Proposals that were weighed and **rejected**; do not re-propose them without a new
+argument:
+
+- Gating `GET /slicer/preset-values` on the process-overrides gate. That request *is* the
+  observation; gated, a server whose version read failed could never answer yes. The cost
+  left open: after an observed 404, each preset change sends another 404.
+- Locking the queue settings on a failed `/auth/me`. Every permission in the app is
+  presumed on failure, and pull-to-refresh does not re-ask `/auth/me`.
+- Moving `.orFalse` (`AsyncFlag` in `dash_async.dart`, a UI file) next to `AsyncGate`. Possible, not done.
+
+### When a 404 may record absence
+
+`ObservedCapability.watching` defaults to `observing = const {403}`: a 404 does **not**
+record "route absent". A route that looks up no row by id opts in with
+`observing: treat404AsAbsent`. The fail-safe direction: not recording absence leaves the
+version table answering, while recording it wrongly hides a working feature with no
+explanation. Read the handler: `_load_printer_or_404`, `_ensure_archive_visible` or its own
+"X not found" is a second reason for a 404, so keep the default. (Before this rule, cancelling a drying, saving a
+spool override and purging one archive's `printer-media` each hid the feature everywhere.)
+
+One deliberate exception: `POST /printers/{id}/files/download-job` keeps
+`treat404AsAbsent` despite `_load_printer_or_404`, because that latch chooses between two
+**working** implementations (the new route and `download-zip`), so a wrong verdict costs a
+slower download, not a feature. The question to ask: does the latch choose an
+implementation, or hide a feature?
+
+Test trap: a repository built **without** a version service reads `supported == false`
+from the start, so a "404 means no route" assertion passes without a single request. Give
+it a `ServerVersionService` with a mocked version, and mutation-check.
 
 ## Adding a gate
 
@@ -405,7 +466,8 @@ tab", and no latch would learn anything it does not.
    only as its fallback.
 3. Add the enum member, a row in `introducedIn`, and a section here.
    `server_version_test.dart` fails on a member with no row, and its
-   `supports()` test lists every 1.2.6 member — add yours there too.
+   `supports()` test lists the 1.2.6 members (a few newer ones have a test of their
+   own) — add yours to the right one.
 4. Put the latch in the repository and route every call that can settle it
    through `watching(...)`. A 404 settles it only on a handler that raises no
    404 of its own — read the handler, then pass `observing: treat404AsAbsent`.
@@ -470,3 +532,20 @@ The gate says the server *has* the number. Whether it can be *written* is the
 backend: Spoolman maps the filament's `article_number` onto it and keeps it
 read-only, so the form and the bulk edit offer the field to the native backend
 only.
+
+### spoolLastDried — 1.2.6 (server #2863, commit 84f320b8)
+
+When a spool was last dried: `last_dried_at`, `last_dried_temp` and
+`last_dried_hours` on a spool, and `last_dried_at` on its update. Only in 1.2.6
+dailies from 2026-10-06.
+
+`SpoolUpdate` and `SpoolmanInventoryUpdate` forbid no extra fields, so an older
+server takes the date, says nothing and stores nothing — the date field would
+read as saved and be gone on the next load. `SpoolResponse` sends the key on
+every row from the commit on, null or not, and the Spoolman listing unpacks its
+three `bambu_last_dried_*` extras onto the same keys, so
+`InventoryRepository.lastDriedCapability` observes it on the first row of the
+spool listing. An empty inventory says nothing and the version row answers,
+which costs nothing: the date is written only to a spool that exists (neither
+create schema takes it), and that spool's own row has already settled the gate.
+Reading needs no gate: an older server never sends a date to show.

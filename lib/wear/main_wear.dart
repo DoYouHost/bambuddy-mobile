@@ -1,15 +1,17 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/notifications/hms_catalog.dart';
-import '../l10n/app_locale.dart';
+import '../core/app_context.dart';
+import '../core/theme/appearance_providers.dart';
 import '../providers.dart';
 import 'wear_app.dart';
+import 'wear_colours.dart';
 
-/// Entry point for the Wear OS build: no foreground service, no WebSocket, no
-/// notifications, no home widget — a thin on-demand REST client over `core/` and
-/// `data/`. Run with `--target lib/wear/main_wear.dart`.
+/// Entry point for the Wear OS build: no WebSocket, no alerts of its own, no
+/// home widget — a thin on-demand REST client over `core/` and `data/`. Its one
+/// notification is the Ongoing Activity (`wear_ongoing.dart`). Run with `--target lib/wear/main_wear.dart`.
 ///
 /// **Never call `SystemChrome.setPreferredOrientations` here.** Orientation is
 /// locked by `android:screenOrientation="nosensor"` in the wear manifest, and
@@ -25,11 +27,16 @@ Future<void> main() async {
   // Still awaited, rather than left running: an unnamed fault is hidden, so
   // without the catalogue the watch's error panel never appears at all.
   final catalog = HmsCatalog.instance.load(systemLocale());
+  final face = readWatchFaceSchemes();
   final prefs = await SharedPreferences.getInstance();
   await catalog;
   runApp(
     ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        initialSystemSchemesProvider.overrideWithValue(await face),
+        systemSchemesReaderProvider.overrideWithValue(readWatchFaceSchemes),
+      ],
       child: const WearApp(),
     ),
   );

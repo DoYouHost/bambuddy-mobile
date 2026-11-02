@@ -35,19 +35,28 @@ while secure_storage sits at 10. They move as one block, after 11. (Windows is
 not a target of this app — the constraint still binds, because pub resolves the
 whole dependency graph regardless of platform.)
 
-## go_router stops at 17
-
-18 moved onto the `material_ui` / `cupertino_ui` packages, which annotate with
-`@awaitNotRequired` — absent from the `meta` bundled with Flutter 3.44.8, so the
-tests fail to compile. Nothing to fix in this repo; it lifts when the Flutter
-SDK moves.
-
 ## file_picker stops at 10
 
 11 replaced `FilePicker.platform.x()` with static methods and 13 dropped
 `withData`. Both are call-site rewrites, in
 [lib/features/common/device_files.dart](../lib/features/common/device_files.dart) and in
 `app_report_ui` over in app-shared — so the bump is two repos, not one.
+
+## Built-in Kotlin waits on five plugins
+
+Every build warns that plugins "apply Kotlin Gradle Plugin (KGP)" and that a
+future Flutter will refuse them. The app itself is already migrated (no
+`kotlin-android`, a `kotlin { compilerOptions }` block); what is left is
+`android.builtInKotlin=false` in `android/gradle.properties`. Most plugins on the
+list — patrol, home_widget, mobile_scanner, flutter_file_dialog — apply KGP only
+*because* that flag is false, and stop on their own once it is true.
+
+Flipping it today fails the build: AGP 9 refuses `kotlin-android` outright, and
+five plugins still apply it unconditionally. `device_info_plus`,
+`package_info_plus` and `share_plus` are migrated in their latest majors, which
+wait on the win32 knot above; `file_picker` is migrated in 13, which waits on
+its own rewrite below; `nsd_android` 2.2.0 is not migrated at all
+(sebastianhaberey/nsd#88). Once all five move, set the flag to true.
 
 ## flutter_riverpod stays at 2
 

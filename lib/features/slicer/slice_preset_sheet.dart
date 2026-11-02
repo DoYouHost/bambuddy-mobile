@@ -1,5 +1,6 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:flutter/material.dart';
+import 'package:app_util/app_util.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../core/ams/printer_model_match.dart';
 import '../../core/ams/slot_addressing.dart';
@@ -9,9 +10,7 @@ import '../../core/slicer/loaded_spool_match.dart';
 import '../../core/slicer/preset_filters.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../common/dash_search_field.dart';
 import '../inventory/inventory_screen.dart' show SpoolSwatch;
-import '../../core/format/text_compare.dart';
 
 /// Where a filament row was filled from a spool loaded in a printer (#3172):
 /// its colour (`#RRGGBB`, null when the printer named none) and the printer

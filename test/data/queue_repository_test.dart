@@ -104,15 +104,11 @@ void main() {
     final items = await repo.fetch();
 
     expect(items.where((i) => i.isActive), isEmpty);
-    expect(
-      items.map((i) => i.statusKind).toSet(),
-      {
-        QueueItemStatusKind.completed,
-        QueueItemStatusKind.cancelled,
-        QueueItemStatusKind.failed,
-      },
-      reason: 'no status from this response may land in unknown',
-    );
+    expect(items.map((i) => i.statusKind).toSet(), {
+      QueueItemStatusKind.completed,
+      QueueItemStatusKind.cancelled,
+      QueueItemStatusKind.failed,
+    }, reason: 'no status from this response may land in unknown');
   });
 
   group('fetchActive', () {
@@ -861,6 +857,44 @@ void main() {
     );
   });
 
+  group('cost center', () {
+    test('a create books the job to it', () async {
+      adapter.onPost(
+        '/api/v1/queue/',
+        (server) => server.reply(200, null),
+        data: {
+          'archive_id': 77,
+          'printer_id': 1,
+          'quantity': 1,
+          'cost_center_id': 4,
+        },
+      );
+
+      await repo.addFromArchive(
+        77,
+        printerId: 1,
+        options: const QueueCreateOptions(costCenterId: 4),
+      );
+    });
+
+    test('an edit sends it, and says nothing when there is none', () async {
+      adapter
+        ..onPatch(
+          '/api/v1/queue/5',
+          (server) => server.reply(200, null),
+          data: {'cost_center_id': 4},
+        )
+        ..onPatch(
+          '/api/v1/queue/6',
+          (server) => server.reply(200, null),
+          data: {'timelapse': true},
+        );
+
+      await repo.updateItem(5, costCenterId: 4);
+      await repo.updateItem(6, timelapse: true);
+    });
+  });
+
   group('addCrossModel (#671)', () {
     test('sends variants in order and WITHOUT printer_id', () async {
       // The server rejects printer_id together with variants outright — naming
@@ -915,6 +949,120 @@ void main() {
         items.singleWhere((i) => i.id == 3).statusKind,
         QueueItemStatusKind.skipped,
       );
+    });
+
+    group('the paged route (#2960)', () {
+      const history = '/api/v1/queue/history';
+      const page = {'sort_by': 'name', 'reverse': true, 'limit': 50};
+
+      void olderServer() {
+        // `/queue/{item_id}` takes the path there, and "history" is no int.
+        adapter.onGet(
+          history,
+          (server) => server.reply(422, {'detail': 'not an int'}),
+          queryParameters: page,
+        );
+        for (final (id, status) in const [
+          (1, 'completed'),
+          (2, 'failed'),
+          (3, 'skipped'),
+          (4, 'cancelled'),
+        ]) {
+          adapter.onGet(
+            '/api/v1/queue/',
+            (server) => server.reply(200, [
+              {'id': id, 'position': 1, 'status': status},
+            ]),
+            queryParameters: {'status': status},
+          );
+        }
+      }
+
+      Future<QueueHistoryPage> read() =>
+          repo.fetchHistoryPage(sortBy: 'name', reverse: true, limit: 50);
+
+      test('one request, in the server\'s order, with the total', () async {
+        adapter.onGet(
+          history,
+          (server) => server.reply(200, {
+            'items': [
+              {'id': 2, 'position': 1, 'status': 'failed'},
+              {'id': 1, 'position': 1, 'status': 'completed'},
+            ],
+            'total': 230,
+            'locations': <String>[],
+          }),
+          queryParameters: page,
+        );
+        final sent = captureRequests(dio);
+
+        final got = await read();
+
+        expect(sent.calls, ['GET $history']);
+        expect(got.items.map((i) => i.id), [2, 1]);
+        expect(got.total, 230);
+        expect(got.serverOrdered, isTrue);
+      });
+
+      test(
+        'an older server: the whole history, asked once per server',
+        () async {
+          olderServer();
+          final sent = captureRequests(dio);
+
+          final got = await read();
+          expect(got.serverOrdered, isFalse);
+          expect(got.items, hasLength(4));
+          expect(got.total, 4);
+
+          sent.requests.clear();
+          await read();
+          expect(sent.paths, isNot(contains(history)));
+        },
+      );
+
+      test('a 500 says nothing about the route', () async {
+        adapter.onGet(
+          history,
+          (server) => server.reply(500, {'detail': 'boom'}),
+          queryParameters: page,
+        );
+
+        await expectLater(read(), throwsA(isA<AppApiException>()));
+      });
+
+      test('clearing goes through the route once it has answered', () async {
+        adapter
+          ..onGet(
+            history,
+            (server) => server.reply(200, {'items': [], 'total': 0}),
+            queryParameters: page,
+          )
+          ..onPost(
+            '$history/clear',
+            (server) => server.reply(200, {'cleared': 5, 'kept': 1}),
+          );
+        await read();
+        final sent = captureRequests(dio);
+
+        expect(await repo.clearHistory(const []), (cleared: 5, kept: 1));
+        expect(sent.calls, ['POST $history/clear']);
+      });
+
+      test('on an older server, one DELETE per row shown', () async {
+        olderServer();
+        final shown = (await read()).items;
+        for (final item in shown) {
+          adapter.onDelete(
+            '/api/v1/queue/${item.id}',
+            (server) => server.reply(200, {'message': 'Queue item deleted'}),
+          );
+        }
+        final sent = captureRequests(dio);
+
+        expect(await repo.clearHistory(shown), (cleared: 4, kept: 0));
+        expect(sent.calls, everyElement(startsWith('DELETE')));
+      });
     });
 
     test('a delete the server turned into a cancel says so', () async {

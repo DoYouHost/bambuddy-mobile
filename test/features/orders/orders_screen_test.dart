@@ -3,9 +3,8 @@ import 'package:bambuddy_mobile/core/models/print_batch.dart';
 import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/features/orders/orders_providers.dart';
 import 'package:bambuddy_mobile/features/orders/orders_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
@@ -65,9 +64,6 @@ PrintBatch _grouping() => PrintBatch.fromJson({
 });
 
 void main() {
-  AppLocalizations l10n(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(Scaffold).first));
-
   late List<PrintBatchStatus?> asked;
   // The mock matches any body containing the mocked keys — `{}` matches all.
   late RequestLog sent;
@@ -106,25 +102,44 @@ void main() {
     tester,
   ) async {
     await pumpOrders(tester, [_shopOrder()]);
-    final l = l10n(tester);
+    final l = pl;
 
     expect(asked, [PrintBatchStatus.active]);
     expect(find.text('shopify · #1042'), findsOneWidget);
     expect(find.text('Rings'), findsOneWidget);
     // A plate without a stored name is named by its number.
     expect(find.text(l.archivePlate(3)), findsOneWidget);
-    expect(find.text(l.ordersStrandedNotice(2, 4)), findsOneWidget);
+    // Said once, on the plate it applies to, not again over the card.
     expect(find.text(l.ordersStrandedPlate), findsOneWidget);
+    expect(find.text(l.ordersStrandedNotice(2, 4)), findsNothing);
     expect(find.text(l.ordersDispatchRemaining(2)), findsOneWidget);
-    // Only the plate that owes runs and can be cloned offers them.
-    expect(byLogId('orders.dispatch_plate'), findsOneWidget);
+    // One plate to queue: the button below is the same request, so its row
+    // offers no second one.
+    expect(byLogId('orders.dispatch_plate'), findsNothing);
+    // Failed and owed are on the plate rows, not repeated on the numbers line.
+    expect(find.textContaining(l.ordersOwed(4)), findsNothing);
+    expect(
+      find.textContaining(l.ordersFailed(1)),
+      findsOneWidget,
+      reason: 'on the Rings row only',
+    );
+  });
+
+  testWidgets('an order without plate rows says what is stuck over the card', (
+    tester,
+  ) async {
+    final bare = PrintBatch.fromJson({..._shopOrderJson, 'plates': <Object>[]});
+    await pumpOrders(tester, [bare]);
+
+    expect(find.text(pl.ordersStrandedNotice(2, 4)), findsOneWidget);
+    expect(find.textContaining(pl.ordersOwed(4)), findsOneWidget);
   });
 
   testWidgets('a grouping owes nothing, so it offers nothing to queue', (
     tester,
   ) async {
     await pumpOrders(tester, [_grouping()]);
-    final l = l10n(tester);
+    final l = pl;
 
     expect(find.text(l.ordersGroupingOnly), findsOneWidget);
     expect(find.text(l.ordersProgress(1, 3)), findsOneWidget);
@@ -140,7 +155,7 @@ void main() {
       data: <String, dynamic>{},
       (s) => s.reply(200, _batchJson, delay: const Duration(seconds: 10)),
     );
-    final l = l10n(tester);
+    final l = pl;
 
     await tester.tap(find.text(l.ordersDispatchRemaining(2)));
     await tester.pump(const Duration(milliseconds: 50));
@@ -176,19 +191,31 @@ void main() {
   testWidgets('one plate is dispatched by its id, and says which', (
     tester,
   ) async {
-    final adapter = await pumpOrders(tester, [_shopOrder()]);
+    // Two plates that can be queued, so each row offers its own.
+    final twoPlates = PrintBatch.fromJson({
+      ..._shopOrderJson,
+      'plates': [
+        for (final p in _shopOrderJson['plates'] as List)
+          {
+            ...p as Map<String, dynamic>,
+            if (p['plate_id'] == 3) 'can_dispatch': true,
+          },
+      ],
+    });
+    final adapter = await pumpOrders(tester, [twoPlates]);
     adapter.onPost(
       '$_path/2/dispatch',
       data: {'plate_id': 2, 'only_plate': true},
       (s) => s.reply(200, _batchJson),
     );
 
-    await tester.tap(byLogId('orders.dispatch_plate'));
+    expect(byLogId('orders.dispatch_plate'), findsNWidgets(2));
+    await tester.tap(byLogId('orders.dispatch_plate').first);
     await tester.pumpAndSettle();
     expect(sent.last.data, {'plate_id': 2, 'only_plate': true});
 
     expect(
-      find.text(l10n(tester).ordersPlateDispatched('Rings', 'Keychain set')),
+      find.text(pl.ordersPlateDispatched('Rings', 'Keychain set')),
       findsOneWidget,
     );
   });
@@ -206,7 +233,7 @@ void main() {
             'Queue the plate once from the file, then dispatch the rest.',
       }),
     );
-    final l = l10n(tester);
+    final l = pl;
 
     await tester.tap(find.text(l.ordersDispatchRemaining(2)));
     await tester.pumpAndSettle();
@@ -222,7 +249,7 @@ void main() {
       data: <String, dynamic>{},
       (s) => s.reply(404, {'detail': 'Batch not found'}),
     );
-    final l = l10n(tester);
+    final l = pl;
 
     await tester.tap(find.text(l.ordersDispatchRemaining(2)));
     await tester.pumpAndSettle();
@@ -264,7 +291,7 @@ void main() {
       'status': 'cancelled',
     });
     await pumpOrders(tester, [cancelled]);
-    final l = l10n(tester);
+    final l = pl;
 
     expect(find.textContaining(l.ordersOwed(4)), findsNothing);
     expect(find.text(l.ordersStrandedNotice(2, 4)), findsNothing);
@@ -276,7 +303,7 @@ void main() {
       '$_path/2',
       (s) => s.reply(200, {'message': 'Batch cancelled'}),
     );
-    final l = l10n(tester);
+    final l = pl;
 
     await tester.tap(byLogId('orders.actions'));
     await tester.pumpAndSettle();
@@ -298,7 +325,7 @@ void main() {
       '$_path/3/ungroup',
       (s) => s.reply(200, {'ungrouped_count': 2, 'message': 'Ungrouped 2'}),
     );
-    final l = l10n(tester);
+    final l = pl;
 
     await tester.tap(byLogId('orders.actions'));
     await tester.pumpAndSettle();
@@ -340,7 +367,7 @@ void main() {
       data: {'status': 'active'},
       (s) => s.reply(200, _batchJson),
     );
-    final l = l10n(tester);
+    final l = pl;
 
     // Nothing to queue on a cancelled order, and nothing to cancel.
     expect(byLogId('orders.dispatch'), findsNothing);
@@ -390,7 +417,7 @@ void main() {
     tester,
   ) async {
     await pumpOrders(tester, const []);
-    final l = l10n(tester);
+    final l = pl;
     expect(find.text(l.ordersEmpty), findsOneWidget);
 
     await tester.tap(byLogId('orders.filter.completed'));

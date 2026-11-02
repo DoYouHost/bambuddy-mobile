@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,13 +11,15 @@ import 'core/format/system_clock_sync.dart';
 import 'core/notifications/background_api.dart';
 import 'core/notifications/hms_actions.dart';
 import 'core/notifications/hms_stop_request.dart';
-import 'core/notifications/outcome_prompt.dart';
+import 'core/notifications/launch_relay.dart';
 import 'core/models/current_user.dart';
+import 'core/theme/appearance_providers.dart';
 import 'core/theme/dash_theme.dart';
 import 'features/archive/outcome_sheet.dart';
 import 'features/dashboard/controls_providers.dart';
 import 'features/dashboard/providers.dart';
 import 'features/inventory/inventory_screen.dart' show scanSpoolFlow;
+import 'features/tour/tour_screen.dart';
 import 'l10n/app_localizations.dart';
 import 'l10n/error_messages.dart';
 import 'providers.dart';
@@ -64,10 +66,7 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     unawaited(_onNotificationLaunch());
     // Hand the current profile to a paired Wear OS watch on launch so it can
     // configure itself without the user typing anything. No-ops without a watch.
-    final profile = ref.read(serverProfileProvider);
-    if (profile != null) {
-      unawaited(ref.read(watchConfigSyncProvider).push(profile));
-    }
+    _pushToWatch();
     // Answer watch relay requests for as long as the app lives (plan 05).
     unawaited(ref.read(wearRelayHandlerProvider).start());
   }
@@ -226,6 +225,16 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     });
   }
 
+  void _pushToWatch() {
+    final profile = ref.read(serverProfileProvider);
+    if (profile == null) return;
+    unawaited(
+      ref
+          .read(watchConfigSyncProvider)
+          .push(profile, theme: ref.read(watchThemeProvider)),
+    );
+  }
+
   /// Kept on disk for the foreground service isolate, which formats the ETA in
   /// its notifications and has no way to read the 24-hour switch itself.
   Future<void> _rememberClockFormat(bool use24Hour) => publishSystemClock(
@@ -236,38 +245,43 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
 
   @override
   Widget build(BuildContext context) {
-    // Re-push to the watch whenever the profile changes (new server, login,
-    // "change server"). Best-effort; silently no-ops when no watch is paired.
-    ref.listen(serverProfileProvider, (_, next) {
-      if (next != null) {
-        unawaited(ref.read(watchConfigSyncProvider).push(next));
-      }
-    });
+    // Re-push to the watch whenever the profile (new server, login, "change
+    // server") or the accent changes. Best-effort; silently no-ops when no
+    // watch is paired.
+    ref.listen(serverProfileProvider, (_, _) => _pushToWatch());
+    ref.listen(watchThemeProvider, (_, _) => _pushToWatch());
     // Notifications handled ONLY by background isolate (foreground service);
     // foreground status shown by UI itself, so no monitor here.
+    final router = ref.watch(routerProvider);
+    final brand = ref.watch(appBrandProvider);
     return MaterialApp.router(
       title: 'Bambuddy',
-      theme: _theme(Brightness.light),
-      darkTheme: _theme(Brightness.dark),
-      // App follows system setting; dark theme like PWA.
-      themeMode: ThemeMode.system,
+      theme: buildDashThemeData(Brightness.light, brand: brand),
+      darkTheme: buildDashThemeData(Brightness.dark, brand: brand),
+      themeMode: ref.watch(appearanceProvider.select((p) => p.mode)),
       // Locale auto-detected from system; en = fallback.
-      localizationsDelegates: [
-        ...AppLocalizations.localizationsDelegates,
+      // Not AppLocalizations.localizationsDelegates: gen-l10n still fills it
+      // from flutter_localizations, whose Material strings material_ui
+      // widgets do not find.
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
         ReportLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      routerConfig: ref.watch(routerProvider),
+      routerConfig: router,
       // Recording controls have to outlive the report screen — the bug gets
       // reproduced on the dashboard, not there. Wrapping here puts the bar
       // above every route, pushed ones included.
       builder: (context, child) => SystemClockSync(
         onChanged: (use24Hour) => unawaited(_rememberClockFormat(use24Hour)),
-        child: RecordingBannerScaffold(child: child ?? const SizedBox.shrink()),
+        child: RecordingBannerScaffold(
+          child: TourHost(
+            backButtonDispatcher: router.backButtonDispatcher,
+            child: child ?? const SizedBox.shrink(),
+          ),
+        ),
       ),
     );
   }
 }
-
-ThemeData _theme(Brightness brightness) =>
-    buildDashThemeData(brightness, brand: bambuddyBrand);

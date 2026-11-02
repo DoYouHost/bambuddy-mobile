@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:app_util/app_util.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -14,7 +14,6 @@ import '../../core/models/inventory.dart' show StockStats;
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress_bar.dart';
 import '../common/print_run_labels.dart';
 import 'stats_common.dart';
 import 'stats_computed.dart';

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/notifications/notification_prefs.dart';
@@ -7,7 +7,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/settings_rows.dart';
 
 /// Whether the system is currently swallowing every alert, which the switches
 /// below cannot show on their own: they keep reading "on" while nothing is
@@ -195,6 +194,11 @@ class NotificationSettingsScreen extends ConsumerWidget {
       NotifEvent.outcomeRequest,
       l.notifEvtOutcome,
       l.notifEvtOutcomeDesc,
+    ),
+    _EventRow(
+      NotifEvent.billingAlert,
+      l.notifEvtBilling,
+      l.notifEvtBillingDesc,
     ),
   ];
 }

@@ -2,9 +2,8 @@ import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/no_3mf_warning.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,7 +12,7 @@ import '../../helpers.dart';
 
 /// Which plate an archived run printed. The server stored it all along but
 /// reported null until 1.2.5.4 (#2796), so the card has to read an absent
-/// value as "no plate was chosen" — the common case, and the one where naming
+/// value as "no plate was chosen" — the common case, and the one where marking
 /// a plate on every row would be noise rather than information.
 
 late SharedPreferences _prefs;
@@ -48,14 +47,19 @@ void main() {
     _prefs = await SharedPreferences.getInstance();
   });
 
-  AppLocalizations l10n(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(ArchiveScreen)));
-
-  testWidgets('a run with a chosen plate says which one', (tester) async {
+  testWidgets('a run with a chosen plate wears its number on the thumbnail', (
+    tester,
+  ) async {
     await tester.pumpWidget(_screen([_archive(plateId: 3)]));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining(l10n(tester).archivePlate(3)), findsOneWidget);
+    expect(find.byIcon(Icons.grid_view_outlined), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(
+      find.textContaining(pl.archivePlate(3)),
+      findsNothing,
+      reason: 'the plate is a mark on the thumbnail, not a word in the row',
+    );
   });
 
   testWidgets('a run with no plate recorded says nothing about plates', (
@@ -66,7 +70,7 @@ void main() {
 
     // Not even plate 1: an app-started print never sends a plate, so claiming
     // one would be inventing it.
-    expect(find.textContaining(l10n(tester).archivePlate(1)), findsNothing);
+    expect(find.byIcon(Icons.grid_view_outlined), findsNothing);
     expect(find.textContaining('PETG'), findsOneWidget);
   });
 
@@ -79,7 +83,7 @@ void main() {
     await tester.pumpWidget(_screen([_archive(plateId: 0)]));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining(l10n(tester).archivePlate(0)), findsNothing);
+    expect(find.byIcon(Icons.grid_view_outlined), findsNothing);
     expect(find.textContaining('PETG'), findsOneWidget);
   });
 }

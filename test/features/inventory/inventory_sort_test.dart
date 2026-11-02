@@ -49,6 +49,22 @@ void main() {
     expect(ids(standard, InventorySort.added, descending: false), [3, 1, 2]);
   });
 
+  test('an undried spool goes last in both directions', () {
+    final fresh = Spool(
+      id: 4,
+      material: 'PLA',
+      lastDriedAt: DateTime.utc(2026, 10, 5),
+    );
+    final older = Spool(
+      id: 5,
+      material: 'PLA',
+      lastDriedAt: DateTime.utc(2026, 9, 1),
+    );
+    final shelf = [unknown, older, fresh];
+    expect(ids(shelf, InventorySort.lastDried), [4, 5, 2]);
+    expect(ids(shelf, InventorySort.lastDried, descending: false), [5, 4, 2]);
+  });
+
   test('id sorts in both directions', () {
     expect(ids(standard, InventorySort.id), [3, 2, 1]);
     expect(ids(standard, InventorySort.id, descending: false), [1, 2, 3]);

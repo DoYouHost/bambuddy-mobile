@@ -29,6 +29,21 @@ void main() {
     await repo.stop(1);
   });
 
+  test('clearing HMS errors also asks the printer to republish', () async {
+    adapter
+      ..onPost('/api/v1/printers/4/hms/clear', (s) => s.reply(200, null))
+      ..onPost('/api/v1/printers/4/refresh-status', (s) => s.reply(200, null));
+    final sent = captureRequests(dio);
+
+    await repo.clearHmsErrors(4);
+    await pumpEventQueue();
+
+    expect(sent.calls, [
+      'POST /api/v1/printers/4/hms/clear',
+      'POST /api/v1/printers/4/refresh-status',
+    ]);
+  });
+
   test('chamber-light sends on=true in the query', () async {
     adapter.onPost(
       '/api/v1/printers/2/chamber-light',

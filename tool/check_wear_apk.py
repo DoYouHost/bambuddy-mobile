@@ -58,6 +58,7 @@ PRUNED_ASSET_PREFIXES = [
     "assets/gcode/",
     "assets/slicer/",
     "assets/icons/cover_placeholder.png",
+    "assets/demo/",
     "assets/fonts/JetBrainsMono-",
 ]
 

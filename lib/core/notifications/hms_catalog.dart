@@ -38,15 +38,10 @@ class HmsCatalog {
     _loadedLang = lang;
   }
 
-  /// The code's description, or null when nothing names it: the lossless full
-  /// code, then the short form for a `print_error` fault from a server too old
-  /// to send `full_code`, then the English sentence a 1.2.5.4+ server attaches —
-  /// last because this table is the localized one.
-  ///
-  /// Never the short form of an `hms[]` code (`hms_errors.py::lookup_fault`):
-  /// no real one has an error group at or above 0x4000, where every
-  /// `print_error` key sits, so the collapse only ever found a neighbouring
-  /// fault's sentence (#2728).
+  /// The code's description, or null when nothing names it: the lossless full code,
+  /// then the short form (a `print_error` fault only, never an `hms[]` code, #2728),
+  /// then the server's English sentence, last because this table is the localized one
+  /// (docs/notification-delivery.md, "Which HMS faults count").
   String? describe(HmsError e) {
     final full = e.fullCode?.toUpperCase();
     if (full != null) {
@@ -59,34 +54,18 @@ class HmsCatalog {
   }
 }
 
-/// Whether an HMS error should be shown at all: only one the client can name,
-/// which is parity with bambuddy's `filterKnownHMSErrors`.
-///
-/// One deliberate departure — bambuddy keeps an uncataloged fault when the
-/// firmware offers actions for it, so an unnamed error can still get buttons.
-/// A card headed by a bare hex code asks the user to gamble.
-///
-/// **No "recognized severity" escape hatch, deliberately.** Before #2728
-/// `severity` was not the HMS level: bambuddy derived it as `(attr >> 8) & 0xF`,
-/// BambuStudio's `part_id`, while the level lives in `code >> 16`. Against the bundled
-/// catalog the two agree on 39% of codes, and 835 arrive as level 1 ("Fatal")
-/// while being nothing of the sort — which is where the invented
-/// `severity · module` label came from ("Fatal · mainboard" on a healthy X2D).
+/// Whether an HMS error should be shown at all: only one the client can name, as
+/// bambuddy's `filterKnownHMSErrors`, except that an uncataloged fault with actions
+/// is dropped too. No "recognized severity" escape hatch: `severity` was not the HMS
+/// level before #2728 (docs/notification-delivery.md, "Which HMS faults count").
 bool hmsIsDisplayable(HmsError e, {String? description}) =>
     (e.message?.trim().isNotEmpty ?? false) ||
     (description?.trim().isNotEmpty ?? false);
 
-/// The faults on [status] worth putting in front of a user, in the order the
-/// server listed them.
-///
-/// **A disconnected printer has none**, whatever its `hms_errors` still say:
-/// [PrinterStatus.mergedWith] carries the codes through an outage on purpose,
-/// so that the notification path can pause its clear-grace clock on them, and
-/// this is the one place that answers "last-known, not live".
-///
-/// [describe] is required rather than defaulted to [HmsCatalog.instance]: the
-/// home-screen widget and the notification isolate hold their own catalogue or
-/// none, and a hidden fallback would hand them the UI isolate's instead.
+/// The faults on [status] worth putting in front of a user, in the order the server
+/// listed them. **A disconnected printer has none**: its codes are last-known, not
+/// live. [describe] is required, not defaulted to [HmsCatalog.instance], so no isolate
+/// is handed another's catalogue (docs/notification-delivery.md, "Which HMS faults count").
 List<HmsError> displayableHmsErrors(
   PrinterStatus? status, {
   required String? Function(HmsError)? describe,
@@ -113,14 +92,8 @@ HmsError? firstDisplayableHmsError(
 }
 
 /// Whether an HMS error should fire a NOTIFICATION — [hmsIsDisplayable] plus
-/// bambuddy's rule for which levels count (`main.py::_hms_fault_counts`). One
-/// physical fault makes the firmware emit several codes at once, most of them
-/// undocumented, and a described code the card lists can still be too quiet to
-/// wake anybody for.
-///
-/// Read from [HmsError.level], never `severity`: before #2728 the server sent
-/// the part byte there, and the `severity >= 2` floor this used to mirror
-/// dropped exactly the faults that stop a print.
+/// bambuddy's level rule (`main.py::_hms_fault_counts`). Read from [HmsError.level],
+/// never `severity` (docs/notification-delivery.md, "Which HMS faults count").
 bool hmsIsNotifiable(HmsError e, {String? description}) {
   final level = e.level;
   // A numeric code with no level is Bambu's "invalid" 0. A fault without `attr`
@@ -150,14 +123,9 @@ String? hmsLabel(HmsError e, {String? description}) {
 String hmsHumanText(HmsError e, {String? description}) =>
     hmsLabel(e, description: description) ?? e.displayCode;
 
-/// URL to the Bambu wiki page for the given code.
-///
-/// Per-code pages exist for the `hms[]` channel only — its 16-hex code maps to
-/// `hmscode/0500_0500_0001_0007`. A `print_error` fault has no page of its own
-/// (every URL shape 404s), and its 8-hex `full_code` cannot be padded into one:
-/// [HmsError.ecode] would compose 16 hex out of a 32-bit value that means
-/// something else, which is how a link lands on a wiki page about a different
-/// fault. Those get bambuddy's own answer — the HMS index.
+/// URL to the Bambu wiki page for the given code. Per-code pages exist for the
+/// `hms[]` channel only; a `print_error` fault gets bambuddy's own answer, the HMS
+/// index (docs/notification-delivery.md, "Which HMS faults count").
 String? hmsWikiUrl(HmsError e) {
   final full = e.fullCode;
   if (full != null && full.length == 8) return _hmsWikiHome;

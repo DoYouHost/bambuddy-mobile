@@ -429,10 +429,44 @@ abstract final class Endpoints {
   // and `/queue` (without slash) returns 404 for authenticated requests.
   static const queue = '$apiPrefix/queue/';
   static const queueReorder = '$apiPrefix/queue/reorder';
+
+  /// One page of the finished, failed, skipped and cancelled runs, server-sorted
+  /// (`sort_by` date/name/printer, `reverse`, `limit`), as `{items, total,
+  /// locations}`; `items` is the page followed by the other runs of its batches.
+  /// Newer servers only (#2960): an older one reads `history` as an item id, 422.
+  static const queueHistory = '$apiPrefix/queue/history';
+
+  /// Clears that history in one request, `{cleared, kept}`; same generation.
+  static const queueHistoryClear = '$apiPrefix/queue/history/clear';
   static String queueItem(int itemId) => '$apiPrefix/queue/$itemId';
   static String queueItemStart(int itemId) => '$apiPrefix/queue/$itemId/start';
   static String queueItemCancel(int itemId) =>
       '$apiPrefix/queue/$itemId/cancel';
+
+  /// `PATCH` — one change for many `pending` items at once
+  /// (`print_queue.py::bulk_update_queue_items`), the web's "Edit selected". It
+  /// answers 200 with counts even when it changed nothing: the rows it skips
+  /// (not pending, claimed by a dispatch, not the caller's) are only counted.
+  /// Present since server v0.1.2.
+  static const queueBulk = '$apiPrefix/queue/bulk';
+
+  /// `POST` — acknowledge the failed prints behind a printer's
+  /// `require_previous_success` gate and put the jobs it skipped back to
+  /// `pending` (`print_queue.py::resume_queue_after_failure`, #1818). A printer
+  /// with nothing to clear answers 200 with zeros. Since server v0.2.4.8; an
+  /// older one answers 404, which the caller only reaches from a banner that
+  /// needs a skipped row the gate wrote.
+  static String queuePrinterResume(int printerId) =>
+      '$apiPrefix/queue/printer/$printerId/resume';
+
+  /// The same gate cleared on every printer of [model] the caller may use, for
+  /// "any model" jobs that wait behind it; answers `{acknowledged, printers}`.
+  /// Newer servers only, but reached only from a banner that needs the waiting
+  /// reason those servers write.
+  static String queueModelResume(String model) {
+    final name = Uri.encodeComponent(model);
+    return '$apiPrefix/queue/model/$name/resume';
+  }
 
   /// The only route a `printing` item accepts: `/cancel` takes `pending` alone
   /// and `DELETE` refuses anything currently printing, so without this a row
@@ -461,6 +495,84 @@ abstract final class Endpoints {
   /// stay queued. Since v0.2.4.8.
   static String queueBatchUngroup(int batchId) =>
       '$apiPrefix/queue/batches/$batchId/ungroup';
+
+  // --- Finance ---
+
+  /// The cost centers the session may book prints to — its own private one plus
+  /// those it is a member of (`CostCenterSummaryResponse[]`,
+  /// `finance.py::get_my_cost_centers`). Read when `billing_enabled`, since
+  /// every queue create, edit and start then needs one.
+  ///
+  /// Open to any signed-in user, and to an API key that may queue **from the
+  /// server commit for #3256 on** (the owner's centers; an ownerless key gets
+  /// `[]`). Before it a key is answered 401 — `finance.py`'s permission checks
+  /// hand it no user — so a refusal here is "this session cannot list them",
+  /// never "there are none". No such route before billing (1.2.5.3).
+  static const financeCostCentersMine = '$apiPrefix/finance/cost-centers/mine';
+
+  /// The signed-in user's wallet balance (`WalletBalanceResponse`), gated on
+  /// `cost_centers:read_own` — which no API key can hold, so a key is refused
+  /// (`core/auth.py::_APIKEY_SCOPE_BY_PERMISSION` has no entry).
+  static const financeMeBalance = '$apiPrefix/finance/me/balance';
+
+  /// The user's own ledger, newest first, voided rows left out
+  /// (`WalletTransactionListResponse`, `?limit=1..500&offset=`). Same gate as
+  /// [financeMeBalance].
+  static const financeMeTransactions = '$apiPrefix/finance/me/transactions';
+
+  // The administrator's half of `finance.py`. Reads are `cost_centers:read_all`;
+  // every write is `cost_centers:modify` (creating a center is
+  // `cost_centers:create`). No API key can hold any of them, and a private center
+  // answers 400 to a rename, a deactivation, a delete and any membership change
+  // — only its budget moves.
+
+  /// `GET` every center (`?include_inactive=`), `POST` a shared one. The listing
+  /// answers anyone holding any of the three permissions; a plain member's
+  /// `get_cost_center` is the same 403.
+  static const financeCostCenters = '$apiPrefix/finance/cost-centers';
+
+  /// `GET` one with its members (`CostCenterDetailResponse`), `PATCH` its name
+  /// and active flag, `DELETE` it — refused while a ledger row or an active
+  /// budget hold still points at it.
+  static String financeCostCenter(int id) =>
+      '$apiPrefix/finance/cost-centers/$id';
+
+  /// `PATCH` the budget: a monthly figure wins over a total, and a body naming
+  /// neither removes the budget altogether (`update_cost_center_budgets`).
+  static String financeCostCenterBudgets(int id) =>
+      '$apiPrefix/finance/cost-centers/$id/budgets';
+
+  /// `POST` adds a member or changes its `can_print`.
+  static String financeCostCenterMembers(int id) =>
+      '$apiPrefix/finance/cost-centers/$id/members';
+
+  /// `DELETE` takes a member off.
+  static String financeCostCenterMember(int id, int userId) =>
+      '$apiPrefix/finance/cost-centers/$id/members/$userId';
+
+  /// Every user's ledger, newest first (`?limit=1..500&offset=&user_id=`).
+  static const financeTransactions = '$apiPrefix/finance/transactions';
+
+  /// `PATCH` (user, center, amount, description — the server appends
+  /// "(Admin edit)" and rebuilds the ledger) and `DELETE` (voids the row).
+  static String financeTransaction(int id) =>
+      '$apiPrefix/finance/transactions/$id';
+
+  /// A manual print charge. The amount sent is positive (`gt=0`, else 422) and
+  /// is stored as a charge, negative.
+  static const financeTransactionsManual =
+      '$apiPrefix/finance/transactions/manual';
+
+  /// POST — recompute `balance_after` on every ledger row (`cost_centers:modify`).
+  /// Answers once it is done: `{status, transactions_rebuilt, message}`.
+  static const financeRebuildLedger =
+      '$apiPrefix/finance/rebuild-balance-ledger';
+
+  /// `POST` money onto a user's wallet / off it; the amount is always positive.
+  static String financeUserDeposit(int userId) =>
+      '$apiPrefix/finance/users/$userId/deposit';
+  static String financeUserWithdraw(int userId) =>
+      '$apiPrefix/finance/users/$userId/withdraw';
 
   // Trailing slash required: similar to `/queue/`.
   static const archives = '$apiPrefix/archives/';

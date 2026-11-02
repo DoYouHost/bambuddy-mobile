@@ -206,28 +206,24 @@ void main() {
       expect(await printed(cutEvery: 1), base);
     }, skip: needsPrinterFile);
 
-    test(
-      'a label of another shape is refused with the reason',
-      () async {
-        // 40 x 30 mm is 4 : 3, which is not the loaded 62 : 29 stock.
-        final other = await source.renderLabels(
-          SpoolLabelRequest(
-            spoolIds: spoolIds,
-            template: SpoolLabelTemplate.box40x30,
-          ),
-        );
+    test('a label of another shape is refused with the reason', () async {
+      // 40 x 30 mm is 4 : 3, which is not the loaded 62 : 29 stock.
+      final other = await source.renderLabels(
+        SpoolLabelRequest(
+          spoolIds: spoolIds,
+          template: SpoolLabelTemplate.box40x30,
+        ),
+      );
 
-        await expectLater(
-          printed(pdf: other),
-          throwsA(
-            isA<ApiException>()
-                .having((e) => e.statusCode, 'status', 400)
-                .having((e) => e.detail, 'detail', isNotNull),
-          ),
-        );
-      },
-      skip: needsPrinterFile,
-    );
+      await expectLater(
+        printed(pdf: other),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.statusCode, 'status', 400)
+              .having((e) => e.detail, 'detail', isNotNull),
+        ),
+      );
+    }, skip: needsPrinterFile);
 
     test('more copies than the server takes is refused', () async {
       await expectLater(

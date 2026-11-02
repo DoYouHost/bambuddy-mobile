@@ -6,7 +6,10 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val keyPropertiesFile = rootProject.file("key.properties")
+// The maintainer's copy lives outside the repo; CI and contributors keep using
+// android/key.properties.
+val keyPropertiesFile = File(System.getProperty("user.home"), ".config/bambuddy/key.properties")
+    .takeIf { it.exists() } ?: rootProject.file("key.properties")
 val keyProperties = Properties().apply {
     if (keyPropertiesFile.exists()) load(keyPropertiesFile.inputStream())
 }
@@ -65,6 +68,15 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Patrol's on-device tests (patrol_test/). Each Dart test is its own
+        // instrumentation run on a cleared app, so the setup screen is what
+        // every test starts on.
+        testInstrumentationRunner = "pl.leancode.patrol.PatrolJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
+    }
+
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 
     // Phone and watch ship as one Google Play listing (same applicationId),
@@ -125,8 +137,8 @@ flutter {
 
 // Assets are declared once in pubspec.yaml and Flutter has no per-flavor list,
 // so the watch APK carries the phone's G-code viewer, the slicer schemas, the
-// dashboard's cover placeholder and four JetBrains Mono faces — ~2.2 MB behind
-// screens the wear entry point does not have.
+// dashboard's cover placeholder, the demo's pictures and four JetBrains Mono
+// faces — ~3.5 MB behind screens the wear entry point does not have.
 //
 // Unreachable was verified, not assumed: none of these paths, and not the
 // family name "JetBrainsMono", survives Dart tree shaking into the wear
@@ -138,6 +150,7 @@ val wearPrunedAssetPaths = listOf(
     "assets/gcode",
     "assets/slicer",
     "assets/icons/cover_placeholder.png",
+    "assets/demo",
 )
 
 /// Dropped from the APK *and* from FontManifest.json. Leaving the manifest
@@ -197,4 +210,11 @@ dependencies {
     // launch theme, and — as with wear-input above — both flavors compile
     // `src/main`, so the call sits in each flavor's own BrandedLaunch.kt.
     "wearImplementation"("androidx.core:core-splashscreen:1.2.0")
+    // Play's WO-V4: the watch face icon and Recents entry for a print followed from the
+    // watch (WearOngoing.kt in the wear source set).
+    "wearImplementation"("androidx.wear:wear-ongoing:1.1.0")
+    // The install-on-phone prompt of a watch app that needs its phone app (WearPhoneApp.kt in
+    // the wear source set).
+    "wearImplementation"("androidx.wear:wear-remote-interactions:1.2.0")
+    androidTestUtil("androidx.test:orchestrator:1.5.1")
 }

@@ -1,4 +1,4 @@
-import 'package:bambuddy_mobile/core/demo/demo_config.dart';
+import 'package:bambuddy_mobile/core/app_context.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
@@ -11,18 +11,14 @@ import 'package:bambuddy_mobile/features/wall/wall_tile.dart';
 import 'package:bambuddy_mobile/features/wall/wall_camera.dart';
 import 'package:bambuddy_mobile/features/wall/wall_providers.dart';
 import 'package:bambuddy_mobile/features/wall/wall_screen.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
-
-const _window = MethodChannel('page.codeberg.morganmlgman.bambuddy/window');
 
 /// Live statuses, fixed: what the socket would have delivered.
 class _FixedStatuses extends PrinterStatusesNotifier {
@@ -88,32 +84,24 @@ void main() {
     Override? profile,
   }) async {
     _CountingQueue.refreshes = 0;
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = size;
-    addTearDown(tester.view.reset);
+    useLogicalWindow(tester, size);
     awake = [];
     orientations = [];
     uiModes = [];
     overlays = [];
-    final messenger = tester.binding.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(_window, (call) async {
-      awake.add((call.arguments as Map)['on'] as bool);
-      return null;
-    });
-    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
-      if (call.method == 'SystemChrome.setPreferredOrientations') {
-        orientations.add(call.arguments);
-      } else if (call.method == 'SystemChrome.setEnabledSystemUIMode') {
-        uiModes.add(call.arguments);
-      } else if (call.method == 'SystemChrome.setEnabledSystemUIOverlays') {
-        overlays.add(call.arguments);
-      }
-      return null;
-    });
-    addTearDown(() {
-      messenger.setMockMethodCallHandler(_window, null);
-      messenger.setMockMethodCallHandler(SystemChannels.platform, null);
-    });
+    mockImmersiveChannels(
+      tester,
+      onWindow: (call) => awake.add((call.arguments as Map)['on'] as bool),
+      onPlatform: (call) {
+        if (call.method == 'SystemChrome.setPreferredOrientations') {
+          orientations.add(call.arguments);
+        } else if (call.method == 'SystemChrome.setEnabledSystemUIMode') {
+          uiModes.add(call.arguments);
+        } else if (call.method == 'SystemChrome.setEnabledSystemUIOverlays') {
+          overlays.add(call.arguments);
+        }
+      },
+    );
 
     SharedPreferences.setMockInitialValues(prefs);
     final sp = await SharedPreferences.getInstance();
@@ -152,12 +140,7 @@ void main() {
         child: Consumer(
           builder: (context, ref, _) {
             container = ProviderScope.containerOf(context, listen: false);
-            return MaterialApp.router(
-              locale: const Locale('pl'),
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              routerConfig: router,
-            );
+            return plRouterApp(router);
           },
         ),
       ),
@@ -236,7 +219,7 @@ void main() {
       expect(find.byType(WallCamera), findsNWidgets(5));
     });
 
-    testWidgets('keeps the demo status-only: it serves no camera', (
+    testWidgets('draws the demo printers on the frames the demo ships', (
       tester,
     ) async {
       await pumpDashboardWithWall(
@@ -249,14 +232,20 @@ void main() {
         ),
       );
 
-      expect(byLogId('wall.tile'), findsNothing);
+      final frames = tester
+          .widgetList<Image>(find.byType(Image))
+          .map((i) => i.image)
+          .map((p) => p is ResizeImage ? p.imageProvider : p)
+          .whereType<AssetImage>()
+          .map((a) => a.assetName);
+      expect(frames, contains(startsWith('assets/demo/')));
       expect(find.text('X1C-01'), findsOneWidget);
     });
 
     testWidgets('says so when the server has no printers', (tester) async {
       await pumpDashboardWithWall(tester, printers: const []);
 
-      expect(find.textContaining('Brak drukarek'), findsOneWidget);
+      expect(find.textContaining(pl.wearNoPrinters), findsOneWidget);
     });
 
     testWidgets('scrolls a farm too big to fit rather than squeezing it', (
@@ -360,7 +349,7 @@ void main() {
       expect(find.text('Camera_mount_v3.3mf'), findsOneWidget);
       expect(find.text('Waiting on Enclosure Door'), findsOneWidget);
       expect(find.text('Cable_clip.3mf'), findsOneWidget);
-      expect(find.text('Dowolna X1C'), findsOneWidget);
+      expect(find.text(pl.queueEditAnyModel('X1C')), findsOneWidget);
     });
 
     testWidgets('says quietly that there are no faults and no queue', (
@@ -368,8 +357,8 @@ void main() {
     ) async {
       await pumpDashboardWithWall(tester, size: _tablet);
 
-      expect(find.text('Brak aktywnych błędów'), findsOneWidget);
-      expect(find.text('Kolejka jest pusta'), findsOneWidget);
+      expect(find.text(pl.wallNoFaults), findsOneWidget);
+      expect(find.text(pl.queueEmpty), findsOneWidget);
     });
 
     testWidgets('the rail counts faults and queued jobs', (tester) async {
@@ -382,7 +371,12 @@ void main() {
         ],
       );
 
-      expect(find.bySemanticsLabel('1 błąd, 2 w kolejce'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(
+          '${pl.hmsErrorsCount(1)}, ${pl.wallQueueCount(2)}',
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('asks for the queue on entry, every 30 s, and not after', (
@@ -478,7 +472,7 @@ void main() {
       );
 
       expect(find.text('Heatbed heating failed'), findsNothing);
-      expect(find.text('Brak aktywnych błędów'), findsOneWidget);
+      expect(find.text(pl.wallNoFaults), findsOneWidget);
     });
 
     testWidgets('all hidden says so rather than "no printers"', (tester) async {
@@ -490,7 +484,7 @@ void main() {
       );
 
       expect(find.textContaining('ukryte'), findsOneWidget);
-      expect(find.textContaining('Brak drukarek'), findsNothing);
+      expect(find.textContaining(pl.wearNoPrinters), findsNothing);
     });
   });
 
@@ -721,11 +715,10 @@ void main() {
 
         expect(find.text('DASHBOARD'), findsOneWidget);
         expect(orientations.last, isEmpty);
-        expect(
-          overlays.last,
-          ['SystemUiOverlay.top', 'SystemUiOverlay.bottom'],
-          reason: 'both bars back, the flags the activity starts with',
-        );
+        expect(overlays.last, [
+          'SystemUiOverlay.top',
+          'SystemUiOverlay.bottom',
+        ], reason: 'both bars back, the flags the activity starts with');
         expect(awake.last, isFalse);
       },
     );

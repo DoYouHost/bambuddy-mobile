@@ -6,7 +6,7 @@ import 'package:bambuddy_mobile/wear/screens/wear_printer_control_screen.dart';
 import 'package:bambuddy_mobile/wear/wear_providers.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_header.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -108,7 +108,7 @@ void main() {
 
       // The screen's one state that never reaches `WearScrollView`, and so the
       // one that has to ask for the round-safe rectangle by hand.
-      expectOnGlass(tester, find.text('Drukarka niedostępna'));
+      expectOnGlass(tester, find.text(pl.wearPrinterUnavailable));
     });
   }
 
@@ -121,8 +121,8 @@ void main() {
     // FilledButton for exactly that reason: it used to be a hand-built pill
     // repeating the theme's height, radius and text style, which is three
     // numbers that drift the day the button theme moves.
-    final placeholder = find.widgetWithText(FilledButton, 'Kolejka jest pusta');
-    final button = find.widgetWithText(FilledButton, 'Zwolnij płytę');
+    final placeholder = find.widgetWithText(FilledButton, pl.queueEmpty);
+    final button = find.widgetWithText(FilledButton, pl.wearClearPlate);
     await revealOnWatch(tester, placeholder);
 
     expect(tester.widget<FilledButton>(placeholder).onPressed, isNull);
@@ -130,7 +130,7 @@ void main() {
   });
 
   group('the plate-clear gate on an unreachable printer', () {
-    final ack = find.widgetWithText(FilledButton, 'Zwolnij płytę');
+    final ack = find.widgetWithText(FilledButton, pl.wearClearPlate);
 
     testWidgets('is offered on the watch too, and acknowledged from it', (
       tester,
@@ -143,7 +143,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(transport.acks, 1);
-      expect(find.text('Płyta zwolniona'), findsOneWidget);
+      expect(find.text(pl.wearPlateCleared), findsOneWidget);
     });
 
     testWidgets('an old server\'s refusal is worded for the wrist, and the '
@@ -163,7 +163,7 @@ void main() {
       await tester.tap(ack);
       await tester.pumpAndSettle();
 
-      expect(find.text('Ten serwer wymaga drukarki online'), findsOneWidget);
+      expect(find.text(pl.wearPlateNeedsOnline), findsOneWidget);
       expect(ack, findsNothing);
     });
   });
@@ -179,6 +179,8 @@ void main() {
     final header = find.byType(WearHeader);
     final line = find.descendant(of: header, matching: find.byType(Text));
     expect(tester.widget<Text>(line).maxLines, 1);
-    expectOnGlass(tester, header);
+    // The line, not the header's box: the box includes the title's 7.3% side
+    // margin, which is there so the line inside it stays on the glass.
+    expectOnGlass(tester, line);
   });
 }

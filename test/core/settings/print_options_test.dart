@@ -76,4 +76,23 @@ void main() {
       reason: 'a save from before G-code injection = disabled',
     );
   });
+
+  group('copyWith', () {
+    test('changes only what it is given', () {
+      final next = PrintOptions.initial.copyWith(
+        vibrationCali: false,
+        gcodeInjection: true,
+      );
+
+      expect(next.vibrationCali, isFalse);
+      expect(next.gcodeInjection, isTrue);
+      expect(next.bedLevelling, PrintOptions.initial.bedLevelling);
+      expect(next.layerInspect, PrintOptions.initial.layerInspect);
+      expect(next.nozzleOffsetCali, PrintOptions.initial.nozzleOffsetCali);
+    });
+
+    test('with nothing given is an equal copy', () {
+      expect(PrintOptions.initial.copyWith(), PrintOptions.initial);
+    });
+  });
 }

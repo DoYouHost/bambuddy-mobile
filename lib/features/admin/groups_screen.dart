@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,7 +9,6 @@ import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
 import 'group_form_screen.dart';
 import 'groups_providers.dart';
-import '../common/tappable_card.dart';
 
 /// The groups on the server (full screen, pushed from the dashboard drawer).
 ///

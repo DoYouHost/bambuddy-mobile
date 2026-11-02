@@ -18,36 +18,18 @@ import '../models/queue_item.dart';
 import 'wear_relay_claim.dart';
 import 'wear_rpc.dart';
 
-/// PHONE side of the watch relay (plan 05, M-R3 "app alive" variant): answers
-/// [WearRpcRequest]s from the paired watch using the phone's authenticated
-/// connection, so the watch doesn't need its own WiFi/server session.
-///
-/// Runs only while a Flutter engine hosts it: the app's own, the foreground
-/// service's, or the headless one the native listener service starts when the
-/// process was dead (`wear_relay_engine.dart`). Which of them may answer at any
-/// moment is decided by [WearRelayClaim].
-///
-/// Fleet statuses are fetched as raw JSON (models are parse-only, no toJson)
-/// and passed through untouched; the watch parses them with the same
-/// `fromJson`s it uses for direct REST.
+/// PHONE side of the watch relay: answers [WearRpcRequest]s from the paired watch
+/// using the phone's authenticated connection. Runs only while a Flutter engine hosts
+/// it; which one may answer at any moment is decided by [WearRelayClaim]
+/// (docs/wear-relay.md, "The phone side").
 class WearRelayHandler {
-  /// [dio] returns the current authenticated client, or null when no server
-  /// profile is configured (the watch is then told `phone-unconfigured`).
-  ///
-  /// [liveStatus] (FGS isolate only) returns the raw last-known WS status
-  /// frame for a printer, or null when there's nothing trustworthy (WS down /
-  /// printer never seen) — the handler then falls back to a REST status fetch
-  /// for that printer.
-  /// [claim] tells the native listener service that this process is answering,
-  /// so a request never reaches both a listener and a freshly woken engine.
-  /// Null where there is nothing to coordinate with: tests, and the woken
-  /// engine itself — that one never listens, the service hands it each request.
-  ///
-  /// [plateGateAcknowledged] lets that cache be told the plate-clear gate is
-  /// down. The server pushes a fresh frame for the flag only while the printer
-  /// has a live MQTT client, so after acknowledging a printer that Auto Power
-  /// Off already switched off nothing would ever correct the cached `true`, and
-  /// the watch's own post-action refresh would draw the button again.
+  /// [dio] returns the current authenticated client, or null when no server profile is
+  /// configured (the watch is then told `phone-unconfigured`). [liveStatus] (FGS
+  /// isolate only) returns the raw last-known WS status frame for a printer, or null
+  /// when nothing is trustworthy, and the handler then falls back to REST. [claim] is
+  /// null where there is nothing to coordinate with: tests, and the woken engine.
+  /// [plateGateAcknowledged] lets the cache be told the plate-clear gate is down
+  /// (docs/wear-relay.md, "The phone side").
   WearRelayHandler({
     required WatchConnectivity watch,
     required Dio? Function() dio,
@@ -86,15 +68,9 @@ class WearRelayHandler {
   /// The tail of the start/stop chain — see [_sequenced].
   Future<void> _pending = Future<void>.value();
 
-  /// Idempotent. Requests are handled sequentially per message (each handled
-  /// in its own async task; the stream isn't awaited) — fine for a watch that
-  /// sends one request at a time per screen.
-  ///
-  /// Claim first, listener second — and the reverse in [stop]. Between those
-  /// two acts the native service believes nobody is answering, and a request
-  /// arriving then would be answered by a woken engine as well as by this
-  /// listener. A claim that could not be written means no listener at all, for
-  /// the same reason.
+  /// Idempotent. Claim first, listener second, and the reverse in [stop], so a request
+  /// cannot be answered by a woken engine as well as by this listener
+  /// (docs/wear-relay.md, "start and stop order").
   Future<void> start() => _sequenced(() async {
     if (_sub != null) return;
     final claim = _claim;
@@ -112,15 +88,8 @@ class WearRelayHandler {
     await _claim?.release();
   });
 
-  /// Runs start/stop one at a time.
-  ///
-  /// Each of them is two steps — the claim and the subscription — and every
-  /// caller is a lifecycle callback that fires them without awaiting, so the
-  /// next one arrives while the previous is still in flight. Interleaved, they
-  /// leave either a listener with no claim (a woken engine answers the same
-  /// request) or a claim with no listener (nothing answers at all), and
-  /// `start`'s own `_sub` check would read a subscription that `stop` is
-  /// half-way through cancelling.
+  /// Runs start/stop one at a time: each is two steps, and interleaved they leave a
+  /// listener with no claim or a claim with no listener (docs/wear-relay.md, "start and stop order").
   Future<void> _sequenced(Future<void> Function() step) {
     final done = _pending.then((_) => step());
     // A step that failed must not wedge the ones queued behind it.

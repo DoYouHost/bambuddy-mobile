@@ -1,16 +1,17 @@
 import 'package:app_util/app_util.dart';
 import 'package:clock/clock.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/ams/color_names.dart';
-import '../../core/api/api_exceptions.dart';
+import '../../core/ams/job_cost.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/filament_colour.dart';
 import '../../core/models/available_filament.dart';
 import '../../core/models/calibration_option.dart';
+import '../../core/models/cost_center.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/plate_list.dart';
@@ -20,15 +21,14 @@ import '../../core/theme/dash_theme.dart';
 import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/api_failure_snack.dart';
-import '../common/dash_stepper.dart';
-import '../common/date_time_picker.dart';
-import '../common/inline_note.dart';
-import '../common/print_thumbnail.dart';
-import '../files/library_thumbnail.dart';
 import '../slicer/slice_providers.dart';
 import '../common/dash_async.dart';
 import '../orders/orders_providers.dart';
+import 'job_cost_providers.dart';
+import 'queue_cost_center_state.dart';
+import 'queue_create_service.dart';
+import 'queue_form_parts.dart';
+import 'queue_item_view.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_plate_sheet.dart';
 import 'queue_providers.dart';
@@ -85,7 +85,7 @@ enum QueueScheduleType { asap, queue, scheduled }
 
 /// Models with two nozzles — gate for the nozzle-offset-calibration option
 /// (matches the web `showDualNozzleOptions` model list).
-const _dualNozzleModels = {'H2D', 'H2DPRO', 'H2C', 'X2D'};
+const queueDualNozzleModels = {'H2D', 'H2DPRO', 'H2C', 'X2D'};
 
 class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   // Target
@@ -130,6 +130,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   // Preheat & heat soak
   late String _preheatOverride; // inherit | on | off
+
+  /// Collapsible sections the user has opened; the cards themselves hold no state.
+  final _openSections = <String>{};
   late final TextEditingController _chamberTarget;
 
   // When to print
@@ -138,6 +141,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   // Flags
   late bool _requireManualStart;
+
+  /// The cost center the user picked; null until they do, and then the form
+  /// follows [_selectedCostCenter]'s fallback. Starts at the item's own.
+  late int? _costCenterId = widget.item.costCenterId;
 
   /// [awaitingReviewProvider] as [_submit] found it, for the payload builders
   /// that run past its first `await`.
@@ -224,7 +231,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   bool get _showNozzleOffset {
     final m = widget.item.slicedForModel?.toUpperCase();
-    return m != null && _dualNozzleModels.contains(m);
+    return m != null && queueDualNozzleModels.contains(m);
   }
 
   /// Printer models the server has auto-print snippets for. Empty while
@@ -302,7 +309,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         appBar: dashAppBar(
           context,
           title: widget._isCreate ? l10n.queueCreateTitle : l10n.queueEditTitle,
-          actions: [_submitAction(l10n, t)],
+          actions: [_submitAction(l10n)],
         ),
         body: AbsorbPointer(
           absorbing: _saving,
@@ -310,11 +317,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             padding: screenListPadding(context),
             children: [
               _header(l10n, t),
-              // The server refuses the job without a cost center, and the
-              // app has no picker for one yet: say so before the form is
-              // filled in rather than after.
-              if (_billingBlocks)
-                ?inlineNote(l10n.queueBillingUseWeb, urgent: true),
+              // The server refuses the job without a cost center and this
+              // session has none to pick: say so before the form is filled
+              // in rather than after.
+              ?_costCenterBlockedNote(l10n),
               const SizedBox(height: DashSpace.lg),
               _targetSection(l10n, t),
               const SizedBox(height: DashSpace.lg),
@@ -331,6 +337,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               const SizedBox(height: DashSpace.lg),
               _preheatSection(l10n, t),
               const SizedBox(height: DashSpace.lg),
+              if (_costCenterSection(l10n, t) case final section?) ...[
+                section,
+                const SizedBox(height: DashSpace.lg),
+              ],
               _scheduleSection(l10n, t),
             ],
           ),
@@ -346,13 +356,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: it.archiveId == null && it.libraryFileId != null
-              ? LibraryThumbnail(
-                  fileId: it.libraryFileId!,
-                  hasThumbnail: it.libraryFileThumbnail != null,
-                  size: 52,
-                )
-              : PrintThumbnail(archiveId: it.archiveId, size: 52),
+          child: QueueThumbnail(item: it, size: 52),
         ),
         const SizedBox(width: DashSpace.md),
         Expanded(
@@ -392,12 +396,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               ? l10n.queueEditAnyModel(_targetModel!)
               : l10n.queueEditAnyModelGeneric);
 
-    return _SectionCard(
+    return QueueSectionCard(
+      tone: QueueSectionTone.target,
       title: l10n.queueEditTarget,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _SegToggle<bool>(
+          DashSegToggle<bool>(
             id: 'queue_edit.target_mode',
             selected: _modelMode,
             segments: [
@@ -431,33 +436,56 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     );
   }
 
-  Widget _printerList(AppLocalizations l10n, DashTokens t, List printers) {
+  String _printerDetail(Printer p) => [
+    if (p.model != null) p.model!,
+    if (p.ipAddress != null) p.ipAddress!,
+  ].join(' • ');
+
+  Widget _printerList(
+    AppLocalizations l10n,
+    DashTokens t,
+    List<Printer> printers,
+  ) {
     if (printers.isEmpty) {
       return Text(
         l10n.queueNoFreePrinters,
         style: t.bodyPlain.copyWith(color: t.textTertiary),
       );
     }
-    return Column(
-      children: [
+    // A select, not a tile per printer: a farm of twenty would be twenty tiles
+    // between the toggle and the rest of the form. Typing narrows it by name.
+    return dashCombo<int>(
+      context,
+      id: 'queue_edit.printer_select',
+      label: Text(l10n.queueEditPrinter),
+      filterable: true,
+      initialSelection: _printerId,
+      onSelected: (id) => setState(() {
+        if (id == null || id == _printerId) return;
+        _nozzleRackChoice.clear();
+        // A slot id names another spool on another printer; the web drops its
+        // picks on a switch too (`PrintModal/index.tsx`).
+        _amsMapping = null;
+        _printerId = id;
+      }),
+      entries: [
         for (final p in printers)
-          _SelectableTile(
-            selected: _printerId == p.id,
-            title: p.name,
-            subtitle: [
-              if (p.model != null) p.model!,
-              if (p.ipAddress != null) p.ipAddress!,
-            ].join(' • '),
-            onTap: () => setState(() {
-              if (_printerId != p.id) {
-                _nozzleRackChoice.clear();
-                // A slot id names another spool on another printer; the web
-                // drops its picks on a switch too (`PrintModal/index.tsx`).
-                _amsMapping = null;
-              }
-              _printerId = p.id;
-            }),
-          ).tagged('queue_edit.printer'),
+          DropdownMenuEntry(
+            value: p.id,
+            label: p.name,
+            labelWidget: logTag(
+              'queue_edit.printer',
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(p.name, style: t.titleSm),
+                  if (_printerDetail(p) case final detail
+                      when detail.isNotEmpty)
+                    Text(detail, style: t.monoMicro),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -474,81 +502,222 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         if (!modelFixed && models.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: DashSpace.md),
-            child: _Dropdown<String?>(
-              label: l10n.queueEditTargetModel,
-              value: models.contains(_targetModel) ? _targetModel : null,
-              placeholder: '—',
-              items: [
-                for (final m in models) (value: m, label: m, swatch: null),
-              ],
-              onChanged: (v) => setState(() {
+            child: dashCombo<String>(
+              context,
+              id: 'queue_edit.target_model',
+              label: Text(l10n.queueEditTargetModel),
+              initialSelection: models.contains(_targetModel)
+                  ? _targetModel
+                  : null,
+              onSelected: (v) => setState(() {
                 _targetModel = v;
                 _dropOverridesOnRetarget(plateChanged: false);
               }),
+              entries: [
+                for (final m in models)
+                  DropdownMenuEntry(
+                    value: m,
+                    label: m,
+                    labelWidget: logTag(
+                      'queue_edit.target_model.option',
+                      Text(m),
+                    ),
+                  ),
+              ],
             ),
           ),
-        _Dropdown<String?>(
-          label: l10n.queueEditTargetLocation,
-          value: locations.contains(_targetLocation) ? _targetLocation : null,
-          placeholder: l10n.queueEditAnyLocation,
-          items: [
-            (value: null, label: l10n.queueEditAnyLocation, swatch: null),
-            for (final loc in locations) (value: loc, label: loc, swatch: null),
-          ],
-          onChanged: (v) => setState(() => _targetLocation = v),
+        dashAnyOrOne<String>(
+          context,
+          id: 'queue_edit.target_location',
+          label: Text(l10n.queueEditTargetLocation),
+          anyLabel: l10n.queueEditAnyLocation,
+          selected: locations.contains(_targetLocation)
+              ? _targetLocation
+              : null,
+          options: [for (final loc in locations) (loc, loc)],
+          onPick: (v) => setState(() => _targetLocation = v),
         ),
       ],
     );
   }
 
-  /// The one action of this screen, so it carries the app's primary-button fill
-  /// instead of reading as a third piece of bar text next to the title and the
-  /// back arrow. Compact padding and a shorter radius keep the pill inside the
-  /// bar; the rest (colours, disabled state, weight) comes from
-  /// [dashPrimaryButtonStyle] so it matches every other confirming button.
-  Widget _submitAction(AppLocalizations l10n, DashTokens t) {
-    return Padding(
-      // Vertical inset leaves the pill room to grow with the text scale before
-      // it meets the 56-high bar.
-      padding: const EdgeInsets.fromLTRB(
-        DashSpace.xs,
-        DashSpace.xs,
-        DashSpace.md,
-        DashSpace.xs,
+  Widget _submitAction(AppLocalizations l10n) => QueueSubmitAction(
+    id: widget._isCreate ? 'queue_create.save' : 'queue_edit.save',
+    label: widget._isCreate ? l10n.queueCreateSubmit : l10n.queueEditSave,
+    onPressed: _saving || !_costCenterAllowsSubmit ? null : _submit,
+  );
+
+  // --- Billing ---
+
+  /// What the form can do about billing, from the flag and the centers this
+  /// session may book to. [watch] as in [_snippetModels].
+  CostCenterState _costCenterState({required bool watch}) =>
+      costCenterStateOf(watch ? ref.watch : ref.read);
+
+  /// A new job, or one queued before billing was on, cannot be saved without a
+  /// cost center. An item that already has one keeps it on the server, so an
+  /// edit of it never waits for, or depends on, the list.
+  bool get _costCenterRequired =>
+      widget._isCreate || widget.item.costCenterId == null;
+
+  /// Whether Save may be pressed as far as billing is concerned: every step
+  /// that cannot offer a pick leaves a job without a cost center stuck.
+  bool get _costCenterAllowsSubmit =>
+      costCenterAllowsCreate(_costCenterState(watch: true).step) ||
+      !_costCenterRequired;
+
+  /// The center Save sends: what the user picked if it is still on offer, else
+  /// the web's default. Null when there is nothing to choose from.
+  CostCenter? _selectedCostCenter(List<CostCenter> centers) =>
+      selectedCostCenter(centers, _costCenterId);
+
+  /// `cost_center_id` for the write, or null to leave the key out: on a server
+  /// without billing, where the field is not read, and wherever there is no
+  /// center to offer — an item that already has one keeps it server-side.
+  int? get _costCenterPayload =>
+      _selectedCostCenter(_costCenterState(watch: false).centers)?.id;
+
+  /// Why the job cannot be saved, said before the form is filled in. Only for
+  /// a job that needs a center: an item that has one is not blocked by this.
+  Widget? _costCenterBlockedNote(AppLocalizations l10n) {
+    if (!_costCenterRequired) return null;
+    return inlineNote(switch (_costCenterState(watch: true).step) {
+      CostCenterStep.refused => l10n.queueBillingCostCentersRefused,
+      CostCenterStep.none => l10n.queueBillingNoCostCenter,
+      _ => null,
+    }, urgent: true);
+  }
+
+  /// Folds a section that is rarely touched, closed until the user opens it.
+  QueueSectionCollapse _collapse(String id) => (
+    id: id,
+    open: _openSections.contains(id),
+    onToggle: () => setState(() {
+      if (!_openSections.remove(id)) _openSections.add(id);
+    }),
+  );
+
+  /// The web's cost-center select (`PrintModal/CostCenterSelect.tsx`): shown
+  /// while billing is on and there is something to choose from.
+  Widget? _costCenterSection(AppLocalizations l10n, DashTokens t) {
+    final state = _costCenterState(watch: true);
+    final body = switch (state.step) {
+      CostCenterStep.loading => const LinearProgressIndicator(),
+      CostCenterStep.failed => Row(
+        children: [
+          Expanded(
+            child: Text(
+              l10n.queueCostCenterLoadFailed,
+              style: t.bodyPlain.copyWith(color: t.textTertiary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => ref.invalidate(printableCostCentersProvider),
+            child: Text(l10n.retry),
+          ).tagged('queue_edit.cost_center_retry'),
+        ],
       ),
-      child: FilledButton(
-        style: dashPrimaryButtonStyle(t).copyWith(
-          padding: const WidgetStatePropertyAll(
-            EdgeInsets.symmetric(horizontal: DashSpace.lg),
-          ),
-          shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      CostCenterStep.pick => _costCenterPicker(l10n, t, state.centers),
+      _ => null,
+    };
+    return body == null
+        ? null
+        : QueueSectionCard(
+            tone: QueueSectionTone.cost,
+            title: l10n.queueCostCenterTitle,
+            child: body,
+          );
+  }
+
+  Widget _costCenterPicker(
+    AppLocalizations l10n,
+    DashTokens t,
+    List<CostCenter> centers,
+  ) {
+    final selected = _selectedCostCenter(centers);
+    String label(CostCenter c) =>
+        c.isPrivate ? l10n.queueCostCenterPersonal(c.name) : c.name;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        dashCombo<int>(
+          context,
+          id: 'queue_edit.cost_center',
+          initialSelection: selected?.id,
+          onSelected: (v) => setState(() => _costCenterId = v),
+          entries: [
+            for (final c in centers)
+              DropdownMenuEntry(
+                value: c.id,
+                label: label(c),
+                // A center's name is the user's own words, so every row is one
+                // id — see `dashAnyOrOne`.
+                labelWidget: logTag(
+                  'queue_edit.cost_center.option',
+                  Text(label(c)),
+                ),
+              ),
+          ],
         ),
-        onPressed: _saving || _billingBlocks || _billingPending
-            ? null
-            : _submit,
-        child: Text(
-          widget._isCreate ? l10n.queueCreateSubmit : l10n.queueEditSave,
-        ),
-      ).tagged(widget._isCreate ? 'queue_create.save' : 'queue_edit.save'),
+        if (selected?.budget == CostCenterBudget.none)
+          InlineNote(l10n.queueCostCenterUnlimited, icon: Icons.info_outline),
+        ?_budgetWarning(t, selected),
+      ],
     );
   }
 
-  /// A billing server refuses a create, and any edit of an item, without a
-  /// cost center (`update_queue_item` checks the budget on every PATCH). An
-  /// item queued in the web with one still edits.
-  bool get _billingBlocks =>
-      _billingApplies && ref.watch(billingEnabledProvider);
+  /// The job's cost preview, or null where the web draws no mapping panel: a job
+  /// aimed at "any printer of a model", no printer yet, no filament in the plate,
+  /// or a printer status that has not arrived.
+  JobCost? _jobCost() {
+    final source = _plateSource;
+    final printerId = _printerId;
+    if (_modelMode || source == null || printerId == null) return null;
+    return ref
+        .watch(
+          jobCostProvider((
+            isArchive: source.$1,
+            id: source.$2,
+            plate: _plateId ?? 1,
+            printerId: printerId,
+            mapping: mappingKey(_amsMapping),
+          )),
+        )
+        .valueOrNull;
+  }
 
-  /// Submit waits for the billing flag on a job it could block: the first
-  /// frame would otherwise offer a write the server is about to refuse.
-  bool get _billingPending =>
-      _billingApplies && ref.watch(serverUiFlagsProvider).isLoading;
+  int get _costCopies => widget._isCreate ? _copies : 1;
 
-  bool get _billingApplies =>
-      widget._isCreate || widget.item.costCenterId == null;
+  /// What the job is expected to cost, under the mapping it is priced from.
+  /// Shown with or without billing, as the web's mapping panel does: the budget
+  /// is the billing half, see [_budgetWarning]. The server prices the job itself;
+  /// this says so before the form is sent.
+  Widget? _costEstimate(AppLocalizations l10n, DashTokens t) {
+    final cost = _jobCost();
+    if (cost == null) return null;
+    final currency = ref.watch(currencySymbolProvider);
+    return Padding(
+      padding: const EdgeInsets.only(top: DashSpace.xs),
+      child: Text(
+        jobCostText(l10n, currency, cost, _costCopies),
+        style: t.labelSoft,
+      ),
+    );
+  }
+
+  /// A warning where the job, all its copies, is more than the center has left.
+  /// The server refuses it when it does not fit; this says so before the form
+  /// is sent.
+  Widget? _budgetWarning(DashTokens t, CostCenter? selected) {
+    if (!jobExceedsBudget(_jobCost(), selected, _costCopies)) return null;
+    return Padding(
+      padding: const EdgeInsets.only(top: DashSpace.sm),
+      child: Text(
+        AppLocalizations.of(context).queueInsufficientBudget,
+        style: t.labelSoft.copyWith(color: t.dangerInk),
+      ),
+    );
+  }
 
   /// Name of the printer picked in the Target section, for messages that would
   /// otherwise quote the item's stored (or, on a draft, missing) printer.
@@ -574,16 +743,14 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final order = ref.watch(batchOrdersProvider).orFalse;
     return Column(
       children: [
-        _SectionCard(
-          title: l10n.queueEditCopies,
+        QueueSectionCard(
+          tone: QueueSectionTone.copies,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Expanded(
-                    child: Text(l10n.queueEditCopiesLabel, style: t.body),
-                  ),
+                  Expanded(child: Text(l10n.queueEditCopies, style: t.body)),
                   DashStepper(
                     value: _copies,
                     min: 1,
@@ -672,7 +839,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
     return Column(
       children: [
-        _SectionCard(
+        QueueSectionCard(
+          tone: QueueSectionTone.plate,
           title: l10n.queueEditPlate,
           child: widget._isCreate
               ? InkWell(
@@ -713,77 +881,84 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Widget _mappingSection(AppLocalizations l10n, DashTokens t) {
     final mapped = _amsMapping?.where((v) => v >= 0).length ?? 0;
     final printerId = _printerId;
-    return _SectionCard(
+    return QueueSectionCard(
+      tone: QueueSectionTone.filament,
       title: l10n.queueFilamentMapping,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: printerId == null
-            ? null
-            : () async {
-                // The rows write these back as they change; a sheet dismissed
-                // without saving takes them back, as it does its slot picks.
-                final rackBefore = {..._nozzleRackChoice};
-                final forceBefore = {..._forceColorMatch};
-                final mapping = await showQueueMappingSheet(
-                  context,
-                  item: widget.item,
-                  printerId: printerId,
-                  printerName: _selectedPrinterName(printerId),
-                  confirmLabel: l10n.fmSave,
-                  plateId: _plateId,
-                  startFrom: _amsMapping ?? const [],
-                  forceColorMatch: _forceColorMatch,
-                  onForceColorMatch: (slotId, value) => setState(() {
-                    if (value) {
-                      _forceColorMatch[slotId] = true;
-                    } else {
-                      _forceColorMatch.remove(slotId);
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: printerId == null
+                ? null
+                : () async {
+                    // The rows write these back as they change; a sheet dismissed
+                    // without saving takes them back, as it does its slot picks.
+                    final rackBefore = {..._nozzleRackChoice};
+                    final forceBefore = {..._forceColorMatch};
+                    final mapping = await showQueueMappingSheet(
+                      context,
+                      item: widget.item,
+                      printerId: printerId,
+                      printerName: _selectedPrinterName(printerId),
+                      confirmLabel: l10n.fmSave,
+                      plateId: _plateId,
+                      startFrom: _amsMapping ?? const [],
+                      forceColorMatch: _forceColorMatch,
+                      onForceColorMatch: (slotId, value) => setState(() {
+                        if (value) {
+                          _forceColorMatch[slotId] = true;
+                        } else {
+                          _forceColorMatch.remove(slotId);
+                        }
+                      }),
+                      rackChoice: _nozzleRackChoice,
+                      onRackChoice: (choice) => setState(
+                        () => _nozzleRackChoice
+                          ..clear()
+                          ..addAll(choice),
+                      ),
+                    );
+                    // Empty: the printer reported nothing to map to, and the web
+                    // sends no mapping then — keep the stored one.
+                    if (mapping == null) {
+                      setState(() {
+                        _nozzleRackChoice
+                          ..clear()
+                          ..addAll(rackBefore);
+                        _forceColorMatch
+                          ..clear()
+                          ..addAll(forceBefore);
+                      });
+                    } else if (mapping.isNotEmpty) {
+                      setState(() => _amsMapping = mapping);
                     }
-                  }),
-                  rackChoice: _nozzleRackChoice,
-                  onRackChoice: (choice) => setState(
-                    () => _nozzleRackChoice
-                      ..clear()
-                      ..addAll(choice),
+                  },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+              child: Row(
+                children: [
+                  Icon(Icons.bento_outlined, color: t.textSecondary, size: 20),
+                  const SizedBox(width: DashSpace.md),
+                  Expanded(
+                    child: Text(
+                      printerId == null
+                          ? l10n.queueEditMappingNeedsPrinter
+                          : (mapped > 0
+                                ? l10n.queueEditMappingSummary(mapped)
+                                : l10n.queueEditMappingAuto),
+                      style: t.body,
+                    ),
                   ),
-                );
-                // Empty: the printer reported nothing to map to, and the web
-                // sends no mapping then — keep the stored one.
-                if (mapping == null) {
-                  setState(() {
-                    _nozzleRackChoice
-                      ..clear()
-                      ..addAll(rackBefore);
-                    _forceColorMatch
-                      ..clear()
-                      ..addAll(forceBefore);
-                  });
-                } else if (mapping.isNotEmpty) {
-                  setState(() => _amsMapping = mapping);
-                }
-              },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-          child: Row(
-            children: [
-              Icon(Icons.bento_outlined, color: t.textSecondary, size: 20),
-              const SizedBox(width: DashSpace.md),
-              Expanded(
-                child: Text(
-                  printerId == null
-                      ? l10n.queueEditMappingNeedsPrinter
-                      : (mapped > 0
-                            ? l10n.queueEditMappingSummary(mapped)
-                            : l10n.queueEditMappingAuto),
-                  style: t.body,
-                ),
+                  if (printerId != null)
+                    Icon(Icons.chevron_right, color: t.textTertiary),
+                ],
               ),
-              if (printerId != null)
-                Icon(Icons.chevron_right, color: t.textTertiary),
-            ],
-          ),
-        ),
-      ).tagged('queue_edit.mapping'),
+            ),
+          ).tagged('queue_edit.mapping'),
+          ?_costEstimate(l10n, t),
+        ],
+      ),
     );
   }
 
@@ -893,7 +1068,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   .valueOrNull ??
               const <AvailableFilament>[]);
     final reqs = _requirements();
-    return _SectionCard(
+    return QueueSectionCard(
+      tone: QueueSectionTone.filament,
       title: l10n.queueEditFilamentOverride,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1071,11 +1247,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     // rejects `auto` outright, so offering the position before the probe answers
     // would promise something we cannot deliver.
     final triState = ref.watch(triStateCalibrationProvider).orFalse;
-    return _SectionCard(
+    return QueueSectionCard(
+      tone: QueueSectionTone.options,
       title: l10n.queueEditPrintOptions,
+      collapse: _collapse('queue_edit.print_options_section'),
       child: Column(
         children: [
-          _CalibrationRow(
+          QueueCalibrationRow(
             id: 'queue_edit.bed_levelling',
             title: l10n.queueOptBedLevelling,
             subtitle: l10n.queueOptBedLevellingDesc,
@@ -1083,7 +1261,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             triState: triState,
             onChanged: (v) => setState(() => _bedLevelling = v),
           ),
-          _CalibrationRow(
+          QueueCalibrationRow(
             id: 'queue_edit.flow_cali',
             title: l10n.queueOptFlowCali,
             subtitle: l10n.queueOptFlowCaliDesc,
@@ -1091,21 +1269,21 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             triState: triState,
             onChanged: (v) => setState(() => _flowCali = v),
           ),
-          _OptionSwitch(
+          QueueOptionSwitch(
             id: 'queue_edit.vibration_cali',
             title: l10n.queueOptVibrationCali,
             subtitle: l10n.queueOptVibrationCaliDesc,
             value: _vibrationCali,
             onChanged: (v) => setState(() => _vibrationCali = v),
           ),
-          _OptionSwitch(
+          QueueOptionSwitch(
             id: 'queue_edit.layer_inspect',
             title: l10n.queueOptLayerInspect,
             subtitle: l10n.queueOptLayerInspectDesc,
             value: _layerInspect,
             onChanged: (v) => setState(() => _layerInspect = v),
           ),
-          _OptionSwitch(
+          QueueOptionSwitch(
             id: 'queue_edit.timelapse',
             title: l10n.queueOptTimelapse,
             subtitle: l10n.queueOptTimelapseDesc,
@@ -1113,7 +1291,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             onChanged: (v) => setState(() => _timelapse = v),
           ),
           if (_offersConfirmOutcome)
-            _OptionSwitch(
+            QueueOptionSwitch(
               id: 'queue_edit.confirm_outcome',
               title: l10n.queueOptConfirmOutcome,
               subtitle: _confirmOutcomeSticky
@@ -1127,7 +1305,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   : (v) => setState(() => _confirmOutcomeChoice = v),
             ),
           if (_showNozzleOffset)
-            _CalibrationRow(
+            QueueCalibrationRow(
               id: 'queue_edit.nozzle_offset_cali',
               title: l10n.queueOptNozzleOffset,
               subtitle: l10n.queueOptNozzleOffsetDesc,
@@ -1142,14 +1320,16 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   // --- Preheat & heat soak ---
   Widget _preheatSection(AppLocalizations l10n, DashTokens t) {
-    return _SectionCard(
+    return QueueSectionCard(
+      tone: QueueSectionTone.preheat,
       title: l10n.queueEditPreheat,
+      collapse: _collapse('queue_edit.preheat_section'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(l10n.queueEditPreheatDesc, style: t.labelSoft),
           const SizedBox(height: DashSpace.md),
-          _SegToggle<String>(
+          DashSegToggle<String>(
             id: 'queue_edit.preheat_override',
             selected: _preheatOverride,
             segments: [
@@ -1184,12 +1364,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   // --- When to print ---
   Widget _scheduleSection(AppLocalizations l10n, DashTokens t) {
-    return _SectionCard(
+    return QueueSectionCard(
+      tone: QueueSectionTone.schedule,
       title: l10n.queueEditWhenToPrint,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _SegToggle<QueueScheduleType>(
+          DashSegToggle<QueueScheduleType>(
             id: 'queue_edit.schedule_type',
             selected: _scheduleType,
             segments: [
@@ -1438,27 +1619,6 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       _confirmOutcomeChoice == null &&
       ref.watch(defaultConfirmOutcomeProvider).isUnanswered;
 
-  /// The flag for a new job, or null to leave the key out where the server
-  /// would drop it. `POST /queue/` does not read the server's default itself
-  /// (only the paths without a dialog do), so an untouched switch sends the
-  /// default — waited for, since a job submitted before it arrived would
-  /// otherwise go out as `false`.
-  ///
-  /// A choice the user made stands unless the gate has since settled on no:
-  /// it was made on a switch that was on screen, and a gate briefly reloading
-  /// must not throw it away.
-  Future<bool?> _confirmOutcomeForCreate(ProviderContainer providers) async {
-    final gate = providers.read(queueOutcomeProvider);
-    if (gate.valueOrNull == false) return null;
-    if (_confirmOutcomeChoice case final choice?) return choice;
-    if (_confirmOutcomeSticky) return true;
-    if (!gate.orFalse) return null;
-    return settledGate(
-      providers,
-      defaultConfirmOutcomeProvider,
-    ).catchError((Object _) => false);
-  }
-
   /// The flag for a PATCH, sent only when it changed — as the calibrations
   /// are ([_calibrationUpdate]) — so a save about something else cannot
   /// rewrite what another client set meanwhile.
@@ -1588,6 +1748,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     preheatOverride: _preheatOverride,
     preheatChamberTargetOverride: _chamberTargetValue,
     nozzleRackChoice: _rackChoiceUpdate,
+    costCenterId: _costCenterPayload,
   );
 
   /// The rack pick for a PATCH: the chosen positions, `null` to clear one the
@@ -1603,146 +1764,45 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   Future<void> _create(QueueRepository repo) async {
     final it = widget.item;
-    final providers = ProviderScope.containerOf(context, listen: false);
-    final orderId = await _createOrder(providers);
-    final confirmOutcome = await _confirmOutcomeForCreate(providers);
-    final plate = _plate;
-    final options = QueueCreateOptions(
-      // Into an order, the item carries the plate its target names.
-      plateId: orderId == null ? _plateId : plate.id,
-      targetModel: _modelMode ? _targetModel : null,
-      targetLocation: _modelMode ? _targetLocation : null,
-      filamentOverrides: _modelMode
-          ? _buildFilamentOverrides()
-          : _buildPrinterOverrides(),
-      amsMapping: _modelMode ? null : _sentMapping,
-      scheduledTime: _scheduledTimeIso,
-      requirePreviousSuccess: _requirePreviousSuccess,
-      autoOffAfter: _autoOffAfter,
-      manualStart: _manualStartSent,
-      bedLevelling: _bedLevelling,
-      flowCali: _flowCali,
-      vibrationCali: _vibrationCali,
-      layerInspect: _layerInspect,
-      timelapse: _timelapse,
-      nozzleOffsetCali: _showNozzleOffset ? _nozzleOffsetCali : null,
-      gcodeInjection: _gcodeInjectionPayload,
-      confirmOutcome: confirmOutcome,
-      preheatOverride: _preheatOverride,
-      preheatChamberTargetOverride: _chamberTargetValue,
-      nozzleRackChoice: _modelMode ? null : _nozzleRackChoice,
-      batchId: orderId,
-    );
-    // ASAP is a position at insertion, not a stored field — the web sends it the
-    // same way, and it is what makes "reprint" print next.
-    final insertAtTop = _scheduleType == QueueScheduleType.asap;
-    final printerId = _modelMode ? null : _printerId;
-    try {
-      await (it.archiveId != null
-          ? repo.addFromArchive(
-              it.archiveId!,
-              printerId: printerId,
-              quantity: _copies,
-              insertAtTop: insertAtTop,
-              options: options,
-            )
-          : repo.addFromLibraryFile(
-              it.libraryFileId!,
-              printerId: printerId,
-              quantity: _copies,
-              insertAtTop: insertAtTop,
-              options: options,
-            ));
-    } on Object catch (e) {
-      // An order with targets and no runs is listed, owes every copy and has
-      // nothing to clone them from. Ungrouping an empty one deletes it — but
-      // only after a refusal: a timeout may have queued the copies, and
-      // ungrouping would then unlink live runs while the user queues again.
-      if (orderId != null && _isRefusal(e)) {
-        try {
-          await providers.read(batchRepositoryProvider).ungroup(orderId);
-        } on AppApiException {
-          // The create's own error is the one the user has to see.
-        }
-      }
-      rethrow;
-    }
-  }
-
-  /// Whether the server answered and refused — nothing was written. A 5xx
-  /// is not one: a proxy's 502/504 can arrive after the server committed,
-  /// exactly like a dropped connection.
-  static bool _isRefusal(Object e) =>
-      e is AuthException || (e is ApiException && (e.statusCode ?? 500) < 500);
-
-  /// The plate the order's target named, for the item to carry too.
-  ({int? id, String? name}) _plate = (id: null, name: null);
-
-  /// The plate an order's target names. A multi-plate file with no plate
-  /// picked prints plate 1 (`plate_id or 1` server-side) and the form says
-  /// so; a null target would read "whole file" on the orders screen instead.
-  ///
-  /// Awaited, not read: a submit before the plate list has loaded would
-  /// otherwise take a multi-plate file for a single-plate one.
-  Future<({int? id, String? name})> _orderPlate(
-    ProviderContainer providers,
-  ) async {
-    final source = _plateSource;
-    final plates = source == null
-        ? PlateList.none
-        : await providers
-              .read(plateListProvider(source).future)
-              .catchError((Object _) => PlateList.none);
-    if (!plates.isMultiPlate) return (id: _plateId, name: null);
-    final id = _plateId ?? 1;
-    return (id: id, name: plates.byIndex(id)?.name);
-  }
-
-  /// The order the copies go into, made first — the web's print dialog does
-  /// the same. Null for one copy, on a server without orders, and when the
-  /// order is refused: the copies then go in as a plain grouping, which is
-  /// what `quantity` alone makes, so the print is not lost over its tracking.
-  ///
-  /// Only a refusal falls back; see [_isRefusal] for what is not one.
-  Future<int?> _createOrder(ProviderContainer providers) async {
     _orderRefused = false;
-    _plate = (id: _plateId, name: null);
-    if (_copies < 2) return null;
-    final supported = await settledGate(
-      providers,
-      batchOrdersProvider,
-    ).catchError((Object _) => false);
-    if (!supported) return null;
-    final it = widget.item;
-    final plate = _plate = await _orderPlate(providers);
-    try {
-      final order = await providers
-          .read(batchRepositoryProvider)
-          .create(
-            name: '${_baseName(it.displayName)} ×$_copies',
-            archiveId: it.archiveId,
-            libraryFileId: it.archiveId == null ? it.libraryFileId : null,
-            // The runs are matched to the target by plate, so the target
-            // names the plate the item will carry — null for a whole file.
-            plates: [
-              (plateId: plate.id, plateName: plate.name, quantity: _copies),
-            ],
-          );
-      return order.id;
-    } on AppApiException catch (e) {
-      // No answer, or a 5xx: the order may exist, and a grouping queued
-      // beside it would leave it owing every copy. The submit stops.
-      if (!_isRefusal(e)) rethrow;
-      // Shown, as the outcome of the whole submit — see [_submit].
-      recordActionFailure(e, action: 'queue_create.order', shown: true);
-      _orderRefused = true;
-      return null;
-    }
+    final outcome = await createQueueJobs(
+      repo: repo,
+      providers: ProviderScope.containerOf(context, listen: false),
+      archiveId: it.archiveId,
+      libraryFileId: it.libraryFileId,
+      sourceName: it.displayName,
+      printerId: _modelMode ? null : _printerId,
+      copies: _copies,
+      insertAtTop: _scheduleType == QueueScheduleType.asap,
+      plateId: _plateId,
+      confirmOutcomeChoice: _confirmOutcomeChoice,
+      confirmOutcomeSticky: _confirmOutcomeSticky,
+      buildOptions: () => QueueCreateOptions(
+        targetModel: _modelMode ? _targetModel : null,
+        targetLocation: _modelMode ? _targetLocation : null,
+        filamentOverrides: _modelMode
+            ? _buildFilamentOverrides()
+            : _buildPrinterOverrides(),
+        amsMapping: _modelMode ? null : _sentMapping,
+        scheduledTime: _scheduledTimeIso,
+        requirePreviousSuccess: _requirePreviousSuccess,
+        autoOffAfter: _autoOffAfter,
+        manualStart: _manualStartSent,
+        bedLevelling: _bedLevelling,
+        flowCali: _flowCali,
+        vibrationCali: _vibrationCali,
+        layerInspect: _layerInspect,
+        timelapse: _timelapse,
+        nozzleOffsetCali: _showNozzleOffset ? _nozzleOffsetCali : null,
+        gcodeInjection: _gcodeInjectionPayload,
+        preheatOverride: _preheatOverride,
+        preheatChamberTargetOverride: _chamberTargetValue,
+        nozzleRackChoice: _modelMode ? null : _nozzleRackChoice,
+        costCenterId: _costCenterPayload,
+      ),
+    );
+    _orderRefused = outcome.orderRefused;
   }
-
-  /// A file name as the server names a batch after it (`print_queue.py`).
-  static String _baseName(String name) =>
-      name.replaceAll('.gcode.3mf', '').replaceAll('.3mf', '');
 }
 
 /// Imperative entry: open the Edit Queue Item screen for [item].
@@ -1777,252 +1837,6 @@ Future<bool> openQueueCreate(
 // ---------------------------------------------------------------------------
 // Local building blocks
 // ---------------------------------------------------------------------------
-
-/// Titled card wrapper matching the app's grouped-section look.
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.child});
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Container(
-      padding: const EdgeInsets.all(DashSpace.lg),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: t.subCardBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: t.bodyBold.copyWith(letterSpacing: 0.2)),
-          const SizedBox(height: DashSpace.md),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-/// A segment for [_SegToggle].
-typedef _Segment<T> = ({T value, String label, IconData? icon});
-
-/// Horizontal pill toggle (Specific/Any, Inherit/On/Off, ASAP/Queue/Schedule).
-/// Selected segment is green-filled; the rest are neutral.
-class _SegToggle<T> extends StatelessWidget {
-  const _SegToggle({
-    required this.id,
-    required this.selected,
-    required this.segments,
-    required this.onChanged,
-  });
-
-  /// Log identifier, required from the call site — see [_CheckRow.id]. Six of
-  /// these are rendered on this screen and they set six different things, so a
-  /// tag written into `build` made a report say only that "a segment in the
-  /// queue form" was pressed.
-  final String id;
-
-  final T selected;
-  final List<_Segment<T>> segments;
-  final ValueChanged<T> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Row(
-      children: [
-        for (var i = 0; i < segments.length; i++) ...[
-          if (i > 0) const SizedBox(width: DashSpace.sm),
-          Expanded(child: _segButton(t, segments[i])),
-        ],
-      ],
-    );
-  }
-
-  Widget _segButton(DashTokens t, _Segment<T> seg) {
-    final isSel = seg.value == selected;
-    return Material(
-      color: isSel ? t.accentGreen : t.groupCard,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => onChanged(seg.value),
-        child: Container(
-          height: 44,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSel ? Colors.transparent : t.groupCardBorder,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (seg.icon != null) ...[
-                Icon(
-                  seg.icon,
-                  size: 16,
-                  color: isSel ? t.onAccent : t.textSecondary,
-                ),
-                const SizedBox(width: DashSpace.sm),
-              ],
-              Flexible(
-                child: Text(
-                  seg.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: t.bodyBold.copyWith(
-                    color: isSel ? t.onAccent : t.textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        // The fill is the only thing that says which segment is on.
-      ).tagged(id, selected: isSel),
-    );
-  }
-}
-
-/// Title + subtitle row with a trailing [Switch] (print options).
-/// One tri-state calibration option.
-///
-/// bambuddy 1.2.5+ stores `off` / `on` / `auto`, so the row is a three-way
-/// segment. Older servers only have the boolean, and they are the reason this
-/// falls back to [_OptionSwitch] rather than greying a third position out: a
-/// position the server cannot store has no honest disabled state, it simply does
-/// not exist there.
-///
-/// The fallback maps `auto` onto the switch's ON side ([CalibrationOption.asSwitch]).
-/// That reads right — `auto` still lets the printer calibrate — and it cannot
-/// quietly rewrite the stored value, because the save path omits an untouched
-/// field entirely (see `_calibrationUpdate`).
-class _CalibrationRow extends StatelessWidget {
-  const _CalibrationRow({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    required this.value,
-    required this.triState,
-    required this.onChanged,
-  });
-
-  /// One id for both shapes this row takes: the three-way segment and the
-  /// two-state switch an older server falls back to are the same setting, and a
-  /// log that split them would be naming the server's version rather than the
-  /// control the user touched.
-  final String id;
-
-  final String title;
-  final String subtitle;
-  final CalibrationOption value;
-  final bool triState;
-  final ValueChanged<CalibrationOption> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!triState) {
-      return _OptionSwitch(
-        id: id,
-        title: title,
-        subtitle: subtitle,
-        value: value.asSwitch,
-        onChanged: (v) =>
-            onChanged(v ? CalibrationOption.on : CalibrationOption.off),
-      );
-    }
-    final l10n = AppLocalizations.of(context);
-    final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(title, style: t.titleSm),
-          const SizedBox(height: DashSpace.xs),
-          Text(subtitle, style: t.labelSoft),
-          const SizedBox(height: DashSpace.sm),
-          _SegToggle<CalibrationOption>(
-            id: id,
-            selected: value,
-            segments: [
-              (
-                value: CalibrationOption.auto,
-                label: l10n.commonAuto,
-                icon: null,
-              ),
-              (value: CalibrationOption.on, label: l10n.commonOn, icon: null),
-              (value: CalibrationOption.off, label: l10n.commonOff, icon: null),
-            ],
-            onChanged: onChanged,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OptionSwitch extends StatelessWidget {
-  const _OptionSwitch({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
-
-  /// Log identifier, required from the call site — see [_CheckRow.id].
-  final String id;
-
-  final String title;
-  final String subtitle;
-  final bool value;
-
-  /// Null disables the switch.
-  final ValueChanged<bool>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-      // Merged, so the switch is announced with the setting it belongs to. On
-      // its own it read as "off, switch" — six of these sit on this screen and
-      // nothing said which one had focus. The probe treats a merged subtree as
-      // one control and keeps the identifier, so the log is unchanged.
-      child: MergeSemantics(
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: t.titleSm),
-                  const SizedBox(height: DashSpace.xs),
-                  Text(subtitle, style: t.labelSoft),
-                ],
-              ),
-            ),
-            const SizedBox(width: DashSpace.md),
-            Switch(
-              value: value,
-              activeThumbColor: Colors.white,
-              activeTrackColor: t.accentGreen,
-              onChanged: onChanged,
-            ).tagged(id),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 /// Leading-icon checkbox row (schedule flags).
 class _CheckRow extends StatelessWidget {
@@ -2247,72 +2061,6 @@ class _SwatchDot extends StatelessWidget {
         border: Border.all(
           color: ring ?? t.hairline,
           width: ring != null ? 2 : 1,
-        ),
-      ),
-    );
-  }
-}
-
-/// Selectable printer tile (specific-printer mode).
-class _SelectableTile extends StatelessWidget {
-  const _SelectableTile({
-    required this.selected,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final bool selected;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: DashSpace.sm),
-      child: Material(
-        color: selected ? t.accentGreen.withValues(alpha: 0.14) : t.groupCard,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: DashSpace.lg,
-              vertical: DashSpace.md,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: selected
-                    ? t.accentGreen.withValues(alpha: 0.5)
-                    : t.groupCardBorder,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.print_outlined,
-                  size: 20,
-                  color: selected ? t.accentGreenInk : t.textSecondary,
-                ),
-                const SizedBox(width: DashSpace.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: t.titleSm),
-                      if (subtitle.isNotEmpty)
-                        Text(subtitle, style: t.monoMicro),
-                    ],
-                  ),
-                ),
-                if (selected) Icon(Icons.check_circle, color: t.accentGreenInk),
-              ],
-            ),
-          ),
         ),
       ),
     );

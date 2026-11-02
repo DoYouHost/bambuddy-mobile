@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nothing in the code reads the capability array (values/wear.xml); it is Play
+     services on the phone that does. tools:keep on that file itself is ignored by the
+     shrinker — a release build dropped the array until the rule moved here. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@array/android_wear_capabilities" />

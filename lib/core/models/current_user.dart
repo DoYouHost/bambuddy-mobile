@@ -113,6 +113,17 @@ class CurrentUser {
 /// screen here needs are mirrored, so the two don't have to be kept in step
 /// wholesale.
 abstract final class Permissions {
+  /// The personal view of the billing screens: own balance and ledger. No API key
+  /// can hold it (`core/auth.py::_APIKEY_SCOPE_BY_PERMISSION` lists none).
+  static const costCentersReadOwn = 'cost_centers:read_own';
+
+  /// Every center and every user's ledger.
+  static const costCentersReadAll = 'cost_centers:read_all';
+
+  /// Every write on a center or a ledger row except creating a center.
+  static const costCentersModify = 'cost_centers:modify';
+  static const costCentersCreate = 'cost_centers:create';
+
   /// `backend/app/core/permissions.py::Permission`
   static const usersRead = 'users:read';
 
@@ -148,6 +159,12 @@ abstract final class Permissions {
   /// is outside the key scope allowlist, so the screen is read-only for a key
   /// whatever `/auth/me` says.
   static const printersUpdate = 'printers:update';
+
+  /// Driving a printer: pause, stop, smart plugs. The bulk queue edit greys its
+  /// "power off when done" row without it, as the web does — the route itself
+  /// does not ask (`print_queue.py::bulk_update_queue_items`), so this is a
+  /// courtesy to the user, not the server's rule.
+  static const printersControl = 'printers:control';
 
   /// Writing the server's shared configuration (`PUT /settings/`). Reading it
   /// needs `settings:read`, which every session already has — it rides on an
@@ -192,4 +209,11 @@ abstract final class Permissions {
   /// `can_manage_archives` covers both.
   static const archivesUpdateOwn = 'archives:update_own';
   static const archivesUpdateAll = 'archives:update_all';
+
+  /// Queueing an archive again — reprint and add to queue alike — on top of
+  /// [queueCreate]: reprint-all for any print, reprint-own for the caller's own
+  /// and never an ownerless one. An API key's `can_queue` lets it hold either,
+  /// as far as its owner does (`core/auth.py::apikey_effective_permissions`).
+  static const archivesReprintOwn = 'archives:reprint_own';
+  static const archivesReprintAll = 'archives:reprint_all';
 }

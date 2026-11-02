@@ -2,13 +2,10 @@ import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/features/queue/queue_removal.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations_en.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations_pl.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../helpers.dart';
 
 void main() {
-  final en = AppLocalizationsEn();
-
   group('queueRemovalFor', () {
     test('a waiting item is cancelled', () {
       for (final status in [
@@ -96,7 +93,40 @@ void main() {
       expect(queueWriteMessage(en, ActionOutcome.ok), isNull);
     });
 
-    test('a billing refusal says to queue in the browser', () {
+    test('every refusal of a cost center is worded, not quoted', () {
+      // `finance_budget.py::validate_print_budget`, each in the status the
+      // server uses. The first cannot be reached through the form's own
+      // picker; the rest are a center that changed under the user.
+      final cases = {
+        'Estimated cost is required for cost center prints': (
+          400,
+          en.queueBillingEstimateRequired,
+        ),
+        'Cost center is inactive': (400, en.queueBillingCostCenterInactive),
+        'You cannot print with this private cost center': (
+          403,
+          en.queueBillingCostCenterNoAccess,
+        ),
+        'You cannot print with this cost center': (
+          403,
+          en.queueBillingCostCenterNoAccess,
+        ),
+        'Estimated print cost exceeds available cost center budget '
+            '(12.00 > 3.50)': (
+          400,
+          en.queueBillingBudgetExceeded,
+        ),
+      };
+      cases.forEach((detail, expected) {
+        expect(
+          queueWriteMessage(en, _refused(detail, expected.$1)),
+          expected.$2,
+          reason: detail,
+        );
+      });
+    });
+
+    test('a billing refusal says to choose one in the app', () {
       // `finance_budget.py::validate_print_budget`, on a new item or a start
       // with no cost center while billing is on.
       expect(
@@ -160,10 +190,10 @@ void main() {
     test('the refusal is translated, not quoted in English', () {
       expect(
         queueWriteMessage(
-          AppLocalizationsPl(),
+          pl,
           _refused("Cannot cancel item with status 'printing'", 400),
         ),
-        AppLocalizationsPl().queueRemovalStatusChanged,
+        pl.queueRemovalStatusChanged,
       );
     });
 

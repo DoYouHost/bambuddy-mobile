@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Circular temperature gauge: a full background track with a rounded accent arc
 /// filled proportionally to [fraction] (0..1), starting at the top and sweeping

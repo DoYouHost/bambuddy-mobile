@@ -85,90 +85,78 @@ void main() {
       expect(slim.map((a) => a.wearCost), everyElement(isNull));
     });
 
-    test(
-      'a run on a printer with a rate is charged its wear',
-      () async {
-        if (!served) return markTestSkipped('the server predates #694');
-        // 36 an hour is a cent a second, so even a run of a few seconds
-        // rounds to something above zero at the server's three decimals.
-        await saveRate(36);
-        addTearDown(() => saveRate(null));
-        // Saving the address reconnects the printer, as the web's save does;
-        // a report before it is back is lost.
-        await pollUntil(
-          'the printer back on its broker',
-          () async =>
-              (await printers.fetchStatus(printer.id))?.connected == true
+    test('a run on a printer with a rate is charged its wear', () async {
+      if (!served) return markTestSkipped('the server predates #694');
+      // 36 an hour is a cent a second, so even a run of a few seconds
+      // rounds to something above zero at the server's three decimals.
+      await saveRate(36);
+      addTearDown(() => saveRate(null));
+      // Saving the address reconnects the printer, as the web's save does;
+      // a report before it is back is lost.
+      await pollUntil(
+        'the printer back on its broker',
+        () async => (await printers.fetchStatus(printer.id))?.connected == true
+            ? true
+            : null,
+        within: const Duration(minutes: 1),
+        every: const Duration(seconds: 1),
+      );
+
+      const name = 'wear-probe.3mf';
+      await publishReport(serial, {'gcode_state': 'FINISH', 'mc_percent': 100});
+      await Future<void>.delayed(const Duration(seconds: 3));
+      await publishReport(serial, {
+        'gcode_state': 'RUNNING',
+        'mc_percent': 5,
+        'subtask_name': name,
+        'gcode_file': name,
+      });
+      // The archive appears once the server has given up on the stand-in's
+      // FTP; a finish before that has no run to close.
+      await pollUntil(
+        'the probe archive',
+        () async {
+          final rows = (await dio.get<List<dynamic>>(Endpoints.archives)).data!;
+          return rows.whereType<Map<String, dynamic>>().any(
+                (r) => '${r['print_name']}'.startsWith('wear-probe'),
+              )
               ? true
-              : null,
-          within: const Duration(minutes: 1),
-          every: const Duration(seconds: 1),
-        );
+              : null;
+        },
+        within: const Duration(minutes: 2),
+        every: const Duration(seconds: 2),
+      );
+      await Future<void>.delayed(const Duration(seconds: 5));
+      await publishReport(serial, {
+        'gcode_state': 'FINISH',
+        'mc_percent': 100,
+        'subtask_name': name,
+        'gcode_file': name,
+      });
 
-        const name = 'wear-probe.3mf';
-        await publishReport(serial, {
-          'gcode_state': 'FINISH',
-          'mc_percent': 100,
-        });
-        await Future<void>.delayed(const Duration(seconds: 3));
-        await publishReport(serial, {
-          'gcode_state': 'RUNNING',
-          'mc_percent': 5,
-          'subtask_name': name,
-          'gcode_file': name,
-        });
-        // The archive appears once the server has given up on the stand-in's
-        // FTP; a finish before that has no run to close.
-        await pollUntil(
-          'the probe archive',
-          () async {
-            final rows = (await dio.get<List<dynamic>>(
-              Endpoints.archives,
-            )).data!;
-            return rows.whereType<Map<String, dynamic>>().any(
-                  (r) => '${r['print_name']}'.startsWith('wear-probe'),
-                )
-                ? true
-                : null;
-          },
-          within: const Duration(minutes: 2),
-          every: const Duration(seconds: 2),
-        );
-        await Future<void>.delayed(const Duration(seconds: 5));
-        await publishReport(serial, {
-          'gcode_state': 'FINISH',
-          'mc_percent': 100,
-          'subtask_name': name,
-          'gcode_file': name,
-        });
+      final run = await pollUntil(
+        'a logged run with its wear',
+        () async {
+          final page = await PrintLogRepository(dio).list(search: 'wear-probe');
+          return page.items.where((e) => e.wearCost != null).firstOrNull;
+        },
+        within: const Duration(minutes: 1),
+        every: const Duration(seconds: 2),
+      );
+      expect(run.wearCost, greaterThan(0));
+      // The rate times the run's own duration, as `wear_cost_for_run` has it.
+      expect(run.wearCost, closeTo(run.durationSeconds! / 3600 * 36, 0.001));
 
-        final run = await pollUntil(
-          'a logged run with its wear',
-          () async {
-            final page = await PrintLogRepository(
-              dio,
-            ).list(search: 'wear-probe');
-            return page.items.where((e) => e.wearCost != null).firstOrNull;
-          },
-          within: const Duration(minutes: 1),
-          every: const Duration(seconds: 2),
-        );
-        expect(run.wearCost, greaterThan(0));
-        // The rate times the run's own duration, as `wear_cost_for_run` has it.
-        expect(run.wearCost, closeTo(run.durationSeconds! / 3600 * 36, 0.001));
-
-        final slim = await StatsRepository(dio).fetchSlim();
-        expect(
-          slim
-              .where((a) => (a.printName ?? '').startsWith('wear-probe'))
-              .map((a) => a.wearCost),
-          contains(run.wearCost),
-        );
-        final stats = await StatsRepository(dio).fetch();
-        expect(stats.totalWearCost, greaterThanOrEqualTo(run.wearCost!));
-      },
-      timeout: const Timeout(Duration(minutes: 4)),
-    );
+      final slim = await StatsRepository(dio).fetchSlim();
+      expect(
+        slim
+            .where((a) => (a.printName ?? '').startsWith('wear-probe'))
+            .map((a) => a.wearCost),
+        contains(run.wearCost),
+      );
+      final stats = await StatsRepository(dio).fetch();
+      expect(stats.totalWearCost, greaterThanOrEqualTo(run.wearCost!));
+    }, timeout: const Timeout(Duration(minutes: 4)));
 
     test('project totals carry the wear key on a server that has it', () async {
       final created = (await dio.post<Map<String, dynamic>>(

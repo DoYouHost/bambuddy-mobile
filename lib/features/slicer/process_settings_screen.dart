@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
@@ -10,8 +10,6 @@ import '../../core/slicer/process_settings_codec.dart';
 import '../../core/slicer/process_toggle_rules.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../common/dash_input.dart';
-import '../common/dash_search_field.dart';
 import 'slice_providers.dart';
 
 /// OrcaSlicer's process parameter set, editable before a slice.

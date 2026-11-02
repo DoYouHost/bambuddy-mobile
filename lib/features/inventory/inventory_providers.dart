@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:app_util/app_util.dart';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
@@ -16,7 +17,6 @@ import '../../core/models/supplier.dart';
 import '../../data/inventory_repository.dart';
 import '../../data/inventory_source.dart';
 import '../../providers.dart';
-import '../../core/format/text_compare.dart';
 
 /// Inventory snapshot for the screen: all spools (including archived) plus a map
 /// `spoolId → assignment to AMS slot`. Filtering (search / show archived) is done
@@ -436,10 +436,6 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
 /// [AssignedSpools.fillOf]'s answer.
 typedef TrayFill = ({int? percent, double? grams, Spool? spool});
 
-/// Resolves which spool from inventory sits in a given slot of a specific printer —
-/// to enrich AMS chips on the dashboard (exact remaining weight + name).
-/// Built from [InventoryState]; matching depends on assignment structure
-/// (see [[inventory-filaments]]).
 class AssignedSpools {
   const AssignedSpools(
     this.printerId,
@@ -657,11 +653,11 @@ final inventoryQueryProvider = StateProvider.autoDispose<String>((_) => '');
 
 /// What the spool list is ordered by. [standard] is the order
 /// [InventoryNotifier] loads it in, and has no direction.
-enum InventorySort { standard, usage, added, price, id }
+enum InventorySort { standard, usage, added, price, lastDried, id }
 
 /// [spools] reordered by [sort]. Stable, so ties keep the standard order, and
-/// a spool without a price or an added date goes last in either direction —
-/// "unknown" is not the cheapest nor the oldest.
+/// a spool without a price, an added date or a drying goes last in either
+/// direction — "unknown" is not the cheapest, the oldest nor the driest.
 List<Spool> sortSpools(
   List<Spool> spools,
   InventorySort sort, {
@@ -677,6 +673,10 @@ List<Spool> sortSpools(
     InventorySort.usage => (a, b) => nullsLast(a.weightUsed, b.weightUsed),
     InventorySort.added => (a, b) => nullsLast(a.createdAt, b.createdAt),
     InventorySort.price => (a, b) => nullsLast(a.costPerKg, b.costPerKg),
+    InventorySort.lastDried => (a, b) => nullsLast(
+      a.lastDriedAt,
+      b.lastDriedAt,
+    ),
     InventorySort.id => (a, b) => nullsLast(a.id, b.id),
   };
   if (compare == null) return spools;

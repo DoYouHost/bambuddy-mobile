@@ -1,9 +1,10 @@
 import 'dart:async';
+import 'package:app_util/app_util.dart';
 import 'dart:convert';
 import 'dart:io' show WebSocketException;
 
-import 'package:bambuddy_mobile/core/api/ws_backoff.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
+import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/ws_probe.dart';
 import 'package:fake_async/fake_async.dart';
@@ -58,7 +59,7 @@ void main() {
 
   /// Builds the client + a list of created connections (one per attempt).
   ({WsClient client, List<FakeConn> conns}) build({
-    WsBackoff? backoff,
+    JitterBackoff? backoff,
     Future<bool> Function()? refreshAuth,
     Future<String?> Function()? queryToken,
   }) {
@@ -71,7 +72,7 @@ void main() {
         conns.add(c);
         return c;
       },
-      backoff: backoff ?? WsBackoff(random: () => 1.0),
+      backoff: backoff ?? JitterBackoff(random: () => 1.0),
       refreshAuth: refreshAuth,
       queryToken: queryToken,
     );
@@ -94,6 +95,32 @@ void main() {
       async.flushMicrotasks();
 
       expect(heard, 2);
+
+      client.dispose();
+      async.flushMicrotasks();
+    });
+  });
+
+  test('both billing frames reach the stream of billing alerts', () {
+    fakeAsync((async) {
+      final (:client, :conns) = build();
+      final heard = <BillingAlertKind>[];
+      client.billingAlerts.listen((a) => heard.add(a.kind));
+
+      client.start();
+      async.flushMicrotasks();
+      conns[0].connectOk();
+      async.flushMicrotasks();
+
+      conns[0].push('{"type":"kill_switch_triggered","printer_id":2}');
+      conns[0].push('{"type":"billing_charge_failed","printer_id":2}');
+      conns[0].push('{"type":"billing_charge_failed"}');
+      async.flushMicrotasks();
+
+      expect(heard, [
+        BillingAlertKind.killSwitch,
+        BillingAlertKind.chargeFailed,
+      ]);
 
       client.dispose();
       async.flushMicrotasks();
@@ -483,7 +510,7 @@ void main() {
             if (mintCalls == 1) throw Exception('mint failed (5xx)');
             return 'tok-fresh';
           },
-          backoff: WsBackoff(random: () => 1.0),
+          backoff: JitterBackoff(random: () => 1.0),
           connect: (url, _) {
             urls.add(url);
             return FakeConn()..connectOk();
@@ -519,7 +546,7 @@ void main() {
             authHeaders: () async => const {},
             queryToken: () async => 'tok',
             invalidateQueryToken: () => invalidated++,
-            backoff: WsBackoff(random: () => 1.0),
+            backoff: JitterBackoff(random: () => 1.0),
             connect: (_, _) {
               final c = FakeConn();
               conns.add(c);

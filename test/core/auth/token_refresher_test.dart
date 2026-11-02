@@ -1,5 +1,5 @@
 import 'package:bambuddy_mobile/core/auth/token_refresher.dart';
-import 'package:bambuddy_mobile/core/time/timer_factory.dart';
+import 'package:bambuddy_mobile/core/printers/offline_debounce.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';

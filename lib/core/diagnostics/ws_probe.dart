@@ -24,20 +24,11 @@ enum WsDisconnectReason {
   dispose,
 }
 
-/// Records what the live view is doing: connection attempts, how they ended,
-/// and what frames arrived while they lasted.
-///
-/// This is what explains "the dashboard says Reconnecting and never stops": a
-/// 401 handshake, a failed token mint, a server that accepts the socket and
-/// sends nothing, and a Wi-Fi roam leaving a half-open TCP all look identical
-/// from the UI, and only the last is the app's own fault.
-///
-/// Writes through `DiagnosticRecorder.active` rather than holding a store: a
-/// [WsProbe] outlives any recording, and recordings routinely start
-/// mid-connection.
-///
-/// Which frame fields go in and why repeats collapse:
-/// `docs/diagnostics-log.md`.
+/// Records what the live view is doing: connection attempts, how they ended, and what
+/// frames arrived while they lasted. Writes through `DiagnosticRecorder.active`
+/// rather than holding a store, since a probe outlives any recording. Which frame
+/// fields go in and why repeats collapse: `docs/diagnostics-log.md`
+/// (docs/logging-guide.md, "startActionRecording and the watch socket probe").
 class WsProbe {
   WsProbe() {
     _live.add(this);
@@ -305,6 +296,8 @@ class WsProbe {
     // localized sentence that can carry the printer's name.
     WsPlateNotEmpty(printerId: final id) => {'printer_id': id},
     WsPrintEvent(printerId: final id) => {'printer_id': id},
+    // The file name is the user's own and stays out.
+    WsBillingAlert(printerId: final id) => {'printer_id': id},
     _ => const {},
   };
 
@@ -375,13 +368,8 @@ class WsProbe {
     return {'hms': errors.length, if (codes.isNotEmpty) 'hms_codes': codes};
   }
 
-  /// Every temperature the server sent, under its own name and rounded.
-  ///
-  /// Whatever arrives rather than a fixed list: the first version picked
-  /// `nozzle`/`bed`/`chamber` and so logged neither the targets — a bed target
-  /// of zero mid-print explains a whole report on its own — nor `nozzle_2`,
-  /// half of what a dual-head X2D/H2D is doing. The model's parser has already
-  /// dropped the `*_heating` and `*_time` fields.
+  /// Every temperature the server sent, under its own name and rounded: a fixed list
+  /// once missed the targets and `nozzle_2` of a dual-head printer.
   static Map<String, Object?> _temperatures(Map<String, double>? temps) {
     if (temps == null || temps.isEmpty) return const {};
     return {for (final entry in temps.entries) entry.key: entry.value.round()};
@@ -403,6 +391,10 @@ class WsProbe {
     WsArchiveUpdated() => 'archive_updated',
     WsPipelineRunUpdated() => 'pipeline_run_updated',
     WsPrintConfirmRequest() => 'print_confirm_request',
+    WsBillingAlert(kind: final kind) => switch (kind) {
+      BillingAlertKind.killSwitch => 'kill_switch_triggered',
+      BillingAlertKind.chargeFailed => 'billing_charge_failed',
+    },
     // Both frames the parser folds into one; the log keeps the distinction
     // out of it for the same reason the parser does.
     WsInventoryChanged() => 'inventory_changed',

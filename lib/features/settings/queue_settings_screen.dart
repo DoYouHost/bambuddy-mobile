@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format/duration_format.dart';
@@ -8,8 +8,6 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/inline_note.dart';
-import '../common/settings_rows.dart';
 import 'queue_settings_providers.dart';
 
 /// How the scheduler runs the queue, warms a printer before a job, and holds a

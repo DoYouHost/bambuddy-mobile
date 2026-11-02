@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/settings/server_profile.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../core/watch/watch_config_sync.dart';
-import '../../features/common/server_version_text.dart';
+import '../../core/app_context.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../wear_action.dart';
@@ -50,7 +50,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
         curved: true,
         children: [
           WearHeader(l10n.wearSettingsTitle),
-          const SizedBox(height: DashSpace.md),
+          const SizedBox(height: WearSpace.titleToContent),
           if (profile != null) ...[
             Text(
               l10n.wearCurrentServer,
@@ -75,14 +75,14 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
               Text(
                 l10n.wearFromPhoneWaiting,
                 textAlign: TextAlign.center,
-                style: WearText.small,
+                style: WearText.body,
               ),
               const SizedBox(height: DashSpace.sm),
               FilledButton(
                 onPressed: () => _switchTo(offered),
                 child: Text(l10n.wearFromPhoneUse),
               ),
-              const SizedBox(height: DashSpace.sm),
+              const SizedBox(height: WearSpace.inGroup),
             ],
             FilledButton(
               onPressed: () => _forgetServer(l10n, profile),
@@ -91,11 +91,12 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
             const SizedBox(height: DashSpace.sm),
             // Said here rather than in the dialog: the shared wear dialog
             // clips its subtitle to one line, and this is the consequence
-            // worth reading before the tap, not after it.
+            // worth reading before the tap, not after it — essential text,
+            // so 12 sp (Play WO-V14), not fine print.
             Text(
               l10n.changeServerWarning,
               textAlign: TextAlign.center,
-              style: WearText.fine,
+              style: WearText.body.copyWith(color: wearMuted),
             ),
           ],
           const SizedBox(height: DashSpace.lg),

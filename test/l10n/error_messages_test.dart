@@ -1,9 +1,8 @@
 import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/l10n/error_messages.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../helpers.dart';
 
 /// What a refused action actually reads like on screen.
 ///
@@ -13,14 +12,6 @@ import 'package:flutter_test/flutter_test.dart';
 /// the user, and that the one refusal with a different remedy — the API key's
 /// owner account being gone — is not filed under "check your permissions".
 void main() {
-  late AppLocalizations pl;
-  late AppLocalizations en;
-
-  setUp(() async {
-    pl = await AppLocalizations.delegate.load(const Locale('pl'));
-    en = await AppLocalizations.delegate.load(const Locale('en'));
-  });
-
   group('403', () {
     test('the server reason is quoted inside a localized frame', () {
       const e = AuthException(
@@ -79,7 +70,7 @@ void main() {
 
   /// The policy every feature now follows: it decides *whether* to speak, never
   /// *what to say*. `null` is what lets a caller write
-  /// `messageFor(l10n) ?? itsOwnConfirmation` — the success wording stays the
+  /// `messageFor(en) ?? itsOwnConfirmation` — the success wording stays the
   /// feature's, the failure wording never is.
   group('an action outcome', () {
     test(

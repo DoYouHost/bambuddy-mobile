@@ -3,8 +3,7 @@ import 'package:bambuddy_mobile/core/models/smart_plug.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/power_breakdown_sheet.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -94,20 +93,15 @@ void main() {
       ],
     );
 
-    expect(find.text('97 W'), findsOneWidget); // total
-    expect(find.text('95 W'), findsOneWidget); // X1 group
+    expect(find.text('97\u00A0W'), findsOneWidget); // total
+    expect(find.text('95\u00A0W'), findsOneWidget); // X1 group
     expect(find.text('X1 fan'), findsOneWidget);
-    expect(find.text('90 W'), findsOneWidget); // X1 plug inside the group
+    expect(find.text('90\u00A0W'), findsOneWidget); // X1 plug inside the group
     // A single plug is named but carries no watts of its own, and its silent
     // reading is a dash on the printer row.
     expect(find.text('A1 plug'), findsOneWidget);
     expect(find.text('—'), findsOneWidget);
-    expect(
-      find.bySemanticsLabel(
-        lookupAppLocalizations(const Locale('pl')).plugStateOn,
-      ),
-      findsNWidgets(4),
-    );
+    expect(find.bySemanticsLabel(pl.plugStateOn), findsNWidgets(4));
     // The bar has a run for X1 and the lamp, none for the silent A1 — in the
     // colours of their tiles (X1 first, A1 second, the lamp third).
     final runs = tester

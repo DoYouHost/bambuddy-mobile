@@ -7,11 +7,13 @@ import 'package:app_util/app_util.dart';
 import '../models/json_utils.dart';
 import '../models/pipeline_run.dart';
 import '../models/print_run.dart';
+import '../models/queue_item.dart'
+    show kModelGateWaitReason, kPreviousFailureGate;
 import '../models/spool_label.dart';
-import 'demo_config.dart';
+import '../app_context.dart';
 import 'demo_labels.dart';
+import 'demo_finance.dart';
 import 'demo_manyfold.dart';
-import '../format/text_compare.dart';
 
 /// In-process fake bambuddy server for demo mode (see [DemoConfig]).
 ///
@@ -30,7 +32,12 @@ class DemoBackend {
     _printAnchor = _nowSec() - (_printCycleSec * 0.42).round();
   }
 
-  static final DemoBackend instance = DemoBackend._();
+  static DemoBackend instance = DemoBackend._();
+
+  /// A demo in its opening state, for the guided tour: everything a tour step
+  /// does to it is dropped with it instead of showing up in the demo mode the
+  /// user may be signed into.
+  DemoBackend.fresh() : this._();
 
   // --- Print simulation (printer 1) ---
 
@@ -41,17 +48,21 @@ class DemoBackend {
 
   /// How many machines the demo runs a print on at once, from app settings.
   ///
-  /// The demo has always printed on one, and one is what every other fixture
-  /// here assumes (the queue, the archive, the finished-print alert). Raising it
-  /// is for looking at what several printing machines do to a screen — the
-  /// dashboard summary, the ongoing notification — not for making the rest of
-  /// the demo consistent with it.
-  static int printingPrinters = 1;
+  /// Two by default, the X1C and the dual-nozzle H2D, so the screens of a
+  /// two-nozzle machine have a job to show. Printer 1 carries the demo's own
+  /// print, which is what the queue, the archive and the finished-print alert
+  /// assume; the others are for looking at what several printing machines do to
+  /// a screen — the dashboard summary, the ongoing notification — not for making
+  /// the rest of the demo consistent with them.
+  static int printingPrinters = defaultPrintingPrinters;
+
+  /// What the setting starts at, and what a test restores.
+  static const defaultPrintingPrinters = 2;
 
   /// The order machines are taken in. Printer 3 is the offline fixture and is
   /// never one of them: something has to stay unreachable, or the offline card
   /// and its grace window have nothing to show.
-  static const _printOrder = [1, 2, 5, 4];
+  static const _printOrder = [1, 6, 2, 5, 4];
 
   /// The most the setting can ask for.
   static final int maxPrintingPrinters = _printOrder.length;
@@ -179,16 +190,16 @@ class DemoBackend {
   /// fresh cycle shows every object again.
   final Set<int> _skippedObjects = {};
 
-  /// Printable objects on the X1's current plate ("Drawer organizer x4"), laid
+  /// Printable objects on the X1's current plate ("Bag dispenser"), laid
   /// out 2×2 with plate coordinates (mm) inside [_x1BboxAll] so their markers
   /// land on the right spots in the skip-objects overlay. `width`/`height` are
   /// demo-only illustrative footprints (the real server sends none, see
-  /// [PrintableObject]) — dividers tall and narrow, front/back wide and low —
+  /// [PrintableObject]) — the cups tall and narrow, the lids wide and low —
   /// so the preview reads as actual parts instead of identical badges.
   static const _x1Objects = [
     {
       'id': 421,
-      'name': 'Divider_left.stl',
+      'name': 'Cup_left.stl',
       'x': 104.0,
       'y': 104.0,
       'width': 26.0,
@@ -196,7 +207,7 @@ class DemoBackend {
     },
     {
       'id': 512,
-      'name': 'Divider_right.stl',
+      'name': 'Cup_right.stl',
       'x': 152.0,
       'y': 104.0,
       'width': 26.0,
@@ -204,7 +215,7 @@ class DemoBackend {
     },
     {
       'id': 683,
-      'name': 'Drawer_front.stl',
+      'name': 'Lid_front.stl',
       'x': 104.0,
       'y': 152.0,
       'width': 34.0,
@@ -212,7 +223,7 @@ class DemoBackend {
     },
     {
       'id': 705,
-      'name': 'Drawer_back.stl',
+      'name': 'Lid_back.stl',
       'x': 152.0,
       'y': 152.0,
       'width': 34.0,
@@ -225,6 +236,83 @@ class DemoBackend {
 
   /// Handles one request. [body] is the raw Dio request payload
   /// (already JSON-decoded map/list, or null).
+  /// The picture of a print each machine is running, for its cover.
+  static const _jobPictures = {
+    1: 'bag-dispenser',
+    2: 'mop-station',
+    4: 'rack-plate-17',
+    5: 'rack-plate-22',
+  };
+
+  /// What each idle machine's camera shows: the plate as the last print left
+  /// it. Printer 3 is the offline one.
+  static const _cameraPictures = {
+    1: 'photos/bag-dispenser',
+    2: 'photos/mop-station',
+    4: 'photos/rack-plate-17',
+    5: 'photos/rack-plate-21',
+  };
+
+  /// Six seconds of the maintainer's chamber camera recording this very job,
+  /// shown in a loop while printer 1 prints it.
+  static final _printingFrames = [
+    for (var i = 0; i < 12; i++)
+      'camera/bag-dispenser-${i.toString().padLeft(2, '0')}',
+  ];
+
+  /// The camera's frames for [printerId], in order: a loop while printer 1
+  /// prints, one still otherwise, none for a printer that has no camera
+  /// picture. Keys as [pictureFor] gives them.
+  List<String> cameraFrames(int printerId) {
+    if (printerId == 1 && statusData(1)['cover_url'] != null) {
+      return _printingFrames;
+    }
+    final still = _cameraPictures[printerId];
+    return still == null ? const [] : [still];
+  }
+
+  /// The picture a media route of the demo serves, as `thumbs/<key>` or
+  /// `photos/<key>` under `assets/demo/`; null wherever the real server would
+  /// have nothing to send. The demo's HTTP adapter cannot answer these: the
+  /// app loads images outside Dio, so the screens ask here instead.
+  String? pictureFor(String route) {
+    final seg = Uri.parse(route).pathSegments;
+    if (seg.length < 3 || seg[0] != 'api' || seg[1] != 'v1') return null;
+    final s = seg.sublist(2);
+    final id = s.length > 1 ? int.tryParse(s[1]) : null;
+    String? thumb(Object? path) => path is String
+        ? 'thumbs/${path.split('/').last.split('.').first}'
+        : null;
+    Map<String, dynamic>? byId(List<Map<String, dynamic>> rows, int? rowId) =>
+        rows.where((r) => r['id'] == rowId).firstOrNull;
+    return switch (s) {
+      ['archives', _, 'thumbnail'] => thumb(
+        byId(_archives, id)?['thumbnail_path'],
+      ),
+      ['archives', _, 'photos', final file]
+          when (byId(_archives, id)?['photos'] as List?)?.contains(file) ??
+              false =>
+        'photos/${file.split('.').first}',
+      ['print-log', _, 'thumbnail'] => thumb(
+        byId(_printLog, id)?['thumbnail_path'],
+      ),
+      ['library', 'files', final fileId, 'thumbnail'] => thumb(
+        byId(_libraryFiles, int.tryParse(fileId))?['thumbnail_path'],
+      ),
+      ['projects', _, 'cover-image'] => thumb(
+        byId(_projects, id) == null
+            ? null
+            : _projectListJson(byId(_projects, id)!)['cover_image_filename'],
+      ),
+      ['printers', _, 'cover'] when statusData(id ?? 0)['cover_url'] != null =>
+        _jobPictures[id] == null ? null : 'thumbs/${_jobPictures[id]}',
+      ['printers', _, 'camera', 'snapshot' || 'stream'] => cameraFrames(
+        id ?? 0,
+      ).firstOrNull,
+      _ => null,
+    };
+  }
+
   DemoResult handle(String method, Uri uri, Object? requestBody) {
     var path = uri.path;
     // Asked because the demo reports 1.2.6b1 and has an A1 mini; answering like
@@ -480,7 +568,7 @@ class DemoBackend {
         if (s.length >= 2 && s[1] == 'batches') {
           return _batchRoute(m, s, q, body);
         }
-        return _queueRoute(m, s, body);
+        return _queueRoute(m, s, q, body);
 
       case 'archives':
         return _archivesRoute(m, s, q, body);
@@ -583,12 +671,28 @@ class DemoBackend {
         return _ok(const <String, dynamic>{});
 
       case 'users':
-        return _ok([
-          {'id': 1, 'username': DemoConfig.username},
-        ]);
+        return _ok(DemoFinance.users);
+
+      case 'finance':
+        return _finance.route(m, s.skip(1).toList(), q, body);
     }
     return null;
   }
+
+  /// Billing: the cost centers, their members and the ledger.
+  final _finance = DemoFinance();
+
+  /// `validate_print_budget` for a job of [cost] booked to [costCenterId], when
+  /// the server has billing on (it does, in the demo).
+  DemoResult? _budgetRefusal(Object? costCenterId, double cost) =>
+      {..._settings, ..._settingsWrites}['billing_enabled'] == true
+      ? _finance.budgetRefusal(costCenterId, cost)
+      : null;
+
+  /// A job's cost as the demo works it out: the filament at the rate the
+  /// archives are priced with, times the copies.
+  double _jobCost(Map<String, dynamic> item, [int copies = 1]) =>
+      ((item['filament_used_grams'] as num?)?.toDouble() ?? 0) * 0.025 * copies;
 
   DemoResult _login(Map<String, dynamic> body) {
     if (body['username'] == DemoConfig.username &&
@@ -623,6 +727,9 @@ class DemoBackend {
     'confirm_outcome_external_prints': false,
     'confirm_default_good_on_plate_clear': false,
     'currency': 'USD',
+    // Billing on, so the print form shows its cost-center select and the queue
+    // refuses a job without one, as a billing server does (#3256).
+    'billing_enabled': true,
     // Auto-print snippets, as the real server stores them: a JSON string
     // keyed by printer model. Only the A1 mini has one, so demo shows both
     // halves of the gate — the injection checkbox appears, and picking the
@@ -736,7 +843,8 @@ class DemoBackend {
   /// can offer a re-slice. Found by print name rather than id: the ids are
   /// handed out in fixture order and would move if a print were inserted above.
   int get _sliceableArchiveId =>
-      _archives.firstWhere((a) => a['print_name'] == 'Benchy')['id'] as int;
+      _archives.firstWhere((a) => a['print_name'] == 'Mikrus slot')['id']
+          as int;
 
   /// `/slicer/loaded-spools` (#3172), built from the same statuses the
   /// dashboard shows, so the slice form's filters and its spool picker work on
@@ -981,14 +1089,16 @@ class DemoBackend {
           : const [
               {'slot_id': 1, 'type': 'PLA', 'color': '#0ACCB8'},
             ];
+      // Sliced output knows what it uses; a source that has never been sliced
+      // has no measured figure, which the server answers with 0.
+      final grams = toDoubleOrNull(file['filament_used_grams']) ?? 0;
       for (final slot in slots) {
         final inPlate = used.contains(slot['slot_id']);
         if (!inPlate && q['full_slots'] != 'true') continue;
         rows.add({
           ...slot,
-          // No measured figure on a source that has never been sliced.
-          'used_grams': 0,
-          'used_meters': 0,
+          'used_grams': inPlate ? grams : 0,
+          'used_meters': inPlate ? _r1(grams * 0.33) : 0,
           'used_in_plate': inPlate,
         });
       }
@@ -1298,11 +1408,9 @@ class DemoBackend {
   /// It used to name two of them by hand, which is why a change on any other
   /// machine reached the dashboard only with the next REST poll — and the
   /// service isolate, which has no status poll of its own, not at all.
-  static List<int> get printerIds => [
-    for (final p in _printers) p['id'] as int,
-  ];
+  List<int> get printerIds => [for (final p in _printers) p['id'] as int];
 
-  static final List<Map<String, dynamic>> _printers = [
+  final List<Map<String, dynamic>> _printers = [
     {
       'id': 1,
       'name': 'X1 Carbon',
@@ -1369,6 +1477,20 @@ class DemoBackend {
       'is_active': true,
       'nozzle_count': 1,
     },
+    // The only machine with two nozzles and a chamber heater, so the four
+    // readings of a dual-nozzle Overview, the Nozzle 1 / 2 switch on Move and
+    // the chamber stepper on Heat are reachable without the hardware.
+    {
+      'id': 6,
+      'name': 'H2D',
+      'serial_number': '094000A59200000',
+      'ip_address': '192.168.4.26',
+      'access_code': '61937204',
+      'model': 'H2D',
+      'location': 'Workshop',
+      'is_active': true,
+      'nozzle_count': 2,
+    },
   ];
 
   /// Full status for the REST endpoint (`id`+`name` included).
@@ -1379,22 +1501,25 @@ class DemoBackend {
   };
 
   /// Status payload without `id` — the WS `data` shape.
-  Map<String, dynamic> statusData(int printerId) =>
-      _withSlotConfig(printerId, switch (printerId) {
-        1 => _statusPrinting(),
-        2 => _maybePrinting(2, _statusIdle(), 'Bracket v2'),
-        4 => _maybePrinting(4, _statusAccessoryFans(), 'Fan shroud'),
-        5 => _maybePrinting(5, _statusSecondX1c(), 'Hinge plate'),
-        // Printer 3, and anything the fleet does not list. Written as the
-        // fallback rather than as `3 =>` because an id that reached here at all
-        // is one nothing should have asked about.
-        _ => const {
-          'name': 'A1 mini',
-          'model': 'A1 mini',
-          'connected': false,
-          'state': null,
-        },
-      });
+  Map<String, dynamic> statusData(int printerId) => _withSlotConfig(
+    printerId,
+    switch (printerId) {
+      1 => _statusPrinting(),
+      2 => _maybePrinting(2, _statusIdle(), 'Mop station'),
+      4 => _maybePrinting(4, _statusAccessoryFans(), 'Server rack – plate 17'),
+      5 => _maybePrinting(5, _statusSecondX1c(), 'Server rack – plate 22'),
+      6 => _maybePrinting(6, _statusDualNozzle(), 'Gear set'),
+      // Printer 3, and anything the fleet does not list. Written as the
+      // fallback rather than as `3 =>` because an id that reached here at all
+      // is one nothing should have asked about.
+      _ => const {
+        'name': 'A1 mini',
+        'model': 'A1 mini',
+        'connected': false,
+        'state': null,
+      },
+    },
+  );
 
   /// Lays whatever the slot sheet wrote over the generated trays.
   ///
@@ -1457,6 +1582,7 @@ class DemoBackend {
       'state': 'RUNNING',
       'current_print': '$job.3mf',
       'subtask_name': job,
+      'cover_url': '/api/v1/printers/$id/cover',
       'gcode_file': '/data/Metadata/plate_1.gcode',
       'progress': _r1(frac * 100),
       'remaining_time': (_printCycleSec * (1 - frac) / 60).ceil(),
@@ -1488,8 +1614,8 @@ class DemoBackend {
       'model': 'X1C',
       'connected': true,
       'state': stopped ? 'IDLE' : (_paused ? 'PAUSE' : 'RUNNING'),
-      'current_print': printing ? 'Drawer organizer x4.3mf' : null,
-      'subtask_name': printing ? 'Drawer organizer x4' : null,
+      'current_print': printing ? 'Bag dispenser.3mf' : null,
+      'subtask_name': printing ? 'Bag dispenser' : null,
       'gcode_file': printing ? '/data/Metadata/plate_1.gcode' : null,
       'progress': printing ? _r1(frac * 100) : 0,
       'remaining_time': printing ? ((_printCycleSec - elapsed) / 60).ceil() : 0,
@@ -1523,7 +1649,7 @@ class DemoBackend {
       'ams_status_sub': 0,
       'hms_errors': const <Object>[],
       'firmware_version': '01.08.02.00',
-      'cover_url': null,
+      'cover_url': printing ? '/api/v1/printers/1/cover' : null,
       'supports_drying': true,
       'current_plate_id': 1,
       'awaiting_plate_clear': false,
@@ -1612,6 +1738,55 @@ class DemoBackend {
     'active_extruder': 0,
     'hms_errors': const <Object>[],
     'firmware_version': '01.08.02.00',
+    'cover_url': null,
+    'supports_drying': true,
+    'awaiting_plate_clear': false,
+    'sdcard': true,
+    'ipcam': true,
+  };
+
+  /// An idle H2D: `nozzle_2` in the temperatures is what says it has two heads
+  /// (the plain `nozzle` key is the left one), and it has a chamber heater.
+  Map<String, dynamic> _statusDualNozzle() => {
+    'name': 'H2D',
+    'model': 'H2D',
+    'connected': true,
+    'state': 'IDLE',
+    'current_print': null,
+    'gcode_file': null,
+    'progress': 0,
+    'remaining_time': 0,
+    'layer_num': 0,
+    'total_layers': 0,
+    'temperatures': {
+      'nozzle': _r1(24.6 + _wiggle(0.3, phase: 35)),
+      'nozzle_target': 0.0,
+      'nozzle_2': _r1(24.2 + _wiggle(0.3, phase: 55)),
+      'nozzle_2_target': 0.0,
+      'bed': _r1(24.0 + _wiggle(0.2, phase: 70)),
+      'bed_target': 0.0,
+      'chamber': _r1(25.4 + _wiggle(0.3, phase: 90)),
+      'chamber_target': 0.0,
+    },
+    'cooling_fan_speed': 0,
+    'big_fan1_speed': 0,
+    'big_fan2_speed': 0,
+    'heatbreak_fan_speed': 0,
+    'speed_level': _speedLevel[6] ?? 2,
+    'chamber_light': _chamberLight[6] ?? false,
+    'airduct_mode': _airductMode[6] ?? 0,
+    'wifi_signal': -49,
+    'door_open': false,
+    'ams_exists': true,
+    'ams': [_amsUnitPlaOnly()],
+    'vt_tray': const <Object>[],
+    'tray_now': 255,
+    // The left head, which is the plain `nozzle` key and the one a print here
+    // heats ([_maybePrinting] sets only that one): index 0 is the right head,
+    // `nozzle_2`, which would be marked active while it sat cold.
+    'active_extruder': 1,
+    'hms_errors': const <Object>[],
+    'firmware_version': '01.01.00.00',
     'cover_url': null,
     'supports_drying': true,
     'awaiting_plate_clear': false,
@@ -2094,8 +2269,8 @@ class DemoBackend {
         },
         {'name': 'ipcam', 'path': '/ipcam', 'is_directory': true, 'size': 0},
         {
-          'name': 'Drawer organizer x4.gcode.3mf',
-          'path': '/Drawer organizer x4.gcode.3mf',
+          'name': 'Bag dispenser.gcode.3mf',
+          'path': '/Bag dispenser.gcode.3mf',
           'is_directory': false,
           'size': 4318208,
           'mtime': _iso(_daysAgo(0, hours: 2)),
@@ -2103,15 +2278,15 @@ class DemoBackend {
       ],
       '/cache' => [
         {
-          'name': 'Benchy.gcode.3mf',
-          'path': '/cache/Benchy.gcode.3mf',
+          'name': 'Mikrus slot.gcode.3mf',
+          'path': '/cache/Mikrus slot.gcode.3mf',
           'is_directory': false,
           'size': 2108509,
           'mtime': _iso(_daysAgo(3)),
         },
         {
-          'name': 'Cable clips x8.gcode.3mf',
-          'path': '/cache/Cable clips x8.gcode.3mf',
+          'name': 'Gridfinity bin 2×1×9.gcode.3mf',
+          'path': '/cache/Gridfinity bin 2×1×9.gcode.3mf',
           'is_directory': false,
           'size': 1524736,
           'mtime': _iso(_daysAgo(6)),
@@ -2302,7 +2477,7 @@ class DemoBackend {
       id: 101,
       printerId: 1,
       position: 1,
-      name: 'Cable clips x8',
+      name: 'Gridfinity bin 2×1×9',
       status: 'pending',
       timeSec: 5520,
       grams: 42.3,
@@ -2310,13 +2485,14 @@ class DemoBackend {
       color: '#FFFFFF',
       createdDaysAgo: 1,
       batchId: 1,
-      batchName: 'Cable clips ×8',
+      batchName: 'Gridfinity bins ×8',
+      libraryFileId: 5,
     ),
     _queueItem(
       id: 102,
       printerId: null,
       position: 2,
-      name: 'Phone stand',
+      name: 'Server rack – plate 13',
       status: 'pending',
       timeSec: 8340,
       grams: 68.9,
@@ -2325,6 +2501,7 @@ class DemoBackend {
       createdDaysAgo: 0,
       // Shows the Staged chip; the demo's admin is never held for review.
       manualStart: true,
+      libraryFileId: 2,
     ),
     // Plate-swap job on the one model demo has snippets for: opening it shows
     // the injection checkbox already ticked, with no "nothing will be injected"
@@ -2333,7 +2510,7 @@ class DemoBackend {
       id: 103,
       printerId: 3,
       position: 3,
-      name: 'Keychain batch (plate swap)',
+      name: 'Server rack – plate 12 (plate swap)',
       status: 'pending',
       timeSec: 2760,
       grams: 12.4,
@@ -2342,6 +2519,90 @@ class DemoBackend {
       createdDaysAgo: 0,
       gcodeInjection: true,
       slicedForModel: 'A1 mini',
+      libraryFileId: 1,
+    ),
+    // A failed print on the P1S, and the two jobs behind it that wanted it to
+    // succeed: the scheduler skipped them with its gate message, which is what
+    // puts the "Resume after failure" banner over the queue.
+    _queueItem(
+      id: 104,
+      printerId: 2,
+      position: 4,
+      name: 'Server rack – plate 14',
+      status: 'failed',
+      timeSec: 5340,
+      grams: 21.4,
+      type: 'PLA',
+      color: '#2D7FF9',
+      createdDaysAgo: 1,
+      libraryFileId: 3,
+      slicedForModel: 'P1S',
+      errorMessage: 'Filament ran out',
+    ),
+    _queueItem(
+      id: 105,
+      printerId: 2,
+      position: 5,
+      name: 'Server rack – plate 14',
+      status: 'skipped',
+      timeSec: 5340,
+      grams: 21.4,
+      type: 'PLA',
+      color: '#2D7FF9',
+      createdDaysAgo: 1,
+      libraryFileId: 3,
+      slicedForModel: 'P1S',
+      errorMessage: kPreviousFailureGate,
+    ),
+    _queueItem(
+      id: 106,
+      printerId: 2,
+      position: 6,
+      name: 'Bag dispenser',
+      status: 'skipped',
+      timeSec: 5400,
+      grams: 96.2,
+      type: 'PETG',
+      color: '#FFFFFF',
+      createdDaysAgo: 1,
+      libraryFileId: 4,
+      slicedForModel: 'P1S',
+      errorMessage: kPreviousFailureGate,
+    ),
+    // For any X1C: no printer on it until the scheduler picks one, so the
+    // controller's Queue view lists it beside the X1 Carbon's own job.
+    _queueItem(
+      id: 107,
+      printerId: null,
+      targetModel: 'X1C',
+      position: 7,
+      name: 'Cable chain links ×20',
+      status: 'pending',
+      timeSec: 3300,
+      grams: 18.6,
+      type: 'PLA',
+      color: '#2C7FE0',
+      createdDaysAgo: 0,
+      libraryFileId: 5,
+    ),
+    // For any P1S, held by the failed print above: the only P1S is the one it
+    // failed on, so the job waits instead of being skipped, which is what
+    // puts the model's "Resume" banner over the queue.
+    _queueItem(
+      id: 108,
+      printerId: null,
+      targetModel: 'P1S',
+      position: 8,
+      name: 'Spool holder arm',
+      status: 'pending',
+      timeSec: 4200,
+      grams: 44.0,
+      type: 'PETG',
+      color: '#FFFFFF',
+      createdDaysAgo: 0,
+      libraryFileId: 4,
+      slicedForModel: 'P1S',
+      waitingReason: kModelGateWaitReason,
     ),
   ];
 
@@ -2382,6 +2643,7 @@ class DemoBackend {
   Map<String, dynamic> _queueItem({
     required int id,
     required int? printerId,
+    String? targetModel,
     required int position,
     required String name,
     required String status,
@@ -2397,13 +2659,23 @@ class DemoBackend {
     List<Map<String, dynamic>> variants = const [],
     int? batchId,
     String? batchName,
+    // A job queued from the library, as the server shapes one: the file's
+    // name and thumbnail in place of the archive's.
+    int? libraryFileId,
+    int? costCenterId = 1,
+    String? errorMessage,
+    String? waitingReason,
   }) => {
     'id': id,
+    'error_message': errorMessage,
+    'waiting_reason': waitingReason,
+    'cost_center_id': costCenterId,
     'batch_id': batchId,
     'batch_name': batchName,
     'printer_id': printerId,
+    'target_model': targetModel,
     'archive_id': null,
-    'library_file_id': null,
+    'library_file_id': libraryFileId,
     'position': position,
     'status': status,
     'required_filament_types': [type],
@@ -2426,8 +2698,14 @@ class DemoBackend {
     'layer_inspect': true,
     'timelapse': false,
     'created_at': _iso(_daysAgo(createdDaysAgo)),
-    'archive_name': name,
+    'archive_name': libraryFileId == null ? name : null,
     'archive_thumbnail': null,
+    'library_file_name': libraryFileId == null ? null : name,
+    'library_file_thumbnail': libraryFileId == null
+        ? null
+        : _libraryFiles.firstWhere(
+            (f) => f['id'] == libraryFileId,
+          )['thumbnail_path'],
     'archive_deleted': false,
     'printer_name': printerId == null
         ? null
@@ -2485,6 +2763,7 @@ class DemoBackend {
         ],
         batchId: batch?['id'] as int?,
         batchName: batch?['name'] as String?,
+        costCenterId: body['cost_center_id'] as int?,
       ),
     );
 
@@ -2536,9 +2815,22 @@ class DemoBackend {
     return batch;
   }
 
-  DemoResult? _queueRoute(String m, List<String> s, Map<String, dynamic> body) {
+  DemoResult? _queueRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+    Map<String, dynamic> body,
+  ) {
     if (s.length == 1) {
-      if (m == 'GET') return _ok(_queue);
+      if (m == 'GET') {
+        // One status per request, as the server filters. The queue screen asks
+        // for `pending` and `printing`, the history for the other four.
+        final status = q['status'];
+        return _ok([
+          for (final item in [?_printingRow, ..._queue])
+            if (status == null || item['status'] == status) item,
+        ]);
+      }
       if (m == 'POST') {
         // A cross-model job names itself after its first candidate and carries
         // the rest; anything else is an "add from archive" (reprint).
@@ -2562,6 +2854,16 @@ class DemoBackend {
             (lead?['print_name'] as String?) ??
             (archive?['print_name'] as String?) ??
             'Reprint';
+        // Before the batch is made, so a refused create leaves nothing behind.
+        final grams =
+            (lead?['filament_used_grams'] as num?)?.toDouble() ??
+            (archive?['filament_used_grams'] as num?)?.toDouble() ??
+            20;
+        final overBudget = _budgetRefusal(
+          body['cost_center_id'],
+          grams * 0.025 * copies,
+        );
+        if (overBudget != null) return overBudget;
         final batch = _batchForCopies(body['batch_id'] as int?, copies, name);
         if (batch case DemoResult refused) return refused;
         final batchMap = batch as Map<String, dynamic>?;
@@ -2572,6 +2874,23 @@ class DemoBackend {
         // The server answers with the first copy.
         return _ok(_queue[first]);
       }
+    }
+    if (s.length == 2 && s[1] == 'history' && m == 'GET') {
+      return _ok(_queueHistory(q));
+    }
+    if (s.length == 3 && s[1] == 'history' && s[2] == 'clear' && m == 'POST') {
+      final cleared = _queue.where(_inHistory).length;
+      _queue.removeWhere(_inHistory);
+      return _ok({'cleared': cleared, 'kept': 0});
+    }
+    if (s.length == 2 && s[1] == 'bulk' && m == 'PATCH') {
+      return _bulkUpdate(body);
+    }
+    if (s.length == 4 && s[1] == 'printer' && s[3] == 'resume' && m == 'POST') {
+      return _resumeAfterFailure(int.tryParse(s[2]));
+    }
+    if (s.length == 4 && s[1] == 'model' && s[3] == 'resume' && m == 'POST') {
+      return _resumeModelAfterFailure(Uri.decodeComponent(s[2]));
     }
     if (s.length >= 2 && s[1] == 'reorder') {
       final items = body['items'];
@@ -2588,6 +2907,20 @@ class DemoBackend {
     }
     final itemId = int.tryParse(s[1]);
     if (itemId == null) return _notFound();
+    if (itemId == _printingRowId && s.length >= 3 && s[2] == 'stop') {
+      if (_printingRow == null) {
+        return (
+          status: 400,
+          body: {
+            'detail':
+                "Can only stop items that are printing, current status: "
+                "'completed'",
+          },
+        );
+      }
+      _stopPrint();
+      return _ok(const {'message': 'Print stopped'});
+    }
     final item = _queue.where((e) => e['id'] == itemId).firstOrNull;
     if (item == null) return _notFound();
     if (m == 'DELETE') {
@@ -2595,6 +2928,14 @@ class DemoBackend {
       return _ok(const {'ok': true});
     }
     if (m == 'PATCH') {
+      // Every edit is checked against the cost center it will have, as
+      // `update_queue_item` does.
+      final center = body.containsKey('cost_center_id')
+          ? body['cost_center_id']
+          : item['cost_center_id'];
+      final overBudget = _budgetRefusal(center, _jobCost(item));
+      if (overBudget != null) return overBudget;
+      item['cost_center_id'] = center;
       if (body.containsKey('printer_id')) {
         item['printer_id'] = body['printer_id'];
         item['printer_name'] = _printers
@@ -2617,6 +2958,8 @@ class DemoBackend {
       return _ok(const {'ok': true});
     }
     if (s.length >= 3 && s[2] == 'start') {
+      final overBudget = _budgetRefusal(item['cost_center_id'], _jobCost(item));
+      if (overBudget != null) return overBudget;
       item['status'] = 'printing';
       item['started_at'] = _iso(DateTime.now());
       return _ok(const {'ok': true});
@@ -2626,6 +2969,181 @@ class DemoBackend {
 
   int _nextQueueId = 200;
 
+  /// The job printer 1 is running, as the queue lists it while it runs: the
+  /// card on the Printers tab and the top of the queue are the same print. Built
+  /// on every read from the print simulation, so a stop or the idle gap after
+  /// one takes it off the queue as the server would.
+  static const _printingRowId = 100;
+  Map<String, dynamic>? get _printingRow => _stopped || !_printsNow(1)
+      ? null
+      : {
+          ..._queueItem(
+            id: _printingRowId,
+            printerId: 1,
+            position: 0,
+            name: 'Bag dispenser',
+            status: 'printing',
+            timeSec: _printCycleSec,
+            grams: 96.2,
+            type: 'PETG',
+            color: '#7B2FF7',
+            createdDaysAgo: 0,
+            libraryFileId: 4,
+          ),
+          'started_at': _iso(
+            DateTime.now().subtract(Duration(seconds: _elapsedSec)),
+          ),
+        };
+
+  /// `PATCH /queue/bulk` (`bulk_update_queue_items`): the same keys on every
+  /// pending item named, the others only counted. A calibration sent as a
+  /// boolean is stored as the string it maps to, as the server's validator does.
+  DemoResult _bulkUpdate(Map<String, dynamic> body) {
+    final ids = (body['item_ids'] as List?)?.whereType<int>().toList() ?? [];
+    if (ids.isEmpty) {
+      return (status: 400, body: {'detail': 'No item IDs provided'});
+    }
+    final changes = {...body}..remove('item_ids');
+    if (changes.isEmpty) {
+      return (status: 400, body: {'detail': 'No fields to update'});
+    }
+    final printerId = changes['printer_id'];
+    final printer = _printers.where((p) => p['id'] == printerId).firstOrNull;
+    if (printerId != null && printer == null) {
+      return (status: 400, body: {'detail': 'Printer not found'});
+    }
+    Object? stored(String key, Object? value) =>
+        const {'bed_levelling', 'flow_cali', 'nozzle_offset_cali'}.contains(key)
+        ? (value is bool ? (value ? 'on' : 'off') : value)
+        : value;
+    var updated = 0;
+    var skipped = 0;
+    for (final item in _queue.where((e) => ids.contains(e['id']))) {
+      if (item['status'] != 'pending') {
+        skipped++;
+        continue;
+      }
+      for (final e in changes.entries) {
+        item[e.key] = stored(e.key, e.value);
+      }
+      if (changes.containsKey('printer_id')) {
+        item['printer_name'] = printer?['name'];
+      }
+      updated++;
+    }
+    return _ok({
+      'updated_count': updated,
+      'skipped_count': skipped,
+      'message': 'Updated $updated items',
+    });
+  }
+
+  static const _historyStatuses = {
+    'completed',
+    'failed',
+    'skipped',
+    'cancelled',
+  };
+
+  static bool _inHistory(Map<String, dynamic> item) =>
+      _historyStatuses.contains(item['status']);
+
+  /// `GET /queue/history` as `list_queue_history` shapes it: the page in
+  /// `sort_by` order, then the other runs of the batches on it.
+  Map<String, dynamic> _queueHistory(Map<String, String> q) {
+    final reverse = q['reverse'] == 'true';
+    final limit = int.tryParse(q['limit'] ?? '') ?? 50;
+    String text(Map<String, dynamic> i, String key) =>
+        ((i[key] ?? '') as String).toLowerCase();
+    String when(Map<String, dynamic> i) =>
+        (i['completed_at'] ?? i['created_at'] ?? '') as String;
+    final all = _queue.where(_inHistory).toList()
+      ..sort((a, b) {
+        final cmp = switch (q['sort_by']) {
+          'name' =>
+            text(
+              a,
+              a['archive_name'] == null ? 'library_file_name' : 'archive_name',
+            ).compareTo(
+              text(
+                b,
+                b['archive_name'] == null
+                    ? 'library_file_name'
+                    : 'archive_name',
+              ),
+            ),
+          'printer' => text(
+            a,
+            'printer_name',
+          ).compareTo(text(b, 'printer_name')),
+          _ => when(b).compareTo(when(a)),
+        };
+        return reverse ? -cmp : cmp;
+      });
+    final page = all.take(limit).toList();
+    final batches = {for (final i in page) ?i['batch_id']};
+    return {
+      'items': [
+        ...page,
+        for (final i in all.skip(limit))
+          if (batches.contains(i['batch_id'])) i,
+      ],
+      'total': all.length,
+      'locations': const <String>[],
+    };
+  }
+
+  /// `POST /queue/printer/{id}/resume`: the failed prints behind the gate stop
+  /// holding it, and what it skipped goes back to `pending` — the two things
+  /// `resume_queue_after_failure` does, counted as it counts them.
+  DemoResult _resumeAfterFailure(int? printerId) {
+    if (_printers.every((p) => p['id'] != printerId)) return _notFound();
+    var acknowledged = 0;
+    var restored = 0;
+    for (final item in _queue) {
+      if (item['printer_id'] != printerId) continue;
+      final status = item['status'];
+      if ((status == 'failed' || status == 'aborted') &&
+          item['gate_acknowledged'] != true) {
+        item['gate_acknowledged'] = true;
+        acknowledged++;
+      } else if (status == 'skipped' &&
+          item['error_message'] == kPreviousFailureGate) {
+        item['status'] = 'pending';
+        item['error_message'] = null;
+        item['completed_at'] = null;
+        restored++;
+      }
+    }
+    return _ok({'acknowledged': acknowledged, 'restored': restored});
+  }
+
+  /// `POST /queue/model/{model}/resume`: the gate cleared on every printer of
+  /// [model], as `resume_model_queue_after_failure` counts it. The server's next
+  /// scheduler pass drops the waiting reason; the demo has none, so it does that
+  /// here.
+  DemoResult _resumeModelAfterFailure(String model) {
+    final ids = {
+      for (final p in _printers)
+        if (p['model'] == model) p['id'],
+    };
+    var acknowledged = 0;
+    for (final item in _queue) {
+      final status = item['status'];
+      if (ids.contains(item['printer_id']) &&
+          (status == 'failed' || status == 'aborted') &&
+          item['gate_acknowledged'] != true) {
+        item['gate_acknowledged'] = true;
+        acknowledged++;
+      }
+      if (item['target_model'] == model &&
+          item['waiting_reason'] == kModelGateWaitReason) {
+        item['waiting_reason'] = null;
+      }
+    }
+    return _ok({'acknowledged': acknowledged, 'printers': ids.length});
+  }
+
   // --- Batches and orders (#342) ---
 
   /// Stored as the server stores them: targets per plate plus how each plate's
@@ -2634,7 +3152,7 @@ class DemoBackend {
   late final List<Map<String, dynamic>> _batches = [
     {
       'id': 1,
-      'name': 'Cable clips ×8',
+      'name': 'Gridfinity bins ×8',
       'library_file_id': null,
       'status': 'active',
       'created_at': _iso(_daysAgo(2)),
@@ -2675,7 +3193,7 @@ class DemoBackend {
     // What `POST /queue/` with `quantity: 3` makes on its own: a grouping.
     {
       'id': 3,
-      'name': 'Phone stand ×3',
+      'name': 'IKEA SAMLA box clips ×3',
       'library_file_id': null,
       'status': 'completed',
       'created_at': _iso(_daysAgo(9)),
@@ -3010,6 +3528,10 @@ class DemoBackend {
       String? externalUrl,
       int runCount = 1,
       List<Map<String, dynamic>>? filamentSlots,
+      // The picture keys in `assets/demo/`: [media] for the render, [photos]
+      // for what the camera saw when the print ended.
+      String? media,
+      List<String> photos = const [],
     }) {
       final started = _daysAgo(daysAgo, hours: 3);
       final actualSec = status == 'completed'
@@ -3025,7 +3547,7 @@ class DemoBackend {
         'filename': '$name.gcode.3mf',
         'file_path': 'archive/demo/$name.gcode.3mf',
         'file_size': 1500000 + name.length * 37000,
-        'thumbnail_path': null,
+        'thumbnail_path': media == null ? null : 'archive/demo/$media.png',
         'timelapse_path': null,
         'duplicate_count': 0,
         'duplicate_sequence': 0,
@@ -3055,7 +3577,7 @@ class DemoBackend {
         'tags': tags,
         'notes': notes,
         'cost': cost ?? _r1(grams * 0.025),
-        'photos': const <Object>[],
+        'photos': [for (final key in photos) '$key.jpg'],
         'failure_reason': failureReason,
         'quantity': quantity,
         'energy_kwh': energyKwh ?? _r1(estSec / 3600 * 0.11),
@@ -3088,7 +3610,7 @@ class DemoBackend {
       // detail sheet and the plate picker in the print form have nothing to
       // stand on, and both are part of what the demo is showing off.
       a(
-        'Drawer organizer x4',
+        'Bag dispenser',
         1,
         1,
         estSec: 5400,
@@ -3097,8 +3619,10 @@ class DemoBackend {
         plateId: 2,
         projectId: 1,
         tags: 'workshop,storage',
-        notes: 'Plate 1 printed separately; the dividers go on plate 2.',
+        notes: 'Plate 1 printed separately; the lids go on plate 2.',
         runCount: 3,
+        media: 'bag-dispenser',
+        photos: const ['bag-dispenser'],
         // Listed per plate, as the server's parser stores a multi-plate
         // export: slot 1 twice, which the app sums.
         filamentSlots: const [
@@ -3108,73 +3632,101 @@ class DemoBackend {
         ],
       ),
       a(
-        'Benchy',
+        'Mikrus slot',
         1,
         2,
         estSec: 3540,
         grams: 15.8,
-        color: '#FF6A13',
+        color: '#1F5FD8',
         confirmRequested: true,
-        externalUrl: 'https://www.3dbenchy.com/',
+        externalUrl: 'https://www.printables.com/',
+        media: 'mikrus-slot',
+        photos: const ['mikrus-slot'],
       ),
       a(
-        'Raspberry Pi 5 case',
+        'Xbox controller lid',
         2,
         3,
         estSec: 7920,
         grams: 48.4,
         type: 'PETG',
-        color: '#FFFFFF',
+        color: '#CFC5A8',
+        media: 'controller-lid',
+        photos: const ['controller-lid'],
       ),
       a(
-        'Headphone hook',
+        'Dreame L10s bumper support',
         1,
         4,
         estSec: 4260,
         grams: 31.7,
-        color: '#3B3B3B',
+        color: '#FFFFFF',
         confirmRequested: true,
         verdict: 'reject',
         verdictSource: 'link',
+        media: 'bumper-support',
+        photos: const ['bumper-support'],
       ),
       a(
-        'Spiral vase',
+        'Box – plate 2',
         2,
         6,
         estSec: 10680,
         grams: 88.1,
-        color: '#D4AF37',
+        color: '#3B3B3B',
+        media: 'box-plate-2',
         status: 'failed',
         failureReason: 'Spaghetti detected',
         actualGrams: 35.2,
       ),
       a(
-        'Cable clips x8',
+        'Monitor alignment clip x8',
         1,
         7,
         estSec: 5520,
         grams: 42.3,
         type: 'PETG',
-        color: '#FFFFFF',
+        color: '#3B3B3B',
         quantity: 8,
+        media: 'monitor-clip',
       ),
-      a('Plant pot 120mm', 2, 9, estSec: 12480, grams: 132.5, color: '#0ACCB8'),
-      a('SD card holder', 1, 12, estSec: 3120, grams: 22.9, color: '#FF6A13'),
       a(
-        'Phone stand',
+        'Pet feeder – plate 2',
+        2,
+        9,
+        estSec: 12480,
+        grams: 132.5,
+        color: '#FFFFFF',
+        media: 'pet-feeder-plate-2',
+        photos: const ['pet-feeder-plate-2', 'pet-feeder'],
+      ),
+      a(
+        'RJ45 needle',
+        1,
+        12,
+        estSec: 3120,
+        grams: 22.9,
+        color: '#7B2FF2',
+        media: 'rj45-needle',
+        photos: const ['rj45-needle'],
+      ),
+      a(
+        'IKEA SAMLA box clips',
         3,
         15,
         estSec: 8340,
         grams: 68.9,
-        color: '#FF6A13',
+        color: '#FFFFFF',
         confirmRequested: true,
         verdict: 'good',
         verdictSource: 'plate_clear',
+        media: 'samla-clips',
+        photos: const ['samla-clips'],
       ),
       // Stopped on the first layer, so there is no measured figure at all —
       // the case the archive sheet has a line for.
       a(
-        'Wall hook x4',
+        'Handle',
         1,
         18,
         estSec: 4980,
@@ -3184,23 +3736,27 @@ class DemoBackend {
         status: 'failed',
         failureReason: 'Bed adhesion',
         noUsageRecorded: true,
+        media: 'handle',
       ),
       a(
-        'Desk drawer divider',
+        'Box',
         2,
         22,
         estSec: 9840,
         grams: 104.6,
         color: '#000000',
+        media: 'box',
+        photos: const ['box'],
       ),
       a(
-        'Flexi dragon',
+        'Vacuum diffuser',
         1,
         26,
         estSec: 14400,
         grams: 156.3,
         type: 'TPU',
         color: '#0ACC38',
+        media: 'vacuum-diffuser',
       ),
     ];
   }
@@ -3242,7 +3798,7 @@ class DemoBackend {
       'energy_cost': archive['energy_cost'],
       'wear_cost': archive['wear_cost'],
       'failure_reason': failureReason ?? archive['failure_reason'],
-      'thumbnail_path': null,
+      'thumbnail_path': archive['thumbnail_path'],
       'created_by_id': 1,
       'created_by_username': DemoConfig.username,
       'created_at': archive['created_at'],
@@ -4610,7 +5166,7 @@ class DemoBackend {
 
   // --- Maintenance ---
 
-  static final List<Map<String, dynamic>> _maintenanceTypes = [
+  final List<Map<String, dynamic>> _maintenanceTypes = [
     {
       'id': 1,
       'name': 'Lubricate Carbon Rods',
@@ -4876,6 +5432,9 @@ class DemoBackend {
       'k_profiles': const <Object>[],
       'suppliers': <Map<String, dynamic>>[],
       'material_number': null,
+      'last_dried_at': null,
+      'last_dried_temp': null,
+      'last_dried_hours': null,
     };
 
     final spools = [
@@ -4968,6 +5527,15 @@ class DemoBackend {
     spools[1]['material_number'] = '15';
     spools[2]['material_number'] = '22';
     spools[3]['material_number'] = 'A-104';
+    // The three ways a date arrives: an AMS run Bambuddy started (all three
+    // figures), one started on the printer (hours only; it never echoes the
+    // temperature), and one typed by hand (the date alone). The rest: never.
+    spools[0]['last_dried_at'] = _iso(_daysAgo(3));
+    spools[0]['last_dried_temp'] = 55;
+    spools[0]['last_dried_hours'] = 7.5;
+    spools[1]['last_dried_at'] = _iso(_daysAgo(9));
+    spools[1]['last_dried_hours'] = 4.0;
+    spools[2]['last_dried_at'] = _iso(_daysAgo(40));
     _linkSeed(spools[0], [
       (1, 'GFA00-K0', 24.99, true),
       (2, 'BL-PLA-BK-1', 22.90, false),
@@ -5639,6 +6207,12 @@ class DemoBackend {
           if (m == 'GET') return _ok(spool);
           if (m == 'PATCH') {
             _normalizeMaterialNumber(body);
+            // A date typed by hand is not the AMS cycle the temperature and
+            // hours describe, so they go with it (`routes/inventory.py`).
+            if (body.containsKey('last_dried_at')) {
+              spool['last_dried_temp'] = null;
+              spool['last_dried_hours'] = null;
+            }
             body.forEach((k, v) => spool[k] = v);
             return _ok(spool);
           }
@@ -5985,6 +6559,13 @@ class DemoBackend {
     };
     _normalizeMaterialNumber(spool);
     spool.putIfAbsent('material_number', () => null);
+    for (final key in const [
+      'last_dried_at',
+      'last_dried_temp',
+      'last_dried_hours',
+    ]) {
+      spool.putIfAbsent(key, () => null);
+    }
     // The number is inherited from the most recently added spool of the same
     // product when the draft names none (`services/material_number.py`).
     if (spool['material_number'] == null) {
@@ -6032,7 +6613,7 @@ class DemoBackend {
     return [
       {
         'id': spoolId * 10 + 1,
-        'print_name': 'Drawer organizer x4',
+        'print_name': 'Bag dispenser',
         'weight_used': 96.2,
         'percent_used': 10,
         'status': 'completed',
@@ -6041,7 +6622,7 @@ class DemoBackend {
       },
       {
         'id': spoolId * 10 + 2,
-        'print_name': 'Benchy',
+        'print_name': 'Mikrus slot',
         'weight_used': 15.8,
         'percent_used': 2,
         'status': 'completed',
@@ -6217,7 +6798,7 @@ class DemoBackend {
   late final List<Map<String, dynamic>> _libraryFolders = [
     {
       'id': 1,
-      'name': 'Calibration',
+      'name': 'Server rack',
       'parent_id': null,
       'file_count': 3,
       'children': <Object>[],
@@ -6238,51 +6819,56 @@ class DemoBackend {
   late final List<Map<String, dynamic>> _libraryFiles = [
     _libFile(
       1,
-      'Benchy.gcode.3mf',
+      'Server rack – plate 12.gcode.3mf',
       1,
       2108509,
       printCount: 3,
       timeSec: 3540,
       grams: 15.8,
+      media: 'rack-plate-12',
     ),
     _libFile(
       2,
-      'Calibration cube.gcode.3mf',
+      'Server rack – plate 13.gcode.3mf',
       1,
       812340,
       printCount: 1,
       timeSec: 1620,
       grams: 6.1,
+      media: 'rack-plate-13',
     ),
     _libFile(
       3,
-      'Temp tower PLA.gcode.3mf',
+      'Server rack – plate 14.gcode.3mf',
       1,
       1430200,
       printCount: 1,
       timeSec: 5340,
       grams: 21.4,
       model: 'P1S',
+      media: 'rack-plate-14',
     ),
     _libFile(
       4,
-      'Drawer organizer x4.gcode.3mf',
+      'Bag dispenser.gcode.3mf',
       2,
       4318208,
       printCount: 2,
       timeSec: 5400,
       grams: 96.2,
       model: 'P1S',
+      media: 'bag-dispenser',
     ),
     _libFile(
       5,
-      'Cable clips x8.gcode.3mf',
+      'Gridfinity bin 2×1×9.gcode.3mf',
       2,
       1524736,
       printCount: 1,
       timeSec: 5520,
       grams: 42.3,
       model: 'P2S',
+      media: 'gridfinity-bin',
     ),
     // The un-sliced sources — the only files the Slice button is offered on,
     // since anything already `gcode.3mf` is printable and cannot be re-sliced.
@@ -6291,27 +6877,38 @@ class DemoBackend {
     // plates never touch), and an STL has no plates and so no "as designed".
     _libFile(
       6,
-      'SD card adapter.3mf',
+      'Crimper 24 mm.3mf',
       null,
       634212,
       fileType: '3mf',
       model: null,
+      media: 'crimper',
     ),
     _libFile(
       7,
-      'Hue dial two-tone.3mf',
+      'Mop station.3mf',
       null,
       2204160,
       fileType: '3mf',
       model: null,
+      media: 'mop-station',
     ),
-    _libFile(8, 'Lamp shade.stl', null, 1841664, fileType: 'stl', model: null),
+    _libFile(
+      8,
+      'Rack rails.stl',
+      null,
+      1841664,
+      fileType: 'stl',
+      model: null,
+      // The server renders a thumbnail for an STL on upload; not for STEP.
+      media: 'rack-rails',
+    ),
     // Uploaded straight from CAD, and refused before a byte is read: neither
     // slicer CLI loads STEP. The button is still offered — the file is not
     // printable — which is exactly the state the server's own message is for.
     _libFile(
       9,
-      'Motor bracket.step',
+      'Server rack – plate 22.step',
       null,
       412160,
       fileType: 'step',
@@ -6339,13 +6936,14 @@ class DemoBackend {
     // records which printer the *output* was built for, so an un-sliced
     // upload has no answer to give.
     String? model = 'X1C',
+    String? media,
   }) => {
     'id': id,
     'folder_id': folderId,
     'filename': filename,
     'file_type': fileType,
     'file_size': size,
-    'thumbnail_path': null,
+    'thumbnail_path': media == null ? null : 'library/demo/$media.png',
     'print_count': printCount,
     'duplicate_count': 0,
     'created_by_username': DemoConfig.username,
@@ -6744,7 +7342,7 @@ class DemoBackend {
                 (a) => {
                   'id': a['id'],
                   'print_name': a['print_name'],
-                  'thumbnail_path': null,
+                  'thumbnail_path': a['thumbnail_path'],
                   'status': a['status'],
                   'filament_type': a['filament_type'],
                   'filament_color': a['filament_color'],
@@ -6762,7 +7360,10 @@ class DemoBackend {
       'progress_percent': isFirst ? 58.3 : 100.0,
       'archives': previews,
       'url': null,
-      'cover_image_filename': null,
+      // The key of the render in `assets/demo/` the cover is drawn from.
+      'cover_image_filename': isFirst
+          ? 'gridfinity-bin.png'
+          : 'controller-lid.png',
     };
   }
 
@@ -6965,3 +7566,20 @@ class _DemoDownloadJob {
     'message': null,
   };
 }
+
+/// The bundled picture that stands in for an image route of the demo server,
+/// or null where the real server would have none either.
+///
+/// Phone-only on purpose: the watch build prunes `assets/demo/`, and
+/// `tool/check_wear_apk.py` fails if this path reaches the watch snapshot.
+String? demoAssetFor(String route) {
+  final picture = DemoBackend.instance.pictureFor(route);
+  return picture == null ? null : 'assets/demo/$picture.webp';
+}
+
+/// The demo camera's frames for [printerId], as asset paths — a loop while
+/// the printer prints, one still otherwise, none when it has no picture.
+List<String> demoCameraFrames(int printerId) => [
+  for (final frame in DemoBackend.instance.cameraFrames(printerId))
+    'assets/demo/$frame.webp',
+];

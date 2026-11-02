@@ -184,11 +184,9 @@ void main() {
 
       await publishSystemClock(true, settings: settings, monitor: monitor);
 
-      expect(
-        monitor.pings,
-        [(BackgroundSync.clock, true)],
-        reason: 'the new value was already on disk when the ping went out',
-      );
+      expect(monitor.pings, [
+        (BackgroundSync.clock, true),
+      ], reason: 'the new value was already on disk when the ping went out');
     });
 
     test('a service that is not running is not pinged', () async {
@@ -213,5 +211,41 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(DateTimeFormats.system().time(_at), '9:20 PM');
+  });
+
+  group('withDayZone', () {
+    String? zone;
+
+    setUp(() {
+      zone = 'Europe/Warsaw';
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(_channel, (call) async {
+            expect(call.method, 'timeZone');
+            return zone;
+          });
+    });
+
+    test('a calendar-day filter carries the device zone', () async {
+      expect(await withDayZone({'date_from': '2026-10-26'}), {
+        'date_from': '2026-10-26',
+        'tz': 'Europe/Warsaw',
+      });
+      expect(await withDayZone({'date_to': '2026-10-26'}), {
+        'date_to': '2026-10-26',
+        'tz': 'Europe/Warsaw',
+      });
+    });
+
+    test('no date, no zone: the server would not read it', () async {
+      expect(await withDayZone({'created_by_id': 3}), {'created_by_id': 3});
+      expect(await withDayZone({}), isEmpty);
+    });
+
+    test('no answer leaves the server\'s own zone in charge', () async {
+      zone = null;
+      expect(await withDayZone({'date_from': '2026-10-26'}), {
+        'date_from': '2026-10-26',
+      });
+    });
   });
 }

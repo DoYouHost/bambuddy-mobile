@@ -10,27 +10,12 @@ import 'finish_alert_memory.dart';
 import 'notification_prefs.dart';
 import 'notification_service.dart';
 
-/// Puts the server's finish photo onto the print-ended notification that is
-/// already on screen: the alert goes out when the printer reports the print
-/// over, the photo exists a minute or so later, so this finds the alert the
-/// print left behind ([FinishAlertMemory]) and re-posts it, same id, with the
-/// picture. Android replaces the notification in place and a paired watch gets
-/// the update over the same bridge that carried the original.
-///
-/// **Two ways in, because the server announces only one of them.** An
-/// `archive_updated` frame carrying `photo_added` is sent from exactly one place
-/// (`main.py::_upgrade_finish_photo_from_timelapse`), reached only when a print
-/// recorded a timelapse whose video was still in transit. The ordinary capture —
-/// every other finished print — is written straight to `archive.photos` with
-/// nothing on the wire, which is why [poll] has to go looking while an alert is
-/// live; the frame is kept as the fast path for the case it does cover.
-///
-/// Nothing here is load-bearing: no alert, a notification already swiped away, a
-/// download that failed — each ends quietly and leaves the text-only one as is.
-///
-/// It is also what puts the outcome buttons (#1898) on the same notification
-/// ([addOutcome]): the second thing that arrives after the alert, and the one
-/// re-post that must not undo the other.
+/// Puts the server's finish photo onto the print-ended notification that is already
+/// on screen: finds the alert the print left behind ([FinishAlertMemory]) and re-posts
+/// it, same id, with the picture. Two ways in, because the server announces only one
+/// of them. Nothing here is load-bearing: each failure ends quietly and leaves the
+/// text-only alert. It also puts the outcome buttons on it ([addOutcome])
+/// (docs/notification-delivery.md, "The finish photo").
 class FinishPhotoNotifier {
   FinishPhotoNotifier({
     required this._updates,
@@ -96,20 +81,14 @@ class FinishPhotoNotifier {
     _timer = null;
     await _sub?.cancel();
     _sub = null;
-    // Bounded, because this is awaited inside
-    // `PrintMonitorTaskHandler.onDestroy` ahead of the socket's dispose and the
-    // recording's flush: a poll against an unreachable server sits on Dio's
-    // connect and receive timeouts. Whatever is in flight finishes on its own —
-    // nothing after this depends on it.
+    // Bounded: this is awaited in `onDestroy` ahead of the socket's dispose
+    // (docs/notification-delivery.md, "The finish photo").
     await _pending.timeout(const Duration(seconds: 2), onTimeout: () {});
   }
 
-  /// One sweep over the alerts still live: for each, ask whether its print has
-  /// a photo now. Driven by a timer; public so a test can step it.
-  ///
-  /// Reads the work list from [FinishAlertMemory] rather than from a callback on
-  /// the alert, so an app opened mid-window takes the search over from the
-  /// background service that started it — the entry outlives the isolate.
+  /// One sweep over the alerts still live: for each, ask whether its print has a photo
+  /// now. Driven by a timer; public so a test can step it. Reads its work list from
+  /// [FinishAlertMemory], so an app opened mid-window takes the search over.
   Future<void> poll() async {
     if (!_isEnabled()) return;
     final now = clock.now();
@@ -131,14 +110,9 @@ class FinishPhotoNotifier {
     }
   }
 
-  /// Which of [recent] is the print [alert] was posted for, or null when none
-  /// of them fits.
-  ///
-  /// Never the first: the server orders by `created_at`, which a reprint leaves
-  /// on the original print because it reuses that archive row. `completed_at`
-  /// moves with the run, so it is the one to match — and requiring it near the
-  /// alert is what puts no photo, rather than a wrong one, on a notification
-  /// when nothing here belongs to this print.
+  /// Which of [recent] is the print [alert] was posted for, or null: matched on
+  /// `completed_at`, never the first, since a reprint reuses the archive row
+  /// (docs/notification-delivery.md, "The finish photo").
   static Archive? runForAlert(List<Archive> recent, PostedAlert alert) {
     Archive? best;
     for (final archive in recent) {
@@ -150,14 +124,9 @@ class FinishPhotoNotifier {
     return best;
   }
 
-  /// The newest shot the server itself took, out of everything hanging off the
-  /// archive, or null when there is none.
-  ///
-  /// Neither end of the list is the answer — captures and uploads append, the
-  /// timelapse upgrade prepends, and a reused row keeps every run's photos. The
-  /// name each capture path builds does order them: `finish_<YYYYMMDD>_<HHMMSS>`
-  /// sorts chronologically as text. Uploads carry no such name and are skipped;
-  /// this is about the shot the printer took, not the user's own.
+  /// The newest shot the server itself took, or null: ordered by the
+  /// `finish_<YYYYMMDD>_<HHMMSS>` name, since neither end of the list is the answer;
+  /// uploads are skipped (docs/notification-delivery.md, "The finish photo").
   static String? finishPhotoIn(List<String> photos) {
     String? best;
     for (final name in photos) {
@@ -235,15 +204,9 @@ class FinishPhotoNotifier {
       );
       return;
     }
-    // Asked again, because the download between the two can run the better part
-    // of a minute — connect and receive timeouts, plus a retry after a 401. A
-    // notification swiped away inside that window would be brought back by the
-    // post below, and Android counts a post after a cancel as a new one, so it
-    // would ring a second time for a print already dealt with.
-    //
-    // Read again, too: the other isolate may have put the outcome buttons on
-    // while this one was downloading, and re-posting the entry as it was
-    // before would take them off.
+    // Asked again after the download, which can run most of a minute: a swiped-away
+    // alert would be brought back and ring a second time. The entry is re-read too, since
+    // the other isolate may have added the outcome buttons meanwhile.
     final current = await _memory.recall(alert.printerId, clock.now()) ?? alert;
     if (current.id != alert.id || await _gone(archiveId, current)) return;
     await _notifications.showAlert(
@@ -268,12 +231,9 @@ class FinishPhotoNotifier {
     );
   }
 
-  /// Puts the outcome buttons (#1898) on the print-finished alert for
-  /// [printerId], if that alert is still on screen, and answers whether it
-  /// did — false means the caller asks with a notification of its own.
-  ///
-  /// Through the same queue as the photo: the two re-post one notification,
-  /// and each has to carry what the other added.
+  /// Puts the outcome buttons (#1898) on the print-finished alert for [printerId], if
+  /// it is still on screen; false means the caller asks with a notification of its own.
+  /// Through the same queue as the photo (docs/notification-delivery.md, "The finish photo").
   Future<bool> addOutcome({
     required int archiveId,
     required int printerId,

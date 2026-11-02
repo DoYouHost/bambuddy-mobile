@@ -45,6 +45,35 @@ class WsPrintConfirmRequest extends WsMessage {
   final String? printName;
 }
 
+/// What the server announces when billing goes wrong on a printer.
+enum BillingAlertKind {
+  /// The kill switch stopped a print nobody was authorised to start
+  /// (`kill_switch_triggered`).
+  killSwitch,
+
+  /// A finished or stopped print could not be charged and the budget
+  /// reservation was kept (`billing_charge_failed`).
+  chargeFailed,
+}
+
+/// A billing problem on a printer, sent to every connected client. [filename]
+/// is what the server printed from, and [archiveId] only comes with a failed
+/// charge, which is booked against one archive.
+class WsBillingAlert extends WsMessage {
+  const WsBillingAlert(
+    this.kind,
+    this.printerId,
+    this.printerName,
+    this.filename, {
+    this.archiveId,
+  });
+  final BillingAlertKind kind;
+  final int printerId;
+  final String? printerName;
+  final String? filename;
+  final int? archiveId;
+}
+
 /// Purely a trigger to refresh queue and maintenance: their state changes
 /// exactly at these moments — the queue advances, maintenance counters tick —
 /// and the server pushes neither over WS.
@@ -149,6 +178,19 @@ WsMessage? parseWsMessage(String raw) {
         printerId,
         decoded['printer_name']?.toString(),
         decoded['message']?.toString(),
+      );
+    case 'kill_switch_triggered':
+    case 'billing_charge_failed':
+      final printerId = toIntOrNull(decoded['printer_id']);
+      if (printerId == null) return WsUnknown(type);
+      return WsBillingAlert(
+        type == 'kill_switch_triggered'
+            ? BillingAlertKind.killSwitch
+            : BillingAlertKind.chargeFailed,
+        printerId,
+        decoded['printer_name']?.toString(),
+        decoded['filename']?.toString(),
+        archiveId: toIntOrNull(decoded['archive_id']),
       );
     case 'inventory_changed':
     case 'spool_assignment_changed':

@@ -7,6 +7,7 @@ import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/inventory.dart';
 import '../core/models/supplier.dart';
+import '../core/format/system_clock_sync.dart';
 import 'inventory_source.dart';
 
 /// Filament suppliers (server #2988): the master list, each spool's
@@ -102,10 +103,10 @@ class SuppliersRepository {
         () async {
           final res = await _dio.get<List<dynamic>>(
             Endpoints.inventorySupplierStats,
-            queryParameters: {
+            queryParameters: await withDayZone({
               if (from != null) 'date_from': calendarDateToJson(from),
               if (to != null) 'date_to': calendarDateToJson(to),
-            },
+            }),
           );
           return parseJsonList(res.data, SupplierStats.fromJson);
         },

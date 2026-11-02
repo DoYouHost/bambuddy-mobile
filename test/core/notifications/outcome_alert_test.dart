@@ -7,11 +7,9 @@ import 'package:bambuddy_mobile/core/notifications/finish_alert_memory.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/notifications/outcome_alert.dart';
-import 'package:bambuddy_mobile/core/notifications/outcome_prompt.dart';
-import 'package:bambuddy_mobile/core/notifications/server_tag.dart';
+import 'package:bambuddy_mobile/core/notifications/launch_relay.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations_en.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,8 +20,6 @@ import '../../helpers.dart';
 /// per request, Good and Reject answered from the shade, the body handed to
 /// the app's sheet.
 void main() {
-  final l10n = AppLocalizationsEn();
-
   group('the notification', () {
     late StreamController<WsPrintConfirmRequest> frames;
     late RecordingNotifications notifications;
@@ -43,7 +39,7 @@ void main() {
         notifications: notifications,
         prefs: prefs,
         serverUrl: _server,
-        l10n: () => l10n,
+        l10n: () => en,
       );
       addTearDown(sub.cancel);
       frames.add(request);
@@ -57,7 +53,7 @@ void main() {
       expect(alert['event'], NotifEvent.outcomeRequest);
       expect(alert['printerId'], 3);
       expect(alert['id'], outcomeAlertId(82));
-      expect(alert['title'], l10n.outcomeNotifTitle('Benchy'));
+      expect(alert['title'], en.outcomeNotifTitle('Benchy'));
       expect(alert['payload'], outcomePayload(82, _server));
       expect(alert['actionIds'], ['outcome:good', 'outcome:reject']);
     });
@@ -77,7 +73,7 @@ void main() {
                 required payload,
                 required actions,
               }) async => true,
-          l10n: () => l10n,
+          l10n: () => en,
         );
         addTearDown(sub.cancel);
         frames.add(const WsPrintConfirmRequest(3, 82, 'Benchy'));
@@ -99,7 +95,7 @@ void main() {
     test('a print with no name still gets a question', () async {
       await send(const WsPrintConfirmRequest(3, 82, null));
 
-      expect(notifications.alerts.single['title'], l10n.outcomeTitle);
+      expect(notifications.alerts.single['title'], en.outcomeTitle);
     });
 
     test('switched off, nothing is posted', () async {

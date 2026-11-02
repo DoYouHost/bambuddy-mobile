@@ -1,6 +1,7 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
@@ -179,5 +180,27 @@ void main() {
 
       expect(users.map((u) => u.username), ['admin', 'zosia']);
     });
+  });
+
+  test('a dated stats read sends the device zone as tz', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    const clock = MethodChannel('page.codeberg.morganmlgman.bambuddy/clock');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(clock, (_) async => 'Asia/Tokyo');
+    addTearDown(() => messenger.setMockMethodCallHandler(clock, null));
+    adapter.onGet(
+      '/api/v1/archives/stats',
+      (s) => s.reply(200, <String, Object>{}),
+      queryParameters: {
+        'date_from': '2026-10-26',
+        'date_to': '2026-10-26',
+        'tz': 'Asia/Tokyo',
+      },
+    );
+
+    await repo.fetch(from: DateTime(2026, 10, 26), to: DateTime(2026, 10, 26));
+
+    expect(sent.last.queryParameters['tz'], 'Asia/Tokyo');
   });
 }

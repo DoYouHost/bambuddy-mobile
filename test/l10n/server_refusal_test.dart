@@ -1,20 +1,13 @@
 import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/l10n/server_refusal.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../helpers.dart';
 
 /// The ladder three features used to each build for themselves: a known
 /// refusal is localized, an unknown one is quoted, and one the server did not
 /// explain falls back to the error code.
 void main() {
-  late AppLocalizations en;
-
-  setUpAll(() async {
-    en = await AppLocalizations.delegate.load(const Locale('en'));
-  });
-
   final rules = <RefusalRule>[
     (['last admin', 'delete'], (l) => l.usersErrLastAdminDelete),
     (['last admin'], (l) => l.usersErrLastAdmin),

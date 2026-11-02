@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
@@ -12,13 +11,13 @@ import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_screen.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import 'queue_fakes.dart';
 
 /// Fake notifier — returns the given list without touching the repository/network.
 class _FakeQueueNotifier extends QueueNotifier {
@@ -54,7 +53,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.text('Drukuje'),
+        find.text(pl.queueStatusPrinting),
         findsOneWidget,
         reason: 'status printing → pl',
       );
@@ -84,7 +83,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Partia: Keychains ×6'), findsOneWidget);
+    expect(
+      find.textContaining(pl.queueInBatch('Keychains ×6')),
+      findsOneWidget,
+    );
     expect(byLogId('queue.orders'), findsOneWidget);
   });
 
@@ -110,7 +112,7 @@ void main() {
     await tester.pumpWidget(_screen(const []));
     await tester.pumpAndSettle();
 
-    expect(find.text('Kolejka jest pusta'), findsOneWidget);
+    expect(find.text(pl.queueEmpty), findsOneWidget);
   });
 
   testWidgets('no FAB when the queue only has printing items', (tester) async {
@@ -120,7 +122,7 @@ void main() {
     await tester.pumpWidget(_screen([printing]));
     await tester.pumpAndSettle();
 
-    expect(find.text('Uruchom następny'), findsNothing);
+    expect(find.text(pl.queueStartNext), findsNothing);
   });
 
   testWidgets('the "Start next" FAB is visible when there are pending prints', (
@@ -132,7 +134,7 @@ void main() {
     await tester.pumpWidget(_screen([pending]));
     await tester.pumpAndSettle();
 
-    expect(find.text('Uruchom następny'), findsOneWidget);
+    expect(find.text(pl.queueStartNext), findsOneWidget);
   });
 
   group('a user held for review (#1620)', () {
@@ -142,7 +144,6 @@ void main() {
       'status': 'pending',
       'manual_start': true,
     });
-    final l10n = lookupAppLocalizations(const Locale('pl'));
 
     Widget screen({required bool held}) => ProviderScope(
       overrides: [
@@ -159,8 +160,8 @@ void main() {
       await tester.pumpWidget(screen(held: true));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n.queueBadgeAwaitingReview), findsOneWidget);
-      expect(find.text(l10n.queueStartNext), findsNothing);
+      expect(find.text(pl.queueBadgeAwaitingReview), findsOneWidget);
+      expect(find.text(pl.queueStartNext), findsNothing);
       await tester.tap(byLogId('queue.actions'));
       await tester.pumpAndSettle();
       expect(byLogId('queue.action.start'), findsNothing);
@@ -173,8 +174,8 @@ void main() {
       await tester.pumpWidget(screen(held: false));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n.queueBadgeStaged), findsOneWidget);
-      expect(find.text(l10n.queueStartNext), findsOneWidget);
+      expect(find.text(pl.queueBadgeStaged), findsOneWidget);
+      expect(find.text(pl.queueStartNext), findsOneWidget);
       await tester.tap(byLogId('queue.actions'));
       await tester.pumpAndSettle();
       expect(byLogId('queue.action.start'), findsOneWidget);
@@ -192,7 +193,7 @@ void main() {
       'printer_id': 1,
       'created_by_id': null,
     });
-    final queue = _MutableQueueNotifier([ownerless]);
+    final queue = FakeQueue([ownerless]);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -225,6 +226,52 @@ void main() {
     expect(queue.started, isEmpty);
   });
 
+  testWidgets('a job with alternatives is released by a bare start (#671)', (
+    tester,
+  ) async {
+    // The server answers 400 to a printer put on a job with alternatives, so
+    // the flow must neither pick a printer nor assign one.
+    final crossModel = QueueItem.fromJson({
+      ...readFixture('queue_item.json') as Map<String, dynamic>,
+      'status': 'pending',
+      'printer_id': null,
+      'target_model': 'X1C',
+      'variants': [
+        {
+          'library_file_id': 1,
+          'filename': 'a.3mf',
+          'target_model': 'X1C',
+          'position': 0,
+        },
+        {
+          'library_file_id': 2,
+          'filename': 'b.3mf',
+          'target_model': 'P1S',
+          'position': 1,
+        },
+      ],
+    });
+    final queue = FakeQueue([crossModel]);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          queueProvider.overrideWith(() => queue),
+          noServerProfileOverride,
+        ],
+        child: plApp(const QueueScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(byLogId('queue.actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(byLogId('queue.action.start'));
+    await tester.pumpAndSettle();
+
+    expect(queue.startedAsIs, [crossModel.id]);
+    expect(queue.started, isEmpty);
+  });
+
   testWidgets('swiping a pending item reveals the delete confirmation', (
     tester,
   ) async {
@@ -239,7 +286,7 @@ void main() {
     await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
     await tester.pumpAndSettle();
 
-    expect(find.text('Usunąć z kolejki?'), findsOneWidget);
+    expect(find.text(pl.queueDeleteTitle), findsOneWidget);
   });
 
   group('start flow outliving the row that began it', () {
@@ -254,11 +301,11 @@ void main() {
       'started_at': null,
     });
 
-    late _MutableQueueNotifier queue;
+    late FakeQueue queue;
     late _HeldCommands commands;
 
     Widget screen({AsyncValue<bool> gate = const AsyncValue.data(true)}) {
-      queue = _MutableQueueNotifier([pending]);
+      queue = FakeQueue([pending]);
       commands = _HeldCommands();
       return ProviderScope(
         overrides: [
@@ -285,13 +332,13 @@ void main() {
 
       await tester.tap(find.byIcon(Icons.more_vert));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ListTile, 'Uruchom teraz'));
+      await tester.tap(find.widgetWithText(ListTile, pl.queueStart));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Uruchom teraz'));
+      await tester.tap(find.widgetWithText(FilledButton, pl.queueStart));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Płyta jest pusta'));
+      await tester.tap(find.text(pl.plateClearConfirm));
       await tester.pumpAndSettle();
       expect(commands.acks, 1, reason: 'the acknowledgement is on the wire');
     }
@@ -311,12 +358,12 @@ void main() {
 
       await tester.tap(find.byIcon(Icons.more_vert));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ListTile, 'Uruchom teraz'));
+      await tester.tap(find.widgetWithText(ListTile, pl.queueStart));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Uruchom teraz'));
+      await tester.tap(find.widgetWithText(FilledButton, pl.queueStart));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nie udało się połączyć z serwerem'), findsOneWidget);
+      expect(find.text(pl.connectFailed), findsOneWidget);
       expect(queue.started, isEmpty, reason: 'nothing reached the server');
       expect(
         tester.takeException(),
@@ -362,46 +409,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('Zaktualizuj bambuddy'), findsOneWidget);
+      expect(find.textContaining(pl.plateClearNeedsOnline), findsOneWidget);
       expect(queue.started, isEmpty, reason: 'a held gate starts nothing');
     });
   });
-}
-
-/// Queue whose list a test can change under the screen, and which records the
-/// starts it was asked for instead of talking to a server.
-class _MutableQueueNotifier extends QueueNotifier {
-  _MutableQueueNotifier(this._items);
-
-  List<QueueItem> _items;
-  final List<({int item, int printer})> started = [];
-
-  /// Items started straight through `/start`, with no assignment or mapping.
-  final List<int> startedAsIs = [];
-
-  @override
-  Future<ActionOutcome> start(int itemId) async {
-    startedAsIs.add(itemId);
-    return ActionOutcome.ok;
-  }
-
-  @override
-  Future<List<QueueItem>> build() async => _items;
-
-  void replace(List<QueueItem> items) {
-    _items = items;
-    state = AsyncData(items);
-  }
-
-  @override
-  Future<ActionOutcome> startOnPrinter(
-    QueueItem item,
-    int printerId, {
-    List<int>? amsMapping,
-  }) async {
-    started.add((item: item.id, printer: printerId));
-    return ActionOutcome.ok;
-  }
 }
 
 /// A plate the scheduler is waiting on, on a printer that is not reachable.
