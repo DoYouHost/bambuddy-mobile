@@ -18,6 +18,17 @@ on:
     # workflow RUNS, and a workflow that does not run reports no check at all;
     # once "analyze · test · build" became a required status on master that left
     # a docs-only PR waiting forever on a check that could never arrive.
+  # A release branch is built on every push, like contract-tests.yml. Here
+  # `paths-ignore` is safe, unlike on the pull_request side above: no required
+  # status hangs on a push run. While the branch has its draft PR, each push
+  # runs both this and the pull_request event.
+  push:
+    branches: ["release/**"]
+    paths-ignore:
+      - "site/**"
+      - "docs/**"
+      - "store-assets/**"
+      - "**.md"
   workflow_dispatch:
 
 # A force-push should not leave the previous run burning a runner for a commit
