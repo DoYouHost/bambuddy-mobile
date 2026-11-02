@@ -194,6 +194,14 @@ void main() {
     );
   });
 
+  test('an assignment takes `move` from 1.3.1, not before', () {
+    expect(parse('1.3.0').supports(ServerFeature.assignmentMove), isFalse);
+    expect(parse('1.3.0b1').supports(ServerFeature.assignmentMove), isFalse);
+    expect(parse('1.3.1b1').supports(ServerFeature.assignmentMove), isTrue);
+    expect(parse('1.3.1').supports(ServerFeature.assignmentMove), isTrue);
+    expect(parse('1.2.6').supports(ServerFeature.assignmentMove), isFalse);
+  });
+
   test('the material number arrives in 1.2.5.7, the last 1.2.5 release', () {
     expect(
       parse('1.2.5.6').supports(ServerFeature.spoolMaterialNumber),

@@ -584,6 +584,23 @@ a single spool answers before any supplier route is asked. Being early costs a
 1.2.6b1 daily older than the commit one 404 on the listing and a supplier entry
 that disappears with it; nothing is written to a server that could drop it.
 
+### assignmentMove — 1.3.1 (server #1574, commit 96c90de)
+
+`move` on `POST /inventory/assignments` and `POST /spoolman/inventory/slot-assignments`:
+the spool leaves every other slot in the same commit as the new one. Without it a
+move is two requests (`DELETE` the old slot, `POST` the new one) with a manual
+put-back when the second fails.
+
+`SpoolAssignmentCreate` and `SpoolSlotAssignmentRequest` forbid no extra fields,
+so an older server takes `move`, says nothing and assigns the spool a second
+time: it ends up in two slots. The reply is the same assignment either way, so
+nothing can be observed and the row decides. The commit landed on `dev` on
+2026-10-27 while `APP_VERSION` still read 1.3.0b1; the bump to 1.3.1b1 came the
+next day, so the row is 1.3.1 and a 1.3.0b1 daily that already has it is merely
+sent the two-request path, which works on every server. Being early is the costly
+side here (a spool in two slots), being late costs nothing, which is why the
+threshold is not 1.3.0.
+
 ### spoolMaterialNumber — 1.2.5.7 (server #2870)
 
 A purchasing number shared by every spool of a product: `material_number` on a

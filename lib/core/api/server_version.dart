@@ -100,6 +100,10 @@ enum ServerFeature {
   /// `/inventory/profile-defaults/*` — the slicer preset, presets per model and
   /// K profiles a new spool of a product starts with (#1326).
   profileDefaults,
+
+  /// `move` on the two slot-assignment routes: the spool leaves its old slot in
+  /// the same commit. Taken and ignored below it, which leaves it in two slots.
+  assignmentMove,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -208,6 +212,7 @@ class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
     ServerFeature.spoolMaterialNumber: (1, 2, 5, 7),
     ServerFeature.spoolLastDried: (1, 2, 6, 0),
     ServerFeature.profileDefaults: (1, 2, 6, 0),
+    ServerFeature.assignmentMove: (1, 3, 1, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

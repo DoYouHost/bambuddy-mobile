@@ -775,6 +775,7 @@ class SpoolAssignmentDraft {
     required this.printerId,
     required this.amsId,
     required this.trayId,
+    this.move = false,
   });
 
   final int spoolId;
@@ -782,11 +783,18 @@ class SpoolAssignmentDraft {
   final int amsId;
   final int trayId;
 
+  /// Take the spool out of every other slot in the same commit
+  /// (`SpoolAssignmentCreate.move`). Only for a server that has the field:
+  /// below `ServerFeature.assignmentMove` it is dropped and the spool stays
+  /// in both slots.
+  final bool move;
+
   Map<String, dynamic> toNativeJson() => {
     'spool_id': spoolId,
     'printer_id': printerId,
     'ams_id': amsId,
     'tray_id': trayId,
+    if (move) 'move': true,
   };
 }
 
