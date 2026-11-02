@@ -22,11 +22,15 @@ Obtainium. `origin` is `DoYouHost/bambuddy-mobile` on GitHub; the recipes call
   and release atomically. Use the SHA, not the branch name: the tip can move
   between the push and the call. Pushing a tag and referring to it at once is a
   race, and it caused about six failed ships.
-- **A release goes out from the checked-out branch, not from `master`.** `_branch`
+- **A stable release goes out from `release/X.Y.Z` and nowhere else**
+  (`_require-release-branch`; the flow is in [branching.md](branching.md)). `_branch`
   (one definition shared by both recipes) reads `git symbolic-ref` and refuses a
-  detached HEAD. `_bump` rebases onto `origin <that branch>`; it skips the rebase
-  only when `ls-remote` returns **2** (no such branch on origin) and aborts on 128
-  (origin unreachable). `release-publish` pushes `HEAD:refs/heads/<that branch>`.
+  detached HEAD. `_bump` fast-forwards onto `origin <that branch>` (`--ff-only`, a
+  rebase would flatten the merge commits a release branch carries); it skips the
+  pull only when `ls-remote` returns **2** (no such branch on origin) and aborts on
+  128 (origin unreachable). `release-publish` pushes `HEAD:refs/heads/<that branch>`,
+  makes sure the draft PR into `master` exists and marks it ready once the release
+  is published.
 - **`gh` takes one item per call** in `release delete` / `delete-asset` (unlike
   `tea`), hence the loops in `purge-assets` and `purge-releases`.
 - **Capture `gh` output into a variable, then filter it.** `gh … | grep -q` under

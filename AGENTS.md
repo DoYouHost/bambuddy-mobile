@@ -11,8 +11,11 @@ Every pull request into `master` runs
 `flutter analyze`, `flutter test`, a debug APK build of both flavors, and a check
 of what the watch APK ships. A pull request that only touches `docs/`, `site/`,
 `store-assets/` or `*.md` skips everything after the path check and still
-reports green. Pull requests into `dev` get no CI run of their own — run the
-checks below yourself.
+reports green. CI also runs on every push to `release/X.Y.Z` (the pull request is
+opened as a draft by `just release-start`, so a push starts two runs);
+`contract-tests.yml` runs on every one of those pushes too. Master's ruleset
+requires both, so a pull request into `master` merges only once they are green.
+Pull requests into `dev` and topic branches get no CI run of their own.
 
 **Before you ask a question, check the CI result and fix what is red.** Analyzer
 errors, failing tests, broken builds and missing imports are yours to resolve —
@@ -24,7 +27,10 @@ Read the logs of the failed job (`gh run list --branch <branch>`,
 behave for the user, which trade-off is wanted. Those are the only questions the
 CI cannot answer.
 
-Reproduce the same checks locally before pushing:
+**No full local suite before a commit.** While you work, run the tests of what you
+touched. The gate is the GitHub run: after a push to `release/*`, **monitor it**
+(`gh run list --branch release/X.Y.Z`, `gh run watch <id>`) until it is green, and
+do not `just ship` before it is. The same checks, when you want one sooner:
 
 ```sh
 dart format --output=none --set-exit-if-changed lib test tool
@@ -127,7 +133,8 @@ do not stay silent because it was not part of the task.
   them after the host tests wherever adb and the emulator are installed, and
   says so when it skips them.
 - `justfile` — `just test`, `just l10n-check`, `just build` / `build-wear` /
-  `build-aab`, `just ship X.Y.Z`, `just ship-dev`, emulator recipes. **`just
+  `build-aab`, `just release-start X.Y.Z`, `just ship X.Y.Z`, `just ship-dev`,
+  emulator recipes. **`just
   hooks` once per clone** points git at `.githooks/`, which refuses a commit
   message that is not one Conventional Commits line (see Conventions).
 
@@ -214,6 +221,10 @@ do not stay silent because it was not part of the task.
   `FutureProvider` loading frames, `autoDispose` vs retry windows, `AsyncLoading`
   carrying the previous value. **Read it before a provider that a sheet watches, an
   `initState` seed or a value derived from an async source.**
+- [docs/branching.md](docs/branching.md) — topic → `dev` → `release/X.Y.Z` → `master`:
+  what each branch is for, how a release is cut and merged, why a release PR is never
+  squashed and why `master` goes back into `dev`. **Read it before opening a PR into
+  `master` or running `ship`.**
 - [docs/release.md](docs/release.md) — how a version leaves the repo: the
   `versionCode` scheme and why its offset exists, why the server creates the tag,
   `ship-dev` slots, the frozen `applicationId`, the Play API, Pages and Data Safety
