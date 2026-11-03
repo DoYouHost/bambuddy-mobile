@@ -12,7 +12,8 @@ import 'sent_writes.dart';
 /// "Merge duplicates" against a real server: two uploads of one file by one
 /// user are a group, the merge keeps the oldest archive of it, and the id of
 /// one merged away still opens the one it went into. On a server before the
-/// archive redesign the count is a 404, which the app reads as nothing to do.
+/// archive redesign the count is a 422 (`/archives/{archive_id}` takes the
+/// path), which the app reads as nothing to do.
 void main() {
   group('archive merge contract', skip: contractSkipReason, () {
     late Dio dio;

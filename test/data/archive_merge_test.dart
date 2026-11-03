@@ -68,6 +68,22 @@ void main() {
       expect(await repo.mergeCapability.supported, isFalse);
     });
 
+    test('once seen missing, the count is not asked again', () async {
+      replyVersion('1.2.5.7');
+      adapter.onGet(
+        '/api/v1/archives/merge-count',
+        (s) => s.reply(422, {'detail': []}),
+      );
+
+      await repo.mergeCount();
+      await repo.mergeCount();
+
+      expect(
+        sent.requests.where((r) => r.path.endsWith('/merge-count')),
+        hasLength(1),
+      );
+    });
+
     test('a session without both rights is no merge either', () async {
       replyVersion('1.3.1');
       adapter.onGet(

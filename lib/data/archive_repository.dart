@@ -292,7 +292,11 @@ class ArchiveRepository {
 
   /// GET /archives/merge-count — groups of duplicates there are to merge; 0
   /// where the server has no merge or the session may not use it.
+  ///
+  /// Not asked again once the latch has seen the routes missing: the banner
+  /// reads this on every visit to the archive list.
   Future<int> mergeCount() async {
+    if (mergeCapability.observedAnswer == false) return 0;
     try {
       return await mergeCapability.watching(
         () async {

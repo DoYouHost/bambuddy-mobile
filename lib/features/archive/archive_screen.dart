@@ -224,7 +224,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                     // pushed down is a row the user has to hunt for again.
                     if (!_selectionMode)
                       const SliverToBoxAdapter(child: _No3mfBanner()),
-                    const SliverToBoxAdapter(child: ArchiveMergeBanner()),
+                    if (!_selectionMode)
+                      const SliverToBoxAdapter(child: ArchiveMergeBanner()),
                     if (all.isEmpty)
                       SliverEmptyState(
                         message: l10n.archiveEmpty,

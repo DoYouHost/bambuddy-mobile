@@ -110,6 +110,10 @@ class _ArchiveMergeSheetState extends ConsumerState<ArchiveMergeSheet> {
   final _unticked = <int>{};
   bool _merging = false;
 
+  /// The confirmation is open: a second tap in the same frame would stack
+  /// another one and send the merge twice.
+  bool _asking = false;
+
   /// What the merge left out, shown in place of the groups once it ran.
   List<({int survivorId, String? reason})>? _leftOut;
 
@@ -161,6 +165,10 @@ class _ArchiveMergeSheetState extends ConsumerState<ArchiveMergeSheet> {
     DashTokens t,
     List<ArchiveMergeGroup> groups,
   ) {
+    final close = TextButton(
+      onPressed: () => Navigator.pop(context),
+      child: Text(MaterialLocalizations.of(context).closeButtonLabel),
+    ).tagged('archive.merge.close');
     final leftOut = _leftOut;
     if (leftOut != null) {
       final names = {for (final g in groups) g.survivor.id: g.survivor.name};
@@ -171,13 +179,12 @@ class _ArchiveMergeSheetState extends ConsumerState<ArchiveMergeSheet> {
             title: names[skip.survivorId] ?? '#${skip.survivorId}',
             reason: archiveMergeSkipLabel(l10n, skip.reason),
           ),
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(MaterialLocalizations.of(context).closeButtonLabel),
-        ).tagged('archive.merge.close'),
+        close,
       ];
     }
-    if (groups.isEmpty) return [Text(l10n.archiveMergeNone, style: t.body)];
+    if (groups.isEmpty) {
+      return [Text(l10n.archiveMergeNone, style: t.body), close];
+    }
     final mergeable = groups.where((g) => g.mergeable).toList();
     final waiting = groups.where((g) => !g.mergeable).toList();
     final selected = [
@@ -223,24 +230,32 @@ class _ArchiveMergeSheetState extends ConsumerState<ArchiveMergeSheet> {
           onPressed: selected.isEmpty || _merging
               ? null
               : () => _merge(selected),
-        ).tagged('archive.merge.confirm'),
+        ).tagged('archive.merge.confirm')
+      else
+        close,
     ];
   }
 
   Future<void> _merge(List<int> survivors) async {
-    if (_merging) return;
+    if (_merging || _asking) return;
+    _asking = true;
     final l10n = AppLocalizations.of(context);
-    final ok = await confirmDialog(
-      context,
-      id: 'archive.merge.confirm_dialog',
-      title: l10n.archiveMergeAction(survivors.length),
-      message: l10n.archiveMergeConfirmBody,
-      confirmLabel: l10n.archiveMergeButton,
-    );
+    final bool ok;
+    try {
+      ok = await confirmDialog(
+        context,
+        id: 'archive.merge.confirm_dialog',
+        title: l10n.archiveMergeAction(survivors.length),
+        message: l10n.archiveMergeConfirmBody,
+        confirmLabel: l10n.archiveMergeButton,
+      );
+    } finally {
+      _asking = false;
+    }
     if (!ok || !mounted) return;
+    setState(() => _merging = true);
     final (:providers, :messenger) = detachFrom(context);
     final navigator = Navigator.of(context);
-    setState(() => _merging = true);
     try {
       final result = await providers
           .read(archiveRepositoryProvider)

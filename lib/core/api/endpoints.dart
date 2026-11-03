@@ -635,7 +635,8 @@ abstract final class Endpoints {
   /// How many groups of duplicate archives there are (`{groups}`): same file,
   /// owner and project. Cheap; reads no files. These three need
   /// `archives:update_all` **and** `archives:delete_all`, and arrived with the
-  /// archive redesign (1.3.1); older servers answer 404.
+  /// archive redesign (1.3.1). Older servers answer **422**: their
+  /// `/archives/{archive_id}` takes the path and fails to parse it as an id.
   static const archivesMergeCount = '$apiPrefix/archives/merge-count';
 
   /// The groups themselves (`{groups: [{survivor, merged, skipped}]}`); the

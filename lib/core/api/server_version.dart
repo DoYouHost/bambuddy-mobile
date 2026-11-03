@@ -111,7 +111,8 @@ enum ServerFeature {
   archiveRuns,
 
   /// `/archives/merge-count`, `merge-preview` and `merge`: duplicate archives
-  /// of one file merged into one. A route family, so an older server 404s it.
+  /// of one file merged into one. An older server answers 422 (its
+  /// `/archives/{archive_id}` takes the path), never a silent drop.
   archiveMerge,
 }
 

@@ -257,6 +257,41 @@ void main() {
       expect(buttonAt(tester, 'archive.merge.confirm').onPressed, isNotNull);
     });
 
+    testWidgets('a double tap asks once, and a no unlocks the sheet', (
+      tester,
+    ) async {
+      await pump(tester, const ArchiveMergeSheet());
+
+      // Two presses inside one frame, before the dialog takes the screen: a
+      // tester tap cannot land the second one, the handler can.
+      final press = buttonAt(tester, 'archive.merge.confirm').onPressed!;
+      press();
+      press();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.tap(find.text(pl.cancel));
+      await tester.pumpAndSettle();
+      expect(writesOf(sent.requests), isEmpty);
+      expect(buttonAt(tester, 'archive.merge.confirm').onPressed, isNotNull);
+    });
+
+    testWidgets('only held-back groups: nothing to tick, a way out', (
+      tester,
+    ) async {
+      adapter.onGet(
+        '/api/v1/archives/merge-preview',
+        (s) => s.reply(200, {
+          'groups': [(_preview['groups']! as List).last],
+        }),
+      );
+      await pump(tester, const ArchiveMergeSheet());
+
+      expect(byLogId('archive.merge.group'), findsNothing);
+      expect(byLogId('archive.merge.confirm'), findsNothing);
+      expect(byLogId('archive.merge.close'), findsOneWidget);
+    });
+
     testWidgets('nothing to merge says so', (tester) async {
       adapter.onGet(
         '/api/v1/archives/merge-preview',
