@@ -112,7 +112,9 @@ class _ArchiveCalendarState extends ConsumerState<ArchiveCalendar> {
                     if (runs.isLoading)
                       const SizedBox.square(
                         dimension: DashIcon.sm,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: DashStroke.regular,
+                        ),
                       ),
                   ],
                 ),
@@ -303,7 +305,7 @@ class _DayCell extends StatelessWidget {
                   : null,
               borderRadius: BorderRadius.circular(DashRadius.md),
               border: today && !selected
-                  ? Border.all(color: t.accent, width: 2)
+                  ? Border.all(color: t.accent, width: DashStroke.regular)
                   : null,
             ),
             child: FittedBox(
