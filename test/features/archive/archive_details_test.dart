@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:ui' show Tristate;
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
@@ -354,6 +356,24 @@ void main() {
       await open(tester, judged, perPrint: true, runs: () async => [row]);
 
       expect(thumb(pl.outcomeGood), findsNothing);
+    });
+
+    // `runCount` says rows are coming, so the line does not flash up and away
+    // (and take a tap meant for no print in particular) while they load.
+    testWidgets('while the history loads, the line waits on runCount', (
+      tester,
+    ) async {
+      final never = Completer<List<PrintLogEntry>>();
+      await open(tester, judged, perPrint: true, runs: () => never.future);
+      expect(thumb(pl.outcomeGood), findsNothing);
+
+      await open(
+        tester,
+        judged.copyWith(runCount: 0),
+        perPrint: true,
+        runs: () => Completer<List<PrintLogEntry>>().future,
+      );
+      expect(thumb(pl.outcomeGood), findsOneWidget);
     });
 
     testWidgets('an empty print history keeps the line', (tester) async {

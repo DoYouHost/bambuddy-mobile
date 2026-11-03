@@ -336,26 +336,21 @@ class _RunTile extends ConsumerWidget {
               ),
               if (run.userVerdict != null || run.awaitsVerdict) ...[
                 const SizedBox(height: DashSpace.xs),
-                Wrap(
-                  spacing: DashSpace.sm,
-                  runSpacing: DashSpace.xs,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    _VerdictPill(run: run),
-                    // The question is answered from the row itself, as the
-                    // web's "Confirm outcome" on it, not only once opened.
-                    if (run.awaitsVerdict && runJudgeable(ref, archive, run))
-                      FilledButton.tonalIcon(
-                        icon: const Icon(Icons.thumbs_up_down_outlined),
-                        label: Text(l10n.archiveRunSetOutcome),
-                        onPressed: () => showOutcomeSheet(
-                          context,
-                          archive.id,
-                          runId: run.id,
-                        ),
-                      ).tagged('archive.run.answer'),
-                  ],
-                ),
+                // A waiting question is answered from the row itself, the
+                // button standing in for the badge as the web's "Confirm
+                // outcome" does. Once the print is open its own button asks
+                // the same, so the row shows the badge again.
+                if (!open &&
+                    run.awaitsVerdict &&
+                    runJudgeable(ref, archive, run))
+                  FilledButton.tonalIcon(
+                    icon: const Icon(Icons.thumbs_up_down_outlined),
+                    label: Text(l10n.archiveRunSetOutcome),
+                    onPressed: () =>
+                        showOutcomeSheet(context, archive.id, runId: run.id),
+                  ).tagged('archive.run.answer')
+                else
+                  _VerdictPill(run: run),
               ],
               const SizedBox(height: DashSpace.xs),
               Text(

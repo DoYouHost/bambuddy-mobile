@@ -130,10 +130,22 @@ void main() {
     await tester.tap(byLogId('archive.run').first);
     await tester.pumpAndSettle();
 
+    // The button stands in for the badge rather than sitting beside it.
+    expect(find.text(pl.outcomeAwaiting), findsNothing);
     await tester.tap(byLogId('archive.run.answer'));
     await tester.pumpAndSettle();
 
     expect(find.text(pl.outcomeTitle), findsOneWidget);
+  });
+
+  testWidgets('an open waiting print asks once, from its own details', (
+    tester,
+  ) async {
+    await pump(tester, runs: [_run(1)]);
+
+    expect(byLogId('archive.run.answer'), findsNothing);
+    expect(byLogId('archive.run.outcome'), findsOneWidget);
+    expect(find.text(pl.outcomeAwaiting), findsOneWidget);
   });
 
   testWidgets('a print already judged has no answer button', (tester) async {
