@@ -12,6 +12,7 @@ import '../../core/api/api_exceptions.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../../core/app_context.dart';
+import 'archive_providers.dart';
 import 'outcome_sheet.dart';
 
 /// Whether this server records a user's verdict on a printed part (#1898).
@@ -141,6 +142,13 @@ class _ArchiveOutcomeRowState extends ConsumerState<ArchiveOutcomeRow> {
   Widget build(BuildContext context) {
     final archive = widget.archive;
     if (!archiveTakesVerdict(archive)) return const SizedBox.shrink();
+    // Where each print takes its own verdict, the latest print's sits on its
+    // row in the print history; this line would only say it a second time. An
+    // archive printed before runs were logged has no row, so it keeps the line.
+    if (archive.runCount > 0 &&
+        ref.watch(archiveRunsSupportedProvider).orFalse) {
+      return const SizedBox.shrink();
+    }
     // A verdict the archive carries proves the server keeps them; only the
     // question of a missing one waits for the gate.
     final supported = ref.watch(printOutcomeSupportedProvider).orFalse;

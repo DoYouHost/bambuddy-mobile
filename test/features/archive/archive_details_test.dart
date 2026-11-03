@@ -275,11 +275,40 @@ void main() {
     expect(find.text(pl.archiveOpenLink), findsOneWidget);
   });
 
+  group('header chips', () {
+    testWidgets('a single good print is counted, as the web counts it', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        ArchiveHeaderChips(
+          archive: _part.copyWith(runCount: 1, successfulRunCount: 1),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.archiveGoodCount(1)), findsOneWidget);
+      expect(find.text(pl.archiveFailedCount(0)), findsNothing);
+      expect(find.text(pl.archiveRunCount(1)), findsNothing);
+    });
+
+    testWidgets('a file never printed has neither count', (tester) async {
+      await _pump(tester, ArchiveHeaderChips(archive: _part));
+      await tester.pumpAndSettle();
+
+      expect(find.text(pl.archiveGoodCount(0)), findsNothing);
+    });
+  });
+
   group('verdict thumbs', () {
     late FakeArchives repo;
     var rejected = 0;
 
-    Future<void> open(WidgetTester tester, Archive archive) async {
+    Future<void> open(
+      WidgetTester tester,
+      Archive archive, {
+      bool perPrint = false,
+    }) async {
       repo = FakeArchives(archive: archive);
       rejected = 0;
       SharedPreferences.setMockInitialValues({});
@@ -296,12 +325,38 @@ void main() {
           printOutcomeSupportedProvider.overrideWithValue(
             const AsyncData(true),
           ),
+          archiveRunsSupportedProvider.overrideWithValue(AsyncData(perPrint)),
         ],
       );
       await tester.pumpAndSettle();
     }
 
     Finder thumb(String label) => find.byTooltip(label);
+
+    // There the latest print's verdict is on its own row in the print history.
+    testWidgets('a server with a verdict per print shows no second line', (
+      tester,
+    ) async {
+      await open(
+        tester,
+        testArchive(userVerdict: PrintVerdict.good).copyWith(runCount: 2),
+        perPrint: true,
+      );
+
+      expect(thumb(pl.outcomeGood), findsNothing);
+    });
+
+    testWidgets('an archive with no logged print keeps the line there', (
+      tester,
+    ) async {
+      await open(
+        tester,
+        testArchive(userVerdict: PrintVerdict.good).copyWith(runCount: 0),
+        perPrint: true,
+      );
+
+      expect(thumb(pl.outcomeGood), findsOneWidget);
+    });
 
     testWidgets('a thumb up records a good part', (tester) async {
       await open(tester, testArchive(confirmRequested: true));
