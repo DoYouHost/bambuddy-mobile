@@ -130,10 +130,14 @@ void main() {
       if (served) {
         expect(result.applied, isTrue);
         expect(stored.userVerdict, PrintVerdict.good);
-      } else {
+      } else if (await archives.outcomeCapability.supported) {
         // `run_id` is dropped and the verdict lands on the archive instead,
-        // which is the one print an older server knows.
+        // which is the one print an older server knows (1.2.5.7).
         expect(result.archive.userVerdict, PrintVerdict.good);
+      } else {
+        // Older still (1.2.5): no verdicts at all, so both keys are dropped.
+        expect(result.archive.userVerdict, isNull);
+        expect(result.applied, isFalse);
       }
     });
 

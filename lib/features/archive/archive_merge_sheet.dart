@@ -227,7 +227,9 @@ class _ArchiveMergeSheetState extends ConsumerState<ArchiveMergeSheet> {
           icon: _merging
               ? const SizedBox.square(
                   dimension: DashIcon.md,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: DashStroke.regular,
+                  ),
                 )
               : const Icon(Icons.merge_type),
           label: Text(l10n.archiveMergeAction(selected.length)),
