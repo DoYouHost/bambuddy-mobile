@@ -68,6 +68,7 @@ void main() {
     required List<Map<String, dynamic>> runs,
     bool perPrint = true,
     CurrentUser? user,
+    Archive archive = _archive,
   }) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
@@ -95,7 +96,7 @@ void main() {
           Scaffold(
             body: SingleChildScrollView(
               child: ArchiveRunsSection(
-                archive: _archive,
+                archive: archive,
                 onPhotos: (_) {},
                 onVideo: (_) {},
                 onReprint: (_) {},
@@ -141,6 +142,20 @@ void main() {
       findsOneWidget,
       reason: 'the verdict is checked against the archive, not the print',
     );
+  });
+
+  testWidgets('update-own judges no print of somebody else\'s archive', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      runs: [_run(1)],
+      archive: _archive.copyWith(createdById: 99),
+      user: _user(const {Permissions.archivesUpdateOwn}),
+    );
+
+    expect(byLogId('archive.run.outcome'), findsNothing);
+    expect(byLogId('archive.run.edit_note'), findsOneWidget);
   });
 
   testWidgets('without update rights neither is offered', (tester) async {
@@ -201,6 +216,8 @@ void main() {
           'user_verdict': null,
         }),
       )
+      // As the server answers it: the archive as its latest print shows it,
+      // which is not the print judged here and has no verdict yet.
       ..onPatch(
         '/api/v1/archives/5',
         (s) => s.reply(200, {
@@ -208,7 +225,7 @@ void main() {
           'filename': 'bag.gcode.3mf',
           'status': 'completed',
           'confirm_requested': true,
-          'user_verdict': 'good',
+          'user_verdict': null,
         }),
         data: Matchers.any,
       );
@@ -221,5 +238,10 @@ void main() {
 
     expectSentAsRecorded('archive_run_verdict', writesOf(sent.requests));
     expect(find.text(pl.outcomeSavedGood), findsOneWidget);
+    expect(
+      sent.requests.where((r) => r.path.endsWith('/archives/5/runs')),
+      hasLength(2),
+      reason: 'the print list is read again after the verdict',
+    );
   });
 }

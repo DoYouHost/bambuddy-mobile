@@ -55,8 +55,8 @@ Future<void> showOutcomeSheet(
 /// as the web's edit dialog does; anything else leaves it alone.
 ///
 /// With [runId] the verdict is that print's, and [archive] is the archive as
-/// that print printed. The answer describes that print too, so the list row
-/// and the notification follow a fresh read of the archive instead.
+/// that print printed (its reason is what a reject carries over). The answer
+/// is the archive as its latest print shows it, like any other `PATCH`.
 Future<({Archive archive, bool applied})> writeVerdict(
   ProviderContainer providers,
   Archive archive,
@@ -77,10 +77,9 @@ Future<({Archive archive, bool applied})> writeVerdict(
             : archive.userVerdict == PrintVerdict.reject && carried,
         runId: runId,
       );
-  final latest = runId == null
-      ? result.archive
-      : await providers.read(archiveRepositoryProvider).byId(archive.id);
-  if (runId != null) providers.invalidate(archiveRunsProvider(archive.id));
+  final latest = result.archive;
+  // Either way a print's verdict changed, and the sheet's print list shows it.
+  providers.invalidate(archiveRunsProvider(archive.id));
   // Only a list somebody is looking at: building it here would fetch every
   // archive the server has to change one row.
   if (providers.exists(archiveProvider)) {

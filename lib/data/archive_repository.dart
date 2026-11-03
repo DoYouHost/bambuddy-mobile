@@ -142,7 +142,10 @@ class ArchiveRepository {
   /// also be one that carries the fields.
   ///
   /// [runId] names the print the verdict is for; without it the server gives it
-  /// to the archive's latest print. Send it only behind [runsCapability].
+  /// to the archive's latest print. Send it only behind [runsCapability]. The
+  /// answer is still the archive as its latest print shows it, so for an
+  /// earlier print the verdict cannot be read back from it; the gate is what
+  /// says the server took `run_id`.
   Future<({Archive archive, bool applied})> setVerdict(
     int archiveId,
     PrintVerdict? verdict, {
@@ -163,7 +166,8 @@ class ArchiveRepository {
     final archive = Archive.fromJson(res.data ?? const {});
     return (
       archive: archive,
-      applied: carriesFields && archive.userVerdict == verdict,
+      applied:
+          carriesFields && (runId != null || archive.userVerdict == verdict),
     );
   });
 

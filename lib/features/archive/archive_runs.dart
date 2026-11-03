@@ -15,7 +15,6 @@ import '../common/print_run_labels.dart';
 import '../slicer/slice_providers.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/app_context.dart';
-import '../../core/models/current_user.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import 'archive_details.dart';
@@ -494,15 +493,13 @@ class _RunDetailsState extends ConsumerState<_RunDetails> {
     final hasVideo = media.ownVideo || media.archiveVideo;
     // Both writes are silent drops before the archive redesign.
     final perPrint = ref.watch(archiveRunsSupportedProvider).orFalse;
-    // As `ArchiveOutcomeRow`: the route still checks the archive's owner.
     final canJudge =
         perPrint &&
         run.status == 'completed' &&
         ref.watch(printOutcomeSupportedProvider).orFalse &&
-        (ref.watch(permissionProvider(Permissions.archivesUpdateAll)) ||
-            ref.watch(permissionProvider(Permissions.archivesUpdateOwn)));
+        ref.watch(archiveUpdateAllowedProvider(widget.archive.createdById));
     final canNote =
-        perPrint && ref.watch(archiveRunNoteAllowedProvider(run.createdById));
+        perPrint && ref.watch(archiveUpdateAllowedProvider(run.createdById));
     final actions = [
       if (canJudge)
         OutlinedButton.icon(

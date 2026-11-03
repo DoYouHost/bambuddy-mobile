@@ -49,11 +49,29 @@ void main() {
         'subtask_name': 'runs-probe.3mf',
         'gcode_file': 'runs-probe.3mf',
       };
-      await publishReport(serial, {
+      Future<void> start() => publishReport(serial, {
         'gcode_state': 'RUNNING',
         'mc_percent': 5,
         ...file,
       });
+      Future<void> finish() => publishReport(serial, {
+        'gcode_state': 'FINISH',
+        'mc_percent': 100,
+        ...file,
+      });
+      Future<List<PrintLogEntry>> finished(int atLeast) => pollUntil(
+        '$atLeast finished runs of the runs-probe archive',
+        () async {
+          final done = (await archives.runs(
+            archiveId,
+          )).where((r) => r.status == 'completed').toList();
+          return done.length >= atLeast ? done : null;
+        },
+        within: const Duration(minutes: 2),
+        every: const Duration(seconds: 2),
+      );
+
+      await start();
       archiveId = await pollUntil(
         'the runs-probe archive',
         () async {
@@ -68,19 +86,11 @@ void main() {
         within: const Duration(minutes: 2),
         every: const Duration(seconds: 2),
       );
-      await publishReport(serial, {
-        'gcode_state': 'FINISH',
-        'mc_percent': 100,
-        ...file,
-      });
-      run = await pollUntil(
-        'the finished run of the runs-probe archive',
-        () async => (await archives.runs(
-          archiveId,
-        )).where((r) => r.status == 'completed').firstOrNull,
-        within: const Duration(minutes: 2),
-        every: const Duration(seconds: 2),
-      );
+      await finish();
+      // One print only: a second print started outside Bambuddy gets an
+      // archive of its own on this stack, so an earlier print of one archive
+      // cannot be made here. `archive_runs_test.dart` covers that answer.
+      run = (await finished(1)).first;
     });
 
     test('the listing carries the per-print keys from the redesign on', () {

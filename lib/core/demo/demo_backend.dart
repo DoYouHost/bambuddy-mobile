@@ -4255,8 +4255,8 @@ class DemoBackend {
     return _fallback(m);
   }
 
-  /// `PATCH /archives/{id}` with `run_id`: that print's outcome only, answered
-  /// as the archive showing that print (`_with_run_outcome`).
+  /// `PATCH /archives/{id}` with `run_id`: that print's outcome only. Answered
+  /// as any `PATCH` is, with the archive as its latest print shows it.
   DemoResult _patchArchiveRun(
     Map<String, dynamic> archive,
     Map<String, dynamic> body,
@@ -4299,17 +4299,7 @@ class DemoBackend {
       archive['user_verdict_source'] = run['user_verdict_source'];
       archive['failure_reason'] = run['failure_reason'];
     }
-    return demoOk({
-      ...archive,
-      'run_id': run['id'],
-      'status': run['status'],
-      'plate_id': run['plate_id'] ?? archive['plate_id'],
-      'failure_reason': run['failure_reason'],
-      'user_verdict': run['user_verdict'],
-      'user_verdict_source': run['user_verdict_source'],
-      'confirm_requested':
-          run['confirm_requested'] ?? archive['confirm_requested'],
-    });
+    return demoOk(archive);
   }
 
   /// `GET /archives/{id}/runs`: the archive's prints from the print log,

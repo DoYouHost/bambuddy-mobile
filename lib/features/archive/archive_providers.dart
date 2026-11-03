@@ -229,11 +229,12 @@ final archiveRunDetailProvider = FutureProvider.autoDispose
       return ref.watch(archiveRepositoryProvider).byId(archiveId, runId: runId);
     });
 
-/// Whether this session may write a print's note: `PATCH /print-log/{id}`
-/// takes `archives:update_all`, or `archives:update_own` on a print the user
-/// started (`print_log.py::update_print_log_entry`). Unknown identity (auth
-/// off) blocks nothing.
-final archiveRunNoteAllowedProvider = Provider.family<bool, int?>((
+/// Whether this session may update a row owned by [createdById]:
+/// `archives:update_all`, or `archives:update_own` on its own. A print's note
+/// is judged by the print's owner (`print_log.py::update_print_log_entry`), a
+/// verdict by the archive's (`archives.py::update_archive`). Unknown identity
+/// (auth off) blocks nothing.
+final archiveUpdateAllowedProvider = Provider.family<bool, int?>((
   ref,
   createdById,
 ) {

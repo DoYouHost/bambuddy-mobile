@@ -185,6 +185,23 @@ void main() {
       expect(sentBody(), containsPair('run_id', 9));
     });
 
+    // The answer is the archive as its latest print shows it: a verdict for
+    // an earlier print is not in it, and is applied all the same.
+    test('a verdict for an earlier print counts as applied', () async {
+      replyArchive();
+
+      final result = await repo.setVerdict(5, PrintVerdict.reject, runId: 9);
+
+      expect(result.archive.userVerdict, PrintVerdict.good);
+      expect(result.applied, isTrue);
+    });
+
+    test('without a print the answer must carry the verdict', () async {
+      replyArchive();
+
+      expect((await repo.setVerdict(5, PrintVerdict.reject)).applied, isFalse);
+    });
+
     test('without a print it sends no run_id', () async {
       replyArchive();
 
