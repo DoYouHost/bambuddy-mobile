@@ -817,6 +817,23 @@ void main() {
       expect(await repo.runsCapability.supported, isTrue);
     });
 
+    test('the duplicate demo archive merges into the oldest', () async {
+      final repo = ArchiveRepository(dio);
+      expect(await repo.mergeCount(), 1);
+      final group = (await repo.mergePreview()).single;
+      expect(group.mergeable, isTrue);
+      expect(group.survivor.name, 'Handle');
+      final before = (await repo.list()).length;
+
+      final result = await repo.merge([group.survivor.id, 12345]);
+
+      expect(result.merged, [group.survivor.id]);
+      expect(result.skipped.single.reason, 'not_a_group');
+      expect((await repo.list()).length, before - 1);
+      expect(await repo.runs(group.survivor.id), hasLength(2));
+      expect(await repo.mergeCount(), 0);
+    });
+
     test('a verdict for one print leaves the others alone', () async {
       final repo = ArchiveRepository(dio);
       final multi = (await repo.list()).firstWhere((a) => a.plateId != null);

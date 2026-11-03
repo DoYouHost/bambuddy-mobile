@@ -617,6 +617,20 @@ on, null or not, so `ArchiveRepository.runsCapability` observes it on the first
 row. An archive with no prints says nothing, and the row decides. Being early
 costs a note that does not stay and a verdict on the wrong print.
 
+### archiveMerge — 1.3.1 (archive redesign P2, commit 926957f)
+
+`GET /archives/merge-count`, `GET /archives/merge-preview` and `POST /archives/merge`:
+archives of one file, owner and project merged into the oldest. All three take
+`archives:update_all` and `archives:delete_all` together. The count settles
+`ArchiveRepository.mergeCapability`: a 403 is a session without both rights, and an
+older server answers **422**, not 404, because `/archives/{archive_id}` takes the path
+and fails to parse `merge-count` as an id (measured on 1.2.5.7). Being early costs
+nothing visible: the count reads 0 and no entry is shown.
+
+On a contract stack a group is always held back as `busy`: an upload counts as just
+printed for half an hour (`archive_merge.py::_JUST_PRINTED`). The demo carries one
+mergeable group (a second "Handle" archive) for the merge itself.
+
 ### spoolMaterialNumber — 1.2.5.7 (server #2870)
 
 A purchasing number shared by every spool of a product: `material_number` on a

@@ -202,6 +202,11 @@ void main() {
     expect(parse('1.2.6').supports(ServerFeature.assignmentMove), isFalse);
   });
 
+  test('duplicate archives merge from 1.3.1', () {
+    expect(parse('1.2.5.7').supports(ServerFeature.archiveMerge), isFalse);
+    expect(parse('1.3.1b1').supports(ServerFeature.archiveMerge), isTrue);
+  });
+
   test('each print keeps its own note and verdict from 1.3.1', () {
     expect(parse('1.2.5.7').supports(ServerFeature.archiveRuns), isFalse);
     expect(parse('1.3.0').supports(ServerFeature.archiveRuns), isFalse);

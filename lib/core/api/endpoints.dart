@@ -632,6 +632,21 @@ abstract final class Endpoints {
   static String archiveTimelapse(int archiveId) =>
       '$apiPrefix/archives/$archiveId/timelapse';
 
+  /// How many groups of duplicate archives there are (`{groups}`): same file,
+  /// owner and project. Cheap; reads no files. These three need
+  /// `archives:update_all` **and** `archives:delete_all`, and arrived with the
+  /// archive redesign (1.3.1); older servers answer 404.
+  static const archivesMergeCount = '$apiPrefix/archives/merge-count';
+
+  /// The groups themselves (`{groups: [{survivor, merged, skipped}]}`); the
+  /// oldest archive of each stays. `skipped` is why a group is left out now.
+  static const archivesMergePreview = '$apiPrefix/archives/merge-preview';
+
+  /// `POST {survivor_ids}` (1..500) → `{merged: [{survivor_id, merged_ids}],
+  /// skipped: [{survivor_id, reason}]}`. Each group as it stands when the merge
+  /// runs; one failing leaves the others merged.
+  static const archivesMerge = '$apiPrefix/archives/merge';
+
   /// Every print of the archive (`PrintLogResponse`, `{items, total}`), newest
   /// first, only those on the caller's printers. Served since #1378; each print's
   /// own note, photos, video and plate estimate arrived with the archive

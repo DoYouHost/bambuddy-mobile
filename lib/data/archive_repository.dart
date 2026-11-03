@@ -9,6 +9,7 @@ import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/archive.dart';
 import '../core/models/archive_media.dart';
+import '../core/models/archive_merge.dart';
 import '../core/models/archive_purge.dart';
 import '../core/models/no_3mf_warning.dart';
 import '../core/models/plate_list.dart';
@@ -53,6 +54,15 @@ class ArchiveRepository {
   /// ignores `run_id` and gives the verdict to the latest print instead.
   late final runsCapability = ObservedCapability(
     ServerFeature.archiveRuns,
+    _serverVersion,
+  );
+
+  /// Whether this server merges duplicate archives. Settled by the count: a
+  /// 403 is a session without both archive rights, and an older server answers
+  /// **422**, not 404 — `/archives/{archive_id}` takes the path and fails to
+  /// parse `merge-count` as an id (measured on 1.2.5.7).
+  late final mergeCapability = ObservedCapability(
+    ServerFeature.archiveMerge,
     _serverVersion,
   );
 
@@ -279,6 +289,48 @@ class ArchiveRepository {
     runsCapability.observeFirst(rows, (r) => r.ownMediaReported);
     return rows;
   }
+
+  /// GET /archives/merge-count — groups of duplicates there are to merge; 0
+  /// where the server has no merge or the session may not use it.
+  Future<int> mergeCount() async {
+    try {
+      return await mergeCapability.watching(
+        () async {
+          final res = await _dio.get<Map<String, dynamic>>(
+            Endpoints.archivesMergeCount,
+          );
+          return toIntOrNull(res.data?['groups']) ?? 0;
+        },
+        absent: () => 0,
+        observing: treat404AsAbsent,
+      );
+    } on AppApiException catch (e) {
+      if (e.statusCode != 422) rethrow;
+      mergeCapability.observe(present: false);
+      return 0;
+    }
+  }
+
+  /// GET /archives/merge-preview — the groups, mergeable first as the server
+  /// orders them (by survivor id).
+  Future<List<ArchiveMergeGroup>> mergePreview() => guard(() async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      Endpoints.archivesMergePreview,
+    );
+    return [
+      if (res.data?['groups'] case final List rows)
+        for (final row in rows) ?ArchiveMergeGroup.tryParse(row),
+    ];
+  });
+
+  /// POST /archives/merge — merges the groups of [survivorIds].
+  Future<ArchiveMergeResult> merge(List<int> survivorIds) => guard(() async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.archivesMerge,
+      data: {'survivor_ids': survivorIds},
+    );
+    return ArchiveMergeResult.fromJson(res.data ?? const {});
+  });
 
   /// GET /archives/no-3mf-warning — whether any print in the last 30 days
   /// archived without its 3MF, and why.

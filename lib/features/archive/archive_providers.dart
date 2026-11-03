@@ -253,6 +253,28 @@ final archiveRunsPlateProvider = StateProvider.autoDispose.family<int?, int>(
   (ref, archiveId) => null,
 );
 
+/// Whether this server merges duplicate archives (see
+/// `ArchiveRepository.mergeCapability`).
+final archiveMergeSupportedProvider = capabilityGate(
+  (ref) => ref.watch(archiveRepositoryProvider).mergeCapability,
+);
+
+/// Whether this session may merge: the routes take `archives:update_all` and
+/// `archives:delete_all` together (`require_permission_if_auth_enabled` checks
+/// every permission it is given).
+final archiveMergeAllowedProvider = Provider<bool>(
+  (ref) =>
+      ref.watch(permissionProvider(Permissions.archivesUpdateAll)) &&
+      ref.watch(permissionProvider(Permissions.archivesDeleteAll)),
+);
+
+/// How many groups of duplicate archives there are, 0 for a session that may
+/// not merge them (and is then never asked).
+final archiveMergeCountProvider = FutureProvider.autoDispose<int>((ref) {
+  if (!ref.watch(archiveMergeAllowedProvider)) return 0;
+  return ref.watch(archiveRepositoryProvider).mergeCount();
+});
+
 /// Every print of one archive, newest first (`GET /archives/{id}/runs`).
 final archiveRunsProvider = FutureProvider.autoDispose
     .family<List<PrintLogEntry>, int>(

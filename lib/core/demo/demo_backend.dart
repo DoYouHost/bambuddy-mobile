@@ -3809,6 +3809,19 @@ class DemoBackend {
         color: '#0ACC38',
         media: 'vacuum-diffuser',
       ),
+      // The same file printed again before each print was a run of one
+      // archive: the duplicate "Merge duplicates" offers to fold into the
+      // failed first try. Last, so no other demo archive changes its id.
+      a(
+        'Handle',
+        1,
+        16,
+        estSec: 4980,
+        grams: 38.2,
+        type: 'PETG',
+        color: '#FFFFFF',
+        media: 'handle',
+      ),
     ];
   }
 
@@ -4167,6 +4180,21 @@ class DemoBackend {
           ]);
         case 'analysis':
           return demoOk(_failureAnalysis(q));
+        case 'merge-count':
+          return demoOk({'groups': _mergeGroups().length});
+        case 'merge-preview':
+          return demoOk({
+            'groups': [
+              for (final g in _mergeGroups())
+                {
+                  'survivor': _mergeBrief(g.first),
+                  'merged': [for (final a in g.skip(1)) _mergeBrief(a)],
+                  'skipped': null,
+                },
+            ],
+          });
+        case 'merge' when m == 'POST':
+          return demoOk(_merge(body));
         case 'purge':
           if (s.length >= 3 && s[2] == 'preview') {
             final days = intQuery(q, 'older_than_days', 0);
@@ -4300,6 +4328,65 @@ class DemoBackend {
       archive['failure_reason'] = run['failure_reason'];
     }
     return demoOk(archive);
+  }
+
+  /// Archives of the same file, oldest first; the demo has no content hash, so
+  /// the file name stands for it.
+  List<List<Map<String, dynamic>>> _mergeGroups() {
+    final byFile = <Object?, List<Map<String, dynamic>>>{};
+    for (final a in _archives) {
+      (byFile[a['filename']] ??= []).add(a);
+    }
+    return [
+      for (final g in byFile.values)
+        if (g.length > 1)
+          g..sort((a, b) => (a['id'] as int) - (b['id'] as int)),
+    ]..sort((a, b) => (a.first['id'] as int) - (b.first['id'] as int));
+  }
+
+  Map<String, dynamic> _mergeBrief(Map<String, dynamic> a) => {
+    'id': a['id'],
+    'print_name': a['print_name'],
+    'filename': a['filename'],
+    'created_at': a['created_at'],
+    'run_count': _printLog.where((e) => e['archive_id'] == a['id']).length,
+  };
+
+  /// `POST /archives/merge`: each group's prints move to its oldest archive and
+  /// the others go.
+  Map<String, dynamic> _merge(Map<String, dynamic> body) {
+    final asked = body['survivor_ids'];
+    final groups = {for (final g in _mergeGroups()) g.first['id']: g};
+    final merged = <Map<String, dynamic>>[];
+    final skipped = <Map<String, dynamic>>[];
+    for (final id in asked is List ? asked : const []) {
+      final group = groups[id];
+      if (group == null) {
+        skipped.add({'survivor_id': id, 'reason': 'not_a_group'});
+        continue;
+      }
+      final survivor = group.first;
+      final others = group.skip(1).toList();
+      for (final run in _printLog) {
+        if (others.any((a) => a['id'] == run['archive_id'])) {
+          run['archive_id'] = survivor['id'];
+        }
+      }
+      final runs = _printLog.where((e) => e['archive_id'] == survivor['id']);
+      survivor['run_count'] = runs.length;
+      survivor['successful_run_count'] = runs
+          .where((e) => e['status'] == 'completed')
+          .length;
+      survivor['failed_run_count'] = runs
+          .where((e) => e['status'] == 'failed')
+          .length;
+      _archives.removeWhere(others.contains);
+      merged.add({
+        'survivor_id': survivor['id'],
+        'merged_ids': [for (final a in others) a['id']],
+      });
+    }
+    return {'merged': merged, 'skipped': skipped};
   }
 
   /// `GET /archives/{id}/runs`: the archive's prints from the print log,
