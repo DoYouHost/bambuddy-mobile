@@ -318,6 +318,15 @@ class LibraryRepository {
     ),
   );
 
+  /// PUT /library/folders/{id} — move folder into [parentId] (null = root).
+  /// The root is `0` on the wire; a null would leave the parent as it is.
+  Future<void> moveFolder(int folderId, {int? parentId}) => guard(
+    () => _dio.put<dynamic>(
+      Endpoints.libraryFolder(folderId),
+      data: <String, dynamic>{'parent_id': parentId ?? 0},
+    ),
+  );
+
   /// DELETE /library/folders/{id} — delete folder and contents.
   Future<void> deleteFolder(int folderId) =>
       guard(() => _dio.delete<dynamic>(Endpoints.libraryFolder(folderId)));

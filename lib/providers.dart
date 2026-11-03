@@ -766,6 +766,13 @@ final labelStartingPositionProvider = capabilityGate(
       ref.watch(inventoryRepositoryProvider).labelStartingPositionCapability,
 );
 
+/// Whether moving a spool may be one request (`move` on the assignment, server
+/// #1574) instead of an unassign and an assign. Version-only: an older server
+/// ignores the field without a word.
+final assignmentMoveProvider = capabilityGate(
+  (ref) => ref.watch(inventoryRepositoryProvider).assignmentMoveCapability,
+);
+
 /// Whether the label sheet may choose the printed lines and a PNG output
 /// (server #2981). Version-only, like the start position: an older server takes
 /// the fields and answers a PDF with every default line on it.

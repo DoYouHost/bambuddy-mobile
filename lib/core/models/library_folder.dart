@@ -93,6 +93,40 @@ class LibraryFolder {
 List<LibraryFolder> _childrenFromJson(dynamic value) =>
     parseJsonList(value, LibraryFolder.fromJson);
 
+/// The folders [folder] may be moved into, as `FileManagerPage.tsx` offers them
+/// (`moveDisallowedFolderIds`, `isValidFolderMove`): not itself or anything
+/// below it, nothing external or below an external folder (a mount mirrors a
+/// path on disk), nothing the user may not write to, and not the parent it
+/// already has. The root is a separate entry, offered while
+/// `folder.parentId != null`. [all] is flat, so ancestry is read from
+/// `parentId` and a listing that arrives without nested children still works.
+List<LibraryFolder> folderMoveTargets(
+  List<LibraryFolder> all,
+  LibraryFolder folder,
+) {
+  // A mount stays where the scan put it (the server answers 400), so it has no
+  // target at all.
+  if (folder.isExternal) return const [];
+  // [folder] is seeded in case [all] was filtered and no longer lists it.
+  final byId = {for (final f in all) f.id: f, folder.id: folder};
+  bool blocked(LibraryFolder f) {
+    final seen = <int>{};
+    for (
+      LibraryFolder? c = f;
+      c != null && seen.add(c.id);
+      c = byId[c.parentId]
+    ) {
+      if (c.id == folder.id || c.isExternal) return true;
+    }
+    return false;
+  }
+
+  return [
+    for (final f in all)
+      if (f.canWrite && f.id != folder.parentId && !blocked(f)) f,
+  ];
+}
+
 /// Every folder of [tree], each parent before its children.
 List<LibraryFolder> flattenFolders(List<LibraryFolder> tree) => [
   for (final f in tree) ...[f, ...flattenFolders(f.children)],

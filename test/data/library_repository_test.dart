@@ -18,6 +18,38 @@ void main() {
     repo = LibraryRepository(dio);
   });
 
+  group('moveFolder', () {
+    test('sends the new parent, and 0 for the root', () async {
+      final sent = captureRequests(dio);
+      adapter.onPut(
+        '/api/v1/library/folders/2',
+        (s) => s.reply(200, {'id': 2, 'name': 'Kid'}),
+        data: Matchers.any,
+      );
+
+      await repo.moveFolder(2, parentId: 7);
+      await repo.moveFolder(2);
+
+      expect(sent.requests.map((r) => r.data), [
+        {'parent_id': 7},
+        {'parent_id': 0},
+      ]);
+    });
+
+    test('a refusal surfaces as the error', () {
+      adapter.onPut(
+        '/api/v1/library/folders/2',
+        (s) => s.reply(400, {'detail': 'External folders cannot be moved'}),
+        data: Matchers.any,
+      );
+
+      expect(
+        () => repo.moveFolder(2, parentId: 7),
+        throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 400)),
+      );
+    });
+  });
+
   group('listTags', () {
     test('parses the catalog, skips an invalid entry', () async {
       adapter.onGet(

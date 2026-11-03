@@ -645,6 +645,7 @@ class SpoolmanInventorySource implements SpoolInventorySource {
         'printer_id': draft.printerId,
         'ams_id': draft.amsId,
         'tray_id': draft.trayId,
+        if (draft.move) 'move': true,
       },
     ),
   );
