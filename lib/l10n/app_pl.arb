@@ -3913,5 +3913,70 @@
   },
   "archivePrintThisPlate": "Drukuj tę płytę",
   "archiveShowPlatePrints": "Pokaż jej wydruki",
-  "archiveRunReprint": "Wydrukuj ponownie"
+  "archiveRunReprint": "Wydrukuj ponownie",
+  "archiveMergeBanner": "{count, plural, =1{1 grupa zduplikowanych archiwów} few{{count} grupy zduplikowanych archiwów} many{{count} grup zduplikowanych archiwów} other{{count} grupy zduplikowanych archiwów}}",
+  "@archiveMergeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Scal",
+  "archiveMergeDismiss": "Odrzuć",
+  "archiveMergeMenu": "Scal duplikaty",
+  "archiveMergeTitle": "Scal zduplikowane archiwa",
+  "archiveMergeEffectKeep": "Najstarsze archiwum każdej grupy pozostaje i przejmuje wszystkie wydruki pozostałych archiwów, wraz z ich zdjęciami, filmami i plikami.",
+  "archiveMergeEffectLinks": "Pozostałe znikają z archiwów; ich stare linki otwierają archiwum, do którego zostały scalone.",
+  "archiveMergeEffectMoney": "Obciążenia portfela i rezerwacje budżetu pozostają tam, gdzie zostały zaksięgowane.",
+  "archiveMergeNone": "Brak duplikatów do scalenia.",
+  "archiveMergeMember": "{name} · utworzono {date} · {count, plural, =1{1 wydruk} few{{count} wydruki} many{{count} wydruków} other{{count} wydruku}}",
+  "@archiveMergeMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Pozostaje",
+  "archiveMergeWaiting": "Na razie pominięte",
+  "archiveMergeLeftOut": "Pominięte przy scalaniu",
+  "archiveMergeSkipBusy": "W użyciu: drukowane, w kolejce lub właśnie wydrukowane. Spróbuj później.",
+  "archiveMergeSkipConflicting": "Archiwa zawierają różne pliki źródłowe, pliki projektu lub filmy. Najpierw zachowaj jedno ręcznie.",
+  "archiveMergeSkipFailed": "Scalanie nie powiodło się.",
+  "archiveMergeSkipNotAGroup": "To już nie jest grupa duplikatów.",
+  "archiveMergeAction": "{count, plural, =1{Scal 1 grupę} few{Scal {count} grupy} many{Scal {count} grup} other{Scal {count} grupy}}",
+  "@archiveMergeAction": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "Tego nie można cofnąć w aplikacji.",
+  "archiveMergeDone": "{count, plural, =1{Scalono 1 grupę.} few{Scalono {count} grupy.} many{Scalono {count} grup.} other{Scalono {count} grupy.}}",
+  "@archiveMergeDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Scalone: {count}. Pominięte: {left}.",
+  "@archiveMergeDoneSome": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  }
 }

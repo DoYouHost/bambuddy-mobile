@@ -1,11 +1,13 @@
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/api/server_version.dart';
+import 'package:bambuddy_mobile/core/models/archive_merge.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'contract_harness.dart';
+import 'sent_writes.dart';
 
 /// "Merge duplicates" against a real server: two uploads of one file by one
 /// user are a group, the merge keeps the oldest archive of it, and the id of
@@ -71,7 +73,18 @@ void main() {
         reason: 'the oldest archive of the group stays',
       );
 
-      final result = await repo.merge([group.survivor.id]);
+      // What the merge sheet sends, recorded by its widget test.
+      final answer = (await replayWrites(
+        dio,
+        recordedWrites('archive_merge'),
+        ids: {
+          'survivor_ids': [group.survivor.id],
+        },
+      )).single;
+      expect(answer.statusCode, 200);
+      final result = ArchiveMergeResult.fromJson(
+        answer.data as Map<String, dynamic>,
+      );
 
       // An upload counts as just printed for half an hour (`_JUST_PRINTED`),
       // so on a fresh stack the group is held back: then the merge says so

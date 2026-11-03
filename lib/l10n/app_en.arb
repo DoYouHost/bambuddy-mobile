@@ -7187,5 +7187,123 @@
   "archiveRunReprint": "Reprint this print",
   "@archiveRunReprint": {
     "description": "Archive sheet: button that opens the print form on the plate one print ran"
+  },
+  "archiveMergeBanner": "{count, plural, =1{1 group of duplicate archives} other{{count} groups of duplicate archives}}",
+  "@archiveMergeBanner": {
+    "description": "Archive list banner: how many groups of archives hold the same file",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Merge",
+  "@archiveMergeButton": {
+    "description": "Archive list banner: one-word button that opens the merge sheet"
+  },
+  "archiveMergeDismiss": "Dismiss",
+  "@archiveMergeDismiss": {
+    "description": "Archive list banner: tooltip of the button that hides the merge banner"
+  },
+  "archiveMergeMenu": "Merge duplicates",
+  "@archiveMergeMenu": {
+    "description": "Archive menu entry that opens the merge sheet"
+  },
+  "archiveMergeTitle": "Merge duplicate archives",
+  "@archiveMergeTitle": {
+    "description": "Merge sheet title"
+  },
+  "archiveMergeEffectKeep": "The oldest archive of each group stays and takes in every print of the others, with their photos, videos and files.",
+  "@archiveMergeEffectKeep": {
+    "description": "Merge sheet: what a merge does, first point"
+  },
+  "archiveMergeEffectLinks": "The others disappear from the archives; their old links open the one they went into.",
+  "@archiveMergeEffectLinks": {
+    "description": "Merge sheet: what a merge does, second point"
+  },
+  "archiveMergeEffectMoney": "Wallet charges and budget reservations stay where they were booked.",
+  "@archiveMergeEffectMoney": {
+    "description": "Merge sheet: what a merge does, third point"
+  },
+  "archiveMergeNone": "No duplicates to merge.",
+  "@archiveMergeNone": {
+    "description": "Merge sheet: the server found no duplicate groups"
+  },
+  "archiveMergeMember": "{name} · created {date} · {count, plural, =1{1 print} other{{count} prints}}",
+  "@archiveMergeMember": {
+    "description": "Merge sheet: one archive of a group, when it was created and how many prints it has",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Stays",
+  "@archiveMergeStays": {
+    "description": "Merge sheet: marks the archive of a group that stays"
+  },
+  "archiveMergeWaiting": "Left out for now",
+  "@archiveMergeWaiting": {
+    "description": "Merge sheet: heading above the groups the server leaves out for now"
+  },
+  "archiveMergeLeftOut": "Left out by the merge",
+  "@archiveMergeLeftOut": {
+    "description": "Merge sheet: heading above the groups the merge itself left out"
+  },
+  "archiveMergeSkipBusy": "In use: printing, queued or just printed. Try again later.",
+  "@archiveMergeSkipBusy": {
+    "description": "Merge sheet: why a group is left out"
+  },
+  "archiveMergeSkipConflicting": "The archives carry different source or design files, or videos. Keep one by hand first.",
+  "@archiveMergeSkipConflicting": {
+    "description": "Merge sheet: why a group is left out"
+  },
+  "archiveMergeSkipFailed": "The merge failed.",
+  "@archiveMergeSkipFailed": {
+    "description": "Merge sheet: why a group is left out"
+  },
+  "archiveMergeSkipNotAGroup": "No longer a group of duplicates.",
+  "@archiveMergeSkipNotAGroup": {
+    "description": "Merge sheet: why a group is left out"
+  },
+  "archiveMergeAction": "{count, plural, =1{Merge 1 group} other{Merge {count} groups}}",
+  "@archiveMergeAction": {
+    "description": "Merge sheet: the button that merges the ticked groups",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "This cannot be undone in the app.",
+  "@archiveMergeConfirmBody": {
+    "description": "Merge confirmation dialog body"
+  },
+  "archiveMergeDone": "{count, plural, =1{Merged 1 group.} other{Merged {count} groups.}}",
+  "@archiveMergeDone": {
+    "description": "Snack after a merge that merged every ticked group",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Merged: {count}. Left out: {left}.",
+  "@archiveMergeDoneSome": {
+    "description": "Snack after a merge that left some groups out",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
   }
 }

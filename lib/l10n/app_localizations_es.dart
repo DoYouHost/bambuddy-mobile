@@ -9898,4 +9898,107 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get archiveRunReprint => 'Reimprimir esta impresión';
+
+  @override
+  String archiveMergeBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count grupos de archivos duplicados',
+      one: '1 grupo de archivos duplicados',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeButton => 'Fusionar';
+
+  @override
+  String get archiveMergeDismiss => 'Descartar';
+
+  @override
+  String get archiveMergeMenu => 'Fusionar duplicados';
+
+  @override
+  String get archiveMergeTitle => 'Fusionar archivos duplicados';
+
+  @override
+  String get archiveMergeEffectKeep =>
+      'El archivo más antiguo de cada grupo se mantiene y recibe todas las impresiones de los demás, con sus fotos, vídeos y ficheros.';
+
+  @override
+  String get archiveMergeEffectLinks =>
+      'Los demás desaparecen del archivo; sus enlaces antiguos abren el archivo en el que se fusionaron.';
+
+  @override
+  String get archiveMergeEffectMoney =>
+      'Los cargos del monedero y las reservas de presupuesto se quedan donde se registraron.';
+
+  @override
+  String get archiveMergeNone => 'No hay duplicados que fusionar.';
+
+  @override
+  String archiveMergeMember(String name, String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count impresiones',
+      one: '1 impresión',
+    );
+    return '$name · creado $date · $_temp0';
+  }
+
+  @override
+  String get archiveMergeStays => 'Se mantiene';
+
+  @override
+  String get archiveMergeWaiting => 'Omitidos por ahora';
+
+  @override
+  String get archiveMergeLeftOut => 'Omitidos al fusionar';
+
+  @override
+  String get archiveMergeSkipBusy =>
+      'En uso: imprimiendo, en cola o recién impreso. Inténtalo más tarde.';
+
+  @override
+  String get archiveMergeSkipConflicting =>
+      'Los archivos tienen ficheros fuente o de diseño distintos, o vídeos. Conserva uno a mano primero.';
+
+  @override
+  String get archiveMergeSkipFailed => 'La fusión falló.';
+
+  @override
+  String get archiveMergeSkipNotAGroup => 'Ya no es un grupo de duplicados.';
+
+  @override
+  String archiveMergeAction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Fusionar $count grupos',
+      one: 'Fusionar 1 grupo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeConfirmBody =>
+      'Esto no se puede deshacer en la aplicación.';
+
+  @override
+  String archiveMergeDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count grupos fusionados.',
+      one: '1 grupo fusionado.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveMergeDoneSome(int count, int left) {
+    return 'Fusionados: $count. Omitidos: $left.';
+  }
 }

@@ -16285,6 +16285,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reprint this print'**
   String get archiveRunReprint;
+
+  /// Archive list banner: how many groups of archives hold the same file
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 group of duplicate archives} other{{count} groups of duplicate archives}}'**
+  String archiveMergeBanner(int count);
+
+  /// Archive list banner: one-word button that opens the merge sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Merge'**
+  String get archiveMergeButton;
+
+  /// Archive list banner: tooltip of the button that hides the merge banner
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get archiveMergeDismiss;
+
+  /// Archive menu entry that opens the merge sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Merge duplicates'**
+  String get archiveMergeMenu;
+
+  /// Merge sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Merge duplicate archives'**
+  String get archiveMergeTitle;
+
+  /// Merge sheet: what a merge does, first point
+  ///
+  /// In en, this message translates to:
+  /// **'The oldest archive of each group stays and takes in every print of the others, with their photos, videos and files.'**
+  String get archiveMergeEffectKeep;
+
+  /// Merge sheet: what a merge does, second point
+  ///
+  /// In en, this message translates to:
+  /// **'The others disappear from the archives; their old links open the one they went into.'**
+  String get archiveMergeEffectLinks;
+
+  /// Merge sheet: what a merge does, third point
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet charges and budget reservations stay where they were booked.'**
+  String get archiveMergeEffectMoney;
+
+  /// Merge sheet: the server found no duplicate groups
+  ///
+  /// In en, this message translates to:
+  /// **'No duplicates to merge.'**
+  String get archiveMergeNone;
+
+  /// Merge sheet: one archive of a group, when it was created and how many prints it has
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · created {date} · {count, plural, =1{1 print} other{{count} prints}}'**
+  String archiveMergeMember(String name, String date, int count);
+
+  /// Merge sheet: marks the archive of a group that stays
+  ///
+  /// In en, this message translates to:
+  /// **'Stays'**
+  String get archiveMergeStays;
+
+  /// Merge sheet: heading above the groups the server leaves out for now
+  ///
+  /// In en, this message translates to:
+  /// **'Left out for now'**
+  String get archiveMergeWaiting;
+
+  /// Merge sheet: heading above the groups the merge itself left out
+  ///
+  /// In en, this message translates to:
+  /// **'Left out by the merge'**
+  String get archiveMergeLeftOut;
+
+  /// Merge sheet: why a group is left out
+  ///
+  /// In en, this message translates to:
+  /// **'In use: printing, queued or just printed. Try again later.'**
+  String get archiveMergeSkipBusy;
+
+  /// Merge sheet: why a group is left out
+  ///
+  /// In en, this message translates to:
+  /// **'The archives carry different source or design files, or videos. Keep one by hand first.'**
+  String get archiveMergeSkipConflicting;
+
+  /// Merge sheet: why a group is left out
+  ///
+  /// In en, this message translates to:
+  /// **'The merge failed.'**
+  String get archiveMergeSkipFailed;
+
+  /// Merge sheet: why a group is left out
+  ///
+  /// In en, this message translates to:
+  /// **'No longer a group of duplicates.'**
+  String get archiveMergeSkipNotAGroup;
+
+  /// Merge sheet: the button that merges the ticked groups
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Merge 1 group} other{Merge {count} groups}}'**
+  String archiveMergeAction(int count);
+
+  /// Merge confirmation dialog body
+  ///
+  /// In en, this message translates to:
+  /// **'This cannot be undone in the app.'**
+  String get archiveMergeConfirmBody;
+
+  /// Snack after a merge that merged every ticked group
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Merged 1 group.} other{Merged {count} groups.}}'**
+  String archiveMergeDone(int count);
+
+  /// Snack after a merge that left some groups out
+  ///
+  /// In en, this message translates to:
+  /// **'Merged: {count}. Left out: {left}.'**
+  String archiveMergeDoneSome(int count, int left);
 }
 
 class _AppLocalizationsDelegate

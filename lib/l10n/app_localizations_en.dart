@@ -9777,4 +9777,106 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get archiveRunReprint => 'Reprint this print';
+
+  @override
+  String archiveMergeBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count groups of duplicate archives',
+      one: '1 group of duplicate archives',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeButton => 'Merge';
+
+  @override
+  String get archiveMergeDismiss => 'Dismiss';
+
+  @override
+  String get archiveMergeMenu => 'Merge duplicates';
+
+  @override
+  String get archiveMergeTitle => 'Merge duplicate archives';
+
+  @override
+  String get archiveMergeEffectKeep =>
+      'The oldest archive of each group stays and takes in every print of the others, with their photos, videos and files.';
+
+  @override
+  String get archiveMergeEffectLinks =>
+      'The others disappear from the archives; their old links open the one they went into.';
+
+  @override
+  String get archiveMergeEffectMoney =>
+      'Wallet charges and budget reservations stay where they were booked.';
+
+  @override
+  String get archiveMergeNone => 'No duplicates to merge.';
+
+  @override
+  String archiveMergeMember(String name, String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count prints',
+      one: '1 print',
+    );
+    return '$name · created $date · $_temp0';
+  }
+
+  @override
+  String get archiveMergeStays => 'Stays';
+
+  @override
+  String get archiveMergeWaiting => 'Left out for now';
+
+  @override
+  String get archiveMergeLeftOut => 'Left out by the merge';
+
+  @override
+  String get archiveMergeSkipBusy =>
+      'In use: printing, queued or just printed. Try again later.';
+
+  @override
+  String get archiveMergeSkipConflicting =>
+      'The archives carry different source or design files, or videos. Keep one by hand first.';
+
+  @override
+  String get archiveMergeSkipFailed => 'The merge failed.';
+
+  @override
+  String get archiveMergeSkipNotAGroup => 'No longer a group of duplicates.';
+
+  @override
+  String archiveMergeAction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Merge $count groups',
+      one: 'Merge 1 group',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeConfirmBody => 'This cannot be undone in the app.';
+
+  @override
+  String archiveMergeDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Merged $count groups.',
+      one: 'Merged 1 group.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveMergeDoneSome(int count, int left) {
+    return 'Merged: $count. Left out: $left.';
+  }
 }

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/filament_colour.dart';
 import '../../core/models/archive.dart';
+import '../../core/models/archive_merge.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/no_3mf_warning.dart';
 import '../../core/models/print_log_entry.dart';
@@ -274,6 +275,30 @@ final archiveMergeCountProvider = FutureProvider.autoDispose<int>((ref) {
   if (!ref.watch(archiveMergeAllowedProvider)) return 0;
   return ref.watch(archiveRepositoryProvider).mergeCount();
 });
+
+/// The duplicate groups the merge sheet offers, read again each time it opens:
+/// groups change as prints start and end.
+final archiveMergePreviewProvider =
+    FutureProvider.autoDispose<List<ArchiveMergeGroup>>(
+      (ref) => ref.watch(archiveRepositoryProvider).mergePreview(),
+    );
+
+/// The group count the merge banner was dismissed at, null if never.
+final archiveMergeDismissedAtProvider =
+    NotifierProvider<ArchiveMergeDismissedAtNotifier, int?>(
+      ArchiveMergeDismissedAtNotifier.new,
+    );
+
+class ArchiveMergeDismissedAtNotifier extends Notifier<int?> {
+  @override
+  int? build() => ref.watch(settingsRepositoryProvider).loadMergeDismissedAt();
+
+  Future<void> dismiss(int groups) async {
+    await ref.read(settingsRepositoryProvider).saveMergeDismissedAt(groups);
+    if (!ref.mounted) return;
+    state = groups;
+  }
+}
 
 /// Every print of one archive, newest first (`GET /archives/{id}/runs`).
 final archiveRunsProvider = FutureProvider.autoDispose

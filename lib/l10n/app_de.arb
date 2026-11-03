@@ -4602,5 +4602,70 @@
   },
   "archivePrintThisPlate": "Diese Druckplatte drucken",
   "archiveShowPlatePrints": "Ihre Drucke zeigen",
-  "archiveRunReprint": "Diesen Druck wiederholen"
+  "archiveRunReprint": "Diesen Druck wiederholen",
+  "archiveMergeBanner": "{count, plural, =1{1 Gruppe doppelter Archive} other{{count} Gruppen doppelter Archive}}",
+  "@archiveMergeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Zusammenführen",
+  "archiveMergeDismiss": "Ausblenden",
+  "archiveMergeMenu": "Duplikate zusammenführen",
+  "archiveMergeTitle": "Doppelte Archive zusammenführen",
+  "archiveMergeEffectKeep": "Das älteste Archiv jeder Gruppe bleibt und übernimmt alle Drucke der anderen mit ihren Fotos, Videos und Dateien.",
+  "archiveMergeEffectLinks": "Die anderen verschwinden aus den Archiven; ihre alten Links öffnen das Archiv, in das sie eingegangen sind.",
+  "archiveMergeEffectMoney": "Wallet-Buchungen und Budget-Reservierungen bleiben, wo sie gebucht wurden.",
+  "archiveMergeNone": "Keine Duplikate zum Zusammenführen.",
+  "archiveMergeMember": "{name} · erstellt {date} · {count, plural, =1{1 Druck} other{{count} Drucke}}",
+  "@archiveMergeMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Bleibt",
+  "archiveMergeWaiting": "Vorerst ausgelassen",
+  "archiveMergeLeftOut": "Beim Zusammenführen ausgelassen",
+  "archiveMergeSkipBusy": "In Verwendung: druckt, in der Warteschlange oder gerade gedruckt. Später erneut versuchen.",
+  "archiveMergeSkipConflicting": "Die Archive enthalten unterschiedliche Quell- oder Konstruktionsdateien oder Videos. Zuerst von Hand eines behalten.",
+  "archiveMergeSkipFailed": "Das Zusammenführen ist fehlgeschlagen.",
+  "archiveMergeSkipNotAGroup": "Keine Gruppe von Duplikaten mehr.",
+  "archiveMergeAction": "{count, plural, =1{1 Gruppe zusammenführen} other{{count} Gruppen zusammenführen}}",
+  "@archiveMergeAction": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "Das lässt sich in der App nicht rückgängig machen.",
+  "archiveMergeDone": "{count, plural, =1{1 Gruppe zusammengeführt.} other{{count} Gruppen zusammengeführt.}}",
+  "@archiveMergeDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Zusammengeführt: {count}. Ausgelassen: {left}.",
+  "@archiveMergeDoneSome": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  }
 }

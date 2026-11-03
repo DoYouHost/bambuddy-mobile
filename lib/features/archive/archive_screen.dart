@@ -14,6 +14,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import 'archive_media_sheet.dart';
+import 'archive_merge_sheet.dart';
 import '../common/api_failure_snack.dart';
 import '../common/search_debouncer.dart';
 import '../gcode/gcode_viewer_route.dart';
@@ -99,6 +100,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Read here, not in the menu's builder, which runs outside this build.
+    final mergeOffered = archiveMergeOffered(ref);
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(archiveProvider);
     final filters = ref.watch(archiveFiltersProvider);
@@ -155,6 +158,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                       onSelected: (v) {
                         if (v == 'purge') _purgeOlder();
                         if (v == 'print_log') context.push('/print-log');
+                        if (v == 'merge') showArchiveMergeSheet(context);
                       },
                       // Tag on the child: a wrapped `PopupMenuItem` is no
                       // longer a `PopupMenuEntry`.
@@ -173,6 +177,14 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                             Text(l10n.archivePurgeOlder),
                           ),
                         ),
+                        if (mergeOffered)
+                          PopupMenuItem(
+                            value: 'merge',
+                            child: logTag(
+                              'archive.menu.merge',
+                              Text(l10n.archiveMergeMenu),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -212,6 +224,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                     // pushed down is a row the user has to hunt for again.
                     if (!_selectionMode)
                       const SliverToBoxAdapter(child: _No3mfBanner()),
+                    const SliverToBoxAdapter(child: ArchiveMergeBanner()),
                     if (all.isEmpty)
                       SliverEmptyState(
                         message: l10n.archiveEmpty,

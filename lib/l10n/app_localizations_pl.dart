@@ -9943,4 +9943,114 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get archiveRunReprint => 'Wydrukuj ponownie';
+
+  @override
+  String archiveMergeBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count grupy zduplikowanych archiwów',
+      many: '$count grup zduplikowanych archiwów',
+      few: '$count grupy zduplikowanych archiwów',
+      one: '1 grupa zduplikowanych archiwów',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeButton => 'Scal';
+
+  @override
+  String get archiveMergeDismiss => 'Odrzuć';
+
+  @override
+  String get archiveMergeMenu => 'Scal duplikaty';
+
+  @override
+  String get archiveMergeTitle => 'Scal zduplikowane archiwa';
+
+  @override
+  String get archiveMergeEffectKeep =>
+      'Najstarsze archiwum każdej grupy pozostaje i przejmuje wszystkie wydruki pozostałych archiwów, wraz z ich zdjęciami, filmami i plikami.';
+
+  @override
+  String get archiveMergeEffectLinks =>
+      'Pozostałe znikają z archiwów; ich stare linki otwierają archiwum, do którego zostały scalone.';
+
+  @override
+  String get archiveMergeEffectMoney =>
+      'Obciążenia portfela i rezerwacje budżetu pozostają tam, gdzie zostały zaksięgowane.';
+
+  @override
+  String get archiveMergeNone => 'Brak duplikatów do scalenia.';
+
+  @override
+  String archiveMergeMember(String name, String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count wydruku',
+      many: '$count wydruków',
+      few: '$count wydruki',
+      one: '1 wydruk',
+    );
+    return '$name · utworzono $date · $_temp0';
+  }
+
+  @override
+  String get archiveMergeStays => 'Pozostaje';
+
+  @override
+  String get archiveMergeWaiting => 'Na razie pominięte';
+
+  @override
+  String get archiveMergeLeftOut => 'Pominięte przy scalaniu';
+
+  @override
+  String get archiveMergeSkipBusy =>
+      'W użyciu: drukowane, w kolejce lub właśnie wydrukowane. Spróbuj później.';
+
+  @override
+  String get archiveMergeSkipConflicting =>
+      'Archiwa zawierają różne pliki źródłowe, pliki projektu lub filmy. Najpierw zachowaj jedno ręcznie.';
+
+  @override
+  String get archiveMergeSkipFailed => 'Scalanie nie powiodło się.';
+
+  @override
+  String get archiveMergeSkipNotAGroup => 'To już nie jest grupa duplikatów.';
+
+  @override
+  String archiveMergeAction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Scal $count grupy',
+      many: 'Scal $count grup',
+      few: 'Scal $count grupy',
+      one: 'Scal 1 grupę',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeConfirmBody => 'Tego nie można cofnąć w aplikacji.';
+
+  @override
+  String archiveMergeDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Scalono $count grupy.',
+      many: 'Scalono $count grup.',
+      few: 'Scalono $count grupy.',
+      one: 'Scalono 1 grupę.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveMergeDoneSome(int count, int left) {
+    return 'Scalone: $count. Pominięte: $left.';
+  }
 }
