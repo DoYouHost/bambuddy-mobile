@@ -3801,5 +3801,92 @@
   "tipsTrimTitle": "Przycinanie timelapse'a",
   "tipsTrimBody": "Przeciągnij uchwyty na pasku klatek; stuknij albo przeciągnij w innym miejscu, żeby przesunąć znacznik odtwarzania.",
   "tipsWallTitle": "Tryb ściany",
-  "tipsWallBody": "Na ekranie Drukarki otwórz menu ⋮ i wybierz Tryb ściany."
+  "tipsWallBody": "Na ekranie Drukarki otwórz menu ⋮ i wybierz Tryb ściany.",
+  "archiveRunsTitle": "Historia wydruków",
+  "archiveRunsEmpty": "Ten plik nie został jeszcze wydrukowany.",
+  "archiveRunsBeforeLog": "Wydrukowano, zanim Bambuddy zaczęło rejestrować każdy wydruk: {status}.",
+  "@archiveRunsBeforeLog": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "Brak jeszcze wydruków tej płyty.",
+  "archiveRunsAllPlates": "Wszystkie płyty",
+  "archiveRunPlate": "Płyta {plate}",
+  "@archiveRunPlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Drukarka usunięta",
+  "archiveRunWithEstimate": "{value} (szac. {estimate})",
+  "@archiveRunWithEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} wobec {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} z {estimate}",
+  "@archiveRunTimeOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Rozpoczęto / zakończono",
+  "archiveRunEnergy": "Energia",
+  "archiveRunFailureReason": "Przyczyna niepowodzenia",
+  "archiveRunStartedBy": "Uruchomił(a)",
+  "archiveRunNote": "Notatka do tego wydruku",
+  "archiveRunVideo": "Film timelapse",
+  "archiveRunPhotos": "Zdjęcia ({count})",
+  "@archiveRunPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Udane: {count}",
+  "@archiveGoodCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Nieudane: {count}",
+  "@archiveFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

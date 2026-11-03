@@ -38,19 +38,21 @@ void main() {
     ...extra,
   };
 
-  Map<String, dynamic> newRun(int id, [Map<String, dynamic> extra = const {}]) =>
-      run(id, {
-        'plate_id': null,
-        'notes': null,
-        'photos': null,
-        'timelapse_path': null,
-        'user_verdict_source': null,
-        'confirm_requested': null,
-        'duration_unmeasured': null,
-        'estimate_seconds': null,
-        'estimate_grams': null,
-        ...extra,
-      });
+  Map<String, dynamic> newRun(
+    int id, [
+    Map<String, dynamic> extra = const {},
+  ]) => run(id, {
+    'plate_id': null,
+    'notes': null,
+    'photos': null,
+    'timelapse_path': null,
+    'user_verdict_source': null,
+    'confirm_requested': null,
+    'duration_unmeasured': null,
+    'estimate_seconds': null,
+    'estimate_grams': null,
+    ...extra,
+  });
 
   group('runs', () {
     test('reads each print with its own fields', () async {
@@ -161,8 +163,7 @@ void main() {
   });
 
   group('setVerdict', () {
-    Map<String, dynamic>? sentBody() =>
-        sent.last.data as Map<String, dynamic>?;
+    Map<String, dynamic>? sentBody() => sent.last.data as Map<String, dynamic>?;
 
     void replyArchive() => adapter.onPatch(
       '/api/v1/archives/5',

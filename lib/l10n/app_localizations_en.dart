@@ -9667,4 +9667,77 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tipsWallBody =>
       'On the Printers screen, open the ⋮ menu and choose Wall mode.';
+
+  @override
+  String get archiveRunsTitle => 'Print history';
+
+  @override
+  String get archiveRunsEmpty => 'This file has not been printed yet.';
+
+  @override
+  String archiveRunsBeforeLog(String status) {
+    return 'Printed before Bambuddy logged each print: $status.';
+  }
+
+  @override
+  String get archiveRunsPlateEmpty => 'No prints of this plate yet.';
+
+  @override
+  String get archiveRunsAllPlates => 'All plates';
+
+  @override
+  String archiveRunPlate(int plate) {
+    return 'Plate $plate';
+  }
+
+  @override
+  String get archiveRunNoPrinter => 'Printer removed';
+
+  @override
+  String archiveRunWithEstimate(String value, String estimate) {
+    return '$value (est. $estimate)';
+  }
+
+  @override
+  String archiveRunTimeVsEstimate(String value, String estimate, String delta) {
+    return '$value vs. $estimate ($delta)';
+  }
+
+  @override
+  String archiveRunTimeOf(String value, String estimate) {
+    return '$value of $estimate';
+  }
+
+  @override
+  String get archiveRunStartedEnded => 'Started / ended';
+
+  @override
+  String get archiveRunEnergy => 'Energy';
+
+  @override
+  String get archiveRunFailureReason => 'Failure reason';
+
+  @override
+  String get archiveRunStartedBy => 'Started by';
+
+  @override
+  String get archiveRunNote => 'Note on this print';
+
+  @override
+  String get archiveRunVideo => 'Timelapse video';
+
+  @override
+  String archiveRunPhotos(int count) {
+    return 'Photos ($count)';
+  }
+
+  @override
+  String archiveGoodCount(int count) {
+    return 'Good: $count';
+  }
+
+  @override
+  String archiveFailedCount(int count) {
+    return 'Failed: $count';
+  }
 }

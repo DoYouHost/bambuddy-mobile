@@ -9761,4 +9761,78 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get tipsWallBody =>
       'Öffne auf dem Bildschirm Drucker das Menü ⋮ und wähle Wandmodus.';
+
+  @override
+  String get archiveRunsTitle => 'Drucke';
+
+  @override
+  String get archiveRunsEmpty => 'Diese Datei wurde noch nicht gedruckt.';
+
+  @override
+  String archiveRunsBeforeLog(String status) {
+    return 'Gedruckt, bevor Bambuddy jeden Druck einzeln protokolliert hat: $status.';
+  }
+
+  @override
+  String get archiveRunsPlateEmpty =>
+      'Diese Druckplatte wurde noch nicht gedruckt.';
+
+  @override
+  String get archiveRunsAllPlates => 'Alle Druckplatten';
+
+  @override
+  String archiveRunPlate(int plate) {
+    return 'Druckplatte $plate';
+  }
+
+  @override
+  String get archiveRunNoPrinter => 'Drucker entfernt';
+
+  @override
+  String archiveRunWithEstimate(String value, String estimate) {
+    return '$value (geschätzt $estimate)';
+  }
+
+  @override
+  String archiveRunTimeVsEstimate(String value, String estimate, String delta) {
+    return '$value / $estimate ($delta)';
+  }
+
+  @override
+  String archiveRunTimeOf(String value, String estimate) {
+    return '$value von $estimate';
+  }
+
+  @override
+  String get archiveRunStartedEnded => 'Begonnen / beendet';
+
+  @override
+  String get archiveRunEnergy => 'Energie';
+
+  @override
+  String get archiveRunFailureReason => 'Fehlergrund';
+
+  @override
+  String get archiveRunStartedBy => 'Gestartet von';
+
+  @override
+  String get archiveRunNote => 'Notiz zu diesem Druck';
+
+  @override
+  String get archiveRunVideo => 'Zeitraffer-Video';
+
+  @override
+  String archiveRunPhotos(int count) {
+    return 'Fotos ($count)';
+  }
+
+  @override
+  String archiveGoodCount(int count) {
+    return 'Gut: $count';
+  }
+
+  @override
+  String archiveFailedCount(int count) {
+    return 'Fehlgeschlagen: $count';
+  }
 }

@@ -4490,5 +4490,92 @@
   "tipsTrimTitle": "Découper un timelapse",
   "tipsTrimBody": "Faites glisser les poignées de la bande d'images ; touchez ou faites glisser ailleurs pour déplacer la tête de lecture.",
   "tipsWallTitle": "Mode mural",
-  "tipsWallBody": "Sur l'écran Imprimantes, ouvrez le menu ⋮ et choisissez Mode mural."
+  "tipsWallBody": "Sur l'écran Imprimantes, ouvrez le menu ⋮ et choisissez Mode mural.",
+  "archiveRunsTitle": "Impressions",
+  "archiveRunsEmpty": "Ce fichier n'a pas encore été imprimé.",
+  "archiveRunsBeforeLog": "Imprimé avant que Bambuddy n'enregistre chaque impression : {status}.",
+  "@archiveRunsBeforeLog": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "Ce plateau n'a pas encore été imprimé.",
+  "archiveRunsAllPlates": "Tous les plateaux",
+  "archiveRunPlate": "Plateau {plate}",
+  "@archiveRunPlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Imprimante supprimée",
+  "archiveRunWithEstimate": "{value} (estimé {estimate})",
+  "@archiveRunWithEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} / {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} sur {estimate}",
+  "@archiveRunTimeOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Début / fin",
+  "archiveRunEnergy": "Énergie",
+  "archiveRunFailureReason": "Raison de l'échec",
+  "archiveRunStartedBy": "Lancée par",
+  "archiveRunNote": "Note sur cette impression",
+  "archiveRunVideo": "Vidéo timelapse",
+  "archiveRunPhotos": "Photos ({count})",
+  "@archiveRunPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Réussies : {count}",
+  "@archiveGoodCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Échouées : {count}",
+  "@archiveFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

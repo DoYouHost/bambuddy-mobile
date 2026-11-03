@@ -4490,5 +4490,92 @@
   "tipsTrimTitle": "Recortar un timelapse",
   "tipsTrimBody": "Arrastra los tiradores de la tira de fotogramas; toca o arrastra en cualquier otro punto para mover el cabezal.",
   "tipsWallTitle": "Modo pared",
-  "tipsWallBody": "En la pantalla Impresoras, abre el menú ⋮ y elige Modo pared."
+  "tipsWallBody": "En la pantalla Impresoras, abre el menú ⋮ y elige Modo pared.",
+  "archiveRunsTitle": "Impresiones",
+  "archiveRunsEmpty": "Este archivo aún no se ha impreso.",
+  "archiveRunsBeforeLog": "Impreso antes de que Bambuddy registrara cada impresión: {status}.",
+  "@archiveRunsBeforeLog": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "Esta placa aún no se ha impreso.",
+  "archiveRunsAllPlates": "Todas las placas",
+  "archiveRunPlate": "Placa {plate}",
+  "@archiveRunPlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Impresora eliminada",
+  "archiveRunWithEstimate": "{value} (estimado {estimate})",
+  "@archiveRunWithEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} / {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} de {estimate}",
+  "@archiveRunTimeOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Inicio / fin",
+  "archiveRunEnergy": "Energía",
+  "archiveRunFailureReason": "Motivo del fallo",
+  "archiveRunStartedBy": "Iniciada por",
+  "archiveRunNote": "Nota sobre esta impresión",
+  "archiveRunVideo": "Vídeo timelapse",
+  "archiveRunPhotos": "Fotos ({count})",
+  "@archiveRunPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Buenas: {count}",
+  "@archiveGoodCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Fallidas: {count}",
+  "@archiveFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

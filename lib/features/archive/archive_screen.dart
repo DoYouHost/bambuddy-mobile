@@ -29,6 +29,7 @@ import '../slicer/slice_screen.dart';
 import 'archive_details.dart';
 import 'archive_filament_edit.dart';
 import 'archive_providers.dart';
+import 'archive_runs.dart';
 import 'outcome_sheet.dart';
 import 'print_outcome.dart';
 import '../common/web_link.dart';
@@ -278,6 +279,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         onRunPipeline: () => _runPipeline(archive),
         onDelete: () => _deleteFromSheet(archive),
         onReject: () => _rejectReason(archive),
+        onRunPhotos: (photos) => _openPhotos(archive, only: photos),
+        onRunVideo: (runId) => _openTimelapse(archive, runId: runId),
       ),
     );
   }
@@ -516,11 +519,20 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     );
   }
 
-  /// Timelapse: closes the sheet and opens the full-screen player.
-  void _openTimelapse(Archive archive) {
+  /// Timelapse: closes the sheet and opens the full-screen player — on one
+  /// print's own video when [runId] is given.
+  void _openTimelapse(Archive archive, {int? runId}) {
     Navigator.pop(context);
-    final name = Uri.encodeQueryComponent(archive.displayName);
-    context.push('/timelapse?archive=${archive.id}&name=$name');
+    context.push(
+      Uri(
+        path: '/timelapse',
+        queryParameters: {
+          'archive': '${archive.id}',
+          'run': ?runId?.toString(),
+          'name': archive.displayName,
+        },
+      ).toString(),
+    );
   }
 
   /// Media: swaps this sheet for the one that lists everything the print has,
@@ -541,11 +553,20 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     );
   }
 
-  /// Photos: closes the sheet and opens the full-screen viewer.
-  void _openPhotos(Archive archive) {
+  /// Photos: closes the sheet and opens the full-screen viewer — on [only]
+  /// these when one print's photos are asked for.
+  void _openPhotos(Archive archive, {List<String>? only}) {
     Navigator.pop(context);
-    final name = Uri.encodeQueryComponent(archive.displayName);
-    context.push('/archive/photos?archive=${archive.id}&name=$name');
+    context.push(
+      Uri(
+        path: '/archive/photos',
+        queryParameters: {
+          'archive': '${archive.id}',
+          'name': archive.displayName,
+          'photo': ?only,
+        },
+      ).toString(),
+    );
   }
 
   /// Reprint: printer selection → confirmation → enqueue at top of the
@@ -944,10 +965,14 @@ class _ArchiveSheet extends ConsumerWidget {
     required this.onRunPipeline,
     required this.onDelete,
     required this.onReject,
+    required this.onRunPhotos,
+    required this.onRunVideo,
   });
 
   final Archive archive;
   final VoidCallback onReject;
+  final ValueChanged<List<String>> onRunPhotos;
+  final ValueChanged<int?> onRunVideo;
   final VoidCallback onReprint;
   final VoidCallback onAddToQueue;
   final VoidCallback onPreviewGcode;
@@ -1044,6 +1069,11 @@ class _ArchiveSheet extends ConsumerWidget {
                 ArchiveFilamentRow(archive: archive),
                 ArchiveStatsPanel(archive: archive),
                 ArchiveTagsAndNote(archive: archive),
+                ArchiveRunsSection(
+                  archive: archive,
+                  onPhotos: onRunPhotos,
+                  onVideo: onRunVideo,
+                ),
                 ArchiveFooter(archive: archive),
                 ArchiveLinkButton(archive: archive),
                 SizedBox(

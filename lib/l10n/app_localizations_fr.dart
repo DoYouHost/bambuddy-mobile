@@ -9866,4 +9866,77 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get tipsWallBody =>
       'Sur l\'écran Imprimantes, ouvrez le menu ⋮ et choisissez Mode mural.';
+
+  @override
+  String get archiveRunsTitle => 'Impressions';
+
+  @override
+  String get archiveRunsEmpty => 'Ce fichier n\'a pas encore été imprimé.';
+
+  @override
+  String archiveRunsBeforeLog(String status) {
+    return 'Imprimé avant que Bambuddy n\'enregistre chaque impression : $status.';
+  }
+
+  @override
+  String get archiveRunsPlateEmpty => 'Ce plateau n\'a pas encore été imprimé.';
+
+  @override
+  String get archiveRunsAllPlates => 'Tous les plateaux';
+
+  @override
+  String archiveRunPlate(int plate) {
+    return 'Plateau $plate';
+  }
+
+  @override
+  String get archiveRunNoPrinter => 'Imprimante supprimée';
+
+  @override
+  String archiveRunWithEstimate(String value, String estimate) {
+    return '$value (estimé $estimate)';
+  }
+
+  @override
+  String archiveRunTimeVsEstimate(String value, String estimate, String delta) {
+    return '$value / $estimate ($delta)';
+  }
+
+  @override
+  String archiveRunTimeOf(String value, String estimate) {
+    return '$value sur $estimate';
+  }
+
+  @override
+  String get archiveRunStartedEnded => 'Début / fin';
+
+  @override
+  String get archiveRunEnergy => 'Énergie';
+
+  @override
+  String get archiveRunFailureReason => 'Raison de l\'échec';
+
+  @override
+  String get archiveRunStartedBy => 'Lancée par';
+
+  @override
+  String get archiveRunNote => 'Note sur cette impression';
+
+  @override
+  String get archiveRunVideo => 'Vidéo timelapse';
+
+  @override
+  String archiveRunPhotos(int count) {
+    return 'Photos ($count)';
+  }
+
+  @override
+  String archiveGoodCount(int count) {
+    return 'Réussies : $count';
+  }
+
+  @override
+  String archiveFailedCount(int count) {
+    return 'Échouées : $count';
+  }
 }

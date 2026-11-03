@@ -16105,6 +16105,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'On the Printers screen, open the ⋮ menu and choose Wall mode.'**
   String get tipsWallBody;
+
+  /// Archive sheet: heading above the list of every print of this file
+  ///
+  /// In en, this message translates to:
+  /// **'Print history'**
+  String get archiveRunsTitle;
+
+  /// Archive sheet: the file has no logged print
+  ///
+  /// In en, this message translates to:
+  /// **'This file has not been printed yet.'**
+  String get archiveRunsEmpty;
+
+  /// Archive sheet: the archive's one print predates per-print logging; status is the archive's outcome
+  ///
+  /// In en, this message translates to:
+  /// **'Printed before Bambuddy logged each print: {status}.'**
+  String archiveRunsBeforeLog(String status);
+
+  /// Archive sheet: the plate filter matches no print
+  ///
+  /// In en, this message translates to:
+  /// **'No prints of this plate yet.'**
+  String get archiveRunsPlateEmpty;
+
+  /// Archive sheet: plate filter chip that shows every print
+  ///
+  /// In en, this message translates to:
+  /// **'All plates'**
+  String get archiveRunsAllPlates;
+
+  /// Archive sheet: which plate of a multi-plate file one print ran, or a plate filter chip
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate}'**
+  String archiveRunPlate(int plate);
+
+  /// Archive sheet: a print whose printer was deleted
+  ///
+  /// In en, this message translates to:
+  /// **'Printer removed'**
+  String get archiveRunNoPrinter;
+
+  /// Archive sheet: a measured figure next to the slicer's estimate for the plate
+  ///
+  /// In en, this message translates to:
+  /// **'{value} (est. {estimate})'**
+  String archiveRunWithEstimate(String value, String estimate);
+
+  /// Archive sheet: a finished print's time against the plate estimate; delta is like +4%
+  ///
+  /// In en, this message translates to:
+  /// **'{value} vs. {estimate} ({delta})'**
+  String archiveRunTimeVsEstimate(String value, String estimate, String delta);
+
+  /// Archive sheet: how far a print that stopped got, against the plate estimate
+  ///
+  /// In en, this message translates to:
+  /// **'{value} of {estimate}'**
+  String archiveRunTimeOf(String value, String estimate);
+
+  /// Archive sheet: label of a print's start and end times
+  ///
+  /// In en, this message translates to:
+  /// **'Started / ended'**
+  String get archiveRunStartedEnded;
+
+  /// Archive sheet: label of a print's energy use
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get archiveRunEnergy;
+
+  /// Archive sheet: label of why a print failed
+  ///
+  /// In en, this message translates to:
+  /// **'Failure reason'**
+  String get archiveRunFailureReason;
+
+  /// Archive sheet: label of the user who started a print
+  ///
+  /// In en, this message translates to:
+  /// **'Started by'**
+  String get archiveRunStartedBy;
+
+  /// Archive sheet: label of one print's own note
+  ///
+  /// In en, this message translates to:
+  /// **'Note on this print'**
+  String get archiveRunNote;
+
+  /// Archive sheet: button that plays one print's timelapse
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapse video'**
+  String get archiveRunVideo;
+
+  /// Archive sheet: button that opens one print's finish photos
+  ///
+  /// In en, this message translates to:
+  /// **'Photos ({count})'**
+  String archiveRunPhotos(int count);
+
+  /// Archive sheet header chip: how many prints of the file completed
+  ///
+  /// In en, this message translates to:
+  /// **'Good: {count}'**
+  String archiveGoodCount(int count);
+
+  /// Archive sheet header chip: how many prints of the file failed
+  ///
+  /// In en, this message translates to:
+  /// **'Failed: {count}'**
+  String archiveFailedCount(int count);
 }
 
 class _AppLocalizationsDelegate

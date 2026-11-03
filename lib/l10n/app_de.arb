@@ -4490,5 +4490,92 @@
   "tipsTrimTitle": "Zeitraffer kürzen",
   "tipsTrimBody": "Ziehe die Griffe auf dem Filmstreifen; tippe oder ziehe an einer anderen Stelle, um den Abspielkopf zu bewegen.",
   "tipsWallTitle": "Wandmodus",
-  "tipsWallBody": "Öffne auf dem Bildschirm Drucker das Menü ⋮ und wähle Wandmodus."
+  "tipsWallBody": "Öffne auf dem Bildschirm Drucker das Menü ⋮ und wähle Wandmodus.",
+  "archiveRunsTitle": "Drucke",
+  "archiveRunsEmpty": "Diese Datei wurde noch nicht gedruckt.",
+  "archiveRunsBeforeLog": "Gedruckt, bevor Bambuddy jeden Druck einzeln protokolliert hat: {status}.",
+  "@archiveRunsBeforeLog": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "Diese Druckplatte wurde noch nicht gedruckt.",
+  "archiveRunsAllPlates": "Alle Druckplatten",
+  "archiveRunPlate": "Druckplatte {plate}",
+  "@archiveRunPlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Drucker entfernt",
+  "archiveRunWithEstimate": "{value} (geschätzt {estimate})",
+  "@archiveRunWithEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} / {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} von {estimate}",
+  "@archiveRunTimeOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Begonnen / beendet",
+  "archiveRunEnergy": "Energie",
+  "archiveRunFailureReason": "Fehlergrund",
+  "archiveRunStartedBy": "Gestartet von",
+  "archiveRunNote": "Notiz zu diesem Druck",
+  "archiveRunVideo": "Zeitraffer-Video",
+  "archiveRunPhotos": "Fotos ({count})",
+  "@archiveRunPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Gut: {count}",
+  "@archiveGoodCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Fehlgeschlagen: {count}",
+  "@archiveFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

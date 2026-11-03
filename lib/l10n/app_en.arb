@@ -7005,5 +7005,133 @@
   },
   "@cameraDemoUnavailable": {
     "description": "Camera screen in demo mode, for the one demo printer that is offline; the others show a picture"
+  },
+  "archiveRunsTitle": "Print history",
+  "@archiveRunsTitle": {
+    "description": "Archive sheet: heading above the list of every print of this file"
+  },
+  "archiveRunsEmpty": "This file has not been printed yet.",
+  "@archiveRunsEmpty": {
+    "description": "Archive sheet: the file has no logged print"
+  },
+  "archiveRunsBeforeLog": "Printed before Bambuddy logged each print: {status}.",
+  "@archiveRunsBeforeLog": {
+    "description": "Archive sheet: the archive's one print predates per-print logging; status is the archive's outcome",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "No prints of this plate yet.",
+  "@archiveRunsPlateEmpty": {
+    "description": "Archive sheet: the plate filter matches no print"
+  },
+  "archiveRunsAllPlates": "All plates",
+  "@archiveRunsAllPlates": {
+    "description": "Archive sheet: plate filter chip that shows every print"
+  },
+  "archiveRunPlate": "Plate {plate}",
+  "@archiveRunPlate": {
+    "description": "Archive sheet: which plate of a multi-plate file one print ran, or a plate filter chip",
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Printer removed",
+  "@archiveRunNoPrinter": {
+    "description": "Archive sheet: a print whose printer was deleted"
+  },
+  "archiveRunWithEstimate": "{value} (est. {estimate})",
+  "@archiveRunWithEstimate": {
+    "description": "Archive sheet: a measured figure next to the slicer's estimate for the plate",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} vs. {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "description": "Archive sheet: a finished print's time against the plate estimate; delta is like +4%",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} of {estimate}",
+  "@archiveRunTimeOf": {
+    "description": "Archive sheet: how far a print that stopped got, against the plate estimate",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Started / ended",
+  "@archiveRunStartedEnded": {
+    "description": "Archive sheet: label of a print's start and end times"
+  },
+  "archiveRunEnergy": "Energy",
+  "@archiveRunEnergy": {
+    "description": "Archive sheet: label of a print's energy use"
+  },
+  "archiveRunFailureReason": "Failure reason",
+  "@archiveRunFailureReason": {
+    "description": "Archive sheet: label of why a print failed"
+  },
+  "archiveRunStartedBy": "Started by",
+  "@archiveRunStartedBy": {
+    "description": "Archive sheet: label of the user who started a print"
+  },
+  "archiveRunNote": "Note on this print",
+  "@archiveRunNote": {
+    "description": "Archive sheet: label of one print's own note"
+  },
+  "archiveRunVideo": "Timelapse video",
+  "@archiveRunVideo": {
+    "description": "Archive sheet: button that plays one print's timelapse"
+  },
+  "archiveRunPhotos": "Photos ({count})",
+  "@archiveRunPhotos": {
+    "description": "Archive sheet: button that opens one print's finish photos",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Good: {count}",
+  "@archiveGoodCount": {
+    "description": "Archive sheet header chip: how many prints of the file completed",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Failed: {count}",
+  "@archiveFailedCount": {
+    "description": "Archive sheet header chip: how many prints of the file failed",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }
