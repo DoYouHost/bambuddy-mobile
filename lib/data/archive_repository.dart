@@ -109,9 +109,14 @@ class ArchiveRepository {
   /// GET /archives/{id} — one archive, re-read rather than reused from the
   /// list: the finish photo is attached in the background after the print
   /// ends, so a list loaded before that still shows the print without it.
-  Future<Archive> byId(int archiveId) => guard(() async {
+  ///
+  /// [runId] answers the archive as that print of it printed: its outcome,
+  /// plate, photos and video instead of the latest print's. Archive redesign
+  /// only; an older server ignores it and answers the latest.
+  Future<Archive> byId(int archiveId, {int? runId}) => guard(() async {
     final res = await _dio.get<Map<String, dynamic>>(
       Endpoints.archive(archiveId),
+      queryParameters: {'run_id': ?runId},
     );
     _observeOutcome(res.data);
     return Archive.fromJson(res.data ?? const {});

@@ -16219,6 +16219,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed: {count}'**
   String archiveFailedCount(int count);
+
+  /// Archive sheet: button that asks how one print came out
+  ///
+  /// In en, this message translates to:
+  /// **'Set outcome'**
+  String get archiveRunSetOutcome;
+
+  /// Archive sheet: button that changes one print's recorded verdict
+  ///
+  /// In en, this message translates to:
+  /// **'Change outcome'**
+  String get archiveRunChangeOutcome;
+
+  /// Archive sheet: button that writes a note on one print
+  ///
+  /// In en, this message translates to:
+  /// **'Add note'**
+  String get archiveRunAddNote;
+
+  /// Archive sheet: button that edits one print's note
+  ///
+  /// In en, this message translates to:
+  /// **'Edit note'**
+  String get archiveRunEditNote;
+
+  /// Snack after one print's note was stored
+  ///
+  /// In en, this message translates to:
+  /// **'Note saved'**
+  String get archiveRunNoteSaved;
 }
 
 class _AppLocalizationsDelegate

@@ -12,6 +12,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'contract_harness.dart';
+import 'sent_writes.dart';
 
 /// An archive's prints as the server lists them (`GET /archives/{id}/runs`),
 /// and the two writes that address one print: its note and its verdict.
@@ -124,6 +125,40 @@ void main() {
         // which is the one print an older server knows.
         expect(result.archive.userVerdict, PrintVerdict.good);
       }
+    });
+
+    test('the note the print\'s sheet sends is stored on that print', () async {
+      if (!served) return markTestSkipped('the server predates the redesign');
+      final answers = await replayWrites(
+        dio,
+        recordedWrites('archive_run_note'),
+        item: run.id,
+        itemIn: RegExp(r'(?<=/print-log/)\d+'),
+      );
+
+      expect(answers.single.statusCode, 200);
+      final stored = (await archives.runs(
+        archiveId,
+      )).firstWhere((r) => r.id == run.id);
+      expect(stored.notes, 'Lids fit');
+    });
+
+    test('the verdict the print\'s sheet sends is that print\'s', () async {
+      if (!served) return markTestSkipped('the server predates the redesign');
+      final answers = await replayWrites(
+        dio,
+        recordedWrites('archive_run_verdict'),
+        item: archiveId,
+        itemIn: RegExp(r'(?<=/archives/)\d+'),
+        ids: {'run_id': run.id},
+      );
+
+      expect(answers.single.statusCode, 200);
+      final stored = (await archives.runs(
+        archiveId,
+      )).firstWhere((r) => r.id == run.id);
+      expect(stored.userVerdict, PrintVerdict.good);
+      expect(stored.userVerdictSource, 'dialog');
     });
   });
 }

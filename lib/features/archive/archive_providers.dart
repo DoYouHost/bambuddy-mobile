@@ -221,6 +221,30 @@ final archiveDetailProvider = FutureProvider.autoDispose.family<Archive, int>(
   (ref, archiveId) => ref.watch(archiveRepositoryProvider).byId(archiveId),
 );
 
+/// The archive as one print of it printed (`?run_id=`): what the outcome sheet
+/// shows and judges for that print.
+final archiveRunDetailProvider = FutureProvider.autoDispose
+    .family<Archive, (int, int)>((ref, key) {
+      final (archiveId, runId) = key;
+      return ref.watch(archiveRepositoryProvider).byId(archiveId, runId: runId);
+    });
+
+/// Whether this session may write a print's note: `PATCH /print-log/{id}`
+/// takes `archives:update_all`, or `archives:update_own` on a print the user
+/// started (`print_log.py::update_print_log_entry`). Unknown identity (auth
+/// off) blocks nothing.
+final archiveRunNoteAllowedProvider = Provider.family<bool, int?>((
+  ref,
+  createdById,
+) {
+  final me = ref.watch(currentUserProvider).value;
+  if (me == null) return true;
+  if (me.can(Permissions.archivesUpdateAll)) return true;
+  return createdById != null &&
+      createdById == me.id &&
+      me.can(Permissions.archivesUpdateOwn);
+});
+
 /// Every print of one archive, newest first (`GET /archives/{id}/runs`).
 final archiveRunsProvider = FutureProvider.autoDispose
     .family<List<PrintLogEntry>, int>(

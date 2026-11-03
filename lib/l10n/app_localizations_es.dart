@@ -9861,4 +9861,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String archiveFailedCount(int count) {
     return 'Fallidas: $count';
   }
+
+  @override
+  String get archiveRunSetOutcome => 'Indicar resultado';
+
+  @override
+  String get archiveRunChangeOutcome => 'Cambiar resultado';
+
+  @override
+  String get archiveRunAddNote => 'Añadir nota';
+
+  @override
+  String get archiveRunEditNote => 'Editar nota';
+
+  @override
+  String get archiveRunNoteSaved => 'Nota guardada';
 }

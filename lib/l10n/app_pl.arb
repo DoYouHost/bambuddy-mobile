@@ -3888,5 +3888,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "archiveRunSetOutcome": "Ustaw wynik",
+  "archiveRunChangeOutcome": "Zmień wynik",
+  "archiveRunAddNote": "Dodaj notatkę",
+  "archiveRunEditNote": "Edytuj notatkę",
+  "archiveRunNoteSaved": "Notatka zapisana"
 }

@@ -9740,4 +9740,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String archiveFailedCount(int count) {
     return 'Failed: $count';
   }
+
+  @override
+  String get archiveRunSetOutcome => 'Set outcome';
+
+  @override
+  String get archiveRunChangeOutcome => 'Change outcome';
+
+  @override
+  String get archiveRunAddNote => 'Add note';
+
+  @override
+  String get archiveRunEditNote => 'Edit note';
+
+  @override
+  String get archiveRunNoteSaved => 'Note saved';
 }

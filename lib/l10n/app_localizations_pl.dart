@@ -9906,4 +9906,19 @@ class AppLocalizationsPl extends AppLocalizations {
   String archiveFailedCount(int count) {
     return 'Nieudane: $count';
   }
+
+  @override
+  String get archiveRunSetOutcome => 'Ustaw wynik';
+
+  @override
+  String get archiveRunChangeOutcome => 'Zmień wynik';
+
+  @override
+  String get archiveRunAddNote => 'Dodaj notatkę';
+
+  @override
+  String get archiveRunEditNote => 'Edytuj notatkę';
+
+  @override
+  String get archiveRunNoteSaved => 'Notatka zapisana';
 }

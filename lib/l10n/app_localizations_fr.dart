@@ -9939,4 +9939,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String archiveFailedCount(int count) {
     return 'Échouées : $count';
   }
+
+  @override
+  String get archiveRunSetOutcome => 'Indiquer le résultat';
+
+  @override
+  String get archiveRunChangeOutcome => 'Modifier le résultat';
+
+  @override
+  String get archiveRunAddNote => 'Ajouter une note';
+
+  @override
+  String get archiveRunEditNote => 'Modifier la note';
+
+  @override
+  String get archiveRunNoteSaved => 'Note enregistrée';
 }

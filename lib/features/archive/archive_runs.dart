@@ -13,7 +13,13 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/print_run_labels.dart';
 import '../slicer/slice_providers.dart';
+import '../../core/api/api_exceptions.dart';
+import '../../core/app_context.dart';
+import '../../core/models/current_user.dart';
+import '../common/api_failure_snack.dart';
+import '../common/dash_async.dart';
 import 'archive_details.dart';
+import 'outcome_sheet.dart';
 import 'archive_providers.dart';
 import 'print_outcome.dart';
 
@@ -209,6 +215,7 @@ class _ArchiveRunsSectionState extends ConsumerState<ArchiveRunsSection> {
       children: [
         for (final run in shown)
           _RunTile(
+            archiveId: widget.archive.id,
             run: run,
             showPlate: showPlate,
             media: runMedia(widget.archive, runs, run),
@@ -225,6 +232,7 @@ class _ArchiveRunsSectionState extends ConsumerState<ArchiveRunsSection> {
 
 class _RunTile extends ConsumerWidget {
   const _RunTile({
+    required this.archiveId,
     required this.run,
     required this.showPlate,
     required this.media,
@@ -234,6 +242,7 @@ class _RunTile extends ConsumerWidget {
     required this.onVideo,
   });
 
+  final int archiveId;
   final PrintLogEntry run;
   final bool showPlate;
   final RunMedia media;
@@ -333,6 +342,7 @@ class _RunTile extends ConsumerWidget {
               if (open) ...[
                 const SizedBox(height: DashSpace.md),
                 _RunDetails(
+                  archiveId: archiveId,
                   run: run,
                   media: media,
                   onPhotos: onPhotos,
@@ -392,21 +402,69 @@ class _VerdictPill extends StatelessWidget {
 }
 
 /// What a print opens onto: its photos and video, then its facts.
-class _RunDetails extends StatelessWidget {
+class _RunDetails extends ConsumerStatefulWidget {
   const _RunDetails({
+    required this.archiveId,
     required this.run,
     required this.media,
     required this.onPhotos,
     required this.onVideo,
   });
 
+  final int archiveId;
   final PrintLogEntry run;
   final RunMedia media;
   final ValueChanged<List<String>> onPhotos;
   final ValueChanged<int?> onVideo;
 
   @override
+  ConsumerState<_RunDetails> createState() => _RunDetailsState();
+}
+
+class _RunDetailsState extends ConsumerState<_RunDetails> {
+  bool _saving = false;
+
+  PrintLogEntry get run => widget.run;
+
+  /// Writes the print's note, an empty one clearing it, and reloads the list.
+  Future<void> _editNote() async {
+    final l10n = AppLocalizations.of(context);
+    final notes = await promptName(
+      context,
+      title: run.notes == null
+          ? l10n.archiveRunAddNote
+          : l10n.archiveRunEditNote,
+      label: l10n.archiveRunNote,
+      initial: run.notes,
+      id: 'archive.run.note_prompt',
+      allowEmpty: true,
+      maxLines: 6,
+      keyboardType: TextInputType.multiline,
+    );
+    if (notes == null || !mounted || _saving) return;
+    final (:providers, :messenger) = detachFrom(context);
+    setState(() => _saving = true);
+    try {
+      await providers
+          .read(printLogRepositoryProvider)
+          .updateEntry(run.id, notes: notes);
+      providers.invalidate(archiveRunsProvider(widget.archiveId));
+      messenger.snack(l10n.archiveRunNoteSaved);
+    } on AppApiException catch (e) {
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'archive.run.note',
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final media = widget.media;
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final dates = DateTimeFormats.of(context);
@@ -415,6 +473,40 @@ class _RunDetails extends StatelessWidget {
         ? null
         : dates.dateTime(run.completedAt!);
     final hasVideo = media.ownVideo || media.archiveVideo;
+    // Both writes are silent drops before the archive redesign.
+    final perPrint = ref.watch(archiveRunsSupportedProvider).orFalse;
+    // As `ArchiveOutcomeRow`: the route still checks the archive's owner.
+    final canJudge =
+        perPrint &&
+        run.status == 'completed' &&
+        ref.watch(printOutcomeSupportedProvider).orFalse &&
+        (ref.watch(permissionProvider(Permissions.archivesUpdateAll)) ||
+            ref.watch(permissionProvider(Permissions.archivesUpdateOwn)));
+    final canNote =
+        perPrint && ref.watch(archiveRunNoteAllowedProvider(run.createdById));
+    final actions = [
+      if (canJudge)
+        OutlinedButton.icon(
+          icon: const Icon(Icons.thumbs_up_down_outlined),
+          label: Text(
+            run.userVerdict == null
+                ? l10n.archiveRunSetOutcome
+                : l10n.archiveRunChangeOutcome,
+          ),
+          onPressed: () =>
+              showOutcomeSheet(context, widget.archiveId, runId: run.id),
+        ).tagged('archive.run.outcome'),
+      if (canNote)
+        OutlinedButton.icon(
+          icon: const Icon(Icons.sticky_note_2_outlined),
+          label: Text(
+            run.notes == null
+                ? l10n.archiveRunAddNote
+                : l10n.archiveRunEditNote,
+          ),
+          onPressed: _saving ? null : _editNote,
+        ).tagged('archive.run.edit_note'),
+    ];
     final facts = <(String, String)>[
       (
         l10n.archiveRunStartedEnded,
@@ -448,13 +540,14 @@ class _RunDetails extends StatelessWidget {
                 OutlinedButton.icon(
                   icon: const Icon(Icons.photo_library_outlined),
                   label: Text(l10n.archiveRunPhotos(media.photos.length)),
-                  onPressed: () => onPhotos(media.photos),
+                  onPressed: () => widget.onPhotos(media.photos),
                 ).tagged('archive.run.photos'),
               if (hasVideo)
                 OutlinedButton.icon(
                   icon: const Icon(Icons.movie_outlined),
                   label: Text(l10n.archiveRunVideo),
-                  onPressed: () => onVideo(media.ownVideo ? run.id : null),
+                  onPressed: () =>
+                      widget.onVideo(media.ownVideo ? run.id : null),
                 ).tagged('archive.run.video'),
             ],
           ),
@@ -465,6 +558,12 @@ class _RunDetails extends StatelessWidget {
               Text(label, style: t.labelSoft),
               Text(value, style: t.body),
             ],
+          ),
+        if (actions.isNotEmpty)
+          Wrap(
+            spacing: DashSpace.sm,
+            runSpacing: DashSpace.sm,
+            children: actions,
           ),
       ],
     );

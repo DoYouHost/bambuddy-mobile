@@ -9835,4 +9835,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String archiveFailedCount(int count) {
     return 'Fehlgeschlagen: $count';
   }
+
+  @override
+  String get archiveRunSetOutcome => 'Ergebnis festlegen';
+
+  @override
+  String get archiveRunChangeOutcome => 'Ergebnis ändern';
+
+  @override
+  String get archiveRunAddNote => 'Notiz hinzufügen';
+
+  @override
+  String get archiveRunEditNote => 'Notiz bearbeiten';
+
+  @override
+  String get archiveRunNoteSaved => 'Notiz gespeichert';
 }

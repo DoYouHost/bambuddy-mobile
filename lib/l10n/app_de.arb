@@ -4577,5 +4577,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "archiveRunSetOutcome": "Ergebnis festlegen",
+  "archiveRunChangeOutcome": "Ergebnis ändern",
+  "archiveRunAddNote": "Notiz hinzufügen",
+  "archiveRunEditNote": "Notiz bearbeiten",
+  "archiveRunNoteSaved": "Notiz gespeichert"
 }

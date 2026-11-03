@@ -52,7 +52,7 @@ class FakeArchives implements ArchiveRepository {
   }
 
   @override
-  Future<Archive> byId(int archiveId) async => archive!;
+  Future<Archive> byId(int archiveId, {int? runId}) async => archive!;
 
   @override
   Future<({Archive archive, bool applied})> setVerdict(

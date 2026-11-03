@@ -7133,5 +7133,25 @@
         "type": "int"
       }
     }
+  },
+  "archiveRunSetOutcome": "Set outcome",
+  "@archiveRunSetOutcome": {
+    "description": "Archive sheet: button that asks how one print came out"
+  },
+  "archiveRunChangeOutcome": "Change outcome",
+  "@archiveRunChangeOutcome": {
+    "description": "Archive sheet: button that changes one print's recorded verdict"
+  },
+  "archiveRunAddNote": "Add note",
+  "@archiveRunAddNote": {
+    "description": "Archive sheet: button that writes a note on one print"
+  },
+  "archiveRunEditNote": "Edit note",
+  "@archiveRunEditNote": {
+    "description": "Archive sheet: button that edits one print's note"
+  },
+  "archiveRunNoteSaved": "Note saved",
+  "@archiveRunNoteSaved": {
+    "description": "Snack after one print's note was stored"
   }
 }
