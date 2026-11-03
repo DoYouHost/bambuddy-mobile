@@ -16411,6 +16411,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Merged: {count}. Left out: {left}.'**
   String archiveMergeDoneSome(int count, int left);
+
+  /// Archive app bar: tooltip of the button that shows the month calendar
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar view'**
+  String get archiveCalendarView;
+
+  /// Archive app bar: tooltip of the button that goes back to the list
+  ///
+  /// In en, this message translates to:
+  /// **'List view'**
+  String get archiveListView;
+
+  /// Archive calendar: button that jumps to the current month
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get archiveCalendarToday;
+
+  /// Archive calendar: tooltip of the previous-month button
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get archiveCalendarPrevious;
+
+  /// Archive calendar: tooltip of the next-month button
+  ///
+  /// In en, this message translates to:
+  /// **'Next month'**
+  String get archiveCalendarNext;
+
+  /// Archive calendar: label under the month's print count
+  ///
+  /// In en, this message translates to:
+  /// **'Prints this month'**
+  String get archiveCalendarPrints;
+
+  /// Archive calendar: label under the month's successful print count
+  ///
+  /// In en, this message translates to:
+  /// **'Successful'**
+  String get archiveCalendarSuccessful;
+
+  /// Archive calendar: label under the month's failed print count
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get archiveCalendarFailed;
+
+  /// Archive calendar: the selected day has no prints
+  ///
+  /// In en, this message translates to:
+  /// **'No prints on this day'**
+  String get archiveCalendarNoPrints;
+
+  /// Archive calendar: hint before a day is picked
+  ///
+  /// In en, this message translates to:
+  /// **'Select a day to see its prints'**
+  String get archiveCalendarSelectDay;
+
+  /// Archive calendar: screen-reader label of a day cell
+  ///
+  /// In en, this message translates to:
+  /// **'{date}: {count, plural, =0{no prints} =1{1 print} other{{count} prints}}'**
+  String archiveCalendarDay(String date, int count);
 }
 
 class _AppLocalizationsDelegate

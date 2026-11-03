@@ -4667,5 +4667,26 @@
         "type": "int"
       }
     }
+  },
+  "archiveCalendarView": "Calendrier",
+  "archiveListView": "Liste",
+  "archiveCalendarToday": "Aujourd'hui",
+  "archiveCalendarPrevious": "Mois précédent",
+  "archiveCalendarNext": "Mois suivant",
+  "archiveCalendarPrints": "Impressions ce mois-ci",
+  "archiveCalendarSuccessful": "Réussies",
+  "archiveCalendarFailed": "Échouées",
+  "archiveCalendarNoPrints": "Aucune impression ce jour-là",
+  "archiveCalendarSelectDay": "Sélectionnez un jour pour voir ses impressions",
+  "archiveCalendarDay": "{date} : {count, plural, =0{aucune impression} =1{1 impression} other{{count} impressions}}",
+  "@archiveCalendarDay": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

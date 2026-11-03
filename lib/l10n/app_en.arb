@@ -7305,5 +7305,57 @@
         "type": "int"
       }
     }
+  },
+  "archiveCalendarView": "Calendar view",
+  "@archiveCalendarView": {
+    "description": "Archive app bar: tooltip of the button that shows the month calendar"
+  },
+  "archiveListView": "List view",
+  "@archiveListView": {
+    "description": "Archive app bar: tooltip of the button that goes back to the list"
+  },
+  "archiveCalendarToday": "Today",
+  "@archiveCalendarToday": {
+    "description": "Archive calendar: button that jumps to the current month"
+  },
+  "archiveCalendarPrevious": "Previous month",
+  "@archiveCalendarPrevious": {
+    "description": "Archive calendar: tooltip of the previous-month button"
+  },
+  "archiveCalendarNext": "Next month",
+  "@archiveCalendarNext": {
+    "description": "Archive calendar: tooltip of the next-month button"
+  },
+  "archiveCalendarPrints": "Prints this month",
+  "@archiveCalendarPrints": {
+    "description": "Archive calendar: label under the month's print count"
+  },
+  "archiveCalendarSuccessful": "Successful",
+  "@archiveCalendarSuccessful": {
+    "description": "Archive calendar: label under the month's successful print count"
+  },
+  "archiveCalendarFailed": "Failed",
+  "@archiveCalendarFailed": {
+    "description": "Archive calendar: label under the month's failed print count"
+  },
+  "archiveCalendarNoPrints": "No prints on this day",
+  "@archiveCalendarNoPrints": {
+    "description": "Archive calendar: the selected day has no prints"
+  },
+  "archiveCalendarSelectDay": "Select a day to see its prints",
+  "@archiveCalendarSelectDay": {
+    "description": "Archive calendar: hint before a day is picked"
+  },
+  "archiveCalendarDay": "{date}: {count, plural, =0{no prints} =1{1 print} other{{count} prints}}",
+  "@archiveCalendarDay": {
+    "description": "Archive calendar: screen-reader label of a day cell",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

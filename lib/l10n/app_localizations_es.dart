@@ -10001,4 +10001,47 @@ class AppLocalizationsEs extends AppLocalizations {
   String archiveMergeDoneSome(int count, int left) {
     return 'Fusionados: $count. Omitidos: $left.';
   }
+
+  @override
+  String get archiveCalendarView => 'Vista de calendario';
+
+  @override
+  String get archiveListView => 'Vista de lista';
+
+  @override
+  String get archiveCalendarToday => 'Hoy';
+
+  @override
+  String get archiveCalendarPrevious => 'Mes anterior';
+
+  @override
+  String get archiveCalendarNext => 'Mes siguiente';
+
+  @override
+  String get archiveCalendarPrints => 'Impresiones este mes';
+
+  @override
+  String get archiveCalendarSuccessful => 'Correctas';
+
+  @override
+  String get archiveCalendarFailed => 'Fallidas';
+
+  @override
+  String get archiveCalendarNoPrints => 'No hay impresiones este día';
+
+  @override
+  String get archiveCalendarSelectDay =>
+      'Selecciona un día para ver sus impresiones';
+
+  @override
+  String archiveCalendarDay(String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count impresiones',
+      one: '1 impresión',
+      zero: 'sin impresiones',
+    );
+    return '$date: $_temp0';
+  }
 }

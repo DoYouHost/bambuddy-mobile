@@ -9975,4 +9975,47 @@ class AppLocalizationsDe extends AppLocalizations {
   String archiveMergeDoneSome(int count, int left) {
     return 'Zusammengeführt: $count. Ausgelassen: $left.';
   }
+
+  @override
+  String get archiveCalendarView => 'Kalenderansicht';
+
+  @override
+  String get archiveListView => 'Listenansicht';
+
+  @override
+  String get archiveCalendarToday => 'Heute';
+
+  @override
+  String get archiveCalendarPrevious => 'Vorheriger Monat';
+
+  @override
+  String get archiveCalendarNext => 'Nächster Monat';
+
+  @override
+  String get archiveCalendarPrints => 'Drucke in diesem Monat';
+
+  @override
+  String get archiveCalendarSuccessful => 'Erfolgreich';
+
+  @override
+  String get archiveCalendarFailed => 'Fehlgeschlagen';
+
+  @override
+  String get archiveCalendarNoPrints => 'Keine Drucke an diesem Tag';
+
+  @override
+  String get archiveCalendarSelectDay =>
+      'Wählen Sie einen Tag, um seine Drucke zu sehen';
+
+  @override
+  String archiveCalendarDay(String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Drucke',
+      one: '1 Druck',
+      zero: 'keine Drucke',
+    );
+    return '$date: $_temp0';
+  }
 }

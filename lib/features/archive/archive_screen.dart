@@ -27,6 +27,7 @@ import '../../data/pipelines_repository.dart' show PipelineSource;
 import '../pipelines/pipeline_run_screen.dart';
 import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
+import 'archive_calendar.dart';
 import 'archive_details.dart';
 import 'archive_filament_edit.dart';
 import 'archive_plates.dart';
@@ -58,6 +59,10 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   final Set<int> _selected = {};
 
   bool get _selectionMode => _selected.isNotEmpty;
+
+  /// The month calendar instead of the list (the web's calendar view). Not
+  /// kept across visits: the list is what the tab is for.
+  bool _calendar = false;
 
   void _toggleSelect(int id) {
     setState(() {
@@ -152,6 +157,15 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                 context,
                 title: l10n.navArchive,
                 actions: [
+                  IconButton(
+                    icon: Icon(
+                      _calendar ? Icons.view_list : Icons.calendar_month,
+                    ),
+                    tooltip: _calendar
+                        ? l10n.archiveListView
+                        : l10n.archiveCalendarView,
+                    onPressed: () => setState(() => _calendar = !_calendar),
+                  ).tagged('archive.view_toggle'),
                   logTag(
                     'archive.menu',
                     PopupMenuButton<String>(
@@ -235,6 +249,14 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                       SliverEmptyState(
                         message: l10n.archiveNoMatches,
                         icon: Icons.search_off,
+                      )
+                    else if (_calendar)
+                      SliverToBoxAdapter(
+                        child: ArchiveCalendar(
+                          archives: items,
+                          printerId: filters.printerId,
+                          onOpen: _openSheet,
+                        ),
                       )
                     else
                       SliverPadding(
