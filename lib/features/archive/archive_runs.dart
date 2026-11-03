@@ -48,6 +48,15 @@ RunMedia runMedia(
   );
 }
 
+/// Whether this session may give [run] a verdict of its own: a server that
+/// keeps one per print and records verdicts, a completed print, and update
+/// rights on the archive (the route checks the archive's owner).
+bool runJudgeable(WidgetRef ref, Archive archive, PrintLogEntry run) =>
+    run.status == 'completed' &&
+    ref.watch(archiveRunsSupportedProvider).orFalse &&
+    ref.watch(printOutcomeSupportedProvider).orFalse &&
+    ref.watch(archiveUpdateAllowedProvider(archive.createdById));
+
 /// How far a measured time ran from its estimate, as "+4%" / "-6%".
 String estimateDelta(int seconds, int estimate) {
   final delta = ((seconds - estimate) / estimate * 100).round();
@@ -327,7 +336,26 @@ class _RunTile extends ConsumerWidget {
               ),
               if (run.userVerdict != null || run.awaitsVerdict) ...[
                 const SizedBox(height: DashSpace.xs),
-                _VerdictPill(run: run),
+                Wrap(
+                  spacing: DashSpace.sm,
+                  runSpacing: DashSpace.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _VerdictPill(run: run),
+                    // The question is answered from the row itself, as the
+                    // web's "Confirm outcome" on it, not only once opened.
+                    if (run.awaitsVerdict && runJudgeable(ref, archive, run))
+                      FilledButton.tonalIcon(
+                        icon: const Icon(Icons.thumbs_up_down_outlined),
+                        label: Text(l10n.archiveRunSetOutcome),
+                        onPressed: () => showOutcomeSheet(
+                          context,
+                          archive.id,
+                          runId: run.id,
+                        ),
+                      ).tagged('archive.run.answer'),
+                  ],
+                ),
               ],
               const SizedBox(height: DashSpace.xs),
               Text(
@@ -493,11 +521,7 @@ class _RunDetailsState extends ConsumerState<_RunDetails> {
     final hasVideo = media.ownVideo || media.archiveVideo;
     // Both writes are silent drops before the archive redesign.
     final perPrint = ref.watch(archiveRunsSupportedProvider).orFalse;
-    final canJudge =
-        perPrint &&
-        run.status == 'completed' &&
-        ref.watch(printOutcomeSupportedProvider).orFalse &&
-        ref.watch(archiveUpdateAllowedProvider(widget.archive.createdById));
+    final canJudge = runJudgeable(ref, widget.archive, run);
     final canNote =
         perPrint && ref.watch(archiveUpdateAllowedProvider(run.createdById));
     final actions = [

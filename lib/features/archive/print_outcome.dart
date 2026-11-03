@@ -143,10 +143,13 @@ class _ArchiveOutcomeRowState extends ConsumerState<ArchiveOutcomeRow> {
     final archive = widget.archive;
     if (!archiveTakesVerdict(archive)) return const SizedBox.shrink();
     // Where each print takes its own verdict, the latest print's sits on its
-    // row in the print history; this line would only say it a second time. An
-    // archive printed before runs were logged has no row, so it keeps the line.
-    if (archive.runCount > 0 &&
-        ref.watch(archiveRunsSupportedProvider).orFalse) {
+    // row in the print history; this line would only say it a second time.
+    // Only once that history has rows to show: while it loads, if it failed,
+    // or for an archive printed before runs were logged, the line is the one
+    // place the verdict can be read and given.
+    if (ref.watch(archiveRunsSupportedProvider).orFalse &&
+        (ref.watch(archiveRunsProvider(archive.id)).value?.isNotEmpty ??
+            false)) {
       return const SizedBox.shrink();
     }
     // A verdict the archive carries proves the server keeps them; only the

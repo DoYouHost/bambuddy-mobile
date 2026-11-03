@@ -1,5 +1,7 @@
 import 'dart:ui' show Tristate;
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
+import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/features/archive/archive_details.dart';
@@ -308,6 +310,7 @@ void main() {
       WidgetTester tester,
       Archive archive, {
       bool perPrint = false,
+      Future<List<PrintLogEntry>> Function()? runs,
     }) async {
       repo = FakeArchives(archive: archive);
       rejected = 0;
@@ -326,6 +329,8 @@ void main() {
             const AsyncData(true),
           ),
           archiveRunsSupportedProvider.overrideWithValue(AsyncData(perPrint)),
+          if (runs != null)
+            archiveRunsProvider.overrideWith((ref, id) => runs()),
         ],
       );
       await tester.pumpAndSettle();
@@ -333,27 +338,46 @@ void main() {
 
     Finder thumb(String label) => find.byTooltip(label);
 
+    final judged = testArchive(
+      userVerdict: PrintVerdict.good,
+    ).copyWith(runCount: 2);
+    final row = PrintLogEntry(
+      id: 1,
+      status: 'completed',
+      createdAt: DateTime(2026, 11),
+    );
+
     // There the latest print's verdict is on its own row in the print history.
-    testWidgets('a server with a verdict per print shows no second line', (
+    testWidgets('a print history with rows takes the line\'s place', (
       tester,
     ) async {
-      await open(
-        tester,
-        testArchive(userVerdict: PrintVerdict.good).copyWith(runCount: 2),
-        perPrint: true,
-      );
+      await open(tester, judged, perPrint: true, runs: () async => [row]);
 
       expect(thumb(pl.outcomeGood), findsNothing);
     });
 
-    testWidgets('an archive with no logged print keeps the line there', (
+    testWidgets('an empty print history keeps the line', (tester) async {
+      await open(tester, judged, perPrint: true, runs: () async => const []);
+
+      expect(thumb(pl.outcomeGood), findsOneWidget);
+    });
+
+    testWidgets('a print history that failed to load keeps the line', (
       tester,
     ) async {
       await open(
         tester,
-        testArchive(userVerdict: PrintVerdict.good).copyWith(runCount: 0),
+        judged,
         perPrint: true,
+        runs: () async =>
+            throw const ApiException(AppErrorCode.badResponse, statusCode: 500),
       );
+
+      expect(thumb(pl.outcomeGood), findsOneWidget);
+    });
+
+    testWidgets('an older server keeps the line, rows or not', (tester) async {
+      await open(tester, judged, runs: () async => [row]);
 
       expect(thumb(pl.outcomeGood), findsOneWidget);
     });

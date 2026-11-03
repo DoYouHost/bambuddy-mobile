@@ -111,6 +111,42 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('a print awaiting its verdict is answered from its row', (
+    tester,
+  ) async {
+    adapter.onGet(
+      '/api/v1/archives/5',
+      (s) => s.reply(200, {
+        'id': 5,
+        'filename': 'bag.gcode.3mf',
+        'status': 'completed',
+        'confirm_requested': true,
+        'user_verdict': null,
+      }),
+      queryParameters: {'run_id': 1},
+    );
+    await pump(tester, runs: [_run(1)]);
+    // Folded back: the button is on the row, not inside the opened print.
+    await tester.tap(byLogId('archive.run').first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(byLogId('archive.run.answer'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(pl.outcomeTitle), findsOneWidget);
+  });
+
+  testWidgets('a print already judged has no answer button', (tester) async {
+    await pump(
+      tester,
+      runs: [
+        {..._run(1), 'user_verdict': 'good', 'user_verdict_source': 'dialog'},
+      ],
+    );
+
+    expect(byLogId('archive.run.answer'), findsNothing);
+  });
+
   testWidgets('a server before the redesign is offered neither write', (
     tester,
   ) async {
