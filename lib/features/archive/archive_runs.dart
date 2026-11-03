@@ -473,7 +473,7 @@ class _RunDetailsState extends ConsumerState<_RunDetails> {
         mounted ? messenger : null,
         e,
         l10n,
-        action: 'archive.run.note',
+        action: 'archive.run.edit_note',
       );
     } finally {
       if (mounted) setState(() => _saving = false);
