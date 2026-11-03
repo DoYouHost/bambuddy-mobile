@@ -631,6 +631,16 @@ On a contract stack a group is always held back as `busy`: an upload counts as j
 printed for half an hour (`archive_merge.py::_JUST_PRINTED`). The demo carries one
 mergeable group (a second "Handle" archive) for the merge itself.
 
+### archiveCalendar — 1.3.1 (archive redesign P4, commit d43bf57)
+
+`GET /archives/prints`: every print of the archives the caller sees that ended in a
+range of calendar days (`tz` is the device's zone, as for the statistics). An older
+server answers 422 for the same reason as `merge-count`, and
+`ArchiveRepository.printsBetween` then returns null and records the absence in
+`printsCapability`. That is not a missing feature: the calendar places each printed
+archive as its one print, which is all an older server can say (it logs runs but has
+no route that lists them by day). Being early costs one 422 and that fallback.
+
 ### spoolMaterialNumber — 1.2.5.7 (server #2870)
 
 A purchasing number shared by every spool of a product: `material_number` on a

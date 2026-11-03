@@ -7,6 +7,7 @@ import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
+import '../core/format/system_clock_sync.dart';
 import '../core/models/archive.dart';
 import '../core/models/archive_media.dart';
 import '../core/models/archive_merge.dart';
@@ -20,9 +21,16 @@ import '../core/models/print_log_entry.dart';
 /// Auth adds [AuthInterceptor] to the shared Dio.
 /// Each method maps [DioException] to [AppApiException].
 class ArchiveRepository {
-  ArchiveRepository(this._dio, [this._serverVersion]);
+  ArchiveRepository(
+    this._dio, [
+    this._serverVersion,
+    this._clock = const SystemClockQuery(),
+  ]);
 
   final Dio _dio;
+
+  /// Where the device's zone comes from for a day range: Android, or a test.
+  final SystemClockQuery _clock;
 
   /// Answers [printerMediaCapability] until a `printer-media` request has.
   final ServerVersionService? _serverVersion;
@@ -63,6 +71,13 @@ class ArchiveRepository {
   /// parse `merge-count` as an id (measured on 1.2.5.7).
   late final mergeCapability = ObservedCapability(
     ServerFeature.archiveMerge,
+    _serverVersion,
+  );
+
+  /// Whether this server lists prints by the day they ended (the calendar's
+  /// source). Settled like [mergeCapability]: an older server's 422.
+  late final printsCapability = ObservedCapability(
+    ServerFeature.archiveCalendar,
     _serverVersion,
   );
 
@@ -335,6 +350,55 @@ class ArchiveRepository {
     );
     return ArchiveMergeResult.fromJson(res.data ?? const {});
   });
+
+  /// Every print that ended between [from] and [to] (calendar days in the
+  /// device's zone), all pages of `GET /archives/prints`. Null when the server
+  /// has no such route: the calendar then shows each archive as its one print.
+  Future<List<PrintLogEntry>?> printsBetween(
+    DateTime from,
+    DateTime to, {
+    int? printerId,
+  }) async {
+    if (printsCapability.observedAnswer == false) return null;
+    String day(DateTime d) =>
+        '${d.year}-${'${d.month}'.padLeft(2, '0')}-${'${d.day}'.padLeft(2, '0')}';
+    const page = 500;
+    final rows = <PrintLogEntry>[];
+    try {
+      for (var offset = 0; ; offset += page) {
+        final query = await withDayZone({
+          'date_from': day(from),
+          'date_to': day(to),
+          'printer_id': ?printerId,
+          'limit': page,
+          'offset': offset,
+        }, clock: _clock);
+        final body = await printsCapability.watching(
+          () async =>
+              (await _dio.get<Map<String, dynamic>>(
+                Endpoints.archivePrints,
+                queryParameters: query,
+              )).data ??
+              const <String, dynamic>{},
+          observing: treat404AsAbsent,
+        );
+        final items = body['items'];
+        final got = parseJsonList(
+          items is List ? items : const [],
+          PrintLogEntry.fromJson,
+        );
+        rows.addAll(got);
+        final total = toIntOrNull(body['total']) ?? 0;
+        if ((items is List ? items.length : 0) < page || rows.length >= total) {
+          return rows;
+        }
+      }
+    } on AppApiException catch (e) {
+      if (e.statusCode != 422 && e.statusCode != 404) rethrow;
+      printsCapability.observe(present: false);
+      return null;
+    }
+  }
 
   /// GET /archives/no-3mf-warning — whether any print in the last 30 days
   /// archived without its 3MF, and why.

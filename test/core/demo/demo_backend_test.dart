@@ -834,6 +834,19 @@ void main() {
       expect(await repo.mergeCount(), 0);
     });
 
+    test('the calendar reads this month\'s prints', () async {
+      final repo = ArchiveRepository(dio);
+      final now = DateTime.now();
+      final rows = await repo.printsBetween(
+        DateTime(now.year, now.month - 1),
+        DateTime(now.year, now.month + 1, 0),
+      );
+
+      expect(rows, isNotEmpty);
+      expect(rows!.every((r) => r.archiveId != null), isTrue);
+      expect(await repo.printsCapability.supported, isTrue);
+    });
+
     test('a verdict for one print leaves the others alone', () async {
       final repo = ArchiveRepository(dio);
       final multi = (await repo.list()).firstWhere((a) => a.plateId != null);

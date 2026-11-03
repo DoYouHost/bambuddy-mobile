@@ -4180,6 +4180,8 @@ class DemoBackend {
           ]);
         case 'analysis':
           return demoOk(_failureAnalysis(q));
+        case 'prints':
+          return demoOk(_demoPrints(q));
         case 'merge-count':
           return demoOk({'groups': _mergeGroups().length});
         case 'merge-preview':
@@ -4328,6 +4330,28 @@ class DemoBackend {
       archive['failure_reason'] = run['failure_reason'];
     }
     return demoOk(archive);
+  }
+
+  /// `GET /archives/prints`: the runs of live archives that ended in the date
+  /// range, by id. The demo reads the days in the device's own zone.
+  Map<String, dynamic> _demoPrints(Map<String, String> q) {
+    final from = DateTime.tryParse(q['date_from'] ?? '');
+    final to = DateTime.tryParse(q['date_to'] ?? '');
+    final printer = int.tryParse(q['printer_id'] ?? '');
+    final live = {for (final a in _archives) a['id']};
+    final rows = [
+      for (final run in _printLog)
+        if (live.contains(run['archive_id']) &&
+            (printer == null || run['printer_id'] == printer))
+          if (DateTime.tryParse(
+                '${run['completed_at'] ?? run['created_at']}',
+              )?.toLocal()
+              case final ended?)
+            if ((from == null || !ended.isBefore(from)) &&
+                (to == null || ended.isBefore(to.add(const Duration(days: 1)))))
+              run,
+    ]..sort((a, b) => (a['id'] as int) - (b['id'] as int));
+    return {'items': rows, 'total': rows.length};
   }
 
   /// Archives of the same file, oldest first; the demo has no content hash, so
