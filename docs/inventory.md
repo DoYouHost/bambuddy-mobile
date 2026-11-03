@@ -76,6 +76,10 @@ From the bambuddy and Spoolman source:
   charged to the tag first and to the slot row as the fallback.
 - The web reads the slot row first and, on any RFID tray, disables Assign and hides
   Unassign (`isBambuLabSpool`).
+- The spool sheet's usage list reads `GET /spoolman/inventory/spools/{id}/usage`
+  (#3407, 1.3.1). Older servers 404 it and keep no per-print record, so
+  `SpoolmanInventorySource.fetchUsage` reads that 404 as an empty list. The app has
+  no clear-history action, so the route's `DELETE` is not wired.
 
 **One deliberate deviation.** For an RFID tag that no spool carries (auto-add off)
 the app keeps the picker enabled, where the web disables Assign and offers Link.
