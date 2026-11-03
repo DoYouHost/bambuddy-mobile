@@ -34,6 +34,7 @@ class SettingsRepository {
   static const _wearRelayClaimKey = 'wear_relay_claim';
   static const _wearFleetCacheKey = 'wear_fleet_cache';
   static const _no3mfDismissedKey = 'archive_no3mf_dismissed';
+  static const _mergeDismissedAtKey = 'archive_merge_dismissed_at';
   static const _printerCardsCollapsedKey = 'printer_cards_collapsed';
   static const _wallKeepAwakeKey = 'wall_keep_screen_awake';
   static const _wallPanelExpandedKey = 'wall_panel_expanded';
@@ -193,6 +194,13 @@ class SettingsRepository {
   bool loadNo3mfDismissed() => _prefs.getBool(_no3mfDismissedKey) ?? false;
 
   Future<void> saveNo3mfDismissed() => _prefs.setBool(_no3mfDismissedKey, true);
+
+  /// How many duplicate groups there were when the merge banner was dismissed;
+  /// it comes back once there are more (as the web's `archiveMergeBannerDismissed`).
+  int? loadMergeDismissedAt() => _prefs.getInt(_mergeDismissedAtKey);
+
+  Future<void> saveMergeDismissedAt(int groups) =>
+      _prefs.setInt(_mergeDismissedAtKey, groups);
 
   /// Whether dashboard printer cards open collapsed. Absent reads as expanded,
   /// the only look installs had before the setting existed.

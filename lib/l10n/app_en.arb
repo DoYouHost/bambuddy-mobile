@@ -7005,5 +7005,357 @@
   },
   "@cameraDemoUnavailable": {
     "description": "Camera screen in demo mode, for the one demo printer that is offline; the others show a picture"
+  },
+  "archiveRunsTitle": "Print history",
+  "@archiveRunsTitle": {
+    "description": "Archive sheet: heading above the list of every print of this file"
+  },
+  "archiveRunsEmpty": "This file has not been printed yet.",
+  "@archiveRunsEmpty": {
+    "description": "Archive sheet: the file has no logged print"
+  },
+  "archiveRunsBeforeLog": "Printed before Bambuddy logged each print: {status}.",
+  "@archiveRunsBeforeLog": {
+    "description": "Archive sheet: the archive's one print predates per-print logging; status is the archive's outcome",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "No prints of this plate yet.",
+  "@archiveRunsPlateEmpty": {
+    "description": "Archive sheet: the plate filter matches no print"
+  },
+  "archiveRunsAllPlates": "All plates",
+  "@archiveRunsAllPlates": {
+    "description": "Archive sheet: plate filter chip that shows every print"
+  },
+  "archiveRunPlate": "Plate {plate}",
+  "@archiveRunPlate": {
+    "description": "Archive sheet: which plate of a multi-plate file one print ran, or a plate filter chip",
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Printer removed",
+  "@archiveRunNoPrinter": {
+    "description": "Archive sheet: a print whose printer was deleted"
+  },
+  "archiveRunWithEstimate": "{value} (est. {estimate})",
+  "@archiveRunWithEstimate": {
+    "description": "Archive sheet: a measured figure next to the slicer's estimate for the plate",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} vs. {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "description": "Archive sheet: a finished print's time against the plate estimate; delta is like +4%",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} of {estimate}",
+  "@archiveRunTimeOf": {
+    "description": "Archive sheet: how far a print that stopped got, against the plate estimate",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Started / ended",
+  "@archiveRunStartedEnded": {
+    "description": "Archive sheet: label of a print's start and end times"
+  },
+  "archiveRunEnergy": "Energy",
+  "@archiveRunEnergy": {
+    "description": "Archive sheet: label of a print's energy use"
+  },
+  "archiveRunFailureReason": "Failure reason",
+  "@archiveRunFailureReason": {
+    "description": "Archive sheet: label of why a print failed"
+  },
+  "archiveRunStartedBy": "Started by",
+  "@archiveRunStartedBy": {
+    "description": "Archive sheet: label of the user who started a print"
+  },
+  "archiveRunNote": "Note on this print",
+  "@archiveRunNote": {
+    "description": "Archive sheet: label of one print's own note"
+  },
+  "archiveRunVideo": "Timelapse video",
+  "@archiveRunVideo": {
+    "description": "Archive sheet: button that plays one print's timelapse"
+  },
+  "archiveRunPhotos": "Photos ({count})",
+  "@archiveRunPhotos": {
+    "description": "Archive sheet: button that opens one print's finish photos",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Good: {count}",
+  "@archiveGoodCount": {
+    "description": "Archive sheet header chip: how many prints of the file completed",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Failed: {count}",
+  "@archiveFailedCount": {
+    "description": "Archive sheet header chip: how many prints of the file failed",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunSetOutcome": "Set outcome",
+  "@archiveRunSetOutcome": {
+    "description": "Archive sheet: button that asks how one print came out"
+  },
+  "archiveRunChangeOutcome": "Change outcome",
+  "@archiveRunChangeOutcome": {
+    "description": "Archive sheet: button that changes one print's recorded verdict"
+  },
+  "archiveRunAddNote": "Add note",
+  "@archiveRunAddNote": {
+    "description": "Archive sheet: button that writes a note on one print"
+  },
+  "archiveRunEditNote": "Edit note",
+  "@archiveRunEditNote": {
+    "description": "Archive sheet: button that edits one print's note"
+  },
+  "archiveRunNoteSaved": "Note saved",
+  "@archiveRunNoteSaved": {
+    "description": "Snack after one print's note was stored"
+  },
+  "archivePlatesTitle": "Plates",
+  "@archivePlatesTitle": {
+    "description": "Archive sheet: heading above the cards of a multi-plate file's plates"
+  },
+  "archivePlateEstimate": "Estimate {value}",
+  "@archivePlateEstimate": {
+    "description": "Archive sheet plate card: the slicer's time and weight for the plate",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Last print vs. estimate: {value}",
+  "@archivePlateLastVsEstimate": {
+    "description": "Archive sheet plate card: the newest finished print of the plate against its estimate; value is like +4%",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Print this plate",
+  "@archivePrintThisPlate": {
+    "description": "Archive sheet plate card: button that opens the print form on this plate"
+  },
+  "archiveShowPlatePrints": "Show its prints",
+  "@archiveShowPlatePrints": {
+    "description": "Archive sheet plate card: button that filters the print history to this plate"
+  },
+  "archiveRunReprint": "Reprint this print",
+  "@archiveRunReprint": {
+    "description": "Archive sheet: button that opens the print form on the plate one print ran"
+  },
+  "archiveMergeBanner": "{count, plural, =1{1 group of duplicate archives} other{{count} groups of duplicate archives}}",
+  "@archiveMergeBanner": {
+    "description": "Archive list banner: how many groups of archives hold the same file",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Merge",
+  "@archiveMergeButton": {
+    "description": "Archive list banner: one-word button that opens the merge sheet"
+  },
+  "archiveMergeDismiss": "Dismiss",
+  "@archiveMergeDismiss": {
+    "description": "Archive list banner: tooltip of the button that hides the merge banner"
+  },
+  "archiveMergeMenu": "Merge duplicates",
+  "@archiveMergeMenu": {
+    "description": "Archive menu entry that opens the merge sheet"
+  },
+  "archiveMergeTitle": "Merge duplicate archives",
+  "@archiveMergeTitle": {
+    "description": "Merge sheet title"
+  },
+  "archiveMergeEffectKeep": "The oldest archive of each group stays and takes in every print of the others, with their photos, videos and files.",
+  "@archiveMergeEffectKeep": {
+    "description": "Merge sheet: what a merge does, first point"
+  },
+  "archiveMergeEffectLinks": "The others disappear from the archives; their old links open the one they went into.",
+  "@archiveMergeEffectLinks": {
+    "description": "Merge sheet: what a merge does, second point"
+  },
+  "archiveMergeEffectMoney": "Wallet charges and budget reservations stay where they were booked.",
+  "@archiveMergeEffectMoney": {
+    "description": "Merge sheet: what a merge does, third point"
+  },
+  "archiveMergeNone": "No duplicates to merge.",
+  "@archiveMergeNone": {
+    "description": "Merge sheet: the server found no duplicate groups"
+  },
+  "archiveMergeMember": "{name} · created {date} · {count, plural, =1{1 print} other{{count} prints}}",
+  "@archiveMergeMember": {
+    "description": "Merge sheet: one archive of a group, when it was created and how many prints it has",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Stays",
+  "@archiveMergeStays": {
+    "description": "Merge sheet: marks the archive of a group that stays"
+  },
+  "archiveMergeWaiting": "Left out for now",
+  "@archiveMergeWaiting": {
+    "description": "Merge sheet: heading above the groups the server leaves out for now"
+  },
+  "archiveMergeLeftOut": "Left out by the merge",
+  "@archiveMergeLeftOut": {
+    "description": "Merge sheet: heading above the groups the merge itself left out"
+  },
+  "archiveMergeSkipBusy": "In use: printing, queued or just printed. Try again later.",
+  "@archiveMergeSkipBusy": {
+    "description": "Merge sheet: why a group is left out"
+  },
+  "archiveMergeSkipConflicting": "The archives carry different source or design files, or videos. Keep one by hand first.",
+  "@archiveMergeSkipConflicting": {
+    "description": "Merge sheet: why a group is left out"
+  },
+  "archiveMergeSkipFailed": "The merge failed.",
+  "@archiveMergeSkipFailed": {
+    "description": "Merge sheet: why a group is left out"
+  },
+  "archiveMergeSkipNotAGroup": "No longer a group of duplicates.",
+  "@archiveMergeSkipNotAGroup": {
+    "description": "Merge sheet: why a group is left out"
+  },
+  "archiveMergeAction": "{count, plural, =1{Merge 1 group} other{Merge {count} groups}}",
+  "@archiveMergeAction": {
+    "description": "Merge sheet: the button that merges the ticked groups",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "This cannot be undone in the app.",
+  "@archiveMergeConfirmBody": {
+    "description": "Merge confirmation dialog body"
+  },
+  "archiveMergeDone": "{count, plural, =1{Merged 1 group.} other{Merged {count} groups.}}",
+  "@archiveMergeDone": {
+    "description": "Snack after a merge that merged every ticked group",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Merged: {count}. Left out: {left}.",
+  "@archiveMergeDoneSome": {
+    "description": "Snack after a merge that left some groups out",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveCalendarView": "Calendar view",
+  "@archiveCalendarView": {
+    "description": "Archive app bar: tooltip of the button that shows the month calendar"
+  },
+  "archiveListView": "List view",
+  "@archiveListView": {
+    "description": "Archive app bar: tooltip of the button that goes back to the list"
+  },
+  "archiveCalendarToday": "Today",
+  "@archiveCalendarToday": {
+    "description": "Archive calendar: button that jumps to the current month"
+  },
+  "archiveCalendarPrevious": "Previous month",
+  "@archiveCalendarPrevious": {
+    "description": "Archive calendar: tooltip of the previous-month button"
+  },
+  "archiveCalendarNext": "Next month",
+  "@archiveCalendarNext": {
+    "description": "Archive calendar: tooltip of the next-month button"
+  },
+  "archiveCalendarPrints": "Prints this month",
+  "@archiveCalendarPrints": {
+    "description": "Archive calendar: label under the month's print count"
+  },
+  "archiveCalendarSuccessful": "Successful",
+  "@archiveCalendarSuccessful": {
+    "description": "Archive calendar: label under the month's successful print count"
+  },
+  "archiveCalendarFailed": "Failed",
+  "@archiveCalendarFailed": {
+    "description": "Archive calendar: label under the month's failed print count"
+  },
+  "archiveCalendarNoPrints": "No prints on this day",
+  "@archiveCalendarNoPrints": {
+    "description": "Archive calendar: the selected day has no prints"
+  },
+  "archiveCalendarSelectDay": "Select a day to see its prints",
+  "@archiveCalendarSelectDay": {
+    "description": "Archive calendar: hint before a day is picked"
+  },
+  "archiveCalendarDay": "{date}: {count, plural, =0{no prints} =1{1 print} other{{count} prints}}",
+  "@archiveCalendarDay": {
+    "description": "Archive calendar: screen-reader label of a day cell",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

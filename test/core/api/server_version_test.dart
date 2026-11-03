@@ -202,6 +202,23 @@ void main() {
     expect(parse('1.2.6').supports(ServerFeature.assignmentMove), isFalse);
   });
 
+  test('the archive calendar reads prints from 1.3.1', () {
+    expect(parse('1.2.5.7').supports(ServerFeature.archiveCalendar), isFalse);
+    expect(parse('1.3.1b1').supports(ServerFeature.archiveCalendar), isTrue);
+  });
+
+  test('duplicate archives merge from 1.3.1', () {
+    expect(parse('1.2.5.7').supports(ServerFeature.archiveMerge), isFalse);
+    expect(parse('1.3.1b1').supports(ServerFeature.archiveMerge), isTrue);
+  });
+
+  test('each print keeps its own note and verdict from 1.3.1', () {
+    expect(parse('1.2.5.7').supports(ServerFeature.archiveRuns), isFalse);
+    expect(parse('1.3.0').supports(ServerFeature.archiveRuns), isFalse);
+    expect(parse('1.3.1b1').supports(ServerFeature.archiveRuns), isTrue);
+    expect(parse('1.3.1').supports(ServerFeature.archiveRuns), isTrue);
+  });
+
   test('the material number arrives in 1.2.5.7, the last 1.2.5 release', () {
     expect(
       parse('1.2.5.6').supports(ServerFeature.spoolMaterialNumber),

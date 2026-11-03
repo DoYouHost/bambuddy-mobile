@@ -184,6 +184,18 @@ class ArchiveHeaderChips extends ConsumerWidget {
             text: l10n.archiveRunCount(archive.runCount),
             ink: t.accentOrangeInk,
           ),
+        // How the prints ended, as the web's archive header counts them:
+        // whenever there is one to count, a single print included.
+        if (archive.successfulRunCount > 0)
+          _Chip(
+            text: l10n.archiveGoodCount(archive.successfulRunCount),
+            ink: t.accentGreenInk,
+          ),
+        if (archive.failedRunCount > 0)
+          _Chip(
+            text: l10n.archiveFailedCount(archive.failedRunCount),
+            ink: t.dangerInk,
+          ),
       ],
     );
   }

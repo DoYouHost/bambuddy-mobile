@@ -4490,5 +4490,203 @@
   "tipsTrimTitle": "Zeitraffer kürzen",
   "tipsTrimBody": "Ziehe die Griffe auf dem Filmstreifen; tippe oder ziehe an einer anderen Stelle, um den Abspielkopf zu bewegen.",
   "tipsWallTitle": "Wandmodus",
-  "tipsWallBody": "Öffne auf dem Bildschirm Drucker das Menü ⋮ und wähle Wandmodus."
+  "tipsWallBody": "Öffne auf dem Bildschirm Drucker das Menü ⋮ und wähle Wandmodus.",
+  "archiveRunsTitle": "Drucke",
+  "archiveRunsEmpty": "Diese Datei wurde noch nicht gedruckt.",
+  "archiveRunsBeforeLog": "Gedruckt, bevor Bambuddy jeden Druck einzeln protokolliert hat: {status}.",
+  "@archiveRunsBeforeLog": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "Diese Druckplatte wurde noch nicht gedruckt.",
+  "archiveRunsAllPlates": "Alle Druckplatten",
+  "archiveRunPlate": "Druckplatte {plate}",
+  "@archiveRunPlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Drucker entfernt",
+  "archiveRunWithEstimate": "{value} (geschätzt {estimate})",
+  "@archiveRunWithEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} / {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} von {estimate}",
+  "@archiveRunTimeOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Begonnen / beendet",
+  "archiveRunEnergy": "Energie",
+  "archiveRunFailureReason": "Fehlergrund",
+  "archiveRunStartedBy": "Gestartet von",
+  "archiveRunNote": "Notiz zu diesem Druck",
+  "archiveRunVideo": "Zeitraffer-Video",
+  "archiveRunPhotos": "Fotos ({count})",
+  "@archiveRunPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Gut: {count}",
+  "@archiveGoodCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Fehlgeschlagen: {count}",
+  "@archiveFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunSetOutcome": "Ergebnis festlegen",
+  "archiveRunChangeOutcome": "Ergebnis ändern",
+  "archiveRunAddNote": "Notiz hinzufügen",
+  "archiveRunEditNote": "Notiz bearbeiten",
+  "archiveRunNoteSaved": "Notiz gespeichert",
+  "archivePlatesTitle": "Druckplatten",
+  "archivePlateEstimate": "Schätzung {value}",
+  "@archivePlateEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Letzter Druck zur Schätzung: {value}",
+  "@archivePlateLastVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Diese Druckplatte drucken",
+  "archiveShowPlatePrints": "Ihre Drucke zeigen",
+  "archiveRunReprint": "Diesen Druck wiederholen",
+  "archiveMergeBanner": "{count, plural, =1{1 Gruppe doppelter Archive} other{{count} Gruppen doppelter Archive}}",
+  "@archiveMergeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Zusammenführen",
+  "archiveMergeDismiss": "Ausblenden",
+  "archiveMergeMenu": "Duplikate zusammenführen",
+  "archiveMergeTitle": "Doppelte Archive zusammenführen",
+  "archiveMergeEffectKeep": "Das älteste Archiv jeder Gruppe bleibt und übernimmt alle Drucke der anderen mit ihren Fotos, Videos und Dateien.",
+  "archiveMergeEffectLinks": "Die anderen verschwinden aus den Archiven; ihre alten Links öffnen das Archiv, in das sie eingegangen sind.",
+  "archiveMergeEffectMoney": "Wallet-Buchungen und Budget-Reservierungen bleiben, wo sie gebucht wurden.",
+  "archiveMergeNone": "Keine Duplikate zum Zusammenführen.",
+  "archiveMergeMember": "{name} · erstellt {date} · {count, plural, =1{1 Druck} other{{count} Drucke}}",
+  "@archiveMergeMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Bleibt",
+  "archiveMergeWaiting": "Vorerst ausgelassen",
+  "archiveMergeLeftOut": "Beim Zusammenführen ausgelassen",
+  "archiveMergeSkipBusy": "In Verwendung: druckt, in der Warteschlange oder gerade gedruckt. Später erneut versuchen.",
+  "archiveMergeSkipConflicting": "Die Archive enthalten unterschiedliche Quell- oder Konstruktionsdateien oder Videos. Zuerst von Hand eines behalten.",
+  "archiveMergeSkipFailed": "Das Zusammenführen ist fehlgeschlagen.",
+  "archiveMergeSkipNotAGroup": "Keine Gruppe von Duplikaten mehr.",
+  "archiveMergeAction": "{count, plural, =1{1 Gruppe zusammenführen} other{{count} Gruppen zusammenführen}}",
+  "@archiveMergeAction": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "Das lässt sich in der App nicht rückgängig machen.",
+  "archiveMergeDone": "{count, plural, =1{1 Gruppe zusammengeführt.} other{{count} Gruppen zusammengeführt.}}",
+  "@archiveMergeDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Zusammengeführt: {count}. Ausgelassen: {left}.",
+  "@archiveMergeDoneSome": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveCalendarView": "Kalenderansicht",
+  "archiveListView": "Listenansicht",
+  "archiveCalendarToday": "Heute",
+  "archiveCalendarPrevious": "Vorheriger Monat",
+  "archiveCalendarNext": "Nächster Monat",
+  "archiveCalendarPrints": "Drucke in diesem Monat",
+  "archiveCalendarSuccessful": "Erfolgreich",
+  "archiveCalendarFailed": "Fehlgeschlagen",
+  "archiveCalendarNoPrints": "Keine Drucke an diesem Tag",
+  "archiveCalendarSelectDay": "Wählen Sie einen Tag, um seine Drucke zu sehen",
+  "archiveCalendarDay": "{date}: {count, plural, =0{keine Drucke} =1{1 Druck} other{{count} Drucke}}",
+  "@archiveCalendarDay": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

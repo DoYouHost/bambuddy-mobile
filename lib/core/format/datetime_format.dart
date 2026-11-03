@@ -176,6 +176,10 @@ class DateTimeFormats {
   String monthAbbr(DateTime at) =>
       _cachedWords('MMM', DateFormat.MMM).format(at);
 
+  /// The month as a calendar heads it: "November 2026", "listopad 2026".
+  String monthYear(DateTime at) =>
+      _cachedWords('yMMMM', DateFormat.yMMMM).format(at);
+
   /// Takes the hour rather than a [DateTime] because the caller is labelling a
   /// bucket, not an instant, and no particular day is meant. Goes through the
   /// same format as [time] instead of an hour-only one: `DateFormat.j` drops the

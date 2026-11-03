@@ -9667,4 +9667,258 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tipsWallBody =>
       'On the Printers screen, open the ⋮ menu and choose Wall mode.';
+
+  @override
+  String get archiveRunsTitle => 'Print history';
+
+  @override
+  String get archiveRunsEmpty => 'This file has not been printed yet.';
+
+  @override
+  String archiveRunsBeforeLog(String status) {
+    return 'Printed before Bambuddy logged each print: $status.';
+  }
+
+  @override
+  String get archiveRunsPlateEmpty => 'No prints of this plate yet.';
+
+  @override
+  String get archiveRunsAllPlates => 'All plates';
+
+  @override
+  String archiveRunPlate(int plate) {
+    return 'Plate $plate';
+  }
+
+  @override
+  String get archiveRunNoPrinter => 'Printer removed';
+
+  @override
+  String archiveRunWithEstimate(String value, String estimate) {
+    return '$value (est. $estimate)';
+  }
+
+  @override
+  String archiveRunTimeVsEstimate(String value, String estimate, String delta) {
+    return '$value vs. $estimate ($delta)';
+  }
+
+  @override
+  String archiveRunTimeOf(String value, String estimate) {
+    return '$value of $estimate';
+  }
+
+  @override
+  String get archiveRunStartedEnded => 'Started / ended';
+
+  @override
+  String get archiveRunEnergy => 'Energy';
+
+  @override
+  String get archiveRunFailureReason => 'Failure reason';
+
+  @override
+  String get archiveRunStartedBy => 'Started by';
+
+  @override
+  String get archiveRunNote => 'Note on this print';
+
+  @override
+  String get archiveRunVideo => 'Timelapse video';
+
+  @override
+  String archiveRunPhotos(int count) {
+    return 'Photos ($count)';
+  }
+
+  @override
+  String archiveGoodCount(int count) {
+    return 'Good: $count';
+  }
+
+  @override
+  String archiveFailedCount(int count) {
+    return 'Failed: $count';
+  }
+
+  @override
+  String get archiveRunSetOutcome => 'Set outcome';
+
+  @override
+  String get archiveRunChangeOutcome => 'Change outcome';
+
+  @override
+  String get archiveRunAddNote => 'Add note';
+
+  @override
+  String get archiveRunEditNote => 'Edit note';
+
+  @override
+  String get archiveRunNoteSaved => 'Note saved';
+
+  @override
+  String get archivePlatesTitle => 'Plates';
+
+  @override
+  String archivePlateEstimate(String value) {
+    return 'Estimate $value';
+  }
+
+  @override
+  String archivePlateLastVsEstimate(String value) {
+    return 'Last print vs. estimate: $value';
+  }
+
+  @override
+  String get archivePrintThisPlate => 'Print this plate';
+
+  @override
+  String get archiveShowPlatePrints => 'Show its prints';
+
+  @override
+  String get archiveRunReprint => 'Reprint this print';
+
+  @override
+  String archiveMergeBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count groups of duplicate archives',
+      one: '1 group of duplicate archives',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeButton => 'Merge';
+
+  @override
+  String get archiveMergeDismiss => 'Dismiss';
+
+  @override
+  String get archiveMergeMenu => 'Merge duplicates';
+
+  @override
+  String get archiveMergeTitle => 'Merge duplicate archives';
+
+  @override
+  String get archiveMergeEffectKeep =>
+      'The oldest archive of each group stays and takes in every print of the others, with their photos, videos and files.';
+
+  @override
+  String get archiveMergeEffectLinks =>
+      'The others disappear from the archives; their old links open the one they went into.';
+
+  @override
+  String get archiveMergeEffectMoney =>
+      'Wallet charges and budget reservations stay where they were booked.';
+
+  @override
+  String get archiveMergeNone => 'No duplicates to merge.';
+
+  @override
+  String archiveMergeMember(String name, String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count prints',
+      one: '1 print',
+    );
+    return '$name · created $date · $_temp0';
+  }
+
+  @override
+  String get archiveMergeStays => 'Stays';
+
+  @override
+  String get archiveMergeWaiting => 'Left out for now';
+
+  @override
+  String get archiveMergeLeftOut => 'Left out by the merge';
+
+  @override
+  String get archiveMergeSkipBusy =>
+      'In use: printing, queued or just printed. Try again later.';
+
+  @override
+  String get archiveMergeSkipConflicting =>
+      'The archives carry different source or design files, or videos. Keep one by hand first.';
+
+  @override
+  String get archiveMergeSkipFailed => 'The merge failed.';
+
+  @override
+  String get archiveMergeSkipNotAGroup => 'No longer a group of duplicates.';
+
+  @override
+  String archiveMergeAction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Merge $count groups',
+      one: 'Merge 1 group',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeConfirmBody => 'This cannot be undone in the app.';
+
+  @override
+  String archiveMergeDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Merged $count groups.',
+      one: 'Merged 1 group.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveMergeDoneSome(int count, int left) {
+    return 'Merged: $count. Left out: $left.';
+  }
+
+  @override
+  String get archiveCalendarView => 'Calendar view';
+
+  @override
+  String get archiveListView => 'List view';
+
+  @override
+  String get archiveCalendarToday => 'Today';
+
+  @override
+  String get archiveCalendarPrevious => 'Previous month';
+
+  @override
+  String get archiveCalendarNext => 'Next month';
+
+  @override
+  String get archiveCalendarPrints => 'Prints this month';
+
+  @override
+  String get archiveCalendarSuccessful => 'Successful';
+
+  @override
+  String get archiveCalendarFailed => 'Failed';
+
+  @override
+  String get archiveCalendarNoPrints => 'No prints on this day';
+
+  @override
+  String get archiveCalendarSelectDay => 'Select a day to see its prints';
+
+  @override
+  String archiveCalendarDay(String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count prints',
+      one: '1 print',
+      zero: 'no prints',
+    );
+    return '$date: $_temp0';
+  }
 }

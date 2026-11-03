@@ -9761,4 +9761,261 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get tipsWallBody =>
       'Öffne auf dem Bildschirm Drucker das Menü ⋮ und wähle Wandmodus.';
+
+  @override
+  String get archiveRunsTitle => 'Drucke';
+
+  @override
+  String get archiveRunsEmpty => 'Diese Datei wurde noch nicht gedruckt.';
+
+  @override
+  String archiveRunsBeforeLog(String status) {
+    return 'Gedruckt, bevor Bambuddy jeden Druck einzeln protokolliert hat: $status.';
+  }
+
+  @override
+  String get archiveRunsPlateEmpty =>
+      'Diese Druckplatte wurde noch nicht gedruckt.';
+
+  @override
+  String get archiveRunsAllPlates => 'Alle Druckplatten';
+
+  @override
+  String archiveRunPlate(int plate) {
+    return 'Druckplatte $plate';
+  }
+
+  @override
+  String get archiveRunNoPrinter => 'Drucker entfernt';
+
+  @override
+  String archiveRunWithEstimate(String value, String estimate) {
+    return '$value (geschätzt $estimate)';
+  }
+
+  @override
+  String archiveRunTimeVsEstimate(String value, String estimate, String delta) {
+    return '$value / $estimate ($delta)';
+  }
+
+  @override
+  String archiveRunTimeOf(String value, String estimate) {
+    return '$value von $estimate';
+  }
+
+  @override
+  String get archiveRunStartedEnded => 'Begonnen / beendet';
+
+  @override
+  String get archiveRunEnergy => 'Energie';
+
+  @override
+  String get archiveRunFailureReason => 'Fehlergrund';
+
+  @override
+  String get archiveRunStartedBy => 'Gestartet von';
+
+  @override
+  String get archiveRunNote => 'Notiz zu diesem Druck';
+
+  @override
+  String get archiveRunVideo => 'Zeitraffer-Video';
+
+  @override
+  String archiveRunPhotos(int count) {
+    return 'Fotos ($count)';
+  }
+
+  @override
+  String archiveGoodCount(int count) {
+    return 'Gut: $count';
+  }
+
+  @override
+  String archiveFailedCount(int count) {
+    return 'Fehlgeschlagen: $count';
+  }
+
+  @override
+  String get archiveRunSetOutcome => 'Ergebnis festlegen';
+
+  @override
+  String get archiveRunChangeOutcome => 'Ergebnis ändern';
+
+  @override
+  String get archiveRunAddNote => 'Notiz hinzufügen';
+
+  @override
+  String get archiveRunEditNote => 'Notiz bearbeiten';
+
+  @override
+  String get archiveRunNoteSaved => 'Notiz gespeichert';
+
+  @override
+  String get archivePlatesTitle => 'Druckplatten';
+
+  @override
+  String archivePlateEstimate(String value) {
+    return 'Schätzung $value';
+  }
+
+  @override
+  String archivePlateLastVsEstimate(String value) {
+    return 'Letzter Druck zur Schätzung: $value';
+  }
+
+  @override
+  String get archivePrintThisPlate => 'Diese Druckplatte drucken';
+
+  @override
+  String get archiveShowPlatePrints => 'Ihre Drucke zeigen';
+
+  @override
+  String get archiveRunReprint => 'Diesen Druck wiederholen';
+
+  @override
+  String archiveMergeBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Gruppen doppelter Archive',
+      one: '1 Gruppe doppelter Archive',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeButton => 'Zusammenführen';
+
+  @override
+  String get archiveMergeDismiss => 'Ausblenden';
+
+  @override
+  String get archiveMergeMenu => 'Duplikate zusammenführen';
+
+  @override
+  String get archiveMergeTitle => 'Doppelte Archive zusammenführen';
+
+  @override
+  String get archiveMergeEffectKeep =>
+      'Das älteste Archiv jeder Gruppe bleibt und übernimmt alle Drucke der anderen mit ihren Fotos, Videos und Dateien.';
+
+  @override
+  String get archiveMergeEffectLinks =>
+      'Die anderen verschwinden aus den Archiven; ihre alten Links öffnen das Archiv, in das sie eingegangen sind.';
+
+  @override
+  String get archiveMergeEffectMoney =>
+      'Wallet-Buchungen und Budget-Reservierungen bleiben, wo sie gebucht wurden.';
+
+  @override
+  String get archiveMergeNone => 'Keine Duplikate zum Zusammenführen.';
+
+  @override
+  String archiveMergeMember(String name, String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Drucke',
+      one: '1 Druck',
+    );
+    return '$name · erstellt $date · $_temp0';
+  }
+
+  @override
+  String get archiveMergeStays => 'Bleibt';
+
+  @override
+  String get archiveMergeWaiting => 'Vorerst ausgelassen';
+
+  @override
+  String get archiveMergeLeftOut => 'Beim Zusammenführen ausgelassen';
+
+  @override
+  String get archiveMergeSkipBusy =>
+      'In Verwendung: druckt, in der Warteschlange oder gerade gedruckt. Später erneut versuchen.';
+
+  @override
+  String get archiveMergeSkipConflicting =>
+      'Die Archive enthalten unterschiedliche Quell- oder Konstruktionsdateien oder Videos. Zuerst von Hand eines behalten.';
+
+  @override
+  String get archiveMergeSkipFailed => 'Das Zusammenführen ist fehlgeschlagen.';
+
+  @override
+  String get archiveMergeSkipNotAGroup => 'Keine Gruppe von Duplikaten mehr.';
+
+  @override
+  String archiveMergeAction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Gruppen zusammenführen',
+      one: '1 Gruppe zusammenführen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMergeConfirmBody =>
+      'Das lässt sich in der App nicht rückgängig machen.';
+
+  @override
+  String archiveMergeDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Gruppen zusammengeführt.',
+      one: '1 Gruppe zusammengeführt.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveMergeDoneSome(int count, int left) {
+    return 'Zusammengeführt: $count. Ausgelassen: $left.';
+  }
+
+  @override
+  String get archiveCalendarView => 'Kalenderansicht';
+
+  @override
+  String get archiveListView => 'Listenansicht';
+
+  @override
+  String get archiveCalendarToday => 'Heute';
+
+  @override
+  String get archiveCalendarPrevious => 'Vorheriger Monat';
+
+  @override
+  String get archiveCalendarNext => 'Nächster Monat';
+
+  @override
+  String get archiveCalendarPrints => 'Drucke in diesem Monat';
+
+  @override
+  String get archiveCalendarSuccessful => 'Erfolgreich';
+
+  @override
+  String get archiveCalendarFailed => 'Fehlgeschlagen';
+
+  @override
+  String get archiveCalendarNoPrints => 'Keine Drucke an diesem Tag';
+
+  @override
+  String get archiveCalendarSelectDay =>
+      'Wählen Sie einen Tag, um seine Drucke zu sehen';
+
+  @override
+  String archiveCalendarDay(String date, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Drucke',
+      one: '1 Druck',
+      zero: 'keine Drucke',
+    );
+    return '$date: $_temp0';
+  }
 }

@@ -4490,5 +4490,203 @@
   "tipsTrimTitle": "Découper un timelapse",
   "tipsTrimBody": "Faites glisser les poignées de la bande d'images ; touchez ou faites glisser ailleurs pour déplacer la tête de lecture.",
   "tipsWallTitle": "Mode mural",
-  "tipsWallBody": "Sur l'écran Imprimantes, ouvrez le menu ⋮ et choisissez Mode mural."
+  "tipsWallBody": "Sur l'écran Imprimantes, ouvrez le menu ⋮ et choisissez Mode mural.",
+  "archiveRunsTitle": "Impressions",
+  "archiveRunsEmpty": "Ce fichier n'a pas encore été imprimé.",
+  "archiveRunsBeforeLog": "Imprimé avant que Bambuddy n'enregistre chaque impression : {status}.",
+  "@archiveRunsBeforeLog": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "Ce plateau n'a pas encore été imprimé.",
+  "archiveRunsAllPlates": "Tous les plateaux",
+  "archiveRunPlate": "Plateau {plate}",
+  "@archiveRunPlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Imprimante supprimée",
+  "archiveRunWithEstimate": "{value} (estimé {estimate})",
+  "@archiveRunWithEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} / {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} sur {estimate}",
+  "@archiveRunTimeOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Début / fin",
+  "archiveRunEnergy": "Énergie",
+  "archiveRunFailureReason": "Raison de l'échec",
+  "archiveRunStartedBy": "Lancée par",
+  "archiveRunNote": "Note sur cette impression",
+  "archiveRunVideo": "Vidéo timelapse",
+  "archiveRunPhotos": "Photos ({count})",
+  "@archiveRunPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Réussies : {count}",
+  "@archiveGoodCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Échouées : {count}",
+  "@archiveFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunSetOutcome": "Indiquer le résultat",
+  "archiveRunChangeOutcome": "Modifier le résultat",
+  "archiveRunAddNote": "Ajouter une note",
+  "archiveRunEditNote": "Modifier la note",
+  "archiveRunNoteSaved": "Note enregistrée",
+  "archivePlatesTitle": "Plateaux",
+  "archivePlateEstimate": "Estimation {value}",
+  "@archivePlateEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Dernière impression vs estimation : {value}",
+  "@archivePlateLastVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Imprimer ce plateau",
+  "archiveShowPlatePrints": "Voir ses impressions",
+  "archiveRunReprint": "Réimprimer cette impression",
+  "archiveMergeBanner": "{count, plural, =1{1 groupe d'archives en double} other{{count} groupes d'archives en double}}",
+  "@archiveMergeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Fusionner",
+  "archiveMergeDismiss": "Masquer",
+  "archiveMergeMenu": "Fusionner les doublons",
+  "archiveMergeTitle": "Fusionner les archives en double",
+  "archiveMergeEffectKeep": "L'archive la plus ancienne de chaque groupe est conservée et reprend toutes les impressions des autres, avec leurs photos, vidéos et fichiers.",
+  "archiveMergeEffectLinks": "Les autres disparaissent des archives ; leurs anciens liens ouvrent celle dans laquelle elles ont été fusionnées.",
+  "archiveMergeEffectMoney": "Les débits du portefeuille et les réservations de budget restent là où ils ont été enregistrés.",
+  "archiveMergeNone": "Aucun doublon à fusionner.",
+  "archiveMergeMember": "{name} · créée le {date} · {count, plural, =1{1 impression} other{{count} impressions}}",
+  "@archiveMergeMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Conservée",
+  "archiveMergeWaiting": "Écartés pour l'instant",
+  "archiveMergeLeftOut": "Écartés lors de la fusion",
+  "archiveMergeSkipBusy": "En cours d'utilisation : impression, file d'attente ou impression récente. Réessayez plus tard.",
+  "archiveMergeSkipConflicting": "Les archives contiennent des fichiers source ou de conception différents, ou des vidéos. Gardez-en d'abord un à la main.",
+  "archiveMergeSkipFailed": "La fusion a échoué.",
+  "archiveMergeSkipNotAGroup": "Ce n'est plus un groupe de doublons.",
+  "archiveMergeAction": "{count, plural, =1{Fusionner 1 groupe} other{Fusionner {count} groupes}}",
+  "@archiveMergeAction": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "Cela ne peut pas être annulé dans l'application.",
+  "archiveMergeDone": "{count, plural, =1{1 groupe fusionné.} other{{count} groupes fusionnés.}}",
+  "@archiveMergeDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Fusionnés : {count}. Écartés : {left}.",
+  "@archiveMergeDoneSome": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveCalendarView": "Calendrier",
+  "archiveListView": "Liste",
+  "archiveCalendarToday": "Aujourd'hui",
+  "archiveCalendarPrevious": "Mois précédent",
+  "archiveCalendarNext": "Mois suivant",
+  "archiveCalendarPrints": "Impressions ce mois-ci",
+  "archiveCalendarSuccessful": "Réussies",
+  "archiveCalendarFailed": "Échouées",
+  "archiveCalendarNoPrints": "Aucune impression ce jour-là",
+  "archiveCalendarSelectDay": "Sélectionnez un jour pour voir ses impressions",
+  "archiveCalendarDay": "{date} : {count, plural, =0{aucune impression} =1{1 impression} other{{count} impressions}}",
+  "@archiveCalendarDay": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

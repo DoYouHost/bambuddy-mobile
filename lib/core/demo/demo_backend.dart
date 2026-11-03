@@ -3572,6 +3572,10 @@ class DemoBackend {
       String? notes,
       String? externalUrl,
       int runCount = 1,
+      // How the runs ended, for a print with more than one (see
+      // `_buildPrintLog`, which logs the extra ones).
+      int? goodRuns,
+      int? failedRuns,
       List<Map<String, dynamic>>? filamentSlots,
       // The picture keys in `assets/demo/`: [media] for the render, [photos]
       // for what the camera saw when the print ended.
@@ -3639,8 +3643,8 @@ class DemoBackend {
         'total_filament_actual_grams': noUsageRecorded
             ? null
             : (actualGrams ?? grams),
-        'successful_run_count': status == 'completed' ? 1 : 0,
-        'failed_run_count': status == 'failed' ? 1 : 0,
+        'successful_run_count': goodRuns ?? (status == 'completed' ? 1 : 0),
+        'failed_run_count': failedRuns ?? (status == 'failed' ? 1 : 0),
         'confirm_requested': confirmRequested,
         'user_verdict': verdict,
         'user_verdict_source': verdictSource,
@@ -3666,6 +3670,8 @@ class DemoBackend {
         tags: 'workshop,storage',
         notes: 'Plate 1 printed separately; the lids go on plate 2.',
         runCount: 3,
+        goodRuns: 2,
+        failedRuns: 1,
         media: 'bag-dispenser',
         photos: const ['bag-dispenser'],
         // Listed per plate, as the server's parser stores a multi-plate
@@ -3803,6 +3809,19 @@ class DemoBackend {
         color: '#0ACC38',
         media: 'vacuum-diffuser',
       ),
+      // The same file printed again before each print was a run of one
+      // archive: the duplicate "Merge duplicates" offers to fold into the
+      // failed first try. Last, so no other demo archive changes its id.
+      a(
+        'Handle',
+        1,
+        16,
+        estSec: 4980,
+        grams: 38.2,
+        type: 'PETG',
+        color: '#FFFFFF',
+        media: 'handle',
+      ),
     ];
   }
 
@@ -3813,7 +3832,7 @@ class DemoBackend {
   /// reach, so the demo would misrepresent the screen without them.
   ///
   /// Carries `cost` / `energy_kwh` / `energy_cost` because the reported version
-  /// is 1.2.6, which sends them (server #2636). The archives already hold both
+  /// is past 1.2.6, which sends them (server #2636). The archives already hold both
   /// figures, so a run reads the same here as it does in the statistics.
   late final List<Map<String, dynamic>> _printLog = _buildPrintLog();
 
@@ -3847,7 +3866,51 @@ class DemoBackend {
       'created_by_id': 1,
       'created_by_username': DemoConfig.username,
       'created_at': archive['created_at'],
+      // What each print keeps of its own since the archive redesign (1.3.1):
+      // the latest print holds the archive's finish photos.
+      'plate_id': archive['plate_id'],
+      'user_verdict': archive['user_verdict'],
+      'user_verdict_source': archive['user_verdict_source'],
+      'confirm_requested': archive['confirm_requested'],
+      'duration_unmeasured': false,
+      'quantity': archive['quantity'],
+      'notes': null,
+      'photos': archive['photos'],
+      'timelapse_path': null,
     };
+
+    // The earlier prints of a file printed more than once: the multi-plate
+    // demo print ran plate 1 on its own, and plate 2 once before it worked.
+    Map<String, dynamic> earlier(
+      Map<String, dynamic> archive, {
+      required int plateId,
+      required int daysAgo,
+      required String status,
+      String? verdict,
+      String? notes,
+      String? failureReason,
+    }) {
+      final started = _daysAgo(daysAgo, hours: 6);
+      final seconds = status == 'completed' ? 2700 : 1100;
+      return {
+        ...row(archive, failureReason: failureReason),
+        'status': status,
+        'started_at': isoUtc(started),
+        'completed_at': isoUtc(started.add(Duration(seconds: seconds))),
+        'duration_seconds': seconds,
+        'filament_used_grams': status == 'completed' ? 48.1 : 19.6,
+        'cost': status == 'completed' ? 1.2 : 0.49,
+        'created_at': isoUtc(started),
+        'plate_id': plateId,
+        'user_verdict': verdict,
+        'user_verdict_source': verdict == null ? null : 'dialog',
+        'confirm_requested': verdict != null,
+        'notes': notes,
+        'photos': const <String>[],
+      };
+    }
+
+    final multi = _archives.firstWhere((a) => a['run_count'] == 3);
 
     Map<String, dynamic> orphan(
       String name,
@@ -3898,6 +3961,21 @@ class DemoBackend {
         energyKwh: 0.06,
       ),
       for (final a in _archives) row(a),
+      earlier(
+        multi,
+        plateId: 1,
+        daysAgo: 2,
+        status: 'completed',
+        verdict: 'good',
+        notes: 'Lids snap on without sanding.',
+      ),
+      earlier(
+        multi,
+        plateId: 2,
+        daysAgo: 3,
+        status: 'failed',
+        failureReason: 'adhesionFailure',
+      ),
       orphan('Test cube', 2, 30, status: 'cancelled', durationSeconds: 420),
     ];
   }
@@ -3960,6 +4038,10 @@ class DemoBackend {
           );
         }
         entry['failure_reason'] = reason.isEmpty ? null : reason;
+      }
+      if (body.containsKey('notes')) {
+        final notes = '${body['notes'] ?? ''}'.trim();
+        entry['notes'] = notes.isEmpty ? null : notes;
       }
       if (body['status'] != null) {
         final status = '${body['status']}';
@@ -4098,6 +4180,23 @@ class DemoBackend {
           ]);
         case 'analysis':
           return demoOk(_failureAnalysis(q));
+        case 'prints':
+          return demoOk(_demoPrints(q));
+        case 'merge-count':
+          return demoOk({'groups': _mergeGroups().length});
+        case 'merge-preview':
+          return demoOk({
+            'groups': [
+              for (final g in _mergeGroups())
+                {
+                  'survivor': _mergeBrief(g.first),
+                  'merged': [for (final a in g.skip(1)) _mergeBrief(a)],
+                  'skipped': null,
+                },
+            ],
+          });
+        case 'merge' when m == 'POST':
+          return demoOk(_merge(body));
         case 'purge':
           if (s.length >= 3 && s[2] == 'preview') {
             final days = intQuery(q, 'older_than_days', 0);
@@ -4148,6 +4247,9 @@ class DemoBackend {
         if (s.length >= 3 && s[2] == 'plates') {
           return demoOk(_demoPlates(archive));
         }
+        if (s.length == 3 && s[2] == 'runs' && m == 'GET') {
+          return demoOk(_archiveRuns(archive));
+        }
         if (s.length == 3 && s[2] == 'printer-media' && m == 'GET') {
           return demoOk(_archiveMedia(archive));
         }
@@ -4156,6 +4258,9 @@ class DemoBackend {
         // answers with the row as stored — which is what tells the app the
         // edit landed. `containsKey`, not a null check: a present null is how
         // the weight is cleared.
+        if (s.length == 2 && m == 'PATCH' && body['run_id'] != null) {
+          return _patchArchiveRun(archive, body);
+        }
         if (s.length == 2 && m == 'PATCH') {
           if (body.containsKey('filament_used_grams')) {
             archive['filament_used_grams'] = body['filament_used_grams'];
@@ -4178,6 +4283,159 @@ class DemoBackend {
       }
     }
     return _fallback(m);
+  }
+
+  /// `PATCH /archives/{id}` with `run_id`: that print's outcome only. Answered
+  /// as any `PATCH` is, with the archive as its latest print shows it.
+  DemoResult _patchArchiveRun(
+    Map<String, dynamic> archive,
+    Map<String, dynamic> body,
+  ) {
+    final run = _printLog
+        .where(
+          (e) => e['id'] == body['run_id'] && e['archive_id'] == archive['id'],
+        )
+        .firstOrNull;
+    if (run == null) return (status: 404, body: {'detail': 'Run not found'});
+    const outcome = {
+      'run_id',
+      'user_verdict',
+      'user_verdict_source',
+      'failure_reason',
+      'status',
+    };
+    if (body.keys.any((k) => !outcome.contains(k))) {
+      return (
+        status: 400,
+        body: {
+          'detail':
+              "run_id applies to a run's outcome only: its verdict, status and failure reason",
+        },
+      );
+    }
+    if (body.containsKey('user_verdict')) {
+      final verdict = body['user_verdict'];
+      run['user_verdict'] = verdict;
+      run['user_verdict_source'] = verdict == null
+          ? null
+          : body['user_verdict_source'] ?? 'api';
+    }
+    if (body.containsKey('failure_reason')) {
+      run['failure_reason'] = body['failure_reason'];
+    }
+    final latest = _archiveRuns(archive)['items'] as List;
+    if ((latest.firstOrNull as Map?)?['id'] == run['id']) {
+      archive['user_verdict'] = run['user_verdict'];
+      archive['user_verdict_source'] = run['user_verdict_source'];
+      archive['failure_reason'] = run['failure_reason'];
+    }
+    return demoOk(archive);
+  }
+
+  /// `GET /archives/prints`: the runs of live archives that ended in the date
+  /// range, by id. The demo reads the days in the device's own zone.
+  Map<String, dynamic> _demoPrints(Map<String, String> q) {
+    final from = DateTime.tryParse(q['date_from'] ?? '');
+    final to = DateTime.tryParse(q['date_to'] ?? '');
+    final printer = int.tryParse(q['printer_id'] ?? '');
+    final live = {for (final a in _archives) a['id']};
+    final rows = [
+      for (final run in _printLog)
+        if (live.contains(run['archive_id']) &&
+            (printer == null || run['printer_id'] == printer))
+          if (DateTime.tryParse(
+                '${run['completed_at'] ?? run['created_at']}',
+              )?.toLocal()
+              case final ended?)
+            if ((from == null || !ended.isBefore(from)) &&
+                (to == null || ended.isBefore(to.add(const Duration(days: 1)))))
+              run,
+    ]..sort((a, b) => (a['id'] as int) - (b['id'] as int));
+    return {'items': rows, 'total': rows.length};
+  }
+
+  /// Archives of the same file, oldest first; the demo has no content hash, so
+  /// the file name stands for it.
+  List<List<Map<String, dynamic>>> _mergeGroups() {
+    final byFile = <Object?, List<Map<String, dynamic>>>{};
+    for (final a in _archives) {
+      (byFile[a['filename']] ??= []).add(a);
+    }
+    return [
+      for (final g in byFile.values)
+        if (g.length > 1)
+          g..sort((a, b) => (a['id'] as int) - (b['id'] as int)),
+    ]..sort((a, b) => (a.first['id'] as int) - (b.first['id'] as int));
+  }
+
+  Map<String, dynamic> _mergeBrief(Map<String, dynamic> a) => {
+    'id': a['id'],
+    'print_name': a['print_name'],
+    'filename': a['filename'],
+    'created_at': a['created_at'],
+    'run_count': _printLog.where((e) => e['archive_id'] == a['id']).length,
+  };
+
+  /// `POST /archives/merge`: each group's prints move to its oldest archive and
+  /// the others go.
+  Map<String, dynamic> _merge(Map<String, dynamic> body) {
+    final asked = body['survivor_ids'];
+    final groups = {for (final g in _mergeGroups()) g.first['id']: g};
+    final merged = <Map<String, dynamic>>[];
+    final skipped = <Map<String, dynamic>>[];
+    for (final id in asked is List ? asked : const []) {
+      final group = groups[id];
+      if (group == null) {
+        skipped.add({'survivor_id': id, 'reason': 'not_a_group'});
+        continue;
+      }
+      final survivor = group.first;
+      final others = group.skip(1).toList();
+      for (final run in _printLog) {
+        if (others.any((a) => a['id'] == run['archive_id'])) {
+          run['archive_id'] = survivor['id'];
+        }
+      }
+      final runs = _printLog.where((e) => e['archive_id'] == survivor['id']);
+      survivor['run_count'] = runs.length;
+      survivor['successful_run_count'] = runs
+          .where((e) => e['status'] == 'completed')
+          .length;
+      survivor['failed_run_count'] = runs
+          .where((e) => e['status'] == 'failed')
+          .length;
+      _archives.removeWhere(others.contains);
+      merged.add({
+        'survivor_id': survivor['id'],
+        'merged_ids': [for (final a in others) a['id']],
+      });
+    }
+    return {'merged': merged, 'skipped': skipped};
+  }
+
+  /// `GET /archives/{id}/runs`: the archive's prints from the print log,
+  /// newest first, each with its plate's slicer estimate as the server adds
+  /// it (#3375).
+  Map<String, dynamic> _archiveRuns(Map<String, dynamic> archive) {
+    final plates = {
+      for (final p in (_demoPlates(archive)['plates'] as List).cast<Map>())
+        p['index']: p,
+    };
+    final runs =
+        _printLog.where((e) => e['archive_id'] == archive['id']).toList()..sort(
+          (a, b) => '${b['started_at']}'.compareTo('${a['started_at']}'),
+        );
+    final items = [
+      for (final run in runs)
+        {
+          ...run,
+          'estimate_seconds':
+              plates[run['plate_id'] ?? 1]?['print_time_seconds'],
+          'estimate_grams':
+              plates[run['plate_id'] ?? 1]?['filament_used_grams'],
+        },
+    ];
+    return {'items': items, 'total': items.length};
   }
 
   /// Recordings the demo offers for one print.
@@ -4212,6 +4470,13 @@ class DemoBackend {
     };
   }
 
+  /// What is on each plate of the demo's multi-plate print.
+  static const _demoPlateObjects = [
+    ['Dispenser body'],
+    ['Lid', 'Lid'],
+    ['Wall bracket'],
+  ];
+
   /// Plates of a demo archive. Three for the one print that carries a
   /// `plate_id`, one for everything else — a single-plate answer is what the
   /// picker reads as "nothing to choose", which is the state most prints are in.
@@ -4228,13 +4493,18 @@ class DemoBackend {
           {
             'index': i,
             'name': null,
-            'objects': <String>[],
+            'objects': multi ? _demoPlateObjects[i - 1] : <String>[],
             'object_count': i,
             'has_thumbnail': false,
             'thumbnail_url': null,
             'print_time_seconds': (seconds / count).round(),
             'filament_used_grams': _r1(grams / count),
-            'filaments': <Object>[],
+            'filaments': [
+              if (multi) ...[
+                {'slot_id': 1, 'type': 'PLA', 'color': '#000000'},
+                if (i == 2) {'slot_id': 2, 'type': 'PLA', 'color': '#FFFFFF'},
+              ],
+            ],
             'bed_type': archive['bed_type'],
           },
       ],

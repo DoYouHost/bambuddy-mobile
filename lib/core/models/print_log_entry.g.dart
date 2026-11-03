@@ -36,6 +36,17 @@ abstract class _$PrintLogEntryCWProxy {
     String? thumbnailPath,
     int? createdById,
     String? createdByUsername,
+    int? plateId,
+    PrintVerdict? userVerdict,
+    String? userVerdictSource,
+    bool confirmRequested,
+    bool durationUnmeasured,
+    String? notes,
+    List<String>? photos,
+    String? timelapsePath,
+    int? estimateSeconds,
+    double? estimateGrams,
+    bool ownMediaReported,
   });
 }
 
@@ -76,6 +87,17 @@ class _$PrintLogEntryCWProxyImpl implements _$PrintLogEntryCWProxy {
     Object? thumbnailPath = const $CopyWithPlaceholder(),
     Object? createdById = const $CopyWithPlaceholder(),
     Object? createdByUsername = const $CopyWithPlaceholder(),
+    Object? plateId = const $CopyWithPlaceholder(),
+    Object? userVerdict = const $CopyWithPlaceholder(),
+    Object? userVerdictSource = const $CopyWithPlaceholder(),
+    Object? confirmRequested = const $CopyWithPlaceholder(),
+    Object? durationUnmeasured = const $CopyWithPlaceholder(),
+    Object? notes = const $CopyWithPlaceholder(),
+    Object? photos = const $CopyWithPlaceholder(),
+    Object? timelapsePath = const $CopyWithPlaceholder(),
+    Object? estimateSeconds = const $CopyWithPlaceholder(),
+    Object? estimateGrams = const $CopyWithPlaceholder(),
+    Object? ownMediaReported = const $CopyWithPlaceholder(),
   }) {
     return PrintLogEntry(
       id: id == const $CopyWithPlaceholder() || id == null
@@ -162,6 +184,56 @@ class _$PrintLogEntryCWProxyImpl implements _$PrintLogEntryCWProxy {
           ? _value.createdByUsername
           // ignore: cast_nullable_to_non_nullable
           : createdByUsername as String?,
+      plateId: plateId == const $CopyWithPlaceholder()
+          ? _value.plateId
+          // ignore: cast_nullable_to_non_nullable
+          : plateId as int?,
+      userVerdict: userVerdict == const $CopyWithPlaceholder()
+          ? _value.userVerdict
+          // ignore: cast_nullable_to_non_nullable
+          : userVerdict as PrintVerdict?,
+      userVerdictSource: userVerdictSource == const $CopyWithPlaceholder()
+          ? _value.userVerdictSource
+          // ignore: cast_nullable_to_non_nullable
+          : userVerdictSource as String?,
+      confirmRequested:
+          confirmRequested == const $CopyWithPlaceholder() ||
+              confirmRequested == null
+          ? _value.confirmRequested
+          // ignore: cast_nullable_to_non_nullable
+          : confirmRequested as bool,
+      durationUnmeasured:
+          durationUnmeasured == const $CopyWithPlaceholder() ||
+              durationUnmeasured == null
+          ? _value.durationUnmeasured
+          // ignore: cast_nullable_to_non_nullable
+          : durationUnmeasured as bool,
+      notes: notes == const $CopyWithPlaceholder()
+          ? _value.notes
+          // ignore: cast_nullable_to_non_nullable
+          : notes as String?,
+      photos: photos == const $CopyWithPlaceholder()
+          ? _value.photos
+          // ignore: cast_nullable_to_non_nullable
+          : photos as List<String>?,
+      timelapsePath: timelapsePath == const $CopyWithPlaceholder()
+          ? _value.timelapsePath
+          // ignore: cast_nullable_to_non_nullable
+          : timelapsePath as String?,
+      estimateSeconds: estimateSeconds == const $CopyWithPlaceholder()
+          ? _value.estimateSeconds
+          // ignore: cast_nullable_to_non_nullable
+          : estimateSeconds as int?,
+      estimateGrams: estimateGrams == const $CopyWithPlaceholder()
+          ? _value.estimateGrams
+          // ignore: cast_nullable_to_non_nullable
+          : estimateGrams as double?,
+      ownMediaReported:
+          ownMediaReported == const $CopyWithPlaceholder() ||
+              ownMediaReported == null
+          ? _value.ownMediaReported
+          // ignore: cast_nullable_to_non_nullable
+          : ownMediaReported as bool,
     );
   }
 }
