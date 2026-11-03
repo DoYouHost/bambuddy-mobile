@@ -4582,5 +4582,25 @@
   "archiveRunChangeOutcome": "Cambiar resultado",
   "archiveRunAddNote": "Añadir nota",
   "archiveRunEditNote": "Editar nota",
-  "archiveRunNoteSaved": "Nota guardada"
+  "archiveRunNoteSaved": "Nota guardada",
+  "archivePlatesTitle": "Placas",
+  "archivePlateEstimate": "Estimado {value}",
+  "@archivePlateEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Última impresión frente al estimado: {value}",
+  "@archivePlateLastVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Imprimir esta placa",
+  "archiveShowPlatePrints": "Ver sus impresiones",
+  "archiveRunReprint": "Reimprimir esta impresión"
 }

@@ -3893,5 +3893,25 @@
   "archiveRunChangeOutcome": "Zmień wynik",
   "archiveRunAddNote": "Dodaj notatkę",
   "archiveRunEditNote": "Edytuj notatkę",
-  "archiveRunNoteSaved": "Notatka zapisana"
+  "archiveRunNoteSaved": "Notatka zapisana",
+  "archivePlatesTitle": "Płyty",
+  "archivePlateEstimate": "Szacunek {value}",
+  "@archivePlateEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Ostatni wydruk a szacunek: {value}",
+  "@archivePlateLastVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Drukuj tę płytę",
+  "archiveShowPlatePrints": "Pokaż jej wydruki",
+  "archiveRunReprint": "Wydrukuj ponownie"
 }

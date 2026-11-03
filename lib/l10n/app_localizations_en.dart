@@ -9755,4 +9755,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get archiveRunNoteSaved => 'Note saved';
+
+  @override
+  String get archivePlatesTitle => 'Plates';
+
+  @override
+  String archivePlateEstimate(String value) {
+    return 'Estimate $value';
+  }
+
+  @override
+  String archivePlateLastVsEstimate(String value) {
+    return 'Last print vs. estimate: $value';
+  }
+
+  @override
+  String get archivePrintThisPlate => 'Print this plate';
+
+  @override
+  String get archiveShowPlatePrints => 'Show its prints';
+
+  @override
+  String get archiveRunReprint => 'Reprint this print';
 }

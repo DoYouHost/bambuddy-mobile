@@ -9876,4 +9876,26 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get archiveRunNoteSaved => 'Nota guardada';
+
+  @override
+  String get archivePlatesTitle => 'Placas';
+
+  @override
+  String archivePlateEstimate(String value) {
+    return 'Estimado $value';
+  }
+
+  @override
+  String archivePlateLastVsEstimate(String value) {
+    return 'Última impresión frente al estimado: $value';
+  }
+
+  @override
+  String get archivePrintThisPlate => 'Imprimir esta placa';
+
+  @override
+  String get archiveShowPlatePrints => 'Ver sus impresiones';
+
+  @override
+  String get archiveRunReprint => 'Reimprimir esta impresión';
 }

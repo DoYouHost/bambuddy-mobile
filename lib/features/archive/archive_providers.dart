@@ -245,6 +245,13 @@ final archiveRunNoteAllowedProvider = Provider.family<bool, int?>((
       me.can(Permissions.archivesUpdateOwn);
 });
 
+/// Which plate the archive sheet's print history is narrowed to, per archive:
+/// set by its chips and by a plate card's "Show its prints". Null is every
+/// plate.
+final archiveRunsPlateProvider = StateProvider.autoDispose.family<int?, int>(
+  (ref, archiveId) => null,
+);
+
 /// Every print of one archive, newest first (`GET /archives/{id}/runs`).
 final archiveRunsProvider = FutureProvider.autoDispose
     .family<List<PrintLogEntry>, int>(

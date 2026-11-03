@@ -4369,6 +4369,13 @@ class DemoBackend {
     };
   }
 
+  /// What is on each plate of the demo's multi-plate print.
+  static const _demoPlateObjects = [
+    ['Dispenser body'],
+    ['Lid', 'Lid'],
+    ['Wall bracket'],
+  ];
+
   /// Plates of a demo archive. Three for the one print that carries a
   /// `plate_id`, one for everything else — a single-plate answer is what the
   /// picker reads as "nothing to choose", which is the state most prints are in.
@@ -4385,13 +4392,18 @@ class DemoBackend {
           {
             'index': i,
             'name': null,
-            'objects': <String>[],
+            'objects': multi ? _demoPlateObjects[i - 1] : <String>[],
             'object_count': i,
             'has_thumbnail': false,
             'thumbnail_url': null,
             'print_time_seconds': (seconds / count).round(),
             'filament_used_grams': _r1(grams / count),
-            'filaments': <Object>[],
+            'filaments': [
+              if (multi) ...[
+                {'slot_id': 1, 'type': 'PLA', 'color': '#000000'},
+                if (i == 2) {'slot_id': 2, 'type': 'PLA', 'color': '#FFFFFF'},
+              ],
+            ],
             'bed_type': archive['bed_type'],
           },
       ],

@@ -4582,5 +4582,25 @@
   "archiveRunChangeOutcome": "Modifier le résultat",
   "archiveRunAddNote": "Ajouter une note",
   "archiveRunEditNote": "Modifier la note",
-  "archiveRunNoteSaved": "Note enregistrée"
+  "archiveRunNoteSaved": "Note enregistrée",
+  "archivePlatesTitle": "Plateaux",
+  "archivePlateEstimate": "Estimation {value}",
+  "@archivePlateEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Dernière impression vs estimation : {value}",
+  "@archivePlateLastVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Imprimer ce plateau",
+  "archiveShowPlatePrints": "Voir ses impressions",
+  "archiveRunReprint": "Réimprimer cette impression"
 }

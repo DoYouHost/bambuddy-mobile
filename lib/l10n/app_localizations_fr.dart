@@ -9954,4 +9954,26 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get archiveRunNoteSaved => 'Note enregistrée';
+
+  @override
+  String get archivePlatesTitle => 'Plateaux';
+
+  @override
+  String archivePlateEstimate(String value) {
+    return 'Estimation $value';
+  }
+
+  @override
+  String archivePlateLastVsEstimate(String value) {
+    return 'Dernière impression vs estimation : $value';
+  }
+
+  @override
+  String get archivePrintThisPlate => 'Imprimer ce plateau';
+
+  @override
+  String get archiveShowPlatePrints => 'Voir ses impressions';
+
+  @override
+  String get archiveRunReprint => 'Réimprimer cette impression';
 }

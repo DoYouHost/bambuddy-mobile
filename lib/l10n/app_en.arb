@@ -7153,5 +7153,39 @@
   "archiveRunNoteSaved": "Note saved",
   "@archiveRunNoteSaved": {
     "description": "Snack after one print's note was stored"
+  },
+  "archivePlatesTitle": "Plates",
+  "@archivePlatesTitle": {
+    "description": "Archive sheet: heading above the cards of a multi-plate file's plates"
+  },
+  "archivePlateEstimate": "Estimate {value}",
+  "@archivePlateEstimate": {
+    "description": "Archive sheet plate card: the slicer's time and weight for the plate",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Last print vs. estimate: {value}",
+  "@archivePlateLastVsEstimate": {
+    "description": "Archive sheet plate card: the newest finished print of the plate against its estimate; value is like +4%",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Print this plate",
+  "@archivePrintThisPlate": {
+    "description": "Archive sheet plate card: button that opens the print form on this plate"
+  },
+  "archiveShowPlatePrints": "Show its prints",
+  "@archiveShowPlatePrints": {
+    "description": "Archive sheet plate card: button that filters the print history to this plate"
+  },
+  "archiveRunReprint": "Reprint this print",
+  "@archiveRunReprint": {
+    "description": "Archive sheet: button that opens the print form on the plate one print ran"
   }
 }

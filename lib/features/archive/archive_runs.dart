@@ -102,6 +102,7 @@ class ArchiveRunsSection extends ConsumerStatefulWidget {
     required this.archive,
     required this.onPhotos,
     required this.onVideo,
+    required this.onReprint,
   });
 
   final Archive archive;
@@ -112,12 +113,14 @@ class ArchiveRunsSection extends ConsumerStatefulWidget {
   /// Opens a print's own video, or with null the archive's.
   final ValueChanged<int?> onVideo;
 
+  /// Opens the print form on this plate (null: the archive's).
+  final ValueChanged<int?> onReprint;
+
   @override
   ConsumerState<ArchiveRunsSection> createState() => _ArchiveRunsSectionState();
 }
 
 class _ArchiveRunsSectionState extends ConsumerState<ArchiveRunsSection> {
-  int? _plate;
   int? _open;
 
   @override
@@ -130,6 +133,7 @@ class _ArchiveRunsSectionState extends ConsumerState<ArchiveRunsSection> {
         ref.watch(plateListProvider((true, archive.id))).value?.plates ??
         const [];
     final multiPlate = plates.length > 1;
+    final plate = ref.watch(archiveRunsPlateProvider(archive.id));
 
     Widget note(String text) => Padding(
       padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
@@ -144,7 +148,7 @@ class _ArchiveRunsSectionState extends ConsumerState<ArchiveRunsSection> {
               )
             : l10n.archiveRunsEmpty,
       ),
-      AsyncValue(:final value?) => _list(context, value, multiPlate),
+      AsyncValue(:final value?) => _list(context, value, multiPlate, plate),
       // As the sheet's other reads (`_SliceArchiveButton`): a failed read is
       // explained in place, never a broken sheet.
       AsyncValue(hasError: true) => note(l10n.connectFailed),
@@ -177,8 +181,16 @@ class _ArchiveRunsSectionState extends ConsumerState<ArchiveRunsSection> {
                             ? l10n.archiveRunsAllPlates
                             : l10n.archiveRunPlate(index),
                       ),
-                      selected: _plate == index,
-                      onSelected: (_) => setState(() => _plate = index),
+                      selected: plate == index,
+                      onSelected: (_) =>
+                          ref
+                                  .read(
+                                    archiveRunsPlateProvider(
+                                      archive.id,
+                                    ).notifier,
+                                  )
+                                  .state =
+                              index,
                     ).tagged('archive.runs.plate_filter'),
                 ],
               ),
@@ -194,11 +206,12 @@ class _ArchiveRunsSectionState extends ConsumerState<ArchiveRunsSection> {
     BuildContext context,
     List<PrintLogEntry> runs,
     bool multiPlate,
+    int? plate,
   ) {
     final l10n = AppLocalizations.of(context);
-    final shown = _plate == null
+    final shown = plate == null
         ? runs
-        : runs.where((r) => r.plateId == _plate).toList();
+        : runs.where((r) => r.plateId == plate).toList();
     if (shown.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
@@ -215,7 +228,7 @@ class _ArchiveRunsSectionState extends ConsumerState<ArchiveRunsSection> {
       children: [
         for (final run in shown)
           _RunTile(
-            archiveId: widget.archive.id,
+            archive: widget.archive,
             run: run,
             showPlate: showPlate,
             media: runMedia(widget.archive, runs, run),
@@ -224,6 +237,7 @@ class _ArchiveRunsSectionState extends ConsumerState<ArchiveRunsSection> {
                 setState(() => _open = _open == run.id ? null : run.id),
             onPhotos: widget.onPhotos,
             onVideo: widget.onVideo,
+            onReprint: widget.onReprint,
           ),
       ],
     );
@@ -232,7 +246,7 @@ class _ArchiveRunsSectionState extends ConsumerState<ArchiveRunsSection> {
 
 class _RunTile extends ConsumerWidget {
   const _RunTile({
-    required this.archiveId,
+    required this.archive,
     required this.run,
     required this.showPlate,
     required this.media,
@@ -240,9 +254,10 @@ class _RunTile extends ConsumerWidget {
     required this.onToggle,
     required this.onPhotos,
     required this.onVideo,
+    required this.onReprint,
   });
 
-  final int archiveId;
+  final Archive archive;
   final PrintLogEntry run;
   final bool showPlate;
   final RunMedia media;
@@ -250,6 +265,7 @@ class _RunTile extends ConsumerWidget {
   final VoidCallback onToggle;
   final ValueChanged<List<String>> onPhotos;
   final ValueChanged<int?> onVideo;
+  final ValueChanged<int?> onReprint;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -342,11 +358,12 @@ class _RunTile extends ConsumerWidget {
               if (open) ...[
                 const SizedBox(height: DashSpace.md),
                 _RunDetails(
-                  archiveId: archiveId,
+                  archive: archive,
                   run: run,
                   media: media,
                   onPhotos: onPhotos,
                   onVideo: onVideo,
+                  onReprint: onReprint,
                 ),
               ],
             ],
@@ -404,18 +421,20 @@ class _VerdictPill extends StatelessWidget {
 /// What a print opens onto: its photos and video, then its facts.
 class _RunDetails extends ConsumerStatefulWidget {
   const _RunDetails({
-    required this.archiveId,
+    required this.archive,
     required this.run,
     required this.media,
     required this.onPhotos,
     required this.onVideo,
+    required this.onReprint,
   });
 
-  final int archiveId;
+  final Archive archive;
   final PrintLogEntry run;
   final RunMedia media;
   final ValueChanged<List<String>> onPhotos;
   final ValueChanged<int?> onVideo;
+  final ValueChanged<int?> onReprint;
 
   @override
   ConsumerState<_RunDetails> createState() => _RunDetailsState();
@@ -448,7 +467,7 @@ class _RunDetailsState extends ConsumerState<_RunDetails> {
       await providers
           .read(printLogRepositoryProvider)
           .updateEntry(run.id, notes: notes);
-      providers.invalidate(archiveRunsProvider(widget.archiveId));
+      providers.invalidate(archiveRunsProvider(widget.archive.id));
       messenger.snack(l10n.archiveRunNoteSaved);
     } on AppApiException catch (e) {
       showApiFailure(
@@ -494,7 +513,7 @@ class _RunDetailsState extends ConsumerState<_RunDetails> {
                 : l10n.archiveRunChangeOutcome,
           ),
           onPressed: () =>
-              showOutcomeSheet(context, widget.archiveId, runId: run.id),
+              showOutcomeSheet(context, widget.archive.id, runId: run.id),
         ).tagged('archive.run.outcome'),
       if (canNote)
         OutlinedButton.icon(
@@ -506,6 +525,20 @@ class _RunDetailsState extends ConsumerState<_RunDetails> {
           ),
           onPressed: _saving ? null : _editNote,
         ).tagged('archive.run.edit_note'),
+      // Only a sliced file prints; the reason a reprint is refused is on the
+      // sheet's own print buttons above.
+      if (widget.archive.isSliced)
+        OutlinedButton.icon(
+          icon: const Icon(Icons.replay),
+          label: Text(l10n.archiveRunReprint),
+          onPressed:
+              ref.watch(
+                    archiveReprintBlockProvider(widget.archive.createdById),
+                  ) ==
+                  null
+              ? () => widget.onReprint(run.plateId ?? widget.archive.plateId)
+              : null,
+        ).tagged('archive.run.reprint'),
     ];
     final facts = <(String, String)>[
       (

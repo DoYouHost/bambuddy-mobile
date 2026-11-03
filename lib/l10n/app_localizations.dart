@@ -16249,6 +16249,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Note saved'**
   String get archiveRunNoteSaved;
+
+  /// Archive sheet: heading above the cards of a multi-plate file's plates
+  ///
+  /// In en, this message translates to:
+  /// **'Plates'**
+  String get archivePlatesTitle;
+
+  /// Archive sheet plate card: the slicer's time and weight for the plate
+  ///
+  /// In en, this message translates to:
+  /// **'Estimate {value}'**
+  String archivePlateEstimate(String value);
+
+  /// Archive sheet plate card: the newest finished print of the plate against its estimate; value is like +4%
+  ///
+  /// In en, this message translates to:
+  /// **'Last print vs. estimate: {value}'**
+  String archivePlateLastVsEstimate(String value);
+
+  /// Archive sheet plate card: button that opens the print form on this plate
+  ///
+  /// In en, this message translates to:
+  /// **'Print this plate'**
+  String get archivePrintThisPlate;
+
+  /// Archive sheet plate card: button that filters the print history to this plate
+  ///
+  /// In en, this message translates to:
+  /// **'Show its prints'**
+  String get archiveShowPlatePrints;
+
+  /// Archive sheet: button that opens the print form on the plate one print ran
+  ///
+  /// In en, this message translates to:
+  /// **'Reprint this print'**
+  String get archiveRunReprint;
 }
 
 class _AppLocalizationsDelegate

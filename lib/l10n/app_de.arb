@@ -4582,5 +4582,25 @@
   "archiveRunChangeOutcome": "Ergebnis ändern",
   "archiveRunAddNote": "Notiz hinzufügen",
   "archiveRunEditNote": "Notiz bearbeiten",
-  "archiveRunNoteSaved": "Notiz gespeichert"
+  "archiveRunNoteSaved": "Notiz gespeichert",
+  "archivePlatesTitle": "Druckplatten",
+  "archivePlateEstimate": "Schätzung {value}",
+  "@archivePlateEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Letzter Druck zur Schätzung: {value}",
+  "@archivePlateLastVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Diese Druckplatte drucken",
+  "archiveShowPlatePrints": "Ihre Drucke zeigen",
+  "archiveRunReprint": "Diesen Druck wiederholen"
 }

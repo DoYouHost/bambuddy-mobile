@@ -98,6 +98,7 @@ void main() {
                 archive: _archive,
                 onPhotos: (_) {},
                 onVideo: (_) {},
+                onReprint: (_) {},
               ),
             ),
           ),

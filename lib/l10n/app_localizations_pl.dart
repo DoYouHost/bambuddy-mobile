@@ -9921,4 +9921,26 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get archiveRunNoteSaved => 'Notatka zapisana';
+
+  @override
+  String get archivePlatesTitle => 'Płyty';
+
+  @override
+  String archivePlateEstimate(String value) {
+    return 'Szacunek $value';
+  }
+
+  @override
+  String archivePlateLastVsEstimate(String value) {
+    return 'Ostatni wydruk a szacunek: $value';
+  }
+
+  @override
+  String get archivePrintThisPlate => 'Drukuj tę płytę';
+
+  @override
+  String get archiveShowPlatePrints => 'Pokaż jej wydruki';
+
+  @override
+  String get archiveRunReprint => 'Wydrukuj ponownie';
 }

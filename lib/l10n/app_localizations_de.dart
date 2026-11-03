@@ -9850,4 +9850,26 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get archiveRunNoteSaved => 'Notiz gespeichert';
+
+  @override
+  String get archivePlatesTitle => 'Druckplatten';
+
+  @override
+  String archivePlateEstimate(String value) {
+    return 'Schätzung $value';
+  }
+
+  @override
+  String archivePlateLastVsEstimate(String value) {
+    return 'Letzter Druck zur Schätzung: $value';
+  }
+
+  @override
+  String get archivePrintThisPlate => 'Diese Druckplatte drucken';
+
+  @override
+  String get archiveShowPlatePrints => 'Ihre Drucke zeigen';
+
+  @override
+  String get archiveRunReprint => 'Diesen Druck wiederholen';
 }

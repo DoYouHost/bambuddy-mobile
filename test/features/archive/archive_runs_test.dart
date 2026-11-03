@@ -154,6 +154,7 @@ void main() {
       double textScale = 1.0,
       List<List<String>>? photosOpened,
       List<int?>? videosOpened,
+      List<int?>? reprinted,
     }) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -175,6 +176,7 @@ void main() {
                   archive: archive,
                   onPhotos: (p) => photosOpened?.add(p),
                   onVideo: (r) => videosOpened?.add(r),
+                  onReprint: (p) => reprinted?.add(p),
                 ),
               ),
             ),
@@ -293,6 +295,41 @@ void main() {
         ['finish_2.jpg'],
       ]);
       expect(videos, [2]);
+    });
+
+    testWidgets('reprint this print starts on the plate it ran', (
+      tester,
+    ) async {
+      final reprinted = <int?>[];
+      await pump(
+        tester,
+        [_run(2, plateId: 3), _run(1)],
+        archive: _archive.copyWith(plateId: 2, printTimeSeconds: 3600),
+        reprinted: reprinted,
+      );
+
+      await tester.tap(byLogId('archive.run').first);
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('archive.run.reprint'));
+      await tester.tap(byLogId('archive.run').last);
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('archive.run.reprint'));
+
+      expect(reprinted, [
+        3,
+        2,
+      ], reason: 'a print without a plate: the archive\'s');
+    });
+
+    testWidgets('a source file offers no reprint', (tester) async {
+      await pump(tester, [
+        _run(1),
+      ], archive: _archive.copyWith(filename: 'a.3mf'));
+
+      await tester.tap(byLogId('archive.run'));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('archive.run.reprint'), findsNothing);
     });
 
     testWidgets('a legacy print plays the archive video', (tester) async {

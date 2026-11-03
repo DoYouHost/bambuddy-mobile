@@ -28,6 +28,7 @@ import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'archive_details.dart';
 import 'archive_filament_edit.dart';
+import 'archive_plates.dart';
 import 'archive_providers.dart';
 import 'archive_runs.dart';
 import 'outcome_sheet.dart';
@@ -281,6 +282,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         onReject: () => _rejectReason(archive),
         onRunPhotos: (photos) => _openPhotos(archive, only: photos),
         onRunVideo: (runId) => _openTimelapse(archive, runId: runId),
+        onReprintPlate: (plate) => _reprint(archive, plate: plate),
       ),
     );
   }
@@ -575,11 +577,15 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   /// item. Initiates a physical print, so always behind a confirmation dialog.
   /// Reprint: the print form, opened on ASAP so it goes ahead of the queue —
   /// the intent behind "reprint" is "print this one next".
-  Future<void> _reprint(Archive archive) async {
+  ///
+  /// [plate] starts it on that plate instead of the one the archive last ran.
+  Future<void> _reprint(Archive archive, {int? plate}) async {
     Navigator.pop(context);
     await openQueueCreate(
       context,
-      draft: archiveQueueDraft(archive),
+      draft: archiveQueueDraft(
+        plate == null ? archive : archive.copyWith(plateId: plate),
+      ),
       schedule: QueueScheduleType.asap,
     );
   }
@@ -967,12 +973,14 @@ class _ArchiveSheet extends ConsumerWidget {
     required this.onReject,
     required this.onRunPhotos,
     required this.onRunVideo,
+    required this.onReprintPlate,
   });
 
   final Archive archive;
   final VoidCallback onReject;
   final ValueChanged<List<String>> onRunPhotos;
   final ValueChanged<int?> onRunVideo;
+  final ValueChanged<int?> onReprintPlate;
   final VoidCallback onReprint;
   final VoidCallback onAddToQueue;
   final VoidCallback onPreviewGcode;
@@ -1069,10 +1077,17 @@ class _ArchiveSheet extends ConsumerWidget {
                 ArchiveFilamentRow(archive: archive),
                 ArchiveStatsPanel(archive: archive),
                 ArchiveTagsAndNote(archive: archive),
+                ArchivePlatesSection(
+                  archive: archive,
+                  onPhotos: onRunPhotos,
+                  onVideo: onRunVideo,
+                  onPrintPlate: onReprintPlate,
+                ),
                 ArchiveRunsSection(
                   archive: archive,
                   onPhotos: onRunPhotos,
                   onVideo: onRunVideo,
+                  onReprint: onReprintPlate,
                 ),
                 ArchiveFooter(archive: archive),
                 ArchiveLinkButton(archive: archive),
