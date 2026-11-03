@@ -55,6 +55,7 @@ class _FakeRepository extends PrintLogRepository {
     String? failureReason,
     bool clearFailureReason = false,
     String? status,
+    String? notes,
   }) async => _entry(entryId).copyWith(status: status ?? 'completed');
 }
 

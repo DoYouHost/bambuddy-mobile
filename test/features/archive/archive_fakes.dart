@@ -60,6 +60,7 @@ class FakeArchives implements ArchiveRepository {
     PrintVerdict? verdict, {
     String? reason,
     bool clearReason = false,
+    int? runId,
   }) async {
     if (error != null) throw error!;
     sent.add((verdict: verdict, reason: reason, clearReason: clearReason));

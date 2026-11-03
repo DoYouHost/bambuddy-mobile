@@ -104,6 +104,11 @@ enum ServerFeature {
   /// `move` on the two slot-assignment routes: the spool leaves its old slot in
   /// the same commit. Taken and ignored below it, which leaves it in two slots.
   assignmentMove,
+
+  /// Each print of an archive keeps its own note, photos, video and verdict: a
+  /// `notes` key on `PATCH /print-log/{id}` and `run_id` on `PATCH
+  /// /archives/{id}`. Both are taken and ignored below it.
+  archiveRuns,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -213,6 +218,7 @@ class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
     ServerFeature.spoolLastDried: (1, 2, 6, 0),
     ServerFeature.profileDefaults: (1, 2, 6, 0),
     ServerFeature.assignmentMove: (1, 3, 1, 0),
+    ServerFeature.archiveRuns: (1, 3, 1, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

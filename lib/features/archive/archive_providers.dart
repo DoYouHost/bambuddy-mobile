@@ -8,6 +8,7 @@ import '../../core/format/filament_colour.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/no_3mf_warning.dart';
+import '../../core/models/print_log_entry.dart';
 import '../../core/models/print_run.dart';
 import '../../core/models/printer.dart';
 import '../../l10n/app_localizations.dart';
@@ -218,6 +219,19 @@ final archiveProvider =
 /// a shot attached after the list was loaded still shows up.
 final archiveDetailProvider = FutureProvider.autoDispose.family<Archive, int>(
   (ref, archiveId) => ref.watch(archiveRepositoryProvider).byId(archiveId),
+);
+
+/// Every print of one archive, newest first (`GET /archives/{id}/runs`).
+final archiveRunsProvider = FutureProvider.autoDispose
+    .family<List<PrintLogEntry>, int>(
+      (ref, archiveId) => ref.watch(archiveRepositoryProvider).runs(archiveId),
+    );
+
+/// Whether a print of an archive takes its own note and verdict. Both writes
+/// are silent drops on a server before the archive redesign; see
+/// `ArchiveRepository.runsCapability`.
+final archiveRunsSupportedProvider = capabilityGate(
+  (ref) => ref.watch(archiveRepositoryProvider).runsCapability,
 );
 
 /// Full archive list, loaded once and filtered client-side (M5, filters M7).

@@ -3572,6 +3572,10 @@ class DemoBackend {
       String? notes,
       String? externalUrl,
       int runCount = 1,
+      // How the runs ended, for a print with more than one (see
+      // `_buildPrintLog`, which logs the extra ones).
+      int? goodRuns,
+      int? failedRuns,
       List<Map<String, dynamic>>? filamentSlots,
       // The picture keys in `assets/demo/`: [media] for the render, [photos]
       // for what the camera saw when the print ended.
@@ -3639,8 +3643,8 @@ class DemoBackend {
         'total_filament_actual_grams': noUsageRecorded
             ? null
             : (actualGrams ?? grams),
-        'successful_run_count': status == 'completed' ? 1 : 0,
-        'failed_run_count': status == 'failed' ? 1 : 0,
+        'successful_run_count': goodRuns ?? (status == 'completed' ? 1 : 0),
+        'failed_run_count': failedRuns ?? (status == 'failed' ? 1 : 0),
         'confirm_requested': confirmRequested,
         'user_verdict': verdict,
         'user_verdict_source': verdictSource,
@@ -3666,6 +3670,8 @@ class DemoBackend {
         tags: 'workshop,storage',
         notes: 'Plate 1 printed separately; the lids go on plate 2.',
         runCount: 3,
+        goodRuns: 2,
+        failedRuns: 1,
         media: 'bag-dispenser',
         photos: const ['bag-dispenser'],
         // Listed per plate, as the server's parser stores a multi-plate
@@ -3847,7 +3853,51 @@ class DemoBackend {
       'created_by_id': 1,
       'created_by_username': DemoConfig.username,
       'created_at': archive['created_at'],
+      // What each print keeps of its own since the archive redesign (1.3.1):
+      // the latest print holds the archive's finish photos.
+      'plate_id': archive['plate_id'],
+      'user_verdict': archive['user_verdict'],
+      'user_verdict_source': archive['user_verdict_source'],
+      'confirm_requested': archive['confirm_requested'],
+      'duration_unmeasured': false,
+      'quantity': archive['quantity'],
+      'notes': null,
+      'photos': archive['photos'],
+      'timelapse_path': null,
     };
+
+    // The earlier prints of a file printed more than once: the multi-plate
+    // demo print ran plate 1 on its own, and plate 2 once before it worked.
+    Map<String, dynamic> earlier(
+      Map<String, dynamic> archive, {
+      required int plateId,
+      required int daysAgo,
+      required String status,
+      String? verdict,
+      String? notes,
+      String? failureReason,
+    }) {
+      final started = _daysAgo(daysAgo, hours: 6);
+      final seconds = status == 'completed' ? 2700 : 1100;
+      return {
+        ...row(archive, failureReason: failureReason),
+        'status': status,
+        'started_at': isoUtc(started),
+        'completed_at': isoUtc(started.add(Duration(seconds: seconds))),
+        'duration_seconds': seconds,
+        'filament_used_grams': status == 'completed' ? 48.1 : 19.6,
+        'cost': status == 'completed' ? 1.2 : 0.49,
+        'created_at': isoUtc(started),
+        'plate_id': plateId,
+        'user_verdict': verdict,
+        'user_verdict_source': verdict == null ? null : 'dialog',
+        'confirm_requested': verdict != null,
+        'notes': notes,
+        'photos': const <String>[],
+      };
+    }
+
+    final multi = _archives.firstWhere((a) => a['run_count'] == 3);
 
     Map<String, dynamic> orphan(
       String name,
@@ -3898,6 +3948,21 @@ class DemoBackend {
         energyKwh: 0.06,
       ),
       for (final a in _archives) row(a),
+      earlier(
+        multi,
+        plateId: 1,
+        daysAgo: 2,
+        status: 'completed',
+        verdict: 'good',
+        notes: 'Lids snap on without sanding.',
+      ),
+      earlier(
+        multi,
+        plateId: 2,
+        daysAgo: 3,
+        status: 'failed',
+        failureReason: 'adhesionFailure',
+      ),
       orphan('Test cube', 2, 30, status: 'cancelled', durationSeconds: 420),
     ];
   }
@@ -3960,6 +4025,10 @@ class DemoBackend {
           );
         }
         entry['failure_reason'] = reason.isEmpty ? null : reason;
+      }
+      if (body.containsKey('notes')) {
+        final notes = '${body['notes'] ?? ''}'.trim();
+        entry['notes'] = notes.isEmpty ? null : notes;
       }
       if (body['status'] != null) {
         final status = '${body['status']}';
@@ -4148,6 +4217,9 @@ class DemoBackend {
         if (s.length >= 3 && s[2] == 'plates') {
           return demoOk(_demoPlates(archive));
         }
+        if (s.length == 3 && s[2] == 'runs' && m == 'GET') {
+          return demoOk(_archiveRuns(archive));
+        }
         if (s.length == 3 && s[2] == 'printer-media' && m == 'GET') {
           return demoOk(_archiveMedia(archive));
         }
@@ -4156,6 +4228,9 @@ class DemoBackend {
         // answers with the row as stored — which is what tells the app the
         // edit landed. `containsKey`, not a null check: a present null is how
         // the weight is cleared.
+        if (s.length == 2 && m == 'PATCH' && body['run_id'] != null) {
+          return _patchArchiveRun(archive, body);
+        }
         if (s.length == 2 && m == 'PATCH') {
           if (body.containsKey('filament_used_grams')) {
             archive['filament_used_grams'] = body['filament_used_grams'];
@@ -4178,6 +4253,88 @@ class DemoBackend {
       }
     }
     return _fallback(m);
+  }
+
+  /// `PATCH /archives/{id}` with `run_id`: that print's outcome only, answered
+  /// as the archive showing that print (`_with_run_outcome`).
+  DemoResult _patchArchiveRun(
+    Map<String, dynamic> archive,
+    Map<String, dynamic> body,
+  ) {
+    final run = _printLog
+        .where(
+          (e) => e['id'] == body['run_id'] && e['archive_id'] == archive['id'],
+        )
+        .firstOrNull;
+    if (run == null) return (status: 404, body: {'detail': 'Run not found'});
+    const outcome = {
+      'run_id',
+      'user_verdict',
+      'user_verdict_source',
+      'failure_reason',
+      'status',
+    };
+    if (body.keys.any((k) => !outcome.contains(k))) {
+      return (
+        status: 400,
+        body: {
+          'detail':
+              "run_id applies to a run's outcome only: its verdict, status and failure reason",
+        },
+      );
+    }
+    if (body.containsKey('user_verdict')) {
+      final verdict = body['user_verdict'];
+      run['user_verdict'] = verdict;
+      run['user_verdict_source'] = verdict == null
+          ? null
+          : body['user_verdict_source'] ?? 'api';
+    }
+    if (body.containsKey('failure_reason')) {
+      run['failure_reason'] = body['failure_reason'];
+    }
+    final latest = _archiveRuns(archive)['items'] as List;
+    if ((latest.firstOrNull as Map?)?['id'] == run['id']) {
+      archive['user_verdict'] = run['user_verdict'];
+      archive['user_verdict_source'] = run['user_verdict_source'];
+      archive['failure_reason'] = run['failure_reason'];
+    }
+    return demoOk({
+      ...archive,
+      'run_id': run['id'],
+      'status': run['status'],
+      'plate_id': run['plate_id'] ?? archive['plate_id'],
+      'failure_reason': run['failure_reason'],
+      'user_verdict': run['user_verdict'],
+      'user_verdict_source': run['user_verdict_source'],
+      'confirm_requested':
+          run['confirm_requested'] ?? archive['confirm_requested'],
+    });
+  }
+
+  /// `GET /archives/{id}/runs`: the archive's prints from the print log,
+  /// newest first, each with its plate's slicer estimate as the server adds
+  /// it (#3375).
+  Map<String, dynamic> _archiveRuns(Map<String, dynamic> archive) {
+    final plates = {
+      for (final p in (_demoPlates(archive)['plates'] as List).cast<Map>())
+        p['index']: p,
+    };
+    final runs =
+        _printLog.where((e) => e['archive_id'] == archive['id']).toList()..sort(
+          (a, b) => '${b['started_at']}'.compareTo('${a['started_at']}'),
+        );
+    final items = [
+      for (final run in runs)
+        {
+          ...run,
+          'estimate_seconds':
+              plates[run['plate_id'] ?? 1]?['print_time_seconds'],
+          'estimate_grams':
+              plates[run['plate_id'] ?? 1]?['filament_used_grams'],
+        },
+    ];
+    return {'items': items, 'total': items.length};
   }
 
   /// Recordings the demo offers for one print.

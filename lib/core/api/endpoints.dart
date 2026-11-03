@@ -632,6 +632,18 @@ abstract final class Endpoints {
   static String archiveTimelapse(int archiveId) =>
       '$apiPrefix/archives/$archiveId/timelapse';
 
+  /// Every print of the archive (`PrintLogResponse`, `{items, total}`), newest
+  /// first, only those on the caller's printers. Served since #1378; each print's
+  /// own note, photos, video and plate estimate arrived with the archive
+  /// redesign (1.3.1).
+  static String archiveRuns(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/runs';
+
+  /// One print's own timelapse, `?token=` like [archiveTimelapse], which serves
+  /// only the latest print's. 404 when the print has none.
+  static String archiveRunTimelapse(int archiveId, int runId) =>
+      '$apiPrefix/archives/$archiveId/runs/$runId/timelapse';
+
   /// Recordings this print can still be given: the timelapse the server keeps,
   /// plus whatever the printer itself holds — an unattached timelapse and the
   /// `/ipcam` clips whose timestamps fall inside the print

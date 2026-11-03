@@ -13,6 +13,7 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
 import 'package:bambuddy_mobile/data/ams_history_repository.dart';
 import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
+import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/archive_media.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/data/batch_repository.dart';
@@ -788,6 +789,54 @@ void main() {
       // The signed-in user, and two more for an administrator's pickers.
       expect(users, hasLength(3));
       expect(users.map((u) => u.username), contains(DemoConfig.username));
+    });
+
+    test('the multi-plate print has every print of its own', () async {
+      final repo = ArchiveRepository(dio);
+      final multi = (await repo.list()).firstWhere((a) => a.plateId != null);
+
+      final runs = await repo.runs(multi.id);
+
+      expect(runs, hasLength(multi.runCount));
+      expect(runs.map((r) => r.plateId).toSet(), {1, 2});
+      expect(
+        runs.where((r) => r.status == 'completed'),
+        hasLength(multi.successfulRunCount),
+      );
+      expect(
+        runs.where((r) => r.status == 'failed'),
+        hasLength(multi.failedRunCount),
+      );
+      expect(
+        runs.first.photos,
+        multi.photos,
+        reason: 'the latest print holds them',
+      );
+      expect(runs.every((r) => r.estimateSeconds != null), isTrue);
+      expect(runs.any((r) => r.notes != null), isTrue);
+      expect(await repo.runsCapability.supported, isTrue);
+    });
+
+    test('a verdict for one print leaves the others alone', () async {
+      final repo = ArchiveRepository(dio);
+      final multi = (await repo.list()).firstWhere((a) => a.plateId != null);
+      final failed = (await repo.runs(
+        multi.id,
+      )).firstWhere((r) => r.status == 'failed');
+
+      final result = await repo.setVerdict(
+        multi.id,
+        PrintVerdict.reject,
+        runId: failed.id,
+      );
+
+      expect(result.applied, isTrue);
+      final after = await repo.runs(multi.id);
+      expect(
+        after.firstWhere((r) => r.id == failed.id).userVerdict,
+        PrintVerdict.reject,
+      );
+      expect(after.first.userVerdict, isNot(PrintVerdict.reject));
     });
   });
 

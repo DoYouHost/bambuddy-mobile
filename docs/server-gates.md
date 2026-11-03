@@ -601,6 +601,22 @@ sent the two-request path, which works on every server. Being early is the costl
 side here (a spool in two slots), being late costs nothing, which is why the
 threshold is not 1.3.0.
 
+### archiveRuns — 1.3.1 (archive redesign, commits 809eaf4 and d43bf57)
+
+Each print of an archive keeps its own note, finish photos, video and verdict.
+`GET /archives/{id}/runs` itself is older (#1378, on 1.2.5) and lists the prints
+on every server; what is new is the keys on each row and two writes: `notes` on
+`PATCH /print-log/{id}` and `run_id` on `PATCH /archives/{id}`.
+
+Both writes are silent drops below it. `PrintLogEntryUpdate` and `ArchiveUpdate`
+forbid no extra fields, so an older server stores no note, and gives a verdict
+sent with `run_id` to the archive, which is its latest print (measured on
+1.2.5.7 by `ws_archive_runs_contract_test.dart`). The runs listing answers it
+first: `PrintLogEntrySchema` sends a `photos` key on every row from the redesign
+on, null or not, so `ArchiveRepository.runsCapability` observes it on the first
+row. An archive with no prints says nothing, and the row decides. Being early
+costs a note that does not stay and a verdict on the wrong print.
+
 ### spoolMaterialNumber — 1.2.5.7 (server #2870)
 
 A purchasing number shared by every spool of a product: `material_number` on a

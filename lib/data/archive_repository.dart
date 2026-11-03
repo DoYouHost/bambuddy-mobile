@@ -12,6 +12,7 @@ import '../core/models/archive_media.dart';
 import '../core/models/archive_purge.dart';
 import '../core/models/no_3mf_warning.dart';
 import '../core/models/plate_list.dart';
+import '../core/models/print_log_entry.dart';
 
 /// REST data source for print archive (M5).
 ///
@@ -41,6 +42,17 @@ class ArchiveRepository {
   /// hidden, because `ArchiveUpdate` drops `user_verdict` without a word.
   late final outcomeCapability = ObservedCapability(
     ServerFeature.printOutcome,
+    _serverVersion,
+  );
+
+  /// Whether each print of an archive keeps its own note and verdict (archive
+  /// redesign). Observed on the runs listing: `PrintLogEntrySchema` sends a
+  /// `photos` key on every row from the redesign on. Unknown → not offered,
+  /// because both writes are silent drops below it: an older `PATCH
+  /// /print-log/{id}` ignores `notes`, and an older `PATCH /archives/{id}`
+  /// ignores `run_id` and gives the verdict to the latest print instead.
+  late final runsCapability = ObservedCapability(
+    ServerFeature.archiveRuns,
     _serverVersion,
   );
 
@@ -123,15 +135,20 @@ class ArchiveRepository {
   /// answers 200 and drops both keys. The verdict alone cannot say so for a
   /// clear — an older server's row has no verdict either — so the row must
   /// also be one that carries the fields.
+  ///
+  /// [runId] names the print the verdict is for; without it the server gives it
+  /// to the archive's latest print. Send it only behind [runsCapability].
   Future<({Archive archive, bool applied})> setVerdict(
     int archiveId,
     PrintVerdict? verdict, {
     String? reason,
     bool clearReason = false,
+    int? runId,
   }) => guard(() async {
     final res = await _dio.patch<Map<String, dynamic>>(
       Endpoints.archive(archiveId),
       data: <String, dynamic>{
+        'run_id': ?runId,
         'user_verdict': verdict?.wire,
         if (verdict != null) 'user_verdict_source': 'dialog',
         if (clearReason) 'failure_reason': null else 'failure_reason': ?reason,
@@ -234,6 +251,24 @@ class ArchiveRepository {
       return res.data;
     });
     return data == null ? PlateList.none : PlateList.fromJson(data);
+  }
+
+  /// GET /archives/{id}/runs — every print of the archive the caller may see,
+  /// newest first.
+  Future<List<PrintLogEntry>> runs(int archiveId) async {
+    final body = await guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.archiveRuns(archiveId),
+      );
+      return res.data ?? const {};
+    });
+    final items = body['items'];
+    final rows = parseJsonList(
+      items is List ? items : const [],
+      PrintLogEntry.fromJson,
+    );
+    runsCapability.observeFirst(rows, (r) => r.ownMediaReported);
+    return rows;
   }
 
   /// GET /archives/no-3mf-warning — whether any print in the last 30 days
