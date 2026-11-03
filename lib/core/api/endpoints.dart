@@ -1173,6 +1173,12 @@ abstract final class Endpoints {
   static String spoolmanSpoolResetConsumedCounter(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId/reset-consumed-counter';
 
+  /// Spoolman twin of [inventorySpoolUsage]: the per-print charges Bambuddy
+  /// recorded against a Spoolman spool (`SpoolUsageHistoryResponse[]`). Newer
+  /// servers only (1.3.1); older ones answer 404.
+  static String spoolmanSpoolUsage(int spoolId) =>
+      '$apiPrefix/spoolman/inventory/spools/$spoolId/usage';
+
   /// Pre-rename twin of [spoolmanSpoolResetConsumedCounter] — see
   /// [inventorySpoolResetUsage].
   static String spoolmanSpoolResetUsage(int spoolId) =>
