@@ -3801,5 +3801,203 @@
   "tipsTrimTitle": "Przycinanie timelapse'a",
   "tipsTrimBody": "Przeciągnij uchwyty na pasku klatek; stuknij albo przeciągnij w innym miejscu, żeby przesunąć znacznik odtwarzania.",
   "tipsWallTitle": "Tryb ściany",
-  "tipsWallBody": "Na ekranie Drukarki otwórz menu ⋮ i wybierz Tryb ściany."
+  "tipsWallBody": "Na ekranie Drukarki otwórz menu ⋮ i wybierz Tryb ściany.",
+  "archiveRunsTitle": "Historia wydruków",
+  "archiveRunsEmpty": "Ten plik nie został jeszcze wydrukowany.",
+  "archiveRunsBeforeLog": "Wydrukowano, zanim Bambuddy zaczęło rejestrować każdy wydruk: {status}.",
+  "@archiveRunsBeforeLog": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "Brak jeszcze wydruków tej płyty.",
+  "archiveRunsAllPlates": "Wszystkie płyty",
+  "archiveRunPlate": "Płyta {plate}",
+  "@archiveRunPlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Drukarka usunięta",
+  "archiveRunWithEstimate": "{value} (szac. {estimate})",
+  "@archiveRunWithEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} wobec {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} z {estimate}",
+  "@archiveRunTimeOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Rozpoczęto / zakończono",
+  "archiveRunEnergy": "Energia",
+  "archiveRunFailureReason": "Przyczyna niepowodzenia",
+  "archiveRunStartedBy": "Uruchomił(a)",
+  "archiveRunNote": "Notatka do tego wydruku",
+  "archiveRunVideo": "Film timelapse",
+  "archiveRunPhotos": "Zdjęcia ({count})",
+  "@archiveRunPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Udane: {count}",
+  "@archiveGoodCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Nieudane: {count}",
+  "@archiveFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunSetOutcome": "Ustaw wynik",
+  "archiveRunChangeOutcome": "Zmień wynik",
+  "archiveRunAddNote": "Dodaj notatkę",
+  "archiveRunEditNote": "Edytuj notatkę",
+  "archiveRunNoteSaved": "Notatka zapisana",
+  "archivePlatesTitle": "Płyty",
+  "archivePlateEstimate": "Szacunek {value}",
+  "@archivePlateEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Ostatni wydruk a szacunek: {value}",
+  "@archivePlateLastVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Drukuj tę płytę",
+  "archiveShowPlatePrints": "Pokaż jej wydruki",
+  "archiveRunReprint": "Wydrukuj ponownie",
+  "archiveMergeBanner": "{count, plural, =1{1 grupa zduplikowanych archiwów} few{{count} grupy zduplikowanych archiwów} many{{count} grup zduplikowanych archiwów} other{{count} grupy zduplikowanych archiwów}}",
+  "@archiveMergeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Scal",
+  "archiveMergeDismiss": "Odrzuć",
+  "archiveMergeMenu": "Scal duplikaty",
+  "archiveMergeTitle": "Scal zduplikowane archiwa",
+  "archiveMergeEffectKeep": "Najstarsze archiwum każdej grupy pozostaje i przejmuje wszystkie wydruki pozostałych archiwów, wraz z ich zdjęciami, filmami i plikami.",
+  "archiveMergeEffectLinks": "Pozostałe znikają z archiwów; ich stare linki otwierają archiwum, do którego zostały scalone.",
+  "archiveMergeEffectMoney": "Obciążenia portfela i rezerwacje budżetu pozostają tam, gdzie zostały zaksięgowane.",
+  "archiveMergeNone": "Brak duplikatów do scalenia.",
+  "archiveMergeMember": "{name} · utworzono {date} · {count, plural, =1{1 wydruk} few{{count} wydruki} many{{count} wydruków} other{{count} wydruku}}",
+  "@archiveMergeMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Pozostaje",
+  "archiveMergeWaiting": "Na razie pominięte",
+  "archiveMergeLeftOut": "Pominięte przy scalaniu",
+  "archiveMergeSkipBusy": "W użyciu: drukowane, w kolejce lub właśnie wydrukowane. Spróbuj później.",
+  "archiveMergeSkipConflicting": "Archiwa zawierają różne pliki źródłowe, pliki projektu lub filmy. Najpierw zachowaj jedno ręcznie.",
+  "archiveMergeSkipFailed": "Scalanie nie powiodło się.",
+  "archiveMergeSkipNotAGroup": "To już nie jest grupa duplikatów.",
+  "archiveMergeAction": "{count, plural, =1{Scal 1 grupę} few{Scal {count} grupy} many{Scal {count} grup} other{Scal {count} grupy}}",
+  "@archiveMergeAction": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "Tego nie można cofnąć w aplikacji.",
+  "archiveMergeDone": "{count, plural, =1{Scalono 1 grupę.} few{Scalono {count} grupy.} many{Scalono {count} grup.} other{Scalono {count} grupy.}}",
+  "@archiveMergeDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Scalone: {count}. Pominięte: {left}.",
+  "@archiveMergeDoneSome": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveCalendarView": "Widok kalendarza",
+  "archiveListView": "Widok listy",
+  "archiveCalendarToday": "Dzisiaj",
+  "archiveCalendarPrevious": "Poprzedni miesiąc",
+  "archiveCalendarNext": "Następny miesiąc",
+  "archiveCalendarPrints": "Wydruki w tym miesiącu",
+  "archiveCalendarSuccessful": "Udane",
+  "archiveCalendarFailed": "Nieudane",
+  "archiveCalendarNoPrints": "Brak wydruków tego dnia",
+  "archiveCalendarSelectDay": "Wybierz dzień, aby zobaczyć jego wydruki",
+  "archiveCalendarDay": "{date}: {count, plural, =0{brak wydruków} =1{1 wydruk} few{{count} wydruki} many{{count} wydruków} other{{count} wydruku}}",
+  "@archiveCalendarDay": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

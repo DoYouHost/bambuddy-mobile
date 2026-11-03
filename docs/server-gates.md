@@ -601,6 +601,46 @@ sent the two-request path, which works on every server. Being early is the costl
 side here (a spool in two slots), being late costs nothing, which is why the
 threshold is not 1.3.0.
 
+### archiveRuns — 1.3.1 (archive redesign, commits 809eaf4 and d43bf57)
+
+Each print of an archive keeps its own note, finish photos, video and verdict.
+`GET /archives/{id}/runs` itself is older (#1378, on 1.2.5) and lists the prints
+on every server; what is new is the keys on each row and two writes: `notes` on
+`PATCH /print-log/{id}` and `run_id` on `PATCH /archives/{id}`.
+
+Both writes are silent drops below it. `PrintLogEntryUpdate` and `ArchiveUpdate`
+forbid no extra fields, so an older server stores no note, and gives a verdict
+sent with `run_id` to the archive, which is its latest print (measured on
+1.2.5.7 by `ws_archive_runs_contract_test.dart`). The runs listing answers it
+first: `PrintLogEntrySchema` sends a `photos` key on every row from the redesign
+on, null or not, so `ArchiveRepository.runsCapability` observes it on the first
+row. An archive with no prints says nothing, and the row decides. Being early
+costs a note that does not stay and a verdict on the wrong print.
+
+### archiveMerge — 1.3.1 (archive redesign P2, commit 926957f)
+
+`GET /archives/merge-count`, `GET /archives/merge-preview` and `POST /archives/merge`:
+archives of one file, owner and project merged into the oldest. All three take
+`archives:update_all` and `archives:delete_all` together. The count settles
+`ArchiveRepository.mergeCapability`: a 403 is a session without both rights, and an
+older server answers **422**, not 404, because `/archives/{archive_id}` takes the path
+and fails to parse `merge-count` as an id (measured on 1.2.5.7). Being early costs
+nothing visible: the count reads 0 and no entry is shown.
+
+On a contract stack a group is always held back as `busy`: an upload counts as just
+printed for half an hour (`archive_merge.py::_JUST_PRINTED`). The demo carries one
+mergeable group (a second "Handle" archive) for the merge itself.
+
+### archiveCalendar — 1.3.1 (archive redesign P4, commit d43bf57)
+
+`GET /archives/prints`: every print of the archives the caller sees that ended in a
+range of calendar days (`tz` is the device's zone, as for the statistics). An older
+server answers 422 for the same reason as `merge-count`, and
+`ArchiveRepository.printsBetween` then returns null and records the absence in
+`printsCapability`. That is not a missing feature: the calendar places each printed
+archive as its one print, which is all an older server can say (it logs runs but has
+no route that lists them by day). Being early costs one 422 and that fallback.
+
 ### spoolMaterialNumber — 1.2.5.7 (server #2870)
 
 A purchasing number shared by every spool of a product: `material_number` on a

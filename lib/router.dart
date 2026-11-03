@@ -392,6 +392,7 @@ GoRouter buildAppRouter({
           final q = state.uri.queryParameters;
           return TimelapseScreen(
             archiveId: int.parse(q['archive']!),
+            runId: int.tryParse(q['run'] ?? ''),
             title: q['name'],
           );
         },
@@ -405,6 +406,8 @@ GoRouter buildAppRouter({
           final q = state.uri.queryParameters;
           return ArchivePhotosScreen(
             archiveId: int.parse(q['archive']!),
+            // Repeated `photo=` keys, one per file of the print's own.
+            only: state.uri.queryParametersAll['photo'],
             title: q['name'],
           );
         },

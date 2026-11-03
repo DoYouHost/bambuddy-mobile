@@ -4490,5 +4490,203 @@
   "tipsTrimTitle": "Recortar un timelapse",
   "tipsTrimBody": "Arrastra los tiradores de la tira de fotogramas; toca o arrastra en cualquier otro punto para mover el cabezal.",
   "tipsWallTitle": "Modo pared",
-  "tipsWallBody": "En la pantalla Impresoras, abre el menú ⋮ y elige Modo pared."
+  "tipsWallBody": "En la pantalla Impresoras, abre el menú ⋮ y elige Modo pared.",
+  "archiveRunsTitle": "Impresiones",
+  "archiveRunsEmpty": "Este archivo aún no se ha impreso.",
+  "archiveRunsBeforeLog": "Impreso antes de que Bambuddy registrara cada impresión: {status}.",
+  "@archiveRunsBeforeLog": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunsPlateEmpty": "Esta placa aún no se ha impreso.",
+  "archiveRunsAllPlates": "Todas las placas",
+  "archiveRunPlate": "Placa {plate}",
+  "@archiveRunPlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunNoPrinter": "Impresora eliminada",
+  "archiveRunWithEstimate": "{value} (estimado {estimate})",
+  "@archiveRunWithEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeVsEstimate": "{value} / {estimate} ({delta})",
+  "@archiveRunTimeVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunTimeOf": "{value} de {estimate}",
+  "@archiveRunTimeOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveRunStartedEnded": "Inicio / fin",
+  "archiveRunEnergy": "Energía",
+  "archiveRunFailureReason": "Motivo del fallo",
+  "archiveRunStartedBy": "Iniciada por",
+  "archiveRunNote": "Nota sobre esta impresión",
+  "archiveRunVideo": "Vídeo timelapse",
+  "archiveRunPhotos": "Fotos ({count})",
+  "@archiveRunPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveGoodCount": "Buenas: {count}",
+  "@archiveGoodCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveFailedCount": "Fallidas: {count}",
+  "@archiveFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveRunSetOutcome": "Indicar resultado",
+  "archiveRunChangeOutcome": "Cambiar resultado",
+  "archiveRunAddNote": "Añadir nota",
+  "archiveRunEditNote": "Editar nota",
+  "archiveRunNoteSaved": "Nota guardada",
+  "archivePlatesTitle": "Placas",
+  "archivePlateEstimate": "Estimado {value}",
+  "@archivePlateEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePlateLastVsEstimate": "Última impresión frente al estimado: {value}",
+  "@archivePlateLastVsEstimate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePrintThisPlate": "Imprimir esta placa",
+  "archiveShowPlatePrints": "Ver sus impresiones",
+  "archiveRunReprint": "Reimprimir esta impresión",
+  "archiveMergeBanner": "{count, plural, =1{1 grupo de archivos duplicados} other{{count} grupos de archivos duplicados}}",
+  "@archiveMergeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeButton": "Fusionar",
+  "archiveMergeDismiss": "Descartar",
+  "archiveMergeMenu": "Fusionar duplicados",
+  "archiveMergeTitle": "Fusionar archivos duplicados",
+  "archiveMergeEffectKeep": "El archivo más antiguo de cada grupo se mantiene y recibe todas las impresiones de los demás, con sus fotos, vídeos y ficheros.",
+  "archiveMergeEffectLinks": "Los demás desaparecen del archivo; sus enlaces antiguos abren el archivo en el que se fusionaron.",
+  "archiveMergeEffectMoney": "Los cargos del monedero y las reservas de presupuesto se quedan donde se registraron.",
+  "archiveMergeNone": "No hay duplicados que fusionar.",
+  "archiveMergeMember": "{name} · creado {date} · {count, plural, =1{1 impresión} other{{count} impresiones}}",
+  "@archiveMergeMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeStays": "Se mantiene",
+  "archiveMergeWaiting": "Omitidos por ahora",
+  "archiveMergeLeftOut": "Omitidos al fusionar",
+  "archiveMergeSkipBusy": "En uso: imprimiendo, en cola o recién impreso. Inténtalo más tarde.",
+  "archiveMergeSkipConflicting": "Los archivos tienen ficheros fuente o de diseño distintos, o vídeos. Conserva uno a mano primero.",
+  "archiveMergeSkipFailed": "La fusión falló.",
+  "archiveMergeSkipNotAGroup": "Ya no es un grupo de duplicados.",
+  "archiveMergeAction": "{count, plural, =1{Fusionar 1 grupo} other{Fusionar {count} grupos}}",
+  "@archiveMergeAction": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeConfirmBody": "Esto no se puede deshacer en la aplicación.",
+  "archiveMergeDone": "{count, plural, =1{1 grupo fusionado.} other{{count} grupos fusionados.}}",
+  "@archiveMergeDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMergeDoneSome": "Fusionados: {count}. Omitidos: {left}.",
+  "@archiveMergeDoneSome": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveCalendarView": "Vista de calendario",
+  "archiveListView": "Vista de lista",
+  "archiveCalendarToday": "Hoy",
+  "archiveCalendarPrevious": "Mes anterior",
+  "archiveCalendarNext": "Mes siguiente",
+  "archiveCalendarPrints": "Impresiones este mes",
+  "archiveCalendarSuccessful": "Correctas",
+  "archiveCalendarFailed": "Fallidas",
+  "archiveCalendarNoPrints": "No hay impresiones este día",
+  "archiveCalendarSelectDay": "Selecciona un día para ver sus impresiones",
+  "archiveCalendarDay": "{date}: {count, plural, =0{sin impresiones} =1{1 impresión} other{{count} impresiones}}",
+  "@archiveCalendarDay": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

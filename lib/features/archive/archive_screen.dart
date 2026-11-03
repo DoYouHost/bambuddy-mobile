@@ -14,6 +14,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import 'archive_media_sheet.dart';
+import 'archive_merge_sheet.dart';
 import '../common/api_failure_snack.dart';
 import '../common/search_debouncer.dart';
 import '../gcode/gcode_viewer_route.dart';
@@ -26,9 +27,12 @@ import '../../data/pipelines_repository.dart' show PipelineSource;
 import '../pipelines/pipeline_run_screen.dart';
 import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
+import 'archive_calendar.dart';
 import 'archive_details.dart';
 import 'archive_filament_edit.dart';
+import 'archive_plates.dart';
 import 'archive_providers.dart';
+import 'archive_runs.dart';
 import 'outcome_sheet.dart';
 import 'print_outcome.dart';
 import '../common/web_link.dart';
@@ -55,6 +59,10 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   final Set<int> _selected = {};
 
   bool get _selectionMode => _selected.isNotEmpty;
+
+  /// The month calendar instead of the list (the web's calendar view). Not
+  /// kept across visits: the list is what the tab is for.
+  bool _calendar = false;
 
   void _toggleSelect(int id) {
     setState(() {
@@ -97,6 +105,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Read here, not in the menu's builder, which runs outside this build.
+    final mergeOffered = archiveMergeOffered(ref);
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(archiveProvider);
     final filters = ref.watch(archiveFiltersProvider);
@@ -147,12 +157,22 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                 context,
                 title: l10n.navArchive,
                 actions: [
+                  IconButton(
+                    icon: Icon(
+                      _calendar ? Icons.view_list : Icons.calendar_month,
+                    ),
+                    tooltip: _calendar
+                        ? l10n.archiveListView
+                        : l10n.archiveCalendarView,
+                    onPressed: () => setState(() => _calendar = !_calendar),
+                  ).tagged('archive.view_toggle'),
                   logTag(
                     'archive.menu',
                     PopupMenuButton<String>(
                       onSelected: (v) {
                         if (v == 'purge') _purgeOlder();
                         if (v == 'print_log') context.push('/print-log');
+                        if (v == 'merge') showArchiveMergeSheet(context);
                       },
                       // Tag on the child: a wrapped `PopupMenuItem` is no
                       // longer a `PopupMenuEntry`.
@@ -171,6 +191,14 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                             Text(l10n.archivePurgeOlder),
                           ),
                         ),
+                        if (mergeOffered)
+                          PopupMenuItem(
+                            value: 'merge',
+                            child: logTag(
+                              'archive.menu.merge',
+                              Text(l10n.archiveMergeMenu),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -210,6 +238,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                     // pushed down is a row the user has to hunt for again.
                     if (!_selectionMode)
                       const SliverToBoxAdapter(child: _No3mfBanner()),
+                    if (!_selectionMode)
+                      const SliverToBoxAdapter(child: ArchiveMergeBanner()),
                     if (all.isEmpty)
                       SliverEmptyState(
                         message: l10n.archiveEmpty,
@@ -219,6 +249,14 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                       SliverEmptyState(
                         message: l10n.archiveNoMatches,
                         icon: Icons.search_off,
+                      )
+                    else if (_calendar)
+                      SliverToBoxAdapter(
+                        child: ArchiveCalendar(
+                          archives: items,
+                          printerId: filters.printerId,
+                          onOpen: _openSheet,
+                        ),
                       )
                     else
                       SliverPadding(
@@ -278,6 +316,9 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         onRunPipeline: () => _runPipeline(archive),
         onDelete: () => _deleteFromSheet(archive),
         onReject: () => _rejectReason(archive),
+        onRunPhotos: (photos) => _openPhotos(archive, only: photos),
+        onRunVideo: (runId) => _openTimelapse(archive, runId: runId),
+        onReprintPlate: (plate) => _reprint(archive, plate: plate),
       ),
     );
   }
@@ -516,11 +557,20 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     );
   }
 
-  /// Timelapse: closes the sheet and opens the full-screen player.
-  void _openTimelapse(Archive archive) {
+  /// Timelapse: closes the sheet and opens the full-screen player — on one
+  /// print's own video when [runId] is given.
+  void _openTimelapse(Archive archive, {int? runId}) {
     Navigator.pop(context);
-    final name = Uri.encodeQueryComponent(archive.displayName);
-    context.push('/timelapse?archive=${archive.id}&name=$name');
+    context.push(
+      Uri(
+        path: '/timelapse',
+        queryParameters: {
+          'archive': '${archive.id}',
+          'run': ?runId?.toString(),
+          'name': archive.displayName,
+        },
+      ).toString(),
+    );
   }
 
   /// Media: swaps this sheet for the one that lists everything the print has,
@@ -541,11 +591,20 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     );
   }
 
-  /// Photos: closes the sheet and opens the full-screen viewer.
-  void _openPhotos(Archive archive) {
+  /// Photos: closes the sheet and opens the full-screen viewer — on [only]
+  /// these when one print's photos are asked for.
+  void _openPhotos(Archive archive, {List<String>? only}) {
     Navigator.pop(context);
-    final name = Uri.encodeQueryComponent(archive.displayName);
-    context.push('/archive/photos?archive=${archive.id}&name=$name');
+    context.push(
+      Uri(
+        path: '/archive/photos',
+        queryParameters: {
+          'archive': '${archive.id}',
+          'name': archive.displayName,
+          'photo': ?only,
+        },
+      ).toString(),
+    );
   }
 
   /// Reprint: printer selection → confirmation → enqueue at top of the
@@ -554,11 +613,15 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   /// item. Initiates a physical print, so always behind a confirmation dialog.
   /// Reprint: the print form, opened on ASAP so it goes ahead of the queue —
   /// the intent behind "reprint" is "print this one next".
-  Future<void> _reprint(Archive archive) async {
+  ///
+  /// [plate] starts it on that plate instead of the one the archive last ran.
+  Future<void> _reprint(Archive archive, {int? plate}) async {
     Navigator.pop(context);
     await openQueueCreate(
       context,
-      draft: archiveQueueDraft(archive),
+      draft: archiveQueueDraft(
+        plate == null ? archive : archive.copyWith(plateId: plate),
+      ),
       schedule: QueueScheduleType.asap,
     );
   }
@@ -944,10 +1007,16 @@ class _ArchiveSheet extends ConsumerWidget {
     required this.onRunPipeline,
     required this.onDelete,
     required this.onReject,
+    required this.onRunPhotos,
+    required this.onRunVideo,
+    required this.onReprintPlate,
   });
 
   final Archive archive;
   final VoidCallback onReject;
+  final ValueChanged<List<String>> onRunPhotos;
+  final ValueChanged<int?> onRunVideo;
+  final ValueChanged<int?> onReprintPlate;
   final VoidCallback onReprint;
   final VoidCallback onAddToQueue;
   final VoidCallback onPreviewGcode;
@@ -1044,6 +1113,18 @@ class _ArchiveSheet extends ConsumerWidget {
                 ArchiveFilamentRow(archive: archive),
                 ArchiveStatsPanel(archive: archive),
                 ArchiveTagsAndNote(archive: archive),
+                ArchivePlatesSection(
+                  archive: archive,
+                  onPhotos: onRunPhotos,
+                  onVideo: onRunVideo,
+                  onPrintPlate: onReprintPlate,
+                ),
+                ArchiveRunsSection(
+                  archive: archive,
+                  onPhotos: onRunPhotos,
+                  onVideo: onRunVideo,
+                  onReprint: onReprintPlate,
+                ),
                 ArchiveFooter(archive: archive),
                 ArchiveLinkButton(archive: archive),
                 SizedBox(

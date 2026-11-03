@@ -632,6 +632,41 @@ abstract final class Endpoints {
   static String archiveTimelapse(int archiveId) =>
       '$apiPrefix/archives/$archiveId/timelapse';
 
+  /// How many groups of duplicate archives there are (`{groups}`): same file,
+  /// owner and project. Cheap; reads no files. These three need
+  /// `archives:update_all` **and** `archives:delete_all`, and arrived with the
+  /// archive redesign (1.3.1). Older servers answer **422**: their
+  /// `/archives/{archive_id}` takes the path and fails to parse it as an id.
+  static const archivesMergeCount = '$apiPrefix/archives/merge-count';
+
+  /// The groups themselves (`{groups: [{survivor, merged, skipped}]}`); the
+  /// oldest archive of each stays. `skipped` is why a group is left out now.
+  static const archivesMergePreview = '$apiPrefix/archives/merge-preview';
+
+  /// `POST {survivor_ids}` (1..500) → `{merged: [{survivor_id, merged_ids}],
+  /// skipped: [{survivor_id, reason}]}`. Each group as it stands when the merge
+  /// runs; one failing leaves the others merged.
+  static const archivesMerge = '$apiPrefix/archives/merge';
+
+  /// Prints of the archives the caller sees that ended between `date_from` and
+  /// `date_to` (calendar days in `tz`), `PrintLogResponse`, ordered by id.
+  /// Query `printer_id`, `limit` (≤1000), `offset`. The archive calendar's
+  /// source, from the archive redesign (1.3.1); older servers answer 422, as
+  /// for [archivesMergeCount].
+  static const archivePrints = '$apiPrefix/archives/prints';
+
+  /// Every print of the archive (`PrintLogResponse`, `{items, total}`), newest
+  /// first, only those on the caller's printers. Served since #1378; each print's
+  /// own note, photos, video and plate estimate arrived with the archive
+  /// redesign (1.3.1).
+  static String archiveRuns(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/runs';
+
+  /// One print's own timelapse, `?token=` like [archiveTimelapse], which serves
+  /// only the latest print's. 404 when the print has none.
+  static String archiveRunTimelapse(int archiveId, int runId) =>
+      '$apiPrefix/archives/$archiveId/runs/$runId/timelapse';
+
   /// Recordings this print can still be given: the timelapse the server keeps,
   /// plus whatever the printer itself holds — an unattached timelapse and the
   /// `/ipcam` clips whose timestamps fall inside the print
