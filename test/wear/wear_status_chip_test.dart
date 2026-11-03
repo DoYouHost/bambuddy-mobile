@@ -46,8 +46,8 @@ void main() {
     expect(
       await labelColour(
         tester,
-        WearState.failed,
-        pl.widgetStatusFailed,
+        WearState.error,
+        pl.widgetStatusError,
         scheme: orange,
       ),
       const Color(0xFFEF5350),

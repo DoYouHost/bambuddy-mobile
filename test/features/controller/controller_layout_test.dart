@@ -99,9 +99,13 @@ void main() {
     await tester.pump();
   }
 
+  /// What scrolls the tab. A text field scrolls its own text, and the speed
+  /// select is one.
   Finder scrollables() => find.descendant(
     of: find.byType(ControllerOverview),
-    matching: find.byType(Scrollable),
+    matching: find.byWidgetPredicate(
+      (w) => w is Scrollable && w.restorationId != 'editable',
+    ),
   );
 
   for (final size in _sizes) {
@@ -156,7 +160,8 @@ void main() {
       ) async {
         await pump(tester, size, textScale: 1.5);
 
-        expect(scrollables(), findsNothing);
+        // The overview is a page from here (`ControllerPage`): a scroll view
+        // that scrolls only where the window is too short for the cards.
         expect(tester.takeException(), isNull);
       });
     });

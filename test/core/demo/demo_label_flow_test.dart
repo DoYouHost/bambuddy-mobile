@@ -65,6 +65,14 @@ void main() {
 
     // Offered only to a server that has them: the demo's version says it does.
     expect(find.text(pl.labelFieldsTitle), findsOneWidget);
+    // Below the fold in a list that builds rows lazily.
+    await tester.scrollUntilVisible(
+      find.text(pl.labelFormatTitle),
+      120,
+      scrollable: find
+          .byWidgetPredicate((w) => w is Scrollable && w.axis == Axis.vertical)
+          .last,
+    );
     expect(find.text(pl.labelFormatTitle), findsOneWidget);
   });
 

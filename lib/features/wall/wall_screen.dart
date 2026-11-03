@@ -363,7 +363,7 @@ class _WallPanel extends StatelessWidget {
                         .toUpperCase(),
                     style: t.label.copyWith(
                       color: t.accentGreenInk,
-                      letterSpacing: 0.4,
+                      letterSpacing: DashTracking.label,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -405,7 +405,7 @@ class _WallFarm extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final faults = ref.watch(wallFaultsProvider);
-    final queue = ref.watch(queueProvider).valueOrNull ?? const <QueueItem>[];
+    final queue = ref.watch(queueProvider).value ?? const <QueueItem>[];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -486,7 +486,7 @@ class _PanelItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: DashSpace.sm),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         border: Border.all(color: t.subCardBorder),
       ),
       clipBehavior: Clip.antiAlias,
@@ -495,7 +495,7 @@ class _PanelItem extends StatelessWidget {
             ? null
             : BoxDecoration(
                 border: BorderDirectional(
-                  start: BorderSide(color: stripe, width: 3),
+                  start: BorderSide(color: stripe, width: DashStroke.heavy),
                 ),
               ),
         padding: const EdgeInsets.fromLTRB(
@@ -568,7 +568,11 @@ class _QueueRow extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.schedule, size: 14, color: t.accentOrangeInk),
+                Icon(
+                  Icons.schedule,
+                  size: DashIcon.sm,
+                  color: t.accentOrangeInk,
+                ),
                 const SizedBox(width: DashSpace.xs),
                 // The server's own sentence; it is not localised.
                 Expanded(
@@ -669,7 +673,7 @@ class _WallRail extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final faults = ref.watch(wallFaultsProvider).length;
-    final queued = ref.watch(queueProvider).valueOrNull?.length ?? 0;
+    final queued = ref.watch(queueProvider).value?.length ?? 0;
     return Container(
       width: WallScreen.railWidth,
       decoration: t.cardBox,
@@ -735,7 +739,7 @@ class _RailCount extends StatelessWidget {
     final t = DashTokens.of(context);
     return Column(
       children: [
-        Icon(icon, size: 22, color: color),
+        Icon(icon, size: DashIcon.lg, color: color),
         const SizedBox(height: DashSpace.xs),
         Text('$count', style: t.monoValue.copyWith(color: color)),
       ],

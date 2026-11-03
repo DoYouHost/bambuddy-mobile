@@ -31,7 +31,7 @@ class AppearanceNotifier extends Notifier<AppearancePrefs> {
     try {
       await ref.read(settingsRepositoryProvider).saveAppearancePrefs(prefs);
     } catch (_) {
-      if (call == _latest) {
+      if (ref.mounted && call == _latest) {
         state = ref.read(settingsRepositoryProvider).loadAppearancePrefs();
       }
       rethrow;
@@ -96,6 +96,7 @@ class SystemSchemesNotifier extends Notifier<SystemSchemes?> {
   // failed read; keeping the last palette keeps a chosen "System" accent.
   Future<void> _reread() async {
     final schemes = await ref.read(systemSchemesReaderProvider)();
+    if (!ref.mounted) return;
     if (!_disposed && schemes != null) state = schemes;
   }
 }
@@ -127,7 +128,9 @@ class WatchAppearanceNotifier extends Notifier<WatchAppearance> {
     try {
       await settings.saveWatchAppearance(value);
     } catch (_) {
-      if (state == value) state = settings.loadWatchAppearance();
+      if (ref.mounted && state == value) {
+        state = settings.loadWatchAppearance();
+      }
       rethrow;
     }
   }

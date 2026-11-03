@@ -1,3 +1,4 @@
+import '../../core/printers/printer_bucket.dart';
 import '../announcements/announcements_widgets.dart';
 import 'package:app_util/app_util.dart';
 import 'dart:async';
@@ -12,13 +13,17 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart' show bugReportRoute;
 import '../../core/format/duration_format.dart';
 import '../../core/models/current_user.dart' show Permissions;
+import '../../core/models/external_link.dart' show externalLinksBadgeTotal;
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/background_sync.dart';
+import '../../core/notifications/hms_catalog.dart';
 import '../../core/notifications/battery_optimization.dart';
 import '../../core/settings/sign_in_reason.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../links/external_links_providers.dart';
+import '../links/external_links_screen.dart' show ExternalLinkBadge;
 import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../common/dash_async.dart';
 import '../notifications/finish_photo_providers.dart';
@@ -489,7 +494,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final sort = ref.watch(dashboardSortProvider);
     final collapsedGroups = ref.watch(dashboardCollapsedGroupsProvider);
     final collapse = ref.watch(printerCardCollapseProvider);
-    final wsState = ref.watch(wsConnectionStateProvider).valueOrNull;
+    final wsState = ref.watch(wsConnectionStateProvider).value;
     final t = DashTokens.of(context);
 
     // Keep proactive JWT + image-credential refresh alive while dashboard is on
@@ -511,7 +516,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         backgroundColor: Colors.transparent,
         drawer: _AppDrawer(profileLabel: profile?.label),
         onDrawerChanged: (open) {
-          if (open) ref.read(tourBeaconProvider)?.signal('dashboard.drawer');
+          if (open) {
+            ref.read(tourBeaconProvider)?.signal('dashboard.drawer');
+            // A count moves while the app stays open; the tile should not
+            // show the one from the last return to the foreground.
+            ref.invalidate(externalLinksProvider);
+          }
         },
         appBar: loggedAppBar(
           AppBar(
@@ -529,7 +539,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             title: Text(
               l10n.printersTitle,
-              style: t.displayLg.copyWith(letterSpacing: -0.5),
+              style: t.displayLg.copyWith(letterSpacing: DashTracking.tight),
             ),
             iconTheme: IconThemeData(color: t.textPrimary),
             actions: [
@@ -675,7 +685,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final filtered = sortPrinters([
       for (final p in printers)
         if ((q.isEmpty || p.printer.name.toLowerCase().contains(q)) &&
-            filters.matches(classifyPrinter(p.status), p.printer.location))
+            filters.matches(
+              classifyPrinter(p.status, describe: HmsCatalog.instance.describe),
+              p.printer.location,
+            ))
           p,
     ], sort);
     final groups = groupPrinters(filtered, sort);
@@ -922,8 +935,12 @@ class _AppDrawer extends ConsumerWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    t.accentGreen.withValues(alpha: t.isDark ? 0.20 : 0.14),
-                    t.accentGreen.withValues(alpha: t.isDark ? 0.06 : 0.04),
+                    t.accentGreen.withValues(
+                      alpha: t.isDark ? DashAlpha.wash : DashAlpha.wash,
+                    ),
+                    t.accentGreen.withValues(
+                      alpha: t.isDark ? DashAlpha.faint : DashAlpha.faint,
+                    ),
                   ],
                 ),
               ),
@@ -934,11 +951,11 @@ class _AppDrawer extends ConsumerWidget {
                     top: -48,
                     right: -36,
                     child: Container(
-                      width: 150,
-                      height: 150,
+                      width: DashSize.d160,
+                      height: DashSize.d160,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: t.accentGreen.withValues(alpha: 0.18),
+                        color: t.accentGreen.withValues(alpha: DashAlpha.wash),
                       ),
                     ),
                   ),
@@ -955,18 +972,24 @@ class _AppDrawer extends ConsumerWidget {
                         children: [
                           Container(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(
+                                DashRadius.lg,
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.22),
-                                  blurRadius: 12,
+                                  color: Colors.black.withValues(
+                                    alpha: DashAlpha.wash,
+                                  ),
+                                  blurRadius: DashBlur.lg,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
                               border: Border.all(color: t.subCardBorder),
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(15),
+                              borderRadius: BorderRadius.circular(
+                                DashRadius.lg,
+                              ),
                               child: Image.asset(
                                 'assets/icon/app_logo.png',
                                 width: _iconSize,
@@ -984,7 +1007,9 @@ class _AppDrawer extends ConsumerWidget {
                               children: [
                                 Text(
                                   'Bambuddy',
-                                  style: t.display.copyWith(letterSpacing: 0.2),
+                                  style: t.display.copyWith(
+                                    letterSpacing: DashTracking.label,
+                                  ),
                                 ),
                                 const SizedBox(height: DashSpace.xs),
                                 _ProfileChip(label: profileLabel),
@@ -1049,6 +1074,24 @@ class _AppDrawer extends ConsumerWidget {
                     },
                     id: 'drawer.projects',
                   ),
+                  // Absent for a session that may not read links, a server
+                  // without any and one without the route — the list is empty
+                  // in all three. The count is every link's together.
+                  if (ref.watch(externalLinksProvider).value case final links?
+                      when links.isNotEmpty)
+                    _DrawerTile(
+                      icon: Icons.link_rounded,
+                      label: l10n.linkedAppsTitle,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/links');
+                      },
+                      id: 'drawer.linked_apps',
+                      trailing: switch (externalLinksBadgeTotal(links)) {
+                        0 => null,
+                        final total => ExternalLinkBadge(count: total),
+                      },
+                    ),
                   _DrawerTile(
                     icon: Icons.bar_chart_rounded,
                     label: l10n.menuStatistics,
@@ -1220,7 +1263,11 @@ class _DrawerVersions extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: DashSpace.xs),
-          child: Icon(Icons.print_outlined, size: 14, color: t.textTertiary),
+          child: Icon(
+            Icons.print_outlined,
+            size: DashIcon.sm,
+            color: t.textTertiary,
+          ),
         ),
         const SizedBox(width: DashSpace.sm),
         Expanded(
@@ -1258,13 +1305,13 @@ class _ProfileChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.dns_rounded, size: 13, color: t.textSecondary),
+          Icon(Icons.dns_rounded, size: DashIcon.xs, color: t.textSecondary),
           const SizedBox(width: DashSpace.xs),
           Flexible(
             child: Text(
@@ -1289,11 +1336,15 @@ class _DrawerTile extends StatelessWidget {
     required this.label,
     required this.onTap,
     required this.id,
+    this.trailing,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+
+  /// Between the label and the chevron, e.g. a count.
+  final Widget? trailing;
 
   /// Name for the diagnostic log; the visible label is localized and is not
   /// recorded.
@@ -1309,7 +1360,7 @@ class _DrawerTile extends StatelessWidget {
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         clipBehavior: Clip.antiAlias,
         child: logTag(
           id,
@@ -1326,15 +1377,19 @@ class _DrawerTile extends StatelessWidget {
                   children: [
                     DashIconTile(
                       icon: icon,
-                      size: 40,
-                      radius: 12,
-                      iconSize: 21,
+                      size: DashSize.d40,
+                      radius: DashRadius.md,
+                      iconSize: DashIcon.md,
                     ),
                     const SizedBox(width: DashSpace.lg),
                     Expanded(child: Text(label, style: t.bodyStrong)),
+                    if (trailing != null) ...[
+                      trailing!,
+                      const SizedBox(width: DashSpace.sm),
+                    ],
                     Icon(
                       Icons.chevron_right_rounded,
-                      size: 20,
+                      size: DashIcon.md,
                       color: t.textTertiary,
                     ),
                   ],
@@ -1370,7 +1425,7 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   // Heights carry generous slack; content is clipped, never overflowed.
   static const double _statusFull = 60;
-  static const double _statusCompact = 48;
+  static const double _statusCompact = 56;
   static const double _searchH = DashSearchBarBody.height;
 
   @override
@@ -1580,6 +1635,14 @@ class _SummaryHeader extends ConsumerWidget {
     final dotColor = active.isEmpty ? t.textTertiary : t.accentGreen;
 
     final nextOpacity = (1 - shrink * 1.8).clamp(0.0, 1.0);
+    final countText = Text(
+      active.isEmpty ? l10n.noActivePrints : l10n.printingCount(active.length),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: t.body.copyWith(
+        color: active.isEmpty ? t.textSecondary : t.textPrimary,
+      ),
+    );
     return Container(
       // The card fills the height its parent allots (which shrinks with the
       // scroll); the row stays vertically centred, so there is no vertical
@@ -1588,33 +1651,35 @@ class _SummaryHeader extends ConsumerWidget {
       // expanded the search field below provides that spacing instead).
       margin: EdgeInsets.fromLTRB(
         DashSpace.gutter,
-        DashSpace.md - DashSpace.xs * shrink,
+        DashSpace.md - DashSpace.sm * shrink,
         DashSpace.gutter,
-        DashSpace.sm * shrink,
+        DashSpace.xs * shrink,
       ),
       padding: const EdgeInsets.symmetric(horizontal: DashSpace.lg),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
+      ),
+      // Over the content rather than in the decoration, which would inset the
+      // row by the border and leave the power chip 46 dp instead of 48.
+      foregroundDecoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Row(
         children: [
           Container(
-            width: 8,
-            height: 8,
+            width: DashSize.d8,
+            height: DashSize.d8,
             decoration: BoxDecoration(shape: BoxShape.circle, color: dotColor),
           ),
           const SizedBox(width: DashSpace.sm),
-          Text(
-            active.isEmpty
-                ? l10n.noActivePrints
-                : l10n.printingCount(active.length),
-            style: t.body.copyWith(
-              color: active.isEmpty ? t.textSecondary : t.textPrimary,
-            ),
-          ),
+          // Alone in the row it takes the width left of the chip and ellipsises
+          // there; beside the "next available" line that line is the one that
+          // gives way. A Flexible next to a Spacer would split the room in half
+          // and cut the text at 100%.
+          if (next == null) Expanded(child: countText) else countText,
           if (next != null) ...[
             const SizedBox(width: DashSpace.md),
             // Fades out as the card collapses (kept in the tree so its space
@@ -1628,7 +1693,7 @@ class _SummaryHeader extends ConsumerWidget {
                       TextSpan(text: l10n.nextAvailableLabel),
                       TextSpan(
                         text: next.printer.name,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                        style: const TextStyle(fontWeight: DashWeight.bold),
                       ),
                       TextSpan(text: _nextSuffix(l10n, next)),
                     ],
@@ -1641,14 +1706,11 @@ class _SummaryHeader extends ConsumerWidget {
             ),
           ],
           if (hasPlugs) ...[
-            if (next == null)
-              const Spacer()
-            else
-              const SizedBox(width: DashSpace.md),
+            if (next != null) const SizedBox(width: DashSpace.md),
             Tooltip(
               message: l10n.totalPowerTooltip,
               child: InkWell(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(DashRadius.sm),
                 onTap: () => showPowerBreakdownSheet(
                   context,
                   printers: [
@@ -1660,19 +1722,29 @@ class _SummaryHeader extends ConsumerWidget {
                   ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(DashSpace.xs),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.bolt, size: 15, color: t.accentGreenInk),
-                      const SizedBox(width: DashSpace.xs),
-                      Text(
-                        l10n.powerWatts(totalPowerW.round()),
-                        style: t.monoValue.copyWith(
-                          fontFeatures: const [FontFeature.tabularFigures()],
+                  padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
+                  // The pill is 48 dp at every scroll position and this fills
+                  // it, so the chip is a full touch target; widthFactor keeps it
+                  // as wide as its text.
+                  child: Center(
+                    widthFactor: 1,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.bolt,
+                          size: DashIcon.sm,
+                          color: t.accentGreenInk,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: DashSpace.xs),
+                        Text(
+                          l10n.powerWatts(totalPowerW.round()),
+                          style: t.monoValue.copyWith(
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1687,7 +1759,7 @@ class _SummaryHeader extends ConsumerWidget {
     final p = next.status?.progress;
     final r = next.status?.remainingTime;
     final parts = [
-      if (p != null) '${p.toStringAsFixed(0)}%',
+      if (p != null) '${next.status!.progressPercent}%',
       if (r != null) formatMinutes(l10n, r),
     ];
     return parts.isEmpty ? '' : ' (${parts.join(' · ')})';
@@ -1705,7 +1777,7 @@ PopupMenuItem<VoidCallback> _menuItem(
     id,
     Row(
       children: [
-        Icon(icon, size: 20),
+        Icon(icon, size: DashIcon.md),
         const SizedBox(width: DashSpace.md),
         // A popup menu is capped at 256 px, which a long label at a large
         // system text size runs past.

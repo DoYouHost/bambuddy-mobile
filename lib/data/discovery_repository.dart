@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/discovery.dart';
 
@@ -13,8 +14,7 @@ class DiscoveryRepository {
   final Dio _dio;
 
   Future<DiscoveryInfo> info() => guard(() async {
-    final res = await _dio.get<Map<String, dynamic>>(Endpoints.discoveryInfo);
-    return DiscoveryInfo.fromJson(res.data ?? const {});
+    return _dio.getObject(Endpoints.discoveryInfo, DiscoveryInfo.fromJson);
   });
 
   /// Start a background subnet scan; poll [scanStatus] until `running` is false.
@@ -28,10 +28,7 @@ class DiscoveryRepository {
       });
 
   Future<ScanStatus> scanStatus() => guard(() async {
-    final res = await _dio.get<Map<String, dynamic>>(
-      Endpoints.discoveryScanStatus,
-    );
-    return ScanStatus.fromJson(res.data ?? const {});
+    return _dio.getObject(Endpoints.discoveryScanStatus, ScanStatus.fromJson);
   });
 
   /// Start SSDP multicast discovery (native installs). Poll [discoveredPrinters]

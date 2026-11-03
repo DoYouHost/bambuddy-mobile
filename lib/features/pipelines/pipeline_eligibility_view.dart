@@ -54,7 +54,7 @@ class EligibilityView extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, size: 20, color: colour),
+            Icon(icon, size: DashIcon.md, color: colour),
             const SizedBox(width: DashSpace.sm),
             Expanded(
               child: Text(
@@ -107,7 +107,7 @@ class EligibilityView extends StatelessWidget {
             children: [
               Icon(
                 printer.ok ? Icons.check : Icons.close,
-                size: 16,
+                size: DashIcon.sm,
                 color: printer.ok
                     ? theme.colorScheme.primary
                     : theme.colorScheme.error,
@@ -159,7 +159,7 @@ class EligibilityView extends StatelessWidget {
         children: [
           Icon(
             advisory ? Icons.info_outline : Icons.remove_circle_outline,
-            size: 16,
+            size: DashIcon.sm,
             color: advisory
                 ? theme.colorScheme.tertiary
                 : theme.colorScheme.error,

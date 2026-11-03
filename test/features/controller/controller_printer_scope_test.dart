@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:bambuddy_mobile/providers.dart';
 
 import '../../helpers.dart';
 
@@ -38,6 +39,7 @@ void main() {
   }) {
     statuses = _Statuses(live);
     final c = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         fixedDashboardOverride(DashboardState(printers: roster)),
         printerStatusesProvider.overrideWith(() => statuses),

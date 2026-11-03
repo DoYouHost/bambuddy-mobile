@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/manyfold.dart';
 
@@ -16,49 +17,36 @@ class ManyfoldRepository {
   /// `null` when this server has no Manyfold routes (404, every release before
   /// it) or this session may not browse them (403) — the screen then has no
   /// Manyfold tab, as the web hides it without `manyfold:view`.
-  Future<ManyfoldStatus?> status() async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.manyfoldStatus,
-      );
-      return ManyfoldStatus.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      if (status == 404 || status == 403) return null;
-      throw mapDioException(e);
-    }
-  }
+  Future<ManyfoldStatus?> status() => guardAbsent<ManyfoldStatus?>(
+    () async {
+      return _dio.getObject(Endpoints.manyfoldStatus, ManyfoldStatus.fromJson);
+    },
+    null,
+    statuses: {404, 403},
+  );
 
   Future<ManyfoldModelPage> models({String query = '', int page = 1}) =>
       _call(() async {
-        final res = await _dio.get<Map<String, dynamic>>(
+        return _dio.getObject(
           Endpoints.manyfoldModels,
-          queryParameters: {'q': query, 'page': page},
+          ManyfoldModelPage.fromJson,
+          query: {'q': query, 'page': page},
         );
-        return ManyfoldModelPage.fromJson(res.data ?? const {});
       });
 
   Future<ManyfoldModel> model(String id) => _call(() async {
-    final res = await _dio.get<Map<String, dynamic>>(
-      Endpoints.manyfoldModel(id),
-    );
-    return ManyfoldModel.fromJson(res.data ?? const {});
+    return _dio.getObject(Endpoints.manyfoldModel(id), ManyfoldModel.fromJson);
   });
 
   /// The preview image, or `null` for a model without one (404).
-  Future<Uint8List?> preview(String id) async {
-    try {
-      final res = await _dio.get<List<int>>(
-        Endpoints.manyfoldPreview(id),
-        options: Options(responseType: ResponseType.bytes),
-      );
-      final bytes = res.data;
-      return bytes == null || bytes.isEmpty ? null : Uint8List.fromList(bytes);
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) return null;
-      throw mapDioException(e);
-    }
-  }
+  Future<Uint8List?> preview(String id) => guardAbsent<Uint8List?>(() async {
+    final res = await _dio.get<List<int>>(
+      Endpoints.manyfoldPreview(id),
+      options: Options(responseType: ResponseType.bytes),
+    );
+    final bytes = res.data;
+    return bytes == null || bytes.isEmpty ? null : Uint8List.fromList(bytes);
+  }, null);
 
   /// [folderId] `null` files it under the server's "Manyfold" folder.
   Future<ManyfoldImportResult> import({
@@ -74,8 +62,7 @@ class ManyfoldRepository {
   });
 
   Future<ManyfoldConfig> config() => _call(() async {
-    final res = await _dio.get<Map<String, dynamic>>(Endpoints.manyfoldConfig);
-    return ManyfoldConfig.fromJson(res.data ?? const {});
+    return _dio.getObject(Endpoints.manyfoldConfig, ManyfoldConfig.fromJson);
   });
 
   /// An empty [clientSecret] keeps the stored one.

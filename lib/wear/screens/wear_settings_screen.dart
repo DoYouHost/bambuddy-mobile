@@ -72,11 +72,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
             // Only when it is a different server: an offer for the one already
             // running is adopted by `WearApp` without ever reaching a screen.
             if (offered != null && !offered.isSameServerAs(profile)) ...[
-              Text(
-                l10n.wearFromPhoneWaiting,
-                textAlign: TextAlign.center,
-                style: WearText.body,
-              ),
+              wearBodyLine(l10n.wearFromPhoneWaiting),
               const SizedBox(height: DashSpace.sm),
               FilledButton(
                 onPressed: () => _switchTo(offered),
@@ -93,11 +89,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
             // clips its subtitle to one line, and this is the consequence
             // worth reading before the tap, not after it — essential text,
             // so 12 sp (Play WO-V14), not fine print.
-            Text(
-              l10n.changeServerWarning,
-              textAlign: TextAlign.center,
-              style: WearText.body.copyWith(color: wearMuted),
-            ),
+            wearBodyLine(l10n.changeServerWarning, color: wearMuted),
           ],
           const SizedBox(height: DashSpace.lg),
           const _WearVersions(),

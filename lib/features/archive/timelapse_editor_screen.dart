@@ -368,7 +368,7 @@ class _Preview extends StatelessWidget {
     return ValueListenableBuilder<VideoPlayerValue>(
       valueListenable: controller,
       builder: (context, value, _) => ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         child: AspectRatio(
           aspectRatio: value.aspectRatio,
           child: logTag(
@@ -391,7 +391,7 @@ class _Preview extends StatelessWidget {
                           padding: const EdgeInsets.all(DashSpace.md),
                           child: Icon(
                             Icons.play_arrow,
-                            size: 36,
+                            size: DashIcon.xl,
                             color: Theme.of(context).colorScheme.onPrimary,
                             semanticLabel: l10n.timelapsePlay,
                           ),
@@ -439,7 +439,7 @@ class _TrimStrip extends ConsumerWidget {
     final strip = ref.watch(timelapseFilmstripProvider(archiveId));
 
     Widget build(double? position) => TimelapseTrimStrip(
-      frames: strip.valueOrNull?.frames ?? const [],
+      frames: strip.value?.frames ?? const [],
       loading: strip.isLoading,
       duration: duration,
       trim: trim,
@@ -476,14 +476,30 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
-        const SizedBox(width: DashSpace.sm),
-        SectionHeading(label, style: theme.textTheme.titleSmall),
-        const Spacer(),
-        Text(value, style: theme.textTheme.bodySmall),
-      ],
+    return SizedBox(
+      width: double.infinity,
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        runSpacing: DashSpace.xs,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: DashIcon.md,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: DashSpace.sm),
+              Flexible(
+                child: SectionHeading(label, style: theme.textTheme.titleSmall),
+              ),
+            ],
+          ),
+          Text(value, style: theme.textTheme.bodySmall),
+        ],
+      ),
     );
   }
 }

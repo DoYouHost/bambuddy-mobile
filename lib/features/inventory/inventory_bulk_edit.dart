@@ -78,7 +78,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     super.dispose();
   }
 
-  String? _trim(String key) => _trimmedField(_c, key);
+  String? _trim(String key) => trimmedOrNull(_c[key]!.text);
 
   int? _int(String key) => _intField(_c, key);
 
@@ -163,10 +163,10 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
             ? l10n.inventoryBulkEditUnsupported
             : null,
       );
-    } on Object {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      messenger.snack(l10n.inventorySaveFailed);
+    } catch (_) {
+      // A bug, not a refusal: lower the flag and let it reach the bug report.
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
@@ -176,11 +176,10 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final native =
-        ref.watch(inventoryBackendProvider).valueOrNull ==
-        InventoryBackend.native;
+        ref.watch(inventoryBackendProvider).value == InventoryBackend.native;
     // Every selected spool has to have brought its list along: the write
     // merges into it, and a spool without one cannot be merged into.
-    final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+    final spools = ref.watch(inventoryProvider).value?.spools ?? const [];
     final listed = {
       for (final s in spools)
         if (s.suppliers != null) s.id,
@@ -302,7 +301,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
       child: FilledButton(
         onPressed: _saving || !_hasInput ? null : _apply,
         child: _saving
-            ? DashSpinner(size: 20, color: t.onAccent)
+            ? DashSpinner(size: DashSize.d20, color: t.onAccent)
             : Text(l10n.inventoryBulkEditApply(_count)),
       ).tagged('bulk_edit.apply'),
     ),
@@ -380,7 +379,11 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
       placeholder: l10n.inventoryBulkEditUnchanged,
       value: hex.isEmpty ? null : hex.toUpperCase(),
       valueStyle: t.monoValue,
-      leading: SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24, radius: 6),
+      leading: SpoolSwatch(
+        rgba: hex.isEmpty ? null : hex,
+        size: DashSize.d24,
+        radius: DashRadius.sm,
+      ),
       trailingIcon: Icons.colorize,
       onTap: _pickColor,
       clear: (

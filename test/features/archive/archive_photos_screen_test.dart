@@ -4,6 +4,7 @@ import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:bambuddy_mobile/providers.dart';
 
 import '../../helpers.dart';
 
@@ -16,6 +17,7 @@ Archive _archive(List<String> photos) => Archive(
 );
 
 Widget _screen(List<String> photos) => ProviderScope(
+  retry: neverRetry,
   overrides: [
     archiveDetailProvider(7).overrideWith((ref) async => _archive(photos)),
     noServerProfileOverride,

@@ -86,6 +86,19 @@ _test-wear avd patrol:
 # camera view that showed a spinner forever passed a green suite. These boot the
 # AVD, serve an MJPEG stream from the device's own loopback and assert on what
 # reaches the screen.
+[doc('run the rendered a11y guideline tests, four files at a time')]
+[group('1-develop')]
+test-a11y *files='test/a11y':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Parallel only inside this one run: several `flutter test` processes rewrite
+    # the same build/test_cache dill and corrupt it. One laptop: 1409 s one file
+    # at a time, 965 s at 2, 792 s at 3, 726 s at 4, about 6 GiB at 4. Four is the
+    # middle; another machine will time differently. The scope's limit covers all
+    # of them.
+    systemd-run --user --scope -q -p MemoryMax=12G -p MemorySwapMax=0 \
+        -p RuntimeMaxSec=3000 flutter test --concurrency=4 -r failures-only {{files}}
+
 [doc('run the on-device integration tests (boots the AVD first)')]
 [group('1-develop')]
 test-device avd=avd:
@@ -375,9 +388,10 @@ clean:
 # leave a published release with nothing to promote.
 
 # A release is cut from whatever is checked out: `_bump` commits here and
-# `release-publish` pushes here, so shipping off `dev` leaves master alone. One
-# definition for both, because a bump landing on a different branch than the
-# push would publish a release without its own version commit.
+# `release-publish` pushes here. `ship` insists on `release/X.Y.Z`, so master and
+# dev never receive a bump directly. One definition for both, because a bump
+# landing on a different branch than the push would publish a release without its
+# own version commit.
 [no-exit-message]
 _branch:
     #!/usr/bin/env bash
@@ -388,7 +402,57 @@ _branch:
     fi
     echo "$branch"
 
-# versionCode = (major*10000 + minor*100 + patch) * 20 + 2_000_000
+# The branch name carries the version, so a typo in either one stops here instead
+# of publishing a release whose bump belongs to another version.
+[no-exit-message]
+_require-release-branch ver:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    branch=$(just _branch)
+    if [ "$branch" != "release/{{ver}}" ]; then
+        echo "ship {{ver}} runs from release/{{ver}}, not '$branch'. Start it with: just release-start {{ver}}" >&2
+        exit 1
+    fi
+
+# Opens the draft PR into master for release/<ver>; a no-op when one is open.
+# Fails when the branch has no commit over master — `release-start` tolerates
+# that (the bump commit is still to come), `release-publish` cannot.
+[no-exit-message]
+_release-pr ver:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    branch="release/{{ver}}"
+    open=$(gh pr list --repo {{repo}} --base master --head "$branch" --state open --json number --jq '.[0].number // empty')
+    if [ -n "$open" ]; then
+        echo "PR #$open already open for $branch"
+        exit 0
+    fi
+    gh pr create --repo {{repo}} --base master --head "$branch" --draft \
+        --title "chore: release {{ver}}" \
+        --body "Release {{ver}}: merges release/{{ver}} into master."
+
+# Cuts release/<ver> from <base> (default: the pushed tip of dev; a SHA or
+# origin/master for a hotfix works too), pushes it and opens its draft PR, so CI
+# runs on every change that is merged into the release from then on.
+[doc('cut release/X.Y.Z, push it and open its draft PR')]
+[group('4-release')]
+[no-exit-message]
+release-start ver base='origin/dev':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just _version-code {{ quote(ver) }} >/dev/null
+    branch="release/{{ver}}"
+    git fetch --quiet origin
+    if git show-ref --verify --quiet "refs/heads/$branch" || \
+        git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+        echo "$branch already exists; check it out instead." >&2
+        exit 1
+    fi
+    git switch --no-track -c "$branch" {{ quote(base) }}
+    git push -u origin "$branch"
+    just _release-pr {{ver}} || echo "No PR yet (nothing ahead of master?); \`just ship {{ver}}\` opens it."
+
+# versionCode =(major*10000 + minor*100 + patch) * 20 + 2_000_000
 # (e.g. 1.2.3 → 2_204_060). The *20 opens 19 slots under each release for
 # `ship-dev` to number its builds into, so a dev build can never block the
 # release it precedes; the busiest cycle so far used 8 of them.
@@ -431,15 +495,17 @@ _bump ver:
     set -euo pipefail
     code=$(just _version-code {{ quote(ver) }})
     branch=$(just _branch)
-    # A branch that exists only here — the first release cut from it — has
-    # nothing to rebase onto, and `git pull` would fail on the missing ref.
-    # `--exit-code` says 2 for that and 128 for "could not reach origin": only
-    # the first is a reason to skip the rebase, and swallowing the second would
-    # build the release on a tree that never caught up with the remote.
+    # A branch that exists only here has nothing to catch up with, and `git pull`
+    # would fail on the missing ref. `--exit-code` says 2 for that and 128 for
+    # "could not reach origin": only the first is a reason to skip the pull, and
+    # swallowing the second would build the release on a tree that never caught
+    # up with the remote.
     rc=0
     git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1 || rc=$?
     case $rc in
-        0) git pull --rebase --autostash origin "$branch" ;;
+        # --ff-only, not --rebase: a release branch carries merge commits from
+        # dev, and a rebase on a diverged branch would flatten them.
+        0) git pull --ff-only --autostash origin "$branch" ;;
         2) echo "origin has no $branch yet — first release from this branch" ;;
         *) echo "Cannot read origin (git ls-remote exited $rc)." >&2; exit 1 ;;
     esac
@@ -506,6 +572,7 @@ _play-only tag name:
 ship ver:
     #!/usr/bin/env bash
     set -euo pipefail
+    just _require-release-branch {{ver}}
     just _bump {{ver}}
     if just _play-only "v{{ver}}" "{{ver}}" 2>/dev/null; then
         echo "v{{ver}} is published and its bundles are built — resuming at the Play upload"
@@ -687,6 +754,9 @@ release-publish ver:
     # release in one server-side call. This avoids the race where we push a tag
     # and immediately reference it before the server has indexed it.
     git push origin "HEAD:refs/heads/$branch"
+    # Normally opened by `release-start`; this covers a branch cut when it had
+    # nothing ahead of master, and a PR closed by hand.
+    just _release-pr {{ver}}
     # Skip creating the release if it already exists (e.g. a previous run got
     # this far before failing), so the pipeline can be resumed safely.
     if gh release view "v{{ver}}" --repo {{repo}} >/dev/null 2>&1; then
@@ -698,6 +768,10 @@ release-publish ver:
             --title "v{{ver}}" --notes ""
     fi
     just _upload-assets "v{{ver}}" {{apk}} {{wear_apk}}
+    # Published, so the draft PR is now the only thing left to merge.
+    if [ "$(gh pr view "$branch" --repo {{repo}} --json isDraft --jq .isDraft)" = "true" ]; then
+        gh pr ready "$branch" --repo {{repo}}
+    fi
     # Sync the server-created tag back to the local repo.
     git fetch --tags origin
 

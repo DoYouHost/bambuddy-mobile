@@ -77,6 +77,7 @@ class _FakeSource implements SpoolInventorySource {
 void main() {
   Future<(ProviderContainer, _FakeSource)> harness(_FakeSource source) async {
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         fakeServerProfileOverride(),
         inventoryBackendOverride(),

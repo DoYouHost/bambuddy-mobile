@@ -4,6 +4,8 @@ import 'package:json_annotation/json_annotation.dart';
 
 import '../ams/fts_routing.dart';
 import '../ams/slot_addressing.dart';
+import 'next_pause.dart';
+import 'value_equality.dart';
 
 part 'printer_status.g.dart';
 
@@ -58,6 +60,7 @@ class PrinterStatus {
     this.filaSwitch,
     this.amsFilamentBackup,
     this.extruderSlots,
+    this.nextPause,
   });
 
   factory PrinterStatus.fromJson(Map<String, dynamic> json) =>
@@ -242,6 +245,15 @@ class PrinterStatus {
   /// near-empty spool (`effectivePreferLowest`).
   final bool? amsFilamentBackup;
 
+  /// The next pause the slicer put into the running print, null when none is
+  /// ahead — and on a server that does not send it (docs/server-gates.md).
+  /// **Not inherited by [mergedWith]**: the server writes the key into every
+  /// status, REST and WebSocket alike, with null for "none ahead", so a frame
+  /// without a pause is the answer. Carrying the last one forward would keep a
+  /// marker for a pause the print is already past.
+  @JsonKey(fromJson: nextPauseFromJson)
+  final NextPause? nextPause;
+
   /// Which AMS slot each hotend is fed from, keyed by extruder id (0 = right /
   /// main, 1 = left / deputy). Null on servers and printers that do not report
   /// it; [trayNow] is printer-wide and cannot answer the same question, because
@@ -332,6 +344,7 @@ class PrinterStatus {
     filaSwitch,
     extruderSlots,
     amsFilamentBackup,
+    nextPause,
   ];
 
   /// Value equality — `ingestPoll` uses this to skip publishing a merged
@@ -419,6 +432,7 @@ class PrinterStatus {
       filaSwitch: filaSwitch ?? previous.filaSwitch,
       extruderSlots: extruderSlots ?? previous.extruderSlots,
       amsFilamentBackup: amsFilamentBackup ?? previous.amsFilamentBackup,
+      nextPause: nextPause,
     )._clearedIfOffline();
   }
 
@@ -554,9 +568,31 @@ class PrinterStatus {
     return (progress ?? 0) > 0 && (remainingTime ?? 0) > 0;
   }
 
+  /// A job is on a printer that can be reached — the question "is there a print
+  /// to show progress for, and to pause or stop?". Not the same question as the
+  /// status bucket (`classifyPrinter`): a printing machine with an HMS fault is
+  /// in the error bucket and still has a job to stop, and a preparing one is in
+  /// the idle bucket and already has one.
+  bool get isJobActive => (connected ?? false) && isPrinting;
+
+  /// The print's progress as a whole percent, 0–100. The server sends `progress`
+  /// already as a percentage (`mc_percent`, a float), never a 0–1 fraction —
+  /// 0.5 is half a percent — and the web rounds and clamps it the same way.
+  int get progressPercent => (progress ?? 0).round().clamp(0, 100);
+
   /// Prep phase: active print but no real progress yet — show stage name
   /// instead of 0% bar in UI.
   bool get isPreparing => isPrinting && (progress ?? 0) <= 0;
+
+  /// The stage a print is still preparing through (heating, bed levelling), or
+  /// `null` once it prints or while the server names none. A screen shows it
+  /// instead of a percentage and runs its bar indeterminate: a 0% there reads as
+  /// a stalled job. The phone's card and the watch read it from here, so they
+  /// cannot disagree.
+  String? get preparingStage {
+    final stage = stgCurName?.trim();
+    return isPreparing && stage != null && stage.isNotEmpty ? stage : null;
+  }
 
   /// Ordering key for "which machine frees up first" — sort ascending.
   ///
@@ -760,7 +796,7 @@ class PrinterStatus {
 
 /// Single AMS unit: humidity, temperature, and slots (trays).
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
-class AmsUnit {
+class AmsUnit with ValueEquality {
   const AmsUnit({
     this.id,
     this.humidity,
@@ -831,21 +867,7 @@ class AmsUnit {
   bool get isDryingParked => dryCountdownStalled && (dryTime ?? 0) > 0;
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is AmsUnit &&
-          other.id == id &&
-          other.isAmsHt == isAmsHt &&
-          other.humidity == humidity &&
-          other.temp == temp &&
-          other.dryTime == dryTime &&
-          other.dryStatus == dryStatus &&
-          other.moduleType == moduleType &&
-          other.dryCountdownStalled == dryCountdownStalled &&
-          _deepEquality.equals(other.trays, trays);
-
-  @override
-  int get hashCode => Object.hash(
+  List<Object?> get props => [
     id,
     isAmsHt,
     humidity,
@@ -854,14 +876,14 @@ class AmsUnit {
     dryStatus,
     moduleType,
     dryCountdownStalled,
-    trays == null ? null : _deepEquality.hash(trays),
-  );
+    trays,
+  ];
 }
 
 /// Filament slot (AMS tray or external spool). Only fields needed for chips —
 /// color, material, remaining amount; rest ignored.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
-class AmsTray {
+class AmsTray with ValueEquality {
   const AmsTray({
     this.id,
     this.trayColor,
@@ -927,21 +949,7 @@ class AmsTray {
   }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is AmsTray &&
-          other.id == id &&
-          other.trayColor == trayColor &&
-          other.trayType == trayType &&
-          other.traySubBrands == traySubBrands &&
-          other.remain == remain &&
-          other.trayInfoIdx == trayInfoIdx &&
-          other.caliIdx == caliIdx &&
-          other.tagUid == tagUid &&
-          other.trayUuid == trayUuid;
-
-  @override
-  int get hashCode => Object.hash(
+  List<Object?> get props => [
     id,
     trayColor,
     trayType,
@@ -951,7 +959,7 @@ class AmsTray {
     caliIdx,
     tagUid,
     trayUuid,
-  );
+  ];
 }
 
 /// One fitted nozzle, from the status response's `nozzles` (index 0 =
@@ -959,7 +967,7 @@ class AmsTray {
 /// send it, and it is also the key the printer's calibration table is indexed
 /// by.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
-class NozzleInfo {
+class NozzleInfo with ValueEquality {
   const NozzleInfo({this.nozzleType, this.nozzleDiameter});
 
   factory NozzleInfo.fromJson(Map<String, dynamic> json) =>
@@ -973,14 +981,7 @@ class NozzleInfo {
   final String? nozzleDiameter;
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is NozzleInfo &&
-          other.nozzleType == nozzleType &&
-          other.nozzleDiameter == nozzleDiameter;
-
-  @override
-  int get hashCode => Object.hash(nozzleType, nozzleDiameter);
+  List<Object?> get props => [nozzleType, nozzleDiameter];
 }
 
 /// One position of the H2C's six-nozzle tool-changer rack, from `nozzle_rack`.
@@ -995,7 +996,7 @@ class NozzleInfo {
 /// which nozzle is which. Wear, temperature rating and serial number are the
 /// server's business.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
-class NozzleRackSlot {
+class NozzleRackSlot with ValueEquality {
   const NozzleRackSlot({
     this.id,
     this.nozzleType,
@@ -1033,18 +1034,13 @@ class NozzleRackSlot {
       (nozzleType?.trim().isEmpty ?? true);
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is NozzleRackSlot &&
-          other.id == id &&
-          other.nozzleType == nozzleType &&
-          other.nozzleDiameter == nozzleDiameter &&
-          other.filamentColor == filamentColor &&
-          other.filamentType == filamentType;
-
-  @override
-  int get hashCode =>
-      Object.hash(id, nozzleType, nozzleDiameter, filamentColor, filamentType);
+  List<Object?> get props => [
+    id,
+    nozzleType,
+    nozzleDiameter,
+    filamentColor,
+    filamentType,
+  ];
 }
 
 /// The Filament Track Switch (FTS), from the status response's `fila_switch`.
@@ -1059,7 +1055,7 @@ class NozzleRackSlot {
 /// Only the two questions the app asks are read. The switch's own routing table
 /// (`in`/`out`/`stat`/`info`) is the server's business.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
-class FilaSwitch {
+class FilaSwitch with ValueEquality {
   const FilaSwitch({this.installed = false, this.ready = false});
 
   factory FilaSwitch.fromJson(Map<String, dynamic> json) =>
@@ -1081,14 +1077,7 @@ class FilaSwitch {
   final bool ready;
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is FilaSwitch &&
-          other.installed == installed &&
-          other.ready == ready;
-
-  @override
-  int get hashCode => Object.hash(installed, ready);
+  List<Object?> get props => [installed, ready];
 }
 
 /// Which AMS slot one hotend is currently fed from, from `extruder_slots`.
@@ -1097,7 +1086,7 @@ class FilaSwitch {
 /// they compare against a slot's own coordinates, not against the global tray
 /// number the load command takes.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
-class ExtruderSlot {
+class ExtruderSlot with ValueEquality {
   const ExtruderSlot({this.amsId, this.slotId, this.hasFilament = false});
 
   factory ExtruderSlot.fromJson(Map<String, dynamic> json) =>
@@ -1118,22 +1107,14 @@ class ExtruderSlot {
       this.amsId == amsId && this.slotId == slotId;
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ExtruderSlot &&
-          other.amsId == amsId &&
-          other.slotId == slotId &&
-          other.hasFilament == hasFilament;
-
-  @override
-  int get hashCode => Object.hash(amsId, slotId, hasFilament);
+  List<Object?> get props => [amsId, slotId, hasFilament];
 }
 
 /// Single printer HMS error from `hms_errors`. Server reports in two shapes per
 /// version: `{code, attr, module, severity}` or `{code, message}` — so all
 /// nullable, and `code` normalized to string (can be hex-string or number).
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
-class HmsError {
+class HmsError with ValueEquality {
   const HmsError({
     this.code,
     this.message,
@@ -1204,31 +1185,17 @@ class HmsError {
   final String? description;
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is HmsError &&
-          other.code == code &&
-          other.message == message &&
-          other.severity == severity &&
-          other.attr == attr &&
-          other.module == module &&
-          _deepEquality.equals(other.actions, actions) &&
-          other.jobId == jobId &&
-          other.fullCode == fullCode &&
-          other.description == description;
-
-  @override
-  int get hashCode => Object.hash(
+  List<Object?> get props => [
     code,
     message,
     severity,
     attr,
     module,
-    _deepEquality.hash(actions),
+    actions,
     jobId,
     fullCode,
     description,
-  );
+  ];
 
   /// Numeric value of `code` (firmware sends hex-string "0x20070" or number);
   /// null if `code` already in canonical form with separators.

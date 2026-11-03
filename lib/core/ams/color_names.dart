@@ -166,6 +166,14 @@ class ColorCatalog {
   }
 }
 
+/// `#RRGGBB` for a hex of 6 or more digits, with or without the `#`; empty
+/// when it is no colour.
+String colorHexLabel(String? hex) {
+  final raw = (hex ?? '').replaceFirst('#', '').trim();
+  final clean = raw.substring(0, raw.length < 6 ? raw.length : 6).toUpperCase();
+  return RegExp(r'^[0-9A-F]{6}$').hasMatch(clean) ? '#$clean' : '';
+}
+
 /// `disambiguateColorNames`: two colour labels a reader can tell apart. When
 /// the names collide — a slicer's pure blue and a spool's navy are both
 /// "Blue" — the hex goes on both (#2941); a side with no name shows its hex.
@@ -173,18 +181,10 @@ class ColorCatalog {
   ({String? name, String? hex}) first,
   ({String? name, String? hex}) second,
 ) {
-  String hexLabel(String? hex) {
-    final raw = (hex ?? '').replaceFirst('#', '').trim();
-    final clean = raw
-        .substring(0, raw.length < 6 ? raw.length : 6)
-        .toUpperCase();
-    return RegExp(r'^[0-9A-F]{6}$').hasMatch(clean) ? '#$clean' : '';
-  }
-
   final firstName = (first.name ?? '').trim();
   final secondName = (second.name ?? '').trim();
-  final firstHex = hexLabel(first.hex);
-  final secondHex = hexLabel(second.hex);
+  final firstHex = colorHexLabel(first.hex);
+  final secondHex = colorHexLabel(second.hex);
 
   if (firstName.isEmpty || secondName.isEmpty) {
     return (

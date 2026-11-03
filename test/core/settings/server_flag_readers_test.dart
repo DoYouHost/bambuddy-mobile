@@ -55,6 +55,7 @@ void main() {
   ProviderContainer containerWith() {
     answer = Completer<Map<String, dynamic>>();
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         serverSettingsProvider.overrideWith(() => _SlowSettings(answer)),
       ],
@@ -79,7 +80,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(container.read(gate).isLoading, isTrue);
-      expect(container.read(gate).valueOrNull, isNull);
+      expect(container.read(gate).value, isNull);
     });
 
     test('answers what the server said, once it has said it', () async {
@@ -88,7 +89,7 @@ void main() {
 
       await container.read(serverSettingsProvider.future);
 
-      expect(container.read(gate).valueOrNull, isTrue);
+      expect(container.read(gate).value, isTrue);
     });
 
     test('answers in the same build once the settings are known', () async {
@@ -103,7 +104,7 @@ void main() {
       final first = container.read(gate);
 
       expect(first.isLoading, isFalse);
-      expect(first.valueOrNull, isTrue);
+      expect(first.value, isTrue);
     });
 
     test('keeps the answer it has while a fresh read is in flight', () async {
@@ -112,6 +113,7 @@ void main() {
       // user is looking at.
       final settings = _RefetchingSettings();
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [serverSettingsProvider.overrideWith(() => settings)],
       );
       addTearDown(container.dispose);
@@ -123,7 +125,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(settings.answers, hasLength(2), reason: 'the refetch has started');
-      expect(container.read(gate).valueOrNull, isTrue);
+      expect(container.read(gate).value, isTrue);
     });
 
     test(
@@ -132,6 +134,7 @@ void main() {
         // `fetch` degrades network failures itself, so only a real defect gets
         // here — and it must not look like a server that answered "no".
         final container = ProviderContainer(
+          retry: neverRetry,
           overrides: [
             serverSettingsProvider.overrideWith(_FailingSettings.new),
           ],
@@ -141,7 +144,7 @@ void main() {
         expect(container.read(serverSettingsProvider.future), throwsStateError);
         await pumpEventQueue();
         expect(container.read(gate).hasError, isTrue);
-        expect(container.read(gate).valueOrNull, isNull);
+        expect(container.read(gate).value, isNull);
       },
     );
 
@@ -154,7 +157,7 @@ void main() {
       expect(
         container
             .read(serverSettingsProvider.future)
-            .then((_) => container.read(gate).valueOrNull),
+            .then((_) => container.read(gate).value),
         completion(isFalse),
       );
     });
@@ -213,6 +216,7 @@ void main() {
 
     test('hands on an error instead of answering', () async {
       final container = ProviderContainer(
+        retry: neverRetry,
         overrides: [serverSettingsProvider.overrideWith(_FailingSettings.new)],
       );
       addTearDown(container.dispose);
@@ -236,7 +240,7 @@ void main() {
     });
     await Future<void>.delayed(Duration.zero);
 
-    expect(container.read(gate).valueOrNull, isTrue);
+    expect(container.read(gate).value, isTrue);
     expect(container.read(value), 7);
   });
 }

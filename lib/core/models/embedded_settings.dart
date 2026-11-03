@@ -1,3 +1,5 @@
+import 'package:app_util/app_util.dart';
+
 /// From `…/plates`: the presets a 3MF names in its own
 /// `Metadata/project_settings.config`, and whether this server can slice from it.
 class EmbeddedSettings {
@@ -21,8 +23,8 @@ class EmbeddedSettings {
 
   factory EmbeddedSettings.fromJson(Map<String, dynamic> json) =>
       EmbeddedSettings(
-        printer: _nonEmpty(json['embedded_printer']),
-        process: _nonEmpty(json['embedded_process']),
+        printer: toStringOrNull(json['embedded_printer']),
+        process: toStringOrNull(json['embedded_process']),
         // Presence, not contents: a design that changed nothing answers `[]`.
         serverSupportsAsDesigned: json.containsKey('design_overrides'),
       );
@@ -47,11 +49,5 @@ class EmbeddedSettings {
   static String _normalise(String name) {
     final stripped = name.startsWith('#') ? name.substring(1) : name;
     return stripped.trim().toLowerCase();
-  }
-
-  static String? _nonEmpty(Object? value) {
-    if (value is! String) return null;
-    final trimmed = value.trim();
-    return trimmed.isEmpty ? null : trimmed;
   }
 }

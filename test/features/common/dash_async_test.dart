@@ -35,10 +35,11 @@ void main() {
     });
 
     test('a refresh keeps answering with the value it already had', () {
-      // `AsyncLoading.copyWithPrevious` is how a pull-to-refresh reports
-      // itself; a control must not blink off underneath the user for it.
+      // A pull-to-refresh reports itself as loading over the old value; a
+      // control must not blink off underneath the user for it.
       const settled = AsyncValue.data(true);
-      final refreshing = const AsyncValue<bool>.loading().copyWithPrevious(
+      final refreshing = reportedOver(
+        const AsyncValue<bool>.loading(),
         settled,
       );
 
@@ -223,7 +224,8 @@ void main() {
 
     await pumpState(
       tester,
-      const AsyncValue<String>.loading().copyWithPrevious(
+      reportedOver(
+        const AsyncValue<String>.loading(),
         const AsyncValue.data('seventeen spools'),
       ),
     );

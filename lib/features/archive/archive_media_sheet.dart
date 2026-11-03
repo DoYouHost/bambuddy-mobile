@@ -224,14 +224,14 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
       }
     } on PrinterDownloadFailure catch (e) {
       _record(e.reason.name);
-      if (mounted) _snack(_prepareFailureText(e, l10n));
+      if (mounted) _snack(prepareFailureText(e, l10n));
     } on AppApiException catch (e) {
       showApiFailure(
         mounted ? ScaffoldMessenger.of(context) : null,
         e,
         l10n,
         action: 'archive_media.download',
-        message: _downloadFailure(e, l10n),
+        message: downloadRefusalText(e, l10n),
       );
     } finally {
       if (cached != null) await discardCacheCopy(cached);
@@ -345,29 +345,6 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
       },
     );
   }
-
-  String _prepareFailureText(
-    PrinterDownloadFailure failure,
-    AppLocalizations l10n,
-  ) => switch (failure.reason) {
-    PrinterDownloadStopped.cancelled => l10n.pfmDownloadCancelled,
-    // The server's own sentence names the limit or the file it stopped on,
-    // which is worth more than the generic line.
-    PrinterDownloadStopped.failed =>
-      failure.detail ?? l10n.pfmDownloadPrepareFailed,
-    PrinterDownloadStopped.lost => l10n.pfmDownloadPrepareFailed,
-  };
-
-  /// The three refusals the download routes explain in a way the user can act
-  /// on. Null for everything else, which keeps the shared wording — and null on
-  /// older servers too, which answer none of these.
-  String? _downloadFailure(AppApiException e, AppLocalizations l10n) =>
-      switch (e.statusCode) {
-        413 => l10n.pfmDownloadTooLarge,
-        504 => l10n.pfmDownloadTookTooLong,
-        507 => l10n.pfmDownloadNoServerSpace,
-        _ => null,
-      };
 
   @override
   Widget build(BuildContext context) {
@@ -656,15 +633,17 @@ class _MediaRow extends StatelessWidget {
     final picked = selected ?? false;
     final row = InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       child: Container(
         padding: const EdgeInsets.all(DashSpace.md),
         decoration: BoxDecoration(
-          color: picked ? t.accentGreen.withValues(alpha: 0.10) : t.subCard,
+          color: picked
+              ? t.accentGreen.withValues(alpha: DashAlpha.faint)
+              : t.subCard,
           border: Border.all(
             color: picked ? t.accentGreenInk : t.subCardBorder,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(DashRadius.md),
         ),
         child: Row(
           children: [
@@ -673,11 +652,11 @@ class _MediaRow extends StatelessWidget {
             // reads 2.1:1 on the light card — under the 3:1 a control that
             // signals its own state has to clear.
             if (selected == null)
-              Icon(icon, size: 20, color: t.accentGreenInk)
+              Icon(icon, size: DashIcon.md, color: t.accentGreenInk)
             else
               Icon(
                 picked ? Icons.check_box : Icons.check_box_outline_blank,
-                size: 20,
+                size: DashIcon.md,
                 color: picked ? t.accentGreenInk : t.textTertiary,
               ),
             const SizedBox(width: DashSpace.md),
@@ -700,7 +679,11 @@ class _MediaRow extends StatelessWidget {
               ),
             ),
             if (selected == null)
-              Icon(Icons.chevron_right, size: 20, color: t.textTertiary),
+              Icon(
+                Icons.chevron_right,
+                size: DashIcon.md,
+                color: t.textTertiary,
+              ),
           ],
         ),
       ),
@@ -763,7 +746,7 @@ class _DownloadBar extends StatelessWidget {
     }
     return Row(
       children: [
-        DashSpinner(size: 20, value: progress),
+        DashSpinner(size: DashSize.d20, value: progress),
         const SizedBox(width: DashSpace.md),
         Expanded(
           // A live region so a screen reader says the phase changed: the row is

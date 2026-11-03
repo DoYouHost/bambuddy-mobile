@@ -16,14 +16,11 @@ import 'fake_suppliers.dart';
 /// of those places it came from. What leaves the phone is the point — the
 /// route replaces the whole list, and a new spool that sends nothing is given
 /// the assignments of another spool of the same product by the server.
-class _FakeInventory extends InventoryNotifier {
-  _FakeInventory([this.spools = const []]);
+class _FakeInventory extends FixedInventory {
+  _FakeInventory([List<Spool> spools = const []])
+    : super(InventoryState(spools: spools));
 
-  final List<Spool> spools;
   final writes = <String>[];
-
-  @override
-  Future<InventoryState> build() async => InventoryState(spools: spools);
 
   @override
   Future<void> refresh({bool askBackend = false}) async {}

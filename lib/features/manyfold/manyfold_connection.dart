@@ -169,7 +169,7 @@ class _ManyfoldConnectionCardState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final config = ref.watch(manyfoldConfigProvider).valueOrNull;
+    final config = ref.watch(manyfoldConfigProvider).value;
     if (config != null && !_seeded) {
       _seeded = true;
       _url.text = config.url;

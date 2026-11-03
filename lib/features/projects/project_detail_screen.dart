@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -38,7 +40,7 @@ class ProjectDetailScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(
           context,
-          title: async.valueOrNull?.name ?? l10n.projectsTitle,
+          title: async.value?.name ?? l10n.projectsTitle,
           actions: [
             if (async.hasValue) ...[
               IconButton(
@@ -75,7 +77,8 @@ class ProjectDetailScreen extends ConsumerWidget {
                 _Header(project: project),
                 if (project.stats != null)
                   _ProgressCard(stats: project.stats!, project: project),
-                if (project.stats != null) _StatCards(stats: project.stats!),
+                if (project.stats != null)
+                  ProjectStatCards(stats: project.stats!),
                 _NotesSection(project: project),
                 ProjectFilesSection(projectId: projectId),
                 ProjectAttachmentsSection(project: project),
@@ -118,9 +121,9 @@ class _Header extends ConsumerWidget {
               ProjectCoverImage(
                 projectId: project.id,
                 hasCover: project.hasCover,
-                width: 88,
-                height: 88,
-                borderRadius: BorderRadius.circular(18),
+                width: DashSize.d96,
+                height: DashSize.d96,
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 cacheBust: project.updatedAt,
               ),
               const SizedBox(width: DashSpace.lg),
@@ -170,19 +173,28 @@ class _Header extends ConsumerWidget {
             const SizedBox(height: DashSpace.sm),
             InkWell(
               onTap: () => openWebLink(context, project.url!),
-              child: Row(
-                children: [
-                  Icon(Icons.link, size: 18, color: t.accentGreenInk),
-                  const SizedBox(width: DashSpace.sm),
-                  Expanded(
-                    child: Text(
-                      project.url!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: t.body.copyWith(color: t.accentGreenInk),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minHeight: kMinInteractiveDimension,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.link,
+                      size: DashIcon.md,
+                      color: t.accentGreenInk,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: DashSpace.sm),
+                    Expanded(
+                      child: Text(
+                        project.url!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.body.copyWith(color: t.accentGreenInk),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ).tagged('project.open_url'),
           ],
@@ -260,7 +272,7 @@ class _DashTag extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(DashRadius.xl),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Text(label, style: t.micro.copyWith(color: t.textSecondary)),
@@ -317,10 +329,8 @@ class _ProgressCard extends ConsumerWidget {
     final target = project.targetSets;
     if (target == null || target <= 0) return const [];
 
-    final progress = ref
-        .watch(projectFileProgressProvider(project.id))
-        .valueOrNull;
-    final files = ref.watch(projectFilesProvider(project.id)).valueOrNull;
+    final progress = ref.watch(projectFileProgressProvider(project.id)).value;
+    final files = ref.watch(projectFilesProvider(project.id)).value;
     if (progress == null || files == null || files.isEmpty) return const [];
 
     final complete = completeSetsFor([for (final f in files) f.id], progress);
@@ -366,15 +376,16 @@ class _ProgressRow extends StatelessWidget {
           ],
         ),
         const SizedBox(height: DashSpace.sm),
-        DashProgressBar(value: progressFraction(percent), height: 8),
+        DashProgressBar(value: progressFraction(percent), height: DashSize.d8),
       ],
     );
   }
 }
 
 /// Three headline stat cards: print jobs, print time, filament used (+ extras).
-class _StatCards extends StatelessWidget {
-  const _StatCards({required this.stats});
+@visibleForTesting
+class ProjectStatCards extends StatelessWidget {
+  const ProjectStatCards({super.key, required this.stats});
 
   final ProjectStats stats;
 
@@ -424,13 +435,11 @@ class _StatCards extends StatelessWidget {
         horizontal: DashSpace.gutter,
         vertical: DashSpace.sm,
       ),
-      child: GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        childAspectRatio: 2.6,
-        crossAxisSpacing: DashSpace.sm,
-        mainAxisSpacing: DashSpace.sm,
+      // Rows take their height from the tiles: a fixed aspect ratio overflowed
+      // at 150 % text. A tile needs about 150 dp at 100 %, more as the text grows,
+      // and the grid drops to one column when two no longer fit.
+      child: ContentGrid(
+        minTileWidth: 150 * max(1, MediaQuery.textScalerOf(context).scale(1)),
         children: [
           for (final (icon, label, value) in tiles)
             _StatTile(icon: icon, label: label, value: value),
@@ -461,12 +470,12 @@ class _StatTile extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: t.accentGreenInk),
+          Icon(icon, size: DashIcon.md, color: t.accentGreenInk),
           const SizedBox(width: DashSpace.md),
           Expanded(
             child: Column(

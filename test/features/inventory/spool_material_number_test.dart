@@ -17,14 +17,10 @@ import 'fake_suppliers.dart';
 /// written. What leaves the phone is the point — a blank field on a new spool
 /// must send nothing, so the server can fill in the number its other spools of
 /// the product carry, while a blank over a stored number is a deliberate clear.
-class _Shelf extends InventoryNotifier {
-  _Shelf(this.spools);
+class _Shelf extends FixedInventory {
+  _Shelf(List<Spool> spools) : super(InventoryState(spools: spools));
 
-  final List<Spool> spools;
   final drafts = <SpoolDraft>[];
-
-  @override
-  Future<InventoryState> build() async => InventoryState(spools: spools);
 
   @override
   Future<void> refresh({bool askBackend = false}) async {}

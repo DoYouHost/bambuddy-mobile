@@ -16,7 +16,7 @@ import '../../providers.dart';
 import '../common/dash_async.dart';
 
 final queueProvider =
-    AutoDisposeAsyncNotifierProvider<QueueNotifier, List<QueueItem>>(
+    AsyncNotifierProvider.autoDispose<QueueNotifier, List<QueueItem>>(
       QueueNotifier.new,
     );
 
@@ -26,7 +26,7 @@ final queueProvider =
 /// Reorder and delete are optimistic with rollback (M4's `ControlsNotifier` pattern):
 /// UI responds immediately, error reverts change. Start/cancel change server state
 /// (start triggers physical print!), so we fetch fresh list on success instead of guessing.
-class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
+class QueueNotifier extends AsyncNotifier<List<QueueItem>> {
   @override
   Future<List<QueueItem>> build() async {
     // Rebuild on server profile change (different key/permissions). No profile
@@ -61,16 +61,21 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   /// notifier of an unwatched provider builds it, which is one request, and the
   /// refresh is a second, both thrown away a moment later.
   Future<void> refresh() async {
+    // Disposed with nobody watching (the edit screen refreshes a queue no tab
+    // shows): the next reader builds a fresh list anyway.
+    if (!ref.mounted) return;
     // No profile (mid server-change) → nothing to fetch; mirrors [build].
     if (ref.read(serverProfileProvider) == null) return;
-    state = const AsyncValue<List<QueueItem>>.loading().copyWithPrevious(state);
+    state = const AsyncLoading<List<QueueItem>>();
     final skipped = ref.exists(queueSkippedProvider)
         ? ref.read(queueSkippedProvider.notifier).refresh()
         : Future<void>.value();
-    state = await AsyncValue.guard(
+    final next = await AsyncValue.guard(
       () async =>
           _activeSorted(await ref.read(queueRepositoryProvider).fetchActive()),
     );
+    if (!ref.mounted) return;
+    state = next;
     await skipped;
   }
 
@@ -85,7 +90,7 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   /// the first is out would carry the first one's order to the server even if
   /// that one is refused. A drag meanwhile is dropped and the row snaps back.
   Future<ActionOutcome> reorder(int oldIndex, int newIndex) async {
-    final current = state.valueOrNull;
+    final current = state.value;
     // No rows are rendered while the queue is unloaded, so there was nothing
     // to drag: nothing was sent and there is nothing to report. Indices past
     // the end come from a list a poll shortened after it was drawn.
@@ -112,7 +117,7 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
       await ref.read(queueRepositoryProvider).reorder(payload);
       return ActionOutcome.ok;
     } catch (e) {
-      final live = state.valueOrNull;
+      final live = ref.mounted ? state.value : null;
       final row = live?.where((i) => i.id == moved.id).firstOrNull;
       // Gone meanwhile (deleted, finished): there is no row left to move.
       if (row != null) {
@@ -160,7 +165,7 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     int itemId, {
     String logId = 'queue.swipe_delete',
   }) async {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null) return ActionOutcome.ok; // nothing rendered to swipe
 
     final index = current.indexWhere((i) => i.id == itemId);
@@ -171,7 +176,7 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
       return ActionOutcome.ok;
     } catch (e) {
       // Any failure puts the row back; only a refusal is an answer.
-      final live = state.valueOrNull;
+      final live = ref.mounted ? state.value : null;
       // A refresh that landed meanwhile already holds the row the server kept.
       if (index >= 0 && live != null && !live.any((i) => i.id == itemId)) {
         state = AsyncValue.data(_placedBack(current[index], current, live));
@@ -321,11 +326,11 @@ Timer pollQueue(ProviderContainer providers, Duration every) {
 /// `queue:update_all`, as the web's banner does. A failed reload leaves the
 /// banner as it was: an error has no place over a list that is otherwise fine.
 final queueSkippedProvider =
-    AutoDisposeAsyncNotifierProvider<QueueSkippedNotifier, List<QueueItem>>(
+    AsyncNotifierProvider.autoDispose<QueueSkippedNotifier, List<QueueItem>>(
       QueueSkippedNotifier.new,
     );
 
-class QueueSkippedNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
+class QueueSkippedNotifier extends AsyncNotifier<List<QueueItem>> {
   @override
   Future<List<QueueItem>> build() {
     // Watched here, read in [_load]: a profile or a permission that changes
@@ -346,8 +351,10 @@ class QueueSkippedNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
 
   /// Keeps the banner on screen while the new answer is out.
   Future<void> refresh() async {
-    state = const AsyncValue<List<QueueItem>>.loading().copyWithPrevious(state);
-    state = await AsyncValue.guard(_load);
+    state = const AsyncLoading<List<QueueItem>>();
+    final next = await AsyncValue.guard(_load);
+    if (!ref.mounted) return;
+    state = next;
   }
 }
 
@@ -362,7 +369,7 @@ typedef PrinterCandidate = ({Printer printer, bool online, bool hasPlug});
 /// itself then (`queueWriteMessage`).
 final awaitingReviewProvider = Provider<bool>((ref) {
   if (!ref.watch(queueReviewGateProvider).orFalse) return false;
-  final me = ref.watch(currentUserProvider).valueOrNull;
+  final me = ref.watch(currentUserProvider).value;
   return me != null &&
       !me.can(Permissions.queueStartUnreviewed) &&
       !me.can(Permissions.queueUpdateAll);
@@ -382,7 +389,7 @@ final startClaimsJobProvider = Provider.family<bool, int?>((ref, createdById) {
   if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
     return false;
   }
-  final me = ref.watch(currentUserProvider).valueOrNull;
+  final me = ref.watch(currentUserProvider).value;
   return me != null && !me.can(Permissions.queueUpdateAll);
 });
 
@@ -400,7 +407,7 @@ final mayStartQueueItemProvider = Provider.family<bool, StartTarget>((
   target,
 ) {
   if (ref.watch(awaitingReviewProvider)) return false;
-  final me = ref.watch(currentUserProvider).valueOrNull;
+  final me = ref.watch(currentUserProvider).value;
   if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
     return me?.can(Permissions.queueUpdateAll) ?? true;
   }
@@ -440,15 +447,18 @@ final availableFilamentsProvider = FutureProvider.autoDispose
 /// + plug map fresh on each call (autoDispose) because availability changes over time.
 final availablePrintersProvider =
     FutureProvider.autoDispose<List<PrinterCandidate>>((ref) async {
+      // The start flow reads this once, so nothing listens and the provider is
+      // disposed at its first await: a `ref` use after it would throw.
+      final plugs = ref.read(smartPlugsRepositoryProvider);
       final all = await ref.watch(printersRepositoryProvider).fetchAll();
 
       // Plug assignments are optional enrichment — their absence/failure can't block
       // printer selection, so treat error as "no plugs".
       Set<int> printersWithPlug = const {};
       try {
-        final plugs = await ref.read(smartPlugsRepositoryProvider).fetchPlugs();
+        final assigned = await plugs.fetchPlugs();
         printersWithPlug = {
-          for (final plug in plugs)
+          for (final plug in assigned)
             if ((plug.enabled ?? true) && plug.printerId != null)
               plug.printerId!,
         };

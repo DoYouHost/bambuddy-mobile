@@ -10,6 +10,7 @@ import '../../core/models/swatch_code.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/device_files.dart';
+import '../common/trimmed_or_null.dart';
 import '../inventory/inventory_providers.dart'
     show colorCatalogProvider, inventoryProvider;
 import '../inventory/inventory_screen.dart' show parseSpoolColor;
@@ -105,7 +106,13 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
         for (final e in list)
           if (e is Map<String, dynamic>) SwatchCode.fromJson(e),
       ].where((c) => c.code.isNotEmpty).toList();
-    } on Object {
+    } on FormatException {
+      // The user's file, not the app: not JSON, or not UTF-8.
+      _snack(l10n.swatchImportFailed);
+      return;
+    } on TypeError {
+      // `SwatchCode.fromJson` casts, so a field of the wrong type in the file
+      // lands here too.
       _snack(l10n.swatchImportFailed);
       return;
     }
@@ -332,11 +339,13 @@ class _SectionHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          SectionHeading(
-            label.toUpperCase(),
-            style: t.label.copyWith(
-              color: t.accentGreenInk,
-              letterSpacing: 0.8,
+          Flexible(
+            child: SectionHeading(
+              label.toUpperCase(),
+              style: t.label.copyWith(
+                color: t.accentGreenInk,
+                letterSpacing: DashTracking.caps,
+              ),
             ),
           ),
           const SizedBox(width: DashSpace.sm),
@@ -344,7 +353,7 @@ class _SectionHeader extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
             decoration: BoxDecoration(
               color: t.subCard,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(DashRadius.xl),
               border: Border.all(color: t.subCardBorder),
             ),
             child: Text('$count', style: t.monoLabel),
@@ -372,20 +381,24 @@ class _ColorSwatch extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         color: color ?? t.subCard,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         border: Border.all(color: t.subCardBorder),
         boxShadow: color == null
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.10),
-                  blurRadius: 3,
+                  color: Colors.black.withValues(alpha: DashAlpha.faint),
+                  blurRadius: DashBlur.sm,
                   offset: const Offset(0, 1),
                 ),
               ],
       ),
       child: color == null
-          ? Icon(Icons.palette_outlined, size: 20, color: t.textTertiary)
+          ? Icon(
+              Icons.palette_outlined,
+              size: DashIcon.md,
+              color: t.textTertiary,
+            )
           : null,
     );
   }
@@ -406,13 +419,18 @@ class _CodeChip extends StatelessWidget {
         vertical: DashSpace.xs,
       ),
       decoration: BoxDecoration(
-        color: t.accentGreen.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: t.accentGreen.withValues(alpha: 0.4)),
+        color: t.accentGreen.withValues(alpha: DashAlpha.wash),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
+        border: Border.all(
+          color: t.accentGreen.withValues(alpha: DashAlpha.outline),
+        ),
       ),
       child: Text(
         code,
-        style: t.monoTitle.copyWith(color: t.accentGreenInk, letterSpacing: 3),
+        style: t.monoTitle.copyWith(
+          color: t.accentGreenInk,
+          letterSpacing: DashTracking.wide,
+        ),
       ),
     );
   }
@@ -444,7 +462,7 @@ class _SwatchTile extends StatelessWidget {
         child: logTag(
           'swatches.card',
           InkWell(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             onTap: onEdit,
             child: Container(
               padding: const EdgeInsets.fromLTRB(
@@ -455,7 +473,7 @@ class _SwatchTile extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
@@ -483,7 +501,6 @@ class _SwatchTile extends StatelessWidget {
                   logTag(
                     'swatches.copy',
                     IconButton(
-                      visualDensity: VisualDensity.compact,
                       icon: Icon(Icons.copy_rounded, color: t.textSecondary),
                       tooltip: MaterialLocalizations.of(
                         context,
@@ -494,11 +511,13 @@ class _SwatchTile extends StatelessWidget {
                   logTag(
                     'swatches.delete',
                     IconButton(
-                      visualDensity: VisualDensity.compact,
                       icon: Icon(
                         Icons.delete_outline_rounded,
                         color: t.dangerInk,
                       ),
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).deleteButtonTooltip,
                       onPressed: onDelete,
                     ),
                   ),
@@ -532,18 +551,18 @@ class _UncodedTile extends StatelessWidget {
         child: logTag(
           'swatches.generate',
           InkWell(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             onTap: onGenerate,
             child: Container(
               padding: const EdgeInsets.all(DashSpace.md),
               decoration: BoxDecoration(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
                 children: [
-                  _ColorSwatch(rgba: identity.rgba, size: 40),
+                  _ColorSwatch(rgba: identity.rgba, size: DashSize.d40),
                   const SizedBox(width: DashSpace.lg),
                   Expanded(
                     child: Text(
@@ -560,23 +579,23 @@ class _UncodedTile extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: t.accentGreenInk,
                       side: BorderSide(
-                        color: t.accentGreen.withValues(alpha: 0.55),
+                        color: t.accentGreen.withValues(alpha: DashAlpha.scrim),
                       ),
                       padding: const EdgeInsets.symmetric(
                         horizontal: DashSpace.lg,
                         vertical: DashSpace.sm,
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(DashRadius.lg),
                       ),
                       textStyle: const TextStyle(
                         fontFamily: DashTokens.fontUi,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                        fontSize: DashFontSize.title,
+                        fontWeight: DashWeight.bold,
                       ),
                     ),
                     onPressed: onGenerate,
-                    icon: const Icon(Icons.add, size: 18),
+                    icon: const Icon(Icons.add, size: DashIcon.md),
                     label: Text(l10n.swatchGenerate),
                   ),
                 ],
@@ -603,7 +622,7 @@ class _EmptyHint extends StatelessWidget {
       padding: const EdgeInsets.all(DashSpace.xl),
       child: Column(
         children: [
-          Icon(icon, size: 40, color: t.textTertiary),
+          Icon(icon, size: DashIcon.xxl, color: t.textTertiary),
           const SizedBox(height: DashSpace.md),
           Text(
             title,
@@ -703,11 +722,6 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
 
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    String? clean(TextEditingController c) {
-      final v = c.text.trim();
-      return v.isEmpty ? null : v;
-    }
-
     var rgba = _rgba.text.trim();
     if (rgba.startsWith('#')) rgba = rgba.substring(1);
 
@@ -716,9 +730,9 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
       SwatchCode(
         code: normalizeSwatchCode(_code.text),
         material: _material.text.trim(),
-        brand: clean(_brand),
-        variant: clean(_variant),
-        colorName: clean(_colorName),
+        brand: trimmedOrNull(_brand.text),
+        variant: trimmedOrNull(_variant.text),
+        colorName: trimmedOrNull(_colorName.text),
         rgba: rgba.isEmpty ? null : rgba,
         createdAt:
             widget.initial?.createdAt ??
@@ -764,8 +778,8 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                 ],
                 style: const TextStyle(
                   fontFamily: 'monospace',
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 4,
+                  fontWeight: DashWeight.bold,
+                  letterSpacing: DashTracking.wide,
                 ),
                 decoration: InputDecoration(
                   labelText: l10n.swatchFieldCode,
@@ -847,12 +861,12 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                   suffixIcon: Padding(
                     padding: const EdgeInsets.all(DashSpace.sm),
                     child: Container(
-                      width: 24,
+                      width: DashSize.d24,
                       decoration: BoxDecoration(
                         color:
                             preview ??
                             theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(DashRadius.sm),
                         border: Border.all(
                           color: theme.colorScheme.outlineVariant,
                         ),
@@ -882,7 +896,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                         onPressed: _submit,
                         icon: Icon(
                           _isEdit ? Icons.check : Icons.auto_awesome,
-                          size: 18,
+                          size: DashIcon.md,
                         ),
                         label: Text(
                           _isEdit ? l10n.swatchSave : l10n.swatchGenerateCode,
@@ -917,7 +931,7 @@ class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final colors = ref.watch(colorCatalogProvider).valueOrNull ?? const [];
+    final colors = ref.watch(colorCatalogProvider).value ?? const [];
     final q = _query.trim().toLowerCase();
 
     final List<ColorEntry> shown;
@@ -979,12 +993,12 @@ class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: Container(
-                      width: 36,
-                      height: 36,
+                      width: DashSize.d40,
+                      height: DashSize.d40,
                       decoration: BoxDecoration(
                         color:
                             color ?? theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(DashRadius.sm),
                         border: Border.all(
                           color: theme.colorScheme.outlineVariant,
                         ),

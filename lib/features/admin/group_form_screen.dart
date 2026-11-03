@@ -157,7 +157,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
             Expanded(
               child: Text(
                 l10n.groupsPermissionsHeader,
-                style: t.bodyBold.copyWith(letterSpacing: 0.3),
+                style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
               ),
             ),
             Text(
@@ -180,34 +180,39 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
           logTag(
             'group_form.advanced',
             InkWell(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(DashRadius.lg),
               onTap: () => setState(() => _showAdvanced = !_showAdvanced),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: DashSpace.xs,
                   vertical: DashSpace.md,
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      _showAdvanced ? Icons.expand_less : Icons.expand_more,
-                      size: 20,
-                      color: t.textSecondary,
-                    ),
-                    const SizedBox(width: DashSpace.sm),
-                    Expanded(
-                      child: Text(
-                        l10n.groupsAdvancedPermissions,
-                        style: t.bodyBold.copyWith(color: t.textPrimary),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: kMinInteractiveDimension - 2 * DashSpace.md,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _showAdvanced ? Icons.expand_less : Icons.expand_more,
+                        size: DashIcon.md,
+                        color: t.textSecondary,
                       ),
-                    ),
-                    if (advancedSelected > 0)
-                      DashPill(
-                        label: '$advancedSelected',
-                        accent: t.accentOrange,
-                        accentInk: t.accentOrangeInk,
+                      const SizedBox(width: DashSpace.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.groupsAdvancedPermissions,
+                          style: t.bodyBold.copyWith(color: t.textPrimary),
+                        ),
                       ),
-                  ],
+                      if (advancedSelected > 0)
+                        DashPill(
+                          label: '$advancedSelected',
+                          accent: t.accentOrange,
+                          accentInk: t.accentOrangeInk,
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -251,52 +256,54 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     final repo = ref.read(groupsRepositoryProvider);
     final existing = widget.existing;
     setState(() => _saving = true);
+    try {
+      final name = _name.text.trim();
+      final description = _description.text.trim();
+      final permissions = _permissions.toList()..sort();
 
-    final name = _name.text.trim();
-    final description = _description.text.trim();
-    final permissions = _permissions.toList()..sort();
-
-    final result = await runAction(() async {
-      if (existing == null) {
-        await repo.create(
-          GroupCreateInput(
-            name: name,
-            description: description.isEmpty ? null : description,
-            permissions: permissions,
-          ),
+      final result = await runAction(() async {
+        if (existing == null) {
+          await repo.create(
+            GroupCreateInput(
+              name: name,
+              description: description.isEmpty ? null : description,
+              permissions: permissions,
+            ),
+          );
+          return;
+        }
+        final body = GroupUpdateInput(
+          name: _locked || name == existing.name ? null : name,
+          description: description == (existing.description ?? '')
+              ? null
+              : description,
+          // Sending the set of a system group is refused outright, and it cannot
+          // have changed anyway — the editor was disabled.
+          permissions: _locked || _samePermissions(existing.permissions)
+              ? null
+              : permissions,
         );
-        return;
+        if (body.isEmpty) return;
+        await repo.update(existing.id, body);
+      }, logId: 'group_form.save');
+
+      ref.invalidate(groupsListProvider);
+      if (existing != null) {
+        ref.invalidate(groupDetailProvider(existing.id));
       }
-      final body = GroupUpdateInput(
-        name: _locked || name == existing.name ? null : name,
-        description: description == (existing.description ?? '')
-            ? null
-            : description,
-        // Sending the set of a system group is refused outright, and it cannot
-        // have changed anyway — the editor was disabled.
-        permissions: _locked || _samePermissions(existing.permissions)
-            ? null
-            : permissions,
-      );
-      if (body.isEmpty) return;
-      await repo.update(existing.id, body);
-    }, logId: 'group_form.save');
+      // What a group grants is where a member's permissions come from — your own
+      // included.
+      await ref.read(currentUserProvider.notifier).refresh();
+      ref.invalidate(usersListProvider);
+      if (!mounted) return;
+      setState(() => _saving = false);
 
-    ref.invalidate(groupsListProvider);
-    if (existing != null) {
-      ref.invalidate(groupDetailProvider(existing.id));
+      messenger.snack(userWriteText(l10n, result, l10n.groupsSaved));
+      if (result.isOk) navigator.pop();
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
-    // What a group grants is where a member's permissions come from — your own
-    // included.
-    await ref.read(currentUserProvider.notifier).refresh();
-    ref.invalidate(usersListProvider);
-    if (!mounted) return;
-    setState(() => _saving = false);
-
-    messenger.snack(
-      result.isOk ? l10n.groupsSaved : userWriteMessage(l10n, result),
-    );
-    if (result.isOk) navigator.pop();
   }
 
   bool _samePermissions(List<String> current) {
@@ -339,10 +346,10 @@ class _CategoryTile extends StatelessWidget {
         color: t.subCard,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(DashRadius.lg),
           side: BorderSide(
             color: count > 0
-                ? t.accentGreen.withValues(alpha: 0.3)
+                ? t.accentGreen.withValues(alpha: DashAlpha.soft)
                 : t.subCardBorder,
           ),
         ),
@@ -366,14 +373,17 @@ class _CategoryTile extends StatelessWidget {
                     color: count > 0 ? t.accentGreenInk : t.textTertiary,
                   ),
                 ),
-                Checkbox(
-                  value: all,
-                  // Neither fully on nor fully off: the header still selects
-                  // everything, and shows that some of it already is.
-                  tristate: false,
-                  onChanged: enabled
-                      ? (v) => onToggleAll(category, v ?? false)
-                      : null,
+                Semantics(
+                  label: category.name,
+                  child: Checkbox(
+                    value: all,
+                    // Neither fully on nor fully off: the header still selects
+                    // everything, and shows that some of it already is.
+                    tristate: false,
+                    onChanged: enabled
+                        ? (v) => onToggleAll(category, v ?? false)
+                        : null,
+                  ),
                 ).tagged('group_form.category_all'),
               ],
             ),
@@ -414,14 +424,16 @@ class _LockedNotice extends StatelessWidget {
         vertical: DashSpace.md,
       ),
       decoration: BoxDecoration(
-        color: t.accentOrange.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: t.accentOrange.withValues(alpha: 0.35)),
+        color: t.accentOrange.withValues(alpha: DashAlpha.faint),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
+        border: Border.all(
+          color: t.accentOrange.withValues(alpha: DashAlpha.soft),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lock_outline, size: 18, color: t.accentOrangeInk),
+          Icon(Icons.lock_outline, size: DashIcon.md, color: t.accentOrangeInk),
           const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(text, style: t.label.copyWith(color: t.textPrimary)),

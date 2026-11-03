@@ -14,12 +14,15 @@ import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/label_printer/label_printer_providers.dart';
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
+import 'package:bambuddy_mobile/l10n/error_messages.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:go_router/go_router.dart';
@@ -86,6 +89,9 @@ class _RecordingLabelPrinter extends LabelPrinterRepository {
   bool? cutAtEnd;
   int? cutEvery;
 
+  /// What the next send fails with.
+  Object? error;
+
   @override
   Future<void> printPdf(
     Uint8List pdf, {
@@ -94,6 +100,7 @@ class _RecordingLabelPrinter extends LabelPrinterRepository {
     bool cutAtEnd = true,
     int cutEvery = 0,
   }) async {
+    if (error != null) throw error!;
     sent = pdf;
     this.copies = copies;
     this.cutAtEnd = cutAtEnd;
@@ -123,10 +130,14 @@ class _PngPrefs extends LabelPrintPrefsNotifier {
 /// A cache directory that fails, but not at once — after the label sheet has
 /// closed, which is when the hand-off runs.
 class _SlowFailingPaths extends PathProviderPlatform {
+  _SlowFailingPaths(this.error);
+
+  final Object error;
+
   @override
   Future<String?> getTemporaryPath() async {
     await Future<void>.delayed(const Duration(seconds: 1));
-    throw const FileSystemException('disk full');
+    throw error;
   }
 }
 
@@ -190,6 +201,55 @@ void main() {
     await tester.tap(find.text('${pl.inventoryLabelsPrint} (1)'));
     await settle(tester);
     return repo;
+  }
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('the label sheet keeps its list and Print button on screen at '
+        'text $scale', (tester) async {
+      tester.view.physicalSize = const Size(411, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await pumpPhone(
+        tester,
+        const InventoryScreen(),
+        overrides: [
+          inventoryProvider.overrideWith(_CapturingInventory.new),
+          serverProfileProvider.overrideWith(_NullProfile.new),
+          labelPrinterUrlProvider.overrideWith(_NoUrl.new),
+          labelPrintPrefsProvider.overrideWith(_MemoryPrefs.new),
+          labelFieldsProvider.overrideWithValue(const AsyncData(false)),
+          inventoryRepositoryProvider.overrideWithValue(_CapturingRepository()),
+          labelStartingPositionProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
+        ],
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(scale)),
+          child: child!,
+        ),
+      );
+      await settle(tester);
+      await tester.tap(find.byTooltip(pl.inventoryLabelsPrintAll));
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(
+        tester
+            .getRect(find.textContaining(pl.inventoryLabelsPrint).last)
+            .bottom,
+        lessThanOrEqualTo(800),
+        reason: 'the footer stays on screen',
+      );
+      final pick = tester.getRect(find.text(pl.inventoryLabelsPickSpools));
+      final row = tester.getRect(find.text('PLA · Bambu').last);
+      expect(
+        row.top,
+        greaterThanOrEqualTo(pick.bottom),
+        reason: 'the list starts below the filters, never over them',
+      );
+    });
   }
 
   /// Taps a stock card in the template sheet, scrolling it into range first:
@@ -397,6 +457,7 @@ void main() {
       );
       await tester.pumpWidget(
         ProviderScope(
+          retry: neverRetry,
           overrides: [
             inventoryProvider.overrideWith(_CapturingInventory.new),
             serverProfileProvider.overrideWith(_NullProfile.new),
@@ -424,6 +485,19 @@ void main() {
       await settle(tester);
 
       expect(find.text('LABEL PRINTER'), findsOneWidget);
+    });
+
+    testWidgets('a label server that refuses the login says so after the '
+        'sheet closed', (tester) async {
+      const refusal = AuthException(AppErrorCode.unauthorized);
+      final printer = _RecordingLabelPrinter()..error = refusal;
+      await openOptions(tester, chosen: true, printer: printer);
+
+      await tester.tap(find.text(pl.inventoryLabelsPrint));
+      await settle(tester);
+
+      expect(find.text(refusal.localized(pl)), findsOneWidget);
+      expect(find.text(pl.labelPrinterSent), findsNothing);
     });
 
     testWidgets('a chosen server is where the labels go by default', (
@@ -602,8 +676,16 @@ void main() {
       final container = await openOptions(tester, fieldsGate: true);
       await tapOption(tester, find.text(pl.labelFieldBrand));
       await settle(tester);
-      // Back to the top, where the reset link is.
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, 800));
+      // Back to the top, where the reset link is. The sheet's own list, not the
+      // last scrollable: a text field built further down has one of its own.
+      await tester.drag(
+        find
+            .byWidgetPredicate(
+              (w) => w is Scrollable && w.axis == Axis.vertical,
+            )
+            .last,
+        const Offset(0, 800),
+      );
       await tester.pump();
       await tester.tap(find.text(pl.labelFieldsReset));
       await settle(tester);
@@ -689,36 +771,51 @@ void main() {
       await settle(tester);
 
       expect(find.text(pl.labelOptionsTitle), findsOneWidget);
+      // Below the fold in a list that builds rows lazily.
+      await tester.scrollUntilVisible(
+        find.text(pl.labelFormatTitle),
+        120,
+        scrollable: find
+            .byWidgetPredicate(
+              (w) => w is Scrollable && w.axis == Axis.vertical,
+            )
+            .last,
+      );
       expect(find.text(pl.labelFormatTitle), findsOneWidget);
     });
 
-    testWidgets('a hand-off that fails after the sheet closed still says so', (
-      tester,
-    ) async {
-      final previous = PathProviderPlatform.instance;
-      PathProviderPlatform.instance = _SlowFailingPaths();
-      addTearDown(() => PathProviderPlatform.instance = previous);
+    // The device failing, not a bug: a full disk, a missing print service.
+    for (final (name, error) in <(String, Object)>[
+      ('a file error', const FileSystemException('disk full')),
+      ('a platform error', PlatformException(code: 'no_print_service')),
+    ]) {
+      testWidgets('a hand-off that fails with $name after the sheet closed '
+          'still says so', (tester) async {
+        final previous = PathProviderPlatform.instance;
+        PathProviderPlatform.instance = _SlowFailingPaths(error);
+        addTearDown(() => PathProviderPlatform.instance = previous);
 
-      final container = await openOptions(tester, fieldsGate: true);
-      rendering.bytes = Uint8List.fromList([
-        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, //
-      ]);
-      await pickOption(tester, pl.labelFormatTitle, 'PNG');
-      await tapOption(tester, find.text(pl.inventoryLabelsPrint));
-      expect(
-        container.read(labelPrintPrefsProvider).format,
-        SpoolLabelFormat.png,
-      );
+        final container = await openOptions(tester, fieldsGate: true);
+        rendering.bytes = Uint8List.fromList([
+          0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, //
+        ]);
+        await pickOption(tester, pl.labelFormatTitle, 'PNG');
+        await tapOption(tester, find.text(pl.inventoryLabelsPrint));
+        expect(
+          container.read(labelPrintPrefsProvider).format,
+          SpoolLabelFormat.png,
+        );
 
-      // The sheet closes at once; the cache directory fails a second later.
-      // In steps: one long pump fires the timer before the frame that takes
-      // the sheet down, and the sheet would still be there to report it.
-      for (var i = 0; i < 20; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
-      await settle(tester);
+        // The sheet closes at once; the cache directory fails a second later.
+        // In steps: one long pump fires the timer before the frame that takes
+        // the sheet down, and the sheet would still be there to report it.
+        for (var i = 0; i < 20; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        await settle(tester);
 
-      expect(find.text(pl.inventoryLabelsFailed), findsOneWidget);
-    });
+        expect(find.text(pl.inventoryLabelsFailed), findsOneWidget);
+      });
+    }
   });
 }

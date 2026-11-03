@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +8,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
+import '../common/search_debouncer.dart';
 import 'manyfold_connection.dart';
 import 'manyfold_model_screen.dart';
 import 'manyfold_providers.dart';
@@ -28,7 +27,7 @@ class ManyfoldTab extends ConsumerStatefulWidget {
 }
 
 class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
-  Timer? _debounce;
+  final _debounce = SearchDebouncer(const Duration(milliseconds: 400));
   String _query = '';
   int _page = 1;
 
@@ -48,18 +47,17 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
+    _debounce.dispose();
     super.dispose();
   }
 
   /// Every query is a round trip to the user's Manyfold, so typing waits for a
   /// pause instead of asking per keystroke (the web asks on submit).
   void _onSearchChanged(String text) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () {
-      if (!mounted || text.trim() == _query) return;
+    _debounce.run(text, (trimmed) {
+      if (!mounted || trimmed == _query) return;
       setState(() {
-        _query = text.trim();
+        _query = trimmed;
         _page = 1;
       });
     });
@@ -153,7 +151,7 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
     final canImport = ref.watch(permissionProvider(Permissions.manyfoldImport));
     final key = (_query, _page);
     final listing = ref.watch(manyfoldModelsProvider(key));
-    if (listing.valueOrNull case final page?) _shown = page;
+    if (listing.value case final page?) _shown = page;
     final busy = _progress != null;
 
     return ListView(
@@ -168,7 +166,7 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
                 onPressed: busy
                     ? null
                     : () => setState(() => _editingConnection = true),
-                icon: const Icon(Icons.settings_outlined, size: 18),
+                icon: const Icon(Icons.settings_outlined, size: DashIcon.md),
                 label: Text(l10n.mfEditConnection),
               ).tagged('manyfold.edit_connection'),
           ],
@@ -250,13 +248,14 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
         ),
       ],
       const SizedBox(height: DashSpace.md),
-      GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        mainAxisSpacing: DashSpace.md,
-        crossAxisSpacing: DashSpace.md,
-        childAspectRatio: _tileAspect,
+      // Rows take their height from the tiles: the square preview grows with the
+      // width, the name with the text scale, and a fixed aspect ratio overflowed.
+      // The name is two lines with an ellipsis, so the text size never asks for
+      // fewer columns; one column would make the preview as wide as the screen.
+      ContentGrid(
+        minTileWidth: DashSize.d128,
+        spacing: DashSpace.md,
+        runSpacing: DashSpace.md,
         children: [
           for (final model in page.models)
             _ModelTile(
@@ -273,37 +272,40 @@ class _ManyfoldTabState extends ConsumerState<ManyfoldTab> {
       ),
       if (page.hasPrevious || page.hasNext) ...[
         const SizedBox(height: DashSpace.lg),
-        Row(
-          children: [
-            OutlinedButton.icon(
-              onPressed: !page.hasPrevious || loading
-                  ? null
-                  : () => setState(() => _page = page.page - 1),
-              icon: const Icon(Icons.chevron_left),
-              label: Text(l10n.mfPrevious),
-            ).tagged('manyfold.prev_page'),
-            Expanded(
-              child: Text(
-                l10n.mfPage(page.page),
-                textAlign: TextAlign.center,
-                style: t.monoLabel,
-              ),
-            ),
-            OutlinedButton.icon(
-              onPressed: !page.hasNext || loading
-                  ? null
-                  : () => setState(() => _page = page.page + 1),
-              icon: const Icon(Icons.chevron_right),
-              label: Text(l10n.mfNext),
-            ).tagged('manyfold.next_page'),
-          ],
+        // The page label above the pair, as wide as its text: the contrast
+        // guideline samples the text's own box, and a label this small in a wide
+        // one reads as background (1.04:1 for readable ink). The buttons share
+        // the width, or stack when a label does not fit in half of it.
+        Center(
+          child: Text(
+            l10n.mfPage(page.page),
+            textAlign: TextAlign.center,
+            style: t.monoLabel,
+          ),
+        ),
+        const SizedBox(height: DashSpace.sm),
+        ButtonPair(
+          primaryStyle: OutlinedButtonTheme.of(context).style,
+          primaryLabel: l10n.mfPrevious,
+          secondaryLabel: l10n.mfNext,
+          primary: OutlinedButton.icon(
+            onPressed: !page.hasPrevious || loading
+                ? null
+                : () => setState(() => _page = page.page - 1),
+            icon: const Icon(Icons.chevron_left),
+            label: Text(l10n.mfPrevious),
+          ).tagged('manyfold.prev_page'),
+          secondary: OutlinedButton.icon(
+            onPressed: !page.hasNext || loading
+                ? null
+                : () => setState(() => _page = page.page + 1),
+            icon: const Icon(Icons.chevron_right),
+            label: Text(l10n.mfNext),
+          ).tagged('manyfold.next_page'),
         ),
       ],
     ];
   }
-
-  /// Square preview plus two lines of name.
-  static const _tileAspect = 0.78;
 }
 
 class _ModelTile extends StatelessWidget {
@@ -330,16 +332,16 @@ class _ModelTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         onTap: enabled ? onOpen : null,
         child: Container(
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: t.subCard,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             border: Border.all(
               color: picked ? t.accentGreen : t.subCardBorder,
-              width: picked ? 2 : 1,
+              width: picked ? DashStroke.regular : DashStroke.hairline,
             ),
           ),
           child: Column(
@@ -455,7 +457,7 @@ class _NotConnected extends StatelessWidget {
           decoration: t.cardBox,
           child: Column(
             children: [
-              Icon(Icons.link_off, size: 40, color: t.textTertiary),
+              Icon(Icons.link_off, size: DashIcon.xxl, color: t.textTertiary),
               const SizedBox(height: DashSpace.md),
               Text(
                 l10n.mfNotConnectedTitle,

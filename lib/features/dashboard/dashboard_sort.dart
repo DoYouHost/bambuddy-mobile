@@ -2,8 +2,9 @@ import 'package:collection/collection.dart';
 import 'package:app_util/app_util.dart';
 
 import '../../core/models/printer_status.dart';
+import '../../core/notifications/hms_catalog.dart';
+import '../../core/printers/printer_bucket.dart';
 import '../../data/printers_repository.dart';
-import 'dashboard_filters.dart';
 
 /// What the printer list is ordered by — the web's `SortOption`
 /// (`PrintersPage.tsx`).
@@ -42,12 +43,13 @@ int _text(String a, String b) {
 /// Error, printing, idle, offline — the web's `status` order, read off the
 /// same buckets the sections use so the order inside a section and the sections
 /// agree. Paused and finished count as idle here; the sections tell them apart.
-int _statusRank(PrinterStatus? s) => switch (classifyPrinter(s)) {
-  PrinterStatusBucket.error => 0,
-  PrinterStatusBucket.printing => 1,
-  PrinterStatusBucket.offline => 3,
-  _ => 2,
-};
+int _statusRank(PrinterStatus? s) =>
+    switch (classifyPrinter(s, describe: HmsCatalog.instance.describe)) {
+      PrinterStatusBucket.error => 0,
+      PrinterStatusBucket.printing => 1,
+      PrinterStatusBucket.offline => 3,
+      _ => 2,
+    };
 
 /// The web's `eta` tiers: printing with a time left, printing without, idle,
 /// offline.
@@ -145,7 +147,10 @@ List<PrinterGroup>? groupPrinters(
 ) {
   if (!sort.grouped) return null;
   if (sort.by == PrinterSort.status) {
-    final byBucket = groupBy(sorted, (p) => classifyPrinter(p.status));
+    final byBucket = groupBy(
+      sorted,
+      (p) => classifyPrinter(p.status, describe: HmsCatalog.instance.describe),
+    );
     final order = [
       for (final b in _statusOrder)
         if (byBucket[b]?.isNotEmpty ?? false) b,

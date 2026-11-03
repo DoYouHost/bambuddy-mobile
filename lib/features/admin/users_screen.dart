@@ -86,7 +86,7 @@ class _UserCard extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final isSelf = ref.watch(
-      currentUserProvider.select((u) => u.valueOrNull?.id == user.id),
+      currentUserProvider.select((u) => u.value?.id == user.id),
     );
 
     return TappableCard(
@@ -193,13 +193,15 @@ class _Avatar extends StatelessWidget {
         ? '?'
         : user.username.characters.first.toUpperCase();
     return Container(
-      width: 44,
-      height: 44,
+      width: DashSize.d48,
+      height: DashSize.d48,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: user.isActive ? 0.16 : 0.06),
+        color: accent.withValues(
+          alpha: user.isActive ? DashAlpha.wash : DashAlpha.faint,
+        ),
         shape: BoxShape.circle,
-        border: Border.all(color: accent.withValues(alpha: 0.4)),
+        border: Border.all(color: accent.withValues(alpha: DashAlpha.outline)),
       ),
       child: Text(
         initial,
@@ -284,7 +286,7 @@ class _UserDetailSheet extends ConsumerWidget {
                 const SizedBox(height: DashSpace.lg),
                 Text(
                   l10n.usersOwnedTitle,
-                  style: t.bodyBold.copyWith(letterSpacing: 0.3),
+                  style: t.bodyBold.copyWith(letterSpacing: DashTracking.label),
                 ),
                 const SizedBox(height: DashSpace.sm),
                 _OwnedCounts(userId: user.id),
@@ -318,7 +320,7 @@ class _SheetActions extends ConsumerWidget {
     // (`users.py::delete_user`); bambuddy's own UI leaves the button out rather
     // than offer it and explain afterwards.
     final isSelf = ref.watch(
-      currentUserProvider.select((u) => u.valueOrNull?.id == user.id),
+      currentUserProvider.select((u) => u.value?.id == user.id),
     );
     return Row(
       children: [
@@ -328,7 +330,7 @@ class _SheetActions extends ConsumerWidget {
               Navigator.of(context).pop();
               openUserEdit(context, user);
             },
-            icon: const Icon(Icons.edit_outlined, size: 18),
+            icon: const Icon(Icons.edit_outlined, size: DashIcon.md),
             label: Text(l10n.usersEdit),
           ).tagged('user_detail.edit'),
         ),
@@ -338,10 +340,12 @@ class _SheetActions extends ConsumerWidget {
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 foregroundColor: t.dangerInk,
-                side: BorderSide(color: t.danger.withValues(alpha: 0.5)),
+                side: BorderSide(
+                  color: t.danger.withValues(alpha: DashAlpha.scrim),
+                ),
               ),
               onPressed: () => _delete(context, ref),
-              icon: const Icon(Icons.delete_outline, size: 18),
+              icon: const Icon(Icons.delete_outline, size: DashIcon.md),
               label: Text(l10n.usersDelete),
             ).tagged('user_detail.delete'),
           ),
@@ -364,9 +368,7 @@ class _SheetActions extends ConsumerWidget {
       logId: 'user_detail.delete',
     );
     await ref.read(usersListProvider.notifier).refresh();
-    messenger.snack(
-      result.isOk ? l10n.usersDeleted : userWriteMessage(l10n, result),
-    );
+    messenger.snack(userWriteText(l10n, result, l10n.usersDeleted));
     // The sheet describes an account that is gone; close it either way — on a
     // refusal the list underneath still shows the account and its reason.
     if (sheet.canPop()) sheet.pop();
@@ -389,7 +391,7 @@ class _OwnedCounts extends ConsumerWidget {
       context,
       ref.watch(userItemsCountProvider(userId)),
       padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
-      loading: const DashSpinner(size: 20),
+      loading: const DashSpinner(size: DashSize.d20),
       failureMessage: l10n.usersOwnedFailed,
       data: (counts) => Row(
         children: [
@@ -443,12 +445,12 @@ class _CountTile extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         border: Border.all(color: t.subCardBorder),
       ),
       child: Column(
         children: [
-          Icon(icon, size: 16, color: t.textSecondary),
+          Icon(icon, size: DashIcon.sm, color: t.textSecondary),
           const SizedBox(height: DashSpace.sm),
           Text('$value', style: t.monoHeadline),
           const SizedBox(height: DashSpace.xs),
@@ -478,10 +480,10 @@ class _DetailRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: t.textTertiary),
+          Icon(icon, size: DashIcon.sm, color: t.textTertiary),
           const SizedBox(width: DashSpace.md),
           SizedBox(
-            width: 110,
+            width: DashSize.d112,
             child: Text(label, style: t.label.copyWith(color: t.textSecondary)),
           ),
           Expanded(child: Text(value, style: t.body)),

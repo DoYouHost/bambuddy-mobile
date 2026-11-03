@@ -7,6 +7,7 @@ import 'package:bambuddy_mobile/features/orders/orders_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
@@ -38,12 +39,33 @@ PrintBatch _order({String? due, int? projectId}) => PrintBatch.fromJson({
   ],
 });
 
+/// A server answer the app cannot read: the write fails with something that is
+/// not an `AppApiException`.
+class _UnreadableBatches extends BatchRepository {
+  _UnreadableBatches(super.dio);
+
+  @override
+  Future<PrintBatch> update(
+    int batchId, {
+    String? name,
+    String? notes,
+    DateTime? dueDate,
+    int? projectId,
+    List<BatchPlateTarget>? plates,
+    bool reopen = false,
+  }) async => throw StateError('unreadable answer');
+}
+
 void main() {
   // The mock matches any body containing the mocked keys.
   late RequestLog sent;
 
   /// Opens the form from a host page, so saving has somewhere to pop back to.
-  Future<DioAdapter> pumpEdit(WidgetTester tester, PrintBatch batch) async {
+  Future<DioAdapter> pumpEdit(
+    WidgetTester tester,
+    PrintBatch batch, {
+    BatchRepository Function(Dio dio)? repoOn,
+  }) async {
     final dio = testDio();
     final adapter = mockServer(dio);
     sent = captureRequests(dio);
@@ -63,7 +85,9 @@ void main() {
       ),
       overrides: [
         noServerProfileOverride,
-        batchRepositoryProvider.overrideWithValue(BatchRepository(dio)),
+        batchRepositoryProvider.overrideWithValue(
+          repoOn?.call(dio) ?? BatchRepository(dio),
+        ),
         batchDetailProvider(2).overrideWith((ref) async => batch),
         orderProjectsProvider.overrideWith(
           (ref) async => const [
@@ -77,6 +101,17 @@ void main() {
     await tester.pumpAndSettle();
     return adapter;
   }
+
+  testWidgets('a save that fails with an unexpected error unlocks the form, '
+      'and still reports it', (tester) async {
+    await pumpEdit(tester, _order(), repoOn: _UnreadableBatches.new);
+
+    await tester.enterText(byLogId('order_edit.notes'), 'For the fair');
+    final errors = await tapCapturingErrors(tester, byLogId('order_edit.save'));
+
+    expect(errors.single, isA<StateError>());
+    expect(buttonAt(tester, 'order_edit.save').onPressed, isNotNull);
+  });
 
   testWidgets('only what changed is sent', (tester) async {
     final adapter = await pumpEdit(tester, _order());

@@ -36,8 +36,7 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final typesAsync = ref.watch(maintenanceTypesProvider);
-    final overview =
-        ref.watch(maintenanceOverviewProvider).valueOrNull ?? const [];
+    final overview = ref.watch(maintenanceOverviewProvider).value ?? const [];
 
     return DashBackground(
       child: Scaffold(
@@ -221,9 +220,9 @@ class _TypeTile extends ConsumerWidget {
     return ListTile(
       leading: DashIconTile(
         icon: maintenanceIcon(type.icon),
-        size: 40,
-        radius: 12,
-        iconSize: 18,
+        size: DashSize.d40,
+        radius: DashRadius.md,
+        iconSize: DashIcon.md,
       ),
       title: Text(type.name, style: t.titleSm),
       subtitle: Text(
@@ -415,24 +414,28 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
       wikiUrl: _wiki.text.trim().isEmpty ? null : _wiki.text.trim(),
     );
     setState(() => _saving = true);
-    final notifier = ref.read(maintenanceTypesProvider.notifier);
-    final result = _isEdit
-        ? await notifier.editType(widget.existing!.id, draft)
-        : await notifier.create(draft, _printers.toList());
-    if (!mounted) return;
-    if (result.isOk) {
-      Navigator.of(context).pop();
-      showMaintenanceResult(context, l10n, result);
-    } else {
-      setState(() => _saving = false);
-      showMaintenanceResult(context, l10n, result);
+    try {
+      final notifier = ref.read(maintenanceTypesProvider.notifier);
+      final result = _isEdit
+          ? await notifier.editType(widget.existing!.id, draft)
+          : await notifier.create(draft, _printers.toList());
+      if (!mounted) return;
+      if (result.isOk) {
+        Navigator.of(context).pop();
+        showMaintenanceResult(context, l10n, result);
+      } else {
+        setState(() => _saving = false);
+        showMaintenanceResult(context, l10n, result);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
   /// Printers available as assignment targets, from the loaded status overview.
   List<({int id, String name})> _availablePrinters() {
-    final overview =
-        ref.read(maintenanceOverviewProvider).valueOrNull ?? const [];
+    final overview = ref.read(maintenanceOverviewProvider).value ?? const [];
     return [for (final p in overview) (id: p.printerId, name: p.printerName)];
   }
 
@@ -510,7 +513,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                 ),
                 const SizedBox(width: DashSpace.md),
                 SizedBox(
-                  width: 110,
+                  width: DashSize.d112,
                   child: TextFormField(
                     controller: _interval,
                     keyboardType: TextInputType.number,
@@ -533,12 +536,12 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
             Text(l10n.maintenanceFieldIcon, style: theme.textTheme.labelLarge),
             const SizedBox(height: DashSpace.sm),
             Wrap(
-              spacing: DashSpace.sm,
-              runSpacing: DashSpace.sm,
+              spacing: PickerTile.gap(_IconChoice.drawing, DashSpace.sm),
+              runSpacing: PickerTile.gap(_IconChoice.drawing, DashSpace.sm),
               children: [
                 for (final name in maintenanceIconNames)
                   _IconChoice(
-                    icon: maintenanceIcon(name),
+                    name: name,
                     selected: _icon == name,
                     onTap: () => setState(() => _icon = name),
                   ),
@@ -584,7 +587,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
             FilledButton(
               onPressed: _saving ? null : _save,
               child: _saving
-                  ? const DashSpinner(size: 20)
+                  ? const DashSpinner(size: DashSize.d20)
                   : Text(l10n.inventorySave),
             ).tagged('maintenance_type_form.save'),
           ],
@@ -596,38 +599,44 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
 
 class _IconChoice extends StatelessWidget {
   const _IconChoice({
-    required this.icon,
+    required this.name,
     required this.selected,
     required this.onTap,
   });
 
-  final IconData icon;
+  final String name;
   final bool selected;
   final VoidCallback onTap;
+
+  static const drawing = 44.0;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: selected
-              ? scheme.primaryContainer
-              : scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected ? scheme.primary : scheme.outlineVariant,
-            width: selected ? 2 : 1,
+    return Tooltip(
+      message: name,
+      child: PickerTile(
+        drawing: drawing,
+        onTap: onTap,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: selected
+                ? scheme.primaryContainer
+                : scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(DashRadius.sm),
+            border: Border.all(
+              color: selected ? scheme.primary : scheme.outlineVariant,
+              width: selected ? DashStroke.regular : DashStroke.hairline,
+            ),
           ),
-        ),
-        child: Icon(
-          icon,
-          size: 22,
-          color: selected ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
+          child: Icon(
+            maintenanceIcon(name),
+            size: DashIcon.lg,
+            applyTextScaling: false,
+            color: selected
+                ? scheme.onPrimaryContainer
+                : scheme.onSurfaceVariant,
+          ),
         ),
       ),
     ).tagged('maintenance_type_form.icon');
@@ -696,7 +705,6 @@ class _IntervalEditDialogState extends State<_IntervalEditDialog> {
             child: Text(l10n.maintenanceResetInterval),
           ),
         ),
-        const Spacer(),
         logTag(
           'interval_edit.cancel',
           TextButton(

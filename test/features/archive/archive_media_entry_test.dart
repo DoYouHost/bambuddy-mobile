@@ -19,6 +19,7 @@ import '../../helpers.dart';
 late SharedPreferences _prefs;
 
 Widget _screen(Archive archive, {required bool supported}) => ProviderScope(
+  retry: neverRetry,
   overrides: [
     archiveListOverride([archive]),
     no3mfWarningProvider.overrideWith((ref) async => No3mfWarning.none),

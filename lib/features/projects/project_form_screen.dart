@@ -339,7 +339,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     DashTokens t,
     TextStyle fieldStyle,
   ) {
-    final projects = ref.watch(projectsListProvider).valueOrNull ?? const [];
+    final projects = ref.watch(projectsListProvider).value ?? const [];
     // Cannot parent a project to itself.
     final options = projects.where((p) => p.id != widget.existing?.id).toList();
     final parentId = _parentId;

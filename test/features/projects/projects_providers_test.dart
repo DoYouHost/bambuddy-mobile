@@ -43,6 +43,7 @@ void main() {
     repo = _FakeRepository();
     repo.listed = [_project(1), _project(2), _project(3)];
     container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         projectsRepositoryProvider.overrideWithValue(repo),
         noServerProfileOverride,
@@ -53,11 +54,8 @@ void main() {
 
   tearDown(() => container.dispose());
 
-  List<int> idsOnScreen() => container
-      .read(projectsListProvider)
-      .valueOrNull!
-      .map((p) => p.id)
-      .toList();
+  List<int> idsOnScreen() =>
+      container.read(projectsListProvider).value!.map((p) => p.id).toList();
 
   test('a failed delete puts back its own row and no one else\'s', () async {
     await container.read(projectsListProvider.future);

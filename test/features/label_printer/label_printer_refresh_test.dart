@@ -38,6 +38,7 @@ void main() {
     });
     final prefs = await SharedPreferences.getInstance();
     final c = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         labelPrinterRepositoryProvider.overrideWith((ref) => _Answering(up)),

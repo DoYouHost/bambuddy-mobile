@@ -94,7 +94,7 @@ class _WallCameraState extends ConsumerState<WallCamera> {
       );
     }
     final baseUrl = profile?.baseUrl;
-    final token = ref.watch(cameraTokenProvider).valueOrNull;
+    final token = ref.watch(cameraTokenProvider).value;
     if (baseUrl == null || token == null) return const SizedBox.expand();
     return MjpegView(
       key: ValueKey(_generation),

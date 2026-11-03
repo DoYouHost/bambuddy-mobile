@@ -21,6 +21,7 @@ import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../gcode/gcode_viewer_route.dart';
 import '../common/device_files.dart';
+import '../common/search_debouncer.dart';
 import '../queue/queue_edit_screen.dart';
 import '../queue/queue_removal.dart';
 import '../slicer/slice_providers.dart';
@@ -50,7 +51,7 @@ class FileManagerScreen extends ConsumerStatefulWidget {
 
 class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   final _searchController = TextEditingController();
-  Timer? _debounce;
+  final _debounce = SearchDebouncer(const Duration(milliseconds: 250));
 
   @override
   void initState() {
@@ -69,7 +70,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
+    _debounce.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -78,9 +79,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   ScaffoldMessengerState get _messenger => ScaffoldMessenger.of(context);
 
   void _onSearchChanged(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 250), () {
-      ref.read(fileManagerProvider.notifier).setQuery(q.trim());
+    _debounce.run(q, (trimmed) {
+      ref.read(fileManagerProvider.notifier).setQuery(trimmed);
     });
   }
 
@@ -107,7 +107,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     if (ref.watch(libraryTagsSupportedProvider).orFalse) {
       ref.watch(libraryTagsProvider);
     }
-    final state = async.valueOrNull;
+    final state = async.value;
     final selectionMode = state?.selectionMode ?? false;
 
     return DashBackground(
@@ -146,6 +146,10 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
             : logTag(
                 'files.create',
                 FloatingActionButton(
+                  // The sheet offers no upload in an external read-only folder.
+                  tooltip: state?.currentFolder?.externalReadonly == true
+                      ? l10n.fmNewFolder
+                      : l10n.fmAddFiles,
                   backgroundColor: t.accentGreen,
                   foregroundColor: t.onAccent,
                   onPressed: state == null
@@ -192,19 +196,16 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         child: DashLoading(),
       );
     } else if (folders.isEmpty && files.isEmpty) {
-      content = SliverFillRemaining(
-        hasScrollBody: false,
-        child: EmptyStateView(
-          message: s.fetchFailed
-              ? l10n.connectFailed
-              : s.isSearching || s.isTagFiltering || s.typeFilter != null
-              ? l10n.fmNoMatches
-              : l10n.fmEmpty,
-          icon: s.fetchFailed ? Icons.cloud_off : Icons.folder_open_outlined,
-        ),
+      content = SliverEmptyState(
+        message: s.fetchFailed
+            ? l10n.connectFailed
+            : s.isSearching || s.isTagFiltering || s.typeFilter != null
+            ? l10n.fmNoMatches
+            : l10n.fmEmpty,
+        icon: s.fetchFailed ? Icons.cloud_off : Icons.folder_open_outlined,
       );
     } else {
-      final me = ref.watch(currentUserProvider).valueOrNull;
+      final me = ref.watch(currentUserProvider).value;
       content = SliverPadding(
         padding: const EdgeInsets.only(
           top: DashSpace.sm,
@@ -273,6 +274,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         'files.selection_clear',
         IconButton(
           icon: const Icon(Icons.close),
+          tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
           onPressed: notifier.clearSelection,
         ),
       ),
@@ -426,7 +428,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   LibraryThumbnail(
                     fileId: file.id,
                     hasThumbnail: file.thumbnailPath != null,
-                    size: 56,
+                    size: DashSize.d56,
                   ),
                   const SizedBox(width: DashSpace.md),
                   Expanded(
@@ -663,7 +665,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }
 
   Future<void> _moveFile(LibraryFile file) async {
-    final state = ref.read(fileManagerProvider).valueOrNull;
+    final state = ref.read(fileManagerProvider).value;
     if (state == null) return;
     final target = await _pickFolder(state, excludeFolderId: null);
     if (target == null || !mounted) return; // cancelled
@@ -1150,7 +1152,7 @@ class _StatsBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final stats = ref.watch(libraryStatsProvider).valueOrNull;
+    final stats = ref.watch(libraryStatsProvider).value;
     if (stats == null) return const SizedBox.shrink();
     final parts = <String>[
       if (stats.totalFiles != null) l10n.fmStatsFiles(stats.totalFiles!),
@@ -1190,7 +1192,7 @@ class _Breadcrumb extends StatelessWidget {
     TextStyle crumbStyle(bool current) =>
         t.bodyBold.copyWith(color: current ? t.textPrimary : t.accentGreenInk);
     return SizedBox(
-      height: 44,
+      height: DashSize.d48,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
@@ -1198,14 +1200,14 @@ class _Breadcrumb extends StatelessWidget {
           TextButton.icon(
             icon: Icon(
               Icons.home_outlined,
-              size: 18,
+              size: DashIcon.md,
               color: crumbs.isEmpty ? t.textTertiary : t.accentGreenInk,
             ),
             label: Text(l10n.fmRoot, style: crumbStyle(crumbs.isEmpty)),
             onPressed: crumbs.isEmpty ? null : () => onOpen(null),
           ).tagged('files.crumb_root'),
           for (var i = 0; i < crumbs.length; i++) ...[
-            Icon(Icons.chevron_right, size: 18, color: t.textTertiary),
+            Icon(Icons.chevron_right, size: DashIcon.md, color: t.textTertiary),
             TextButton(
               onPressed: i == crumbs.length - 1
                   ? null
@@ -1333,7 +1335,7 @@ class _FolderTile extends StatelessWidget {
         child: logTag(
           'files.folder',
           InkWell(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             onTap: onOpen,
             child: Container(
               padding: const EdgeInsets.symmetric(
@@ -1342,7 +1344,7 @@ class _FolderTile extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
@@ -1351,8 +1353,8 @@ class _FolderTile extends StatelessWidget {
                     icon: folder.isExternal
                         ? Icons.folder_special_outlined
                         : Icons.folder,
-                    size: 40,
-                    radius: 12,
+                    size: DashSize.d40,
+                    radius: DashRadius.md,
                   ),
                   const SizedBox(width: DashSpace.md),
                   Expanded(
@@ -1452,7 +1454,7 @@ class _FileTile extends StatelessWidget {
         child: logTag(
           'files.file',
           InkWell(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(DashRadius.xl),
             onTap: onTap,
             onLongPress: onLongPress,
             child: Container(
@@ -1462,12 +1464,12 @@ class _FileTile extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: selected
-                    ? t.accentGreen.withValues(alpha: 0.10)
+                    ? t.accentGreen.withValues(alpha: DashAlpha.faint)
                     : t.subCard,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(DashRadius.xl),
                 border: Border.all(
                   color: selected
-                      ? t.accentGreen.withValues(alpha: 0.4)
+                      ? t.accentGreen.withValues(alpha: DashAlpha.outline)
                       : t.subCardBorder,
                 ),
               ),
@@ -1475,8 +1477,8 @@ class _FileTile extends StatelessWidget {
                 children: [
                   selectionMode
                       ? SizedBox(
-                          width: 52,
-                          height: 52,
+                          width: DashSize.d56,
+                          height: DashSize.d56,
                           child: Icon(
                             selected
                                 ? Icons.check_circle
@@ -1485,11 +1487,11 @@ class _FileTile extends StatelessWidget {
                           ),
                         )
                       : ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(DashRadius.lg),
                           child: LibraryThumbnail(
                             fileId: file.id,
                             hasThumbnail: file.thumbnailPath != null,
-                            size: 52,
+                            size: DashSize.d56,
                           ),
                         ),
                   const SizedBox(width: DashSpace.md),
@@ -1520,7 +1522,7 @@ class _FileTile extends StatelessWidget {
                             children: [
                               Icon(
                                 Icons.alt_route,
-                                size: 12,
+                                size: DashIcon.xs,
                                 color: t.textTertiary,
                               ),
                               const SizedBox(width: DashSpace.xs),
@@ -1558,7 +1560,11 @@ class _FileTile extends StatelessWidget {
                     ),
                   ),
                   if (!selectionMode)
-                    Icon(Icons.more_vert, size: 20, color: t.textSecondary),
+                    Icon(
+                      Icons.more_vert,
+                      size: DashIcon.md,
+                      color: t.textSecondary,
+                    ),
                 ],
               ),
             ),
@@ -1589,7 +1595,7 @@ class _ExtrasBadges extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     Widget icon(IconData data, String label) => Semantics(
       label: label,
-      child: Icon(data, size: 12, color: t.textTertiary),
+      child: Icon(data, size: DashIcon.xs, color: t.textTertiary),
     );
     return Row(
       mainAxisSize: MainAxisSize.min,

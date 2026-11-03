@@ -1,8 +1,10 @@
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_test_kit/app_test_kit.dart';
 import 'package:app_report_ui/app_report_ui.dart';
 import 'package:bambuddy_mobile/core/models/announcement.dart';
 import 'package:bambuddy_mobile/features/announcements/announcements_providers.dart';
+import 'package:bambuddy_mobile/features/links/external_links_providers.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'dart:async';
 import 'dart:io';
@@ -40,6 +42,7 @@ import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
@@ -63,6 +66,11 @@ class _InertAnnouncements extends AnnouncementsNotifier {
   @override
   Future<AnnouncementFeed> build() async => AnnouncementFeed.hidden;
 }
+
+/// No linked apps: the shell warms the list and the drawer reads it for its tile.
+final inertExternalLinksOverride = externalLinksProvider.overrideWith(
+  (ref) async => const [],
+);
 
 /// No total print time: the printer card reads it from the maintenance overview.
 final inertTotalPrintHoursOverride = printerTotalPrintHoursProvider
@@ -90,6 +98,7 @@ final en = lookupAppLocalizations(const Locale('en'));
 /// assert. [builder] goes to `MaterialApp.builder`, above the navigator: the only
 /// place an inherited widget reaches a pushed route or a dialog as well as `home`.
 Widget plApp(Widget child, {TransitionBuilder? builder}) => MaterialApp(
+  theme: buildDashThemeData(Brightness.light, brand: bambuddyBrand),
   locale: const Locale('pl'),
   localizationsDelegates: _plDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
@@ -124,6 +133,7 @@ Future<void> pumpPhone(
   TransitionBuilder? builder,
 }) => tester.pumpWidget(
   ProviderScope(
+    retry: neverRetry,
     overrides: overrides,
     child: plApp(child, builder: builder),
   ),
@@ -132,6 +142,8 @@ Future<void> pumpPhone(
 /// Pumps a wear widget with mock preferences, an in-memory credentials store and
 /// a handle on the container. [wrapInApp] is false for `WearApp`, which builds its
 /// own `MaterialApp`. The scope owns the container on purpose; see docs/test-harness.md.
+/// [animated] is for a screen that never stops animating (an indeterminate bar):
+/// it takes `settle`'s three frames, where `pumpAndSettle` would never return.
 Future<ProviderContainer> pumpWear(
   WidgetTester tester,
   Widget child, {
@@ -139,6 +151,7 @@ Future<ProviderContainer> pumpWear(
   bool wrapInApp = true,
   WearShape shape = WearShape.round,
   Size face = wearFaceSmall,
+  bool animated = false,
 }) async {
   useWatchFace(tester, shape, face);
   SharedPreferences.setMockInitialValues({});
@@ -146,6 +159,7 @@ Future<ProviderContainer> pumpWear(
   late ProviderContainer container;
   await tester.pumpWidget(
     ProviderScope(
+      retry: neverRetry,
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         credentialsStoreProvider.overrideWithValue(InMemoryCredentialsStore()),
@@ -159,7 +173,11 @@ Future<ProviderContainer> pumpWear(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (animated) {
+    await settle(tester);
+  } else {
+    await tester.pumpAndSettle();
+  }
   return container;
 }
 
@@ -176,6 +194,27 @@ ButtonStyleButton buttonAt(WidgetTester tester, String id) => tester.widget(
     matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
   ),
 );
+
+/// Taps [target] and returns what escaped the tap handler — what the app's error
+/// reporter receives — once the screen has settled.
+///
+/// For a write that fails with something that is not an `AppApiException`: the
+/// app rethrows it so it reaches the bug report, but the screen must not stay
+/// locked behind it. [animated] is for a screen that never stops animating.
+Future<List<Object>> tapCapturingErrors(
+  WidgetTester tester,
+  Finder target, {
+  bool animated = false,
+}) async {
+  final errors = <Object>[];
+  await runZonedGuarded(() => tester.tap(target), (e, _) => errors.add(e));
+  if (animated) {
+    await settle(tester);
+  } else {
+    await tester.pumpAndSettle();
+  }
+  return errors;
+}
 
 /// A window of [size] logical pixels at density 1, given back with the test.
 void useLogicalWindow(WidgetTester tester, Size size) {
@@ -342,6 +381,23 @@ class FakeWatchConfigSync extends WatchConfigSync {
 
 /// `inventoryBackendProvider` fixed to [backend]; the real one asks the
 /// server's `/spoolman/status`, which a test would otherwise have to mock.
+/// [base] with every provider that [top] overrides taken from [top] instead. A
+/// harness lists its defaults and lets a test replace any of them; Riverpod 2 let
+/// the later duplicate win, Riverpod 3 refuses the container
+/// ("Tried to override a provider twice").
+List<Override> layerOverrides(List<Override> base, List<Override> top) {
+  final replaced = {for (final o in top) o.origin};
+  return [...base.where((o) => !replaced.contains(o.origin)), ...top];
+}
+
+/// [next] as a notifier's `state` reports it while [previous] was showing: the
+/// framework attaches the old value itself when `state = AsyncLoading()` is
+/// assigned, but only through `copyWithPrevious`, which is internal API. A test
+/// of something that only *reads* such a state builds it here, once.
+AsyncValue<T> reportedOver<T>(AsyncValue<T> next, AsyncValue<T> previous) =>
+    // ignore: invalid_use_of_internal_member
+    next.copyWithPrevious(previous, isRefresh: false);
+
 Override inventoryBackendOverride([
   InventoryBackend backend = InventoryBackend.native,
 ]) => inventoryBackendProvider.overrideWith((ref) => backend);

@@ -38,6 +38,8 @@
   "addPrinterIp": "Adres IP",
   "addPrinterSerial": "Numer seryjny",
   "addPrinterAccessCode": "Kod dostępu",
+  "addPrinterRevealAccessCode": "Pokaż kod dostępu",
+  "addPrinterHideAccessCode": "Ukryj kod dostępu",
   "addPrinterModel": "Model",
   "addPrinterModelOptional": "Opcjonalnie",
   "addPrinterModelNone": "Nie ustawiono",
@@ -187,10 +189,9 @@
   "ctrlMoveHome": "Bazuj osie",
   "ctrlMoveHomeStarted": "Rozpoczęto bazowanie",
   "ctrlMoveStep": "Krok",
-  "ctrlMoveZ": "Z (szczelina)",
+  "ctrlMoveZ": "Z",
   "ctrlMoveZUp": "W górę",
   "ctrlMoveZDown": "W dół",
-  "ctrlMoveZToolhead": "Z (głowica)",
   "ctrlMoveZUnknownDirection": "Kierunek osi Z tej drukarki zależy od wersji serwera, której nie udało się potwierdzić, dlatego ruch w osi Z jest tu wyłączony. Zaktualizuj serwer albo otwórz panel ponownie, gdy serwer będzie osiągalny.",
   "ctrlMoveZNoModel": "Ta drukarka nie ma ustawionego modelu w Bambuddy, więc aplikacja nie wie, czy oś Z przesuwa stół, czy głowicę, i ruch w osi Z jest tu wyłączony. Ustaw model drukarki w Bambuddy, aby go używać.",
   "ctrlMoveExtrude": "Wytłocz",
@@ -201,6 +202,22 @@
     "placeholders": {
       "d": {
         "type": "int"
+      }
+    }
+  },
+  "ctrlMoveAxisPlus": "Ruch {axis}, kierunek dodatni",
+  "@ctrlMoveAxisPlus": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
+      }
+    }
+  },
+  "ctrlMoveAxisMinus": "Ruch {axis}, kierunek ujemny",
+  "@ctrlMoveAxisMinus": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
       }
     }
   },
@@ -316,6 +333,13 @@
   "plugStateOff": "Wyłączone",
   "queueEmpty": "Kolejka jest pusta",
   "queueAmsFromSlicer": "AMS ze slicera",
+  "queueColorSubstitution": "Slot {slot}: wydrukowano w kolorze {got}, plik wymaga {wanted}",
+  "queueColorSubstitutionSlots": "{count, plural, one{{count} slot} few{{count} sloty} many{{count} slotów} other{{count} sloty}}",
+  "queueColorSubstitutionTitle": "Wydrukowano w innym kolorze",
+  "queueColorSubstitutionWhy": "Nie było szpuli w kolorze z pliku albo slot wybrano ręcznie.",
+  "queueColorSubstitutionSlot": "Slot {slot}",
+  "queueColorSubstitutionPrinted": "Wydrukowano w",
+  "queueColorSubstitutionWanted": "Plik wymaga",
   "queueAnyOfModels": "Dowolny z: {models}",
   "@queueAnyOfModels": {
     "placeholders": {
@@ -706,7 +730,6 @@
   "sensorHistoryError": "Nie udało się wczytać historii",
   "amsHistoryRecordingInfo": "Zapisywane co 5 minut, gdy drukarka jest połączona",
   "heaterHistoryTitle": "Historia temperatur",
-  "heaterHistoryOpen": "Historia temperatur",
   "heaterHistoryReading": "Odczyt",
   "heaterHistoryTarget": "Zadana",
   "heaterHistoryRecordingInfo": "Zapisywane co minutę, gdy drukarka jest połączona",
@@ -722,7 +745,6 @@
   "widgetStatusPrinting": "Drukuje",
   "widgetStatusPaused": "Wstrzymano",
   "widgetStatusFinished": "Zakończono",
-  "widgetStatusFailed": "Błąd",
   "widgetStatusIdle": "Bezczynna",
   "widgetStatusOffline": "Offline",
   "widgetStatusError": "Błąd",
@@ -805,6 +827,7 @@
   "scanApiKeyHint": "Skieruj aparat na kod QR z kluczem API",
   "cameraPermissionTitle": "Potrzebny dostęp do aparatu",
   "cameraPermissionBody": "Zezwól na dostęp do aparatu, aby skanować kody QR.",
+  "scannerTorch": "Latarka",
   "errMissingUrl": "Podaj adres serwera",
   "errMissingApiKey": "Podaj klucz API",
   "errMissingCredentials": "Podaj login i hasło",
@@ -889,6 +912,17 @@
   "notifEvtBedCooled": "Stół wystygł",
   "notifEvtBedCooledDesc": "Gdy stół wystygnie po wydruku",
   "notifBedCooledThreshold": "Stół wystygł poniżej {temp}°C",
+  "printPauseAtLayer": "warstwa {layer}",
+  "printPauseA11yIn": "Następna pauza za {duration}, na warstwie {layer}",
+  "printPauseA11yLayer": "Następna pauza na warstwie {layer}",
+  "serverSettingsPauseWarningSubtitle": "Ile przed pauzą ostrzegać",
+  "pauseWarningTitle": "Ostrzeżenie o pauzie",
+  "pauseWarningLabel": "Ostrzegaj {duration} przed pauzą",
+  "pauseWarningDesc": "Ustawienie serwera: wyznacza też, kiedy ostrzega sam serwer, i obowiązuje na każdym urządzeniu.",
+  "notifEvtPauseUpcoming": "Zbliża się pauza",
+  "notifEvtPauseUpcomingDesc": "Ostrzega przed pauzą wstawioną w slicerze",
+  "notifPauseUpcomingTitle": "Zbliża się pauza",
+  "notifPauseUpcomingBody": "{name}: pauza za {minutes, plural, =0{mniej niż minutę} one{{minutes} minutę} few{{minutes} minuty} other{{minutes} minut}}, warstwa {layer}",
   "notifHumidityThreshold": "Wilgotność AMS powyżej {value}%",
   "notifLowFilamentThreshold": "Niski filament poniżej {percent}%",
   "notifEventsMenu": "Zdarzenia powiadomień",
@@ -1060,7 +1094,24 @@
   "inventoryPrinterPresetDefault": "Jak na szpuli",
   "inventoryPrinterPresetNozzle": "{model} · dysza {diameter}",
   "inventoryPrinterPresetsLoadFailed": "Nie odczytano — zapis ich nie ruszy.",
-  "inventoryPrinterPresetsSaveFailed": "Szpula zapisana, presety wg modelu — nie.",
+  "inventoryProfileDefaultPrefilled": "Wypełniono z ustawień domyślnych dla {product}",
+  "inventoryProfileDefaultUse": "Użyj jako domyślnych",
+  "inventoryProfileDefaultFor": "dla {product}",
+  "inventoryProfileDefaultNeedsMaterial": "Najpierw podaj materiał",
+  "inventoryProfileDefaultScope": "Dotyczy",
+  "inventoryProfileDefaultAllColors": "Wszystkie kolory",
+  "inventoryProfileDefaultColorOnly": "Tylko {color}",
+  "inventoryProfileDefaultSaveFailed": "Szpula zapisana, ustawienia domyślne — nie.",
+  "serverSettingsProfileDefaultsSubtitle": "Od czego startują nowe szpule",
+  "profileDefaultsTitle": "Ustawienia domyślne profili",
+  "profileDefaultsDescription": "Zapisz je przełącznikiem „Użyj jako domyślnych” w formularzu szpuli. Zastosowanie uzupełnia tylko to, czego szpulom brakuje.",
+  "profileDefaultsEmpty": "Nie zapisano jeszcze ustawień domyślnych",
+  "profileDefaultsApply": "Zastosuj do szpul",
+  "profileDefaultsApplied": "{count, plural, =0{Żadna szpula tego nie potrzebowała} one{Uzupełniono {count} szpulę} few{Uzupełniono {count} szpule} other{Uzupełniono {count} szpul}}",
+  "profileDefaultsDeleteTitle": "Usunąć te ustawienia domyślne?",
+  "profileDefaultsDeleteBody": "{product}: nowe szpule przestaną z nich startować. Szpule, które już je dostały, je zachowują.",
+  "profileDefaultsModelPresets": "{count, plural, one{{count} preset wg modelu} few{{count} presety wg modelu} other{{count} presetów wg modelu}}",
+  "profileDefaultsKProfiles": "{count, plural, one{{count} profil K} few{{count} profile K} other{{count} profili K}}",
   "inventoryFieldMaterial": "Materiał",
   "inventoryFieldBrand": "Marka",
   "inventoryFieldSubtype": "Wariant",
@@ -1129,8 +1180,6 @@
   "inventorySpoolArchived": "Zarchiwizowano szpulę",
   "inventorySpoolRestored": "Przywrócono szpulę",
   "inventoryUsageReset": "Wyzerowano licznik",
-  "inventorySaveFailed": "Nie udało się zapisać szpuli",
-  "inventoryActionFailed": "Operacja nie powiodła się",
   "inventoryUnassign": "Odepnij",
   "inventoryAssign": "Przypisz do slotu",
   "inventoryAssignPrinter": "Drukarka",
@@ -1612,6 +1661,7 @@
   },
   "fmVariantsGone": "Ta grupa już nie istnieje",
   "fmUpload": "Wgraj plik",
+  "fmAddFiles": "Dodaj pliki",
   "fmUploading": "Wgrywanie…",
   "fmUploaded": "Wgrano {name}",
   "@fmUploaded": {
@@ -1820,7 +1870,7 @@
   "mwInLibrary": "W bibliotece",
   "mwImported": "Zaimportowano do biblioteki",
   "mwAlreadyInLibrary": "Już jest w bibliotece",
-  "mwViewInFiles": "Pokaż w menedżerze plików",
+  "mwViewInFiles": "Otwórz pliki",
   "mwRecentImports": "Ostatnie importy",
   "mwNoRecent": "Brak ostatnich importów",
   "mwOpenOnMakerworld": "Otwórz w MakerWorld",
@@ -1833,6 +1883,8 @@
   "cloudCredsNote": "Zaloguj się kontem Bambu Lab. Dane logowania służą wyłącznie do pobierania modeli z MakerWorld.",
   "cloudEmail": "E-mail",
   "cloudPassword": "Hasło",
+  "cloudShowPassword": "Pokaż hasło",
+  "cloudHidePassword": "Ukryj hasło",
   "cloudRegionGlobal": "Globalny",
   "cloudRegionChina": "Chiny",
   "cloudSignIn": "Zaloguj",
@@ -3701,6 +3753,8 @@
   "announcementsTitle": "Ogłoszenia",
   "announcementsUnread": "Nieprzeczytane ogłoszenia: {count}",
   "announcementsEmpty": "Na razie nie ma żadnych ogłoszeń.",
+  "linkedAppsTitle": "Powiązane aplikacje",
+  "linkedAppsEmpty": "Brak powiązanych aplikacji.",
   "announcementsEarlier": "Wcześniejsze ({count})",
   "announcementsNew": "Nowe",
   "announcementsReadMore": "Czytaj więcej",

@@ -20,9 +20,12 @@ import '../../helpers.dart';
 /// below 1.2.6 cost and energy are absent from every row, which is not the same
 /// as a run that drew no power.
 class _FakePrintLog extends PrintLogNotifier {
-  _FakePrintLog(this.entries, {this.failure});
+  _FakePrintLog(this.entries, {this.failure, this.explode});
 
   final List<PrintLogEntry> entries;
+
+  /// Thrown instead of applying: something the app cannot read, not a refusal.
+  final Object? explode;
 
   /// Returned instead of applying, to stand for a server that refuses.
   final AppApiException? failure;
@@ -42,6 +45,7 @@ class _FakePrintLog extends PrintLogNotifier {
     bool clearFailureReason = false,
     String? status,
   }) async {
+    if (explode != null) throw explode!;
     lastEdit = (
       reason: failureReason,
       cleared: clearFailureReason,
@@ -107,8 +111,13 @@ void main() {
     bool costEnergy = true,
     AppApiException? failure,
     PrintLogFilters? filters,
+    Object? explode,
   }) async {
-    final fake = _FakePrintLog(entries ?? [_entry()], failure: failure);
+    final fake = _FakePrintLog(
+      entries ?? [_entry()],
+      failure: failure,
+      explode: explode,
+    );
     await pumpPhone(
       tester,
       const PrintLogScreen(),
@@ -190,6 +199,20 @@ void main() {
 
     expect(fake.lastEdit?.cleared, isTrue);
     expect(fake.lastEdit?.reason, isNull);
+  });
+
+  testWidgets('a save that fails with an unexpected error unlocks the sheet, '
+      'and still reports it', (tester) async {
+    final unreadable = StateError('unreadable answer');
+    await pumpScreen(tester, explode: unreadable);
+    await openSheet(tester, 'Benchy');
+    await pick(tester, reasonCombo, pl.failureReasonWarping);
+
+    final save = find.widgetWithText(FilledButton, pl.printLogSave);
+    final errors = await tapCapturingErrors(tester, save, animated: true);
+
+    expect(errors.single, same(unreadable));
+    expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
   });
 
   testWidgets('save stays dead until something actually changes', (

@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 /// Records what the preset-values provider actually asked for, so the family's
@@ -30,7 +31,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   ProviderContainer container({List<Override> overrides = const []}) {
-    final c = ProviderContainer(overrides: overrides);
+    final c = ProviderContainer(retry: neverRetry, overrides: overrides);
     addTearDown(c.dispose);
     return c;
   }

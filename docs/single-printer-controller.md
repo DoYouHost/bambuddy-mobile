@@ -1,9 +1,8 @@
 # Single-printer controller — design decisions (issue #54)
 
 What the controller is, what it shows and the rules it keeps. The research it
-rests on, including the maintainer's first decisions, is
-[single-printer-controller-research.md](single-printer-controller-research.md);
-this file is what was decided while designing the screens, on 2026-10-16.
+rests on is in §10; this file is what was decided while designing the screens, on
+2026-10-16.
 Wall mode ([tv-flavor.md](tv-flavor.md) §13) is the sibling this borrows its
 mechanics from.
 
@@ -30,8 +29,16 @@ mechanics from.
 
 ## 2. Screens
 
-A top bar (exit, printer name and model with a switcher, the tabs, a fault chip
-that opens the fault view, the printer's state) over one tab at a time.
+A collapsible rail on the left (an arrow and one icon per tab) beside one tab at
+a time. The arrow opens a panel that lies over the screen instead of pushing it:
+the printer's name and model (a switcher when there are several printers), its
+state, the tabs with their names and
+Exit. The arrow, a touch outside the panel or the system Back closes it (Back
+closes the panel first, the next one leaves); while it is open the screen and the
+rail under it take no touch and say nothing to a reader. **Exit lives only in the
+open panel** and in the system Back; the collapsed rail has none. The rail is
+56 dp wide and 48 dp per item, so on a screen lower than about 340 dp it scrolls
+(seven items); that is accepted.
 
 | Tab | Content |
 |---|---|
@@ -46,7 +53,8 @@ that opens the fault view, the printer's state) over one tab at a time.
 
 - **Designed for a phone in landscape.** The target is an ordinary smartphone
   held sideways, about 890–915 × 410 dp (the reporter's Redmi 9T Pro is
-  891×411 dp); after the top bar the body is about 860×345 dp. A layout is
+  891×411 dp); beside the rail the body is about 395 dp tall (337 dp with the old
+  top bar) and about 800 dp wide. A layout is
   checked against that. The touch panel whose look the controller borrows is
   800×360, and that size is only the floor the body is laid out in
   (`controllerBodySize`), never the screen to design for.
@@ -57,8 +65,9 @@ that opens the fault view, the printer's state) over one tab at a time.
 - **No text is scaled to fit, anywhere.** Equal things are one size: a
   `FittedBox` around a label made each one a size of its own, so where text did
   not fit the layout gives way instead — the Overview tiles drop the target at
-  four readings, the tabs scroll, the saver's box and the Prints tiles grow with
-  the system font, the keypad takes the body's scale. `controller_text_size_test.dart` scans for
+  four readings, the rail scrolls, the Prints tiles grow with the system font,
+  the keypad takes the body's scale, and from 130 % text the screens reflow
+  (next section). `controller_text_size_test.dart` scans for
   a `FittedBox` outside `scale_to_fit.dart` and the keypad, and measures the
   Overview and Heat texts in every language, in the app's real fonts, which
   every test runs with (docs/test-harness.md).
@@ -80,11 +89,77 @@ that opens the fault view, the printer's state) over one tab at a time.
   extruder with its own length presets.
 - Filament: a tap chooses a slot (the one feeding the print until then); Load,
   Unload and Dry sit under the slots and act on it, through the card's own
-  commands. The pencil on a slot opens the card's slot sheet (spool,
+  commands (at a large size Dry is in the same row). The pencil on a slot opens the card's slot sheet (spool,
   configuration).
 
 The fault view (reached from the chip, not a tab) lists the printer's HMS
 faults with Retry, Ignore and Dismiss and a link to the troubleshooting page.
+
+### Large text (from 130 %)
+
+Decided with the maintainer on the emulator-sized window (891×411 dp) at 100, 150
+and 200 % text. The rule is that a tab is rearranged, not squeezed, and that a
+touch target stays 48 dp or more at every size.
+
+- **The box does not grow with the text.** `ScaleToFit(reflows: true)` (the
+  controller screen's body) lays the tab out in `controllerBodySize` and scales to
+  the screen, so the factor is about 1 at every text size; before, the box grew
+  with the font and everything shrank (controls 45, 29 and 21 dp). The print-settings screen, its "More"
+  dialog, the mapping dialogs and the Prints items' dialog (`ControllerDetailDialog`:
+  file, job, archive) reflow too, so no controller screen scales with the font any more. Reflow starts at
+  `controllerReflowTextScale` (1.3, `controllerLargeText(context)`).
+- **A tab is a page, or it stretches.** `controllerPaged(context)` is the one question
+  every tab asks: from `controllerReflowTextScale` (1.3x), or when the room is shorter
+  than the design's (`controllerBodySize` height) grown by the text, **Overview, Heat,
+  Move, Filament and Settings are a `ControllerPage`**: the cookbook pattern
+  (`LayoutBuilder` + `SingleChildScrollView` + `ConstrainedBox(minHeight)`) around cards
+  as tall as their content. No `Expanded`, nothing that takes the room's height: a card
+  handed a height somebody guessed (440 dp for Heat, once) is squeezed the day a printer
+  shows more, and its buttons go under 48 dp. `ScaleToFit` sets the answer (sticky: it
+  leaves page mode only at 1.03 of the design's height) and, in page mode, scales by the
+  **width only**: a page scrolls vertically, so a window narrower than the design's 800 dp
+  (the body is the window less the rail and gutters) still shrinks it. That is a known
+  limit, not a fix: at 800 dp of window a 48 dp button is 42.7 dp. Prints, Files, Queue
+  and Archive keep `Expanded`: a list scrolls itself and cannot be squeezed.
+  A cost: crossing the height threshold swaps the tab's tree, so its scroll offset is
+  lost (state in the tab's own `State` is kept).
+- **Overview** has a layout of its own (`_LargeOverview`), still one screen: the
+  readings are two columns of one-line tiles with no target, the switches are 48 dp
+  rows, the job card is no taller than it needs. **Speed is a `dashCombo` at every
+  size**, not four buttons. There is no Status/Controls split (the maintainer
+  rejected it).
+- **Heat**: on a page, every heater count is a grid of compact cards two to a row,
+  the ring beside the buttons (three heaters used to be three stacked columns).
+  Four heaters (two nozzles) are a 2×2 grid of compact cards. A ring is
+  never taller than the row it is in: a ring squeezed into a shorter box is drawn
+  as an ellipse. "Chamber has no heater" is one line with an ellipsis.
+- **Filament**: from a large size the unit's header is gone and the row of units
+  above the slots says it all: name, which head it feeds (`L` / `R`, said in words
+  to a reader) and humidity. The unit's temperature is not shown at those sizes.
+  Drying moves into the row with Load and Unload. A slot's facts are one line
+  (`88% · 880 g`) unless the fullest spool (`100% · 1000 g`) would not fit the card,
+  measured with the real text style; then each fact takes a line, for every card in
+  the row. A card with one fact has one line, and an empty slot none: the spool
+  takes the line that is not there, so a card is filled to its bottom edge. While
+  printing, Load and Unload carry a lock and the reason is their tooltip; there is
+  no line of text for it. An external spool's side is a round `L` / `R` mark (the
+  printer's own marks, like `AMS-A`), not a pill with the word, which covered the
+  spool.
+- **Icons** grow with the text, up to 150 % (`_IconScale` in the screen,
+  `controllerIconSize(context, base)` for an icon with a size of its own). Inside
+  the controller body an icon button has no padding: with the default 8 dp padding
+  the box of a 48 dp button was 32 dp, a 36 dp glyph was drawn from its corner and
+  looked off-centre by up to 3.6 dp (measured on the pixels of a render, not on the
+  layout, which reported the box as centred). The snowflake (`ac_unit`) is 1.6 dp
+  off by the shape of its glyph.
+- **Colours**: Load, Unload and the Move tab's jogs, Home, Extrude and Retract take
+  the theme accent (the preset or Material You), not a blue and an orange of their
+  own (`controllerButtonStyle(tone: t.accent, ink: t.accentInk)`). Drying is still
+  `accentBlue`: undecided.
+- **Prints tiles** are one column at a large size, `controllerTileHeight` times
+  `1 + (scale - 1) / 3`.
+- The demo gives printer 6 (H2D) a smart plug, so the fullest Overview (four
+  readings, light and plug) can be rendered.
 
 ### Camera and preview
 
@@ -259,6 +334,16 @@ and an archive's delete, favourite, verdict, media, search and filters, stay on 
 phone screens and the web: they are not things done at the printer (maintainer,
 2026-10-23).
 
+All three lists (Files, Queue, Archive) sit in `ControllerListBody`, which says what
+a failed refresh does to a listing already on screen (`ControllerListFailureMode`).
+The Archive keeps its tiles and puts the failure and a retry under them, since a
+dropped connection takes nothing from tiles that are still true (maintainer,
+2026-11-01; it replaced them before), and the line stays up through the retry.
+The Queue keeps its tiles and says nothing: it is polled every ten seconds, and a
+bar that came and went with each failed poll would flicker. Files replaces the
+tiles with the failure: its old answer can be another folder's, and a user looking
+at it with no word would be misled.
+
 ### Queue
 
 - **What is listed** is what the server's own per-printer filter returns
@@ -307,3 +392,97 @@ phone screens and the web: they are not things done at the printer (maintainer,
 - A dialog's choice is acted on from the view's context, not the tile's: a refresh
   while the dialog is open may take the tile away.
 
+## 9. Left to do
+
+Open, most useful first:
+
+1. **Slot number badge on Filament** (the circle with the digit) overlapped the
+   material name at 200 % on a first render, when the spool was small. Check it with
+   the header gone; the latest renders look right.
+2. **The print-settings route at large text** (done 2026-10-28): the factor is about
+   1.07, from 1.3x text the job and its options stack on the left and the mapping gets
+   the wider right side, every card is as tall as its content (`ControllerCard.single(
+   shrink: true)`) and the page scrolls with the buttons pinned. The Prints items' dialog
+   (file, job, archive) is natural-height from 1.3x text, body scrolling and actions
+   in equal shares, or one under the other across the width where a label does not fit its share (never a `Wrap`: a stacked button would keep its content width and stand at one side). The print bar's choices and submit follow the same rule.
+   **Decided (A):** at a large text size the bar's note ("Printer is busy…", the wrong
+   model…) is at the top of the scrolling page, not pinned. After scrolling to the options
+   a disabled button has no reason on screen; pinning one line costs 30-40 dp of a window
+   that has about 200 dp at 200 %. Pin only the notes that disable the button if someone
+   reports it.
+3. **Settings at a large size** show one card at a time behind a [Screen saver |
+   Display] choice. The maintainer disliked splits in general and did not say
+   whether this one stays.
+4. **Unit temperature** is not shown on Filament at a large size; say if it should
+   come back (the row of units has room for one more number).
+5. **Tests**: the L/R mark's reader label is mutation-checked, the colour tests too;
+   `ControllerRailPanel`'s width test only checks the number. No contract test is
+   needed (nothing new is read from the server).
+6. A second Argon round on the Filament and Move changes was not done; the first one
+    (the rail, `_IconScale`, the large-text scroll) found three real bugs, all fixed.
+
+## 10. Reference research: the BTT screen (issue #54)
+
+Researched 2026-10-16 from BIGTREETECH's public pages, official screenshots and the
+UI string table they publish; the `en-US.img` language pack and the v1.0.8.0 firmware
+`.bin` were opened only as far as their structure and readable strings (no
+disassembly, no bitmap extraction). Nothing from them is copied into this repo.
+
+**The device.** "BTT" below is BIGTREETECH's 5" 800×480 ESP32-S3 touch screen
+(about 686×411 dp) that talks to Bambu printers directly, in LAN mode or through the
+Bambu Cloud. A phone in landscape is wider and a little shorter, so **height is the
+layout constraint**. Our app already did most of what the BTT screen does, through the
+bambuddy server; what was missing was a single-printer landscape layout, not new API.
+
+**Licence, and what follows from it.** `bigtreetech/PandaTouch` is public but has
+`license: null` (all rights reserved) and **no firmware source**; BIGTREETECH said in
+writing (issue #351) that it will not publish it. So nothing in it — strings, bitmaps,
+layout — is reusable as ours. This is an engineering judgement, not legal advice; BTT's
+terms of sale were not read.
+
+- Functions are not protected, a copied interface can be: same *kinds* of screens
+  (a printer list, a filament view, a file browser are generic), own layout, icons,
+  colours and wording.
+- Do not copy their artwork (the mascot, the AMS spool drawing, the icon set), and do not
+  use the product's name or BIGTREETECH branding in the app, the store listing or the
+  in-app copy. Naming it in internal docs is fine.
+
+**The firmware** is an MQTT client of the printer plus an FTPS client for uploads;
+temperatures, fans and jogging go out as plain G-code. None of that matters here: the
+app calls the bambuddy server, which already exposes the same operations as REST routes.
+
+**Ideas carried over** because the server allows them: the guided load/unload sequence
+with a failure hint per step, per-fault answer buttons, confirmation wording that names
+the consequence ("cannot be resumed"), a *read only* state with a reason, a pre-flight
+reminder on start. The vendor's own warning on "Always On" (burn-in) supports the screen
+saver (§3).
+
+**Mapping to the app.** Route constants are in
+[endpoints.dart](../lib/core/api/endpoints.dart), actions in
+[controls_providers.dart](../lib/features/dashboard/controls_providers.dart).
+
+| BTT screen | In the app |
+|---|---|
+| Pause / resume / stop | `printPause` / `printResume` / `printStop` |
+| Chamber light, speed profile | `chamberLight`, `printSpeed` |
+| Nozzle / bed / chamber target | `nozzleTemperature`, `bedTemperature`, `chamberTemperature` (chamber only on models with an active heater, version-gated) |
+| Fans | `fanSpeed` (part / aux / chamber) |
+| Axis / extruder | the `move` and `extruder` control actions, `bed_jog.dart` |
+| AMS view, load/unload, edit slot | AMS slot configuration, `ControlAction.ams` |
+| Filament drying | `dry`, AMS drying route |
+| HMS list, dismissal | `hmsClear`, `hmsExecuteAction` |
+| File browser of the printer | `printerFiles*` routes (needs `PRINTERS_FILES`) |
+| Skip objects | skip-objects screen |
+| Multi-printer list | dashboard / wall mode |
+| Print screensaver | the controller's screen saver (`controller_saver.dart`) |
+
+No equivalent, and none wanted (the server owns it): Wi-Fi and printer setup,
+cloud-mode login, firmware OTA, USB drive, power-module binding (the server's
+smart plugs cover power), groups and group printing (the queue covers it).
+
+Sources: the [PandaTouch repository](https://github.com/bigtreetech/PandaTouch) (releases,
+v1.0.8.0 release notes, `Translation/en-GB.yml` and its README), its issues
+[#351](https://github.com/bigtreetech/PandaTouch/issues/351),
+[#39](https://github.com/bigtreetech/PandaTouch/issues/39) and
+[#3](https://github.com/bigtreetech/PandaTouch/issues/3), and the
+[BIGTREETECH wiki](https://global.bttwiki.com/PandaTouch.html).

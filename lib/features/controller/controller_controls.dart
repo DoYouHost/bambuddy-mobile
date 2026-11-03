@@ -6,13 +6,15 @@ import '../../core/models/printer_status.dart';
 import '../../core/models/smart_plug.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/outcome_snack.dart';
+import '../common/speed_name.dart';
 import '../dashboard/controls_providers.dart';
 import '../dashboard/smart_plug_actions.dart';
 import '../dashboard/smart_plugs_providers.dart';
 import '../dashboard/temp_readings.dart';
 import '../dashboard/widgets/pill_switch.dart';
+import 'scale_to_fit.dart';
 
 // The widgets below fill the height they are given: the Overview divides its
 // column between them (`controller_overview.dart`), so each one is built to
@@ -56,6 +58,42 @@ class ControllerReadings extends StatelessWidget {
     final dual = readings.any(
       (r) => r.kind == TempKind.nozzle && r.index != null,
     );
+    // At a large text size the readings are lines of a grid of two, each one
+    // line tall: four tall tiles in a row need more width than the box has.
+    if (controllerPaged(context)) {
+      Widget tile(TempReading r) => ConstrainedBox(
+        constraints: const BoxConstraints(
+          minHeight: kMinInteractiveDimension + DashSpace.xs,
+        ),
+        child: _ReadingTile(
+          reading: r,
+          dual: dual,
+          showTarget: false,
+          active: dual && _isActive(r, status.activeExtruder),
+          compact: true,
+        ),
+      );
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < readings.length; i += 2) ...[
+            if (i > 0) const SizedBox(height: DashSpace.sm),
+            Row(
+              children: [
+                Expanded(child: tile(readings[i])),
+                const SizedBox(width: DashSpace.sm),
+                Expanded(
+                  child: i + 1 < readings.length
+                      ? tile(readings[i + 1])
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ],
+        ],
+      );
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -94,12 +132,17 @@ class _ReadingTile extends ConsumerWidget {
     required this.dual,
     required this.showTarget,
     required this.active,
+    this.compact = false,
   });
 
   final TempReading reading;
   final bool dual;
   final bool showTarget;
   final bool active;
+
+  /// One line: the dot, the name and the reading, with no bar. The tile for a
+  /// large text size, where four tall tiles do not fit a row.
+  final bool compact;
 
   static const _dot = 8.0;
   static const _bar = 4.0;
@@ -123,7 +166,7 @@ class _ReadingTile extends ConsumerWidget {
         children: [
           TextSpan(
             text: actual == null ? '—' : '${actual.round()}°',
-            style: t.monoHeadline.copyWith(color: color),
+            style: t.monoHeadline.copyWith(color: reading.gaugeInk(t)),
           ),
           if (showTarget && target != null && target > 0)
             TextSpan(
@@ -153,51 +196,79 @@ class _ReadingTile extends ConsumerWidget {
             DashSpace.sm,
           ),
           decoration: BoxDecoration(
-            color: active ? t.accent.withValues(alpha: 0.08) : t.subCard,
+            color: active
+                ? t.accent.withValues(alpha: DashAlpha.faint)
+                : t.subCard,
             borderRadius: radius,
             border: Border.all(
               color: active
-                  ? t.accent.withValues(alpha: 0.45)
+                  ? t.accent.withValues(alpha: DashAlpha.scrim)
                   : t.subCardBorder,
             ),
           ),
           // The label on the top edge, the bar on the bottom one, and the reading
           // centred between them.
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: _dot,
-                    height: _dot,
-                    decoration: BoxDecoration(
+          child: compact
+              ? Row(
+                  children: [
+                    Container(
+                      width: _dot,
+                      height: _dot,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: DashSpace.sm),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: t.body.copyWith(color: t.textSecondary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    readingText,
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: _dot,
+                          height: _dot,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: DashSpace.sm),
+                        Expanded(
+                          child: Text(
+                            label,
+                            style: t.body.copyWith(color: t.textSecondary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Expanded(child: Center(child: readingText)),
+                    // The same sweep as the Heat tab's ring, so the two agree.
+                    DashProgressBar(
+                      value: actual == null
+                          ? 0
+                          : (actual / reading.gaugeMax(chamberMax)).clamp(
+                              0.0,
+                              1.0,
+                            ),
+                      height: _bar,
                       color: color,
-                      shape: BoxShape.circle,
                     ),
-                  ),
-                  const SizedBox(width: DashSpace.sm),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: t.body.copyWith(color: t.textSecondary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              Expanded(child: Center(child: readingText)),
-              // The same sweep as the Heat tab's ring, so the two agree.
-              DashProgressBar(
-                value: actual == null
-                    ? 0
-                    : (actual / reading.gaugeMax(chamberMax)).clamp(0.0, 1.0),
-                height: _bar,
-                color: color,
-              ),
-            ],
-          ),
+                  ],
+                ),
         ),
       ),
     );
@@ -207,15 +278,8 @@ class _ReadingTile extends ConsumerWidget {
 /// The speed levels the printer has, 1 (silent) to 4 (ludicrous).
 const _speedLevels = [1, 2, 3, 4];
 
-String _speedName(AppLocalizations l10n, int level) => switch (level) {
-  1 => l10n.speedSilent,
-  2 => l10n.speedStandard,
-  3 => l10n.speedSport,
-  _ => l10n.speedLudicrous,
-};
-
-/// The four print speeds as one row. Built only where [controllerSpeedVisible]
-/// says so.
+/// The print speed as one select. Built only where [controllerSpeedVisible] says
+/// so. A select, not four buttons: it frees the column's height for the rest.
 class ControllerSpeed extends ConsumerWidget {
   const ControllerSpeed({
     super.key,
@@ -235,61 +299,29 @@ class ControllerSpeed extends ConsumerWidget {
     );
     final current = pending.speedLevel ?? status.speedLevel;
     final busy = pending.isBusy(ControlAction.speed);
-    final radius = BorderRadius.circular(DashSpace.md);
-    return Container(
-      padding: const EdgeInsets.all(DashSpace.xs),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(DashSpace.md + DashSpace.xs),
-        border: Border.all(color: t.subCardBorder),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final level in _speedLevels)
-            Expanded(
-              child: logTag(
-                'controller.speed.$level',
-                Material(
-                  color: current == level
-                      ? t.accent.withValues(alpha: 0.16)
-                      : Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: radius,
-                    side: current == level
-                        ? BorderSide(color: t.accent.withValues(alpha: 0.4))
-                        : BorderSide.none,
-                  ),
-                  child: InkWell(
-                    borderRadius: radius,
-                    onTap: busy ? null : () => _setSpeed(context, ref, level),
-                    child: Center(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              _speedName(l10n, level),
-                              style: current == level
-                                  ? t.bodyBold.copyWith(color: t.accentInk)
-                                  : t.bodyBold,
-                              maxLines: 1,
-                            ),
-                            Text(
-                              '${PrinterStatus.speedPercentFor(level)}%',
-                              style: t.monoLabel,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                selected: current == level,
-              ),
-            ),
-        ],
-      ),
+    String entry(int level) =>
+        '${speedName(l10n, level) ?? l10n.speedLudicrous} · ${PrinterStatus.speedPercentFor(level)}%';
+    return dashCombo<int>(
+      context,
+      id: 'controller.speed',
+      // The field keeps the value it was built with, so a speed that changed
+      // under it (the printer's own knob, another phone) rebuilds it.
+      fieldKey: ValueKey(current),
+      label: Text(l10n.ctrlSpeed),
+      initialSelection: current,
+      enabled: !busy,
+      textStyle: t.bodyBold,
+      entries: [
+        for (final level in _speedLevels)
+          DropdownMenuEntry<int>(
+            value: level,
+            label: entry(level),
+            labelWidget: logTag('controller.speed.$level', Text(entry(level))),
+          ),
+      ],
+      onSelected: (level) {
+        if (level != null && level != current) _setSpeed(context, ref, level);
+      },
     );
   }
 
@@ -299,10 +331,7 @@ class ControllerSpeed extends ConsumerWidget {
         .read(controlsProvider.notifier)
         .setSpeed(printerId, mode);
     if (!context.mounted) return;
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(ScaffoldMessenger.of(context), result, l10n);
   }
 }
 
@@ -331,6 +360,20 @@ class ControllerSwitches extends ConsumerWidget {
         _light(context, ref),
       if (plug != null) _plug(context, ref, plug),
     ];
+    // At a large text size each switch is a line of its own, the height of a
+    // finger: two side by side no longer fit their names.
+    if (controllerPaged(context)) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final (i, tile) in tiles.indexed) ...[
+            if (i > 0) const SizedBox(height: DashSpace.sm),
+            SizedBox(height: kMinInteractiveDimension, child: tile),
+          ],
+        ],
+      );
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -365,10 +408,7 @@ class ControllerSwitches extends ConsumerWidget {
         .read(controlsProvider.notifier)
         .setLight(printerId, on: on);
     if (!context.mounted) return;
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(ScaffoldMessenger.of(context), result, l10n);
   }
 
   /// The printer card's plug rules: not while printing, not for a monitor-only
@@ -452,13 +492,16 @@ class _SwitchTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    final large = controllerPaged(context);
     final radius = BorderRadius.circular(DashSpace.md + DashSpace.xs);
     final tile = Material(
-      color: on ? t.accent.withValues(alpha: 0.10) : t.subCard,
+      color: on ? t.accent.withValues(alpha: DashAlpha.faint) : t.subCard,
       shape: RoundedRectangleBorder(
         borderRadius: radius,
         side: BorderSide(
-          color: on ? t.accent.withValues(alpha: 0.35) : t.subCardBorder,
+          color: on
+              ? t.accent.withValues(alpha: DashAlpha.soft)
+              : t.subCardBorder,
         ),
       ),
       child: logTag(
@@ -481,11 +524,15 @@ class _SwitchTile extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            label,
+                            // One line at a large text size, where a second
+                            // line does not fit the height of a finger.
+                            large && sub != null ? '$label · $sub' : label,
                             style: t.bodyBold.copyWith(color: t.textPrimary),
                             maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          if (sub != null) Text(sub!, style: t.monoLabel),
+                          if (sub != null && !large)
+                            Text(sub!, style: t.monoLabel),
                         ],
                       ),
                     ),
@@ -520,7 +567,11 @@ class ControllerForbidden extends StatelessWidget {
     final t = DashTokens.of(context);
     return Row(
       children: [
-        Icon(Icons.lock_outline, size: DashSpace.lg, color: t.textSecondary),
+        Icon(
+          Icons.lock_outline,
+          size: controllerIconSize(context, DashSpace.lg),
+          color: t.textSecondary,
+        ),
         const SizedBox(width: DashSpace.sm),
         Expanded(
           child: Text(
@@ -559,16 +610,22 @@ ButtonStyle controllerButtonStyle(
   // Pulled toward the text colour: the bare accent is too pale on a light tile.
   final text =
       ink ?? (tone == null ? null : Color.lerp(tone, t.textPrimary, 0.3));
-  final grey = BorderSide(color: t.textPrimary.withValues(alpha: 0.22));
+  final grey = BorderSide(
+    color: t.textPrimary.withValues(alpha: DashAlpha.wash),
+  );
   final enabledSide =
       side ??
-      BorderSide(color: base.withValues(alpha: tone == null ? 0.22 : 0.5));
+      BorderSide(
+        color: base.withValues(
+          alpha: tone == null ? DashAlpha.wash : DashAlpha.scrim,
+        ),
+      );
   return FilledButton.styleFrom(
     // A wash of the text colour: `subCard` is a 2% tint and `subCardBorder` a
     // 5% one, which is a border with nothing inside it on this ground.
-    backgroundColor: base.withValues(alpha: tone == null ? 0.16 : 0.22),
+    backgroundColor: base.withValues(alpha: DashAlpha.wash),
     foregroundColor: text ?? t.textPrimary,
-    disabledBackgroundColor: t.textPrimary.withValues(alpha: 0.11),
+    disabledBackgroundColor: t.textPrimary.withValues(alpha: DashAlpha.faint),
     disabledForegroundColor: t.textSecondary,
     minimumSize: minimumSize,
     padding: padding,
@@ -594,6 +651,7 @@ class ControllerChoices extends StatelessWidget {
     required this.selected,
     required this.onChanged,
     this.enabled = true,
+    this.selectLabel,
   });
 
   final String id;
@@ -602,10 +660,38 @@ class ControllerChoices extends StatelessWidget {
   final bool enabled;
   final ValueChanged<int> onChanged;
 
+  /// Set where the row is a list of presets: at a large text size they no longer
+  /// fit side by side, so the row becomes a select with this as its label. A row
+  /// of two short views (null) stays a row at any size.
+  final String? selectLabel;
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final radius = BorderRadius.circular(DashSpace.md);
+    if (selectLabel != null && controllerPaged(context)) {
+      return dashCombo<int>(
+        context,
+        id: id,
+        // The field keeps the value it was built with.
+        fieldKey: ValueKey(selected),
+        label: Text(selectLabel!),
+        initialSelection: selected < 0 ? null : selected,
+        enabled: enabled,
+        textStyle: t.monoValue,
+        entries: [
+          for (final (i, label) in labels.indexed)
+            DropdownMenuEntry<int>(
+              value: i,
+              label: label,
+              labelWidget: logTag('$id.option', Text(label)),
+            ),
+        ],
+        onSelected: (i) {
+          if (i != null) onChanged(i);
+        },
+      );
+    }
     return Row(
       children: [
         for (final (i, label) in labels.indexed) ...[
@@ -615,13 +701,13 @@ class ControllerChoices extends StatelessWidget {
               id,
               Material(
                 color: i == selected
-                    ? t.accent.withValues(alpha: 0.16)
+                    ? t.accent.withValues(alpha: DashAlpha.wash)
                     : t.subCard,
                 shape: RoundedRectangleBorder(
                   borderRadius: radius,
                   side: BorderSide(
                     color: i == selected
-                        ? t.accent.withValues(alpha: 0.4)
+                        ? t.accent.withValues(alpha: DashAlpha.outline)
                         : t.subCardBorder,
                   ),
                 ),
@@ -662,15 +748,23 @@ class ControllerChoices extends StatelessWidget {
 class ControllerCard extends StatelessWidget {
   const ControllerCard({super.key, required this.sections, this.footer});
 
+  /// With [shrink] the card is as tall as its content instead of filling the
+  /// height it is given: for a card in a page that scrolls.
   ControllerCard.single({
     Key? key,
     required String title,
     Widget? trailing,
     required Widget child,
+    bool shrink = false,
   }) : this(
          key: key,
          sections: [
-           ControllerSection(title: title, trailing: trailing, child: child),
+           ControllerSection(
+             title: title,
+             trailing: trailing,
+             shrink: shrink,
+             child: child,
+           ),
          ],
        );
 
@@ -680,6 +774,37 @@ class ControllerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    // A row that stretches needs a height to stretch to: sections that shrink are
+    // laid side by side from the top, and the card is as tall as the tallest.
+    if (sections.every((s) => s.shrink)) {
+      final natural = sections.length == 1
+          ? sections.single
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final (i, s) in sections.indexed) ...[
+                  if (i > 0) const SizedBox(width: DashSpace.xl),
+                  Expanded(flex: s.flex, child: s),
+                ],
+              ],
+            );
+      final footer = this.footer;
+      return Container(
+        padding: const EdgeInsets.all(DashSpace.md),
+        decoration: t.cardBox,
+        child: footer == null
+            ? natural
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  natural,
+                  const SizedBox(height: DashSpace.md),
+                  footer,
+                ],
+              ),
+      );
+    }
     final row = Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -717,9 +842,13 @@ class ControllerSection extends StatelessWidget {
     required this.child,
     this.trailing,
     this.flex = 1,
+    this.shrink = false,
   });
 
   static const headerHeight = 44.0;
+
+  /// The content takes its own height; see [ControllerCard.single].
+  final bool shrink;
 
   final String title;
   final Widget? trailing;
@@ -733,9 +862,11 @@ class ControllerSection extends StatelessWidget {
     final t = DashTokens.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: shrink ? MainAxisSize.min : MainAxisSize.max,
       children: [
-        SizedBox(
-          height: headerHeight,
+        // A minimum: a trailing button that is taller than the header makes it so.
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: headerHeight),
           child: Row(
             children: [
               Expanded(
@@ -751,7 +882,7 @@ class ControllerSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: DashSpace.sm),
-        Expanded(child: child),
+        if (shrink) child else Expanded(child: child),
       ],
     );
   }

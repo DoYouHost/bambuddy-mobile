@@ -2,6 +2,7 @@ import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
+import '../core/api/dio_json.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
@@ -49,11 +50,11 @@ class SlicerRepository {
 
   /// GET /slicer/presets — printer/process/filament options across all tiers.
   Future<UnifiedPresets> presets({bool refresh = false}) => guard(() async {
-    final res = await _dio.get<Map<String, dynamic>>(
+    return _dio.getObject(
       Endpoints.slicerPresets,
-      queryParameters: refresh ? {'refresh': true} : null,
+      UnifiedPresets.fromJson,
+      query: refresh ? {'refresh': true} : null,
     );
-    return UnifiedPresets.fromJson(res.data ?? const {});
   });
 
   /// GET /slicer/loaded-spools — the connected printers and what they have
@@ -136,11 +137,11 @@ class SlicerRepository {
     try {
       return await processOverridesCapability.watching(
         () async {
-          final res = await _dio.get<Map<String, dynamic>>(
+          return _dio.getObject(
             Endpoints.slicerPresetValues,
-            queryParameters: {...preset.toRef(), 'slot': 'process'},
+            PresetValues.fromJson,
+            query: {...preset.toRef(), 'slot': 'process'},
           );
-          return PresetValues.fromJson(res.data ?? const {});
         },
         absent: () => null,
         // The preset is a query parameter, not a row the route looks up, so a
@@ -157,10 +158,10 @@ class SlicerRepository {
   /// GET /archives/{id}/capabilities — used to gate the archive slice button.
   Future<ArchiveCapabilities> archiveCapabilities(int archiveId) =>
       guard(() async {
-        final res = await _dio.get<Map<String, dynamic>>(
+        return _dio.getObject(
           Endpoints.archiveCapabilities(archiveId),
+          ArchiveCapabilities.fromJson,
         );
-        return ArchiveCapabilities.fromJson(res.data ?? const {});
       });
 
   /// POST /archives/{id}/slice — enqueue. Returns the new job id.
@@ -185,7 +186,6 @@ class SlicerRepository {
 
   /// GET /slice-jobs/{id} — poll a job's status/progress/result.
   Future<SliceJob> job(int jobId) => guard(() async {
-    final res = await _dio.get<Map<String, dynamic>>(Endpoints.sliceJob(jobId));
-    return SliceJob.fromJson(res.data ?? const {});
+    return _dio.getObject(Endpoints.sliceJob(jobId), SliceJob.fromJson);
   });
 }

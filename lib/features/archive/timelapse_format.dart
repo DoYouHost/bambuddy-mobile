@@ -1,3 +1,5 @@
+import '../../core/format/fixed_format.dart';
+
 /// `m:ss`, growing to `h:mm:ss` only for the rare long recording — a fixed
 /// `h:mm:ss` would put a leading `0:` on every clip.
 ///
@@ -14,9 +16,5 @@ String formatClock(num seconds) {
 
 /// `1x`, `0.25x` — trailing zeros dropped, matching the web UI's chips.
 String formatSpeed(double speed) {
-  final text = speed
-      .toStringAsFixed(2)
-      .replaceFirst(RegExp(r'0+$'), '')
-      .replaceFirst(RegExp(r'\.$'), '');
-  return '${text}x';
+  return '${trimFixedZeros(speed.toStringAsFixed(2))}x';
 }

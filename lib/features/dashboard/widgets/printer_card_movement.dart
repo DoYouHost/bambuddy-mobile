@@ -22,7 +22,7 @@ class _MovementTile extends ConsumerWidget {
       padding: const EdgeInsets.only(top: DashSpace.md),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         clipBehavior: Clip.antiAlias,
         child: logTag(
           'printer.move',
@@ -33,22 +33,34 @@ class _MovementTile extends ConsumerWidget {
                   _MovementSheet(printerId: printerId, model: model),
             ),
             child: Container(
+              constraints: const BoxConstraints(
+                minHeight: kMinInteractiveDimension,
+              ),
+              alignment: Alignment.center,
               padding: const EdgeInsets.symmetric(
                 horizontal: DashSpace.lg,
                 vertical: DashSpace.md,
               ),
               decoration: BoxDecoration(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.open_with, size: 18, color: t.textSecondary),
+                  Icon(
+                    Icons.open_with,
+                    size: DashIcon.md,
+                    color: t.textSecondary,
+                  ),
                   const SizedBox(width: DashSpace.md),
                   Text(l10n.ctrlMove, style: t.titleSm),
                   const Spacer(),
-                  Icon(Icons.chevron_right, size: 18, color: t.textTertiary),
+                  Icon(
+                    Icons.chevron_right,
+                    size: DashIcon.md,
+                    color: t.textTertiary,
+                  ),
                 ],
               ),
             ),
@@ -98,15 +110,22 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
       _busy = true;
       _spin = btn;
     });
-    final result = await action();
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _spin = null;
-    });
-    final msg = result.messageFor(l10n);
-    if (msg != null) {
-      messenger.snack(msg, clearQueue: true);
+    try {
+      final result = await action();
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _spin = null;
+      });
+      snackOutcome(messenger, result, l10n);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _spin = null;
+        });
+      }
+      rethrow;
     }
   }
 
@@ -123,14 +142,23 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
       _busy = true;
       _spin = 'home';
     });
-    final result = await _notifier.homeAxes(widget.printerId);
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _spin = null;
-    });
-    final msg = result.messageFor(l10n) ?? l10n.ctrlMoveHomeStarted;
-    messenger.snack(msg, clearQueue: true);
+    try {
+      final result = await _notifier.homeAxes(widget.printerId);
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _spin = null;
+      });
+      snackOutcome(messenger, result, l10n, fallback: l10n.ctrlMoveHomeStarted);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _spin = null;
+        });
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -205,11 +233,13 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
 
   /// Directional X/Y pad. The center cell shows the active step for feedback.
   Widget _buildXyPad(DashTokens t, bool locked) {
-    Widget spacer() => const SizedBox(width: 56, height: 56);
+    final l10n = AppLocalizations.of(context);
+    Widget spacer() =>
+        const SizedBox(width: DashSize.d56, height: DashSize.d56);
 
     Widget center() => SizedBox(
-      width: 56,
-      height: 56,
+      width: DashSize.d56,
+      height: DashSize.d56,
       child: Center(
         child: Text(
           '$_step',
@@ -227,6 +257,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             spacer(),
             _JogButton(
               icon: Icons.keyboard_arrow_up,
+              label: l10n.ctrlMoveAxisPlus('Y'),
               busy: _spin == 'y+',
               enabled: !locked,
               onTap: () => _send(
@@ -243,6 +274,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
           children: [
             _JogButton(
               icon: Icons.keyboard_arrow_left,
+              label: l10n.ctrlMoveAxisMinus('X'),
               busy: _spin == 'x-',
               enabled: !locked,
               onTap: () => _send(
@@ -255,6 +287,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             const SizedBox(width: DashSpace.sm),
             _JogButton(
               icon: Icons.keyboard_arrow_right,
+              label: l10n.ctrlMoveAxisPlus('X'),
               busy: _spin == 'x+',
               enabled: !locked,
               onTap: () => _send(
@@ -271,6 +304,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             spacer(),
             _JogButton(
               icon: Icons.keyboard_arrow_down,
+              label: l10n.ctrlMoveAxisMinus('Y'),
               busy: _spin == 'y-',
               enabled: !locked,
               onTap: () => _send(
@@ -300,7 +334,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
         ? BedJogConvention.unknown
         : convention.isLoading
         ? null
-        : convention.valueOrNull;
+        : convention.value;
     double? distance(bool up) => settled == null
         ? null
         : bedJogDistance(
@@ -311,13 +345,11 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
           );
 
     final label = Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.height, size: 16, color: t.textSecondary),
+        Icon(Icons.height, size: DashIcon.sm, color: t.textSecondary),
         const SizedBox(width: DashSpace.sm),
-        Text(
-          isBedSlinger(model) ? l10n.ctrlMoveZToolhead : l10n.ctrlMoveZ,
-          style: t.body.copyWith(color: t.textSecondary),
-        ),
+        Text(l10n.ctrlMoveZ, style: t.body.copyWith(color: t.textSecondary)),
       ],
     );
 
@@ -348,14 +380,25 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
       );
     }
 
-    return Row(
-      children: [
-        label,
-        const Spacer(),
-        jog('z+', Icons.keyboard_arrow_up, l10n.ctrlMoveZUp, true),
-        const SizedBox(width: DashSpace.sm),
-        jog('z-', Icons.keyboard_arrow_down, l10n.ctrlMoveZDown, false),
-      ],
+    // Equal-width buttons: beside the label they hug it, under it they span.
+    return BesideOrBelow(
+      label: label,
+      control: Row(
+        children: [
+          Expanded(
+            child: jog('z+', Icons.keyboard_arrow_up, l10n.ctrlMoveZUp, true),
+          ),
+          const SizedBox(width: DashSpace.sm),
+          Expanded(
+            child: jog(
+              'z-',
+              Icons.keyboard_arrow_down,
+              l10n.ctrlMoveZDown,
+              false,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -417,24 +460,23 @@ class _StepSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    return Row(
-      children: [
-        Text(label, style: t.body.copyWith(color: t.textSecondary)),
-        const Spacer(),
-        Wrap(
-          spacing: DashSpace.sm,
-          runSpacing: DashSpace.sm,
-          children: [
-            for (final p in presets)
-              _PresetChip(
+    return BesideOrBelow(
+      label: Text(label, style: t.body.copyWith(color: t.textSecondary)),
+      control: Row(
+        children: [
+          for (final (i, p) in presets.indexed) ...[
+            if (i > 0) const SizedBox(width: DashSpace.sm),
+            Expanded(
+              child: _PresetChip(
                 label: l10n.ctrlMoveMm(p),
                 id: '${id}_preset',
                 selected: value == p,
                 onTap: () => onChanged(p),
               ),
+            ),
           ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -443,12 +485,16 @@ class _StepSelector extends StatelessWidget {
 class _JogButton extends StatelessWidget {
   const _JogButton({
     required this.icon,
+    required this.label,
     required this.busy,
     required this.enabled,
     required this.onTap,
   });
 
   final IconData icon;
+
+  /// What the arrow does, for a screen reader and for a long press.
+  final String label;
   final bool busy;
   final bool enabled;
   final VoidCallback onTap;
@@ -457,21 +503,26 @@ class _JogButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final fg = enabled ? t.textPrimary : t.textTertiary;
-    return Material(
-      color: t.subCard,
-      borderRadius: BorderRadius.circular(14),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: t.subCardBorder),
+    return Tooltip(
+      message: label,
+      child: Material(
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(DashRadius.lg),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          child: Container(
+            width: DashSize.d56,
+            height: DashSize.d56,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(DashRadius.lg),
+              border: Border.all(color: t.subCardBorder),
+            ),
+            alignment: Alignment.center,
+            child: busy
+                ? const DashSpinner()
+                : Icon(icon, size: DashIcon.lg, color: fg),
           ),
-          alignment: Alignment.center,
-          child: busy ? const DashSpinner() : Icon(icon, size: 26, color: fg),
         ),
       ),
     );
@@ -500,28 +551,36 @@ class _JogAction extends StatelessWidget {
     final fg = enabled ? t.textPrimary : t.textTertiary;
     return Material(
       color: t.subCard,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: enabled ? onTap : null,
         child: Container(
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
+          ),
           padding: const EdgeInsets.symmetric(
             horizontal: DashSpace.md,
             vertical: DashSpace.sm,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(DashRadius.md),
             border: Border.all(color: t.subCardBorder),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              busy
-                  ? const DashSpinner(size: 16)
-                  : Icon(icon, size: 16, color: fg),
-              const SizedBox(width: DashSpace.sm),
-              Text(label, style: t.bodyBold.copyWith(color: fg)),
-            ],
+          // widthFactor: as wide as its content on its own, centred when a
+          // parent gives it the whole width.
+          child: Center(
+            widthFactor: 1,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                busy
+                    ? const DashSpinner(size: DashSize.d16)
+                    : Icon(icon, size: DashIcon.sm, color: fg),
+                const SizedBox(width: DashSpace.sm),
+                Text(label, style: t.bodyBold.copyWith(color: fg)),
+              ],
+            ),
           ),
         ),
       ),
@@ -551,22 +610,26 @@ class _JogWideButton extends StatelessWidget {
     final fg = enabled ? t.textPrimary : t.textTertiary;
     return Material(
       color: t.subCard,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: enabled ? onTap : null,
         child: Container(
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
+          ),
+          alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             border: Border.all(color: t.subCardBorder),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               busy
-                  ? const DashSpinner(size: 16)
-                  : Icon(icon, size: 18, color: fg),
+                  ? const DashSpinner(size: DashSize.d16)
+                  : Icon(icon, size: DashIcon.md, color: fg),
               const SizedBox(width: DashSpace.sm),
               Text(label, style: t.bodyBold.copyWith(color: fg)),
             ],

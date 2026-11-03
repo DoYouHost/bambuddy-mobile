@@ -52,6 +52,7 @@ void main() {
   setUp(() async {
     repo = _ScriptedRepo();
     container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         fakeServerProfileOverride(),
         announcementsRepositoryProvider.overrideWithValue(repo),

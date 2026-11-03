@@ -17,14 +17,35 @@ PreferredSizeWidget photoViewerAppBar(String title, {List<Widget>? actions}) =>
           title,
           style: const TextStyle(
             fontFamily: DashTokens.fontUi,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
+            fontSize: DashFontSize.display,
+            fontWeight: DashWeight.bold,
+            letterSpacing: DashTracking.tight,
             color: Colors.white,
           ),
         ),
       ),
     );
+
+/// The dark theme for a subtree that sits on black (the photo and video
+/// viewers): an empty or error message painted in the light theme's dark ink
+/// would be 1.1:1 on it. A transparent [Material] makes the text style follow.
+class OnBlack extends StatelessWidget {
+  const OnBlack({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = buildDashThemeData(
+      Brightness.dark,
+      brand: DashTokens.of(context).brand,
+    );
+    return Theme(
+      data: dark,
+      child: Material(type: MaterialType.transparency, child: child),
+    );
+  }
+}
 
 /// Swipeable pages, one photo each, with the position shown while there is
 /// more than one to swipe through. [paths] are media routes, served through
@@ -85,8 +106,8 @@ class _PhotoPagerState extends State<PhotoPager> {
             padding: const EdgeInsets.only(bottom: DashSpace.xl),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(999),
+                color: Colors.black.withValues(alpha: DashAlpha.strong),
+                borderRadius: BorderRadius.circular(DashRadius.pill),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -97,8 +118,8 @@ class _PhotoPagerState extends State<PhotoPager> {
                   '${_page + 1} / ${photos.length}',
                   style: const TextStyle(
                     fontFamily: DashTokens.fontMono,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: DashFontSize.label,
+                    fontWeight: DashWeight.semibold,
                     color: Colors.white,
                   ),
                 ),

@@ -19,8 +19,9 @@ class FakeSuppliers extends SuppliersRepository {
   final List<Supplier> suppliers;
   final List<SupplierStats> stats;
 
-  /// Thrown by the next write instead of applying it.
-  AppApiException? failNextWrite;
+  /// Thrown by the next write instead of applying it: a refusal, or — for a
+  /// test about the app's own bugs — something that is not an API failure.
+  Object? failNextWrite;
 
   final created = <SupplierDraft>[];
   final updated = <(int, SupplierDraft)>[];

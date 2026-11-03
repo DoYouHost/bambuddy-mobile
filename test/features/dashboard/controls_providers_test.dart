@@ -11,6 +11,7 @@ import '../../helpers.dart';
 
 ProviderContainer _container(RecordingCommands fake) {
   final c = ProviderContainer(
+    retry: neverRetry,
     overrides: [
       fakeServerProfileOverride(),
       printerCommandsRepositoryProvider.overrideWithValue(fake),

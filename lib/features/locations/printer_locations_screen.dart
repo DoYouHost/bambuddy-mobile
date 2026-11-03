@@ -124,7 +124,7 @@ class _PrinterLocationsScreenState
     final l10n = AppLocalizations.of(context);
     final byName = {
       for (final l
-          in ref.read(printerLocationsProvider).valueOrNull ??
+          in ref.read(printerLocationsProvider).value ??
               const <PrinterLocation>[])
         l.name: l.printerCount,
     };
@@ -271,7 +271,7 @@ class _PrinterLocationsScreenState
         busy: _busy,
         onAction: () => _move([
           ..._pickedPrinters,
-        ], ref.read(printerLocationsProvider).valueOrNull ?? const []),
+        ], ref.read(printerLocationsProvider).value ?? const []),
         onCancel: () => setState(_pickedPrinters.clear),
       );
     }
@@ -388,7 +388,7 @@ class _PrinterLocationsScreenState
                     ),
                 ],
                 child: Chip(
-                  avatar: const Icon(Icons.sort, size: 18),
+                  avatar: const Icon(Icons.sort, size: DashIcon.md),
                   label: Text(_sortLabel(l10n, sort)),
                 ),
               ).tagged('locations.sort'),
@@ -441,28 +441,34 @@ class _PrinterLocationsScreenState
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    l10n.printerLocationsUngrouped(ungrouped.length),
-                    style: t.bodyBold,
-                  ),
+                  child: canEdit && !_selecting
+                      ? BesideOrBelow(
+                          label: Text(
+                            l10n.printerLocationsUngrouped(ungrouped.length),
+                            style: t.bodyBold,
+                          ),
+                          control: TextButton(
+                            onPressed: () => setState(() {
+                              for (final p in ungrouped) {
+                                if (allUngroupedPicked) {
+                                  _pickedPrinters.remove(p.printer.id);
+                                } else {
+                                  _pickedPrinters.add(p.printer.id);
+                                }
+                              }
+                            }),
+                            child: Text(
+                              allUngroupedPicked
+                                  ? l10n.printerLocationsDeselectAll
+                                  : l10n.printerLocationsSelectAll,
+                            ),
+                          ).tagged('locations.ungrouped_select_all'),
+                        )
+                      : Text(
+                          l10n.printerLocationsUngrouped(ungrouped.length),
+                          style: t.bodyBold,
+                        ),
                 ),
-                if (canEdit && !_selecting)
-                  TextButton(
-                    onPressed: () => setState(() {
-                      for (final p in ungrouped) {
-                        if (allUngroupedPicked) {
-                          _pickedPrinters.remove(p.printer.id);
-                        } else {
-                          _pickedPrinters.add(p.printer.id);
-                        }
-                      }
-                    }),
-                    child: Text(
-                      allUngroupedPicked
-                          ? l10n.printerLocationsDeselectAll
-                          : l10n.printerLocationsSelectAll,
-                    ),
-                  ).tagged('locations.ungrouped_select_all'),
               ],
             ),
           ),

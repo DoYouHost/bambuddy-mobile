@@ -16,6 +16,8 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
@@ -259,7 +261,7 @@ void main() {
       await pumpPhone(
         tester,
         const FileManagerScreen(),
-        overrides: [
+        overrides: layerOverrides([
           noServerProfileOverride,
           libraryRepositoryProvider.overrideWithValue(LibraryRepository(dio)),
           printersRepositoryProvider.overrideWithValue(PrintersRepository(dio)),
@@ -285,8 +287,7 @@ void main() {
             (ref) async => {'billing_enabled': billing},
           ),
           serverSettingsOverride(const {}),
-          ...extra,
-        ],
+        ], extra),
       );
       await tester.pumpAndSettle();
     }
@@ -1109,6 +1110,9 @@ void main() {
       tester,
     ) async {
       await pumpAt(tester, folderId: 3);
+      // The button says what it does here: it cannot add files.
+      expect(find.byTooltip(pl.fmNewFolder), findsOneWidget);
+      expect(find.byTooltip(pl.fmAddFiles), findsNothing);
       await tester.tap(byLogId('files.create'));
       await tester.pumpAndSettle();
       expect(byLogId('files.new_folder'), findsOneWidget);
@@ -1118,6 +1122,7 @@ void main() {
     testWidgets('a writable folder keeps the add button', (tester) async {
       await pumpAt(tester, folderId: 1);
       expect(byLogId('files.create'), findsOneWidget);
+      expect(find.byTooltip(pl.fmAddFiles), findsOneWidget);
     });
   });
 }

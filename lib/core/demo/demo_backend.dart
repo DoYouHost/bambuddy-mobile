@@ -11,6 +11,7 @@ import '../models/queue_item.dart'
     show kModelGateWaitReason, kPreviousFailureGate;
 import '../models/spool_label.dart';
 import '../app_context.dart';
+import 'demo_result.dart';
 import 'demo_labels.dart';
 import 'demo_finance.dart';
 import 'demo_manyfold.dart';
@@ -44,6 +45,10 @@ class DemoBackend {
   /// Simulated job duration; the job loops forever.
   static const _printCycleSec = 5400; // 90 min
   static const _totalLayers = 264;
+
+  /// Layers the demo print has a slicer pause on (an insert to drop in), so the
+  /// card's next-pause marker has something to show.
+  static const _demoPauseLayers = [96, 192];
   static const _demoWearCostPerHour = 0.25;
 
   /// How many machines the demo runs a print on at once, from app settings.
@@ -146,7 +151,7 @@ class DemoBackend {
         .where((e) => _x1Objects.any((o) => o['id'] == e))
         .toList();
     _skippedObjects.addAll(valid);
-    return _ok({'success': true, 'skipped_objects': valid});
+    return demoOk({'success': true, 'skipped_objects': valid});
   }
 
   // --- Mutable device state ---
@@ -167,7 +172,7 @@ class DemoBackend {
   // cancelled, which is exactly the state the card's banner is there to show.
   final List<Map<String, dynamic>> _scheduledDryings = [];
   int _nextScheduledDryingId = 1;
-  final Map<int, bool> _plugOn = {1: true, 2: false};
+  final Map<int, bool> _plugOn = {1: true, 2: false, 3: true};
   // What the slot-configuration sheet wrote, keyed `printer:ams:tray`. Applied
   // over the generated status so a demo write shows on the card, the way the
   // printer's own push would.
@@ -284,7 +289,7 @@ class DemoBackend {
         ? 'thumbs/${path.split('/').last.split('.').first}'
         : null;
     Map<String, dynamic>? byId(List<Map<String, dynamic>> rows, int? rowId) =>
-        rows.where((r) => r['id'] == rowId).firstOrNull;
+        rowById(rows, rowId);
     return switch (s) {
       ['archives', _, 'thumbnail'] => thumb(
         byId(_archives, id)?['thumbnail_path'],
@@ -318,7 +323,7 @@ class DemoBackend {
     // Asked because the demo reports 1.2.6b1 and has an A1 mini; answering like
     // a post-#1334 server keeps its Z jog on the direct sign.
     if (path == '/openapi.json') {
-      return _ok(const {
+      return demoOk(const {
         'paths': {
           '/api/v1/printers/{printer_id}/bed-jog': {
             'post': {'summary': 'Bed Jog'},
@@ -327,7 +332,7 @@ class DemoBackend {
       });
     }
     const prefix = '/api/v1';
-    if (!path.startsWith(prefix)) return _notFound();
+    if (!path.startsWith(prefix)) return demoNotFound();
     path = path.substring(prefix.length);
     final seg = path.split('/').where((s) => s.isNotEmpty).toList();
     final q = uri.queryParameters;
@@ -342,12 +347,10 @@ class DemoBackend {
     }
   }
 
-  DemoResult _ok(Object? body) => (status: 200, body: body);
-  DemoResult _notFound() => (status: 404, body: {'detail': 'Not Found'});
   DemoResult _file(Uint8List bytes, String contentType) =>
       (status: 200, body: DemoFile(bytes, contentType));
   DemoResult _fallback(String method) =>
-      method == 'GET' ? _notFound() : _ok(const <String, dynamic>{});
+      method == 'GET' ? demoNotFound() : demoOk(const <String, dynamic>{});
 
   DemoResult? _route(
     String m,
@@ -359,21 +362,23 @@ class DemoBackend {
     int? id(int i) => i < s.length ? int.tryParse(s[i]) : null;
     bool at(int i, String name) => i < s.length && s[i] == name;
 
-    if (s.isEmpty) return _notFound();
+    if (s.isEmpty) return demoNotFound();
     switch (s[0]) {
       case 'auth':
         if (at(1, 'status')) {
-          return _ok({'auth_enabled': true, 'requires_setup': false});
+          return demoOk({'auth_enabled': true, 'requires_setup': false});
         }
         if (at(1, 'login') && m == 'POST') return _login(body);
         if (at(1, 'ws-token') || at(1, 'me')) {
-          return at(1, 'me') ? _ok(_demoUser) : _ok({'token': 'demo-ws-token'});
+          return at(1, 'me')
+              ? demoOk(_demoUser)
+              : demoOk({'token': 'demo-ws-token'});
         }
         // Served because this backend reports 1.2.6b1: a demo that 404'd here
         // would exercise the pre-#3025 camera-token fallback instead of the
         // path a current server takes.
-        if (at(1, 'media-token')) return _ok({'token': 'demo-media-token'});
-        return _notFound();
+        if (at(1, 'media-token')) return demoOk({'token': 'demo-media-token'});
+        return demoNotFound();
 
       case 'updates':
         // The version has to match what this backend actually serves, or a
@@ -387,80 +392,83 @@ class DemoBackend {
         // slice, both of which the routes below accept — the users listing is
         // the one thing 1.2.6 gates that is decided by probing instead.
         if (at(1, 'version')) {
-          return _ok(const {'version': '1.2.6b1', 'repo': 'maziggy/bambuddy'});
+          return demoOk(const {
+            'version': '1.2.6b1',
+            'repo': 'maziggy/bambuddy',
+          });
         }
-        return _notFound();
+        return demoNotFound();
 
       case 'printers':
-        if (s.length == 1) return _ok(_printers);
-        if (at(1, 'camera')) return _ok({'token': 'demo-camera-token'});
-        if (at(1, 'available-filaments')) return _ok(_availableFilaments());
+        if (s.length == 1) return demoOk(_printers);
+        if (at(1, 'camera')) return demoOk({'token': 'demo-camera-token'});
+        if (at(1, 'available-filaments')) return demoOk(_availableFilaments());
         final pid = id(1);
-        if (pid == null) return _notFound();
+        if (pid == null) return demoNotFound();
         if (s.length == 2) {
-          final p = _printers.where((e) => e['id'] == pid).firstOrNull;
-          if (p == null) return _notFound();
+          final p = rowById(_printers, pid);
+          if (p == null) return demoNotFound();
           // The access code is write-only on the real server too.
           if (m == 'PATCH') p.addAll(body..remove('access_code'));
-          return _ok(p);
+          return demoOk(p);
         }
-        if (at(2, 'status')) return _ok(statusJson(pid));
+        if (at(2, 'status')) return demoOk(statusJson(pid));
         if (at(2, 'print')) {
-          if (at(3, 'objects')) return _ok(_printObjectsResponse(pid));
+          if (at(3, 'objects')) return demoOk(_printObjectsResponse(pid));
           if (at(3, 'skip-objects')) return _skipObjects(pid, rawBody);
           if (pid == 1) {
             if (at(3, 'pause')) _pausePrint();
             if (at(3, 'resume')) _resumePrint();
             if (at(3, 'stop')) _stopPrint();
           }
-          return _ok(const {'ok': true});
+          return demoOk(const {'ok': true});
         }
         if (at(2, 'cover')) {
           // No rendered images in demo; the skip screen falls back gracefully.
-          return _notFound();
+          return demoNotFound();
         }
         if (at(2, 'chamber-light')) {
           _chamberLight[pid] = q['on'] == 'true';
-          return _ok(const {'ok': true});
+          return demoOk(const {'ok': true});
         }
         if (at(2, 'print-speed')) {
-          _speedLevel[pid] = int.tryParse(q['mode'] ?? '') ?? 2;
-          return _ok(const {'ok': true});
+          _speedLevel[pid] = intQuery(q, 'mode', 2);
+          return demoOk(const {'ok': true});
         }
         if (at(2, 'temperature') && s.length >= 4) {
           final target = double.tryParse(q['target'] ?? '') ?? 0;
           switch (s[3]) {
             case 'nozzle':
               _nozzleTarget[pid] = target;
-              return _ok(const {'ok': true});
+              return demoOk(const {'ok': true});
             case 'bed':
               _bedTarget[pid] = target;
-              return _ok(const {'ok': true});
+              return demoOk(const {'ok': true});
             case 'chamber':
-              return _ok(const {'ok': true});
+              return demoOk(const {'ok': true});
           }
         }
         if (at(2, 'airduct-mode')) {
           _airductMode[pid] = q['mode'] == 'heating' ? 1 : 0;
-          return _ok(const {'ok': true});
+          return demoOk(const {'ok': true});
         }
         if (at(2, 'fan-speed')) {
           final fan = q['fan'] ?? '';
           final sp = int.tryParse(q['speed'] ?? '');
           if (sp != null && const ['part', 'aux', 'chamber'].contains(fan)) {
             _fanSpeeds[fan] = sp;
-            return _ok(const {'ok': true});
+            return demoOk(const {'ok': true});
           }
         }
         if (at(2, 'drying') && s.length >= 4) {
-          final amsId = int.tryParse(q['ams_id'] ?? '') ?? 0;
+          final amsId = intQuery(q, 'ams_id', 0);
           if (s[3] == 'start') {
-            _dryTime[amsId] = (int.tryParse(q['duration'] ?? '') ?? 4) * 60;
-            return _ok(const {'status': 'drying_started'});
+            _dryTime[amsId] = intQuery(q, 'duration', 4) * 60;
+            return demoOk(const {'status': 'drying_started'});
           }
           if (s[3] == 'stop') {
             _dryTime[amsId] = 0;
-            return _ok(const {'status': 'drying_stopped'});
+            return demoOk(const {'status': 'drying_stopped'});
           }
         }
         // Movement jogs + homing are momentary — no persistent demo state.
@@ -468,12 +476,12 @@ class DemoBackend {
             at(2, 'xy-jog') ||
             at(2, 'extruder-jog') ||
             at(2, 'home-axes')) {
-          return _ok(const {'success': true});
+          return demoOk(const {'success': true});
         }
-        if (at(2, 'clear-plate')) return _ok(const {'ok': true});
+        if (at(2, 'clear-plate')) return demoOk(const {'ok': true});
         if (at(2, 'files')) {
           if (s.length == 3 && m == 'GET') {
-            return _ok(_printerFiles(q['path'] ?? '/', pid));
+            return demoOk(_printerFiles(q['path'] ?? '/', pid));
           }
           // Downloading is the one printer-file action with something to hand
           // back, so demo mode serves it rather than falling through: without
@@ -481,7 +489,7 @@ class DemoBackend {
           // says yes to a POST, handed the ZIP button two bytes of JSON.
           if (s.length == 4 && at(3, 'download') && m == 'GET') {
             final path = q['path'] ?? '';
-            if (path.isEmpty) return _notFound();
+            if (path.isEmpty) return demoNotFound();
             return _file(_printerFileBytes(path, pid), _demoContentType(path));
           }
           if (s.length == 4 && at(3, 'download-zip') && m == 'POST') {
@@ -505,13 +513,13 @@ class DemoBackend {
           return _fallback(m);
         }
         if (at(2, 'storage')) {
-          return _ok({
+          return demoOk({
             'used_bytes': 3 * 1024 * 1024 * 1024,
             'free_bytes': 24 * 1024 * 1024 * 1024,
           });
         }
         if (at(2, 'kprofiles')) {
-          return _ok(_kProfilesResponse(q['nozzle_diameter'] ?? '0.4'));
+          return demoOk(_kProfilesResponse(q['nozzle_diameter'] ?? '0.4'));
         }
         if (at(2, 'slot-presets')) return _slotPresetRoute(m, pid, s, q);
         // `slots/{ams}/{tray}/configure` — ids are local to the unit.
@@ -523,24 +531,20 @@ class DemoBackend {
           if (at(6, 'reset')) return _resetSlot(pid, id(3) ?? 0, id(5) ?? 0);
           // Load, unload and the RFID re-read change nothing a demo can show:
           // there is no filament path to move anything along.
-          return _ok(const {'ok': true});
+          return demoOk(const {'ok': true});
         }
         return _fallback(m);
 
       case 'ams-history':
-        return _ok(
-          _amsHistory(
-            id(1) ?? 1,
-            id(2) ?? 0,
-            int.tryParse(q['hours'] ?? '') ?? 24,
-          ),
+        return demoOk(
+          _amsHistory(id(1) ?? 1, id(2) ?? 0, intQuery(q, 'hours', 24)),
         );
 
       case 'printer-sensor-history':
-        return _ok(
+        return demoOk(
           _heaterHistory(
             id(1) ?? 1,
-            int.tryParse(q['hours'] ?? '') ?? 24,
+            intQuery(q, 'hours', 24),
             (q['kinds'] ?? 'nozzle,bed,chamber').split(','),
           ),
         );
@@ -558,11 +562,11 @@ class DemoBackend {
         return _printerLocationsRoute(m, s, body);
 
       case 'location-ha-sensors':
-        if (s.length == 1) return _ok(_locationSensors);
+        if (s.length == 1) return demoOk(_locationSensors);
         if (at(1, 'by-location') && at(3, 'readings')) {
-          return _ok(_locationSensorReadings(id(2) ?? 0));
+          return demoOk(_locationSensorReadings(id(2) ?? 0));
         }
-        return _notFound();
+        return demoNotFound();
 
       case 'queue':
         if (s.length >= 2 && s[1] == 'batches') {
@@ -588,24 +592,28 @@ class DemoBackend {
       case 'spoolman':
         // Demo runs the native backend, and says so where the app asks.
         if (at(1, 'status')) {
-          return _ok(const {'enabled': false, 'connected': false, 'url': null});
+          return demoOk(const {
+            'enabled': false,
+            'connected': false,
+            'url': null,
+          });
         }
         return _fallback(m);
 
       case 'filament-catalog':
-        return _ok(_filamentPresets);
+        return demoOk(_filamentPresets);
 
       case 'firmware':
         if (at(1, 'updates') && s.length == 2) {
-          return _ok({'updates': _firmware, 'updates_available': 1});
+          return demoOk({'updates': _firmware, 'updates_available': 1});
         }
         if (at(1, 'updates')) {
           final f = _firmware
               .where((e) => e['printer_id'] == id(2))
               .firstOrNull;
-          return f == null ? _notFound() : _ok(f);
+          return f == null ? demoNotFound() : demoOk(f);
         }
-        return _notFound();
+        return demoNotFound();
 
       case 'library':
         return _libraryRoute(m, s, q, body);
@@ -615,15 +623,21 @@ class DemoBackend {
 
       case 'announcements':
         if (s.length == 1 && m == 'GET') {
-          return _ok({'visible': true, 'announcements': _announcements});
+          return demoOk({'visible': true, 'announcements': _announcements});
         }
         if (s.length == 3 && at(2, 'read') && m == 'POST') {
-          final hit = _announcements.where((a) => a['id'] == s[1]).firstOrNull;
-          if (hit == null) return _notFound();
+          final hit = rowById(_announcements, s[1]);
+          if (hit == null) return demoNotFound();
           hit['read'] = true;
           return (status: 204, body: null);
         }
-        return _notFound();
+        return demoNotFound();
+
+      case 'external-links':
+        // Read only, as the app is. The count is what an app behind a link
+        // reports; the demo's apps report once and never change.
+        if (s.length == 1 && m == 'GET') return demoOk(_externalLinks);
+        return demoNotFound();
 
       case 'manyfold':
         if (at(1, 'import') && m == 'POST') return _manyfoldImport(body);
@@ -631,47 +645,50 @@ class DemoBackend {
 
       case 'makerworld':
         if (at(1, 'status')) {
-          return _ok(const {'has_cloud_token': false, 'can_download': false});
+          return demoOk(const {
+            'has_cloud_token': false,
+            'can_download': false,
+          });
         }
-        if (at(1, 'recent-imports')) return _ok(const <Object>[]);
+        if (at(1, 'recent-imports')) return demoOk(const <Object>[]);
         return _fallback(m);
 
       case 'cloud':
-        if (at(1, 'status')) return _ok(const {'is_authenticated': false});
+        if (at(1, 'status')) return demoOk(const {'is_authenticated': false});
         // Nobody is logged in to Bambu Cloud in the demo, and the slot picker
         // is built to say so and fall back — serving a cloud tier anyway would
         // contradict the line above.
         if (at(1, 'settings')) {
           return (status: 401, body: {'detail': 'Not authenticated'});
         }
-        if (at(1, 'builtin-filaments')) return _ok(_builtinFilaments);
+        if (at(1, 'builtin-filaments')) return demoOk(_builtinFilaments);
         return _fallback(m);
 
       case 'local-presets':
-        return _ok({'filament': _localPresets});
+        return demoOk({'filament': _localPresets});
 
       case 'settings':
         // The one settings writer in the app is the queue screen, and it sends
         // a partial body — so the demo has to merge rather than replace, or a
         // switch would take every other value on the screen down with it.
         if (m == 'PUT' || m == 'PATCH') _settingsWrites.addAll(body);
-        return _ok({..._settings, ..._settingsWrites});
+        return demoOk({..._settings, ..._settingsWrites});
 
       case 'slice-jobs':
         return _sliceJobRoute(id(1));
 
       case 'slicer':
-        if (at(1, 'printer-models')) return _ok(_printerModels);
+        if (at(1, 'printer-models')) return demoOk(_printerModels);
         // The catalogue both features read: the slice form's three pickers,
         // and the pipeline cards resolving their stored `PresetRef`s (without
         // it every row read "No longer in the catalog").
-        if (at(1, 'presets')) return _ok(_slicerPresets);
+        if (at(1, 'presets')) return demoOk(_slicerPresets);
         if (at(1, 'preset-values')) return _presetValues(q);
-        if (at(1, 'loaded-spools')) return _ok(_loadedSpools());
-        return _ok(const <String, dynamic>{});
+        if (at(1, 'loaded-spools')) return demoOk(_loadedSpools());
+        return demoOk(const <String, dynamic>{});
 
       case 'users':
-        return _ok(DemoFinance.users);
+        return demoOk(DemoFinance.users);
 
       case 'finance':
         return _finance.route(m, s.skip(1).toList(), q, body);
@@ -697,7 +714,7 @@ class DemoBackend {
   DemoResult _login(Map<String, dynamic> body) {
     if (body['username'] == DemoConfig.username &&
         body['password'] == DemoConfig.password) {
-      return _ok({
+      return demoOk({
         'access_token': 'demo.access.token',
         'token_type': 'bearer',
         'user': _demoUser,
@@ -767,6 +784,8 @@ class DemoBackend {
     'queue_keep_bed_warm': true,
     'queue_keep_warm_bed_temp': 95,
     'queue_keep_warm_max_minutes': 45,
+    // Off the server's default of 5, like the rows above it.
+    'pause_warning_minutes': 10,
   };
 
   Map<String, dynamic> get _demoUser => {
@@ -779,7 +798,7 @@ class DemoBackend {
     'auth_source': 'local',
     'groups': const <Object>[],
     'permissions': const <Object>[],
-    'created_at': _iso(_daysAgo(60)),
+    'created_at': isoUtc(_daysAgo(60)),
   };
 
   /// `/slicer/presets` — the tiers the unified picker merges, holding exactly
@@ -939,13 +958,13 @@ class DemoBackend {
     }
     final values = _processPresetValues[q['id']];
     if (values == null) {
-      return _ok(const {
+      return demoOk(const {
         'resolved': false,
         'values': <String, Object>{},
         'reason': 'sidecar_outdated',
       });
     }
-    return _ok({'resolved': true, 'values': values, 'reason': 'ok'});
+    return demoOk({'resolved': true, 'values': values, 'reason': 'ok'});
   }
 
   /// Effective process values per local preset id, spelled as a process JSON
@@ -1078,7 +1097,7 @@ class DemoBackend {
     Map<String, dynamic> file,
     Map<String, String> q,
   ) {
-    final plateId = int.tryParse(q['plate_id'] ?? '') ?? 1;
+    final plateId = intQuery(q, 'plate_id', 1);
     final rows = <Map<String, dynamic>>[];
     if ('${file['filename']}'.toLowerCase().endsWith('.3mf')) {
       final used = file['id'] == _multiSlotFileId
@@ -1182,7 +1201,7 @@ class DemoBackend {
       'kind': isArchive ? 'archive' : 'library_file',
       'source': source,
       'started_ms': DateTime.now().millisecondsSinceEpoch,
-      'created_at': _iso(DateTime.now()),
+      'created_at': isoUtc(DateTime.now()),
       'embedded': body['use_embedded_settings'] == true,
       'layer_height': _layerHeightOf(process is Map ? '${process['id']}' : ''),
       'printer_preset': body['printer_preset'],
@@ -1232,11 +1251,11 @@ class DemoBackend {
     if (done) {
       // Stamped alongside the result, so both are decided on the first poll
       // that finds the job over rather than moving with each later one.
-      job['completed_at'] ??= _iso(DateTime.now());
+      job['completed_at'] ??= isoUtc(DateTime.now());
       body['result'] = _sliceResult(job);
     }
     body['completed_at'] = job['completed_at'];
-    return _ok(body);
+    return demoOk(body);
   }
 
   /// The sidecar's own snapshot, which the server forwards verbatim: a stage
@@ -1363,7 +1382,7 @@ class DemoBackend {
       'energy_kwh': 0.0,
       'energy_cost': 0.0,
       'wear_cost': null,
-      'created_at': _iso(DateTime.now()),
+      'created_at': isoUtc(DateTime.now()),
     };
     _archives.insert(0, archive);
     return archive;
@@ -1565,6 +1584,23 @@ class DemoBackend {
 
   double _r1(double v) => (v * 10).roundToDouble() / 10;
 
+  /// What the server's `next_pause` says at [frac] of the print: the first pause
+  /// on a layer above the one printing, and the minutes to it, which the demo's
+  /// even pace makes the share of the cycle between here and there. Null once
+  /// the last pause is behind.
+  Map<String, dynamic>? _nextPause(double frac) {
+    final layer = (frac * _totalLayers).floor();
+    for (final at in _demoPauseLayers) {
+      if (at > layer) {
+        return {
+          'layer': at,
+          'minutes': ((at / _totalLayers - frac) * _printCycleSec / 60).ceil(),
+        };
+      }
+    }
+    return null;
+  }
+
   /// An idle fixture with a print laid over it, for the machines that only run
   /// one because the setting asked for several.
   Map<String, dynamic> _maybePrinting(
@@ -1588,6 +1624,7 @@ class DemoBackend {
       'remaining_time': (_printCycleSec * (1 - frac) / 60).ceil(),
       'layer_num': (frac * _totalLayers).floor(),
       'total_layers': _totalLayers,
+      'next_pause': _nextPause(frac),
       'temperatures': {
         ...idle['temperatures'] as Map<String, dynamic>,
         'nozzle': _r1(220 + _wiggle(1.4, phase: id * 20)),
@@ -1621,6 +1658,7 @@ class DemoBackend {
       'remaining_time': printing ? ((_printCycleSec - elapsed) / 60).ceil() : 0,
       'layer_num': printing ? (frac * _totalLayers).floor() : 0,
       'total_layers': printing ? _totalLayers : 0,
+      'next_pause': printing && !_paused ? _nextPause(frac) : null,
       'temperatures': {
         'nozzle': _r1(heating ? 220 + _wiggle(1.4) : 152),
         'nozzle_target': _nozzleTarget[1] ?? (heating ? 220.0 : 0.0),
@@ -1989,7 +2027,7 @@ class DemoBackend {
     List<String> s,
     Map<String, String> q,
   ) {
-    if (s.length < 5) return _ok(const <Object>[]);
+    if (s.length < 5) return demoOk(const <Object>[]);
     final amsId = int.tryParse(s[3]) ?? 0;
     final trayId = int.tryParse(s[4]) ?? 0;
     final key = _slotKey(printerId, amsId, trayId);
@@ -2001,9 +2039,9 @@ class DemoBackend {
         'preset_name': q['preset_name'] ?? '',
         'preset_source': q['preset_source'],
       };
-      return _ok(const {'ok': true});
+      return demoOk(const {'ok': true});
     }
-    return _ok(_slotPreset[key]);
+    return demoOk(_slotPreset[key]);
   }
 
   /// `POST /printers/{id}/slots/{ams}/{tray}/configure`. The real route derives
@@ -2025,7 +2063,7 @@ class DemoBackend {
       'cali_idx': int.tryParse(q['cali_idx'] ?? ''),
       'state': 11,
     };
-    return _ok(const {'success': true});
+    return demoOk(const {'success': true});
   }
 
   /// `POST /printers/{id}/ams/{ams}/tray/{tray}/reset` — empties the slot and
@@ -2043,7 +2081,7 @@ class DemoBackend {
       'state': 9,
     };
     _slotPreset.remove(key);
-    return _ok(const {'success': true});
+    return demoOk(const {'success': true});
   }
 
   Map<String, dynamic> _amsUnit1() => {
@@ -2213,26 +2251,26 @@ class DemoBackend {
       filename: toStringOrNull(body['filename']) ?? 'printer-files.zip',
     );
     _downloadJobs[job.jobId] = job;
-    return _ok(job.toJson());
+    return demoOk(job.toJson());
   }
 
   DemoResult _downloadJobRoute(String method, int printerId, String jobId) {
     final job = _downloadJobs[jobId];
-    if (job == null || job.printerId != printerId) return _notFound();
+    if (job == null || job.printerId != printerId) return demoNotFound();
     if (method == 'DELETE') {
       _downloadJobs.remove(jobId);
       _downloadTokens.remove(job.token);
-      return _ok(const {'status': 'cancelled'});
+      return demoOk(const {'status': 'cancelled'});
     }
     if (method != 'GET') return _fallback(method);
     job.advance();
     if (job.token case final token?) _downloadTokens[token] = job;
-    return _ok(job.toJson());
+    return demoOk(job.toJson());
   }
 
   DemoResult _preparedDownload(int printerId, String token) {
     final job = _downloadTokens.remove(token);
-    if (job == null || job.printerId != printerId) return _notFound();
+    if (job == null || job.printerId != printerId) return demoNotFound();
     _downloadJobs.remove(job.jobId);
     return job.asZip
         ? _file(_emptyZip(), 'application/zip')
@@ -2273,7 +2311,7 @@ class DemoBackend {
           'path': '/Bag dispenser.gcode.3mf',
           'is_directory': false,
           'size': 4318208,
-          'mtime': _iso(_daysAgo(0, hours: 2)),
+          'mtime': isoUtc(_daysAgo(0, hours: 2)),
         },
       ],
       '/cache' => [
@@ -2282,14 +2320,14 @@ class DemoBackend {
           'path': '/cache/Mikrus slot.gcode.3mf',
           'is_directory': false,
           'size': 2108509,
-          'mtime': _iso(_daysAgo(3)),
+          'mtime': isoUtc(_daysAgo(3)),
         },
         {
           'name': 'Gridfinity bin 2×1×9.gcode.3mf',
           'path': '/cache/Gridfinity bin 2×1×9.gcode.3mf',
           'is_directory': false,
           'size': 1524736,
-          'mtime': _iso(_daysAgo(6)),
+          'mtime': isoUtc(_daysAgo(6)),
         },
       ],
       // The two video directories are what a print leaves behind, so they are
@@ -2364,7 +2402,7 @@ class DemoBackend {
       // Roughly what a printer writes: a rendered timelapse is a few tens of
       // megabytes, a camera chunk a few.
       'size': kind == 'ipcam' ? 6_291_456 : 18_446_592,
-      'mtime': _iso(at),
+      'mtime': isoUtc(at),
       'kind': kind,
     };
   }
@@ -2386,7 +2424,7 @@ class DemoBackend {
       final t = now.subtract(Duration(minutes: i * 5));
       final phase = t.millisecondsSinceEpoch / 3600000 * 2 * math.pi / 6;
       points.add({
-        'recorded_at': t.toUtc().toIso8601String(),
+        'recorded_at': isoUtc(t),
         'humidity': _r1(22 + 3 * math.sin(phase)),
         'temperature': _r1(27.5 + 2 * math.sin(phase / 2 + 1)),
       });
@@ -2447,10 +2485,7 @@ class DemoBackend {
         final noise = math.sin(i / 7) * (printing ? 1.2 : 0.3);
         final value = _r1(cold + (hot[kind]! - cold) * ramp + noise);
         points.add({
-          'recorded_at': now
-              .subtract(Duration(minutes: i))
-              .toUtc()
-              .toIso8601String(),
+          'recorded_at': isoUtc(now.subtract(Duration(minutes: i))),
           'value': value,
           'target': printing ? hot[kind] : 0.0,
         });
@@ -2538,6 +2573,16 @@ class DemoBackend {
       libraryFileId: 3,
       slicedForModel: 'P1S',
       errorMessage: 'Filament ran out',
+      // The blue spool was empty, so the slot was sent with a yellow one.
+      colorSubstitutions: const [
+        {
+          'slot_id': 1,
+          'type': 'PLA',
+          'wanted': '#2D7FF9',
+          'got': '#E8B923',
+          'tray': 2,
+        },
+      ],
     ),
     _queueItem(
       id: 105,
@@ -2657,6 +2702,9 @@ class DemoBackend {
     bool manualStart = false,
     String slicedForModel = 'X1C',
     List<Map<String, dynamic>> variants = const [],
+    // Slots dispatched with a spool of another colour (#3279); the server
+    // sends null, not an empty list, when there are none.
+    List<Map<String, dynamic>> colorSubstitutions = const [],
     int? batchId,
     String? batchName,
     // A job queued from the library, as the server shapes one: the file's
@@ -2687,6 +2735,9 @@ class DemoBackend {
     'gcode_injection': gcodeInjection,
     'confirm_outcome': confirmOutcome,
     'filament_short': false,
+    'color_substitutions': colorSubstitutions.isEmpty
+        ? null
+        : colorSubstitutions,
     // Tri-state strings, as bambuddy 1.2.5+ sends them — the shape whose
     // arrival emptied the real queue screen. Demo mode is where that
     // regression should surface first, so it speaks the current contract and
@@ -2697,7 +2748,7 @@ class DemoBackend {
     'vibration_cali': true,
     'layer_inspect': true,
     'timelapse': false,
-    'created_at': _iso(_daysAgo(createdDaysAgo)),
+    'created_at': isoUtc(_daysAgo(createdDaysAgo)),
     'archive_name': libraryFileId == null ? name : null,
     'archive_thumbnail': null,
     'library_file_name': libraryFileId == null ? null : name,
@@ -2782,7 +2833,7 @@ class DemoBackend {
   /// or none.
   Object? _batchForCopies(int? batchId, int copies, String name) {
     if (batchId != null) {
-      final batch = _batches.where((b) => b['id'] == batchId).firstOrNull;
+      final batch = rowById(_batches, batchId);
       if (batch == null) {
         return (status: 404, body: {'detail': 'Batch not found'});
       }
@@ -2800,7 +2851,7 @@ class DemoBackend {
       'name': '$name ×$copies',
       'library_file_id': null,
       'status': 'active',
-      'created_at': _iso(DateTime.now()),
+      'created_at': isoUtc(DateTime.now()),
       'completed_at': null,
       'created_by_username': 'demo',
       'project_id': null,
@@ -2826,7 +2877,7 @@ class DemoBackend {
         // One status per request, as the server filters. The queue screen asks
         // for `pending` and `printing`, the history for the other four.
         final status = q['status'];
-        return _ok([
+        return demoOk([
           for (final item in [?_printingRow, ..._queue])
             if (status == null || item['status'] == status) item,
         ]);
@@ -2843,9 +2894,7 @@ class DemoBackend {
           for (final id in variantIds)
             ..._libraryFiles.where((f) => f['id'] == id),
         ];
-        final archive = _archives
-            .where((a) => a['id'] == body['archive_id'])
-            .firstOrNull;
+        final archive = rowById(_archives, body['archive_id']);
         final lead = variantFiles.firstOrNull;
         // As the server does: copies into the batch named by `batch_id`, or
         // into a new grouping when there are several and none was named.
@@ -2872,16 +2921,16 @@ class DemoBackend {
           _addQueued(body, variantFiles, archive, lead, name, batchMap);
         }
         // The server answers with the first copy.
-        return _ok(_queue[first]);
+        return demoOk(_queue[first]);
       }
     }
     if (s.length == 2 && s[1] == 'history' && m == 'GET') {
-      return _ok(_queueHistory(q));
+      return demoOk(_queueHistory(q));
     }
     if (s.length == 3 && s[1] == 'history' && s[2] == 'clear' && m == 'POST') {
       final cleared = _queue.where(_inHistory).length;
       _queue.removeWhere(_inHistory);
-      return _ok({'cleared': cleared, 'kept': 0});
+      return demoOk({'cleared': cleared, 'kept': 0});
     }
     if (s.length == 2 && s[1] == 'bulk' && m == 'PATCH') {
       return _bulkUpdate(body);
@@ -2896,17 +2945,17 @@ class DemoBackend {
       final items = body['items'];
       if (items is List) {
         for (final it in items.whereType<Map>()) {
-          final match = _queue.where((e) => e['id'] == it['id']).firstOrNull;
+          final match = rowById(_queue, it['id']);
           if (match != null) match['position'] = it['position'];
         }
         _queue.sort(
           (a, b) => (a['position'] as int).compareTo(b['position'] as int),
         );
       }
-      return _ok(const {'ok': true});
+      return demoOk(const {'ok': true});
     }
     final itemId = int.tryParse(s[1]);
-    if (itemId == null) return _notFound();
+    if (itemId == null) return demoNotFound();
     if (itemId == _printingRowId && s.length >= 3 && s[2] == 'stop') {
       if (_printingRow == null) {
         return (
@@ -2919,13 +2968,13 @@ class DemoBackend {
         );
       }
       _stopPrint();
-      return _ok(const {'message': 'Print stopped'});
+      return demoOk(const {'message': 'Print stopped'});
     }
-    final item = _queue.where((e) => e['id'] == itemId).firstOrNull;
-    if (item == null) return _notFound();
+    final item = rowById(_queue, itemId);
+    if (item == null) return demoNotFound();
     if (m == 'DELETE') {
       _queue.remove(item);
-      return _ok(const {'ok': true});
+      return demoOk(const {'ok': true});
     }
     if (m == 'PATCH') {
       // Every edit is checked against the cost center it will have, as
@@ -2938,9 +2987,7 @@ class DemoBackend {
       item['cost_center_id'] = center;
       if (body.containsKey('printer_id')) {
         item['printer_id'] = body['printer_id'];
-        item['printer_name'] = _printers
-            .where((p) => p['id'] == body['printer_id'])
-            .firstOrNull?['name'];
+        item['printer_name'] = rowById(_printers, body['printer_id'])?['name'];
       }
       if (body.containsKey('ams_mapping')) {
         item['ams_mapping'] = body['ams_mapping'];
@@ -2951,18 +2998,18 @@ class DemoBackend {
       if (body.containsKey('confirm_outcome')) {
         item['confirm_outcome'] = body['confirm_outcome'];
       }
-      return _ok(item);
+      return demoOk(item);
     }
     if (s.length >= 3 && s[2] == 'cancel') {
       item['status'] = 'cancelled';
-      return _ok(const {'ok': true});
+      return demoOk(const {'ok': true});
     }
     if (s.length >= 3 && s[2] == 'start') {
       final overBudget = _budgetRefusal(item['cost_center_id'], _jobCost(item));
       if (overBudget != null) return overBudget;
       item['status'] = 'printing';
-      item['started_at'] = _iso(DateTime.now());
-      return _ok(const {'ok': true});
+      item['started_at'] = isoUtc(DateTime.now());
+      return demoOk(const {'ok': true});
     }
     return _fallback(m);
   }
@@ -2990,7 +3037,7 @@ class DemoBackend {
             createdDaysAgo: 0,
             libraryFileId: 4,
           ),
-          'started_at': _iso(
+          'started_at': isoUtc(
             DateTime.now().subtract(Duration(seconds: _elapsedSec)),
           ),
         };
@@ -3008,7 +3055,7 @@ class DemoBackend {
       return (status: 400, body: {'detail': 'No fields to update'});
     }
     final printerId = changes['printer_id'];
-    final printer = _printers.where((p) => p['id'] == printerId).firstOrNull;
+    final printer = rowById(_printers, printerId);
     if (printerId != null && printer == null) {
       return (status: 400, body: {'detail': 'Printer not found'});
     }
@@ -3031,7 +3078,7 @@ class DemoBackend {
       }
       updated++;
     }
-    return _ok({
+    return demoOk({
       'updated_count': updated,
       'skipped_count': skipped,
       'message': 'Updated $updated items',
@@ -3052,7 +3099,7 @@ class DemoBackend {
   /// `sort_by` order, then the other runs of the batches on it.
   Map<String, dynamic> _queueHistory(Map<String, String> q) {
     final reverse = q['reverse'] == 'true';
-    final limit = int.tryParse(q['limit'] ?? '') ?? 50;
+    final limit = intQuery(q, 'limit', 50);
     String text(Map<String, dynamic> i, String key) =>
         ((i[key] ?? '') as String).toLowerCase();
     String when(Map<String, dynamic> i) =>
@@ -3097,7 +3144,7 @@ class DemoBackend {
   /// holding it, and what it skipped goes back to `pending` — the two things
   /// `resume_queue_after_failure` does, counted as it counts them.
   DemoResult _resumeAfterFailure(int? printerId) {
-    if (_printers.every((p) => p['id'] != printerId)) return _notFound();
+    if (_printers.every((p) => p['id'] != printerId)) return demoNotFound();
     var acknowledged = 0;
     var restored = 0;
     for (final item in _queue) {
@@ -3115,7 +3162,7 @@ class DemoBackend {
         restored++;
       }
     }
-    return _ok({'acknowledged': acknowledged, 'restored': restored});
+    return demoOk({'acknowledged': acknowledged, 'restored': restored});
   }
 
   /// `POST /queue/model/{model}/resume`: the gate cleared on every printer of
@@ -3141,7 +3188,7 @@ class DemoBackend {
         item['waiting_reason'] = null;
       }
     }
-    return _ok({'acknowledged': acknowledged, 'printers': ids.length});
+    return demoOk({'acknowledged': acknowledged, 'printers': ids.length});
   }
 
   // --- Batches and orders (#342) ---
@@ -3155,11 +3202,11 @@ class DemoBackend {
       'name': 'Gridfinity bins ×8',
       'library_file_id': null,
       'status': 'active',
-      'created_at': _iso(_daysAgo(2)),
+      'created_at': isoUtc(_daysAgo(2)),
       'completed_at': null,
       'created_by_username': 'demo',
       'project_id': 1,
-      'due_date': _iso(_daysAgo(-3)),
+      'due_date': isoUtc(_daysAgo(-3)),
       'notes': 'Two bags of four for the workshop drawers.',
       'external_source': null,
       'external_ref': null,
@@ -3175,11 +3222,11 @@ class DemoBackend {
       'name': 'Keychain set · 3 plates',
       'library_file_id': 3,
       'status': 'active',
-      'created_at': _iso(_daysAgo(4)),
+      'created_at': isoUtc(_daysAgo(4)),
       'completed_at': null,
       'created_by_username': 'demo',
       'project_id': null,
-      'due_date': _iso(_daysAgo(1)),
+      'due_date': isoUtc(_daysAgo(1)),
       'notes': null,
       'external_source': 'shopify',
       'external_ref': '#1042',
@@ -3196,8 +3243,8 @@ class DemoBackend {
       'name': 'IKEA SAMLA box clips ×3',
       'library_file_id': null,
       'status': 'completed',
-      'created_at': _iso(_daysAgo(9)),
-      'completed_at': _iso(_daysAgo(8)),
+      'created_at': isoUtc(_daysAgo(9)),
+      'completed_at': isoUtc(_daysAgo(8)),
       'created_by_username': 'demo',
       'project_id': null,
       'due_date': null,
@@ -3311,7 +3358,7 @@ class DemoBackend {
     if (s.length == 2) {
       if (m == 'GET') {
         final status = q['status'];
-        return _ok([
+        return demoOk([
           for (final b in _batches.reversed)
             if (status == null || b['status'] == status) _batchResponse(b),
         ]);
@@ -3325,7 +3372,7 @@ class DemoBackend {
     }
     final b = batch.first;
     final plates = (b['plates'] as List).cast<Map<String, dynamic>>();
-    if (s.length == 3 && m == 'GET') return _ok(_batchResponse(b));
+    if (s.length == 3 && m == 'GET') return demoOk(_batchResponse(b));
     if (s.length == 3 && m == 'PATCH') {
       for (final key in ['name', 'notes', 'due_date', 'project_id', 'status']) {
         if (body[key] != null) b[key] = body[key];
@@ -3347,7 +3394,7 @@ class DemoBackend {
             },
         ];
       }
-      return _ok(_batchResponse(b));
+      return demoOk(_batchResponse(b));
     }
     if (s.length == 3 && m == 'DELETE') {
       b['status'] = 'cancelled';
@@ -3361,7 +3408,7 @@ class DemoBackend {
           i['status'] = 'cancelled';
         }
       }
-      return _ok({'message': 'Batch cancelled'});
+      return demoOk({'message': 'Batch cancelled'});
     }
     if (s.length == 4 && s[3] == 'ungroup' && m == 'POST') {
       final members = _queue.where((i) => i['batch_id'] == b['id']).toList();
@@ -3370,7 +3417,7 @@ class DemoBackend {
         i['batch_name'] = null;
       }
       _batches.remove(b);
-      return _ok({
+      return demoOk({
         'ungrouped_count': members.length,
         'message': 'Ungrouped ${members.length} item(s)',
       });
@@ -3432,7 +3479,7 @@ class DemoBackend {
           );
         }
       }
-      return _ok(_batchResponse(b));
+      return demoOk(_batchResponse(b));
     }
     return _fallback(m);
   }
@@ -3461,7 +3508,7 @@ class DemoBackend {
       'name': name,
       'library_file_id': body['library_file_id'],
       'status': 'active',
-      'created_at': _iso(DateTime.now()),
+      'created_at': isoUtc(DateTime.now()),
       'completed_at': null,
       'created_by_username': 'demo',
       'project_id': body['project_id'],
@@ -3482,7 +3529,7 @@ class DemoBackend {
             ),
       ],
     });
-    return _ok(_batchResponse(_batches.last));
+    return demoOk(_batchResponse(_batches.last));
   }
 
   // --- Archives + stats ---
@@ -3569,8 +3616,8 @@ class DemoBackend {
         'nozzle_temperature': type == 'PETG' ? 240 : 220,
         'sliced_for_model': printerId == 2 ? 'P1S' : 'X1C',
         'status': status,
-        'started_at': _iso(started),
-        'completed_at': _iso(started.add(Duration(seconds: actualSec))),
+        'started_at': isoUtc(started),
+        'completed_at': isoUtc(started.add(Duration(seconds: actualSec))),
         'extra_data': <String, dynamic>{'filament_slots': ?filamentSlots},
         'external_url': externalUrl,
         'is_favorite': false,
@@ -3587,10 +3634,10 @@ class DemoBackend {
         'wear_cost': printerId == 1
             ? _r1(actualSec / 3600 * _demoWearCostPerHour)
             : null,
-        'created_at': _iso(started),
+        'created_at': isoUtc(started),
         'created_by_username': DemoConfig.username,
         'run_count': runCount,
-        'last_run_at': _iso(started),
+        'last_run_at': isoUtc(started),
         'total_filament_actual_grams': noUsageRecorded
             ? null
             : (actualGrams ?? grams),
@@ -3601,7 +3648,7 @@ class DemoBackend {
         'user_verdict_source': verdictSource,
         'user_verdict_at': verdict == null
             ? null
-            : _iso(started.add(Duration(seconds: actualSec + 600))),
+            : isoUtc(started.add(Duration(seconds: actualSec + 600))),
       };
     }
 
@@ -3822,8 +3869,8 @@ class DemoBackend {
         'printer_name': _printerName(printerId),
         'printer_id': printerId,
         'status': status,
-        'started_at': _iso(started),
-        'completed_at': _iso(started.add(Duration(seconds: durationSeconds))),
+        'started_at': isoUtc(started),
+        'completed_at': isoUtc(started.add(Duration(seconds: durationSeconds))),
         'duration_seconds': durationSeconds,
         'filament_type': 'PLA',
         'filament_color': '#0ACCB8',
@@ -3838,7 +3885,7 @@ class DemoBackend {
         'thumbnail_path': null,
         'created_by_id': null,
         'created_by_username': null,
-        'created_at': _iso(started),
+        'created_at': isoUtc(started),
       };
     }
 
@@ -3880,30 +3927,30 @@ class DemoBackend {
     if (s.length == 1) {
       if (m == 'GET') {
         final matched = _sortPrintLog(_filterPrintLog(q), q);
-        final offset = int.tryParse(q['offset'] ?? '') ?? 0;
-        final limit = int.tryParse(q['limit'] ?? '') ?? 50;
+        final offset = intQuery(q, 'offset', 0);
+        final limit = intQuery(q, 'limit', 50);
         final page = offset >= matched.length
             ? const <Map<String, dynamic>>[]
             : matched.sublist(offset, math.min(offset + limit, matched.length));
-        return _ok({'items': page, 'total': matched.length});
+        return demoOk({'items': page, 'total': matched.length});
       }
       if (m == 'DELETE') {
         // Clears every row, ignoring the filters above — as the route does.
         final deleted = _printLog.length;
         _printLog.clear();
-        return _ok({'deleted': deleted});
+        return demoOk({'deleted': deleted});
       }
       return _fallback(m);
     }
 
     final entryId = int.tryParse(s[1]);
-    final entry = _printLog.where((e) => e['id'] == entryId).firstOrNull;
-    if (s.length >= 3 && s[2] == 'thumbnail') return _notFound();
-    if (entry == null) return _notFound();
+    final entry = rowById(_printLog, entryId);
+    if (s.length >= 3 && s[2] == 'thumbnail') return demoNotFound();
+    if (entry == null) return demoNotFound();
 
     if (m == 'DELETE') {
       _printLog.remove(entry);
-      return _ok({'status': 'deleted', 'id': entryId});
+      return demoOk({'status': 'deleted', 'id': entryId});
     }
     if (m == 'PATCH') {
       if (body.containsKey('failure_reason')) {
@@ -3923,7 +3970,7 @@ class DemoBackend {
         }
         entry['status'] = status;
       }
-      return _ok(entry);
+      return demoOk(entry);
     }
     return _fallback(m);
   }
@@ -4016,12 +4063,12 @@ class DemoBackend {
     Map<String, String> q,
     Map<String, dynamic> body,
   ) {
-    if (s.length == 1 && m == 'GET') return _ok(_pageArchives(q));
+    if (s.length == 1 && m == 'GET') return demoOk(_pageArchives(q));
     if (s.length >= 2) {
       switch (s[1]) {
         case 'search':
           final query = (q['q'] ?? '').toLowerCase();
-          return _ok(
+          return demoOk(
             _archives
                 .where(
                   (a) =>
@@ -4031,9 +4078,9 @@ class DemoBackend {
                 .toList(),
           );
         case 'stats':
-          return _ok(_archiveStats());
+          return demoOk(_archiveStats());
         case 'slim':
-          return _ok([
+          return demoOk([
             for (final a in _pageArchives(q))
               {
                 'status': a['status'],
@@ -4052,12 +4099,12 @@ class DemoBackend {
               },
           ]);
         case 'analysis':
-          return _ok(_failureAnalysis(q));
+          return demoOk(_failureAnalysis(q));
         case 'purge':
           if (s.length >= 3 && s[2] == 'preview') {
-            final days = int.tryParse(q['older_than_days'] ?? '') ?? 0;
+            final days = intQuery(q, 'older_than_days', 0);
             final old = _archivesOlderThan(days);
-            return _ok({
+            return demoOk({
               'count': old.length,
               'total_bytes': old.fold<int>(
                 0,
@@ -4067,18 +4114,18 @@ class DemoBackend {
               'older_than_days': days,
             });
           }
-          if (m == 'POST') return _ok(const {'deleted': 0});
+          if (m == 'POST') return demoOk(const {'deleted': 0});
       }
       final aid = int.tryParse(s[1]);
       if (aid != null) {
-        final archive = _archives.where((a) => a['id'] == aid).firstOrNull;
-        if (archive == null) return _notFound();
+        final archive = rowById(_archives, aid);
+        if (archive == null) return demoNotFound();
         if (m == 'DELETE') {
           _archives.remove(archive);
-          return _ok(const {'ok': true});
+          return demoOk(const {'ok': true});
         }
         if (s.length >= 3 && s[2] == 'capabilities') {
-          return _ok({
+          return demoOk({
             'has_model': false,
             'has_gcode': true,
             // Only the one archive kept the project file it was sliced from,
@@ -4098,15 +4145,15 @@ class DemoBackend {
           return _startSlice(isArchive: true, source: archive, body: body);
         }
         if (s.length >= 3 && s[2] == 'filament-requirements') {
-          return _ok(_archiveFilaments(archive));
+          return demoOk(_archiveFilaments(archive));
         }
         if (s.length >= 3 && s[2] == 'plates') {
-          return _ok(_demoPlates(archive));
+          return demoOk(_demoPlates(archive));
         }
         if (s.length == 3 && s[2] == 'printer-media' && m == 'GET') {
-          return _ok(_archiveMedia(archive));
+          return demoOk(_archiveMedia(archive));
         }
-        if (s.length == 2 && m == 'GET') return _ok(archive);
+        if (s.length == 2 && m == 'GET') return demoOk(archive);
         // The demo stands in for a current server, so it knows the key and
         // answers with the row as stored — which is what tells the app the
         // edit landed. `containsKey`, not a null check: a present null is how
@@ -4123,12 +4170,12 @@ class DemoBackend {
                 : body['user_verdict_source'] ?? 'api';
             archive['user_verdict_at'] = verdict == null
                 ? null
-                : _iso(DateTime.now());
+                : isoUtc(DateTime.now());
           }
           if (body.containsKey('failure_reason')) {
             archive['failure_reason'] = body['failure_reason'];
           }
-          return _ok(archive);
+          return demoOk(archive);
         }
       }
     }
@@ -4202,8 +4249,8 @@ class DemoBackend {
   }
 
   List<Map<String, dynamic>> _pageArchives(Map<String, String> q) {
-    final offset = int.tryParse(q['offset'] ?? '') ?? 0;
-    final limit = int.tryParse(q['limit'] ?? '') ?? 50;
+    final offset = intQuery(q, 'offset', 0);
+    final limit = intQuery(q, 'limit', 50);
     var list = _archives;
     final printerId = int.tryParse(q['printer_id'] ?? '');
     if (printerId != null) {
@@ -4230,11 +4277,7 @@ class DemoBackend {
     var hours = 0.0, grams = 0.0, cost = 0.0, kwh = 0.0, wear = 0.0;
     for (final a in _archives) {
       byType.update('${a['filament_type']}', (v) => v + 1, ifAbsent: () => 1);
-      final printerName =
-          _printers
-              .where((p) => p['id'] == a['printer_id'])
-              .firstOrNull?['name'] ??
-          '?';
+      final printerName = rowById(_printers, a['printer_id'])?['name'] ?? '?';
       byPrinter.update('$printerName', (v) => v + 1, ifAbsent: () => 1);
       // Coerced, not cast: a re-sliced archive has never run, so the fields a
       // completed print fills are null on it — and the server sends that row
@@ -4280,13 +4323,13 @@ class DemoBackend {
         ifAbsent: () => 1,
       );
       byPrinter.update(
-        '${_printers.where((p) => p['id'] == a['printer_id']).firstOrNull?['name'] ?? '?'}',
+        '${rowById(_printers, a['printer_id'])?['name'] ?? '?'}',
         (v) => v + 1,
         ifAbsent: () => 1,
       );
     }
     return {
-      'period_days': int.tryParse(q['days'] ?? '') ?? 30,
+      'period_days': intQuery(q, 'days', 30),
       'total_prints': _archives.length,
       'failed_prints': failed.length,
       'failure_rate': _archives.isEmpty
@@ -4366,7 +4409,7 @@ class DemoBackend {
           // its last value is shown under the struck-through sensor icon
           // instead of passing for a current one.
           'reachable': sensor['id'] != 3,
-          'last_changed': _iso(_minutesAgo(sensor['id'] == 3 ? 240 : 6)),
+          'last_changed': isoUtc(_minutesAgo(sensor['id'] == 3 ? 240 : 6)),
         },
   ];
 
@@ -4395,8 +4438,8 @@ class DemoBackend {
       'target_model_class': 'X1C',
       'fanout_strategy': 'max_parallel',
       'created_by': 1,
-      'created_at': _iso(_daysAgo(21)),
-      'updated_at': _iso(_daysAgo(3)),
+      'created_at': isoUtc(_daysAgo(21)),
+      'updated_at': isoUtc(_daysAgo(3)),
     },
     {
       'id': 2,
@@ -4415,8 +4458,8 @@ class DemoBackend {
       'target_model_class': null,
       'fanout_strategy': 'max_parallel',
       'created_by': 1,
-      'created_at': _iso(_daysAgo(2)),
-      'updated_at': _iso(_daysAgo(2)),
+      'created_at': isoUtc(_daysAgo(2)),
+      'updated_at': isoUtc(_daysAgo(2)),
     },
   ];
 
@@ -4427,7 +4470,7 @@ class DemoBackend {
     Map<String, dynamic> body,
   ) {
     if (s.length == 1) {
-      if (m == 'GET') return _ok({'pipelines': _pipelines});
+      if (m == 'GET') return demoOk({'pipelines': _pipelines});
       if (m == 'POST') {
         // Only the bundle: the real create schema declares no target fields and
         // Pydantic drops what it does not declare, so echoing them back would
@@ -4445,8 +4488,8 @@ class DemoBackend {
           'target_model_class': null,
           'fanout_strategy': 'max_parallel',
           'created_by': 1,
-          'created_at': _iso(DateTime.now()),
-          'updated_at': _iso(DateTime.now()),
+          'created_at': isoUtc(DateTime.now()),
+          'updated_at': isoUtc(DateTime.now()),
         };
         _pipelines.insert(0, row);
         return (status: 201, body: row);
@@ -4455,12 +4498,12 @@ class DemoBackend {
     }
 
     final pipelineId = int.tryParse(s[1]);
-    if (pipelineId == null) return _notFound();
-    final row = _pipelines.where((p) => p['id'] == pipelineId).firstOrNull;
+    if (pipelineId == null) return demoNotFound();
+    final row = rowById(_pipelines, pipelineId);
 
     if (s.length == 2) {
-      if (row == null) return _notFound();
-      if (m == 'GET') return _ok(row);
+      if (row == null) return demoNotFound();
+      if (m == 'GET') return demoOk(row);
       if (m == 'PUT') {
         // Field by field under an `is not None` guard, like the real route: a
         // key the caller omitted and a key sent as null are the same request,
@@ -4488,8 +4531,8 @@ class DemoBackend {
           final asked = '${body['target_model_class']}';
           row['target_model_class'] = asked.isEmpty ? null : asked;
         }
-        row['updated_at'] = _iso(DateTime.now());
-        return _ok(row);
+        row['updated_at'] = isoUtc(DateTime.now());
+        return demoOk(row);
       }
       if (m == 'DELETE') {
         // Soft, like the server: the row leaves the listing and every run that
@@ -4501,15 +4544,15 @@ class DemoBackend {
     }
 
     if (s.length == 3 && m == 'POST' && s[2] == 'check-eligibility') {
-      if (row == null) return _notFound();
-      return _ok(_eligibility(row));
+      if (row == null) return demoNotFound();
+      return demoOk(_eligibility(row));
     }
     if (s.length == 3 && m == 'POST' && s[2] == 'run') {
-      if (row == null) return _notFound();
+      if (row == null) return demoNotFound();
       return _startRun(row, body);
     }
     if (s.length == 3 && m == 'GET' && s[2] == 'runs') {
-      return _ok({
+      return demoOk({
         'runs': [
           for (final r in _pipelineRuns)
             if (r['pipeline_id'] == pipelineId) r,
@@ -4544,7 +4587,7 @@ class DemoBackend {
           'printer_reports': const <Object>[],
         };
       }
-      final printer = _printers.where((p) => p['id'] == id).firstOrNull;
+      final printer = rowById(_printers, id);
       if (printer == null) {
         return {
           'ok': false,
@@ -4698,8 +4741,8 @@ class DemoBackend {
       'eligibility_overridden': forced && report['ok'] != true,
       'error_message': null,
       'created_by': 1,
-      'created_at': _iso(DateTime.now()),
-      'started_at': _iso(DateTime.now()),
+      'created_at': isoUtc(DateTime.now()),
+      'started_at': isoUtc(DateTime.now()),
       'completed_at': null,
       'jobs': [
         for (var i = 0; i < copies; i++)
@@ -4712,7 +4755,7 @@ class DemoBackend {
             'queue_entry_id': null,
             'status': 'queued',
             'error_message': null,
-            'dispatched_at': _iso(DateTime.now()),
+            'dispatched_at': isoUtc(DateTime.now()),
             'completed_at': null,
           },
       ],
@@ -4736,8 +4779,7 @@ class DemoBackend {
   ) {
     if (pipeline['target_kind'] == 'specific_printer') {
       final id = pipeline['target_printer_id'] as int?;
-      final name =
-          _printers.where((p) => p['id'] == id).firstOrNull?['name'] as String?;
+      final name = rowById(_printers, id)?['name'] as String?;
       return [for (var i = 0; i < copies; i++) (id, name)];
     }
     final candidates = _printers
@@ -4769,14 +4811,11 @@ class DemoBackend {
   String? _pipelineSourceName(Map<String, dynamic> body) {
     final libraryId = body['source_library_file_id'];
     if (libraryId != null) {
-      return _libraryFiles
-              .where((f) => f['id'] == libraryId)
-              .firstOrNull?['filename']
-          as String?;
+      return rowById(_libraryFiles, libraryId)?['filename'] as String?;
     }
     final archiveId = body['source_archive_id'];
     if (archiveId == null) return null;
-    final archive = _archives.where((a) => a['id'] == archiveId).firstOrNull;
+    final archive = rowById(_archives, archiveId);
     return (archive?['print_name'] ?? archive?['filename']) as String?;
   }
 
@@ -4874,9 +4913,7 @@ class DemoBackend {
       'source_archive_id': null,
       'source_filename': sourceGone
           ? null
-          : _libraryFiles
-                .where((f) => f['id'] == _pipelineSourceFileId)
-                .firstOrNull?['filename'],
+          : rowById(_libraryFiles, _pipelineSourceFileId)?['filename'],
       'parent_run_id': null,
       'copies': copies,
       'copies_completed': count('completed'),
@@ -4889,10 +4926,10 @@ class DemoBackend {
       'eligibility_overridden': id == 90,
       'error_message': error,
       'created_by': 1,
-      'created_at': _iso(created),
-      'started_at': _iso(created.add(const Duration(seconds: 12))),
+      'created_at': isoUtc(created),
+      'started_at': isoUtc(created.add(const Duration(seconds: 12))),
       'completed_at': completed
-          ? _iso(created.add(const Duration(minutes: 74)))
+          ? isoUtc(created.add(const Duration(minutes: 74)))
           : null,
       'jobs': [
         for (var i = 0; i < jobStatuses.length; i++)
@@ -4903,18 +4940,16 @@ class DemoBackend {
             'assigned_printer_id': printerIds[i],
             'assigned_printer_name': printerIds[i] == null
                 ? null
-                : _printers
-                      .where((p) => p['id'] == printerIds[i])
-                      .firstOrNull?['name'],
+                : rowById(_printers, printerIds[i])?['name'],
             'queue_entry_id': null,
             'status': jobStatuses[i],
             'error_message': jobStatuses[i] == 'failed'
                 ? 'Print failed on layer 41'
                 : null,
-            'dispatched_at': _iso(created),
+            'dispatched_at': isoUtc(created),
             'completed_at':
                 jobStatuses[i] == 'completed' || jobStatuses[i] == 'failed'
-                ? _iso(created.add(const Duration(minutes: 68)))
+                ? isoUtc(created.add(const Duration(minutes: 68)))
                 : null,
           },
       ],
@@ -4955,7 +4990,7 @@ class DemoBackend {
       // joins it — so re-targeting a pipeline moves its whole history, and a
       // run whose pipeline is gone drops out of a target-filtered query.
       Map<String, dynamic>? pipelineOf(Map<String, dynamic> run) =>
-          _pipelines.where((p) => p['id'] == run['pipeline_id']).firstOrNull;
+          rowById(_pipelines, run['pipeline_id']);
       final matched = [
         for (final run in _pipelineRuns)
           if ((pipelineId == null || run['pipeline_id'] == pipelineId) &&
@@ -4968,9 +5003,9 @@ class DemoBackend {
       ];
       // Clamped 1..100 silently, like the route — a caller asking for more gets
       // the cap and a `total` that still describes the whole filtered set.
-      final limit = (int.tryParse(q['limit'] ?? '') ?? 25).clamp(1, 100);
-      final offset = (int.tryParse(q['offset'] ?? '') ?? 0).clamp(0, 1 << 30);
-      return _ok({
+      final limit = intQuery(q, 'limit', 25).clamp(1, 100);
+      final offset = intQuery(q, 'offset', 0).clamp(0, 1 << 30);
+      return demoOk({
         'runs': matched.skip(offset).take(limit).toList(),
         'total': matched.length,
       });
@@ -4979,22 +5014,22 @@ class DemoBackend {
     if (s.length == 2 && m == 'POST' && s[1] == 'clear') {
       final before = _pipelineRuns.length;
       _pipelineRuns.removeWhere((r) => _runFinished(r['status']));
-      return _ok({'deleted': before - _pipelineRuns.length});
+      return demoOk({'deleted': before - _pipelineRuns.length});
     }
 
     final runId = int.tryParse(s.length > 1 ? s[1] : '');
-    if (runId == null) return _notFound();
-    final run = _pipelineRuns.where((r) => r['id'] == runId).firstOrNull;
-    if (run == null) return _notFound();
+    if (runId == null) return demoNotFound();
+    final run = rowById(_pipelineRuns, runId);
+    if (run == null) return demoNotFound();
 
-    if (s.length == 2 && m == 'GET') return _ok(run);
+    if (s.length == 2 && m == 'GET') return demoOk(run);
 
     if (s.length == 3 && m == 'POST' && s[2] == 'cancel') {
       // Idempotent: a run already finished comes back untouched rather than
       // refused, which is what lets the button be pressed twice safely.
-      if (_runFinished(run['status'])) return _ok(run);
+      if (_runFinished(run['status'])) return demoOk(run);
       run['status'] = 'cancelled';
-      run['completed_at'] = _iso(DateTime.now());
+      run['completed_at'] = isoUtc(DateTime.now());
       run['error_message'] ??= 'Cancelled by operator';
       for (final job in (run['jobs'] as List)) {
         if (job is Map && !_jobFinished(job['status'])) {
@@ -5005,7 +5040,7 @@ class DemoBackend {
           .where((j) => j is Map && j['status'] == 'cancelled')
           .length;
       run['copies_in_progress'] = 0;
-      return _ok(run);
+      return demoOk(run);
     }
 
     if (s.length == 3 && m == 'POST' && s[2] == 'retry-failed') {
@@ -5064,7 +5099,7 @@ class DemoBackend {
   ) {
     if (s.length == 1 && m == 'GET') {
       final printerId = int.tryParse(q['printer_id'] ?? '');
-      return _ok([
+      return demoOk([
         for (final row in _scheduledDryings)
           if (printerId == null || row['printer_id'] == printerId) row,
       ]);
@@ -5083,43 +5118,46 @@ class DemoBackend {
         'duration_hours': body['duration_hours'] ?? 4,
         'filament': body['filament'] ?? '',
         'rotate_tray': body['rotate_tray'] ?? false,
-        'start_after': asked == null ? null : _iso(asked),
+        'start_after': asked == null ? null : isoUtc(asked),
         'status': 'pending',
         'waiting_reason': null,
         'error_message': null,
-        'created_at': _iso(DateTime.now()),
+        'created_at': isoUtc(DateTime.now()),
         'started_at': null,
         'completed_at': null,
       };
       _scheduledDryings.add(row);
-      return _ok(row);
+      return demoOk(row);
     }
     final rowId = int.tryParse(s.length > 1 ? s[1] : '');
     if (rowId != null && m == 'DELETE') {
       final before = _scheduledDryings.length;
       _scheduledDryings.removeWhere((row) => row['id'] == rowId);
-      if (_scheduledDryings.length == before) return _notFound();
-      return _ok({'status': 'cancelled', 'id': rowId});
+      if (_scheduledDryings.length == before) return demoNotFound();
+      return demoOk({'status': 'cancelled', 'id': rowId});
     }
     return _fallback(m);
   }
 
   DemoResult? _plugsRoute(String m, List<String> s, Map<String, dynamic> body) {
     if (s.length == 1 && m == 'GET') {
-      return _ok([
+      return demoOk([
         _plug(1, 'Workshop plug', 'tasmota', 1),
         _plug(2, 'Office plug', 'homeassistant', 2),
+        // The dual-nozzle H2D, so the controller shows its fullest overview:
+        // four readings, the light and a plug.
+        _plug(3, 'H2D plug', 'tasmota', 6),
       ]);
     }
     final plugId = int.tryParse(s.length > 1 ? s[1] : '');
-    if (plugId == null || !_plugOn.containsKey(plugId)) return _notFound();
+    if (plugId == null || !_plugOn.containsKey(plugId)) return demoNotFound();
     if (s.length >= 3 && s[2] == 'status') {
       final on = _plugOn[plugId]!;
-      final printing = plugId == 1 && !_stopped && !_paused;
-      return _ok({
+      final printing = plugId == 1 && !_stopped && !_paused || plugId == 3;
+      return demoOk({
         'state': on ? 'ON' : 'OFF',
         'reachable': true,
-        'device_name': plugId == 1 ? 'Workshop plug' : 'Office plug',
+        'device_name': _plugName(plugId),
         'energy': {
           'power': !on ? 0.0 : (printing ? _r1(96 + _wiggle(9)) : 8.2),
           'voltage': _r1(231 + _wiggle(1.2)),
@@ -5137,20 +5175,26 @@ class DemoBackend {
         'off' => false,
         _ => !_plugOn[plugId]!,
       };
-      return _ok(const {'ok': true});
+      return demoOk(const {'ok': true});
     }
     if (s.length == 2 && m == 'GET') {
-      return _ok(
+      return demoOk(
         _plug(
           plugId,
-          plugId == 1 ? 'Workshop plug' : 'Office plug',
-          plugId == 1 ? 'tasmota' : 'homeassistant',
-          plugId,
+          _plugName(plugId),
+          plugId == 2 ? 'homeassistant' : 'tasmota',
+          plugId == 3 ? 6 : plugId,
         ),
       );
     }
     return _fallback(m);
   }
+
+  String _plugName(int id) => switch (id) {
+    1 => 'Workshop plug',
+    2 => 'Office plug',
+    _ => 'H2D plug',
+  };
 
   Map<String, dynamic> _plug(int id, String name, String type, int printerId) =>
       {
@@ -5279,13 +5323,13 @@ class DemoBackend {
     Map<String, dynamic> body,
   ) {
     if (s.length >= 2 && s[1] == 'overview') {
-      return _ok([
+      return demoOk([
         for (final p in _printers) _maintenanceOverviewFor(p['id'] as int),
       ]);
     }
     if (s.length >= 3 && s[1] == 'printers') {
       final pid = int.tryParse(s[2]);
-      if (pid == null) return _notFound();
+      if (pid == null) return demoNotFound();
       if (s.length >= 5 && s[3] == 'assign') {
         final typeId = int.tryParse(s[4]);
         if (typeId != null) {
@@ -5296,15 +5340,15 @@ class DemoBackend {
             'type_id': typeId,
             'hours_since': 0.0,
             'enabled': true,
-            'last_performed_at': _iso(DateTime.now()),
+            'last_performed_at': isoUtc(DateTime.now()),
           };
         }
-        return _ok(const {'ok': true});
+        return demoOk(const {'ok': true});
       }
-      return _ok(_maintenanceOverviewFor(pid));
+      return demoOk(_maintenanceOverviewFor(pid));
     }
     if (s.length >= 2 && s[1] == 'types') {
-      if (s.length == 2 && m == 'GET') return _ok(_maintenanceTypes);
+      if (s.length == 2 && m == 'GET') return demoOk(_maintenanceTypes);
       if (s.length == 2 && m == 'POST') {
         final newId =
             _maintenanceTypes.fold<int>(
@@ -5324,12 +5368,10 @@ class DemoBackend {
           'is_system': false,
         };
         _maintenanceTypes.add(type);
-        return _ok(type);
+        return demoOk(type);
       }
       final typeId = int.tryParse(s[2]);
-      final type = _maintenanceTypes
-          .where((t) => t['id'] == typeId)
-          .firstOrNull;
+      final type = rowById(_maintenanceTypes, typeId);
       if (type != null && m == 'PATCH') {
         for (final k in ['name', 'description', 'icon', 'wiki_url']) {
           if (body.containsKey(k)) type[k] = body[k];
@@ -5338,26 +5380,26 @@ class DemoBackend {
           type['default_interval_hours'] =
               (body['default_interval_hours'] as num).toDouble();
         }
-        return _ok(type);
+        return demoOk(type);
       }
       if (type != null && m == 'DELETE') {
         if (type['is_system'] != true) _maintenanceTypes.remove(type);
-        return _ok(const {'ok': true});
+        return demoOk(const {'ok': true});
       }
       return _fallback(m);
     }
     if (s.length >= 3 && s[1] == 'items') {
       final itemId = int.tryParse(s[2]);
       final item = itemId == null ? null : _maintenanceItems[itemId];
-      if (item == null) return _notFound();
+      if (item == null) return demoNotFound();
       if (s.length >= 4 && s[3] == 'perform') {
         item['hours_since'] = 0.0;
-        item['last_performed_at'] = _iso(DateTime.now());
-        return _ok(_maintenanceStatus(itemId!));
+        item['last_performed_at'] = isoUtc(DateTime.now());
+        return demoOk(_maintenanceStatus(itemId!));
       }
       if (s.length >= 4 && s[3] == 'history') {
         final last = item['last_performed_at'];
-        return _ok([
+        return demoOk([
           if (last != null)
             {
               'id': 1,
@@ -5374,11 +5416,11 @@ class DemoBackend {
           final v = body['custom_interval_hours'];
           item['custom_interval_hours'] = (v as num?)?.toDouble();
         }
-        return _ok(_maintenanceStatus(itemId!));
+        return demoOk(_maintenanceStatus(itemId!));
       }
       if (m == 'DELETE') {
         _maintenanceItems.remove(itemId);
-        return _ok(const {'ok': true});
+        return demoOk(const {'ok': true});
       }
     }
     return _fallback(m);
@@ -5427,8 +5469,8 @@ class DemoBackend {
       'nozzle_temp_max': material == 'PETG' ? 260 : 230,
       'tag_uid': null,
       'archived_at': archivedAt,
-      'last_used': _iso(_daysAgo(id % 6)),
-      'created_at': _iso(_daysAgo(30 + id)),
+      'last_used': isoUtc(_daysAgo(id % 6)),
+      'created_at': isoUtc(_daysAgo(30 + id)),
       'k_profiles': const <Object>[],
       'suppliers': <Map<String, dynamic>>[],
       'material_number': null,
@@ -5509,7 +5551,7 @@ class DemoBackend {
         'Red',
         'C12E1FFF',
         used: 380,
-        archivedAt: _iso(_daysAgo(10)),
+        archivedAt: isoUtc(_daysAgo(10)),
       ),
     ];
     // Bought from the Bambu store with Filament24 as the alternative, bought
@@ -5530,12 +5572,12 @@ class DemoBackend {
     // The three ways a date arrives: an AMS run Bambuddy started (all three
     // figures), one started on the printer (hours only; it never echoes the
     // temperature), and one typed by hand (the date alone). The rest: never.
-    spools[0]['last_dried_at'] = _iso(_daysAgo(3));
+    spools[0]['last_dried_at'] = isoUtc(_daysAgo(3));
     spools[0]['last_dried_temp'] = 55;
     spools[0]['last_dried_hours'] = 7.5;
-    spools[1]['last_dried_at'] = _iso(_daysAgo(9));
+    spools[1]['last_dried_at'] = isoUtc(_daysAgo(9));
     spools[1]['last_dried_hours'] = 4.0;
-    spools[2]['last_dried_at'] = _iso(_daysAgo(40));
+    spools[2]['last_dried_at'] = isoUtc(_daysAgo(40));
     _linkSeed(spools[0], [
       (1, 'GFA00-K0', 24.99, true),
       (2, 'BL-PLA-BK-1', 22.90, false),
@@ -5587,8 +5629,8 @@ class DemoBackend {
     'website': website,
     'customer_number': customerNumber,
     'note': note,
-    'created_at': _iso(_daysAgo(60)),
-    'updated_at': _iso(_daysAgo(60)),
+    'created_at': isoUtc(_daysAgo(60)),
+    'updated_at': isoUtc(_daysAgo(60)),
   };
 
   Map<String, dynamic> _supplierLink(
@@ -5597,9 +5639,7 @@ class DemoBackend {
   ) => {
     'id': _nextSupplierLinkId++,
     'supplier_id': supplierId,
-    'supplier_name':
-        _suppliers.where((x) => x['id'] == supplierId).firstOrNull?['name'] ??
-        '',
+    'supplier_name': rowById(_suppliers, supplierId)?['name'] ?? '',
     'supplier_article_number': input['supplier_article_number'],
     'quoted_price_per_kg': input['quoted_price_per_kg'],
     'is_purchase_source': input['is_purchase_source'] == true,
@@ -5681,7 +5721,7 @@ class DemoBackend {
         for (final p in _printers)
           if (p['location'] case final String l when l.isNotEmpty) l,
       }.toList()..sort(compareIgnoringCase);
-      return _ok([for (final n in names) _locationResponse(n)]);
+      return demoOk([for (final n in names) _locationResponse(n)]);
     }
     if (s.length == 1 && m == 'POST') {
       final name = '${body['name']}'.trim();
@@ -5717,7 +5757,7 @@ class DemoBackend {
       );
       if (body.containsKey('icon')) row['icon'] = body['icon'];
       if (body.containsKey('color')) row['color'] = body['color'];
-      return _ok(_locationResponse(name));
+      return demoOk(_locationResponse(name));
     }
     if (sub == 'delete' && m == 'POST') {
       final names = [for (final n in body['names'] as List) '$n'];
@@ -5733,7 +5773,7 @@ class DemoBackend {
           }
         }
       }
-      return _ok({'deleted': deleted, 'printers_ungrouped': ungrouped});
+      return demoOk({'deleted': deleted, 'printers_ungrouped': ungrouped});
     }
     if (sub == 'assign' && m == 'POST') {
       final ids = [for (final i in body['printer_ids'] as List) i as int];
@@ -5759,9 +5799,9 @@ class DemoBackend {
           moved++;
         }
       }
-      return _ok({'moved': moved});
+      return demoOk({'moved': moved});
     }
-    return _notFound();
+    return demoNotFound();
   }
 
   /// `/inventory/suppliers` and `/inventory/suppliers/{id}`, with the two 409s
@@ -5776,7 +5816,7 @@ class DemoBackend {
       if (m == 'GET') {
         final rows = [..._suppliers]
           ..sort((a, b) => compareIgnoringCase('${a['name']}', '${b['name']}'));
-        return _ok([for (final r in rows) _supplierResponse(r)]);
+        return demoOk([for (final r in rows) _supplierResponse(r)]);
       }
       if (m == 'POST') {
         if (_supplierNameTaken(body['name'])) return _duplicateSupplier;
@@ -5792,8 +5832,8 @@ class DemoBackend {
       }
     }
     final id = int.tryParse(s.length > 2 ? s[2] : '');
-    final row = _suppliers.where((x) => x['id'] == id).firstOrNull;
-    if (row == null || s.length != 3) return _notFound();
+    final row = rowById(_suppliers, id);
+    if (row == null || s.length != 3) return demoNotFound();
     if (m == 'PATCH') {
       if (body.containsKey('name') &&
           _supplierNameTaken(body['name'], except: id)) {
@@ -5803,14 +5843,14 @@ class DemoBackend {
         if (body.containsKey(key)) row[key] = body[key];
       }
       if (body.containsKey('name')) row['name'] = '${body['name']}'.trim();
-      row['updated_at'] = _iso(DateTime.now());
+      row['updated_at'] = isoUtc(DateTime.now());
       // The links carry the name flattened, as `supplier_name` does server-side.
       for (final spool in _spools) {
         for (final link in _linksOf(spool)) {
           if (link['supplier_id'] == id) link['supplier_name'] = row['name'];
         }
       }
-      return _ok(_supplierResponse(row));
+      return demoOk(_supplierResponse(row));
     }
     if (m == 'DELETE') {
       if (_supplierSpoolCount(id!) > 0) {
@@ -5822,7 +5862,7 @@ class DemoBackend {
         );
       }
       _suppliers.remove(row);
-      return _ok(const {'status': 'deleted'});
+      return demoOk(const {'status': 'deleted'});
     }
     return _fallback(m);
   }
@@ -5848,12 +5888,12 @@ class DemoBackend {
       );
     }
     if (ids.any((id) => !_suppliers.any((x) => x['id'] == id))) {
-      return _notFound();
+      return demoNotFound();
     }
     spool['suppliers'] = [
       for (final l in sent) _supplierLink(l['supplier_id'] as int, l),
     ];
-    return _ok(spool['suppliers']);
+    return demoOk(spool['suppliers']);
   }
 
   /// `GET /inventory/stats/suppliers`: grouped by the purchase source only.
@@ -5934,7 +5974,7 @@ class DemoBackend {
         );
         return byUse != 0 ? byUse : sortKey(a).compareTo(sortKey(b));
       });
-    return _ok(out);
+    return demoOk(out);
   }
 
   late final List<Map<String, dynamic>> _assignments = [
@@ -6097,24 +6137,28 @@ class DemoBackend {
   /// (`LabelRequest` and `_render_response` in its `labels.py`): the same
   /// refusals, and the file the options ask for.
   DemoResult _renderLabels(Map<String, dynamic> body) {
-    DemoResult refuse(String detail) => (status: 422, body: {'detail': detail});
-
     final ids = [
       for (final id in body['spool_ids'] as List? ?? const [])
         if (id is num) id.toInt(),
     ];
     if (ids.isEmpty || ids.length > maxSpoolLabelsPerRequest) {
-      return refuse('spool_ids must hold 1 to $maxSpoolLabelsPerRequest ids');
+      return demoRefuse(
+        422,
+        'spool_ids must hold 1 to $maxSpoolLabelsPerRequest ids',
+      );
     }
     final template = SpoolLabelTemplate.values
         .where((t) => t.wire == body['template'])
         .firstOrNull;
-    if (template == null) return refuse('unknown template ${body['template']}');
+    if (template == null) {
+      return demoRefuse(422, 'unknown template ${body['template']}');
+    }
 
     final capacity = template.sheetCapacity;
     final start = (body['starting_position'] as num?)?.toInt() ?? 1;
     if (start < 1 || start > (capacity ?? 1)) {
-      return refuse(
+      return demoRefuse(
+        422,
         capacity == null
             ? 'starting_position is only supported for sheet label templates'
             : 'starting_position must be between 1 and $capacity '
@@ -6124,14 +6168,18 @@ class DemoBackend {
 
     final format = body['format'] ?? 'pdf';
     final dpi = (body['dpi'] as num?)?.toInt() ?? 300;
-    if (format != 'pdf' && format != 'png') return refuse('unknown format');
-    if (!spoolLabelDpiChoices.contains(dpi)) return refuse('unknown dpi');
+    if (format != 'pdf' && format != 'png') {
+      return demoRefuse(422, 'unknown format');
+    }
+    if (!spoolLabelDpiChoices.contains(dpi)) {
+      return demoRefuse(422, 'unknown dpi');
+    }
 
     final wanted = body['fields'];
     final known = {for (final f in SpoolLabelField.values) f.wire};
     if (wanted != null &&
         (wanted is! List || wanted.any((f) => !known.contains(f)))) {
-      return refuse('unknown label field');
+      return demoRefuse(422, 'unknown label field');
     }
     final fields = wanted == null
         ? {for (final f in SpoolLabelField.defaults) f.wire}
@@ -6167,21 +6215,23 @@ class DemoBackend {
     Map<String, dynamic> body,
     Object? rawBody,
   ) {
-    if (s.length < 2) return _notFound();
+    if (s.length < 2) return demoNotFound();
     switch (s[1]) {
       case 'labels':
-        return m == 'POST' && s.length == 2 ? _renderLabels(body) : _notFound();
+        return m == 'POST' && s.length == 2
+            ? _renderLabels(body)
+            : demoNotFound();
       case 'spools':
         if (s.length == 2) {
           if (m == 'GET') {
             final includeArchived = q['include_archived'] == 'true';
-            return _ok(
+            return demoOk(
               includeArchived
                   ? _spools
                   : _spools.where((x) => x['archived_at'] == null).toList(),
             );
           }
-          if (m == 'POST') return _ok(_createSpool(body));
+          if (m == 'POST') return demoOk(_createSpool(body));
         }
         if (s.length >= 3 && s[2] == 'from-slot' && m == 'POST') {
           return _createSpoolFromSlot(body);
@@ -6189,7 +6239,7 @@ class DemoBackend {
         if (s.length >= 3 && s[2] == 'bulk' && m == 'POST') {
           final quantity = (body['quantity'] as num?)?.toInt() ?? 1;
           final draft = body['spool'];
-          return _ok([
+          return demoOk([
             for (var i = 0; i < quantity; i++)
               _createSpool(draft is Map<String, dynamic> ? draft : const {}),
           ]);
@@ -6201,10 +6251,10 @@ class DemoBackend {
           if (bulk != null) return bulk;
         }
         final spoolId = int.tryParse(s.length > 2 ? s[2] : '');
-        final spool = _spools.where((x) => x['id'] == spoolId).firstOrNull;
-        if (spool == null) return _notFound();
+        final spool = rowById(_spools, spoolId);
+        if (spool == null) return demoNotFound();
         if (s.length == 3) {
-          if (m == 'GET') return _ok(spool);
+          if (m == 'GET') return demoOk(spool);
           if (m == 'PATCH') {
             _normalizeMaterialNumber(body);
             // A date typed by hand is not the AMS cycle the temperature and
@@ -6214,23 +6264,23 @@ class DemoBackend {
               spool['last_dried_hours'] = null;
             }
             body.forEach((k, v) => spool[k] = v);
-            return _ok(spool);
+            return demoOk(spool);
           }
           if (m == 'DELETE') {
             _spools.remove(spool);
             _assignments.removeWhere((a) => a['spool_id'] == spoolId);
             _presetOverrides.remove(spoolId);
-            return _ok(const {'ok': true});
+            return demoOk(const {'ok': true});
           }
         }
         if (s.length >= 4) {
           switch (s[3]) {
             case 'archive':
-              spool['archived_at'] = _iso(DateTime.now());
-              return _ok(spool);
+              spool['archived_at'] = isoUtc(DateTime.now());
+              return demoOk(spool);
             case 'restore':
               spool['archived_at'] = null;
-              return _ok(spool);
+              return demoOk(spool);
             // Stamps the baseline the "Total Consumed" display counts from,
             // and leaves `weight_used` — so remaining does NOT jump back to
             // the label weight. That is what the route does since it was
@@ -6239,16 +6289,16 @@ class DemoBackend {
             // here too and the app's fallback to it stays honest.
             case 'reset-consumed-counter':
               spool['weight_used_baseline'] = spool['weight_used'] ?? 0.0;
-              return _ok(spool);
+              return demoOk(spool);
             case 'usage':
-              return _ok(_spoolUsage(spoolId!));
+              return demoOk(_spoolUsage(spoolId!));
             case 'k-profiles':
-              return _ok(const <Object>[]);
+              return demoOk(const <Object>[]);
             case 'suppliers':
               if (m == 'PUT') return _replaceSpoolSuppliers(spool, rawBody);
             case 'filament-presets':
               if (m == 'GET') {
-                return _ok(_presetOverrides[spoolId] ?? const <Object>[]);
+                return demoOk(_presetOverrides[spoolId] ?? const <Object>[]);
               }
               if (m == 'PUT') {
                 // A replace, like the route: whatever arrives becomes the whole
@@ -6263,11 +6313,11 @@ class DemoBackend {
                       'nozzle_diameter': row['nozzle_diameter'] ?? '',
                       'slicer_filament': row['slicer_filament'],
                       'slicer_filament_name': row['slicer_filament_name'],
-                      'created_at': _iso(DateTime.now()),
+                      'created_at': isoUtc(DateTime.now()),
                     },
                 ];
                 _presetOverrides[spoolId!] = rows;
-                return _ok(rows);
+                return demoOk(rows);
               }
           }
         }
@@ -6278,14 +6328,9 @@ class DemoBackend {
           if (m == 'GET') {
             // The server sends each row with its spool inside
             // (`SpoolAssignmentResponse.spool`), which the slot picker reads.
-            return _ok([
+            return demoOk([
               for (final a in _assignments)
-                {
-                  ...a,
-                  'spool': _spools
-                      .where((sp) => sp['id'] == a['spool_id'])
-                      .firstOrNull,
-                },
+                {...a, 'spool': rowById(_spools, a['spool_id'])},
             ]);
           }
           if (m == 'POST') {
@@ -6300,11 +6345,9 @@ class DemoBackend {
               'printer_id': body['printer_id'],
               'ams_id': body['ams_id'],
               'tray_id': body['tray_id'],
-              'printer_name': _printers
-                  .where((p) => p['id'] == body['printer_id'])
-                  .firstOrNull?['name'],
+              'printer_name': rowById(_printers, body['printer_id'])?['name'],
             });
-            return _ok(_assignments.last);
+            return demoOk(_assignments.last);
           }
         }
         if (s.length == 5 && m == 'DELETE') {
@@ -6314,12 +6357,14 @@ class DemoBackend {
                 '${a['ams_id']}' == s[3] &&
                 '${a['tray_id']}' == s[4],
           );
-          return _ok(const {'ok': true});
+          return demoOk(const {'ok': true});
         }
         return _fallback(m);
 
       case 'suppliers':
         return _suppliersRoute(m, s, body);
+      case 'profile-defaults':
+        return _profileDefaultsRoute(m, s, q, body);
       case 'stats':
         if (s.length == 3 && s[2] == 'suppliers' && m == 'GET') {
           return _supplierStats(q);
@@ -6329,11 +6374,11 @@ class DemoBackend {
         }
         return _fallback(m);
       case 'catalog':
-        return _ok(_coreWeights);
+        return demoOk(_coreWeights);
       case 'colors':
-        return _ok(_colorCatalog);
+        return demoOk(_colorCatalog);
       case 'locations':
-        return _ok(const [
+        return demoOk(const [
           {'id': 1, 'name': 'Shelf A', 'spool_count': 3},
           {'id': 2, 'name': 'Shelf B', 'spool_count': 2},
           {'id': 3, 'name': 'Dry box', 'spool_count': 2},
@@ -6379,9 +6424,7 @@ class DemoBackend {
       );
     }
 
-    final found = [
-      for (final id in ids) ?_spools.where((x) => x['id'] == id).firstOrNull,
-    ];
+    final found = [for (final id in ids) ?rowById(_spools, id)];
     final foundIds = {for (final spool in found) spool['id']};
     final notFound = [
       for (final id in ids)
@@ -6402,25 +6445,25 @@ class DemoBackend {
         for (final spool in found) {
           fields.forEach((k, v) => spool[k] = v);
         }
-        return _ok({'updated': found.length, 'not_found': notFound});
+        return demoOk({'updated': found.length, 'not_found': notFound});
 
       case 'bulk-delete':
         for (final spool in found) {
           _spools.remove(spool);
           _assignments.removeWhere((a) => a['spool_id'] == spool['id']);
         }
-        return _ok({'deleted': found.length, 'not_found': notFound});
+        return demoOk({'deleted': found.length, 'not_found': notFound});
 
       case 'bulk-archive':
         final already = [
           for (final spool in found)
             if (spool['archived_at'] != null) spool['id'],
         ];
-        final now = _iso(DateTime.now());
+        final now = isoUtc(DateTime.now());
         for (final spool in found) {
           spool['archived_at'] ??= now;
         }
-        return _ok({
+        return demoOk({
           'archived': found.length - already.length,
           'already_archived': already,
           'not_found': notFound,
@@ -6434,7 +6477,7 @@ class DemoBackend {
         for (final spool in found) {
           spool['archived_at'] = null;
         }
-        return _ok({
+        return demoOk({
           'restored': found.length - already.length,
           'already_active': already,
           'not_found': notFound,
@@ -6446,7 +6489,7 @@ class DemoBackend {
         for (final spool in found) {
           spool['weight_used_baseline'] = spool['weight_used'] ?? 0.0;
         }
-        return _ok({'reset': found.length});
+        return demoOk({'reset': found.length});
     }
   }
 
@@ -6530,11 +6573,9 @@ class DemoBackend {
       'printer_id': printerId,
       'ams_id': amsId,
       'tray_id': trayId,
-      'printer_name': _printers
-          .where((p) => p['id'] == printerId)
-          .firstOrNull?['name'],
+      'printer_name': rowById(_printers, printerId)?['name'],
     });
-    return _ok(spool);
+    return demoOk(spool);
   }
 
   /// The server trims `material_number` and stores a blank as NULL, on every
@@ -6553,7 +6594,7 @@ class DemoBackend {
       'label_weight': draft['label_weight'] ?? 1000,
       'core_weight': draft['core_weight'] ?? 250,
       'weight_used': draft['weight_used'] ?? 0.0,
-      'created_at': _iso(DateTime.now()),
+      'created_at': isoUtc(DateTime.now()),
       'k_profiles': const <Object>[],
       ...draft,
     };
@@ -6604,7 +6645,241 @@ class DemoBackend {
         }),
     ];
     _spools.add(spool);
+    _startFromProfileDefault(spool);
     return spool;
+  }
+
+  /// Profile defaults (#1326), seeded so the spool form's prefill and the
+  /// settings list have something to show. A saved one replaces the whole row,
+  /// as the route does.
+  late final List<Map<String, dynamic>> _profileDefaults = [
+    {
+      'id': 1,
+      'brand': 'Bambu Lab',
+      'material': 'PLA',
+      'subtype': 'Basic',
+      'color_name': '',
+      'slicer_filament': 'GFA00',
+      'slicer_filament_name': 'Bambu PLA Basic',
+      'presets': [
+        {
+          'printer_model': 'X1C',
+          'nozzle_diameter': '',
+          'slicer_filament': 'Bambu PLA Basic @BBL X1C',
+          'slicer_filament_name': 'Bambu PLA Basic @BBL X1C',
+        },
+      ],
+      'k_profiles': [
+        {
+          'printer_id': 1,
+          'extruder': 0,
+          'nozzle_diameter': '0.4',
+          'nozzle_type': null,
+          'k_value': 0.02,
+          'name': 'Bambu PLA Basic',
+          'cali_idx': null,
+          'setting_id': null,
+        },
+      ],
+      'updated_at': isoUtc(DateTime.utc(2026, 10, 20, 9)),
+    },
+    {
+      'id': 2,
+      'brand': 'Bambu Lab',
+      'material': 'PLA',
+      'subtype': 'Basic',
+      'color_name': 'Red',
+      'slicer_filament': null,
+      'slicer_filament_name': null,
+      'presets': const <Object>[],
+      'k_profiles': const <Object>[],
+      'updated_at': isoUtc(DateTime.utc(2026, 10, 21, 18)),
+    },
+  ];
+  int _nextProfileDefaultId = 10;
+
+  /// `profile_defaults.match_key`: trimmed, case-folded.
+  static String _productKey(Map<String, dynamic> row, {bool colour = true}) => [
+    row['brand'],
+    row['material'],
+    row['subtype'],
+    if (colour) row['color_name'],
+  ].map((v) => '${v ?? ''}'.trim().toLowerCase()).join('\x1f');
+
+  /// The all-colours row as the base, the colour's own laid over it: its preset
+  /// replaces the base's, and each of its models replaces the base's for the
+  /// same `(model, nozzle)`. Null when neither exists.
+  Map<String, dynamic>? _resolveProfileDefault(Map<String, dynamic> product) {
+    if ('${product['material'] ?? ''}'.trim().isEmpty) return null;
+    final key = _productKey(product, colour: false);
+    final colour = '${product['color_name'] ?? ''}'.trim().toLowerCase();
+    final rows =
+        [
+          for (final row in _profileDefaults)
+            if (_productKey(row, colour: false) == key &&
+                ('${row['color_name']}'.isEmpty ||
+                    '${row['color_name']}'.trim().toLowerCase() == colour))
+              row,
+        ]..sort(
+          (a, b) => '${a['color_name']}'.length - '${b['color_name']}'.length,
+        );
+    if (rows.isEmpty) return null;
+    String? preset;
+    String? presetName;
+    final presets = <String, Map<String, dynamic>>{};
+    for (final row in rows) {
+      if ('${row['slicer_filament'] ?? ''}'.isNotEmpty) {
+        preset = row['slicer_filament'] as String;
+        presetName = row['slicer_filament_name'] as String?;
+      }
+      for (final p in (row['presets'] as List).cast<Map<String, dynamic>>()) {
+        presets['${p['printer_model']}|${p['nozzle_diameter'] ?? ''}'] = p;
+      }
+    }
+    return {
+      'slicer_filament': preset,
+      'slicer_filament_name': presetName,
+      'presets': presets.values.toList(),
+      'k_profiles': [for (final row in rows) ...(row['k_profiles'] as List)],
+      'default_ids': [for (final row in rows) row['id']],
+    };
+  }
+
+  /// What the server does on every create: a spool that names no preset of its
+  /// own starts with the default's, and gets its per-model rows.
+  void _startFromProfileDefault(Map<String, dynamic> spool) {
+    final resolved = _resolveProfileDefault(spool);
+    if (resolved == null) return;
+    if ('${spool['slicer_filament'] ?? ''}'.isEmpty) {
+      spool['slicer_filament'] = resolved['slicer_filament'];
+      spool['slicer_filament_name'] = resolved['slicer_filament_name'];
+    }
+    _fillPresetOverrides(spool['id'] as int, resolved['presets'] as List);
+  }
+
+  /// Adds the models a spool has no row for yet; never overwrites. Whether it
+  /// added any.
+  bool _fillPresetOverrides(int spoolId, List presets) {
+    final rows = _presetOverrides.putIfAbsent(spoolId, () => []);
+    var added = false;
+    for (final p in presets.cast<Map<String, dynamic>>()) {
+      final exists = rows.any(
+        (r) =>
+            r['printer_model'] == p['printer_model'] &&
+            (r['nozzle_diameter'] ?? '') == (p['nozzle_diameter'] ?? ''),
+      );
+      if (exists) continue;
+      added = true;
+      rows.add({
+        'id': rows.length + 1,
+        'spool_id': spoolId,
+        'printer_model': p['printer_model'],
+        'nozzle_diameter': p['nozzle_diameter'] ?? '',
+        'slicer_filament': p['slicer_filament'],
+        'slicer_filament_name': p['slicer_filament_name'],
+        'created_at': isoUtc(DateTime.now()),
+      });
+    }
+    return added;
+  }
+
+  DemoResult _profileDefaultsRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 2) {
+      if (m == 'GET') {
+        final rows = [..._profileDefaults]
+          ..sort((a, b) => _productKey(a).compareTo(_productKey(b)));
+        return demoOk(rows);
+      }
+      if (m == 'PUT') {
+        if ('${body['material'] ?? ''}'.trim().isEmpty) {
+          return demoRefuse(422, 'material must not be empty');
+        }
+        final models = <String>{};
+        for (final p in (body['presets'] as List? ?? const [])) {
+          final key = '${p['printer_model']}|${p['nozzle_diameter'] ?? ''}';
+          if (!models.add(key)) {
+            return demoRefuse(
+              422,
+              'Duplicate override for model ${p['printer_model']}',
+            );
+          }
+        }
+        final row = {
+          'brand': '${body['brand'] ?? ''}'.trim(),
+          'material': '${body['material']}'.trim(),
+          'subtype': '${body['subtype'] ?? ''}'.trim(),
+          'color_name': '${body['color_name'] ?? ''}'.trim(),
+          'slicer_filament': body['slicer_filament'],
+          'slicer_filament_name': body['slicer_filament_name'],
+          'presets': body['presets'] ?? const <Object>[],
+          'k_profiles': body['k_profiles'] ?? const <Object>[],
+          'updated_at': isoUtc(DateTime.now()),
+        };
+        final at = _profileDefaults.indexWhere(
+          (x) => _productKey(x) == _productKey(row),
+        );
+        final saved = {
+          'id': at < 0 ? _nextProfileDefaultId++ : _profileDefaults[at]['id'],
+          ...row,
+        };
+        at < 0 ? _profileDefaults.add(saved) : _profileDefaults[at] = saved;
+        return demoOk(saved);
+      }
+    }
+    if (s.length == 3 && s[2] == 'resolve' && m == 'GET') {
+      if ((q['material'] ?? '').isEmpty) {
+        return demoRefuse(422, 'material is required');
+      }
+      return demoOk(
+        _resolveProfileDefault({
+          'brand': q['brand'],
+          'material': q['material'],
+          'subtype': q['subtype'],
+          'color_name': q['color_name'],
+        }),
+      );
+    }
+    final id = int.tryParse(s.length > 2 ? s[2] : '');
+    final row = rowById(_profileDefaults, id);
+    if (row == null) {
+      return (status: 404, body: {'detail': 'Profile default not found'});
+    }
+    if (s.length == 3 && m == 'DELETE') {
+      _profileDefaults.remove(row);
+      return demoOk(const {'status': 'deleted'});
+    }
+    if (s.length == 4 && s[3] == 'apply' && m == 'POST') {
+      var updated = 0;
+      final colour = '${row['color_name']}'.trim().toLowerCase();
+      for (final spool in _spools) {
+        if (spool['archived_at'] != null ||
+            _productKey(spool, colour: false) !=
+                _productKey(row, colour: false) ||
+            (colour.isNotEmpty &&
+                '${spool['color_name'] ?? ''}'.trim().toLowerCase() !=
+                    colour)) {
+          continue;
+        }
+        var changed = false;
+        if ('${spool['slicer_filament'] ?? ''}'.isEmpty &&
+            '${row['slicer_filament'] ?? ''}'.isNotEmpty) {
+          spool['slicer_filament'] = row['slicer_filament'];
+          spool['slicer_filament_name'] = row['slicer_filament_name'];
+          changed = true;
+        }
+        changed =
+            _fillPresetOverrides(spool['id'] as int, row['presets'] as List) ||
+            changed;
+        if (changed) updated++;
+      }
+      return demoOk({'updated': updated});
+    }
+    return _fallback(m);
   }
 
   List<Map<String, dynamic>> _spoolUsage(int spoolId) {
@@ -6618,7 +6893,7 @@ class DemoBackend {
         'percent_used': 10,
         'status': 'completed',
         'cost': 2.4,
-        'created_at': _iso(_daysAgo(1)),
+        'created_at': isoUtc(_daysAgo(1)),
       },
       {
         'id': spoolId * 10 + 2,
@@ -6627,7 +6902,7 @@ class DemoBackend {
         'percent_used': 2,
         'status': 'completed',
         'cost': 0.4,
-        'created_at': _iso(_daysAgo(2)),
+        'created_at': isoUtc(_daysAgo(2)),
       },
     ];
   }
@@ -6662,6 +6937,16 @@ class DemoBackend {
   ];
 
   // --- Manyfold ---
+
+  /// The sidebar apps of a print farm: one with a count, one past the 99+ cap,
+  /// one that reports nothing and one an older server would send without the
+  /// field. No uploaded icons — the screen then draws each name's first letter.
+  late final _externalLinks = <Map<String, dynamic>>[
+    _demoExternalLink(1, 'Bambuddy Orders', 'http://orders.farm.lan:8080', 3),
+    _demoExternalLink(2, 'Spoolman', 'http://spoolman.farm.lan:7912', 0),
+    _demoExternalLink(3, 'Home Assistant', 'http://ha.farm.lan:8123', 128),
+    _demoExternalLink(4, 'Print farm wiki', 'https://wiki.farm.lan', null),
+  ];
 
   /// Two unread messages at different levels, for the dot, the count and the
   /// level labels, and an expired one under "Earlier".
@@ -6710,6 +6995,24 @@ class DemoBackend {
     ),
   ];
 
+  static Map<String, dynamic> _demoExternalLink(
+    int id,
+    String name,
+    String url,
+    int? badge,
+  ) => {
+    'id': id,
+    'name': name,
+    'url': url,
+    'icon': 'link',
+    'custom_icon': null,
+    'open_in_new_tab': true,
+    'sort_order': id,
+    'created_at': isoUtc(_daysAgo(30)),
+    'updated_at': isoUtc(_daysAgo(30)),
+    'badge_count': badge,
+  };
+
   static Map<String, dynamic> _demoAnnouncement(
     String id,
     String level, {
@@ -6725,8 +7028,8 @@ class DemoBackend {
       'pl': {'title': pl.$1, 'body': pl.$2},
     },
     'link_url': 'https://github.com/maziggy/bambuddy',
-    'published_at': _iso(_daysAgo(daysAgo)),
-    'expires_at': expired ? _iso(_daysAgo(daysAgo - 30)) : null,
+    'published_at': isoUtc(_daysAgo(daysAgo)),
+    'expires_at': expired ? isoUtc(_daysAgo(daysAgo - 30)) : null,
     'archived': expired,
     'read': expired,
   };
@@ -6746,7 +7049,7 @@ class DemoBackend {
     final key = '${body['model_id']}/${body['file_id']}';
     final existing = _libraryFiles.where((f) => f[_manyfoldKey] == key);
     if (existing.firstOrNull case final file?) {
-      return _ok(_manyfoldImported(file, existing: true));
+      return demoOk(_manyfoldImported(file, existing: true));
     }
     final source = _manyfold.fileFor(
       '${body['model_id']}',
@@ -6764,7 +7067,7 @@ class DemoBackend {
       model: null,
     )..[_manyfoldKey] = key;
     _libraryFiles.add(file);
-    return _ok(_manyfoldImported(file, existing: false));
+    return demoOk(_manyfoldImported(file, existing: false));
   }
 
   Map<String, dynamic> _manyfoldImported(
@@ -6947,7 +7250,7 @@ class DemoBackend {
     'print_count': printCount,
     'duplicate_count': 0,
     'created_by_username': DemoConfig.username,
-    'created_at': _iso(_daysAgo(id * 2)),
+    'created_at': isoUtc(_daysAgo(id * 2)),
     'print_name': filename.split('.').first,
     'print_time_seconds': timeSec,
     'filament_used_grams': grams,
@@ -7050,22 +7353,22 @@ class DemoBackend {
         f['variant_group_id'] = group['id'];
         f['variant_count'] = files.length;
       }
-      return _ok(group);
+      return demoOk(group);
     }
 
     if (s.length == 4 && s[2] == 'by-file' && m == 'GET') {
       final fileId = int.tryParse(s[3]);
-      final file = _libraryFiles.where((f) => f['id'] == fileId).firstOrNull;
+      final file = rowById(_libraryFiles, fileId);
       final groupId = file?['variant_group_id'];
-      final group = _variantGroups.where((g) => g['id'] == groupId).firstOrNull;
+      final group = rowById(_variantGroups, groupId);
       // 404 is the ordinary answer for an ungrouped file, not an error.
-      return group == null ? _notFound() : _ok(group);
+      return group == null ? demoNotFound() : demoOk(group);
     }
 
     final groupId = int.tryParse(s.length > 2 ? s[2] : '');
-    final group = _variantGroups.where((g) => g['id'] == groupId).firstOrNull;
-    if (group == null) return _notFound();
-    if (s.length == 3 && m == 'GET') return _ok(group);
+    final group = rowById(_variantGroups, groupId);
+    if (group == null) return demoNotFound();
+    if (s.length == 3 && m == 'GET') return demoOk(group);
     if (s.length == 3 && m == 'DELETE') {
       _variantGroups.remove(group);
       for (final f in _libraryFiles) {
@@ -7073,7 +7376,7 @@ class DemoBackend {
         f['variant_group_id'] = null;
         f['variant_count'] = 0;
       }
-      return _ok(const {'ok': true});
+      return demoOk(const {'ok': true});
     }
     return _fallback(m);
   }
@@ -7084,19 +7387,19 @@ class DemoBackend {
     Map<String, String> q,
     Map<String, dynamic> body,
   ) {
-    if (s.length < 2) return _notFound();
+    if (s.length < 2) return demoNotFound();
     switch (s[1]) {
       case 'files':
         if (s.length == 2 && m == 'GET') {
-          if (q.containsKey('project_id')) return _ok(const <Object>[]);
+          if (q.containsKey('project_id')) return demoOk(const <Object>[]);
           final folderId = int.tryParse(q['folder_id'] ?? '');
           if (folderId != null) {
-            return _ok(
+            return demoOk(
               _libraryFiles.where((f) => f['folder_id'] == folderId).toList(),
             );
           }
           // include_root=false → whole library; otherwise root level only.
-          return _ok(
+          return demoOk(
             q['include_root'] == 'false'
                 ? _libraryFiles
                 : _libraryFiles.where((f) => f['folder_id'] == null).toList(),
@@ -7110,7 +7413,7 @@ class DemoBackend {
           for (final f in _libraryFiles) {
             if (ids.contains(f['id'])) f['folder_id'] = body['folder_id'];
           }
-          return _ok(const {'ok': true});
+          return demoOk(const {'ok': true});
         }
         if (s.length >= 3 && s[2] == 'add-to-queue' && m == 'POST') {
           final ids = (body['file_ids'] as List?) ?? const [];
@@ -7137,13 +7440,13 @@ class DemoBackend {
               ),
             );
           }
-          return _ok({'added': added, 'errors': const <Object>[]});
+          return demoOk({'added': added, 'errors': const <Object>[]});
         }
         final fileId = int.tryParse(s.length > 2 ? s[2] : '');
-        final file = _libraryFiles.where((f) => f['id'] == fileId).firstOrNull;
+        final file = rowById(_libraryFiles, fileId);
         if (file == null) return _fallback(m);
         if (s.length == 3) {
-          if (m == 'GET') return _ok(file);
+          if (m == 'GET') return demoOk(file);
           if (m == 'PUT') {
             if (body.containsKey('filename')) {
               file['filename'] = body['filename'];
@@ -7156,7 +7459,7 @@ class DemoBackend {
               file['notes'] = notes.isEmpty ? null : notes;
               file['has_notes'] = notes.isNotEmpty;
             }
-            return _ok(file);
+            return demoOk(file);
           }
           if (m == 'DELETE') {
             _libraryFiles.remove(file);
@@ -7165,23 +7468,25 @@ class DemoBackend {
               'filename': file['filename'],
               'file_size': file['file_size'],
               'thumbnail_path': null,
-              'deleted_at': _iso(DateTime.now()),
+              'deleted_at': isoUtc(DateTime.now()),
             });
-            return _ok(const {'ok': true});
+            return demoOk(const {'ok': true});
           }
         }
         if (s.length >= 4 && s[3] == 'photos' && m == 'POST') {
           return (status: 501, body: {'detail': 'Upload unavailable in demo'});
         }
-        if (s.length >= 4 && s[3] == 'plates') return _ok(_libraryPlates(file));
+        if (s.length >= 4 && s[3] == 'plates') {
+          return demoOk(_libraryPlates(file));
+        }
         if (s.length >= 4 && s[3] == 'filament-requirements') {
-          return _ok(_libraryFilaments(file, q));
+          return demoOk(_libraryFilaments(file, q));
         }
         if (s.length >= 4 && s[3] == 'slice' && m == 'POST') {
           return _startSlice(isArchive: false, source: file, body: body);
         }
         if (s.length >= 4 && s[3] == 'print') {
-          return _ok(const {'ok': true});
+          return demoOk(const {'ok': true});
         }
         return _fallback(m);
 
@@ -7189,7 +7494,7 @@ class DemoBackend {
         return _variantGroupRoute(m, s, body);
 
       case 'folders':
-        if (s.length == 2 && m == 'GET') return _ok(_libraryFolders);
+        if (s.length == 2 && m == 'GET') return demoOk(_libraryFolders);
         if (s.length == 2 && m == 'POST') {
           final folder = {
             'id': _nextFolderId++,
@@ -7199,27 +7504,27 @@ class DemoBackend {
             'children': const <Object>[],
           };
           _libraryFolders.add(folder);
-          return _ok(folder);
+          return demoOk(folder);
         }
-        if (s.length >= 3 && s[2] == 'by-project') return _ok(const <Object>[]);
+        if (s.length >= 3 && s[2] == 'by-project') {
+          return demoOk(const <Object>[]);
+        }
         final folderId = int.tryParse(s.length > 2 ? s[2] : '');
-        final folder = _libraryFolders
-            .where((f) => f['id'] == folderId)
-            .firstOrNull;
+        final folder = rowById(_libraryFolders, folderId);
         if (folder == null) return _fallback(m);
         if (m == 'PUT') {
           if (body.containsKey('name')) folder['name'] = body['name'];
-          return _ok(folder);
+          return demoOk(folder);
         }
         if (m == 'DELETE') {
           _libraryFolders.remove(folder);
           _libraryFiles.removeWhere((f) => f['folder_id'] == folderId);
-          return _ok(const {'ok': true});
+          return demoOk(const {'ok': true});
         }
         return _fallback(m);
 
       case 'stats':
-        return _ok({
+        return demoOk({
           'total_files': _libraryFiles.length,
           'total_folders': _libraryFolders.length,
           'total_size': _libraryFiles.fold<int>(
@@ -7232,11 +7537,11 @@ class DemoBackend {
       case 'bulk-delete':
         final fileIds = (body['file_ids'] as List?) ?? const [];
         _libraryFiles.removeWhere((f) => fileIds.contains(f['id']));
-        return _ok(const {'ok': true});
+        return demoOk(const {'ok': true});
 
       case 'trash':
         if (s.length == 2 && m == 'GET') {
-          return _ok({
+          return demoOk({
             'items': _libraryTrash,
             'total': _libraryTrash.length,
             'retention_days': 30,
@@ -7244,11 +7549,11 @@ class DemoBackend {
         }
         if (s.length == 2 && m == 'DELETE') {
           _libraryTrash.clear();
-          return _ok(const {'ok': true});
+          return demoOk(const {'ok': true});
         }
         if (s.length >= 4 && s[3] == 'restore') {
           final tid = int.tryParse(s[2]);
-          final t = _libraryTrash.where((f) => f['id'] == tid).firstOrNull;
+          final t = rowById(_libraryTrash, tid);
           if (t != null) {
             _libraryTrash.remove(t);
             _libraryFiles.add(
@@ -7260,11 +7565,11 @@ class DemoBackend {
               ),
             );
           }
-          return _ok(const {'ok': true});
+          return demoOk(const {'ok': true});
         }
         if (s.length == 3 && m == 'DELETE') {
           _libraryTrash.removeWhere((f) => '${f['id']}' == s[2]);
-          return _ok(const {'ok': true});
+          return demoOk(const {'ok': true});
         }
         return _fallback(m);
     }
@@ -7286,8 +7591,8 @@ class DemoBackend {
       'priority': 'normal',
       'tags': 'organization,workshop',
       'notes': 'Match the 25 mm grid on the tool wall.',
-      'created_at': _iso(_daysAgo(20)),
-      'updated_at': _iso(_daysAgo(1)),
+      'created_at': isoUtc(_daysAgo(20)),
+      'updated_at': isoUtc(_daysAgo(1)),
     },
     {
       'id': 2,
@@ -7301,8 +7606,8 @@ class DemoBackend {
       'priority': 'high',
       'tags': 'gifts',
       'notes': null,
-      'created_at': _iso(_daysAgo(40)),
-      'updated_at': _iso(_daysAgo(25)),
+      'created_at': isoUtc(_daysAgo(40)),
+      'updated_at': isoUtc(_daysAgo(25)),
     },
   ];
 
@@ -7417,22 +7722,22 @@ class DemoBackend {
         if (status != null && status.isNotEmpty) {
           list = list.where((p) => p['status'] == status).toList();
         }
-        return _ok([for (final p in list) _projectListJson(p)]);
+        return demoOk([for (final p in list) _projectListJson(p)]);
       }
       if (m == 'POST') {
         final project = <String, dynamic>{
           'id': _nextProjectId++,
           'status': 'active',
           'priority': body['priority'] ?? 'normal',
-          'created_at': _iso(DateTime.now()),
-          'updated_at': _iso(DateTime.now()),
+          'created_at': isoUtc(DateTime.now()),
+          'updated_at': isoUtc(DateTime.now()),
           ...body,
         };
         _projects.add(project);
-        return _ok(_projectDetailJson(project));
+        return demoOk(_projectDetailJson(project));
       }
     }
-    if (s.length >= 2 && s[1] == 'templates') return _ok(const <Object>[]);
+    if (s.length >= 2 && s[1] == 'templates') return demoOk(const <Object>[]);
     // Uploads are refused, like the library's. Left to the fallback they would
     // be a 200 with an empty body: the import screen cannot parse that and does
     // not catch the TypeError, and the attachment and cover screens would
@@ -7441,34 +7746,34 @@ class DemoBackend {
       return (status: 501, body: {'detail': 'Upload unavailable in demo'});
     }
     final pid = int.tryParse(s.length > 1 ? s[1] : '');
-    final project = _projects.where((p) => p['id'] == pid).firstOrNull;
+    final project = rowById(_projects, pid);
     if (project == null) return _fallback(m);
     if (s.length == 2) {
-      if (m == 'GET') return _ok(_projectDetailJson(project));
+      if (m == 'GET') return demoOk(_projectDetailJson(project));
       if (m == 'PATCH') {
         body.forEach((k, v) => project[k] = v);
-        project['updated_at'] = _iso(DateTime.now());
-        return _ok(_projectDetailJson(project));
+        project['updated_at'] = isoUtc(DateTime.now());
+        return demoOk(_projectDetailJson(project));
       }
       if (m == 'DELETE') {
         _projects.remove(project);
-        return _ok(const {'ok': true});
+        return demoOk(const {'ok': true});
       }
     }
     if (s.length >= 3) {
       switch (s[2]) {
         case 'archives':
-          return _ok(
+          return demoOk(
             (_projectListJson(project)['archives'] as List?) ?? const [],
           );
         case 'queue':
-          return _ok(const <Object>[]);
+          return demoOk(const <Object>[]);
         case 'timeline':
-          return _ok(const <Object>[]);
+          return demoOk(const <Object>[]);
         case 'bom':
           final bom = _projectBom.putIfAbsent(pid!, () => []);
           if (s.length == 3) {
-            if (m == 'GET') return _ok(bom);
+            if (m == 'GET') return demoOk(bom);
             if (m == 'POST') {
               bom.add({
                 'id': _nextBomId++,
@@ -7480,28 +7785,28 @@ class DemoBackend {
                 'sort_order': bom.length,
                 'is_complete': false,
               });
-              return _ok(bom.last);
+              return demoOk(bom.last);
             }
           }
           final bomId = int.tryParse(s.length > 3 ? s[3] : '');
-          final item = bom.where((b) => b['id'] == bomId).firstOrNull;
+          final item = rowById(bom, bomId);
           if (item != null && m == 'PATCH') {
             body.forEach((k, v) => item[k] = v);
             final needed = (item['quantity_needed'] as num?) ?? 1;
             final acquired = (item['quantity_acquired'] as num?) ?? 0;
             item['is_complete'] = acquired >= needed;
-            return _ok(item);
+            return demoOk(item);
           }
           if (item != null && m == 'DELETE') {
             bom.remove(item);
-            return _ok(const {'ok': true});
+            return demoOk(const {'ok': true});
           }
           return _fallback(m);
         case 'add-archives':
         case 'remove-archives':
         case 'add-queue':
         case 'create-template':
-          return _ok(const {'ok': true});
+          return demoOk(const {'ok': true});
         case 'attachments':
         case 'cover-image':
           if (m == 'POST') {
@@ -7522,8 +7827,6 @@ class DemoBackend {
 
   static DateTime _minutesAgo(int minutes) =>
       DateTime.now().subtract(Duration(minutes: minutes));
-
-  static String _iso(DateTime t) => t.toUtc().toIso8601String();
 }
 
 /// State of one demo download preparation. Advanced by polling it — see

@@ -21,6 +21,7 @@ void main() {
     InventoryState shelf,
   ) async {
     final container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         inventoryBackendOverride(backend),
         inventoryProvider.overrideWith(() => FixedInventory(shelf)),

@@ -30,11 +30,10 @@ class _PipelineRunFilterSheet extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final filter = ref.watch(pipelineRunFilterProvider);
-    final pipelines = ref.watch(pipelinesProvider).valueOrNull ?? const [];
+    final pipelines = ref.watch(pipelinesProvider).value ?? const [];
     final printers =
-        ref.watch(pipelineTargetPrintersProvider).valueOrNull ?? const [];
-    final classes =
-        ref.watch(pipelinePrinterClassesProvider).valueOrNull ?? const [];
+        ref.watch(pipelineTargetPrintersProvider).value ?? const [];
+    final classes = ref.watch(pipelinePrinterClassesProvider).value ?? const [];
     final notifier = ref.read(pipelineRunFilterProvider.notifier);
 
     // Scrollable, and the actions wrap: three combos each carrying a two-line

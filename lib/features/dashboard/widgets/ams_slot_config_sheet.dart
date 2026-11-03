@@ -162,11 +162,9 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     final sources = ref.watch(slotPresetSourcesProvider);
     final saved = ref.watch(slotPresetProvider(target.key));
 
-    _savedPresetId = saved.valueOrNull?.presetId;
+    _savedPresetId = saved.value?.presetId;
 
-    final view = sources.valueOrNull == null
-        ? null
-        : _view(sources.requireValue);
+    final view = sources.value == null ? null : _view(sources.requireValue);
 
     // After `_view`, which is where the preset gets preselected: the profiles
     // on offer are the ones that fit whatever is picked.
@@ -177,7 +175,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
             nozzleDiameter: target.effectiveNozzleDiameter,
           )),
         )
-        .valueOrNull;
+        .value;
     final choices = table == null ? null : _kProfileChoices(table.profiles);
     // Three bands, and only the middle one scrolls: what the slot is and what
     // is being searched stay put, the catalogue moves under them, and the
@@ -340,7 +338,11 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     placeholder: '',
     value: (_colour ?? 'FFFFFF').toUpperCase(),
     valueStyle: t.monoValue,
-    leading: SpoolSwatch(rgba: _colour, size: 24, radius: 6),
+    leading: SpoolSwatch(
+      rgba: _colour,
+      size: DashSize.d24,
+      radius: DashRadius.sm,
+    ),
     trailingIcon: Icons.colorize,
     onTap: () => _pickColour(l10n),
     padding: EdgeInsets.zero,
@@ -413,6 +415,13 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
       value: value,
       label: label,
       enabled: enabled,
+      // A heading, not an unavailable choice: Material's disabled colour (38%)
+      // reads 2.4:1 on a light menu, so it keeps the secondary text colour.
+      style: enabled
+          ? null
+          : ButtonStyle(
+              foregroundColor: WidgetStatePropertyAll(t.textSecondary),
+            ),
       // The menu opens in a route of its own, so the field's own tag does
       // not reach it. The label is a user-chosen profile name and stays out
       // of the identifier.
@@ -584,7 +593,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         onSelected: (v) => setState(() => _onlyThisPrinter = v),
         avatar: Icon(
           _onlyThisPrinter ? Icons.filter_alt : Icons.filter_alt_off,
-          size: 18,
+          size: DashIcon.md,
           color: _onlyThisPrinter ? t.accentGreenInk : t.textTertiary,
         ),
         showCheckmark: false,
@@ -609,7 +618,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     return Padding(
       padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         onTap: () => setState(() {
           _picked = preset;
           _userPicked = true;
@@ -621,17 +630,17 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
           ),
           decoration: BoxDecoration(
             color: t.subCard,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(DashRadius.lg),
             border: Border.all(
               color: selected ? t.accentGreen : t.subCardBorder,
-              width: selected ? 1.5 : 1,
+              width: selected ? DashStroke.regular : DashStroke.hairline,
             ),
           ),
           child: Row(
             children: [
               Icon(
                 selected ? Icons.check_circle : Icons.circle_outlined,
-                size: 18,
+                size: DashIcon.md,
                 color: selected ? t.accentGreenInk : t.textTertiary,
               ),
               const SizedBox(width: DashSpace.md),
@@ -678,13 +687,15 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
       DashSpace.sm,
     ),
     decoration: BoxDecoration(
-      color: t.accentBlue.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: t.accentBlue.withValues(alpha: 0.4)),
+      color: t.accentBlue.withValues(alpha: DashAlpha.faint),
+      borderRadius: BorderRadius.circular(DashRadius.lg),
+      border: Border.all(
+        color: t.accentBlue.withValues(alpha: DashAlpha.outline),
+      ),
     ),
     child: Row(
       children: [
-        Icon(Icons.cloud_off, size: 18, color: t.accentBlue),
+        Icon(Icons.cloud_off, size: DashIcon.md, color: t.accentBlue),
         const SizedBox(width: DashSpace.sm),
         Expanded(
           child: Text(
@@ -709,7 +720,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
       text,
       style: TextStyle(
         fontFamily: DashTokens.fontUi,
-        fontSize: 13,
+        fontSize: DashFontSize.body,
         color: t.textTertiary,
       ),
     ),
@@ -753,7 +764,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
             const SizedBox(height: DashSpace.xs),
             TextButton.icon(
               onPressed: busy ? null : () => _reset(l10n),
-              icon: const Icon(Icons.layers_clear, size: 18),
+              icon: const Icon(Icons.layers_clear, size: DashIcon.md),
               label: Text(l10n.amsSlotReset),
               style: TextButton.styleFrom(foregroundColor: t.dangerInk),
             ).tagged('ams_slot_config.reset'),
@@ -921,7 +932,7 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
     final catalogue = preset == null
         ? const <ColorEntry>[]
         : presetColours(
-            ref.watch(colorCatalogProvider).valueOrNull ?? const [],
+            ref.watch(colorCatalogProvider).value ?? const [],
             preset,
           );
 
@@ -942,9 +953,8 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
                   DashSpace.xl,
                   DashSpace.lg,
                 ),
+                // No spacing: each swatch's 48 dp cell already leaves 6 dp around it.
                 child: Wrap(
-                  spacing: DashSpace.sm,
-                  runSpacing: DashSpace.sm,
                   children: [
                     for (final entry in catalogue)
                       _CatalogueSwatch(
@@ -1022,17 +1032,23 @@ class _CatalogueSwatch extends StatelessWidget {
     return Tooltip(
       message: entry.colorName,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
         onTap: onTap,
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: colour,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: selected ? t.accentGreen : t.subCardBorder,
-              width: selected ? 2 : 1,
+        // The swatch paints 40 dp, its touch target is the 48 dp cell around it.
+        child: SizedBox.square(
+          dimension: kMinInteractiveDimension,
+          child: Center(
+            child: Container(
+              width: DashSize.d40,
+              height: DashSize.d40,
+              decoration: BoxDecoration(
+                color: colour,
+                borderRadius: BorderRadius.circular(DashRadius.sm),
+                border: Border.all(
+                  color: selected ? t.accentGreen : t.subCardBorder,
+                  width: selected ? DashStroke.regular : DashStroke.hairline,
+                ),
+              ),
             ),
           ),
         ),

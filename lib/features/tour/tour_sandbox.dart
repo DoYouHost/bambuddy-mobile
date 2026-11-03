@@ -34,6 +34,7 @@ class TourSandbox {
     // Every step is written against one printing machine.
     DemoBackend.printingPrinters = 1;
     container = ProviderContainer(
+      retry: neverRetry,
       overrides: [
         tourBeaconProvider.overrideWithValue(beacon),
         serverProfileProvider.overrideWith(_DemoProfile.new),

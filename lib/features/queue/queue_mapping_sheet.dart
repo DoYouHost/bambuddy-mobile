@@ -19,6 +19,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/color_catalog.dart';
 import '../controller/scale_to_fit.dart';
 import '../inventory/inventory_providers.dart';
 import '../slicer/slice_providers.dart';
@@ -58,15 +59,6 @@ final mappingFilamentNamesProvider =
       };
     });
 
-/// The server's colour catalogue; empty when it cannot be read, and names
-/// then come from the hue alone.
-final mappingColorCatalogProvider = FutureProvider.autoDispose<ColorCatalog>(
-  (ref) => ref
-      .watch(amsSlotConfigRepositoryProvider)
-      .colorCatalog()
-      .catchError((Object _) => ColorCatalog.empty),
-);
-
 /// The catalogue's name for a hex within a material, which the flat map can
 /// get wrong where one hex names two colours (`/inventory/colors/by-material`).
 final mappingColorByMaterialProvider = FutureProvider.autoDispose
@@ -76,33 +68,6 @@ final mappingColorByMaterialProvider = FutureProvider.autoDispose
           .colorByMaterial(key.hex, key.material)
           .catchError((Object _) => null),
     );
-
-/// `getColorName`: the catalogue's name, else the hue family's.
-String mappingColorName(
-  AppLocalizations l10n,
-  ColorCatalog catalog,
-  String? hex, {
-  String? material,
-}) =>
-    catalog.nameOf(hex, material: material) ??
-    switch (colorFamily(hex)) {
-      ColorFamily.red => l10n.colorFamilyRed,
-      ColorFamily.orange => l10n.colorFamilyOrange,
-      ColorFamily.yellow => l10n.colorFamilyYellow,
-      ColorFamily.green => l10n.colorFamilyGreen,
-      ColorFamily.cyan => l10n.colorFamilyCyan,
-      ColorFamily.blue => l10n.colorFamilyBlue,
-      ColorFamily.purple => l10n.colorFamilyPurple,
-      ColorFamily.pink => l10n.colorFamilyPink,
-      ColorFamily.brown => l10n.colorFamilyBrown,
-      ColorFamily.white => l10n.colorFamilyWhite,
-      ColorFamily.lightGray => l10n.colorFamilyLightGray,
-      ColorFamily.gray => l10n.colorFamilyGray,
-      ColorFamily.darkGray => l10n.colorFamilyDarkGray,
-      ColorFamily.black => l10n.colorFamilyBlack,
-      ColorFamily.clear => l10n.colorFamilyClear,
-      null => l10n.colorFamilyUnknown,
-    };
 
 /// `sameInletWarning`: the one Filament Track Switch inlet every filament of
 /// the print comes through, when it is one — then every change in the job is
@@ -429,8 +394,8 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     // slots once they answer.
     final remain = ref
         .watch(mappingInventoryRemainProvider(widget.printerId))
-        .valueOrNull;
-    final preferLowest = ref.watch(preferLowestFilamentProvider).valueOrNull;
+        .value;
+    final preferLowest = ref.watch(preferLowestFilamentProvider).value;
     // Loads the shelf while the sheet is open, for the picker's grams — a
     // listen, as nothing on this sheet shows them.
     ref.listen(assignedSpoolsProvider(widget.printerId), (_, _) {});
@@ -455,10 +420,10 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
               ),
       );
     }
-    final status = statusAsync.valueOrNull;
+    final status = statusAsync.value;
     final loaded = buildLoadedFilaments(status);
     final comparison = _compare(
-      reqsAsync.valueOrNull ?? const [],
+      reqsAsync.value ?? const [],
       status,
       loaded,
       _manual,
@@ -483,11 +448,13 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     child: LayoutBuilder(
       builder: (context, box) => SizedBox(
         width: math.min(_dialogSize.width * widget.dialogScale!, box.maxWidth),
-        height: math.min(
-          _dialogSize.height * widget.dialogScale!,
-          box.maxHeight,
-        ),
+        // From a large text size the dialog takes the room there is, and its
+        // lists scroll, instead of growing with the font.
+        height: controllerLargeText(context)
+            ? box.maxHeight
+            : math.min(_dialogSize.height * widget.dialogScale!, box.maxHeight),
         child: ScaleToFit(
+          reflows: true,
           minSize: _dialogSize,
           child: Padding(
             padding: const EdgeInsets.all(DashSpace.md),
@@ -525,11 +492,8 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     }
 
     final t = DashTokens.of(context);
-    final catalog =
-        ref.watch(mappingColorCatalogProvider).valueOrNull ??
-        ColorCatalog.empty;
-    final names =
-        ref.watch(mappingFilamentNamesProvider).valueOrNull ?? const {};
+    final catalog = ref.watchColorNames();
+    final names = ref.watch(mappingFilamentNamesProvider).value ?? const {};
     final options = _SlotOptions(
       l10n: l10n,
       catalog: catalog,
@@ -567,7 +531,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       const SizedBox(height: DashSpace.sm),
       Row(
         children: [
-          Icon(Icons.circle, size: 10, color: summaryInk),
+          Icon(Icons.circle, size: DashIcon.xs, color: summaryInk),
           const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(
@@ -584,7 +548,11 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.warning_amber_rounded, size: 18, color: t.warningInk),
+              Icon(
+                Icons.warning_amber_rounded,
+                size: DashIcon.md,
+                color: t.warningInk,
+              ),
               const SizedBox(width: DashSpace.sm),
               Expanded(
                 child: Text(
@@ -701,10 +669,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     final archiveId = widget.item.archiveId;
     final saved = archiveId == null
         ? null
-        : ref
-              .watch(mappingArchiveProvider(archiveId))
-              .valueOrNull
-              ?.slicerAmsMapping;
+        : ref.watch(mappingArchiveProvider(archiveId)).value?.slicerAmsMapping;
     final slicer = saved?.printerId == widget.printerId ? saved!.mapping : null;
     return Padding(
       padding: const EdgeInsets.only(top: DashSpace.sm),
@@ -724,10 +689,12 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
           ActionChip(
             avatar: _rereading
                 ? const SizedBox.square(
-                    dimension: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    dimension: DashSize.d16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: DashStroke.regular,
+                    ),
                   )
-                : const Icon(Icons.refresh, size: 18),
+                : const Icon(Icons.refresh, size: DashIcon.md),
             label: Text(l10n.mappingReRead),
             onPressed: _rereading ? null : _reread,
           ).tagged('queue_mapping.reread'),
@@ -801,9 +768,11 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     );
   }
 
-  /// The row's rack picker, `R2 · 0.4`: the position the group prints from
-  /// and the nozzle sitting there.
-  Widget _rackButton(_Rack rack, int groupId, RackGroup group) {
+  /// The row's rack picker: "Rack position  `R2 · 0.4`", the position the group
+  /// prints from and the nozzle sitting there. A row of its own under the
+  /// filament, not a chip in the title line: the whole row is the target, 48 dp
+  /// tall, where the chip was 20.
+  Widget _rackRow(_Rack rack, int groupId, RackGroup group) {
     final l10n = _l10n;
     final theme = Theme.of(context);
     final position = rack.positions[groupId];
@@ -814,31 +783,42 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     return Tooltip(
       message: l10n.mappingRackPositionHint,
       child: InkWell(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(DashRadius.sm),
         onTap: enabled ? () => _pickRackPosition(rack, groupId, group) : null,
-        child: Container(
-          padding: const EdgeInsets.only(left: DashSpace.xs),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: enabled
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.outlineVariant,
-            ),
-            borderRadius: BorderRadius.circular(6),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: kMinInteractiveDimension,
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                [
-                  position == null ? '–' : l10n.mappingRackSlot(position),
-                  if (diameter.isNotEmpty) diameter,
-                ].join(' · '),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+              Flexible(child: Text(l10n.mappingRackPosition)),
+              const SizedBox(width: DashSpace.sm),
+              Container(
+                padding: const EdgeInsets.only(left: DashSpace.xs),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: enabled
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.outlineVariant,
+                  ),
+                  borderRadius: BorderRadius.circular(DashRadius.sm),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      [
+                        position == null ? '–' : l10n.mappingRackSlot(position),
+                        if (diameter.isNotEmpty) diameter,
+                      ].join(' · '),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: DashWeight.bold,
+                      ),
+                    ),
+                    const Icon(Icons.arrow_drop_down, size: DashIcon.md),
+                  ],
                 ),
               ),
-              const Icon(Icons.arrow_drop_down, size: 18),
             ],
           ),
         ),
@@ -1005,8 +985,8 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                   material: _materialHint(name),
                 )),
               )
-              .valueOrNull;
-    final required = byMaterial ?? mappingColorName(l10n, options.catalog, hex);
+              .value;
+    final required = byMaterial ?? colorDisplayName(l10n, options.catalog, hex);
     final (requiredLabel, loadedLabel) = disambiguateColorNames(
       (name: required, hex: hex),
       (name: pick == null ? null : options.colorOf(pick), hex: pick?.color),
@@ -1032,10 +1012,13 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     // On a rack plate the group decides the badge (`FilamentMapping.tsx`): a
     // picker for a rack-bound group, `L` for one on the fixed hotend.
     final Widget? lead = switch (group) {
-      RackGroup(onRack: true) => _rackButton(rack!, groupId!, group),
+      RackGroup(onRack: true) => null,
       RackGroup() => _Badge(l10n.extruderLeftShort),
       null => nozzle == null ? null : _Badge(nozzle),
     };
+    final rackRow = group != null && group.onRack
+        ? _rackRow(rack!, groupId!, group)
+        : null;
     final rackWarning = group != null && group.onRack
         ? _rackWarning(rack!, groupId!, group, t)
         : null;
@@ -1078,20 +1061,24 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
             if (c.isManual) Text(l10n.mappingManual),
             if (warning != null)
               Text(warning.$1, style: TextStyle(color: warning.$2)),
+            ?rackRow,
             if (rackWarning != null)
               Text(rackWarning.$1, style: TextStyle(color: rackWarning.$2)),
             if (widget.onForceColorMatch case final onForce?
                 when req.slotId > 0)
               Row(
                 children: [
-                  Checkbox(
-                    value: _force[req.slotId] ?? false,
-                    onChanged: (v) {
-                      setState(() => _force[req.slotId] = v ?? false);
-                      onForce(req.slotId, v ?? false);
-                    },
+                  Semantics(
+                    label: l10n.queueEditForceColorMatch,
+                    child: Checkbox(
+                      value: _force[req.slotId] ?? false,
+                      onChanged: (v) {
+                        setState(() => _force[req.slotId] = v ?? false);
+                        onForce(req.slotId, v ?? false);
+                      },
+                    ),
                   ).tagged('queue_mapping.force_color'),
-                  const Icon(Icons.palette_outlined, size: 16),
+                  const Icon(Icons.palette_outlined, size: DashIcon.sm),
                   const SizedBox(width: DashSpace.xs),
                   Flexible(child: Text(l10n.queueEditForceColorMatch)),
                 ],
@@ -1127,7 +1114,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       scrollControlled: false,
       title: _filamentName(
         req,
-        ref.read(mappingFilamentNamesProvider).valueOrNull ?? const {},
+        ref.read(mappingFilamentNamesProvider).value ?? const {},
       ),
       builder: (ctx) =>
           // A Consumer, not the sheet's own ref: this is a route of its own,
@@ -1261,8 +1248,11 @@ class _PickerDialog extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, box) => SizedBox(
           width: math.min(_size.width * scale, box.maxWidth),
-          height: math.min(_size.height * scale, box.maxHeight),
+          height: controllerLargeText(context)
+              ? box.maxHeight
+              : math.min(_size.height * scale, box.maxHeight),
           child: ScaleToFit(
+            reflows: true,
             minSize: _size,
             child: Padding(
               padding: const EdgeInsets.all(DashSpace.md),
@@ -1336,7 +1326,7 @@ class _SlotOptions {
   String colorOf(LoadedFilament f) {
     final bound = spools[f.globalTrayId]?.colorName;
     if (bound != null && bound.isNotEmpty) return bound;
-    return mappingColorName(
+    return colorDisplayName(
       l10n,
       catalog,
       f.color,
@@ -1376,7 +1366,7 @@ class _Badge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(DashRadius.xs),
       ),
       child: Text(text, style: theme.textTheme.labelSmall),
     );

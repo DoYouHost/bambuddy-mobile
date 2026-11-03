@@ -52,6 +52,33 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   Map<String, SpoolPresetOverride>? _overrides;
   bool _overridesDirty = false;
 
+  /// What a new spool of the typed product starts with (server #1326), as the
+  /// web's spool form fills its presets tab: the default only fills what the
+  /// user left empty, and gives way to the next product's default when the
+  /// product changes. [_defaultOverrides] are the rows it put in [_overrides]
+  /// and nobody touched since; [_touchedModels] are the models the user chose or
+  /// cleared, which no default fills again. Neither marks [_overridesDirty]:
+  /// the server applies the same default on create by itself.
+  Map<String, SpoolPresetOverride> _defaultOverrides = {};
+  final Set<String> _touchedModels = {};
+
+  /// Whether [_slicerFilament] is the default's rather than the user's.
+  bool _slicerFromDefault = false;
+
+  /// The product the form was filled for, while it holds anything of a default.
+  String? _prefilledFrom;
+  Timer? _resolveTimer;
+  int _resolveEpoch = 0;
+
+  /// The product whose default the form shows, and the one being asked for.
+  String? _lastResolvedKey;
+  String? _inFlightKey;
+
+  /// "Use as default": the form's presets are saved as the default of the
+  /// product, for every colour or only the typed one.
+  bool _saveAsDefault = false;
+  bool _defaultForColor = false;
+
   /// The drying date as the form shows it (#2863). Written only once the user
   /// changed it, so saving an unrelated edit cannot put back a date an AMS run
   /// stamped while the sheet was open.
@@ -93,6 +120,19 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   static const _maxQuantity = 100;
 
   bool get _isEdit => widget.existing != null;
+
+  /// Only a fresh create starts from a default: an edit shows the spool's own
+  /// profiles and a copy the copied ones.
+  bool get _startsFromDefault => !_isEdit && widget.copyOf == null;
+
+  static const _productKeys = ['material', 'brand', 'subtype', 'colorName'];
+
+  ProfileProduct _product() => ProfileProduct(
+    material: _c['material']!.text,
+    brand: _c['brand']!.text,
+    subtype: _c['subtype']!.text,
+    colorName: _c['colorName']!.text,
+  );
 
   @override
   void initState() {
@@ -138,10 +178,16 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         _LinkDraft(link, keepPurchaseSource: copy == null),
     ];
     _linksDirty = copy != null;
+    if (_startsFromDefault) {
+      for (final key in _productKeys) {
+        _c[key]!.addListener(_scheduleResolve);
+      }
+    }
   }
 
   @override
   void dispose() {
+    _resolveTimer?.cancel();
     for (final c in _c.values) {
       c.dispose();
     }
@@ -151,13 +197,13 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     super.dispose();
   }
 
-  String? _trim(String key) => _trimmedField(_c, key);
+  String? _trim(String key) => trimmedOrNull(_c[key]!.text);
 
   /// Whether the form offers the material number at all: the server has to
   /// store it and the backend has to take a write (Spoolman's is read-only).
   bool _showsMaterialNumber(WidgetRef ref) =>
       ref.read(materialNumberSupportedProvider).orFalse &&
-      ref.read(inventoryBackendProvider).valueOrNull == InventoryBackend.native;
+      ref.read(inventoryBackendProvider).value == InventoryBackend.native;
 
   /// Whether the form offers the drying date: only on a spool that exists (the
   /// web's `showLastDried={isEditing}`), and only where the server stores it —
@@ -285,6 +331,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final linkWriter = writeLinks
         ? ref.read(suppliersRepositoryProvider)
         : null;
+    final writeDefault = _defaultWriter();
     try {
       final String message;
       // Which spool the per-model presets belong to. Null for a restock, which
@@ -323,7 +370,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           logId: 'spool_form.save_model_presets',
           l10n: l10n,
           messenger: messenger,
-          unexpected: l10n.inventoryPrinterPresetsSaveFailed,
         );
         if (!saved) return;
         _overridesDirty = false;
@@ -342,9 +388,26 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         // The spool write reloaded the shelf before these landed.
         unawaited(notifier.refresh());
       }
+      var defaultFailed = false;
+      if (writeDefault != null) {
+        try {
+          await writeDefault();
+        } on AppApiException catch (e) {
+          // Not a reason to keep the sheet: the spool is saved, and a retry of a
+          // restock would create the spools again. The web warns and closes too.
+          defaultFailed = true;
+          showApiFailure(
+            mounted ? messenger : null,
+            e,
+            l10n,
+            action: 'spool_form.default',
+            message: l10n.inventoryProfileDefaultSaveFailed,
+          );
+        }
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
-      messenger.snack(message);
+      if (!defaultFailed) messenger.snack(message);
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
       showApiFailure(
@@ -353,10 +416,10 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         l10n,
         action: 'spool_form.save',
       );
-    } on Object {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      messenger.snack(l10n.inventorySaveFailed);
+    } catch (_) {
+      // A bug, not a refusal: lower the flag and let it reach the bug report.
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 
@@ -368,13 +431,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// write is a delete. A failure leaves the sheet open with the picks still in it — the
   /// spool itself is already saved, and the retry costs one PATCH of a spool
   /// that now exists either way (see [_createdSpoolId]). An unexpected error
-  /// goes on to [_save]'s own handler unless [unexpected] words it here.
+  /// goes on to [_save]'s own handler.
   Future<bool> _followUpWrite(
     Future<void> Function() write, {
     required String logId,
     required AppLocalizations l10n,
     required ScaffoldMessengerState messenger,
-    String? unexpected,
   }) async {
     try {
       await write();
@@ -382,11 +444,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
       showApiFailure(mounted ? messenger : null, e, l10n, action: logId);
-      return false;
-    } on Object {
-      if (unexpected == null) rethrow;
-      if (mounted) setState(() => _saving = false);
-      messenger.snack(unexpected);
       return false;
     }
   }
@@ -411,7 +468,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final brands = ref.watch(brandOptionsProvider);
     final subtypes = ref.watch(subtypeOptionsProvider);
     final locations = ref.watch(locationOptionsProvider);
-    final cores = ref.watch(coreWeightsProvider).valueOrNull ?? const [];
+    final cores = ref.watch(coreWeightsProvider).value ?? const [];
     // Per-model presets: only asked for on a server that has the routes, and
     // only for a spool that exists — a new one has no rows to read.
     final overridesGate = ref.watch(presetOverridesSupportedProvider);
@@ -422,7 +479,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         ? ref.watch(spoolPresetOverridesProvider(sourceId))
         : const AsyncValue<List<SpoolPresetOverride>>.data([]);
     if (showOverrides) {
-      final rows = stored.valueOrNull;
+      final rows = stored.value;
       if (rows != null) _seedOverrides(rows);
     }
     // A copy saved before its presets arrive would be created without them;
@@ -443,8 +500,20 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             // spool's.
             suppliersGate.offer == ControlOffer.pending);
     final models = showOverrides
-        ? ref.watch(printerModelsProvider).valueOrNull ?? const <String>[]
+        ? ref.watch(printerModelsProvider).value ?? const <String>[]
         : const <String>[];
+    ref.listen(profileDefaultsSupportedProvider, (_, next) {
+      // Typed before the server had answered: look the product up now.
+      if (next.orFalse) {
+        _lastResolvedKey = null;
+        _scheduleResolve();
+      }
+    });
+    // Saving the presets as the default is a replacement of the default's
+    // presets, so it waits until the form knows the rows it would send.
+    final showDefault =
+        ref.watch(profileDefaultsSupportedProvider).orFalse &&
+        (_overrides != null || !showOverrides);
 
     return DraggableSheetSurface(
       initialSize: 0.9,
@@ -464,8 +533,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               children: [
                 ValueListenableBuilder(
                   valueListenable: _c['rgba']!,
-                  builder: (context, _, _) =>
-                      SpoolSwatch(rgba: _c['rgba']!.text, size: 40, radius: 12),
+                  builder: (context, _, _) => SpoolSwatch(
+                    rgba: _c['rgba']!.text,
+                    size: DashSize.d40,
+                    radius: DashRadius.md,
+                  ),
                 ),
                 const SizedBox(width: DashSpace.md),
                 Expanded(
@@ -605,6 +677,20 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 
             if (showOverrides) ..._presetOverridesSection(l10n, stored, models),
 
+            if (showDefault)
+              ListenableBuilder(
+                listenable: Listenable.merge([
+                  for (final key in _productKeys) _c[key]!,
+                ]),
+                builder: (context, _) => _ProfileDefaultRow(
+                  product: _product(),
+                  value: _saveAsDefault,
+                  onChanged: (on) => setState(() => _saveAsDefault = on),
+                  forColor: _defaultForColor,
+                  onScope: (color) => setState(() => _defaultForColor = color),
+                ),
+              ),
+
             if (showSuppliers)
               _SupplierLinksSection(
                 links: _links,
@@ -620,7 +706,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               child: FilledButton(
                 onPressed: _saving || copyPresetsPending ? null : _save,
                 child: _saving || copyPresetsPending
-                    ? DashSpinner(size: 20, color: t.onAccent)
+                    ? DashSpinner(size: DashSize.d20, color: t.onAccent)
                     : Text(
                         !_isEdit && _quantity > 1
                             ? l10n.inventoryAddSpools(_quantity)
@@ -665,7 +751,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   Widget _emptySpoolField(AppLocalizations l10n, List<CoreWeightEntry> cores) {
     final t = DashTokens.of(context);
     final weightField = SizedBox(
-      width: cores.isEmpty ? null : 110,
+      width: cores.isEmpty ? null : DashSize.d112,
       child: TextFormField(
         controller: _c['coreWeight'],
         style: t.body,
@@ -778,7 +864,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         decoration: BoxDecoration(
           color: t.subCard,
           border: Border.all(color: t.subCardBorder),
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(DashRadius.xl),
         ),
         // One id for both buttons, as it has always been logged.
         child: DashStepper(
@@ -816,6 +902,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         onPressed: () => setState(() {
           _slicerFilament = null;
           _slicerFilamentName = null;
+          _slicerFromDefault = false;
         }),
       ),
     );
@@ -832,6 +919,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     setState(() {
       _slicerFilament = picked.id;
       _slicerFilamentName = picked.name;
+      _slicerFromDefault = false;
       final mat = picked.filamentType?.trim();
       if (_c['material']!.text.trim().isEmpty &&
           mat != null &&
@@ -859,6 +947,132 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     // A copy's rows are the source spool's: the new one has none on the
     // server until they are written.
     _overridesDirty = widget.copyOf != null && rows.isNotEmpty;
+  }
+
+  /// Looks the typed product up once the typing stops, as the web does. The
+  /// controllers call this on every change of a product field, selection moves
+  /// included, so [_lastResolvedKey] drops the ones that ask the same question.
+  void _scheduleResolve() {
+    if (!_startsFromDefault) return;
+    // An answer for what was typed a moment ago must not land on top of what is
+    // typed now, even before this lookup's own timer has fired.
+    if (_inFlightKey != null && _product().matchKey != _inFlightKey) {
+      _resolveEpoch++;
+      _inFlightKey = null;
+    }
+    _resolveTimer?.cancel();
+    _resolveTimer = Timer(const Duration(milliseconds: 300), _resolveDefault);
+  }
+
+  Future<void> _resolveDefault() async {
+    if (!mounted || !ref.read(profileDefaultsSupportedProvider).orFalse) return;
+    final product = _product();
+    final key = product.matchKey;
+    // Shown already, or being asked for: a second request would only drop the
+    // first one's answer.
+    if (key == _lastResolvedKey || key == _inFlightKey) return;
+    final epoch = ++_resolveEpoch;
+    _inFlightKey = key;
+    final repo = ref.read(profileDefaultsRepositoryProvider);
+    ResolvedProfileDefault? resolved;
+    var failed = false;
+    if (product.material.trim().isNotEmpty) {
+      try {
+        resolved = await repo.resolve(product);
+      } on AppApiException {
+        // Not fatal: the server lays the default on the spool at create anyway.
+        failed = true;
+      } on Object {
+        // A bug, not a refusal: it must reach the report, but not leave the
+        // product marked as being asked for.
+        if (epoch == _resolveEpoch) _inFlightKey = null;
+        rethrow;
+      }
+    }
+    if (!mounted || epoch != _resolveEpoch) return;
+    _inFlightKey = null;
+    // What the previous product's default put in is not this product's either,
+    // so a failed lookup takes it out and is asked again on the next change.
+    _lastResolvedKey = failed ? null : key;
+    setState(() => _applyDefault(resolved, product));
+  }
+
+  /// Puts [resolved] into the form without touching what the user chose, and
+  /// takes out what the previous product's default put there.
+  void _applyDefault(ResolvedProfileDefault? resolved, ProfileProduct product) {
+    final rows = _overrides ??= {};
+    for (final MapEntry(:key, :value) in _defaultOverrides.entries) {
+      if (identical(rows[key], value)) rows.remove(key);
+    }
+    final filled = <String, SpoolPresetOverride>{};
+    for (final row in resolved?.presets ?? const <SpoolPresetOverride>[]) {
+      if (rows.containsKey(row.key) || _touchedModels.contains(row.key)) {
+        continue;
+      }
+      rows[row.key] = row;
+      filled[row.key] = row;
+    }
+    _defaultOverrides = filled;
+    final code = resolved?.slicerFilament ?? '';
+    if (code.isNotEmpty &&
+        ((_slicerFilament ?? '').isEmpty || _slicerFromDefault)) {
+      _slicerFilament = code;
+      _slicerFilamentName = resolved!.slicerFilamentName;
+      _slicerFromDefault = true;
+    } else if (code.isEmpty && _slicerFromDefault) {
+      _slicerFilament = null;
+      _slicerFilamentName = null;
+      _slicerFromDefault = false;
+    }
+    // Only what actually went into the form: a default whose preset lost to the
+    // user's own pick filled nothing.
+    _prefilledFrom = filled.isNotEmpty || _slicerFromDefault
+        ? product.label
+        : null;
+  }
+
+  /// Whether anything the default put in is still there: a preset or a row the
+  /// user has since replaced or cleared no longer makes the note true.
+  bool get _stillFromDefault =>
+      _slicerFromDefault ||
+      _defaultOverrides.entries.any(
+        (e) => identical(_overrides?[e.key], e.value),
+      );
+
+  /// The write behind "Use as default", or null when it is off or cannot be
+  /// made. Everything it needs is read here, before the spool's own write: a
+  /// form that is gone by then has no `ref` left.
+  ///
+  /// The save replaces the whole default and the form has no K profile editor,
+  /// so it sends back the K profiles the server holds for this exact product.
+  Future<void> Function()? _defaultWriter() {
+    final product = _product();
+    if (!_saveAsDefault ||
+        product.material.trim().isEmpty ||
+        !ref.read(profileDefaultsSupportedProvider).orFalse) {
+      return null;
+    }
+    final target = _defaultForColor && product.colorName.trim().isNotEmpty
+        ? product
+        : product.allColours;
+    final presets =
+        _overrides?.values.toList() ?? const <SpoolPresetOverride>[];
+    final (preset, name) = (_slicerFilament, _slicerFilamentName);
+    final repo = ref.read(profileDefaultsRepositoryProvider);
+    return () async {
+      final stored = (await repo.list())
+          .where((d) => d.product.matchKey == target.matchKey)
+          .firstOrNull;
+      await repo.save(
+        ProfileDefaultDraft(
+          product: target,
+          slicerFilament: preset,
+          slicerFilamentName: name,
+          presets: presets,
+          kProfiles: stored?.kProfiles ?? const [],
+        ),
+      );
+    };
   }
 
   /// Keeps a new spool full while the label weight is being typed.
@@ -913,6 +1127,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         icon: Icons.info_outline,
         padding: const EdgeInsets.only(bottom: DashSpace.xs),
       ),
+      if (_prefilledFrom case final product? when _stillFromDefault)
+        InlineNote(
+          l10n.inventoryProfileDefaultPrefilled(product),
+          icon: Icons.auto_awesome,
+          padding: const EdgeInsets.only(bottom: DashSpace.xs),
+        ),
       if (loadFailed)
         InlineNote(l10n.inventoryPrinterPresetsLoadFailed, urgent: true)
       else if (loading)
@@ -951,6 +1171,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         tooltip: l10n.clear,
         onPressed: () => setState(() {
           _overrides?.remove(row.key);
+          _touchedModels.add(row.key);
           _overridesDirty = true;
         }),
       ),
@@ -974,6 +1195,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     if (picked == null || !mounted) return;
     setState(() {
       (_overrides ??= {})[row.key] = row.withPreset(picked.id, picked.name);
+      _touchedModels.add(row.key);
       _overridesDirty = true;
     });
   }
@@ -994,7 +1216,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       placeholder: l10n.inventoryColorNone,
       value: color == null ? null : hex.toUpperCase(),
       valueStyle: t.monoValue,
-      leading: SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24, radius: 6),
+      leading: SpoolSwatch(
+        rgba: hex.isEmpty ? null : hex,
+        size: DashSize.d24,
+        radius: DashRadius.sm,
+      ),
       trailingIcon: Icons.colorize,
       onTap: _openColorPicker,
       // The row this shares with the colour-name field carries the spacing.
@@ -1070,7 +1296,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               children: [
                 if (at != null)
                   IconButton(
-                    icon: const Icon(Icons.close, size: 18),
+                    icon: const Icon(Icons.close, size: DashIcon.md),
                     tooltip: l10n.clear,
                     onPressed: () => setState(() {
                       _lastDried = null;
@@ -1099,8 +1325,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   String? _spoolmanKeeps(String key, Object? stored, AppLocalizations l10n) =>
       stored != null &&
           _c[key]!.text.trim().isEmpty &&
-          ref.read(inventoryBackendProvider).valueOrNull ==
-              InventoryBackend.spoolman
+          ref.read(inventoryBackendProvider).value == InventoryBackend.spoolman
       ? l10n.inventorySpoolmanCannotClear
       : null;
 }
@@ -1221,14 +1446,6 @@ Widget _spoolCombo(
   );
 }
 
-/// A trimmed field value, or null when the user left it blank. Blank means
-/// "unset" on both sheets: the form sends no key rather than an empty string,
-/// and the mass-edit patch leaves the field alone.
-String? _trimmedField(Map<String, TextEditingController> c, String key) {
-  final v = c[key]!.text.trim();
-  return v.isEmpty ? null : v;
-}
-
 /// An integer-typed field, parsed with the same tolerance as its validator:
 /// every numeric field on both sheets is validated as a decimal, so a decimal
 /// has to round here rather than come out null — see [parseUserRoundedInt].
@@ -1254,7 +1471,7 @@ class _ColorPicker extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final colors = ref.watch(colorCatalogProvider).valueOrNull ?? const [];
+    final colors = ref.watch(colorCatalogProvider).value ?? const [];
     final preview = parseSpoolColor(rgba);
     final selectedHex = normalizeRgba(rgba);
 
@@ -1278,10 +1495,10 @@ class _ColorPicker extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          height: 40,
+          height: DashSize.d40,
           decoration: BoxDecoration(
             color: preview ?? t.subCard,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(DashRadius.md),
             border: Border.all(color: t.subCardBorder),
           ),
         ),
@@ -1296,8 +1513,8 @@ class _ColorPicker extends ConsumerWidget {
           if (q.isEmpty) Text(l10n.inventoryColorCommon, style: t.microSoft),
           const SizedBox(height: DashSpace.xs),
           Wrap(
-            spacing: DashSpace.sm,
-            runSpacing: DashSpace.sm,
+            spacing: PickerTile.gap(_ColorChip.drawing, DashSpace.sm),
+            runSpacing: PickerTile.gap(_ColorChip.drawing, DashSpace.sm),
             children: [
               for (final c in shown)
                 _ColorChip(
@@ -1325,32 +1542,37 @@ class _ColorChip extends StatelessWidget {
   final VoidCallback onTap;
   final bool selected;
 
+  static const drawing = 36.0;
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final color = parseSpoolColor(entry.hexColor);
     return Tooltip(
       message: entry.colorName,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+      child: PickerTile(
+        drawing: drawing,
         onTap: onTap,
-        child: Container(
-          width: 36,
-          height: 36,
+        child: DecoratedBox(
           decoration: BoxDecoration(
             color: color ?? t.subCard,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(DashRadius.sm),
             border: Border.all(
               color: selected ? t.accentGreen : t.subCardBorder,
-              width: selected ? 2 : 1,
+              width: selected ? DashStroke.regular : DashStroke.hairline,
             ),
           ),
           child: color == null
-              ? Icon(Icons.question_mark, size: 16, color: t.textTertiary)
+              ? Icon(
+                  Icons.question_mark,
+                  size: DashIcon.sm,
+                  applyTextScaling: false,
+                  color: t.textTertiary,
+                )
               : null,
         ),
-      ).tagged('spool_form.color_swatch'),
-    );
+      ),
+    ).tagged('spool_form.color_swatch');
   }
 }
 
@@ -1393,8 +1615,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
     final material = widget.material?.trim() ?? '';
     // Without the registry the model filter classifies nothing and hides
     // nothing, so the chip stays honest while it loads.
-    final registry =
-        ref.watch(printerModelRegistryProvider).valueOrNull ?? const {};
+    final registry = ref.watch(printerModelRegistryProvider).value ?? const {};
 
     return DraggableSheetSurface(
       builder: (context, controller) => Column(
@@ -1552,7 +1773,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final cores = ref.watch(coreWeightsProvider).valueOrNull ?? const [];
+    final cores = ref.watch(coreWeightsProvider).value ?? const [];
     final q = _query.trim().toLowerCase();
     final items = [
       for (final c in cores)
@@ -1640,7 +1861,10 @@ class _FormSection extends StatelessWidget {
       padding: const EdgeInsets.only(top: DashSpace.sm, bottom: DashSpace.xs),
       child: Text(
         label.toUpperCase(),
-        style: t.micro.copyWith(color: t.accentGreenInk, letterSpacing: 1.2),
+        style: t.micro.copyWith(
+          color: t.accentGreenInk,
+          letterSpacing: DashTracking.caps,
+        ),
       ),
     );
   }

@@ -15,7 +15,7 @@ final announcementsProvider =
 /// count. Re-read as the web's query is: every 10 minutes (the server itself
 /// only goes to GitHub every few hours), when the server announces a change,
 /// and on every regained contact — the web's refetch on window focus.
-class AnnouncementsNotifier extends AutoDisposeAsyncNotifier<AnnouncementFeed> {
+class AnnouncementsNotifier extends AsyncNotifier<AnnouncementFeed> {
   static const pollEvery = Duration(minutes: 10);
 
   @override
@@ -45,7 +45,7 @@ class AnnouncementsNotifier extends AutoDisposeAsyncNotifier<AnnouncementFeed> {
     final next = await AsyncValue.guard(
       () => ref.read(announcementsRepositoryProvider).fetch(),
     );
-    if (overlapped || _writes != writesBefore) return;
+    if (!ref.mounted || overlapped || _writes != writesBefore) return;
     if (next.hasValue || !state.hasValue) state = next;
   }
 
@@ -55,7 +55,7 @@ class AnnouncementsNotifier extends AutoDisposeAsyncNotifier<AnnouncementFeed> {
 
   /// The server has no bulk route, so one write per unread message, in turn.
   Future<void> markAllRead() async {
-    final feed = state.valueOrNull;
+    final feed = state.value;
     if (feed == null) return;
     await _markRead({
       for (final a in feed.items)
@@ -64,7 +64,7 @@ class AnnouncementsNotifier extends AutoDisposeAsyncNotifier<AnnouncementFeed> {
   }
 
   Future<void> _markRead(Set<String> ids) async {
-    final feed = state.valueOrNull;
+    final feed = state.value;
     if (feed == null || ids.isEmpty) return;
     final optimistic = feed.markedRead(ids);
     final recorded = <String>{};
@@ -73,14 +73,17 @@ class AnnouncementsNotifier extends AutoDisposeAsyncNotifier<AnnouncementFeed> {
     state = AsyncData(optimistic);
     try {
       for (final id in ids) {
+        // The inbox can close between two writes; there is nothing to roll back.
+        if (!ref.mounted) return;
         await ref.read(announcementsRepositoryProvider).markRead(id);
         recorded.add(id);
       }
     } catch (e) {
       _writesInFlight--;
+      if (!ref.mounted) return;
       // Back to what it was, less what the server already took, unless
       // something newer replaced it meanwhile.
-      if (identical(state.valueOrNull, optimistic)) {
+      if (identical(state.value, optimistic)) {
         state = AsyncData(feed.markedRead(recorded));
       }
       unawaited(refresh());

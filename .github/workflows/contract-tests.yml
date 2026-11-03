@@ -1,35 +1,16 @@
 name: Contract tests
 
-# Does our parsing still match what the server actually sends?
+# Does our parsing still match what the real server sends? A real bambuddy behind
+# the real Dio client; `flutter test` only replays fixtures we wrote.
 #
-# `flutter test` answers a different question. Its mocked transport replays
-# fixtures we wrote ourselves, so a suite can be green while the wire has moved
-# underneath it — which is how the queue's filament colours and the http/https
-# redirect both shipped. This job puts a real bambuddy behind the real Dio
-# client and parses real responses with the real models.
-#
-# Runs on [self-hosted, ci-docker], which is the ONE runner whose jobs are
-# handed the Docker daemon (TofuSadurkiV2/ci_runner_docker). A job there can
-# create a privileged container, i.e. own that host — so note what is missing
-# from the triggers below:
-#
-#   there is no `pull_request`, and that is deliberate.
-#
-# This repository is public. A fork PR is code written by a stranger, and
-# letting it reach a runner with the Docker socket hands that stranger the box.
-# Branch pushes and manual dispatch only; the org runner group is additionally
-# restricted to this workflow file, so even a matching `runs-on` elsewhere gets
-# no runner.
+# GitHub-hosted runners: every job is a throwaway VM and uses no secrets, so a fork
+# pull request cannot reach anything.
 
 on:
-  # Daily, 04:23 UTC, dispatched by Dagu on lxc-dagu rather than a `schedule:`
-  # here — see docs/scheduled-workflows.md. The server moves ~100 commits a
-  # fortnight, so most breakage arrives without a commit of ours to hang it on.
-  # server-drift.yml reads that as a diff; this catches the half that a diff
-  # cannot judge.
+  # Daily 04:23 UTC, dispatched by Dagu rather than `schedule:` (docs/release.md).
   workflow_dispatch:
-  push:
-    branches: [dev, master]
+  pull_request:
+    branches: [master]
     paths:
       - "lib/core/**"
       - "lib/data/**"
@@ -37,41 +18,30 @@ on:
       - ".github/workflows/contract-tests.yml"
 
 concurrency:
-  group: contract-tests
-  cancel-in-progress: false
+  group: contract-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 env:
-  # The label print server the label tests talk to, pinned to a commit: its
-  # behaviour is what the tests assert, so it moves when somebody moves it.
-  # https://github.com/DoYouHost/brother-ql-print-server
+  FLUTTER_VERSION: "3.47.7"
+  # DoYouHost/brother-ql-print-server, pinned: the label tests assert its behaviour.
   LABEL_PRINTER_REF: b6c91c44bba43ed8f75f45c0cb3ac6878753b27c
   ADMIN_USER: ci-admin
-  # Server-side rule (backend/app/schemas/auth.py::_validate_password_complexity):
-  # upper, lower, digit, special, >= 8. Not a secret — the instance is created
-  # empty for this run and destroyed with it.
+  # Meets the server's password complexity rule; not a secret, the instance lives one run.
   ADMIN_PASS: CiTest!2026x
 
 jobs:
   contract:
     name: parse real server responses (${{ matrix.tag }})
-    runs-on: [self-hosted, ci-docker]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Three generations of the server, because the app talks to all of them:
-    # `latest` is the last release, `daily` the development branch, where a
-    # feature lands weeks before it ships, and `1.2.5` a fixed older release
-    # that stays put when `latest` moves on. Tests detect which one they got
-    # and assert the matching half, so a new field is checked on `daily` while
-    # the older two still prove the silent drop.
-    #
-    # One at a time: there is one runner with the Docker daemon, and the
-    # jobs publish the server on the same bridge-gateway port. fail-fast off,
-    # so a break on `daily` (upstream moving) never hides the release result.
+    # `latest` is the last release, `daily` the development branch, `1.2.5` a fixed
+    # older release. Tests detect which one they got and assert the matching half.
+    # fail-fast is off so a break on `daily` never hides the release result.
     strategy:
       fail-fast: false
-      max-parallel: 1
       matrix:
         tag: [latest, daily, "1.2.5"]
     env:
@@ -82,16 +52,13 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Toolchain
-        run: flutter --version
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
 
-      # The server runs as a SIBLING container, not inside this job, so
-      # "localhost" is not shared. Publishing on the bridge gateway is what both
-      # sides can name: the job reaches its own default route, and nothing on
-      # the LAN can reach the port.
-      # Two containers, both siblings of this job on the docker bridge. The
-      # server is published on the bridge gateway because "localhost" is not
-      # shared between siblings; nothing on the LAN can reach that address.
+      # Published on the bridge gateway, which nothing outside the VM can reach.
       - name: Start bambuddy and the stand-in printer
         id: server
         run: |
@@ -101,8 +68,7 @@ jobs:
 
           certs="$RUNNER_TEMP/fake-printer-certs"
           mkdir -p "$certs"
-          # Self-signed is not a shortcut: BambuMQTTClient sets CERT_NONE and
-          # check_hostname = False because Bambu printers ship exactly this.
+          # Self-signed on purpose: BambuMQTTClient uses CERT_NONE, as Bambu printers do.
           openssl req -x509 -newkey rsa:2048 -nodes -days 2 \
             -keyout "$certs/server.key" -out "$certs/server.crt" \
             -subj "/CN=fake-bambu" >/dev/null 2>&1
@@ -112,10 +78,12 @@ jobs:
           server="bambuddy-ci-${GITHUB_RUN_ID}-${{ matrix.tag }}"
           spoolman="spoolman-ci-${GITHUB_RUN_ID}-${{ matrix.tag }}"
           labelprinter="label-printer-ci-${GITHUB_RUN_ID}-${{ matrix.tag }}"
-          echo "broker=$broker" >> "$GITHUB_OUTPUT"
-          echo "labelprinter=$labelprinter" >> "$GITHUB_OUTPUT"
-          echo "name=$server" >> "$GITHUB_OUTPUT"
-          echo "spoolman=$spoolman" >> "$GITHUB_OUTPUT"
+          {
+            echo "broker=$broker"
+            echo "labelprinter=$labelprinter"
+            echo "name=$server"
+            echo "spoolman=$spoolman"
+          } >> "$GITHUB_OUTPUT"
 
           docker pull --quiet eclipse-mosquitto:2
           docker create --rm --name "$broker" eclipse-mosquitto:2
@@ -123,14 +91,13 @@ jobs:
           docker cp "$certs" "$broker":/mosquitto/certs
           docker start "$broker"
 
-          # Off until spoolman_contract_test switches the server to it for its
-          # own run; the default bridge has no DNS, so the server gets an IP.
+          # Off until spoolman_contract_test enables it; the default bridge has no
+          # DNS, so the server gets an IP.
           docker pull --quiet ghcr.io/donkie/spoolman:latest
           docker run -d --rm --name "$spoolman" ghcr.io/donkie/spoolman:latest
 
-          # The real label print server, printing into a file instead of a
-          # Brother printer. It installs itself on start (about a minute), so
-          # the step that waits for it is the next one.
+          # Prints into a file instead of a Brother printer; installs itself on
+          # start (about a minute).
           docker pull --quiet python:3.13-slim
           docker run -d --rm --name "$labelprinter" \
             -p "${gateway}:8200:8000" \
@@ -150,14 +117,14 @@ jobs:
           broker_ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$broker")"
           echo "broker_ip=$broker_ip" >> "$GITHUB_OUTPUT"
           spoolman_ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$spoolman")"
-          echo "spoolman_url=http://${spoolman_ip}:8000" >> "$GITHUB_OUTPUT"
-          echo "base=http://${gateway}:8000" >> "$GITHUB_OUTPUT"
-          echo "labelprinter_url=http://${gateway}:8200" >> "$GITHUB_OUTPUT"
+          {
+            echo "spoolman_url=http://${spoolman_ip}:8000"
+            echo "base=http://${gateway}:8000"
+            echo "labelprinter_url=http://${gateway}:8200"
+          } >> "$GITHUB_OUTPUT"
 
-      # A real Manyfold behind the server's Manyfold routes (#1471), so the
-      # tests browse and import rather than only meet the refusals. Daily only:
-      # no release has those routes yet, and the image is 1.5 GB. Started here
-      # so its first boot overlaps the label server's install and the seed.
+      # Daily only: no release has the Manyfold routes (#1471) yet, and the image
+      # is 1.5 GB. Started early so its first boot overlaps the seed.
       - name: Start Manyfold
         id: manyfold
         if: matrix.tag == 'daily'
@@ -176,7 +143,6 @@ jobs:
           docker create --rm --name "$name" \
             -e SECRET_KEY_BASE="$(openssl rand -hex 64)" \
             ghcr.io/manyfold3d/manyfold-solo:latest >/dev/null
-          # docker cp rather than -v: the daemon's filesystem is not the runner's.
           docker cp "$library/." "$name":/libraries
           docker start "$name" >/dev/null
           ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$name")"
@@ -195,8 +161,7 @@ jobs:
           echo "the label print server never answered /info"
           exit 1
 
-      # Waits for /health itself, then walks the server up to one printer
-      # reporting a job, one uploaded file and one queued item.
+      # Waits for /health, then seeds one printer with a job, one file, one queued item.
       - name: Seed
         run: |
           bash tool/ci/seed_bambuddy.sh \
@@ -205,8 +170,7 @@ jobs:
             --broker-container "${{ steps.server.outputs.broker }}" \
             --admin-user "$ADMIN_USER" --admin-pass "$ADMIN_PASS"
 
-      # Retried because `rails runner` fails until the first boot has migrated
-      # the database, which takes longer than any fixed sleep worth writing.
+      # Retried: `rails runner` fails until the first boot has migrated the database.
       - name: Set up Manyfold
         id: manyfold_app
         if: matrix.tag == 'daily'
@@ -233,9 +197,8 @@ jobs:
       - name: Dependencies
         run: flutter pub get --enforce-lockfile
 
-      # test/contract/ is skipped by `flutter test` everywhere else — the guard
-      # is the absence of this variable, so `just test` on a laptop stays green
-      # without a server.
+      # test/contract/ is skipped elsewhere: the guard is the absence of
+      # BAMBUDDY_CONTRACT_URL.
       - name: Contract tests
         env:
           BAMBUDDY_CONTRACT_URL: ${{ steps.server.outputs.base }}
@@ -245,25 +208,39 @@ jobs:
           BAMBUDDY_CONTRACT_BROKER: ${{ steps.server.outputs.broker }}
           BAMBUDDY_CONTRACT_BROKER_IP: ${{ steps.server.outputs.broker_ip }}
           BAMBUDDY_CONTRACT_SPOOLMAN_URL: ${{ steps.server.outputs.spoolman_url }}
-          # The label print server prints into /tmp/lp0 inside its container;
-          # the tests read it back through `docker exec`.
+          # Prints into /tmp/lp0 in its container; the tests read it via `docker exec`.
           LABEL_PRINTER_CONTRACT_URL: ${{ steps.server.outputs.labelprinter_url }}
           LABEL_PRINTER_CONTRACT_CONTAINER: ${{ steps.server.outputs.labelprinter }}
           LABEL_PRINTER_CONTRACT_OUT: /tmp/lp0
           BAMBUDDY_CONTRACT_MANYFOLD_URL: ${{ steps.manyfold.outputs.url }}
           BAMBUDDY_CONTRACT_MANYFOLD_CLIENT_ID: ${{ steps.manyfold_app.outputs.client_id }}
           BAMBUDDY_CONTRACT_MANYFOLD_CLIENT_SECRET: ${{ steps.manyfold_app.outputs.client_secret }}
-          # NOT decoration, and not cosmetic either: the runner is UTC, where a
-          # naive timestamp read as local and the same one read as UTC are the
-          # same instant — so the timestamp contract would pass no matter which
-          # the app did. Measured: with TZ unset the parser swapped for a naive
-          # DateTime.parse still went green; at this offset it fails by two
-          # hours. Any zone but UTC will do; this one matches the server's.
+          # Not decoration: on a UTC runner a naive timestamp passes whether it is
+          # read as local or as UTC. Any zone but UTC works.
           TZ: Europe/Warsaw
-        # One file at a time: they all write to the same server, and SQLite
-        # hands a deleted row's id to the next insert — a lifecycle test that
-        # checked "id gone" read another file's new row (run 34723538872).
-        run: flutter test test/contract --concurrency=1 --reporter expanded
+        # One file at a time: they share a server, and SQLite reuses a deleted row's id.
+        run: |
+          # The suite relies on name order (the ws_ files move the seeded printer);
+          # a directory's own listing order is not alphabetical on every host.
+          mapfile -t files < <(find test/contract -maxdepth 1 -name '*_test.dart' | LC_ALL=C sort)
+          flutter test "${files[@]}" --concurrency=1 --reporter expanded
+
+      # maziggy/bambuddy#3320: a write answered 200 must already be committed. The
+      # server is made to commit a second late and one file runs against it; it
+      # skips itself on servers older than the fix (1.3.1). Last, because the
+      # restart touches the server every other file shares.
+      - name: Commit before response
+        env:
+          BAMBUDDY_CONTRACT_URL: ${{ steps.server.outputs.base }}
+          BAMBUDDY_CONTRACT_USER: ${{ env.ADMIN_USER }}
+          BAMBUDDY_CONTRACT_PASS: ${{ env.ADMIN_PASS }}
+          BAMBUDDY_CONTRACT_COMMIT_DELAY: "1"
+          TZ: Europe/Warsaw
+        run: |
+          bash tool/ci/delay_commit.sh \
+            "${{ steps.server.outputs.name }}" "${{ steps.server.outputs.base }}"
+          flutter test test/contract/commit_before_response_contract_test.dart \
+            --reporter expanded
 
       - name: Logs on failure
         if: failure()
@@ -286,8 +263,7 @@ jobs:
             echo "::endgroup::"
           fi
 
-      # --rm covers the ordinary exit; this covers a cancelled job, and the
-      # runner wrapper sweeps whatever survives even that before the next job.
+      # --rm covers a normal exit; this covers a cancelled job.
       - name: Tear down
         if: always()
         run: |

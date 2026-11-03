@@ -9,18 +9,23 @@ import '../../core/models/printer_capabilities.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/outcome_snack.dart';
 import '../dashboard/controls_providers.dart';
 import '../dashboard/temp_readings.dart';
 import 'controller_controls.dart';
 import 'controller_providers.dart';
 import 'scale_to_fit.dart';
 
+/// How many cards a row of the Heat page holds: two heaters or two fans side by
+/// side, which leaves a name room to stay on one line at 200 % text.
+const _perRow = 2;
+
 /// The Heat tab: every heater with its target, and the fans
 /// ([docs/single-printer-controller.md] §2). Reads its printer through
 /// [controllerPrinterProvider] only, and shares the height between the two rows
-/// like the Overview does, so it fills the screen and never scrolls.
+/// like the Overview does, so it fills the screen and never scrolls; at a large
+/// text size it is a [ControllerPage] instead.
 class ControllerHeat extends ConsumerWidget {
   const ControllerHeat({super.key, required this.printerId});
 
@@ -52,24 +57,82 @@ class ControllerHeat extends ConsumerWidget {
       (r) => r.kind == TempKind.nozzle && r.index != null,
     );
     final fans = _fansOf(status, l10n);
-    final stacked = readings.length > _sideBySideMax;
+    // A large text size gives each heater the room of a stacked one and leaves
+    // the fans the height their wrapped names need.
+    final stacked =
+        readings.length > _sideBySideMax || controllerPaged(context);
+    Widget fanCard(({String key, String label, int value}) fan) => _FanCard(
+      printerId: printerId,
+      fan: fan.key,
+      label: fan.label,
+      value: fan.value,
+      refused: refused,
+    );
     final fansRow = Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final (i, fan) in fans.indexed) ...[
           if (i > 0) const SizedBox(width: DashSpace.md),
-          Expanded(
-            child: _FanCard(
-              printerId: printerId,
-              fan: fan.key,
-              label: fan.label,
-              value: fan.value,
-              refused: refused,
-            ),
-          ),
+          Expanded(child: fanCard(fan)),
         ],
       ],
     );
+    // A large text size: a page of cards as tall as their content, two to a row
+    // with the ring beside the buttons, then the fans.
+    if (controllerPaged(context)) {
+      return ControllerPage(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (refused) ...[
+              const ControllerForbidden(),
+              const SizedBox(height: DashSpace.sm),
+            ],
+            for (var i = 0; i < readings.length; i += _perRow) ...[
+              if (i > 0) const SizedBox(height: DashSpace.md),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final (j, r)
+                      in readings.skip(i).take(_perRow).indexed) ...[
+                    if (j > 0) const SizedBox(width: DashSpace.md),
+                    Expanded(
+                      child: _HeaterCard(
+                        printerId: printerId,
+                        status: status,
+                        model: item.printer.model,
+                        reading: r,
+                        dual: dual,
+                        stacked: true,
+                        refused: refused,
+                        wide: true,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+            // Two to a row, like the heaters: three across leave a name such as
+            // "Pomocniczy" less width than its own, and it breaks mid-word.
+            for (var i = 0; i < fans.length; i += _perRow) ...[
+              const SizedBox(height: DashSpace.md),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final (j, fan)
+                        in fans.skip(i).take(_perRow).indexed) ...[
+                      if (j > 0) const SizedBox(width: DashSpace.md),
+                      Expanded(child: fanCard(fan)),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -155,6 +218,7 @@ class _HeaterCard extends ConsumerWidget {
     required this.dual,
     required this.stacked,
     required this.refused,
+    this.wide = false,
   });
 
   final int printerId;
@@ -162,6 +226,10 @@ class _HeaterCard extends ConsumerWidget {
   final String? model;
   final TempReading reading;
   final bool dual;
+
+  /// The ring beside the buttons: a card of a two-by-two grid, as wide as it is
+  /// short, for four heaters at a large text size.
+  final bool wide;
 
   /// The reading under the ring instead of beside it.
   final bool stacked;
@@ -183,9 +251,12 @@ class _HeaterCard extends ConsumerWidget {
 
   /// The least a touch target is, so the row is no smaller than the buttons in
   /// it already lay out at: a smaller button keeps a 48 dp area around itself.
-  static const _stackedButtonSize = 48.0;
+  static const _stackedButtonSize = kMinInteractiveDimension;
 
   static const _ringStroke = 7.0;
+
+  /// The ring of a wide card.
+  static const _wideRing = 72.0;
 
   /// The server's hardware index of a nozzle: `nozzle_2` is the right head (0),
   /// the plain key the left one (1) on two heads, and 0 on one.
@@ -248,13 +319,71 @@ class _HeaterCard extends ConsumerWidget {
           textScaler: TextScaler.noScaling,
           style: t.monoDisplay.copyWith(
             fontSize: side * _readingShare,
-            color: color,
+            color: reading.gaugeInk(t, target: shown.toDouble()),
           ),
         ),
       ],
     );
+    final controls = _editable
+        ? Row(
+            children: [
+              _StepButton(
+                size: buttonSize,
+                id: 'controller.heat_minus',
+                tooltip: '−$_step°',
+                icon: Icons.remove,
+                onPressed: canSet && shown > 0
+                    ? () => _set(context, ref, (shown - _step).clamp(0, max))
+                    : null,
+              ),
+              SizedBox(width: gap),
+              Expanded(
+                child: _TargetField(
+                  height: buttonSize,
+                  compact: stacked,
+                  text: shown > 0 ? '$shown' : l10n.ctrlOff,
+                  enabled: canSet,
+                  onSet: (typed) => _set(context, ref, typed.clamp(0, max)),
+                ),
+              ),
+              SizedBox(width: gap),
+              _StepButton(
+                size: buttonSize,
+                id: 'controller.heat_plus',
+                tooltip: '+$_step°',
+                icon: Icons.add,
+                onPressed: canSet && shown < max
+                    ? () => _set(context, ref, (shown + _step).clamp(0, max))
+                    : null,
+              ),
+            ],
+          )
+        : SizedBox(
+            height: buttonSize,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.lock_outline,
+                  size: controllerIconSize(context, DashSpace.lg),
+                  color: t.textTertiary,
+                ),
+                const SizedBox(width: DashSpace.sm),
+                Expanded(
+                  child: Text(
+                    l10n.controllerNoChamberHeater,
+                    style: t.bodySoft,
+                    // The box is one button tall: a second line would spill out.
+                    maxLines: controllerLargeText(context) ? 1 : 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          );
+
     return ControllerCard.single(
       title: label,
+      shrink: wide,
       trailing: dual && reading.kind == TempKind.nozzle
           ? _NozzleSwitch(
               compact: stacked,
@@ -274,80 +403,44 @@ class _HeaterCard extends ConsumerWidget {
               refused: refused,
             )
           : null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, box) => Center(
-                child: ringOf(
-                  math.max(
-                    _ringFloor,
-                    math.min(box.maxWidth, box.maxHeight) - 2 * DashSpace.sm,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: stacked ? DashSpace.xs : DashSpace.sm),
-          if (_editable)
-            Row(
+      child: wide
+          ? Row(
               children: [
-                _StepButton(
-                  size: buttonSize,
-                  id: 'controller.heat_minus',
-                  tooltip: '−$_step°',
-                  icon: Icons.remove,
-                  onPressed: canSet && shown > 0
-                      ? () => _set(context, ref, (shown - _step).clamp(0, max))
-                      : null,
+                // Never taller than the row: a ring squeezed into a shorter box
+                // is drawn as an ellipse.
+                LayoutBuilder(
+                  builder: (context, box) {
+                    final side = math.min(_wideRing, box.maxHeight);
+                    return SizedBox.square(
+                      dimension: side,
+                      child: ringOf(side),
+                    );
+                  },
                 ),
-                SizedBox(width: gap),
-                Expanded(
-                  child: _TargetField(
-                    height: buttonSize,
-                    compact: stacked,
-                    text: shown > 0 ? '$shown' : l10n.ctrlOff,
-                    enabled: canSet,
-                    onSet: (typed) => _set(context, ref, typed.clamp(0, max)),
-                  ),
-                ),
-                SizedBox(width: gap),
-                _StepButton(
-                  size: buttonSize,
-                  id: 'controller.heat_plus',
-                  tooltip: '+$_step°',
-                  icon: Icons.add,
-                  onPressed: canSet && shown < max
-                      ? () => _set(context, ref, (shown + _step).clamp(0, max))
-                      : null,
-                ),
+                const SizedBox(width: DashSpace.md),
+                Expanded(child: controls),
               ],
             )
-          else
-            SizedBox(
-              height: buttonSize,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.lock_outline,
-                    size: DashSpace.lg,
-                    color: t.textTertiary,
-                  ),
-                  const SizedBox(width: DashSpace.sm),
-                  Expanded(
-                    child: Text(
-                      l10n.controllerNoChamberHeater,
-                      style: t.bodySoft,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, box) => Center(
+                      child: ringOf(
+                        math.max(
+                          _ringFloor,
+                          math.min(box.maxWidth, box.maxHeight) -
+                              2 * DashSpace.sm,
+                        ),
+                      ),
                     ),
                   ),
-                ],
-              ),
+                ),
+                SizedBox(height: stacked ? DashSpace.xs : DashSpace.sm),
+                controls,
+              ],
             ),
-        ],
-      ),
     );
   }
 
@@ -365,10 +458,11 @@ class _HeaterCard extends ConsumerWidget {
       TempKind.unknown => ActionOutcome.ok,
     };
     if (!context.mounted) return;
-    final msg = result.messageFor(AppLocalizations.of(context));
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(
+      ScaffoldMessenger.of(context),
+      result,
+      AppLocalizations.of(context),
+    );
   }
 }
 
@@ -436,7 +530,7 @@ class _NozzleSwitch extends ConsumerWidget {
           message: l10n.ctrlNozzleActive,
           child: Icon(
             Icons.check_circle,
-            size: DashSpace.xl,
+            size: controllerIconSize(context, DashSpace.xl),
             color: t.accentInk,
           ),
         );
@@ -444,7 +538,11 @@ class _NozzleSwitch extends ConsumerWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle, size: DashSpace.lg, color: t.accentInk),
+          Icon(
+            Icons.check_circle,
+            size: controllerIconSize(context, DashSpace.lg),
+            color: t.accentInk,
+          ),
           const SizedBox(width: DashSpace.xs),
           Text(
             l10n.ctrlNozzleActive,
@@ -483,7 +581,10 @@ class _NozzleSwitch extends ConsumerWidget {
           t,
           minimumSize: const Size(0, ControllerSection.headerHeight),
         ),
-        icon: Icon(locked ? Icons.lock_outline : Icons.swap_horiz, size: 16),
+        icon: Icon(
+          locked ? Icons.lock_outline : Icons.swap_horiz,
+          size: DashIcon.sm,
+        ),
         label: Text(l10n.ctrlActivate),
         onPressed: activate,
       ),
@@ -495,10 +596,11 @@ class _NozzleSwitch extends ConsumerWidget {
         .read(controlsProvider.notifier)
         .setExtruder(printerId, hardwareIndex);
     if (!context.mounted) return;
-    final msg = result.messageFor(AppLocalizations.of(context));
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(
+      ScaffoldMessenger.of(context),
+      result,
+      AppLocalizations.of(context),
+    );
   }
 }
 
@@ -564,7 +666,7 @@ class _AirductSwitch extends ConsumerWidget {
           DashTokens.of(context),
           minimumSize: const Size(0, ControllerSection.headerHeight),
         ),
-        icon: Icon(icon, size: 16),
+        icon: Icon(icon, size: DashIcon.sm),
         label: Text(name),
         onPressed: flip,
       ),
@@ -590,10 +692,11 @@ class _AirductSwitch extends ConsumerWidget {
         .read(controlsProvider.notifier)
         .setAirduct(printerId, heating: heating);
     if (!context.mounted) return;
-    final msg = result.messageFor(AppLocalizations.of(context));
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(
+      ScaffoldMessenger.of(context),
+      result,
+      AppLocalizations.of(context),
+    );
   }
 }
 
@@ -940,48 +1043,89 @@ class _FanCardState extends ConsumerState<_FanCard> {
         vertical: DashSpace.sm,
       ),
       decoration: t.cardBox,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: controllerLargeText(context)
+          ? _largeBody(t, shown)
+          : Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.air,
+                      size: controllerIconSize(context, DashSpace.xl),
+                      color: t.textSecondary,
+                    ),
+                    const SizedBox(width: DashSpace.sm),
+                    Expanded(
+                      child: Text(
+                        widget.label,
+                        style: t.titleMd,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    _percent(t, shown),
+                  ],
+                ),
+                _slider(shown),
+              ],
+            ),
+    );
+  }
+
+  /// At a large text size the name takes a line of its own, wrapped at its
+  /// spaces, and the reading sits beside the slider instead of the name.
+  Widget _largeBody(DashTokens t, double shown) => Column(
+    // From the top, so the names of a row of cards start on one line.
+    mainAxisAlignment: MainAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      // The icon sits with the name, not in the middle of name and slider.
+      Row(
         children: [
-          Row(
-            children: [
-              Icon(Icons.air, size: DashSpace.xl, color: t.textSecondary),
-              const SizedBox(width: DashSpace.sm),
-              Expanded(
-                child: Text(
-                  widget.label,
-                  style: t.titleMd,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Text(
-                shown > 0
-                    ? '${shown.round()}%'
-                    : AppLocalizations.of(context).ctrlOff,
-                style: t.monoHeadline.copyWith(
-                  color: shown > 0 ? t.accentBlue : t.textTertiary,
-                ),
-              ),
-            ],
+          Icon(
+            Icons.air,
+            size: controllerIconSize(context, DashSpace.xl),
+            color: t.textSecondary,
           ),
-          logTag(
-            'controller.fan.${widget.fan}',
-            Slider(
-              value: shown,
-              max: 100,
-              divisions: 20,
-              onChanged: widget.refused
-                  ? null
-                  : (v) => setState(() => _drag = v),
-              onChangeEnd: widget.refused ? null : _send,
+          const SizedBox(width: DashSpace.sm),
+          Expanded(
+            child: Text(
+              widget.label,
+              style: t.titleMd,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
       ),
-    );
-  }
+      Row(
+        children: [
+          Expanded(child: _slider(shown)),
+          _percent(t, shown),
+        ],
+      ),
+    ],
+  );
+
+  Widget _percent(DashTokens t, double shown) => Text(
+    shown > 0 ? '${shown.round()}%' : AppLocalizations.of(context).ctrlOff,
+    style: t.monoHeadline.copyWith(
+      color: shown > 0 ? t.accentBlue : t.textTertiary,
+    ),
+  );
+
+  Widget _slider(double shown) => logTag(
+    'controller.fan.${widget.fan}',
+    Slider(
+      value: shown,
+      max: 100,
+      divisions: 20,
+      onChanged: widget.refused ? null : (v) => setState(() => _drag = v),
+      onChangeEnd: widget.refused ? null : _send,
+    ),
+  );
 
   Future<void> _send(double value) async {
     setState(() => _drag = null);
@@ -989,9 +1133,10 @@ class _FanCardState extends ConsumerState<_FanCard> {
         .read(controlsProvider.notifier)
         .setFanSpeed(widget.printerId, widget.fan, value.round());
     if (!mounted) return;
-    final msg = result.messageFor(AppLocalizations.of(context));
-    if (msg != null) {
-      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
-    }
+    snackOutcome(
+      ScaffoldMessenger.of(context),
+      result,
+      AppLocalizations.of(context),
+    );
   }
 }

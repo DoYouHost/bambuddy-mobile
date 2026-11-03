@@ -89,145 +89,185 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     return DraggableSheetSurface(
       initialSize: 0.85,
       minSize: 0.5,
-      builder: (context, controller) => Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              DashSpace.gutter,
-              0,
-              DashSpace.gutter,
-              DashSpace.sm,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+      builder: (context, controller) {
+        final header = Padding(
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.sm,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              BesideOrBelow(
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.print_outlined,
-                      size: 20,
+                      size: DashIcon.md,
                       color: t.accentGreenInk,
                     ),
                     const SizedBox(width: DashSpace.sm),
-                    Expanded(
+                    Flexible(
                       child: Text(l10n.inventoryLabelsTitle, style: t.display),
                     ),
-                    Text(
-                      l10n.inventorySelectedCount(_selected.length),
-                      style: t.monoLabel.legible,
-                    ),
                   ],
                 ),
-                const SizedBox(height: DashSpace.md),
-                DashSearchField(
-                  id: 'spool_labels.search',
-                  hintText: l10n.inventoryLabelsSearchHint,
-                  onChanged: (v) => setState(() => _query = v),
+                control: Text(
+                  l10n.inventorySelectedCount(_selected.length),
+                  style: t.monoLabel.legible,
                 ),
-                const SizedBox(height: DashSpace.md),
-                if (_materials.length > 1) ...[
-                  _ChipRow(
-                    id: 'spool_labels.material',
-                    label: l10n.inventoryLabelsMaterial,
-                    options: {
-                      null: l10n.inventoryLabelsAllMaterials,
-                      for (final m in _materials) m: m,
-                    },
-                    value: _material,
-                    onChanged: (v) => setState(() => _material = v),
-                  ),
-                  const SizedBox(height: DashSpace.sm),
-                ],
+              ),
+              const SizedBox(height: DashSpace.md),
+              DashSearchField(
+                id: 'spool_labels.search',
+                hintText: l10n.inventoryLabelsSearchHint,
+                onChanged: (v) => setState(() => _query = v),
+              ),
+              const SizedBox(height: DashSpace.md),
+              if (_materials.length > 1) ...[
                 _ChipRow(
-                  id: 'spool_labels.sort',
-                  label: l10n.inventoryLabelsSort,
+                  id: 'spool_labels.material',
+                  label: l10n.inventoryLabelsMaterial,
                   options: {
-                    _LabelSort.id: l10n.inventoryLabelsSortById,
-                    _LabelSort.color: l10n.inventoryLabelsSortByColor,
+                    null: l10n.inventoryLabelsAllMaterials,
+                    for (final m in _materials) m: m,
                   },
-                  value: _sort,
-                  onChanged: (v) => setState(() => _sort = v),
+                  value: _material,
+                  onChanged: (v) => setState(() => _material = v),
                 ),
-                const SizedBox(height: DashSpace.md),
-                Row(
+                const SizedBox(height: DashSpace.sm),
+              ],
+              _ChipRow(
+                id: 'spool_labels.sort',
+                label: l10n.inventoryLabelsSort,
+                options: {
+                  _LabelSort.id: l10n.inventoryLabelsSortById,
+                  _LabelSort.color: l10n.inventoryLabelsSortByColor,
+                },
+                value: _sort,
+                onChanged: (v) => setState(() => _sort = v),
+              ),
+              const SizedBox(height: DashSpace.md),
+              BesideOrBelow(
+                label: Text(
+                  l10n.inventoryLabelsPickSpools,
+                  style: t.labelSoft.legible.copyWith(color: t.textSecondary),
+                ),
+                control: Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        l10n.inventoryLabelsPickSpools,
-                        style: t.labelSoft.legible.copyWith(
-                          color: t.textSecondary,
-                        ),
+                      child: _TextAction(
+                        label: allVisibleChecked
+                            ? l10n.inventoryLabelsDeselectVisible
+                            : l10n.inventoryLabelsSelectVisible,
+                        onPressed: visible.isEmpty
+                            ? null
+                            : () => setState(() {
+                                final ids = visible.map((s) => s.id);
+                                if (allVisibleChecked) {
+                                  _selected.removeAll(ids);
+                                } else {
+                                  _selected.addAll(ids);
+                                }
+                              }),
                       ),
                     ),
-                    _TextAction(
-                      label: allVisibleChecked
-                          ? l10n.inventoryLabelsDeselectVisible
-                          : l10n.inventoryLabelsSelectVisible,
-                      onPressed: visible.isEmpty
-                          ? null
-                          : () => setState(() {
-                              final ids = visible.map((s) => s.id);
-                              if (allVisibleChecked) {
-                                _selected.removeAll(ids);
-                              } else {
-                                _selected.addAll(ids);
-                              }
-                            }),
-                    ),
                     const SizedBox(width: DashSpace.md),
-                    _TextAction(
-                      label: l10n.inventoryLabelsClearAll,
-                      muted: true,
-                      onPressed: _selected.isEmpty
-                          ? null
-                          : () => setState(_selected.clear),
+                    Expanded(
+                      child: _TextAction(
+                        label: l10n.inventoryLabelsClearAll,
+                        muted: true,
+                        onPressed: _selected.isEmpty
+                            ? null
+                            : () => setState(_selected.clear),
+                      ),
                     ),
                   ],
                 ),
-              ],
+              ),
+            ],
+          ),
+        );
+        final emptyNote = Center(
+          child: Padding(
+            padding: const EdgeInsets.all(DashSpace.xl),
+            child: Text(
+              l10n.inventoryLabelsNoMatches,
+              textAlign: TextAlign.center,
+              style: t.bodyPlain.copyWith(color: t.textTertiary),
             ),
           ),
+        );
+        Widget row(BuildContext context, int i) {
+          final spool = visible[i];
+          return _LabelSpoolRow(
+            spool: spool,
+            checked: _selected.contains(spool.id),
+            onTap: () => setState(() {
+              if (!_selected.remove(spool.id)) {
+                _selected.add(spool.id);
+              }
+            }),
+          );
+        }
 
-          Expanded(
-            child: visible.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(DashSpace.xl),
-                      child: Text(
-                        l10n.inventoryLabelsNoMatches,
-                        textAlign: TextAlign.center,
-                        style: t.bodyPlain.copyWith(color: t.textTertiary),
-                      ),
+        // At large text the filters alone fill the sheet, so header and list
+        // scroll as one; otherwise the filters stay put above the list.
+        final scrollTogether = dashLargeText(context);
+        return Column(
+          children: [
+            Expanded(
+              child: scrollTogether
+                  ? CustomScrollView(
+                      controller: controller,
+                      slivers: [
+                        SliverToBoxAdapter(child: header),
+                        if (visible.isEmpty)
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: emptyNote,
+                          )
+                        else
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: DashSpace.sm,
+                            ),
+                            sliver: SliverList.builder(
+                              itemCount: visible.length,
+                              itemBuilder: row,
+                            ),
+                          ),
+                      ],
+                    )
+                  : Column(
+                      children: [
+                        header,
+                        Expanded(
+                          child: visible.isEmpty
+                              ? emptyNote
+                              : ListView.builder(
+                                  controller: controller,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: DashSpace.sm,
+                                  ),
+                                  itemCount: visible.length,
+                                  itemBuilder: row,
+                                ),
+                        ),
+                      ],
                     ),
-                  )
-                : ListView.builder(
-                    controller: controller,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: DashSpace.sm,
-                    ),
-                    itemCount: visible.length,
-                    itemBuilder: (context, i) {
-                      final spool = visible[i];
-                      return _LabelSpoolRow(
-                        spool: spool,
-                        checked: _selected.contains(spool.id),
-                        onTap: () => setState(() {
-                          if (!_selected.remove(spool.id)) {
-                            _selected.add(spool.id);
-                          }
-                        }),
-                      );
-                    },
-                  ),
-          ),
-
-          _LabelFooter(
-            busy: _busy,
-            count: _selected.length,
-            onPrint: _selected.isEmpty || _busy ? null : _pickTemplate,
-          ),
-        ],
-      ),
+            ),
+            _LabelFooter(
+              busy: _busy,
+              count: _selected.length,
+              onPrint: _selected.isEmpty || _busy ? null : _pickTemplate,
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -342,10 +382,12 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
         l10n,
         action: 'labels.print',
       );
-    } on Object {
-      // The sheet may already be closed: the hand-off runs after it. The
-      // message goes to the screen behind, so it does not depend on it.
+    } catch (e) {
       if (mounted) setState(() => _busy = false);
+      // The device (disk full, no write access, no print or share service), not
+      // a bug: say so, on the screen behind, since the sheet may be closed
+      // already. Anything else reaches the bug report.
+      if (e is! FileSystemException && e is! PlatformException) rethrow;
       messenger.snack(l10n.inventoryLabelsFailed);
     }
   }
@@ -410,8 +452,12 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
             ? l10n.labelPrinterRefused(detail)
             : l10n.labelPrinterFailed,
       );
-    } on Object {
+    } on NetworkException {
       messenger.snack(l10n.labelPrinterUnreachable);
+    } on AppApiException catch (e) {
+      // The sheet is gone, so [_print] would drop this one for want of a
+      // mounted screen: say it here, on the messenger captured before the pop.
+      showApiFailure(messenger, e, l10n, action: 'labels.print');
     }
   }
 
@@ -471,31 +517,40 @@ class _LabelSpoolRow extends StatelessWidget {
     ].whereType<String>().join(' · ');
 
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(DashSpace.sm),
-        child: Row(
-          children: [
-            Icon(
-              checked ? Icons.check_box : Icons.check_box_outline_blank,
-              size: 20,
-              color: checked ? t.accentGreenInk : t.textTertiary,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(DashSpace.sm),
+            child: Row(
+              children: [
+                Icon(
+                  checked ? Icons.check_box : Icons.check_box_outline_blank,
+                  size: DashIcon.md,
+                  color: checked ? t.accentGreenInk : t.textTertiary,
+                ),
+                const SizedBox(width: DashSpace.md),
+                SpoolSwatch(
+                  rgba: spool.rgba,
+                  size: DashSize.d20,
+                  radius: DashRadius.sm,
+                ),
+                const SizedBox(width: DashSpace.md),
+                Expanded(
+                  child: Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.body,
+                  ),
+                ),
+                const SizedBox(width: DashSpace.sm),
+                Text('#${spool.id}', style: t.monoMicro.legible),
+              ],
             ),
-            const SizedBox(width: DashSpace.md),
-            SpoolSwatch(rgba: spool.rgba, size: 20, radius: 6),
-            const SizedBox(width: DashSpace.md),
-            Expanded(
-              child: Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: t.body,
-              ),
-            ),
-            const SizedBox(width: DashSpace.sm),
-            Text('#${spool.id}', style: t.monoMicro.legible),
-          ],
+          ),
         ),
       ),
     ).tagged('labels.spool');
@@ -534,7 +589,7 @@ class _LabelFooter extends StatelessWidget {
           onPressed: onPrint,
           icon: busy
               ? DashSpinner(color: t.onAccent)
-              : const Icon(Icons.print_outlined, size: 18),
+              : const Icon(Icons.print_outlined, size: DashIcon.md),
           label: Text('${l10n.inventoryLabelsPrint} ($count)'),
         ).tagged('labels.print'),
       ),
@@ -600,14 +655,14 @@ class _TemplateSheet extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: DashSpace.md),
               child: Material(
                 color: t.subCard,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(DashRadius.lg),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(DashRadius.lg),
                   onTap: () => Navigator.of(context).pop(template),
                   child: Container(
                     padding: const EdgeInsets.all(DashSpace.lg),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(DashRadius.lg),
                       border: Border.all(color: t.subCardBorder),
                     ),
                     child: Column(
@@ -699,14 +754,14 @@ class _StartingPositionSlot extends StatelessWidget {
       label: l10n.inventoryLabelsStartSlot(position),
       child: Material(
         color: t.subCard,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(DashRadius.md),
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(DashRadius.md),
           onTap: onTap,
           child: Container(
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(DashRadius.md),
               border: Border.all(color: t.subCardBorder),
             ),
             child: Text('$position', style: t.monoLabel.legible),
@@ -772,19 +827,18 @@ class _TextAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    final color = muted ? t.textSecondary : t.accentGreenInk;
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.all(DashSpace.xs),
-        child: Text(
-          label,
-          style: t.micro.legible.copyWith(
-            color: onPressed == null ? color.withValues(alpha: 0.4) : color,
-          ),
-        ),
+    // A TextButton: unavailable, it is a disabled node for a screen reader and
+    // draws Material's disabled colour (which has no contrast minimum), and it
+    // is a 48 dp target.
+    return TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        foregroundColor: muted ? t.textSecondary : t.accentGreenInk,
+        minimumSize: const Size(0, kMinInteractiveDimension),
+        padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
+        textStyle: t.micro.legible,
       ),
+      child: Text(label),
     ).tagged('labels.text_action');
   }
 }
@@ -811,29 +865,34 @@ class _CheckRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return InkWell(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(DashRadius.md),
       onTap: () => onChanged(!value),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              value ? Icons.check_box : Icons.check_box_outline_blank,
-              size: 20,
-              color: value ? t.accentGreenInk : t.textTertiary,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  value ? Icons.check_box : Icons.check_box_outline_blank,
+                  size: DashIcon.md,
+                  color: value ? t.accentGreenInk : t.textTertiary,
+                ),
+                const SizedBox(width: DashSpace.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label, style: t.body),
+                      if (hint != null) Text(hint!, style: t.microSoft.legible),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: DashSpace.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: t.body),
-                  if (hint != null) Text(hint!, style: t.microSoft.legible),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     ).tagged(id);
@@ -843,5 +902,6 @@ class _CheckRow extends StatelessWidget {
 extension on TextStyle {
   /// The shared micro/label tokens are 11–12 px, too small to read on a phone
   /// in the print sheets; floor them at 13.
-  TextStyle get legible => (fontSize ?? 0) < 13 ? copyWith(fontSize: 13) : this;
+  TextStyle get legible =>
+      (fontSize ?? 0) < 13 ? copyWith(fontSize: DashFontSize.body) : this;
 }

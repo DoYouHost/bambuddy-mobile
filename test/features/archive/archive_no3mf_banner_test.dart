@@ -20,6 +20,7 @@ const _archive = Archive(
 late SharedPreferences _prefs;
 
 Widget _screen(No3mfWarning warning) => ProviderScope(
+  retry: neverRetry,
   overrides: [
     archiveListOverride(const [_archive]),
     no3mfWarningProvider.overrideWith((ref) async => warning),

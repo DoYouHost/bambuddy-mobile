@@ -72,6 +72,35 @@ one". The latch stays *clear* while a frame is merely unusable, so an alert this
 frame could not settle is still owed on the next one; bambuddy holds its own
 flag the same way (`_first_layer_notified`).
 
+## Pause coming up
+
+`pauseUpcoming` warns before a pause the slicer put into the print (server #2984). The
+server has its own alert for the same thing (`on_print_pause_upcoming`), sent through
+whatever notification providers an administrator set up there; this one is the app's and
+does not ask what the server has configured.
+
+- **Source:** `PrinterStatus.nextPause` on the status frames — `{layer, minutes}`, see
+  [server-contract-traps.md](server-contract-traps.md). No route, so it works with an API
+  key.
+- **When:** the first frame on which `minutes` is at most the lead time, **once per pause
+  layer** (`_PrinterMemo.pauseWarnedLayers`, cleared when a print starts). The server's own
+  rule, kept so the two alerts agree.
+- **Lead time:** the server's `pause_warning_minutes`, read by the foreground service at
+  start and every 30 minutes (`PrintMonitorTaskHandler._setUpPauseLead`), the server's own
+  default of 5 until it answers or when it never sends the key. The monitor reads it per
+  frame, so a change on the server is picked up without a restart. An unreadable answer
+  keeps the last value.
+- **No minutes, no warning.** `minutes` is null at the start of a print and in a speed mode
+  other than standard; a warning by time with no time in it would be a guess. The layer
+  alone is shown on the card, never warned about.
+- **Baseline:** a pause already inside the lead time on the first frame is recorded as
+  warned and says nothing, like every other event ([above](#baseline-the-first-frame-fires-nothing)).
+- **On by default,** including for an install that predates it: it was not in the saved
+  manifest, so it takes the default it ships with. The latch is set whatever the
+  preference says, as for the first layer. Preferences are read once per service
+  start, so a switch changed mid-print takes effect with the next start, whose
+  baseline records a pause already inside the lead without warning about it.
+
 ## HMS faults
 
 - **Clear grace, 30 s** (`_hmsClearGrace`): a code that drops out of

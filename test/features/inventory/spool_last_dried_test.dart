@@ -15,10 +15,9 @@ import 'fake_suppliers.dart';
 
 /// The last drying (#2863) on the shelf: a mark on the tile that costs the
 /// list no height, and the run's figures in the detail sheet.
-class _Shelf extends InventoryNotifier {
-  _Shelf(this.spools);
+class _Shelf extends FixedInventory {
+  _Shelf(List<Spool> spools) : super(InventoryState(spools: spools));
 
-  final List<Spool> spools;
   final drafts = <SpoolDraft>[];
 
   @override
@@ -27,9 +26,6 @@ class _Shelf extends InventoryNotifier {
     // What the server answers: the spool as this write left it.
     return Spool(id: spoolId, material: draft.material, suppliers: const []);
   }
-
-  @override
-  Future<InventoryState> build() async => InventoryState(spools: spools);
 
   @override
   Future<void> refresh({bool askBackend = false}) async {}

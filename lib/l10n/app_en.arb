@@ -69,6 +69,8 @@
   "addPrinterIp": "IP address",
   "addPrinterSerial": "Serial number",
   "addPrinterAccessCode": "Access code",
+  "addPrinterRevealAccessCode": "Show access code",
+  "addPrinterHideAccessCode": "Hide access code",
   "addPrinterModel": "Model",
   "addPrinterModelOptional": "Optional",
   "addPrinterModelNone": "Not set",
@@ -253,10 +255,9 @@
   "ctrlMoveHome": "Home all",
   "ctrlMoveHomeStarted": "Homing started",
   "ctrlMoveStep": "Step",
-  "ctrlMoveZ": "Z (bed gap)",
+  "ctrlMoveZ": "Z",
   "ctrlMoveZUp": "Up",
   "ctrlMoveZDown": "Down",
-  "ctrlMoveZToolhead": "Z (toolhead)",
   "ctrlMoveZUnknownDirection": "This printer's Z direction depends on the server version, which could not be confirmed, so Z moves are turned off here. Update the server or reopen this panel once it is reachable.",
   "ctrlMoveZNoModel": "This printer has no model set in Bambuddy, so the app cannot tell whether Z moves the plate or the toolhead, and Z moves are turned off here. Set the printer's model in Bambuddy to use them.",
   "ctrlMoveExtrude": "Extrude",
@@ -267,6 +268,22 @@
     "placeholders": {
       "d": {
         "type": "int"
+      }
+    }
+  },
+  "ctrlMoveAxisPlus": "Move {axis}, positive direction",
+  "@ctrlMoveAxisPlus": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
+      }
+    }
+  },
+  "ctrlMoveAxisMinus": "Move {axis}, negative direction",
+  "@ctrlMoveAxisMinus": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
       }
     }
   },
@@ -468,6 +485,27 @@
   },
   "queueEmpty": "The queue is empty",
   "queueAmsFromSlicer": "AMS from slicer",
+  "queueColorSubstitution": "Slot {slot} printed in {got}, the file asks for {wanted}",
+  "@queueColorSubstitution": {
+    "description": "One line on a queue or history row: a slot printed from a spool of another colour than the file asked for. Colours are names, or hex codes when two names would be alike.",
+    "placeholders": {
+      "slot": {"type": "int"},
+      "got": {"type": "String"},
+      "wanted": {"type": "String"}
+    }
+  },
+  "queueColorSubstitutionSlots": "{count, plural, one{{count} slot} other{{count} slots}}",
+  "@queueColorSubstitutionSlots": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "queueColorSubstitutionTitle": "Printed in another colour",
+  "queueColorSubstitutionWhy": "No spool in the file's colour was loaded, or the slot was picked by hand.",
+  "queueColorSubstitutionSlot": "Slot {slot}",
+  "@queueColorSubstitutionSlot": {
+    "placeholders": {"slot": {"type": "int"}}
+  },
+  "queueColorSubstitutionPrinted": "Printed in",
+  "queueColorSubstitutionWanted": "File asks for",
   "queueAnyOfModels": "Any of: {models}",
   "@queueAnyOfModels": {
     "placeholders": {
@@ -1101,7 +1139,6 @@
   "sensorHistoryError": "Couldn't load history",
   "amsHistoryRecordingInfo": "Recorded every 5 minutes while the printer is connected",
   "heaterHistoryTitle": "Temperature history",
-  "heaterHistoryOpen": "Temperature history",
   "heaterHistoryReading": "Reading",
   "heaterHistoryTarget": "Target",
   "heaterHistoryRecordingInfo": "Recorded every minute while the printer is connected",
@@ -1124,7 +1161,6 @@
   "widgetStatusPrinting": "Printing",
   "widgetStatusPaused": "Paused",
   "widgetStatusFinished": "Finished",
-  "widgetStatusFailed": "Failed",
   "widgetStatusIdle": "Idle",
   "widgetStatusOffline": "Offline",
   "widgetStatusError": "Error",
@@ -1258,6 +1294,10 @@
   "scanApiKeyHint": "Point the camera at the API key QR code",
   "cameraPermissionTitle": "Camera access needed",
   "cameraPermissionBody": "Allow camera access to scan QR codes.",
+  "scannerTorch": "Flashlight",
+  "@scannerTorch": {
+    "description": "Name of the QR scanner's button that switches the phone's flashlight on and off"
+  },
   "errMissingUrl": "Enter the server address",
   "errMissingApiKey": "Enter the API key",
   "errMissingCredentials": "Enter username and password",
@@ -1495,6 +1535,84 @@
       }
     }
   },
+  "printPauseAtLayer": "layer {layer}",
+  "@printPauseAtLayer": {
+    "description": "What the next-pause item of the print panel says while the server gives no minutes: the layer the pause is on.",
+    "placeholders": {
+      "layer": {
+        "type": "int"
+      }
+    }
+  },
+  "printPauseA11yIn": "Next pause in {duration}, at layer {layer}",
+  "@printPauseA11yIn": {
+    "description": "Screen reader text of the next-pause item: minutes to the pause and its layer.",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      },
+      "layer": {
+        "type": "int"
+      }
+    }
+  },
+  "printPauseA11yLayer": "Next pause at layer {layer}",
+  "@printPauseA11yLayer": {
+    "description": "Screen reader text of the next-pause item while the server gives no minutes.",
+    "placeholders": {
+      "layer": {
+        "type": "int"
+      }
+    }
+  },
+  "serverSettingsPauseWarningSubtitle": "How long before a pause to warn",
+  "@serverSettingsPauseWarningSubtitle": {
+    "description": "Subtitle of the Pause warning entry in the server settings hub."
+  },
+  "pauseWarningTitle": "Pause warning",
+  "@pauseWarningTitle": {
+    "description": "Title of the pause warning screen and of its entry in the server settings hub."
+  },
+  "pauseWarningLabel": "Warn {duration} before a pause",
+  "@pauseWarningLabel": {
+    "description": "Label of the slider that sets the server's pause warning lead time.",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "pauseWarningDesc": "A server setting: it also sets when the server itself warns, and applies to every device.",
+  "@pauseWarningDesc": {
+    "description": "What the pause warning setting is: shared with the server, not a phone preference."
+  },
+  "notifEvtPauseUpcoming": "Pause coming up",
+  "@notifEvtPauseUpcoming": {
+    "description": "Label of the pause coming up switch in the notification events list."
+  },
+  "notifEvtPauseUpcomingDesc": "Warns before a pause the slicer put into the print",
+  "@notifEvtPauseUpcomingDesc": {
+    "description": "Description under the pause coming up switch."
+  },
+  "notifPauseUpcomingTitle": "Pause coming up",
+  "@notifPauseUpcomingTitle": {
+    "description": "Title of the notification posted before a slicer pause."
+  },
+  "notifPauseUpcomingBody": "{name}: pause in {minutes, plural, =0{under a minute} one{{minutes} minute} other{{minutes} minutes}}, at layer {layer}",
+  "@notifPauseUpcomingBody": {
+    "description": "Body of the notification posted before a slicer pause: the job, the minutes to it and its layer.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      },
+      "layer": {
+        "type": "int"
+      }
+    }
+  },
   "notifHumidityThreshold": "AMS humidity above {value}%",
   "@notifHumidityThreshold": {
     "placeholders": {
@@ -1723,7 +1841,116 @@
     }
   },
   "inventoryPrinterPresetsLoadFailed": "Not read — saving leaves them alone.",
-  "inventoryPrinterPresetsSaveFailed": "Spool saved, its per-model presets were not.",
+  "inventoryProfileDefaultPrefilled": "Filled from the default for {product}",
+  "@inventoryProfileDefaultPrefilled": {
+    "description": "Note above the per-model presets of a new spool: its presets and slicer preset came from the saved default of the product typed so far.",
+    "placeholders": {
+      "product": {
+        "type": "String",
+        "example": "Bambu Lab PLA Basic"
+      }
+    }
+  },
+  "inventoryProfileDefaultUse": "Use as default",
+  "@inventoryProfileDefaultUse": {
+    "description": "Title of the switch in the spool form that saves the form's presets as the default for new spools of the product."
+  },
+  "inventoryProfileDefaultFor": "for {product}",
+  "@inventoryProfileDefaultFor": {
+    "description": "Subtitle under the default switch naming the product the default is for.",
+    "placeholders": {
+      "product": {
+        "type": "String",
+        "example": "Bambu Lab PLA Basic"
+      }
+    }
+  },
+  "inventoryProfileDefaultNeedsMaterial": "Enter the material first",
+  "@inventoryProfileDefaultNeedsMaterial": {
+    "description": "Subtitle of the disabled default switch while the material field is empty."
+  },
+  "inventoryProfileDefaultScope": "Applies to",
+  "@inventoryProfileDefaultScope": {
+    "description": "Label of the select that says whether the default covers every color of the product or only the typed one."
+  },
+  "inventoryProfileDefaultAllColors": "All colors",
+  "@inventoryProfileDefaultAllColors": {
+    "description": "Option of the default's scope select: the default covers every color of the product."
+  },
+  "inventoryProfileDefaultColorOnly": "Only {color}",
+  "@inventoryProfileDefaultColorOnly": {
+    "description": "Option of the default's scope select: the default covers the color typed in the form only.",
+    "placeholders": {
+      "color": {
+        "type": "String",
+        "example": "Red"
+      }
+    }
+  },
+  "inventoryProfileDefaultSaveFailed": "Spool saved, its default was not.",
+  "@inventoryProfileDefaultSaveFailed": {
+    "description": "Snackbar after the spool was saved but writing the profile default failed."
+  },
+  "serverSettingsProfileDefaultsSubtitle": "What new spools start with",
+  "@serverSettingsProfileDefaultsSubtitle": {
+    "description": "Subtitle of the Profile defaults entry in the server settings hub."
+  },
+  "profileDefaultsTitle": "Profile defaults",
+  "@profileDefaultsTitle": {
+    "description": "Title of the profile defaults screen and of its entry in the server settings hub."
+  },
+  "profileDefaultsDescription": "Save one with “Use as default” in a spool's form. Applying fills in only what spools lack.",
+  "@profileDefaultsDescription": {
+    "description": "Explains where a profile default is saved and what applying one does; quotes the label of the spool form's default switch."
+  },
+  "profileDefaultsEmpty": "No defaults saved yet",
+  "@profileDefaultsEmpty": {
+    "description": "Shown instead of the list when no profile default is saved."
+  },
+  "profileDefaultsApply": "Apply to spools",
+  "@profileDefaultsApply": {
+    "description": "Button on a profile default that fills in what existing spools of its product lack."
+  },
+  "profileDefaultsApplied": "{count, plural, =0{No spool needed it} one{{count} spool filled in} other{{count} spools filled in}}",
+  "@profileDefaultsApplied": {
+    "description": "Snackbar after applying a profile default: how many spools got something filled in.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileDefaultsDeleteTitle": "Delete this default?",
+  "@profileDefaultsDeleteTitle": {
+    "description": "Title of the confirmation before a profile default is deleted."
+  },
+  "profileDefaultsDeleteBody": "{product}: new spools stop starting with it. Spools that already got it keep it.",
+  "@profileDefaultsDeleteBody": {
+    "description": "Body of the delete confirmation; spools that already got the profiles keep them.",
+    "placeholders": {
+      "product": {
+        "type": "String"
+      }
+    }
+  },
+  "profileDefaultsModelPresets": "{count, plural, one{{count} model preset} other{{count} model presets}}",
+  "@profileDefaultsModelPresets": {
+    "description": "Part of a profile default's summary line: how many per-printer-model presets it holds.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileDefaultsKProfiles": "{count, plural, one{{count} K profile} other{{count} K profiles}}",
+  "@profileDefaultsKProfiles": {
+    "description": "Part of a profile default's summary line: how many K profiles it holds.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryFieldMaterial": "Material",
   "inventoryFieldBrand": "Brand",
   "inventoryFieldSubtype": "Variant",
@@ -1805,8 +2032,6 @@
   "inventorySpoolArchived": "Spool archived",
   "inventorySpoolRestored": "Spool restored",
   "inventoryUsageReset": "Counter reset",
-  "inventorySaveFailed": "Could not save spool",
-  "inventoryActionFailed": "Action failed",
   "inventoryUnassign": "Unassign",
   "inventoryAssign": "Assign to slot",
   "inventoryAssignPrinter": "Printer",
@@ -2528,6 +2753,7 @@
   },
   "fmVariantsGone": "This group no longer exists",
   "fmUpload": "Upload file",
+  "fmAddFiles": "Add files",
   "fmUploading": "Uploading…",
   "fmUploaded": "Uploaded {name}",
   "@fmUploaded": {
@@ -3017,7 +3243,7 @@
   "mwInLibrary": "In library",
   "mwImported": "Imported to your library",
   "mwAlreadyInLibrary": "Already in your library",
-  "mwViewInFiles": "View in File Manager",
+  "mwViewInFiles": "Open Files",
   "mwRecentImports": "Recent imports",
   "mwNoRecent": "No recent imports yet",
   "mwOpenOnMakerworld": "Open on MakerWorld",
@@ -3030,6 +3256,8 @@
   "cloudCredsNote": "Sign in with your Bambu Lab account. These credentials are used only to download models from MakerWorld.",
   "cloudEmail": "Email",
   "cloudPassword": "Password",
+  "cloudShowPassword": "Show password",
+  "cloudHidePassword": "Hide password",
   "cloudRegionGlobal": "Global",
   "cloudRegionChina": "China",
   "cloudSignIn": "Sign in",
@@ -6561,6 +6789,8 @@
     }
   },
   "announcementsEmpty": "No announcements right now.",
+  "linkedAppsTitle": "Linked apps",
+  "linkedAppsEmpty": "No linked apps.",
   "announcementsEarlier": "Earlier ({count})",
   "@announcementsEarlier": {
     "placeholders": {

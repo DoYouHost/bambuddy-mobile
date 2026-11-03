@@ -21,47 +21,16 @@ void main() {
   group('API key contract', skip: contractSkipReason, () {
     late Dio dio;
     late ApiKeysRepository keys;
-    final minted = <int>[];
 
-    Future<CreatedApiKey> mint(String name, Set<ApiKeyScope> scopes) async {
-      final created = await keys.create(
-        ApiKeyCreateInput(name: name, scopes: scopes),
-      );
-      minted.add(created.apiKey.id);
-      // The create route only flushes; `get_db` commits after the reply has
-      // gone out, so a key used at once can still be unknown and answer 401
-      // (1 in 100 on a throttled container, CI run 36677355174). The listing
-      // shows the row once it is committed.
-      await pollUntil(
-        'key ${created.apiKey.id} to be committed',
-        () async => (await keys.list()).any((k) => k.id == created.apiKey.id)
-            ? true
-            : null,
-        within: const Duration(seconds: 10),
-        every: const Duration(milliseconds: 100),
-      );
-      return created;
-    }
+    Future<CreatedApiKey> mint(String name, Set<ApiKeyScope> scopes) =>
+        mintContractApiKey(dio, scopes, name: name);
 
-    /// A client that authenticates the way a key-configured app does: the
-    /// `X-API-Key` header and no bearer token at all.
     Dio clientFor(String key) =>
-        commitLagged(Dio(BaseOptions(baseUrl: contractBaseUrl)))
-          ..options.headers['X-API-Key'] = key
-          ..options.validateStatus = (_) => true;
+        apiKeyClient(key)..options.validateStatus = (_) => true;
 
     setUpAll(() async {
       dio = await authenticatedDio();
       keys = ApiKeysRepository(dio);
-    });
-
-    tearDownAll(() async {
-      for (final id in minted) {
-        await dio.delete<dynamic>(
-          Endpoints.apiKeyById(id),
-          options: Options(validateStatus: (_) => true),
-        );
-      }
     });
 
     test('a key reads settings', () async {
@@ -84,6 +53,39 @@ void main() {
             'reachable for the connection the app recommends',
       );
     });
+
+    test(
+      'a key reads the pause warning lead time, and cannot move it',
+      () async {
+        // The pause warning screen shows the server's value to a key and the app
+        // warns by it; both rest on the read and on the refused write.
+        final all = (await dio.get<Map<String, dynamic>>(
+          Endpoints.appSettings,
+        )).data!;
+        if (!all.containsKey('pause_warning_minutes')) {
+          markTestSkipped('server predates pause_warning_minutes');
+          return;
+        }
+        final created = await mint('contract probe: pause warning', {
+          ApiKeyScope.readStatus,
+        });
+        final client = clientFor(created.key);
+
+        final read = await client.get<dynamic>(Endpoints.appSettings);
+        // A number, not a value compared with the account's read: the settings
+        // contract test moves it on the same server at the same time.
+        expect(
+          (read.data as Map)['pause_warning_minutes'],
+          isA<int>(),
+          reason: 'the key is not blanked: it is no secret',
+        );
+        final write = await client.put<dynamic>(
+          Endpoints.appSettingsUpdate,
+          data: {'pause_warning_minutes': 3},
+        );
+        expect(write.statusCode, 403);
+      },
+    );
 
     test('a key cannot write settings, and is refused with 403', () async {
       // The other half, and the reason every settings write in the app demands

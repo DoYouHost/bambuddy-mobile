@@ -1,3 +1,5 @@
+import '../models/value_equality.dart';
+
 /// A server capability the app has to gate, because an older bambuddy either
 /// refuses it or — worse — accepts the request and silently ignores it.
 ///
@@ -94,6 +96,10 @@ enum ServerFeature {
   /// `last_dried_at` on its update (#2863). The update key is taken and ignored
   /// below it.
   spoolLastDried,
+
+  /// `/inventory/profile-defaults/*` — the slicer preset, presets per model and
+  /// K profiles a new spool of a product starts with (#1326).
+  profileDefaults,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -103,7 +109,7 @@ enum ServerFeature {
 /// Parsing and ordering mirror `updates.py::parse_version` / `is_newer_version`
 /// so that "newer" means here what it means there — including the rule that a
 /// release outranks any prerelease of the same base.
-class ServerVersion implements Comparable<ServerVersion> {
+class ServerVersion with ValueEquality implements Comparable<ServerVersion> {
   const ServerVersion({
     required this.raw,
     required this.major,
@@ -201,6 +207,7 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.spoolSuppliers: (1, 2, 6, 0),
     ServerFeature.spoolMaterialNumber: (1, 2, 5, 7),
     ServerFeature.spoolLastDried: (1, 2, 6, 0),
+    ServerFeature.profileDefaults: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].
@@ -227,7 +234,16 @@ class ServerVersion implements Comparable<ServerVersion> {
   /// Highest chamber target the server will accept, in °C — the one gate no
   /// observation can settle, since the only probe would be a real command
   /// heating somebody's chamber. See `docs/server-gates.md`.
-  int get chamberMaxTargetC => supports(ServerFeature.chamberTemp65) ? 65 : 60;
+  int get chamberMaxTargetC => supports(ServerFeature.chamberTemp65)
+      ? chamberMaxTargetRaisedC
+      : chamberMaxTargetLegacyC;
+
+  /// The ceiling before the server raised it (1.2.6), and what an unknown
+  /// version is assumed to take.
+  static const chamberMaxTargetLegacyC = 60;
+
+  /// The ceiling from 1.2.6.
+  static const chamberMaxTargetRaisedC = 65;
 
   List<int> get _base => [major, minor, patch, micro];
 
@@ -255,18 +271,14 @@ class ServerVersion implements Comparable<ServerVersion> {
   bool operator <(ServerVersion other) => compareTo(other) < 0;
 
   @override
-  bool operator ==(Object other) =>
-      other is ServerVersion &&
-      other.major == major &&
-      other.minor == minor &&
-      other.patch == patch &&
-      other.micro == micro &&
-      other.isPrerelease == isPrerelease &&
-      other.prereleaseNum == prereleaseNum;
-
-  @override
-  int get hashCode =>
-      Object.hash(major, minor, patch, micro, isPrerelease, prereleaseNum);
+  List<Object?> get props => [
+    major,
+    minor,
+    patch,
+    micro,
+    isPrerelease,
+    prereleaseNum,
+  ];
 
   @override
   String toString() => raw;

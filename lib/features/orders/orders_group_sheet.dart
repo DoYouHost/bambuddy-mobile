@@ -23,7 +23,7 @@ import 'orders_screen.dart';
 final _groupableProvider = FutureProvider.autoDispose<List<QueueItem>>((
   ref,
 ) async {
-  final me = ref.watch(currentUserProvider).valueOrNull;
+  final me = ref.watch(currentUserProvider).value;
   final anyone =
       me == null || ref.watch(permissionProvider(Permissions.queueUpdateAll));
   final pending = await ref
@@ -101,6 +101,9 @@ class _GroupSheetState extends ConsumerState<_GroupSheet> {
         message: orderRefusal(l10n, e),
       );
       if (mounted) setState(() => _saving = false);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 

@@ -339,6 +339,9 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
     } on AppApiException catch (e) {
       showApiFailure(mounted ? messenger : null, e, l10n, action: logId);
       if (mounted) setState(() => _saving = false);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      rethrow;
     }
   }
 }
@@ -358,11 +361,16 @@ class _FinishPhoto extends StatelessWidget {
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DashRadius.lg),
         child: ColoredBox(
           color: t.subCard,
           child: photo == null
-              ? Center(child: PrintThumbnail(archiveId: archive.id, size: 120))
+              ? Center(
+                  child: PrintThumbnail(
+                    archiveId: archive.id,
+                    size: DashSize.d128,
+                  ),
+                )
               : MediaImage(
                   path: Endpoints.archivePhoto(archive.id, photo),
                   fit: BoxFit.contain,

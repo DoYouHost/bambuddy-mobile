@@ -237,6 +237,63 @@ void main() {
     });
   });
 
+  group('guardAbsent', () {
+    test('passes the value through', () async {
+      expect(await guardAbsent(() async => 42, 0), 42);
+    });
+
+    test(
+      'answers the stand-in for 404 by default and for no other status',
+      () async {
+        expect(
+          await guardAbsent<int>(() async => throw _badResponse(404), -1),
+          -1,
+        );
+        // 403 is only "absent" where the caller says so.
+        await expectLater(
+          guardAbsent<int>(() async => throw _badResponse(403), -1),
+          throwsA(isA<AuthException>()),
+        );
+        await expectLater(
+          guardAbsent<int>(() async => throw _badResponse(500), -1),
+          throwsA(isA<ApiException>()),
+        );
+      },
+    );
+
+    test('takes the statuses the caller names, and only those', () async {
+      Future<int> read(int status) => guardAbsent<int>(
+        () async => throw _badResponse(status),
+        -1,
+        statuses: {404, 403},
+      );
+      expect(await read(403), -1);
+      expect(await read(404), -1);
+      await expectLater(read(401), throwsA(isA<AuthException>()));
+    });
+
+    test(
+      'a failure with no response is an error, not an absent route',
+      () async {
+        await expectLater(
+          guardAbsent<int>(
+            () async => throw _ofType(DioExceptionType.connectionTimeout),
+            -1,
+            statuses: {404, 403},
+          ),
+          throwsA(isA<NetworkException>()),
+        );
+      },
+    );
+
+    test('an error that is not from Dio is left alone', () async {
+      await expectLater(
+        guardAbsent<int>(() async => throw StateError('parse blew up'), -1),
+        throwsA(isA<StateError>()),
+      );
+    });
+  });
+
   group('guardKeepingDetail', () {
     test('passes the value through', () async {
       expect(await guardKeepingDetail(() async => 42), 42);

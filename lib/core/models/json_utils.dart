@@ -70,3 +70,15 @@ String instantToJson(DateTime value) {
 }
 
 String _pad(int value, int width) => value.toString().padLeft(width, '0');
+
+/// The member of [values] whose `Enum.name` is [name], or null for a non-String,
+/// an unknown name or an empty one. No trimming, no case folding: a stored
+/// preference is read back exactly as it was written.
+T? enumByName<T extends Enum>(Iterable<T> values, Object? name) =>
+    name is String ? values.where((v) => v.name == name).firstOrNull : null;
+
+/// The member of [values] whose [wire] string equals [raw], or null for a
+/// non-String or an unknown spelling. Exact match only — no trimming, no case
+/// folding — so the caller adds the fallback (`?? unknown`) it needs.
+T? enumByWire<T>(Iterable<T> values, Object? raw, String Function(T) wire) =>
+    raw is String ? values.where((v) => wire(v) == raw).firstOrNull : null;
