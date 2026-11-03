@@ -385,15 +385,13 @@ class DemoBackend {
         // gated control appears over data that is not there — and the queue
         // form would offer two states over three-state calibrations.
         //
-        // 1.2.6 is what serves the print log's cost and energy and its sortable
-        // columns; the beta suffix because that is where the contract really
-        // lives today, 1.2.5.2 being the newest release. It is also the version
-        // that gates `process_overrides` and `auto_orient`/`auto_arrange` on a
-        // slice, both of which the routes below accept — the users listing is
-        // the one thing 1.2.6 gates that is decided by probing instead.
+        // 1.3.1 is the newest row of the gate table (`move` on an assignment);
+        // the beta suffix because that is where the contract really lives
+        // today. Every older row is below it, so no gate hides a demo feature —
+        // the users listing is the one thing decided by probing instead.
         if (at(1, 'version')) {
           return demoOk(const {
-            'version': '1.2.6b1',
+            'version': '1.3.1b1',
             'repo': 'maziggy/bambuddy',
           });
         }
@@ -6334,6 +6332,12 @@ class DemoBackend {
             ]);
           }
           if (m == 'POST') {
+            // `move`: the spool leaves every other slot in the same commit.
+            if (body['move'] == true) {
+              _assignments.removeWhere(
+                (a) => a['spool_id'] == body['spool_id'],
+              );
+            }
             _assignments.removeWhere(
               (a) =>
                   a['printer_id'] == body['printer_id'] &&
@@ -7514,6 +7518,10 @@ class DemoBackend {
         if (folder == null) return _fallback(m);
         if (m == 'PUT') {
           if (body.containsKey('name')) folder['name'] = body['name'];
+          // `0` lifts the folder to the root, as on the server.
+          if (body['parent_id'] case final int parent) {
+            folder['parent_id'] = parent == 0 ? null : parent;
+          }
           return demoOk(folder);
         }
         if (m == 'DELETE') {

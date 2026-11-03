@@ -262,6 +262,12 @@ The catalog is `/library/tags` (CRUD), assignment is `bulk-assign`, and the filt
   blip does not remove the feature.
 - Tag names travel inside the file listing, so a rename refreshes the file list as
   well as the catalog.
+- **Moving a folder takes `{"parent_id": 0}` for the root.** `null` is "no change", the
+  same trap as the project link (`library.py::update_folder`). `LibraryRepository.moveFolder`
+  sends `parentId ?? 0`. The route has taken `parent_id` since before 1.2.5, so there is
+  no gate; server #3306 only added refusals (a local folder cannot go into a mount, a
+  mount cannot move), which `folderMoveTargets` mirrors from the web's
+  `moveDisallowedFolderIds` so the picker never offers them.
 
 ### Projects (`/api/v1/projects/*`)
 

@@ -19,6 +19,7 @@ import '../../core/models/supplier.dart';
 import '../../data/inventory_repository.dart';
 import '../../data/inventory_source.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
 
 /// Inventory snapshot for the screen: all spools (including archived) plus a map
 /// `spoolId → assignment to AMS slot`. Filtering (search / show archived) is done
@@ -223,6 +224,22 @@ class InventoryNotifier extends AsyncNotifier<InventoryState> {
         !(from.printerId == draft.printerId &&
             from.amsId == draft.amsId &&
             from.trayId == draft.trayId);
+    // One request, one commit: a refusal leaves the spool where it was, so
+    // there is nothing to clear first and nothing to put back.
+    if (moving && ref.read(assignmentMoveProvider).orFalse) {
+      await repo.assignSpool(
+        SpoolAssignmentDraft(
+          spoolId: draft.spoolId,
+          printerId: draft.printerId,
+          amsId: draft.amsId,
+          trayId: draft.trayId,
+          move: true,
+        ),
+      );
+      _nudgeRepublish(draft.printerId);
+      if (from.printerId != draft.printerId) _nudgeRepublish(from.printerId);
+      return null;
+    }
     // The old slot is cleared first: Spoolman takes a spool off by its id, so
     // clearing after the new assignment would take that off too.
     if (moving) {
