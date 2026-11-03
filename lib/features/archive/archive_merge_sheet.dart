@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -218,7 +220,9 @@ class _ArchiveMergeSheetState extends ConsumerState<ArchiveMergeSheet> {
             members: _Members(group: group),
           ),
       ],
-      if (mergeable.isNotEmpty)
+      // Close stands in for the merge whenever there is nothing ticked, so the
+      // sheet always has a way out besides the drag handle.
+      if (selected.isNotEmpty)
         FilledButton.icon(
           icon: _merging
               ? const SizedBox.square(
@@ -227,9 +231,7 @@ class _ArchiveMergeSheetState extends ConsumerState<ArchiveMergeSheet> {
                 )
               : const Icon(Icons.merge_type),
           label: Text(l10n.archiveMergeAction(selected.length)),
-          onPressed: selected.isEmpty || _merging
-              ? null
-              : () => _merge(selected),
+          onPressed: _merging ? null : () => _merge(selected),
         ).tagged('archive.merge.confirm')
       else
         close,
@@ -262,8 +264,9 @@ class _ArchiveMergeSheetState extends ConsumerState<ArchiveMergeSheet> {
           .merge(survivors);
       // Prints moved between archives: the list and its count are stale.
       providers.invalidate(archiveMergeCountProvider);
+      // Not awaited: the merge is done, and the list reloads behind the sheet.
       if (providers.exists(archiveProvider)) {
-        await providers.read(archiveProvider.notifier).refresh();
+        unawaited(providers.read(archiveProvider.notifier).refresh());
       }
       if (result.skipped.isEmpty) {
         messenger.snack(l10n.archiveMergeDone(result.merged.length));

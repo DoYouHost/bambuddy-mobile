@@ -3832,7 +3832,7 @@ class DemoBackend {
   /// reach, so the demo would misrepresent the screen without them.
   ///
   /// Carries `cost` / `energy_kwh` / `energy_cost` because the reported version
-  /// is 1.2.6, which sends them (server #2636). The archives already hold both
+  /// is past 1.2.6, which sends them (server #2636). The archives already hold both
   /// figures, so a run reads the same here as it does in the statistics.
   late final List<Map<String, dynamic>> _printLog = _buildPrintLog();
 

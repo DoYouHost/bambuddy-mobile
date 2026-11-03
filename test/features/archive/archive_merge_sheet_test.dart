@@ -64,6 +64,7 @@ void main() {
     Widget child, {
     Map<String, Object> prefs = const {},
     double textScale = 1.0,
+    bool supported = true,
   }) async {
     SharedPreferences.setMockInitialValues(prefs);
     final store = await SharedPreferences.getInstance();
@@ -74,6 +75,7 @@ void main() {
           noServerProfileOverride,
           sharedPreferencesProvider.overrideWithValue(store),
           archiveRepositoryProvider.overrideWithValue(ArchiveRepository(dio)),
+          archiveMergeSupportedProvider.overrideWithValue(AsyncData(supported)),
         ],
         child: plApp(
           Scaffold(body: child),
@@ -126,6 +128,13 @@ void main() {
       expect(find.text(pl.archiveMergeBanner(2)), findsOneWidget);
     });
 
+    testWidgets('a server too old for the routes is not asked', (tester) async {
+      await pump(tester, const ArchiveMergeBanner(), supported: false);
+
+      expect(byLogId('archive.merge_banner'), findsNothing);
+      expect(sent.requests, isEmpty);
+    });
+
     testWidgets('no groups, no banner', (tester) async {
       adapter.onGet(
         '/api/v1/archives/merge-count',
@@ -162,7 +171,7 @@ void main() {
       expect(find.text(pl.archiveMergeAction(2)), findsOneWidget);
     });
 
-    testWidgets('unticking every group leaves nothing to merge', (
+    testWidgets('unticking every group leaves a way out, not a dead button', (
       tester,
     ) async {
       await pump(tester, const ArchiveMergeSheet());
@@ -171,7 +180,8 @@ void main() {
       await tester.tap(byLogId('archive.merge.group').last);
       await tester.pumpAndSettle();
 
-      expect(buttonAt(tester, 'archive.merge.confirm').onPressed, isNull);
+      expect(byLogId('archive.merge.confirm'), findsNothing);
+      expect(byLogId('archive.merge.close'), findsOneWidget);
     });
 
     testWidgets('the ticked groups merge after one confirmation', (

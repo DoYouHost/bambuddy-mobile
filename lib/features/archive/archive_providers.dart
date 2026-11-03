@@ -270,9 +270,13 @@ final archiveMergeAllowedProvider = Provider<bool>(
 );
 
 /// How many groups of duplicate archives there are, 0 for a session that may
-/// not merge them (and is then never asked).
+/// not merge them or a server whose version predates the routes (neither is
+/// asked: an older server would log a 422 on every visit).
 final archiveMergeCountProvider = FutureProvider.autoDispose<int>((ref) {
-  if (!ref.watch(archiveMergeAllowedProvider)) return 0;
+  if (!ref.watch(archiveMergeAllowedProvider) ||
+      !ref.watch(archiveMergeSupportedProvider).orFalse) {
+    return 0;
+  }
   return ref.watch(archiveRepositoryProvider).mergeCount();
 });
 
