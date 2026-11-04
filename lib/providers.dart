@@ -277,15 +277,14 @@ class CustomCaNotifier extends Notifier<CustomCa?> {
     await ref.read(settingsRepositoryProvider).saveCustomCa(ca);
     trustCustomCa(ca);
     state = ca;
+    // Dio keeps the `HttpClient` it made on its first request, so a retry after
+    // importing would still distrust the server. Invalidated rather than
+    // watched: watching would make every Dio depend on preferences.
+    ref.invalidate(bareDioProvider);
   }
 }
 
-/// Rebuilt when the CA changes: Dio keeps the `HttpClient` it made on its first
-/// request, so a retry after importing one would still distrust the server.
-final bareDioProvider = Provider<Dio>((ref) {
-  ref.watch(customCaProvider);
-  return createBareDio();
-});
+final bareDioProvider = Provider<Dio>((ref) => createBareDio());
 
 final authServiceProvider = Provider<AuthService>(
   (ref) => AuthService(

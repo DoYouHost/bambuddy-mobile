@@ -230,8 +230,10 @@ talks to the server calls `trustCustomCa` before its first request:
 
 **Traps.**
 
-- **A client keeps the trust it was created with.** `bareDioProvider` watches
-  `customCaProvider`, so a retry after importing gets a fresh client. The
+- **A client keeps the trust it was created with.** Setting the CA
+  invalidates `bareDioProvider`, so a retry after importing gets a fresh client.
+  It does not watch `customCaProvider`: that would make every Dio depend on
+  preferences. The
   `Image.network` client is one per isolate, so a CA changed while the app runs
   reaches images only after a restart.
 - **Dio's error type.** Dio reports an untrusted certificate as a connection
