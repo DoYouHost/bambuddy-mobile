@@ -56,6 +56,39 @@ void main() {
     expect(stored(), isNull);
   });
 
+  testWidgets('reads a picked file from its path', (tester) async {
+    picker.answer = PlatformFile(
+      name: 'root.pem',
+      path: 'test/fixtures/tls/ca.pem',
+      size: 0,
+    );
+    await pump(tester);
+    await tester.tap(find.text(pl.customCaImport));
+    await settleDisk(tester);
+
+    expect(stored()?.name, 'root.pem');
+  });
+
+  testWidgets('a file over the cap is refused', (tester) async {
+    final big = await tester.runAsync(() async {
+      final dir = await Directory.systemTemp.createTemp('ca_row');
+      addTearDown(() => dir.delete(recursive: true));
+      // Sparse, so it costs no disk; reading it whole would not survive.
+      final f = File('${dir.path}/huge.pem');
+      final raf = await f.open(mode: FileMode.write);
+      await raf.truncate(3 << 30);
+      await raf.close();
+      return f.path;
+    });
+    picker.answer = PlatformFile(name: 'huge.pem', path: big, size: 0);
+    await pump(tester);
+    await tester.tap(find.text(pl.customCaImport));
+    await settleDisk(tester);
+
+    expect(find.text(pl.customCaInvalid), findsOneWidget);
+    expect(stored(), isNull);
+  });
+
   testWidgets('a file that is not a certificate is refused', (tester) async {
     picker.answer = PlatformFile(
       name: 'notes.txt',
@@ -91,8 +124,8 @@ void main() {
   testWidgets('a second tap while the picker opens is dropped', (tester) async {
     picker.gate = Completer<void>();
     await pump(tester);
+    // Both in one frame: the button has not been rebuilt disabled yet.
     await tester.tap(find.text(pl.customCaImport));
-    await tester.pump();
     await tester.tap(find.text(pl.customCaImport));
     await tester.pump();
     picker.gate!.complete();
@@ -182,4 +215,15 @@ class _Picker extends FilePicker {
     final file = answer;
     return file == null ? null : FilePickerResult([file]);
   }
+}
+
+/// The row reads the file with real I/O, which fake time never completes.
+Future<void> settleDisk(WidgetTester tester) async {
+  for (var i = 0; i < 5; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+  }
+  await tester.pumpAndSettle();
 }

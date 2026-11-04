@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -66,26 +68,36 @@ class _CustomCaRowState extends ConsumerState<CustomCaRow> {
   }
 
   Future<void> _import(AppLocalizations l10n) async {
+    if (_picking) return;
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _picking = true);
-    final PickedFileResult picked;
     try {
-      picked = await pickFileFromDevice(withData: true);
+      final picked = await pickFileFromDevice();
+      if (!mounted) return;
+      if (picked.outcome == DeviceFileOutcome.failed) {
+        messenger.snack(l10n.customCaPickFailed);
+        return;
+      }
+      final file = picked.file;
+      if (file == null) return;
+      final ca = CustomCa.parse(file.name, await _read(file));
+      if (!mounted) return;
+      if (ca == null) {
+        messenger.snack(l10n.customCaInvalid);
+        return;
+      }
+      await ref.read(customCaProvider.notifier).set(ca);
     } finally {
       if (mounted) setState(() => _picking = false);
     }
-    if (!mounted) return;
-    final file = picked.file;
-    if (picked.outcome == DeviceFileOutcome.failed) {
-      messenger.snack(l10n.customCaPickFailed);
-      return;
-    }
-    if (file == null) return;
-    final ca = CustomCa.parse(file.name, file.bytes ?? const []);
-    if (ca == null) {
-      messenger.snack(l10n.customCaInvalid);
-      return;
-    }
-    await ref.read(customCaProvider.notifier).set(ca);
+  }
+
+  /// The size first, so a video picked by mistake is never read into memory;
+  /// the bytes only from a picker that gave no path.
+  static Future<List<int>> _read(PickedFile file) async {
+    if (file.path.isEmpty) return file.bytes ?? const [];
+    final disk = File(file.path);
+    if (await disk.length() > CustomCa.maxBytes) return const [];
+    return disk.readAsBytes();
   }
 }

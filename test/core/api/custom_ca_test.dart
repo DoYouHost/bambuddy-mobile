@@ -53,7 +53,7 @@ void main() {
       );
     });
 
-    test('refuses a file over the cap before reading it', () {
+    test('refuses a file over the cap', () {
       final pem = _fixture('ca.pem');
       final atCap = [
         ...pem,
