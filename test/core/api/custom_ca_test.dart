@@ -53,6 +53,16 @@ void main() {
       );
     });
 
+    test('refuses a file over the cap before reading it', () {
+      final pem = _fixture('ca.pem');
+      final atCap = [
+        ...pem,
+        ...List.filled(CustomCa.maxBytes - pem.length, 10),
+      ];
+      expect(CustomCa.parse('root.pem', atCap), isNotNull);
+      expect(CustomCa.parse('root.pem', [...atCap, 10]), isNull);
+    });
+
     test('survives a round trip through storage', () {
       final ca = CustomCa.parse('root.pem', _fixture('ca.pem'))!;
       final back = CustomCa.fromJson(

@@ -9,24 +9,35 @@ import '../../providers.dart';
 import '../common/device_files.dart';
 
 /// Import or remove the CA a server behind the user's own certificate
-/// authority needs (#62). Any file type: Android's picker filters by MIME type,
-/// and `.pem`/`.crt` map to none it knows, so [CustomCa.parse] is the filter.
-class CustomCaRow extends ConsumerWidget {
+/// authority needs (#62). Any file type: the picker filters by MIME type, and
+/// `.pem`, `.der` or a file with no extension would not be offered at all, so
+/// [CustomCa.parse] is the filter.
+class CustomCaRow extends ConsumerStatefulWidget {
   const CustomCaRow({super.key, this.enabled = true});
 
   final bool enabled;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CustomCaRow> createState() => _CustomCaRowState();
+}
+
+class _CustomCaRowState extends ConsumerState<CustomCaRow> {
+  /// A second tap while the picker opens would fail as "already active" and
+  /// read as a broken file.
+  bool _picking = false;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final ca = ref.watch(customCaProvider);
+    final enabled = widget.enabled && !_picking;
     if (ca == null) {
       return Center(
         child: logTag(
           'setup.ca_import',
           TextButton.icon(
-            onPressed: enabled ? () => _import(context, ref, l10n) : null,
+            onPressed: enabled ? () => _import(l10n) : null,
             icon: Icon(
               Icons.verified_user_outlined,
               size: DashIcon.md,
@@ -54,13 +65,16 @@ class CustomCaRow extends ConsumerWidget {
     );
   }
 
-  Future<void> _import(
-    BuildContext context,
-    WidgetRef ref,
-    AppLocalizations l10n,
-  ) async {
+  Future<void> _import(AppLocalizations l10n) async {
     final messenger = ScaffoldMessenger.of(context);
-    final picked = await pickFileFromDevice(withData: true);
+    setState(() => _picking = true);
+    final PickedFileResult picked;
+    try {
+      picked = await pickFileFromDevice(withData: true);
+    } finally {
+      if (mounted) setState(() => _picking = false);
+    }
+    if (!mounted) return;
     final file = picked.file;
     if (picked.outcome == DeviceFileOutcome.failed) {
       messenger.snack(l10n.customCaPickFailed);

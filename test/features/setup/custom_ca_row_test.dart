@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -87,6 +88,45 @@ void main() {
     expect(find.text(pl.customCaPickFailed), findsOneWidget);
   });
 
+  testWidgets('a second tap while the picker opens is dropped', (tester) async {
+    picker.gate = Completer<void>();
+    await pump(tester);
+    await tester.tap(find.text(pl.customCaImport));
+    await tester.pump();
+    await tester.tap(find.text(pl.customCaImport));
+    await tester.pump();
+    picker.gate!.complete();
+    await tester.pumpAndSettle();
+
+    expect(picker.opened, 1);
+    expect(find.byType(SnackBar), findsNothing);
+  });
+
+  testWidgets('leaving while the picker is open stores nothing', (
+    tester,
+  ) async {
+    picker
+      ..gate = Completer<void>()
+      ..answer = PlatformFile(
+        name: 'root.pem',
+        size: 0,
+        bytes: File('test/fixtures/tls/ca.pem').readAsBytesSync(),
+      );
+    await pump(tester);
+    await tester.tap(find.text(pl.customCaImport));
+    await tester.pump();
+    await pumpPhone(
+      tester,
+      const SizedBox(),
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+    picker.gate!.complete();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(stored(), isNull);
+  });
+
   for (final scale in [1.0, 1.5, 2.0]) {
     testWidgets('a long file name fits at text scale $scale', (tester) async {
       await SettingsRepository(prefs).saveCustomCa(
@@ -118,6 +158,8 @@ class _Picker extends FilePicker {
   /// Null is a cancelled dialog.
   PlatformFile? answer;
   bool fails = false;
+  Completer<void>? gate;
+  int opened = 0;
 
   @override
   Future<FilePickerResult?> pickFiles({
@@ -134,6 +176,8 @@ class _Picker extends FilePicker {
     bool lockParentWindow = false,
     bool readSequential = false,
   }) async {
+    opened++;
+    await gate?.future;
     if (fails) throw PlatformException(code: 'boom');
     final file = answer;
     return file == null ? null : FilePickerResult([file]);

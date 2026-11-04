@@ -23,9 +23,14 @@ class CustomCa {
     '-----BEGIN CERTIFICATE-----[A-Za-z0-9+/=\\s]+?-----END CERTIFICATE-----',
   );
 
+  /// A root certificate is a few KB and a chain file a few times that; the cap
+  /// keeps a video picked by mistake from being decoded on the UI isolate.
+  static const maxBytes = 64 * 1024;
+
   /// Reads a `.pem`, `.crt` or `.cer` file, PEM or DER. Null when it holds no
   /// certificate `dart:io` accepts.
   static CustomCa? parse(String name, List<int> bytes) {
+    if (bytes.length > maxBytes) return null;
     final text = utf8.decode(bytes, allowMalformed: true);
     final blocks = _block.allMatches(text).map((m) => m[0]!).toList();
     final pem = blocks.isNotEmpty ? '${blocks.join('\n')}\n' : _derToPem(bytes);
