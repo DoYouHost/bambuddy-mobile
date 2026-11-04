@@ -29,8 +29,9 @@ void main() {
       '$path:${'\n'.allMatches(source.substring(0, offset)).length + 1}';
 
   test('no capability gate is a FutureProvider<bool>', () {
-    // Not a server capability: the OS notification permission.
-    const allowed = {'_notificationsBlockedProvider'};
+    // Not server capabilities: the OS notification permission, and the OS
+    // full-screen intent permission the alarm asks for.
+    const allowed = {'_notificationsBlockedProvider', '_fullScreenProvider'};
     final gate = RegExp(
       r'final\s+(\w+)\s*=\s*FutureProvider(\s*\.\s*autoDispose)?'
       r'(\s*\.\s*family)?\s*<\s*bool\s*[,>]',
