@@ -76,6 +76,11 @@ void main() {
       tester.widget<SettingsSlider>(find.byType(SettingsSlider)).enabled,
       isFalse,
     );
+    for (final row in [pl.alarmWindowFrom, pl.alarmWindowTo]) {
+      await tester.tap(find.text(row));
+      await tester.pumpAndSettle();
+      expect(find.byType(TimePickerDialog), findsNothing, reason: row);
+    }
   });
 
   testWidgets('the main switch is stored', (tester) async {

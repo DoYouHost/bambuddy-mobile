@@ -108,11 +108,14 @@ class AlarmPrefs {
           : defaults.windowEnabled,
       windowStart: _minuteOfDay(json['windowStart'], defaultWindowStart),
       windowEnd: _minuteOfDay(json['windowEnd'], defaultWindowEnd),
-      ringMinutes: ringMinuteSteps.contains(json['ringMinutes'])
-          ? json['ringMinutes'] as int
-          : defaultRingMinutes,
+      ringMinutes: _ringStep(json['ringMinutes']),
     );
   }
+
+  // `is int` first: `contains` alone also matches 10.0, and casting that throws,
+  // which would reset every notification setting, not just this one.
+  static int _ringStep(Object? v) =>
+      v is int && ringMinuteSteps.contains(v) ? v : defaultRingMinutes;
 
   static int _minuteOfDay(Object? v, int fallback) =>
       v is int && v >= 0 && v < 24 * 60 ? v : fallback;

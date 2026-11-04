@@ -63,6 +63,20 @@ void main() {
       expect(alarm.ringMinutes, AlarmPrefs.defaultRingMinutes);
     });
 
+    test('a whole number stored as a double does not throw', () {
+      // 10.0 == 10 in Dart, so membership alone let it through to a cast.
+      final prefs = NotificationPrefs.decode(
+        jsonEncode({
+          'enabled': ['printStarted'],
+          'known': [for (final e in NotifEvent.values) e.name],
+          'alarm': {'enabled': true, 'ringMinutes': 10.5 - 0.5},
+        }),
+      );
+      expect(prefs.alarm.ringMinutes, AlarmPrefs.defaultRingMinutes);
+      expect(prefs.alarm.enabled, isTrue);
+      expect(prefs.enabled, {NotifEvent.printStarted});
+    });
+
     test('a non-map value is the defaults', () {
       expect(AlarmPrefs.fromJson('garbage').enabled, isFalse);
       expect(AlarmPrefs.fromJson(null).ringMinutes, 10);
