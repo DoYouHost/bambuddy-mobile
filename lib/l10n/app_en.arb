@@ -1504,6 +1504,28 @@
   "notifExtrasHeader": "Details",
   "notifFinishPhotoTitle": "Photo of the finished print",
   "notifFinishPhotoDesc": "Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives",
+  "alarmHeader": "Alarm",
+  "alarmTitle": "Wake me with an alarm",
+  "alarmDesc": "Rings over the lock screen until you stop it",
+  "alarmEvtFinished": "Print finished",
+  "alarmEvtFinishedDesc": "A print ended successfully",
+  "alarmEvtBlocked": "Print stopped by a fault",
+  "alarmEvtBlockedDesc": "A fault paused or stopped the print, or the print failed",
+  "alarmEvtDrying": "Drying finished",
+  "alarmEvtDryingDesc": "An AMS drying cycle ran to its end",
+  "alarmWindowTitle": "Only between set hours",
+  "alarmWindowDesc": "Outside these hours the alarm stays silent",
+  "alarmWindowFrom": "From",
+  "alarmWindowTo": "To",
+  "alarmRingFor": "Rings for {minutes} min",
+  "@alarmRingFor": {
+    "placeholders": {"minutes": {"type": "int"}}
+  },
+  "alarmRingForDesc": "Then it stops on its own",
+  "alarmMinutes": "{minutes} min",
+  "@alarmMinutes": {
+    "placeholders": {"minutes": {"type": "int"}}
+  },
   "notifThresholdsHeader": "Thresholds",
   "notifEvtStarted": "Print started",
   "notifEvtStartedDesc": "When a print begins",

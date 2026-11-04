@@ -2287,6 +2287,59 @@ class AppLocalizationsEn extends AppLocalizations {
       'Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives';
 
   @override
+  String get alarmHeader => 'Alarm';
+
+  @override
+  String get alarmTitle => 'Wake me with an alarm';
+
+  @override
+  String get alarmDesc => 'Rings over the lock screen until you stop it';
+
+  @override
+  String get alarmEvtFinished => 'Print finished';
+
+  @override
+  String get alarmEvtFinishedDesc => 'A print ended successfully';
+
+  @override
+  String get alarmEvtBlocked => 'Print stopped by a fault';
+
+  @override
+  String get alarmEvtBlockedDesc =>
+      'A fault paused or stopped the print, or the print failed';
+
+  @override
+  String get alarmEvtDrying => 'Drying finished';
+
+  @override
+  String get alarmEvtDryingDesc => 'An AMS drying cycle ran to its end';
+
+  @override
+  String get alarmWindowTitle => 'Only between set hours';
+
+  @override
+  String get alarmWindowDesc => 'Outside these hours the alarm stays silent';
+
+  @override
+  String get alarmWindowFrom => 'From';
+
+  @override
+  String get alarmWindowTo => 'To';
+
+  @override
+  String alarmRingFor(int minutes) {
+    return 'Rings for $minutes min';
+  }
+
+  @override
+  String get alarmRingForDesc => 'Then it stops on its own';
+
+  @override
+  String alarmMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
   String get notifThresholdsHeader => 'Thresholds';
 
   @override

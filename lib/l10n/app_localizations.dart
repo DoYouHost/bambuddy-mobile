@@ -3818,6 +3818,102 @@ abstract class AppLocalizations {
   /// **'Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives'**
   String get notifFinishPhotoDesc;
 
+  /// No description provided for @alarmHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Alarm'**
+  String get alarmHeader;
+
+  /// No description provided for @alarmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Wake me with an alarm'**
+  String get alarmTitle;
+
+  /// No description provided for @alarmDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Rings over the lock screen until you stop it'**
+  String get alarmDesc;
+
+  /// No description provided for @alarmEvtFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Print finished'**
+  String get alarmEvtFinished;
+
+  /// No description provided for @alarmEvtFinishedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A print ended successfully'**
+  String get alarmEvtFinishedDesc;
+
+  /// No description provided for @alarmEvtBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Print stopped by a fault'**
+  String get alarmEvtBlocked;
+
+  /// No description provided for @alarmEvtBlockedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A fault paused or stopped the print, or the print failed'**
+  String get alarmEvtBlockedDesc;
+
+  /// No description provided for @alarmEvtDrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying finished'**
+  String get alarmEvtDrying;
+
+  /// No description provided for @alarmEvtDryingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'An AMS drying cycle ran to its end'**
+  String get alarmEvtDryingDesc;
+
+  /// No description provided for @alarmWindowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Only between set hours'**
+  String get alarmWindowTitle;
+
+  /// No description provided for @alarmWindowDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Outside these hours the alarm stays silent'**
+  String get alarmWindowDesc;
+
+  /// No description provided for @alarmWindowFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get alarmWindowFrom;
+
+  /// No description provided for @alarmWindowTo.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get alarmWindowTo;
+
+  /// No description provided for @alarmRingFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Rings for {minutes} min'**
+  String alarmRingFor(int minutes);
+
+  /// No description provided for @alarmRingForDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Then it stops on its own'**
+  String get alarmRingForDesc;
+
+  /// No description provided for @alarmMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String alarmMinutes(int minutes);
+
   /// No description provided for @notifThresholdsHeader.
   ///
   /// In en, this message translates to:

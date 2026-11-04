@@ -2315,6 +2315,62 @@ class AppLocalizationsDe extends AppLocalizations {
       'Fügt der Benachrichtigung über Abschluss oder Fehlschlag das Foto hinzu, das der Server nach dem Druck aufnimmt, sobald es verfügbar ist';
 
   @override
+  String get alarmHeader => 'Wecker';
+
+  @override
+  String get alarmTitle => 'Mit einem Wecker wecken';
+
+  @override
+  String get alarmDesc =>
+      'Klingelt auf dem Sperrbildschirm, bis du ihn stoppst';
+
+  @override
+  String get alarmEvtFinished => 'Druck abgeschlossen';
+
+  @override
+  String get alarmEvtFinishedDesc => 'Ein Druck wurde erfolgreich beendet';
+
+  @override
+  String get alarmEvtBlocked => 'Druck durch Fehler gestoppt';
+
+  @override
+  String get alarmEvtBlockedDesc =>
+      'Ein Fehler hat den Druck pausiert oder gestoppt, oder der Druck ist fehlgeschlagen';
+
+  @override
+  String get alarmEvtDrying => 'Trocknung abgeschlossen';
+
+  @override
+  String get alarmEvtDryingDesc =>
+      'Ein AMS-Trocknungszyklus ist zu Ende gelaufen';
+
+  @override
+  String get alarmWindowTitle => 'Nur zu bestimmten Zeiten';
+
+  @override
+  String get alarmWindowDesc =>
+      'Außerhalb dieser Zeiten bleibt der Wecker still';
+
+  @override
+  String get alarmWindowFrom => 'Von';
+
+  @override
+  String get alarmWindowTo => 'Bis';
+
+  @override
+  String alarmRingFor(int minutes) {
+    return 'Klingelt $minutes min';
+  }
+
+  @override
+  String get alarmRingForDesc => 'Danach verstummt er von selbst';
+
+  @override
+  String alarmMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
   String get notifThresholdsHeader => 'Schwellenwerte';
 
   @override
