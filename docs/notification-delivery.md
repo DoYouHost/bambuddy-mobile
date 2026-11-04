@@ -244,7 +244,7 @@ a channel to `PrintAlarm.kt`, served on the foreground service's engine (from
   with the app open; the real thing comes from the service.
 - **Phone only.** The watch manifest strips the permission, the activity and the
   receiver; `tool/check_wear_apk.py` asserts it.
-- **Device test:** `PrintAlarmTest` (`android/app/src/androidTest/kotlin/…`, run by
+- **Device test:** `PrintAlarmTest` (`android/app/src/androidTestMobile/kotlin/…`, phone flavor only, run by
   `just test-device`): the channel's alarm usage, the notification's flags, the sound
   playing as `USAGE_ALARM` with the ringer on silent (read from `dumpsys audio`), the
   screen over a swipe lock screen, each stop path and the one-minute timeout. Mutating
