@@ -1526,6 +1526,12 @@
   "@alarmMinutes": {
     "placeholders": {"minutes": {"type": "int"}}
   },
+  "alarmStop": "Stop",
+  "alarmTest": "Test alarm",
+  "alarmTestBody": "This is how the alarm sounds",
+  "alarmTestFailed": "The alarm could not ring. Check that notifications are on.",
+  "alarmFullScreenNeeded": "Without permission the alarm will not cover the lock screen",
+  "alarmFullScreenAllow": "Allow",
   "notifThresholdsHeader": "Thresholds",
   "notifEvtStarted": "Print started",
   "notifEvtStartedDesc": "When a print begins",

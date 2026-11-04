@@ -93,6 +93,8 @@ FORBIDDEN_COMPONENTS = [
     "page.codeberg.morganmlgman.bambuddy_mobile.BambuddyWidgetProvider",
     "page.codeberg.morganmlgman.bambuddy_mobile.BambuddyMultiWidgetProvider",
     "page.codeberg.morganmlgman.bambuddy_mobile.wear.WearRelayListenerService",
+    "page.codeberg.morganmlgman.bambuddy_mobile.AlarmActivity",
+    "page.codeberg.morganmlgman.bambuddy_mobile.AlarmStopReceiver",
 ]
 
 # What still has to be there, so "stripped everything" is not a pass.

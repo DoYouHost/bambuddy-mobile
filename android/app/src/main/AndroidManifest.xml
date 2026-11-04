@@ -20,6 +20,11 @@
          is only a request: the system decides, and the user can switch promotion
          off per app. Refusing leaves a plain notification with a progress bar. -->
     <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS"/>
+    <!-- The print alarm (#61, PrintAlarm.kt) raises its screen over the lock screen.
+         Not granted by default on Android 14+ for an app that is not a clock: the
+         user turns it on from the alarm settings, and without it the alarm still
+         rings as a heads-up notification. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
     <!-- The foreground service keeps the process alive in the background so the
          WebSocket keeps receiving statuses and updating the print notification. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
@@ -133,6 +138,19 @@
              fires, the notification neither closes nor resets the counter. -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"
+            android:exported="false" />
+
+        <!-- The print alarm's screen and its Stop button (PrintAlarm.kt). Own task
+             affinity so it never brings the app's task up over the lock screen. -->
+        <activity
+            android:name=".AlarmActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:taskAffinity="page.codeberg.morganmlgman.bambuddy_mobile.alarm"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+        <receiver
+            android:name=".AlarmStopReceiver"
             android:exported="false" />
 
         <!-- Home screen widget: selected printer status + a filament scan

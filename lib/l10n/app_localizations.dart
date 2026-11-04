@@ -3914,6 +3914,42 @@ abstract class AppLocalizations {
   /// **'{minutes} min'**
   String alarmMinutes(int minutes);
 
+  /// No description provided for @alarmStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get alarmStop;
+
+  /// No description provided for @alarmTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test alarm'**
+  String get alarmTest;
+
+  /// No description provided for @alarmTestBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This is how the alarm sounds'**
+  String get alarmTestBody;
+
+  /// No description provided for @alarmTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The alarm could not ring. Check that notifications are on.'**
+  String get alarmTestFailed;
+
+  /// No description provided for @alarmFullScreenNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Without permission the alarm will not cover the lock screen'**
+  String get alarmFullScreenNeeded;
+
+  /// No description provided for @alarmFullScreenAllow.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow'**
+  String get alarmFullScreenAllow;
+
   /// No description provided for @notifThresholdsHeader.
   ///
   /// In en, this message translates to:

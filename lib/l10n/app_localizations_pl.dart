@@ -2393,6 +2393,26 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get alarmStop => 'Stop';
+
+  @override
+  String get alarmTest => 'Testuj alarm';
+
+  @override
+  String get alarmTestBody => 'Tak brzmi alarm';
+
+  @override
+  String get alarmTestFailed =>
+      'Alarm nie mógł zadzwonić. Sprawdź, czy powiadomienia są włączone.';
+
+  @override
+  String get alarmFullScreenNeeded =>
+      'Bez zgody alarm nie zasłoni ekranu blokady';
+
+  @override
+  String get alarmFullScreenAllow => 'Zezwól';
+
+  @override
   String get notifThresholdsHeader => 'Progi';
 
   @override

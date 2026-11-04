@@ -2340,6 +2340,26 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get alarmStop => 'Stop';
+
+  @override
+  String get alarmTest => 'Test alarm';
+
+  @override
+  String get alarmTestBody => 'This is how the alarm sounds';
+
+  @override
+  String get alarmTestFailed =>
+      'The alarm could not ring. Check that notifications are on.';
+
+  @override
+  String get alarmFullScreenNeeded =>
+      'Without permission the alarm will not cover the lock screen';
+
+  @override
+  String get alarmFullScreenAllow => 'Allow';
+
+  @override
   String get notifThresholdsHeader => 'Thresholds';
 
   @override

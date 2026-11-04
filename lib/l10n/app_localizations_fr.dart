@@ -2380,6 +2380,26 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get alarmStop => 'Arrêter';
+
+  @override
+  String get alarmTest => 'Tester l\'alarme';
+
+  @override
+  String get alarmTestBody => 'Voici le son de l\'alarme';
+
+  @override
+  String get alarmTestFailed =>
+      'L\'alarme n\'a pas pu sonner. Vérifiez que les notifications sont activées.';
+
+  @override
+  String get alarmFullScreenNeeded =>
+      'Sans autorisation, l\'alarme ne couvrira pas l\'écran de verrouillage';
+
+  @override
+  String get alarmFullScreenAllow => 'Autoriser';
+
+  @override
   String get notifThresholdsHeader => 'Seuils';
 
   @override

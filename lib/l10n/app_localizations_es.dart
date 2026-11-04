@@ -2361,6 +2361,26 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get alarmStop => 'Detener';
+
+  @override
+  String get alarmTest => 'Probar alarma';
+
+  @override
+  String get alarmTestBody => 'Así suena la alarma';
+
+  @override
+  String get alarmTestFailed =>
+      'La alarma no pudo sonar. Comprueba que las notificaciones estén activadas.';
+
+  @override
+  String get alarmFullScreenNeeded =>
+      'Sin permiso, la alarma no cubrirá la pantalla de bloqueo';
+
+  @override
+  String get alarmFullScreenAllow => 'Permitir';
+
+  @override
   String get notifThresholdsHeader => 'Umbrales';
 
   @override

@@ -2371,6 +2371,26 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get alarmStop => 'Stopp';
+
+  @override
+  String get alarmTest => 'Wecker testen';
+
+  @override
+  String get alarmTestBody => 'So klingt der Wecker';
+
+  @override
+  String get alarmTestFailed =>
+      'Der Wecker konnte nicht klingeln. Prüfe, ob Benachrichtigungen aktiviert sind.';
+
+  @override
+  String get alarmFullScreenNeeded =>
+      'Ohne Berechtigung überdeckt der Wecker den Sperrbildschirm nicht';
+
+  @override
+  String get alarmFullScreenAllow => 'Erlauben';
+
+  @override
   String get notifThresholdsHeader => 'Schwellenwerte';
 
   @override
