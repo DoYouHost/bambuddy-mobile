@@ -1,10 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/alarm_ringer.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/features/notifications/print_monitor.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
 import '../../hms_samples.dart';
@@ -297,6 +302,22 @@ void main() {
       expect(ringer.rings, hasLength(1));
     });
 
+    at('a monitor that starts during the cooling still rings at its end', (_) {
+      final m = monitor();
+      dry(m, [_unit(0, status: 3), _unit(0, status: 3)]);
+      expect(ringer.rings, isEmpty);
+      dry(m, [_unit(0, status: 0)]);
+      expect(ringer.rings, hasLength(1));
+    });
+
+    at('a monitor that starts while the unit checks does not invent a cycle', (
+      _,
+    ) {
+      final m = monitor();
+      dry(m, [_unit(0, status: 1), _unit(0, status: 0)]);
+      expect(ringer.rings, isEmpty);
+    });
+
     at('a cycle stopped with time left does not ring', (_) {
       final m = monitor();
       dry(m, [_unit(700, status: 2), _unit(0, status: 0)]);
@@ -339,5 +360,78 @@ void main() {
       });
       expect(ringer.rings, hasLength(1));
     });
+  });
+
+  group('diagnostics', () {
+    late DiagnosticRecorder recorder;
+
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+      recorder = DiagnosticRecorder(
+        sessions: MemorySessionStore(),
+        redactor: bambuddyRedactor,
+        sessionDuration: recordingLimit,
+        sessionBytes: recordingSizeLimit,
+        loadFacts: () async => const SessionFacts(app: '0.17.2+1'),
+        resolveDirectory: () async => null,
+      );
+    });
+    tearDown(() => recorder.discard());
+
+    Future<List<Map<String, Object?>>> rows(
+      FutureOr<void> Function() body,
+    ) async {
+      await recorder.start();
+      await body();
+      final jsonl = await recorder.stop();
+      return [
+        for (final line in const LineSplitter().convert(jsonl))
+          if (jsonDecode(line) case final Map<String, Object?> row
+              when row['src'] == 'notif')
+            row,
+      ];
+    }
+
+    testWithClock('a ring that went through is recorded as rang', _night, (
+      _,
+    ) async {
+      final all = await rows(() async {
+        finishPrint(monitor());
+        await Future<void>.delayed(Duration.zero);
+      });
+      expect(
+        [
+          for (final r in all)
+            if (r['evt'] == 'alarm') r['outcome'],
+        ],
+        ['ringing', 'rang'],
+      );
+    });
+
+    testWithClock(
+      'a hold only the alarm asked for says nothing about the alert when it clears',
+      _night,
+      (time) async {
+        final all = await rows(() {
+          final m = monitor();
+          m.update({1: _status(state: 'RUNNING')});
+          m.update({
+            1: _status(state: 'PAUSE', hms: [hmsRunout.fault]),
+          });
+          // Gone before the hold, and away past the grace.
+          m.update({1: _status(state: 'PAUSE', hms: const [])});
+          // Frames keep coming: a silent feed would hold the code instead.
+          for (var i = 0; i < 4; i++) {
+            time.tick(const Duration(seconds: 10));
+            m.update({1: _status(state: 'PAUSE', hms: const [])});
+          }
+        });
+        expect([
+          for (final r in all)
+            if (r['evt'] == 'suppressed') r['reason'],
+        ], isEmpty);
+        expect(ringer.rings, isEmpty);
+      },
+    );
   });
 }

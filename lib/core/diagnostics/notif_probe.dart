@@ -143,8 +143,10 @@ class NotifProbe {
     },
   );
 
-  /// What the alarm (#61) decided for an event it was switched on for:
-  /// `ringing`, `refused` (nothing could ring), `type_off` or `outside_window`.
+  /// What the alarm (#61) decided for an event while the alarm is on:
+  /// `ringing` (asked to ring, written before the answer), then `rang` or
+  /// `refused` (nothing could ring), `type_off` (this event cleared), `outside_window` or
+  /// `ended_early` (a drying cycle stopped with time left).
   /// Nothing is recorded while the alarm itself is off — that is every install
   /// that never asked for one.
   static void alarm(

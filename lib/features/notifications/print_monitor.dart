@@ -60,6 +60,7 @@ const int _dryEndedEarlyMinutes = 5;
 /// `ACTIVE_DRY_STATUSES`): Checking, Drying, Cooling. A `dry_time` of 0 in one
 /// of them is a firmware blip, not the end.
 const Set<int> _activeDryStatuses = {1, 2, 3};
+const int _dryCooling = 3;
 
 /// Progress milestone thresholds (%).
 const List<int> _milestones = [25, 50, 75];
@@ -385,7 +386,7 @@ class PrintMonitor {
             minutes: prefs.ringMinutes,
           )
           .then((rang) {
-            if (!rang) record('refused');
+            record(rang ? 'rang' : 'refused');
           }),
     );
   }
@@ -686,8 +687,15 @@ class PrintMonitor {
       // Absent: no news. A 0 mid-cycle: keep the last real reading, so the
       // frame that ends the cycle for real still sees it.
       if (minutes == null) continue;
-      if (minutes == 0 && _activeDryStatuses.contains(unit.dryStatus)) continue;
       final key = unit.id ?? i;
+      if (minutes == 0 && _activeDryStatuses.contains(unit.dryStatus)) {
+        // Cooling only follows a countdown that ran out: a monitor that first
+        // meets the cycle there still owes its end.
+        if (unit.dryStatus == _dryCooling) {
+          memo.dryMinutes.putIfAbsent(key, () => 1);
+        }
+        continue;
+      }
       final previous = memo.dryMinutes[key];
       memo.dryMinutes[key] = minutes;
       if (baseline || previous == null || previous == 0 || minutes != 0) {
@@ -894,12 +902,15 @@ class PrintMonitor {
         // fault first seen while offline gets. It holds again from the frame
         // that brings the printer back with it.
         memo.hmsLastSeen.remove(key);
-        NotifProbe.suppressed(
-          NotifSkip.offline,
-          printerId: id,
-          event: NotifEvent.printerError,
-          fields: {'code': key},
-        );
+        // A hold the alarm alone asked for says nothing about the alert.
+        if (_on(NotifEvent.printerError)) {
+          NotifProbe.suppressed(
+            NotifSkip.offline,
+            printerId: id,
+            event: NotifEvent.printerError,
+            fields: {'code': key},
+          );
+        }
         return;
       }
       _faultStood(id, status, hold.fault);
@@ -922,6 +933,7 @@ class PrintMonitor {
     final hold = memo.hmsHeld.remove(key);
     if (hold == null) return;
     hold.pause();
+    if (!_on(NotifEvent.printerError)) return;
     NotifProbe.suppressed(
       NotifSkip.transient,
       printerId: id,
@@ -933,7 +945,9 @@ class PrintMonitor {
   /// Why this HMS code produces no alert, or null when it produces one: off, a
   /// user-action code, or undocumented (docs/notification-rules.md, "HMS faults").
   NotifSkip? _hmsSkipReason(HmsError e) {
-    if (!_on(NotifEvent.printerError) && !_faultMayRing(e)) return _offReason;
+    if (!_on(NotifEvent.printerError) && !_faultMayRing(e)) {
+      return _offReason;
+    }
     if (_hmsSuppressed(e)) return NotifSkip.userAction;
     // Notify only on a real, documented fault (parity with bambuddy) — drops
     // the undocumented/phantom codes the firmware emits alongside one event.
@@ -947,6 +961,9 @@ class PrintMonitor {
   /// ([HmsError.level]). The faults the "print stopped" alarm is for.
   static bool _stopsThePrint(HmsError e) => e.level == 1 || e.level == 2;
 
+  /// Not gated on printing: this is asked once per code, at first sight, and a
+  /// fault seen on an idle printer that is still standing when a print starts
+  /// would never be asked again. [_faultStood] checks printing when it ends.
   bool _faultMayRing(HmsError e) =>
       _stopsThePrint(e) && _alarmWants(AlarmEvent.printBlocked);
 
@@ -958,7 +975,11 @@ class PrintMonitor {
       id,
       NotifEvent.printerError,
       () => _alertError(id, status, fault),
-      fields: {'code': _hmsCode(fault)},
+      fields: {
+        'code': _hmsCode(fault),
+        'sev': fault.severity,
+        'lvl': fault.level,
+      },
     );
     if (!_stopsThePrint(fault) || !status.isPrinting) return;
     final l = _l10n();
