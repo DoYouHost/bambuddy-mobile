@@ -12,6 +12,7 @@ import '../../data/server_settings_repository.dart';
 import '../../features/dashboard/ws_providers.dart' show wsUrlFor;
 import '../../features/notifications/maintenance_monitor.dart';
 import '../../features/notifications/print_monitor.dart';
+import 'alarm_ringer.dart';
 import 'background_api.dart';
 import 'background_sync.dart';
 import 'finish_alert_memory.dart';
@@ -271,6 +272,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
       prefs: notifPrefs,
       hmsDescribe: catalog.describe,
       pauseLeadMinutes: () => _pauseLeadMinutes,
+      alarm: const AlarmRinger(),
       // `catchError`, because a throw inside the reminder used to become an
       // uncaught error in this isolate with nothing to show for it: the repo lets
       // auth failures out on purpose and nobody is awaiting this.
