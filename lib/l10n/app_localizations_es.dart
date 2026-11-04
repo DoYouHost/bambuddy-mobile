@@ -2307,6 +2307,108 @@ class AppLocalizationsEs extends AppLocalizations {
       'Añade la foto que toma el servidor al terminar la impresión a la notificación de finalización o fallo, en cuanto esté disponible';
 
   @override
+  String get alarmHeader => 'Alarma';
+
+  @override
+  String get alarmTitle => 'Despertarme con una alarma';
+
+  @override
+  String get alarmDesc =>
+      'Suena en la pantalla de bloqueo hasta que la detengas';
+
+  @override
+  String get alarmEvtFinished => 'Impresión finalizada';
+
+  @override
+  String get alarmEvtFinishedDesc => 'Una impresión terminó correctamente';
+
+  @override
+  String get alarmEvtBlocked => 'Impresión detenida por un fallo';
+
+  @override
+  String get alarmEvtBlockedDesc =>
+      'Un fallo pausó o detuvo la impresión, o la impresión falló';
+
+  @override
+  String get alarmEvtDrying => 'Secado finalizado';
+
+  @override
+  String get alarmEvtDryingDesc => 'Un ciclo de secado del AMS llegó a su fin';
+
+  @override
+  String get alarmWindowTitle => 'Solo en las horas elegidas';
+
+  @override
+  String get alarmWindowDesc => 'Fuera de este horario la alarma no suena';
+
+  @override
+  String get alarmWindowFrom => 'Desde';
+
+  @override
+  String get alarmWindowTo => 'Hasta';
+
+  @override
+  String alarmRingFor(int minutes) {
+    return 'Suena durante $minutes min';
+  }
+
+  @override
+  String get alarmRingForDesc => 'Después se detiene sola';
+
+  @override
+  String alarmMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get alarmStop => 'Detener';
+
+  @override
+  String get alarmTest => 'Probar alarma';
+
+  @override
+  String get alarmTestBody => 'Así suena la alarma';
+
+  @override
+  String get alarmTestFailed =>
+      'La alarma no pudo sonar. Comprueba que las notificaciones estén activadas.';
+
+  @override
+  String get alarmFullScreenNeeded =>
+      'Sin permiso, la alarma no cubrirá la pantalla de bloqueo';
+
+  @override
+  String get alarmFullScreenAllow => 'Permitir';
+
+  @override
+  String get alarmHoursHeader => 'Horario';
+
+  @override
+  String get alarmLengthHeader => 'Duración';
+
+  @override
+  String get alarmSettingsSubtitle =>
+      'Qué la activa, en qué horario y durante cuánto tiempo';
+
+  @override
+  String get alarmExcludedLocationsHeader => 'Ubicaciones excluidas';
+
+  @override
+  String get alarmExcludedPrintersHeader => 'Impresoras excluidas';
+
+  @override
+  String get alarmExcludeLocationDesc =>
+      'Ninguna impresora de aquí activa la alarma';
+
+  @override
+  String get alarmExcludePrinterDesc => 'Esta impresora nunca activa la alarma';
+
+  @override
+  String alarmExcludedWithLocation(String location) {
+    return 'Excluida con la ubicación $location';
+  }
+
+  @override
   String get notifThresholdsHeader => 'Umbrales';
 
   @override

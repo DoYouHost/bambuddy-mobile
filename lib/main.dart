@@ -14,6 +14,7 @@ import 'core/settings/settings_repository.dart';
 import 'core/watch/wear_relay_engine.dart';
 import 'core/app_context.dart';
 import 'providers.dart';
+import 'features/alarm/alarm_screen.dart';
 import 'features/bug_report/report_wiring.dart';
 
 Future<void> main() async {
@@ -94,3 +95,8 @@ Future<void> main() async {
 /// and CI only builds debug.
 @pragma('vm:entry-point')
 void wearRelayMain() => serveWearRelay();
+
+/// Entry point of `AlarmActivity`'s engine: the alarm screen over the lock
+/// screen (#61). Here for the same reason as [wearRelayMain].
+@pragma('vm:entry-point')
+void alarmMain() => runAlarmScreen();

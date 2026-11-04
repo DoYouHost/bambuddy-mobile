@@ -143,6 +143,28 @@ class NotifProbe {
     },
   );
 
+  /// What the alarm (#61) decided for an event while the alarm is on:
+  /// `ringing` (asked to ring, written before the answer), then `rang` or
+  /// `refused` (nothing could ring), `type_off` (this event cleared), `outside_window` or
+  /// `ended_early` (a drying cycle stopped with time left).
+  /// Nothing is recorded while the alarm itself is off — that is every install
+  /// that never asked for one.
+  static void alarm(
+    int printerId, {
+    required AlarmEvent event,
+    required String outcome,
+    Map<String, Object?> fields = const {},
+  }) => DiagnosticRecorder.active?.add(
+    LogSource.notif,
+    'alarm',
+    fields: {
+      'event': event.name,
+      'printer_id': printerId,
+      'outcome': outcome,
+      ...fields,
+    },
+  );
+
   /// The baseline a fresh monitor latched from a printer's first frame: the silence of a
   /// new monitor is correct and invisible, so this one record answers "the app
   /// swallowed my notification". Not a [suppressed]: no event was evaluated

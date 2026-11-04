@@ -2340,6 +2340,107 @@ class AppLocalizationsPl extends AppLocalizations {
       'Dokłada do powiadomienia o zakończeniu lub błędzie zdjęcie, które serwer robi po wydruku — gdy tylko dojdzie';
 
   @override
+  String get alarmHeader => 'Alarm';
+
+  @override
+  String get alarmTitle => 'Budź mnie alarmem';
+
+  @override
+  String get alarmDesc => 'Dzwoni na ekranie blokady, aż go wyłączysz';
+
+  @override
+  String get alarmEvtFinished => 'Wydruk zakończony';
+
+  @override
+  String get alarmEvtFinishedDesc => 'Wydruk skończył się powodzeniem';
+
+  @override
+  String get alarmEvtBlocked => 'Wydruk zatrzymany przez błąd';
+
+  @override
+  String get alarmEvtBlockedDesc =>
+      'Błąd wstrzymał lub przerwał wydruk albo wydruk się nie udał';
+
+  @override
+  String get alarmEvtDrying => 'Suszenie zakończone';
+
+  @override
+  String get alarmEvtDryingDesc => 'Cykl suszenia w AMS dobiegł końca';
+
+  @override
+  String get alarmWindowTitle => 'Tylko w wybranych godzinach';
+
+  @override
+  String get alarmWindowDesc => 'Poza tymi godzinami alarm nie dzwoni';
+
+  @override
+  String get alarmWindowFrom => 'Od';
+
+  @override
+  String get alarmWindowTo => 'Do';
+
+  @override
+  String alarmRingFor(int minutes) {
+    return 'Dzwoni przez $minutes min';
+  }
+
+  @override
+  String get alarmRingForDesc => 'Potem sam ucichnie';
+
+  @override
+  String alarmMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get alarmStop => 'Stop';
+
+  @override
+  String get alarmTest => 'Testuj alarm';
+
+  @override
+  String get alarmTestBody => 'Tak brzmi alarm';
+
+  @override
+  String get alarmTestFailed =>
+      'Alarm nie mógł zadzwonić. Sprawdź, czy powiadomienia są włączone.';
+
+  @override
+  String get alarmFullScreenNeeded =>
+      'Bez zgody alarm nie zasłoni ekranu blokady';
+
+  @override
+  String get alarmFullScreenAllow => 'Zezwól';
+
+  @override
+  String get alarmHoursHeader => 'Godziny';
+
+  @override
+  String get alarmLengthHeader => 'Jak długo';
+
+  @override
+  String get alarmSettingsSubtitle =>
+      'Co go uruchamia, w jakich godzinach i na jak długo';
+
+  @override
+  String get alarmExcludedLocationsHeader => 'Wykluczone lokalizacje';
+
+  @override
+  String get alarmExcludedPrintersHeader => 'Wykluczone drukarki';
+
+  @override
+  String get alarmExcludeLocationDesc =>
+      'Żadna drukarka stąd nie włączy alarmu';
+
+  @override
+  String get alarmExcludePrinterDesc => 'Ta drukarka nigdy nie włączy alarmu';
+
+  @override
+  String alarmExcludedWithLocation(String location) {
+    return 'Wykluczona razem z lokalizacją $location';
+  }
+
+  @override
   String get notifThresholdsHeader => 'Progi';
 
   @override

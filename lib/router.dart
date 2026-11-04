@@ -26,6 +26,7 @@ import 'features/gcode/gcode_viewer_screen.dart';
 import 'features/inventory/inventory_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
 import 'features/maintenance/maintenance_settings.dart';
+import 'features/alarm/alarm_settings_screen.dart';
 import 'features/notifications/notification_settings_screen.dart';
 import 'features/inventory/profile_defaults_screen.dart';
 import 'features/settings/pause_warning_screen.dart';
@@ -157,6 +158,10 @@ GoRouter buildAppRouter({
       GoRoute(
         path: '/settings/notifications',
         builder: (_, _) => const NotificationSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/alarm',
+        builder: (_, _) => const AlarmSettingsScreen(),
       ),
 
       // Server settings — the hub, and the one form it owns outright. Full

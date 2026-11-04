@@ -26,6 +26,9 @@ class OngoingNotificationHost(private val context: Context) :
 
     private var channel: MethodChannel? = null
 
+    /** The print alarm's channel, served on the same engine: the monitor that rings it runs here. */
+    private var alarmChannel: MethodChannel? = null
+
     /**
      * The last notification we posted.
      *
@@ -38,6 +41,7 @@ class OngoingNotificationHost(private val context: Context) :
 
     override fun onEngineCreate(flutterEngine: FlutterEngine?) {
         val messenger = flutterEngine?.dartExecutor?.binaryMessenger ?: return
+        alarmChannel = PrintAlarm.serve(messenger, context, activity = null)
         channel = MethodChannel(messenger, ONGOING_CHANNEL).apply {
             setMethodCallHandler { call, result ->
                 if (call.method != "show") {
@@ -59,6 +63,8 @@ class OngoingNotificationHost(private val context: Context) :
     override fun onEngineWillDestroy() {
         channel?.setMethodCallHandler(null)
         channel = null
+        alarmChannel?.setMethodCallHandler(null)
+        alarmChannel = null
         // This listener is registered once per process and outlives any single service, so a
         // notification cached during one monitoring session must not become the recovery
         // source for the next one.

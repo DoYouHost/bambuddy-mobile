@@ -189,6 +189,9 @@ class NotificationPrefsNotifier extends Notifier<NotificationPrefs> {
 
   Future<void> setLowFilamentThreshold(int value) =>
       _save(state.copyWith(lowFilamentThreshold: value));
+
+  Future<void> setAlarm(AlarmPrefs alarm) =>
+      _save(state.copyWith(alarm: alarm));
 }
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
