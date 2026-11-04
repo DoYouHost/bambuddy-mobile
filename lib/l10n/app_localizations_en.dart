@@ -2045,6 +2045,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tryDemo => 'Try the demo';
 
   @override
+  String get customCaImport => 'Import CA certificate';
+
+  @override
+  String customCaTrusted(String name) {
+    return 'Trusted CA: $name';
+  }
+
+  @override
+  String get customCaRemove => 'Remove CA certificate';
+
+  @override
+  String get customCaInvalid => 'This file holds no certificate';
+
+  @override
+  String get customCaPickFailed => 'Could not open the file';
+
+  @override
   String get scanApiKeyTitle => 'Scan API key';
 
   @override
@@ -2096,8 +2113,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get errBadCertificate =>
-      'Invalid TLS certificate (self-signed not supported in v1)';
+  String get errBadCertificate => 'The server\'s certificate is not trusted';
 
   @override
   String get errConnection => 'Connection error';

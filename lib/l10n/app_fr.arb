@@ -1010,6 +1010,11 @@
   "twoFactorBack": "Utiliser un autre compte",
   "twoFactorSessionNote": "L'application ne peut pas renouveler une session 2FA d'elle-même et vous redemandera de vous connecter à son expiration. Une clé API n'expire pas et évite cette étape.",
   "tryDemo": "Essayer la démo",
+  "customCaImport": "Importer un certificat d'AC",
+  "customCaTrusted": "AC de confiance : {name}",
+  "customCaRemove": "Retirer le certificat d'AC",
+  "customCaInvalid": "Ce fichier ne contient aucun certificat",
+  "customCaPickFailed": "Impossible d'ouvrir le fichier",
   "scanApiKeyTitle": "Scanner la clé API",
   "scanApiKeyHint": "Pointez l'appareil photo vers le code QR de la clé API",
   "cameraPermissionTitle": "Accès à l'appareil photo requis",
@@ -1039,7 +1044,7 @@
       }
     }
   },
-  "errBadCertificate": "Certificat TLS invalide (les certificats auto-signés ne sont pas pris en charge dans la v1)",
+  "errBadCertificate": "Le certificat du serveur n'est pas approuvé",
   "errConnection": "Erreur de connexion",
   "errMalformedResponse": "Réponse du serveur malformée",
   "errInvalidCredentials": "Nom d'utilisateur ou mot de passe incorrect",

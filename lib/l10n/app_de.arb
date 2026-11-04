@@ -1010,6 +1010,11 @@
   "twoFactorBack": "Anderes Konto verwenden",
   "twoFactorSessionNote": "Die App kann eine 2FA-Sitzung nicht selbstständig erneuern, daher fragt sie erneut, wenn diese abläuft. Ein API-Schlüssel läuft nicht ab und überspringt diesen Schritt.",
   "tryDemo": "Demo ausprobieren",
+  "customCaImport": "CA-Zertifikat importieren",
+  "customCaTrusted": "Vertrauenswürdige CA: {name}",
+  "customCaRemove": "CA-Zertifikat entfernen",
+  "customCaInvalid": "Diese Datei enthält kein Zertifikat",
+  "customCaPickFailed": "Die Datei konnte nicht geöffnet werden",
   "scanApiKeyTitle": "API-Schlüssel scannen",
   "scanApiKeyHint": "Kamera auf den QR-Code des API-Schlüssels richten",
   "cameraPermissionTitle": "Kamerazugriff erforderlich",
@@ -1039,7 +1044,7 @@
       }
     }
   },
-  "errBadCertificate": "Ungültiges TLS-Zertifikat (selbstsignierte Zertifikate werden in v1 nicht unterstützt)",
+  "errBadCertificate": "Das Zertifikat des Servers ist nicht vertrauenswürdig",
   "errConnection": "Verbindungsfehler",
   "errMalformedResponse": "Ungültige Serverantwort",
   "errInvalidCredentials": "Ungültiger Benutzername oder ungültiges Passwort",

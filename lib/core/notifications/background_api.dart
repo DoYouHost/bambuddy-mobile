@@ -6,6 +6,7 @@ import '../../data/archive_repository.dart';
 import '../../data/maintenance_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../api/api_client.dart';
+import '../api/custom_ca.dart';
 import '../api/api_exceptions.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../diagnostics/notif_probe.dart';
@@ -103,6 +104,9 @@ Future<ApiClient?> buildBackgroundApiClient(
     'pass credentials and auth together',
   );
   final settings = SettingsRepository(prefs);
+  // Every isolate without Riverpod builds its client here before its first
+  // request, which is when Dio creates its `HttpClient`.
+  trustCustomCa(settings.loadCustomCa());
   final profile = settings.loadProfile();
   if (profile == null) return null;
   final creds = credentials ?? SecureCredentialsStore();
