@@ -2391,6 +2391,35 @@ class AppLocalizationsDe extends AppLocalizations {
   String get alarmFullScreenAllow => 'Erlauben';
 
   @override
+  String get alarmHoursHeader => 'Uhrzeiten';
+
+  @override
+  String get alarmLengthHeader => 'Wie lange';
+
+  @override
+  String get alarmSettingsSubtitle =>
+      'Was ihn auslöst, zu welchen Uhrzeiten und wie lange';
+
+  @override
+  String get alarmExcludedLocationsHeader => 'Ausgeschlossene Standorte';
+
+  @override
+  String get alarmExcludedPrintersHeader => 'Ausgeschlossene Drucker';
+
+  @override
+  String get alarmExcludeLocationDesc =>
+      'Kein Drucker hier löst den Wecker aus';
+
+  @override
+  String get alarmExcludePrinterDesc =>
+      'Dieser Drucker löst den Wecker nie aus';
+
+  @override
+  String alarmExcludedWithLocation(String location) {
+    return 'Mit dem Standort $location ausgeschlossen';
+  }
+
+  @override
   String get notifThresholdsHeader => 'Schwellenwerte';
 
   @override

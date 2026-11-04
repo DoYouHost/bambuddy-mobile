@@ -3950,6 +3950,54 @@ abstract class AppLocalizations {
   /// **'Allow'**
   String get alarmFullScreenAllow;
 
+  /// No description provided for @alarmHoursHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Hours'**
+  String get alarmHoursHeader;
+
+  /// No description provided for @alarmLengthHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'How long'**
+  String get alarmLengthHeader;
+
+  /// No description provided for @alarmSettingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What rings it, at which hours and for how long'**
+  String get alarmSettingsSubtitle;
+
+  /// No description provided for @alarmExcludedLocationsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded locations'**
+  String get alarmExcludedLocationsHeader;
+
+  /// No description provided for @alarmExcludedPrintersHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded printers'**
+  String get alarmExcludedPrintersHeader;
+
+  /// No description provided for @alarmExcludeLocationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'No printer here rings the alarm'**
+  String get alarmExcludeLocationDesc;
+
+  /// No description provided for @alarmExcludePrinterDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'This printer never rings the alarm'**
+  String get alarmExcludePrinterDesc;
+
+  /// No description provided for @alarmExcludedWithLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded with {location}'**
+  String alarmExcludedWithLocation(String location);
+
   /// No description provided for @notifThresholdsHeader.
   ///
   /// In en, this message translates to:

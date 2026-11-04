@@ -2413,6 +2413,34 @@ class AppLocalizationsPl extends AppLocalizations {
   String get alarmFullScreenAllow => 'Zezwól';
 
   @override
+  String get alarmHoursHeader => 'Godziny';
+
+  @override
+  String get alarmLengthHeader => 'Jak długo';
+
+  @override
+  String get alarmSettingsSubtitle =>
+      'Co go uruchamia, w jakich godzinach i na jak długo';
+
+  @override
+  String get alarmExcludedLocationsHeader => 'Wykluczone lokalizacje';
+
+  @override
+  String get alarmExcludedPrintersHeader => 'Wykluczone drukarki';
+
+  @override
+  String get alarmExcludeLocationDesc =>
+      'Żadna drukarka stąd nie włączy alarmu';
+
+  @override
+  String get alarmExcludePrinterDesc => 'Ta drukarka nigdy nie włączy alarmu';
+
+  @override
+  String alarmExcludedWithLocation(String location) {
+    return 'Wykluczona razem z lokalizacją $location';
+  }
+
+  @override
   String get notifThresholdsHeader => 'Progi';
 
   @override

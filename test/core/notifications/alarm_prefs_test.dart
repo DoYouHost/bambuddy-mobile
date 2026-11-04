@@ -131,4 +131,52 @@ void main() {
       expect(alarm.inWindow(at(12, 0)), isTrue);
     });
   });
+
+  group('exclusions', () {
+    test('round-trip, and old prefs exclude nothing', () {
+      const alarm = AlarmPrefs(
+        excludedPrinters: {3, 7},
+        excludedLocations: {'Garage'},
+      );
+      final decoded = AlarmPrefs.fromJson(alarm.toJson());
+      expect(decoded.excludedPrinters, {3, 7});
+      expect(decoded.excludedLocations, {'Garage'});
+      expect(AlarmPrefs.fromJson({}).excludedPrinters, isEmpty);
+      expect(AlarmPrefs.fromJson({}).excludedLocations, isEmpty);
+    });
+
+    test('malformed entries are dropped one by one', () {
+      final alarm = AlarmPrefs.fromJson({
+        'excludedPrinters': [1, '2', 3.0, null],
+        'excludedLocations': ['Garage', '', 5],
+      });
+      expect(alarm.excludedPrinters, {1});
+      expect(alarm.excludedLocations, {'Garage'});
+      expect(
+        AlarmPrefs.fromJson({'excludedPrinters': 'all'}).excludedPrinters,
+        isEmpty,
+      );
+    });
+
+    test('a printer excluded by id or by its location', () {
+      const alarm = AlarmPrefs(
+        excludedPrinters: {3},
+        excludedLocations: {'Garage'},
+      );
+      expect(alarm.exclusionOf(3, 'Office'), AlarmExclusion.printer);
+      expect(alarm.exclusionOf(4, 'Garage'), AlarmExclusion.location);
+      expect(alarm.exclusionOf(4, 'Office'), isNull);
+    });
+
+    test('an unknown location never excludes', () {
+      const alarm = AlarmPrefs(excludedLocations: {'Garage'});
+      expect(alarm.exclusionOf(4, null), isNull);
+    });
+
+    test('locations match by exact name, as the server does', () {
+      const alarm = AlarmPrefs(excludedLocations: {'Garage'});
+      expect(alarm.exclusionOf(4, 'garage'), isNull);
+      expect(alarm.exclusionOf(4, 'Garage '), isNull);
+    });
+  });
 }

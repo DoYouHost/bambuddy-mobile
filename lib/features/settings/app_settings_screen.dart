@@ -162,6 +162,15 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
         onTap: () => context.push('/settings/notifications'),
         id: 'app_settings.notifications',
       ),
+      const SizedBox(height: DashSpace.xl),
+      SettingsSectionHeader(l10n.alarmHeader),
+      SettingsEntryTile(
+        icon: Icons.alarm_rounded,
+        title: l10n.alarmTitle,
+        subtitle: l10n.alarmSettingsSubtitle,
+        onTap: () => context.push('/settings/alarm'),
+        id: 'app_settings.alarm',
+      ),
       // The tour's own copy of this screen would start a tour in a tour.
       if (ref.watch(tourBeaconProvider) == null) ...[
         const SizedBox(height: DashSpace.xl),

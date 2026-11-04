@@ -282,6 +282,7 @@ class PrintMonitor {
     this._onPrintEnded,
     int Function()? pauseLeadMinutes,
     this._alarm,
+    this._alarmLocationOf,
   }) : _pauseLeadMinutes =
            pauseLeadMinutes ??
            (() => QueueSetting.pauseWarningMinutes.serverDefault),
@@ -300,6 +301,10 @@ class PrintMonitor {
 
   /// Null rings nothing: the UI isolate and most tests have no alarm.
   final AlarmRinger? _alarm;
+
+  /// A printer's location for the alarm's exclusions; null when unknown, which
+  /// excludes nothing. Frames do not carry it, so the service looks it up.
+  final String? Function(int printerId)? _alarmLocationOf;
 
   /// How many minutes before a pause to warn, read per frame: the setting is the
   /// server's, and the isolate refreshes it while this monitor lives.
@@ -367,23 +372,38 @@ class PrintMonitor {
   /// Rings the alarm for [event] if the user asked for it at this hour. Apart
   /// from the notification switches: an alarm with its notification off is a
   /// choice the settings allow.
-  void _ringAlarm(int id, AlarmEvent event, String title, String body) {
+  void _ringAlarm(
+    int id,
+    PrinterStatus status,
+    AlarmEvent event,
+    String title,
+    String body,
+  ) {
     final ringer = _alarm;
     final prefs = _prefs.alarm;
     if (ringer == null || !prefs.enabled) return;
     void record(String outcome) =>
         NotifProbe.alarm(id, event: event, outcome: outcome);
     if (!prefs.events.contains(event)) return record('type_off');
+    switch (prefs.exclusionOf(id, _alarmLocationOf?.call(id))) {
+      case AlarmExclusion.printer:
+        return record('printer_excluded');
+      case AlarmExclusion.location:
+        return record('location_excluded');
+      case null:
+    }
     if (!prefs.inWindow(clock.now())) return record('outside_window');
     record('ringing');
+    final l = _l10n();
     unawaited(
       ringer
           .ring(
             id: _alarmBase + id,
             title: title,
             body: body,
-            stopLabel: _l10n().alarmStop,
+            stopLabel: l.alarmStop,
             minutes: prefs.ringMinutes,
+            printer: printerLabel(status, l),
           )
           .then((rang) {
             record(rang ? 'rang' : 'refused');
@@ -555,6 +575,7 @@ class PrintMonitor {
           final l = _l10n();
           _ringAlarm(
             id,
+            status,
             AlarmEvent.printFinished,
             l.printFinishedTitle,
             l.printFinishedBody(jobLabel(status, l)),
@@ -571,6 +592,7 @@ class PrintMonitor {
           final l = _l10n();
           _ringAlarm(
             id,
+            status,
             AlarmEvent.printBlocked,
             l.printFailedTitle,
             l.printFailedBody(jobLabel(status, l)),
@@ -714,9 +736,10 @@ class PrintMonitor {
       final l = _l10n();
       _ringAlarm(
         id,
+        status,
         AlarmEvent.dryingFinished,
         l.alarmEvtDrying,
-        printerLabel(status, l),
+        l.alarmEvtDryingDesc,
       );
     }
   }
@@ -984,12 +1007,11 @@ class PrintMonitor {
     final l = _l10n();
     _ringAlarm(
       id,
+      status,
       AlarmEvent.printBlocked,
       l.notifErrorTitle,
-      l.notifErrorBody(
-        printerLabel(status, l),
-        hmsHumanText(fault, description: _hmsDescribe?.call(fault)),
-      ),
+      // The printer has a line of its own on the alarm.
+      hmsHumanText(fault, description: _hmsDescribe?.call(fault)),
     );
   }
 

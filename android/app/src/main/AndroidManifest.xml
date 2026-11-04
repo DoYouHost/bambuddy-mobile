@@ -140,12 +140,15 @@
             android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"
             android:exported="false" />
 
-        <!-- The print alarm's screen and its Stop button (PrintAlarm.kt). Own task
-             affinity so it never brings the app's task up over the lock screen. -->
+        <!-- The print alarm's screen and its Stop button (PrintAlarm.kt), a Flutter
+             screen of its own (alarmMain). Own task affinity so it never brings the
+             app's task up over the lock screen. -->
         <activity
             android:name=".AlarmActivity"
             android:exported="false"
             android:excludeFromRecents="true"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
             android:launchMode="singleInstance"
             android:taskAffinity="page.codeberg.morganmlgman.bambuddy_mobile.alarm"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />

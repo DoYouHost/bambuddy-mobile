@@ -197,11 +197,23 @@ This is how: `PrintMonitor` calls `AlarmRinger` (`lib/core/notifications/alarm_r
 a channel to `PrintAlarm.kt`, served on the foreground service's engine (from
 `OngoingNotificationHost`) and on `MainActivity`'s (permission and test button).
 
-- **Native, not `flutter_local_notifications`.** The plugin aims a full-screen intent
-  only at the launcher activity, and `MainActivity` shown over the keyguard would hand
-  the whole app, stopping a print included, to anyone holding the locked phone.
-  `AlarmActivity` shows the text and one Stop button and never opens the app; it runs
-  in its own task (`taskAffinity`, `singleInstance`, out of recents).
+- **Its own activity, not `flutter_local_notifications`.** The plugin aims a
+  full-screen intent only at the launcher activity, and `MainActivity` shown over the
+  keyguard would hand the whole app, stopping a print included, to anyone holding the
+  locked phone. `AlarmActivity` is a `FlutterActivity` on a Dart entry point of its
+  own, `alarmMain` (in `lib/main.dart` for the same AOT reason as `wearRelayMain`),
+  which builds only `AlarmScreen` (`lib/features/alarm/alarm_screen.dart`): the app's
+  look — dark, the user's accent, the logo — every alarm still ringing with its
+  printer's name, and one Stop, nothing that leads into the app. `PrintAlarm` keeps
+  that list (`ringing`), and a Stop on one notification drops its alarm from the
+  screen, which closes with the last. The printer's name is also the notification's
+  sub-text. It runs in its own task (`taskAffinity`, `singleInstance`, out of
+  recents) and talks to the native side over `…/alarm_screen` (`content`, `stop`, and
+  `show` pushed when another alarm reaches the screen already up).
+- **On an awake, unlocked phone Android does not launch the full-screen intent**; it
+  shows the alarm as a heads-up, whose Stop is the notification's own. A second alarm
+  arriving while the screen is up but the phone is not locked comes as a heads-up over
+  it for the same reason.
 - **The sound is the notification's.** Channel `print_alarm`, alarm usage
   (`USAGE_ALARM`, so it plays on a silenced phone at alarm volume), the default alarm
   tone, `FLAG_INSISTENT` for the loop. It rings with or without the full-screen
@@ -222,11 +234,27 @@ a channel to `PrintAlarm.kt`, served on the foreground service's engine (from
   with a button to `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` while it is missing,
   asked again on every resume. Without it Android shows the alarm as a heads-up
   notification, still ringing. Play needs a declaration ([play-compliance.md](play-compliance.md)).
+- **The settings** are a screen of their own (`AlarmSettingsScreen`, `/settings/alarm`,
+  an entry under app settings), not part of the notification screen: the alarm has its
+  own switches and does not follow the notification ones. Excluded locations are the
+  distinct `location` values of the printers listed; a printer in an excluded location
+  reads as excluded and cannot be switched back on its own.
 - **Test alarm** in the settings rings for one minute through the same path, so the
   user hears the volume and sees whether the screen comes up. It can only be tested
   with the app open; the real thing comes from the service.
 - **Phone only.** The watch manifest strips the permission, the activity and the
   receiver; `tool/check_wear_apk.py` asserts it.
+- **Device test:** `PrintAlarmTest` (`android/app/src/androidTest/kotlin/…`, run by
+  `just test-device`): the channel's alarm usage, the notification's flags, the sound
+  playing as `USAGE_ALARM` with the ringer on silent (read from `dumpsys audio`), the
+  screen over a swipe lock screen, each stop path and the one-minute timeout. Mutating
+  the usage to `USAGE_NOTIFICATION` or the screen's Stop to a single alarm fails it.
+- **Doze, measured on the API 35 emulator** with `tool/fake_bambuddy.dart` (`print`,
+  screen off, then `finish`): screen off only, 60 s and 10 min into a forced deep idle
+  (`dumpsys battery unplug`, `deviceidle force-idle`) all posted the alarm within one
+  `dumpsys` poll (under 0.5 s) and had the screen up at 0.6 s. The service's process
+  keeps its network in Doze, so the socket delivers at once. Not covered: a real
+  device's OEM battery manager, and hours rather than minutes of idle.
 
 ## Testing an alert without printing
 

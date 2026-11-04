@@ -265,6 +265,14 @@ Tests: `test/features/notifications/print_alarm_test.dart`.
 - **Hours.** Rings only inside the window (22:00–07:00 by default; start inclusive,
   end exclusive, equal ends mean all day), read at the moment it would ring, in local
   time. The user can move or switch off the window.
+- **Excluded printers and locations** (`AlarmPrefs.exclusionOf`) silence every event
+  for them, drying included; recorded as `printer_excluded` / `location_excluded`.
+  A location is the free-text `Printer.location`, matched by exact name as the server
+  matches it. Status frames do not carry it, so the service loads `GET /printers` when
+  it starts, and only when some location is excluded (`PrinterLocations`). It never
+  waits for that list: a printer whose location it does not know — the list not in
+  yet, the call refused, a printer added since — rings, and the list is asked for
+  again. Waking someone for nothing beats sleeping through a print.
 - **One alarm per printer** (`_alarmBase + printerId`): a new one for the same
   printer replaces the one ringing for it and restarts its timeout; other printers'
   alarms ring alongside.

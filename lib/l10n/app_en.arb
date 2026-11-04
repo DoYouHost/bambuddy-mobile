@@ -1532,6 +1532,17 @@
   "alarmTestFailed": "The alarm could not ring. Check that notifications are on.",
   "alarmFullScreenNeeded": "Without permission the alarm will not cover the lock screen",
   "alarmFullScreenAllow": "Allow",
+  "alarmHoursHeader": "Hours",
+  "alarmLengthHeader": "How long",
+  "alarmSettingsSubtitle": "What rings it, at which hours and for how long",
+  "alarmExcludedLocationsHeader": "Excluded locations",
+  "alarmExcludedPrintersHeader": "Excluded printers",
+  "alarmExcludeLocationDesc": "No printer here rings the alarm",
+  "alarmExcludePrinterDesc": "This printer never rings the alarm",
+  "alarmExcludedWithLocation": "Excluded with {location}",
+  "@alarmExcludedWithLocation": {
+    "placeholders": {"location": {"type": "String"}}
+  },
   "notifThresholdsHeader": "Thresholds",
   "notifEvtStarted": "Print started",
   "notifEvtStartedDesc": "When a print begins",

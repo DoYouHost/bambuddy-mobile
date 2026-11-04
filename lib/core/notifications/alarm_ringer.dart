@@ -12,14 +12,16 @@ class AlarmRinger {
     MethodChannel('page.codeberg.morganmlgman.bambuddy/alarm'),
   );
 
-  /// Rings until stopped or for [minutes]. Strings are already localized.
-  /// False when nothing could ring: no host, or notifications off for the app.
+  /// Rings until stopped or for [minutes]. Strings are already localized;
+  /// [printer] names the printer on the screen and the notification, empty for
+  /// none. False when nothing could ring: no host, or notifications off.
   Future<bool> ring({
     required int id,
     required String title,
     required String body,
     required String stopLabel,
     required int minutes,
+    required String printer,
   }) => _platform.ask(
     'ring',
     fallback: false,
@@ -29,6 +31,7 @@ class AlarmRinger {
       'body': body,
       'stop': stopLabel,
       'minutes': minutes,
+      'printer': printer,
     },
   );
 

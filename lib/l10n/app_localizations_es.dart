@@ -2381,6 +2381,34 @@ class AppLocalizationsEs extends AppLocalizations {
   String get alarmFullScreenAllow => 'Permitir';
 
   @override
+  String get alarmHoursHeader => 'Horario';
+
+  @override
+  String get alarmLengthHeader => 'Duración';
+
+  @override
+  String get alarmSettingsSubtitle =>
+      'Qué la activa, en qué horario y durante cuánto tiempo';
+
+  @override
+  String get alarmExcludedLocationsHeader => 'Ubicaciones excluidas';
+
+  @override
+  String get alarmExcludedPrintersHeader => 'Impresoras excluidas';
+
+  @override
+  String get alarmExcludeLocationDesc =>
+      'Ninguna impresora de aquí activa la alarma';
+
+  @override
+  String get alarmExcludePrinterDesc => 'Esta impresora nunca activa la alarma';
+
+  @override
+  String alarmExcludedWithLocation(String location) {
+    return 'Excluida con la ubicación $location';
+  }
+
+  @override
   String get notifThresholdsHeader => 'Umbrales';
 
   @override

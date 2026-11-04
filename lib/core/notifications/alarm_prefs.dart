@@ -10,6 +10,9 @@ enum AlarmEvent {
   dryingFinished,
 }
 
+/// Which exclusion silenced the alarm for a printer.
+enum AlarmExclusion { printer, location }
+
 /// The alarm: a full-screen, looping ring over the lock screen for the events
 /// worth waking up for. Nested in `NotificationPrefs` under `alarm`.
 class AlarmPrefs {
@@ -20,6 +23,8 @@ class AlarmPrefs {
     this.windowStart = defaultWindowStart,
     this.windowEnd = defaultWindowEnd,
     this.ringMinutes = defaultRingMinutes,
+    this.excludedPrinters = const {},
+    this.excludedLocations = const {},
   });
 
   /// Off until asked for: it is loud, and it needs a permission the user has to
@@ -40,6 +45,13 @@ class AlarmPrefs {
   /// How long it rings before stopping on its own; one of [ringMinuteSteps].
   final int ringMinutes;
 
+  /// Printers the alarm never rings for, by id.
+  final Set<int> excludedPrinters;
+
+  /// Locations the alarm never rings for, by name: a printer's location is the
+  /// free-text `Printer.location`, which the server also matches by name.
+  final Set<String> excludedLocations;
+
   static const int defaultWindowStart = 22 * 60;
   static const int defaultWindowEnd = 7 * 60;
   static const int defaultRingMinutes = 10;
@@ -51,6 +63,17 @@ class AlarmPrefs {
   static const AlarmPrefs defaults = AlarmPrefs();
 
   bool wants(AlarmEvent e) => enabled && events.contains(e);
+
+  /// Why the alarm stays silent for this printer, or null when it may ring.
+  /// [location] null — unknown, or no location — never excludes: a missing
+  /// answer rings rather than sleeps through a print.
+  AlarmExclusion? exclusionOf(int printerId, String? location) {
+    if (excludedPrinters.contains(printerId)) return AlarmExclusion.printer;
+    if (location != null && excludedLocations.contains(location)) {
+      return AlarmExclusion.location;
+    }
+    return null;
+  }
 
   /// Whether [now] (local time) falls inside the window. Start inclusive, end
   /// exclusive: 22:00–07:00 rings at 22:00 and not at 07:00.
@@ -69,6 +92,8 @@ class AlarmPrefs {
     int? windowStart,
     int? windowEnd,
     int? ringMinutes,
+    Set<int>? excludedPrinters,
+    Set<String>? excludedLocations,
   }) => AlarmPrefs(
     enabled: enabled ?? this.enabled,
     events: events ?? this.events,
@@ -76,6 +101,8 @@ class AlarmPrefs {
     windowStart: windowStart ?? this.windowStart,
     windowEnd: windowEnd ?? this.windowEnd,
     ringMinutes: ringMinutes ?? this.ringMinutes,
+    excludedPrinters: excludedPrinters ?? this.excludedPrinters,
+    excludedLocations: excludedLocations ?? this.excludedLocations,
   );
 
   AlarmPrefs withEvent(AlarmEvent e, bool on) =>
@@ -88,6 +115,8 @@ class AlarmPrefs {
     'windowStart': windowStart,
     'windowEnd': windowEnd,
     'ringMinutes': ringMinutes,
+    'excludedPrinters': [...excludedPrinters],
+    'excludedLocations': [...excludedLocations],
   };
 
   /// Lenient like the rest of the notification prefs: a missing or malformed
@@ -109,6 +138,16 @@ class AlarmPrefs {
       windowStart: _minuteOfDay(json['windowStart'], defaultWindowStart),
       windowEnd: _minuteOfDay(json['windowEnd'], defaultWindowEnd),
       ringMinutes: _ringStep(json['ringMinutes']),
+      excludedPrinters: {
+        if (json['excludedPrinters'] case final List list)
+          for (final v in list)
+            if (v is int) v,
+      },
+      excludedLocations: {
+        if (json['excludedLocations'] case final List list)
+          for (final v in list)
+            if (v is String && v.isNotEmpty) v,
+      },
     );
   }
 

@@ -28,6 +28,7 @@ class _Ringer implements AlarmRinger {
     required String body,
     required String stopLabel,
     required int minutes,
+    required String printer,
   }) async {
     rings.add({
       'id': id,
@@ -35,6 +36,7 @@ class _Ringer implements AlarmRinger {
       'body': body,
       'stop': stopLabel,
       'minutes': minutes,
+      'printer': printer,
     });
     return answer;
   }
@@ -88,6 +90,7 @@ void main() {
   PrintMonitor monitor({
     AlarmPrefs alarm = const AlarmPrefs(enabled: true),
     Set<NotifEvent> notifications = const {},
+    String? Function(int)? locationOf,
   }) {
     ringer = _Ringer();
     timers = _Timers();
@@ -99,6 +102,7 @@ void main() {
       timerFactory: timers.call,
       hmsDescribe: (e) => 'described',
       alarm: ringer,
+      alarmLocationOf: locationOf,
     );
   }
 
@@ -126,6 +130,7 @@ void main() {
           'body': en.printFinishedBody('cube.3mf'),
           'stop': en.alarmStop,
           'minutes': 3,
+          'printer': 'X1C',
         },
       ]);
     });
@@ -163,6 +168,57 @@ void main() {
       final m = monitor();
       m.update({1: _status(state: 'RUNNING')});
       m.update({1: _status(state: 'IDLE')});
+      expect(ringer.rings, isEmpty);
+    });
+  });
+
+  group('excluded printers', () {
+    at('an excluded printer stays silent', (_) {
+      final m = monitor(
+        alarm: const AlarmPrefs(enabled: true, excludedPrinters: {1}),
+      );
+      finishPrint(m);
+      expect(ringer.rings, isEmpty);
+    });
+
+    at('another printer still rings', (_) {
+      final m = monitor(
+        alarm: const AlarmPrefs(enabled: true, excludedPrinters: {2}),
+      );
+      finishPrint(m);
+      expect(ringer.rings, hasLength(1));
+    });
+
+    at('a printer in an excluded location stays silent', (_) {
+      final m = monitor(
+        alarm: const AlarmPrefs(enabled: true, excludedLocations: {'Garage'}),
+        locationOf: (id) => id == 1 ? 'Garage' : null,
+      );
+      finishPrint(m);
+      expect(ringer.rings, isEmpty);
+    });
+
+    at('a printer whose location is unknown rings', (_) {
+      final m = monitor(
+        alarm: const AlarmPrefs(enabled: true, excludedLocations: {'Garage'}),
+        locationOf: (_) => null,
+      );
+      finishPrint(m);
+      expect(ringer.rings, hasLength(1));
+    });
+
+    at('exclusions hold for every event, drying included', (_) {
+      final m = monitor(
+        alarm: const AlarmPrefs(enabled: true, excludedPrinters: {1}),
+      );
+      m.update({
+        1: _status(state: 'IDLE', ams: [_unit(1, status: 2)]),
+      });
+      m.update({
+        1: _status(state: 'IDLE', ams: [_unit(0, status: 0)]),
+      });
+      m.update({1: _status(state: 'RUNNING')});
+      m.update({1: _status(state: 'FAILED')});
       expect(ringer.rings, isEmpty);
     });
   });
@@ -273,9 +329,10 @@ void main() {
       expect(ringer.rings.single, {
         'id': 18 * alertBandWidth + 1,
         'title': en.alarmEvtDrying,
-        'body': 'X1C',
+        'body': en.alarmEvtDryingDesc,
         'stop': en.alarmStop,
         'minutes': 10,
+        'printer': 'X1C',
       });
     });
 

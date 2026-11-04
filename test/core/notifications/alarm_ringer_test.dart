@@ -21,6 +21,7 @@ void main() {
       body: 'B',
       stopLabel: 'Stop',
       minutes: 5,
+      printer: 'X1C',
     );
     expect(rang, isTrue);
     expect(sent!.method, 'ring');
@@ -30,6 +31,7 @@ void main() {
       'body': 'B',
       'stop': 'Stop',
       'minutes': 5,
+      'printer': 'X1C',
     });
   });
 
@@ -43,6 +45,7 @@ void main() {
           body: '',
           stopLabel: '',
           minutes: 1,
+          printer: '',
         ),
         isFalse,
       );
@@ -62,6 +65,7 @@ void main() {
         body: '',
         stopLabel: '',
         minutes: 1,
+        printer: '',
       ),
       isFalse,
     );

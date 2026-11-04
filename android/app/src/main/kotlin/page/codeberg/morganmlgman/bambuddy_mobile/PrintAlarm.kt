@@ -41,8 +41,6 @@ object PrintAlarm {
     private const val ACTION_STOP = "page.codeberg.morganmlgman.bambuddy_mobile.ALARM_STOP"
 
     const val EXTRA_ID = "id"
-    const val EXTRA_TITLE = "title"
-    const val EXTRA_BODY = "body"
     const val EXTRA_STOP = "stop"
 
     /** `elapsedRealtime` after which the screen has nothing left to say. */
@@ -53,8 +51,14 @@ object PrintAlarm {
     /** Each alarm's own timeout, so ringing an id again restarts its clock. */
     private val timeouts = mutableMapOf<Int, Runnable>()
 
-    /** The alarm screen on display, so a Stop from the notification can close it too. */
-    var screen: WeakReference<Activity>? = null
+    /** What each alarm still ringing says, oldest first: the screen lists them all. */
+    private val ringing = LinkedHashMap<Int, Map<String, String>>()
+
+    /** The alarm screen on display, so a Stop from the notification reaches it too. */
+    var screen: WeakReference<AlarmActivity>? = null
+
+    /** Every alarm still ringing, newest first, as the screen shows them. */
+    fun ringingNow(): List<Map<String, String>> = ringing.values.reversed()
 
     /**
      * Serves the alarm channel on [messenger]. [activity] is null on the foreground service's
@@ -72,6 +76,7 @@ object PrintAlarm {
                             body = call.argument<String>("body").orEmpty(),
                             stopLabel = call.argument<String>("stop").orEmpty(),
                             minutes = call.argument<Int>("minutes") ?: 10,
+                            printer = call.argument<String>("printer").orEmpty(),
                         )
                     )
                     "canFullScreen" -> result.success(canFullScreen(context))
@@ -131,6 +136,7 @@ object PrintAlarm {
         body: String,
         stopLabel: String,
         minutes: Int,
+        printer: String,
     ): Boolean {
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) return false
@@ -140,11 +146,9 @@ object PrintAlarm {
         val screenIntent = Intent(context, AlarmActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
             .putExtra(EXTRA_ID, id)
-            .putExtra(EXTRA_TITLE, title)
-            .putExtra(EXTRA_BODY, body)
             .putExtra(EXTRA_STOP, stopLabel)
             .putExtra(EXTRA_DEADLINE, SystemClock.elapsedRealtime() + ringFor)
-        val screen = PendingIntent.getActivity(
+        val openScreen = PendingIntent.getActivity(
             context, id, screenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -157,13 +161,14 @@ object PrintAlarm {
             .setSmallIcon(R.drawable.ic_stat_notify)
             .setContentTitle(title)
             .setContentText(body)
+            .setSubText(printer.ifBlank { null })
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             // Below API 26 there is no channel to carry the sound.
             .setSound(alarmSound(), AudioManager.STREAM_ALARM)
-            .setFullScreenIntent(screen, true)
-            .setContentIntent(screen)
+            .setFullScreenIntent(openScreen, true)
+            .setContentIntent(openScreen)
             .setDeleteIntent(stop)
             .addAction(0, stopLabel, stop)
             .setTimeoutAfter(ringFor)
@@ -175,6 +180,10 @@ object PrintAlarm {
         } catch (_: SecurityException) {
             return false
         }
+        // Re-inserted, so a ring under an id already listed moves to the newest.
+        ringing.remove(id)
+        ringing[id] = mapOf("title" to title, "body" to body, "printer" to printer)
+        screen?.get()?.refresh()
         // setTimeoutAfter is a no-op below API 26, and the screen has to close with the sound.
         // The application context: the test alarm is rung from MainActivity, which this map
         // must not keep alive.
@@ -185,20 +194,18 @@ object PrintAlarm {
         return true
     }
 
+    /** Stops one alarm; the screen drops it from its list, and closes with the last. */
     fun stop(context: Context, id: Int) {
         timeouts.remove(id)?.let(main::removeCallbacks)
+        ringing.remove(id)
         NotificationManagerCompat.from(context).cancel(id)
-        val shown = screen?.get()
-        if (shown != null && shown.intent.getIntExtra(EXTRA_ID, -1) == id) shown.finish()
+        val shown = screen?.get() ?: return
+        if (ringing.isEmpty()) shown.finish() else shown.refresh()
     }
 
-    /**
-     * Every alarm still ringing. The screen's Stop: it shows only the latest of several
-     * printers' alarms, and closing it over one that still rings would leave no screen to
-     * stop that one from.
-     */
+    /** Every alarm still ringing: the screen's Stop, which lists them all. */
     fun stopAll(context: Context) {
-        for (id in timeouts.keys.toList()) stop(context, id)
+        for (id in (ringing.keys + timeouts.keys).toList()) stop(context, id)
         screen?.get()?.finish()
     }
 }

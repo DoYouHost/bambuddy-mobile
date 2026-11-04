@@ -1,7 +1,10 @@
+import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
+import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
-import 'package:bambuddy_mobile/features/notifications/alarm_settings_section.dart';
+import 'package:bambuddy_mobile/features/alarm/alarm_settings_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +12,26 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+
+class _Printers extends PrintersRepository {
+  _Printers(this.printers) : super(Dio());
+
+  final List<Printer> printers;
+
+  @override
+  Future<List<Printer>> fetchPrinters() async => printers;
+}
+
+const _fleet = [
+  Printer(id: 1, name: 'X1C', location: 'Garage'),
+  Printer(id: 2, name: 'P1S', location: 'Garage'),
+  Printer(id: 3, name: 'A1', location: 'Office'),
+  Printer(id: 4, name: 'H2D'),
+];
+
+/// A section header by the text it was given; it draws it upper-cased.
+Finder _header(String text) =>
+    find.byWidgetPredicate((w) => w is SettingsSectionHeader && w.text == text);
 
 void main() {
   const channel = MethodChannel('page.codeberg.morganmlgman.bambuddy/alarm');
@@ -20,6 +43,7 @@ void main() {
     double textScale = 1,
     bool canFullScreen = true,
     bool rings = true,
+    List<Printer> printers = _fleet,
   }) async {
     native = [];
     final messenger = tester.binding.defaultBinaryMessenger;
@@ -32,11 +56,15 @@ void main() {
       };
     });
     addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
-    useLogicalWindow(tester, const Size(360, 2400));
+    // Tall enough for every row: a ListView builds only what is on screen.
+    useLogicalWindow(tester, const Size(360, 4200));
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final container = ProviderContainer(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        printersRepositoryProvider.overrideWithValue(_Printers(printers)),
+      ],
     );
     addTearDown(container.dispose);
     await container.read(notificationPrefsProvider.notifier).setAlarm(alarm);
@@ -44,9 +72,7 @@ void main() {
       UncontrolledProviderScope(
         container: container,
         child: plApp(
-          const Scaffold(
-            body: SingleChildScrollView(child: AlarmSettingsSection()),
-          ),
+          const AlarmSettingsScreen(),
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(
               context,
@@ -216,6 +242,7 @@ void main() {
         'body': pl.alarmTestBody,
         'stop': pl.alarmStop,
         'minutes': 1,
+        'printer': '',
       });
     });
 
@@ -249,4 +276,73 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  group('exclusions', () {
+    testWidgets('lists each location once and every printer', (tester) async {
+      await pump(tester, alarm: const AlarmPrefs(enabled: true));
+      expect(_header(pl.alarmExcludedLocationsHeader), findsOneWidget);
+      expect(find.text('Garage'), findsOneWidget);
+      expect(find.text('Office'), findsOneWidget);
+      for (final p in _fleet) {
+        expect(find.text(p.name), findsOneWidget);
+      }
+    });
+
+    testWidgets('no location among the printers: no location card', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        alarm: const AlarmPrefs(enabled: true),
+        printers: const [Printer(id: 4, name: 'H2D')],
+      );
+      expect(_header(pl.alarmExcludedLocationsHeader), findsNothing);
+      expect(_header(pl.alarmExcludedPrintersHeader), findsOneWidget);
+    });
+
+    testWidgets('a printer switch stores its id', (tester) async {
+      final c = await pump(tester, alarm: const AlarmPrefs(enabled: true));
+      await tester.tap(find.text('H2D'));
+      await tester.pumpAndSettle();
+      expect(stored(c).excludedPrinters, {4});
+      await tester.tap(find.text('H2D'));
+      await tester.pumpAndSettle();
+      expect(stored(c).excludedPrinters, isEmpty);
+    });
+
+    testWidgets('a location switch stores its name', (tester) async {
+      final c = await pump(tester, alarm: const AlarmPrefs(enabled: true));
+      await tester.tap(find.text('Garage'));
+      await tester.pumpAndSettle();
+      expect(stored(c).excludedLocations, {'Garage'});
+    });
+
+    testWidgets(
+      'printers in an excluded location read as excluded and locked',
+      (tester) async {
+        await pump(
+          tester,
+          alarm: const AlarmPrefs(enabled: true, excludedLocations: {'Garage'}),
+        );
+        SettingsSwitchRow row(String name) => tester.widget(
+          find.ancestor(
+            of: find.text(name),
+            matching: find.byType(SettingsSwitchRow),
+          ),
+        );
+        expect(row('X1C').value, isTrue);
+        expect(row('X1C').onChanged, isNull);
+        expect(row('X1C').subtitle, pl.alarmExcludedWithLocation('Garage'));
+        expect(row('A1').value, isFalse);
+        expect(row('A1').onChanged, isNotNull);
+      },
+    );
+
+    testWidgets('greyed out while the alarm is off', (tester) async {
+      final c = await pump(tester);
+      await tester.tap(find.text('H2D'));
+      await tester.pumpAndSettle();
+      expect(stored(c).excludedPrinters, isEmpty);
+    });
+  });
 }
