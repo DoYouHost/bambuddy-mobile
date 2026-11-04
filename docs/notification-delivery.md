@@ -205,12 +205,18 @@ a channel to `PrintAlarm.kt`, served on the foreground service's engine (from
 - **The sound is the notification's.** Channel `print_alarm`, alarm usage
   (`USAGE_ALARM`, so it plays on a silenced phone at alarm volume), the default alarm
   tone, `FLAG_INSISTENT` for the loop. It rings with or without the full-screen
-  permission and stops exactly when the notification goes. Sound and usage are frozen
+  permission. It loops until the notification goes or the user opens the shade:
+  touching a heads-up alarm silences it, which counts as heard. Sound and usage are frozen
   once the channel exists; changing them needs a new channel id.
-- **Three ways it stops:** Stop on the screen, Stop on the notification
-  (`AlarmStopReceiver`, also the delete intent), and the timeout. The timeout is both
-  `setTimeoutAfter` and a main-looper timer, because the first is a no-op below API 26
-  and the screen must close with the sound. A new ring under the same id restarts it.
+- **Three ways it stops:** Stop on the screen, which stops every printer's alarm
+  (the screen shows only the latest, and closing it over another still ringing would
+  leave no screen for that one); Stop on the notification, which stops its own
+  (`AlarmStopReceiver`, also the delete intent where Android lets an ongoing
+  notification be swiped away); and the timeout. The timeout is `setTimeoutAfter`
+  plus a main-looper timer, because the first is a no-op below API 26 and the screen
+  must close with the sound. The timer stalls while the CPU sleeps, so the screen also
+  carries its deadline and stops the alarm on the next `onResume` past it. A new ring
+  under the same id restarts the timeout.
 - **The full-screen permission** (`USE_FULL_SCREEN_INTENT`) is not granted by default
   on Android 14+ to an app that is not a clock or a phone. The settings show a note
   with a button to `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` while it is missing,
