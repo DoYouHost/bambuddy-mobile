@@ -228,3 +228,37 @@ faking an end.
 - The event list and its defaults live in `NotifEvent` / `notification_prefs.dart`;
   the numeric defaults there (bed cooled 35 °C, AMS humidity 60%, low filament 10%)
   are the thresholds the monitor uses.
+
+## The alarm (#61)
+
+An alarm on top of the alerts, for the events worth waking up for. Settings:
+`AlarmPrefs` (`lib/core/notifications/alarm_prefs.dart`), nested in
+`NotificationPrefs` under `alarm`; how it rings is in
+[notification-delivery.md](notification-delivery.md#the-alarm-printalarmkt).
+Tests: `test/features/notifications/print_alarm_test.dart`.
+
+- **Independent of the alert switches**, the master switch included. The user can
+  want the alarm and not the notification; the alarm has its own on/off, off by
+  default. Nothing is recorded while it is off.
+- **What rings it:**
+  - *Print finished* — the `FINISH` edge, the same one the alert uses.
+  - *Print stopped by a fault* — the `FAILED` edge, or an HMS fault of level 1
+    (task stopped) or 2 (task paused) once it has stood the hold, while the printer
+    still has a job (`isPrinting`). A level-1 fault usually turns into `FAILED`
+    within the hold; both ring under the same id, so the second only restarts the
+    first. Level 3 and 4 only prompt and do not ring. The hold now also runs when
+    the error alert is off and only the alarm wants the fault; the alert is then
+    recorded as suppressed when the hold ends instead of at first sight.
+  - *Drying finished* — the server's own edge (`bambu_mqtt.py`,
+    `on_drying_complete`): `dry_time` falls from above 0 to 0, and a 0 while
+    `dry_status` is Checking, Drying or Cooling is ignored, so the alarm rings when
+    the cooling that closes the cycle ends. It rings only for a cycle that ran to
+    term: one that ended with more than 5 minutes left (`_EARLY_DRY_END_MINUTES`)
+    was stopped by somebody and is recorded as `ended_early`. The baseline frame
+    seeds the countdown, so a monitor started a minute before the end still sees it.
+- **Hours.** Rings only inside the window (22:00–07:00 by default; start inclusive,
+  end exclusive, equal ends mean all day), read at the moment it would ring, in local
+  time. The user can move or switch off the window.
+- **One alarm per printer** (`_alarmBase + printerId`): a new one replaces the one
+  ringing and restarts its timeout.
+- Like every preference, read when the foreground service starts.

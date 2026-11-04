@@ -3,7 +3,7 @@
 The rules for *when* to alert are in [notification-rules.md](notification-rules.md).
 This is what happens to an alert once it exists: the contract of
 `NotificationService`, the finish photo that arrives after it, the buttons on
-it, and which HMS faults count at all. The code keeps one line per rule.
+it, which HMS faults count at all, and the alarm. The code keeps one line per rule.
 `lib/core/notifications/`.
 
 ## The alert contract (`NotificationService`)
@@ -189,6 +189,38 @@ Riverpod or the UI.
   padded into one: `HmsError.ecode` would compose 16 hex out of a 32-bit value
   that means something else, which is how a link lands on a page about a
   different fault. Those get bambuddy's own answer, the HMS index.
+
+## The alarm (`PrintAlarm.kt`)
+
+When the alarm rings is in [notification-rules.md](notification-rules.md#the-alarm-61).
+This is how: `PrintMonitor` calls `AlarmRinger` (`lib/core/notifications/alarm_ringer.dart`),
+a channel to `PrintAlarm.kt`, served on the foreground service's engine (from
+`OngoingNotificationHost`) and on `MainActivity`'s (permission and test button).
+
+- **Native, not `flutter_local_notifications`.** The plugin aims a full-screen intent
+  only at the launcher activity, and `MainActivity` shown over the keyguard would hand
+  the whole app, stopping a print included, to anyone holding the locked phone.
+  `AlarmActivity` shows the text and one Stop button and never opens the app; it runs
+  in its own task (`taskAffinity`, `singleInstance`, out of recents).
+- **The sound is the notification's.** Channel `print_alarm`, alarm usage
+  (`USAGE_ALARM`, so it plays on a silenced phone at alarm volume), the default alarm
+  tone, `FLAG_INSISTENT` for the loop. It rings with or without the full-screen
+  permission and stops exactly when the notification goes. Sound and usage are frozen
+  once the channel exists; changing them needs a new channel id.
+- **Three ways it stops:** Stop on the screen, Stop on the notification
+  (`AlarmStopReceiver`, also the delete intent), and the timeout. The timeout is both
+  `setTimeoutAfter` and a main-looper timer, because the first is a no-op below API 26
+  and the screen must close with the sound. A new ring under the same id restarts it.
+- **The full-screen permission** (`USE_FULL_SCREEN_INTENT`) is not granted by default
+  on Android 14+ to an app that is not a clock or a phone. The settings show a note
+  with a button to `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` while it is missing,
+  asked again on every resume. Without it Android shows the alarm as a heads-up
+  notification, still ringing. Play needs a declaration ([play-compliance.md](play-compliance.md)).
+- **Test alarm** in the settings rings for one minute through the same path, so the
+  user hears the volume and sees whether the screen comes up. It can only be tested
+  with the app open; the real thing comes from the service.
+- **Phone only.** The watch manifest strips the permission, the activity and the
+  receiver; `tool/check_wear_apk.py` asserts it.
 
 ## Testing an alert without printing
 

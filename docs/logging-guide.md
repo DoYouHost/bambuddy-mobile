@@ -155,6 +155,10 @@ scope there are the two we may not keep.
   It is its own record, not a `NotifSkip`: the alert is already on screen, so this
   decides only whether a photo reached it, and every way that fails (no alert to
   update, swiped away, download failed) looks identical from outside.
+- **`alarm`** says what the alarm decided for an event it is switched on for:
+  `ringing`, `refused` (no host, or notifications off), `type_off`,
+  `outside_window`, or `ended_early` for a drying cycle stopped with time left.
+  Nothing while the alarm is off, which is every install that never asked for it.
 - **`primed`** is the baseline a fresh monitor latched from a printer's first
   frame. The background isolate is rebuilt on every entry into the background and a
   new monitor fires nothing from the first frame it sees (otherwise a print
