@@ -223,10 +223,12 @@ talks to the server calls `trustCustomCa` before its first request:
 - **Foreground service, notification-button and watch-relay isolates:**
   `buildBackgroundApiClient`. Dio creates its `HttpClient` lazily, so trust set
   there is in time.
-- **The watch:** the relay through the phone needs nothing of its own. Its
-  direct-REST fallback (`lib/wear/wear_providers.dart`) has no CA, so with the
-  phone out of reach it fails as `badCertificate`. Sending the CA in
-  `WatchConfig` is not built.
+- **The watch:** the relay through the phone needs nothing of its own. For the
+  direct-REST fallback the phone sends its CA with the server config
+  (`WatchConfigCodec`, `caName` and `caPem`), again whenever it changes, and
+  `PendingWatchConfig.adopt` stores it; a config without one clears the watch's.
+  `main_wear.dart` trusts the stored CA at start. The watch cannot import one
+  itself.
 
 **Traps.**
 

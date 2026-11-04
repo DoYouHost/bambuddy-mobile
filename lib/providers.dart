@@ -278,8 +278,9 @@ class CustomCaNotifier extends Notifier<CustomCa?> {
     trustCustomCa(ca);
     state = ca;
     // Dio keeps the `HttpClient` it made on its first request, so a retry after
-    // importing would still distrust the server. Invalidated rather than
-    // watched: watching would make every Dio depend on preferences.
+    // importing would still distrust the server. The API client follows through
+    // `authServiceProvider`. Invalidated rather than watched: watching would make
+    // every Dio depend on preferences.
     ref.invalidate(bareDioProvider);
   }
 }

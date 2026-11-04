@@ -33,6 +33,13 @@ class PendingWatchConfig extends Notifier<WatchConfig?> {
   /// profile so the app re-routes. Rethrows what secure storage threw, and a failure
   /// leaves the offer standing (docs/wear-fleet-poll.md, "Adopting a pushed config").
   Future<void> adopt(WatchConfig config) async {
+    // Before the profile, so a failed write never leaves a stored server whose CA
+    // is missing. Unchanged is skipped: the set rebuilds every API client, and
+    // the relay listener with them.
+    if (ref.read(customCaProvider)?.pem != config.ca?.pem) {
+      await ref.read(customCaProvider.notifier).set(config.ca);
+      if (!ref.mounted) return;
+    }
     await ref.read(watchConfigSyncProvider).apply(config);
     if (!ref.mounted) return;
     state = null;

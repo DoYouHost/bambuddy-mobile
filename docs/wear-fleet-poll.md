@@ -35,7 +35,9 @@ The profile is invalidated **only when it actually changed**. Invalidating
 rebuilds the transport too, which disposes the relay's reply listener under any
 request already on the bridge; the phone pushes the same config on every launch,
 so every cold start used to pay a relay timeout for its first poll. A refreshed
-secret needs no invalidate: `authHeaders` reads the store on each request.
+secret needs no invalidate: `authHeaders` reads the store on each request. The CA
+is set only when it changed, for the same reason: setting it rebuilds every API
+client (docs/android-platform.md, "A server behind a private CA").
 
 ## `WearFleetNotifier`: the flags and an epoch
 
