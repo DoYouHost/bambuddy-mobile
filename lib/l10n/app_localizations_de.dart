@@ -2068,6 +2068,23 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tryDemo => 'Demo ausprobieren';
 
   @override
+  String get customCaImport => 'CA-Zertifikat importieren';
+
+  @override
+  String customCaTrusted(String name) {
+    return 'Vertrauenswürdige CA: $name';
+  }
+
+  @override
+  String get customCaRemove => 'CA-Zertifikat entfernen';
+
+  @override
+  String get customCaInvalid => 'Diese Datei enthält kein Zertifikat';
+
+  @override
+  String get customCaPickFailed => 'Die Datei konnte nicht geöffnet werden';
+
+  @override
   String get scanApiKeyTitle => 'API-Schlüssel scannen';
 
   @override
@@ -2123,7 +2140,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get errBadCertificate =>
-      'Ungültiges TLS-Zertifikat (selbstsignierte Zertifikate werden in v1 nicht unterstützt)';
+      'Das Zertifikat des Servers ist nicht vertrauenswürdig';
 
   @override
   String get errConnection => 'Verbindungsfehler';

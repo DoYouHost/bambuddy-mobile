@@ -2076,6 +2076,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get tryDemo => 'Essayer la démo';
 
   @override
+  String get customCaImport => 'Importer un certificat d\'AC';
+
+  @override
+  String customCaTrusted(String name) {
+    return 'AC de confiance : $name';
+  }
+
+  @override
+  String get customCaRemove => 'Retirer le certificat d\'AC';
+
+  @override
+  String get customCaInvalid => 'Ce fichier ne contient aucun certificat';
+
+  @override
+  String get customCaPickFailed => 'Impossible d\'ouvrir le fichier';
+
+  @override
   String get scanApiKeyTitle => 'Scanner la clé API';
 
   @override
@@ -2131,7 +2148,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get errBadCertificate =>
-      'Certificat TLS invalide (les certificats auto-signés ne sont pas pris en charge dans la v1)';
+      'Le certificat du serveur n\'est pas approuvé';
 
   @override
   String get errConnection => 'Erreur de connexion';

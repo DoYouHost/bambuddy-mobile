@@ -1010,6 +1010,11 @@
   "twoFactorBack": "Usar otra cuenta",
   "twoFactorSessionNote": "La aplicación no puede renovar una sesión con 2FA por sí misma, por lo que volverá a solicitarlo cuando esta expire. Una clave API no caduca y omite este paso.",
   "tryDemo": "Probar la demo",
+  "customCaImport": "Importar certificado de CA",
+  "customCaTrusted": "CA de confianza: {name}",
+  "customCaRemove": "Quitar certificado de CA",
+  "customCaInvalid": "Este archivo no contiene ningún certificado",
+  "customCaPickFailed": "No se pudo abrir el archivo",
   "scanApiKeyTitle": "Escanear clave API",
   "scanApiKeyHint": "Apunta la cámara al código QR de la clave API",
   "cameraPermissionTitle": "Se necesita acceso a la cámara",
@@ -1039,7 +1044,7 @@
       }
     }
   },
-  "errBadCertificate": "Certificado TLS no válido (los autofirmados no son compatibles en la v1)",
+  "errBadCertificate": "El certificado del servidor no es de confianza",
   "errConnection": "Error de conexión",
   "errMalformedResponse": "Respuesta del servidor mal formada",
   "errInvalidCredentials": "Usuario o contraseña no válidos",
