@@ -31,6 +31,9 @@ import org.junit.Test
  *     cd android && ./gradlew :app:connectedMobileDebugAndroidTest \
  *       -Pandroid.testInstrumentationRunnerArguments.class=page.codeberg.morganmlgman.bambuddy_mobile.PrintAlarmTest
  *
+ * In the phone flavor's own test sources: the watch strips the alarm, and Patrol runs every
+ * class of its flavor's test APK there.
+ *
  * It turns the ringer to silent, the lock screen on and the screen off, and puts all three
  * back afterwards.
  */
