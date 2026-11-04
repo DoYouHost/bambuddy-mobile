@@ -223,8 +223,10 @@ talks to the server calls `trustCustomCa` before its first request:
 - **Foreground service, notification-button and watch-relay isolates:**
   `buildBackgroundApiClient`. Dio creates its `HttpClient` lazily, so trust set
   there is in time.
-- **The watch:** it reaches the server through the phone's relay, so it needs
-  nothing of its own.
+- **The watch:** the relay through the phone needs nothing of its own. Its
+  direct-REST fallback (`lib/wear/wear_providers.dart`) has no CA, so with the
+  phone out of reach it fails as `badCertificate`. Sending the CA in
+  `WatchConfig` is not built.
 
 **Traps.**
 
@@ -234,7 +236,8 @@ talks to the server calls `trustCustomCa` before its first request:
   reaches images only after a restart.
 - **Dio's error type.** Dio reports an untrusted certificate as a connection
   error. `mapDioException` turns a `HandshakeException` carrying
-  `CERTIFICATE_VERIFY_FAILED` into `badCertificate`. Other handshake failures,
+  `CERTIFICATE_VERIFY_FAILED` into a `NetworkException` with
+  `AppErrorCode.badCertificate`. Other handshake failures,
   such as plain http on an https port, stay connection errors.
 - **The CA is trusted for every host the app contacts,** as `base-config` would
   be, not only the server. A custom anchor also skips Certificate Transparency.
