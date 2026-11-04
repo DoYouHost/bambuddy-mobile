@@ -283,8 +283,8 @@ do not stay silent because it was not part of the task.
   locations.
 - [docs/android-platform.md](docs/android-platform.md) — the Android 16 Live Update,
   the camera stream and its ANR history, home-screen widgets, the overscroll
-  stutter. **Read it before touching `OngoingNotificationHost`, the widgets or the
-  camera stream.**
+  stutter, a server behind a private CA. **Read it before touching
+  `OngoingNotificationHost`, the widgets, the camera stream or TLS trust.**
 - [docs/wear-os.md](docs/wear-os.md) — the watch app: flavors and source sets,
   branded launch, cold start, text input, release builds. **Read it before touching
   the wear manifest, source sets or launch.**

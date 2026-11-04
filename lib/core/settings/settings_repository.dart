@@ -4,6 +4,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:material_ui/material_ui.dart' show Color, DynamicSchemeVariant;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../api/custom_ca.dart';
 import '../demo/demo_backend.dart';
 import '../models/swatch_code.dart';
 import '../notifications/notification_prefs.dart';
@@ -52,6 +53,7 @@ class SettingsRepository {
   static const _wearFaceColoursKey = 'wear_face_colours';
   static const _wearPhoneAccentKey = 'wear_phone_accent';
   static const _tourSeenKey = 'tour_seen';
+  static const _customCaKey = 'custom_ca';
 
   final SharedPreferences _prefs;
 
@@ -110,6 +112,14 @@ class SettingsRepository {
       _prefs.setString(_profileKey, jsonEncode(profile.toJson()));
 
   Future<void> clearProfile() => _prefs.remove(_profileKey);
+
+  /// Not a secret: a CA certificate is public by design. Kept across "change
+  /// server" — the setup screen shows it and offers to remove it.
+  CustomCa? loadCustomCa() =>
+      _loadJson<CustomCa?>(_customCaKey, null, CustomCa.fromJson);
+
+  Future<void> saveCustomCa(CustomCa? ca) =>
+      _setOrRemove(_customCaKey, ca == null ? null : jsonEncode(ca.toJson()));
 
   /// Whether the guided tour still has to run on its own. Absent on an install
   /// that has not met it either way; see [markTourDue] and

@@ -12,6 +12,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/qr_scanner_screen.dart';
 import 'api_key_qr.dart';
+import 'custom_ca_row.dart';
 import 'providers.dart';
 import 'setup_error_text.dart';
 
@@ -187,6 +188,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     ),
                   ),
                 ),
+                CustomCaRow(enabled: !state.busy),
                 if (state.busy)
                   const Padding(
                     padding: EdgeInsets.all(DashSpace.lg),

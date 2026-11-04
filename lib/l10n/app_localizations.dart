@@ -3428,6 +3428,36 @@ abstract class AppLocalizations {
   /// **'Try the demo'**
   String get tryDemo;
 
+  /// No description provided for @customCaImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import CA certificate'**
+  String get customCaImport;
+
+  /// No description provided for @customCaTrusted.
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted CA: {name}'**
+  String customCaTrusted(String name);
+
+  /// No description provided for @customCaRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove CA certificate'**
+  String get customCaRemove;
+
+  /// No description provided for @customCaInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This file holds no certificate'**
+  String get customCaInvalid;
+
+  /// No description provided for @customCaPickFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the file'**
+  String get customCaPickFailed;
+
   /// No description provided for @scanApiKeyTitle.
   ///
   /// In en, this message translates to:
@@ -3521,7 +3551,7 @@ abstract class AppLocalizations {
   /// No description provided for @errBadCertificate.
   ///
   /// In en, this message translates to:
-  /// **'Invalid TLS certificate (self-signed not supported in v1)'**
+  /// **'The server\'s certificate is not trusted'**
   String get errBadCertificate;
 
   /// No description provided for @errConnection.

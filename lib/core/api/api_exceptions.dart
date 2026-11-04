@@ -1,3 +1,5 @@
+import 'dart:io' show HandshakeException;
+
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
@@ -267,7 +269,17 @@ AppApiException mapDioException(DioException e) {
   // The same reduction `HttpProbe` records with: no host, no query, and no
   // segment the user named.
   final path = loggablePath(e.requestOptions.uri.path);
-  return switch (classifyDioException(e)) {
+  // Dio files an untrusted certificate under a connection error (it names one
+  // only for its own `validateCertificate`), and the remedy is not the address
+  // but the CA (#62). Other handshake failures — plain http on an https port —
+  // stay connection errors.
+  final error = e.error;
+  final untrusted =
+      error is HandshakeException &&
+      (error.osError?.message.contains('CERTIFICATE_VERIFY_FAILED') ?? false);
+  return switch (untrusted
+      ? DioFailure.badCertificate
+      : classifyDioException(e)) {
     DioFailure.unreachable => NetworkException(
       AppErrorCode.serverUnreachable,
       detail: e.message,

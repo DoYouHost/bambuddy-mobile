@@ -12,6 +12,7 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 import 'core/api/api_client.dart';
 import 'core/api/api_exceptions.dart';
 import 'core/api/camera_token.dart';
+import 'core/api/custom_ca.dart';
 import 'core/api/media_auth.dart';
 import 'core/api/cached_token_service.dart';
 import 'core/api/observed_capability.dart';
@@ -261,6 +262,28 @@ final reportSenderProvider = Provider<ReportSender>((ref) {
   ref.onDispose(sender.dispose);
   return sender;
 });
+
+/// The CA the user imported for their server (#62); `main` applied the stored
+/// one before the first request.
+final customCaProvider = NotifierProvider<CustomCaNotifier, CustomCa?>(
+  CustomCaNotifier.new,
+);
+
+class CustomCaNotifier extends Notifier<CustomCa?> {
+  @override
+  CustomCa? build() => ref.read(settingsRepositoryProvider).loadCustomCa();
+
+  Future<void> set(CustomCa? ca) async {
+    await ref.read(settingsRepositoryProvider).saveCustomCa(ca);
+    trustCustomCa(ca);
+    state = ca;
+    // Dio keeps the `HttpClient` it made on its first request, so a retry after
+    // importing would still distrust the server. The API client follows through
+    // `authServiceProvider`. Invalidated rather than watched: watching would make
+    // every Dio depend on preferences.
+    ref.invalidate(bareDioProvider);
+  }
+}
 
 final bareDioProvider = Provider<Dio>((ref) => createBareDio());
 

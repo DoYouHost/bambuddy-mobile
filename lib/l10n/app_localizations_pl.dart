@@ -2095,6 +2095,23 @@ class AppLocalizationsPl extends AppLocalizations {
   String get tryDemo => 'Wypróbuj wersję demo';
 
   @override
+  String get customCaImport => 'Importuj certyfikat CA';
+
+  @override
+  String customCaTrusted(String name) {
+    return 'Zaufany CA: $name';
+  }
+
+  @override
+  String get customCaRemove => 'Usuń certyfikat CA';
+
+  @override
+  String get customCaInvalid => 'Ten plik nie zawiera certyfikatu';
+
+  @override
+  String get customCaPickFailed => 'Nie udało się otworzyć pliku';
+
+  @override
   String get scanApiKeyTitle => 'Zeskanuj klucz API';
 
   @override
@@ -2148,8 +2165,7 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get errBadCertificate =>
-      'Nieprawidłowy certyfikat TLS (self-signed nieobsługiwany w v1)';
+  String get errBadCertificate => 'Certyfikat serwera nie jest zaufany';
 
   @override
   String get errConnection => 'Błąd połączenia';

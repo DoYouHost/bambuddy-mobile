@@ -2,9 +2,12 @@
 // which may not start with `_`), so assignment happens in the initializer list.
 // ignore_for_file: prefer_initializing_formals
 
+import 'dart:convert';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
+import '../api/custom_ca.dart';
 import '../auth/credentials_store.dart';
 import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
@@ -22,6 +25,7 @@ class WatchConfig {
     this.password,
     this.accent,
     this.watchFace = false,
+    this.ca,
   });
 
   final ServerProfile profile;
@@ -37,6 +41,10 @@ class WatchConfig {
 
   /// Whether the phone chose the watch face's colours over [accent].
   final bool watchFace;
+
+  /// The CA the phone trusts for this server, so the watch's direct fallback
+  /// reaches it too; null clears the watch's.
+  final CustomCa? ca;
 
   /// Whether [current] already points at this server in this auth mode.
   ///
@@ -67,6 +75,8 @@ class WatchConfigCodec {
   static const _kAccentSeed = 'accentSeed';
   static const _kAccentVariant = 'accentVariant';
   static const _kWatchFace = 'watchFace';
+  static const _kCaName = 'caName';
+  static const _kCaPem = 'caPem';
 
   /// Build the context map. Only non-null keys are included — the Data Layer
   /// rejects null values in the map.
@@ -76,6 +86,7 @@ class WatchConfigCodec {
     String? jwt,
     ({String username, String password})? login,
     WatchTheme? theme,
+    CustomCa? ca,
   }) => <String, dynamic>{
     _kVersion: version,
     _kBaseUrl: profile.baseUrl,
@@ -92,6 +103,7 @@ class WatchConfigCodec {
       _kAccentVariant: accent.variant.name,
     },
     if (theme?.face ?? false) _kWatchFace: true,
+    if (ca != null) ...{_kCaName: ca.name, _kCaPem: ca.pem},
   };
 
   /// Parse an incoming context. Returns null for empty/foreign/malformed maps
@@ -123,6 +135,13 @@ class WatchConfigCodec {
         _ => null,
       },
       watchFace: map[_kWatchFace] == true,
+      ca: switch ((map[_kCaName], map[_kCaPem])) {
+        (final String name, final String pem) => CustomCa.parse(
+          name,
+          utf8.encode(pem),
+        ),
+        _ => null,
+      },
     );
   }
 }
@@ -148,7 +167,11 @@ class WatchConfigSync {
   /// PHONE side: push [profile], its backing secret and the [theme] to the
   /// watch. Best-effort — silently no-ops when no watch is paired/reachable, so
   /// it's safe to call unconditionally on every profile or theme change.
-  Future<void> push(ServerProfile profile, {WatchTheme? theme}) async {
+  Future<void> push(
+    ServerProfile profile, {
+    WatchTheme? theme,
+    CustomCa? ca,
+  }) async {
     try {
       final map = WatchConfigCodec.encode(
         profile: profile,
@@ -162,6 +185,7 @@ class WatchConfigSync {
             ? await _credentials.readRememberedLogin()
             : null,
         theme: theme,
+        ca: ca,
       );
       await _watch.updateApplicationContext(map);
     } catch (_) {
