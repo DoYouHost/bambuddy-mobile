@@ -689,11 +689,10 @@ class PrintMonitor {
       if (minutes == null) continue;
       final key = unit.id ?? i;
       if (minutes == 0 && _activeDryStatuses.contains(unit.dryStatus)) {
-        // Cooling only follows a countdown that ran out: a monitor that first
-        // meets the cycle there still owes its end.
-        if (unit.dryStatus == _dryCooling) {
-          memo.dryMinutes.putIfAbsent(key, () => 1);
-        }
+        // Cooling only follows a countdown that ran out, so it overrides any
+        // reading before it: none, the idle 0, or the last one a gap in the
+        // feed (Doze, a reconnect) left behind.
+        if (unit.dryStatus == _dryCooling) memo.dryMinutes[key] = 1;
         continue;
       }
       final previous = memo.dryMinutes[key];

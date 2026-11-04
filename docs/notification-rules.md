@@ -259,8 +259,9 @@ Tests: `test/features/notifications/print_alarm_test.dart`.
     the cooling that closes the cycle ends. It rings only for a cycle that ran to
     term: one that ended with more than 5 minutes left (`_EARLY_DRY_END_MINUTES`)
     was stopped by somebody and is recorded as `ended_early`. The baseline frame
-    seeds the countdown, and a unit first seen in Cooling counts as a cycle that ran
-    to term, so a monitor started near the end, cooling included, still rings.
+    seeds the countdown, and a unit in Cooling counts as a cycle that ran to term
+    whatever was read before it, so neither a monitor started near the end nor a
+    gap in the feed (Doze, a reconnect) costs the alarm.
 - **Hours.** Rings only inside the window (22:00–07:00 by default; start inclusive,
   end exclusive, equal ends mean all day), read at the moment it would ring, in local
   time. The user can move or switch off the window.

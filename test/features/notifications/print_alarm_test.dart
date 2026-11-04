@@ -310,6 +310,21 @@ void main() {
       expect(ringer.rings, hasLength(1));
     });
 
+    at('cooling after a gap in the feed still counts as run to term', (_) {
+      final m = monitor();
+      // Last seen with time left, then nothing until the cooling.
+      dry(m, [_unit(10, status: 2), _unit(10, status: 2), _unit(0, status: 3)]);
+      dry(m, [_unit(0, status: 0)]);
+      expect(ringer.rings, hasLength(1));
+    });
+
+    at('cooling after an idle zero still counts as run to term', (_) {
+      final m = monitor();
+      // The whole countdown fell into a gap in the feed.
+      dry(m, [_unit(0), _unit(0), _unit(0, status: 3), _unit(0, status: 0)]);
+      expect(ringer.rings, hasLength(1));
+    });
+
     at('a monitor that starts while the unit checks does not invent a cycle', (
       _,
     ) {
