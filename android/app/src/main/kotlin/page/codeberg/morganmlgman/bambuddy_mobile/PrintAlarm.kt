@@ -14,6 +14,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -31,7 +32,8 @@ import java.lang.ref.WeakReference
  * text and a Stop button, nothing else.
  *
  * The sound is the notification's own (alarm usage, `FLAG_INSISTENT`), so it plays with or
- * without the full-screen permission and stops exactly when the notification goes.
+ * without the full-screen permission. It loops until the notification goes or the user opens
+ * the shade — touching a heads-up alarm silences it, which counts as having heard it.
  */
 object PrintAlarm {
     const val METHOD_CHANNEL = "page.codeberg.morganmlgman.bambuddy/alarm"
@@ -42,6 +44,9 @@ object PrintAlarm {
     const val EXTRA_TITLE = "title"
     const val EXTRA_BODY = "body"
     const val EXTRA_STOP = "stop"
+
+    /** `elapsedRealtime` after which the screen has nothing left to say. */
+    const val EXTRA_DEADLINE = "deadline"
 
     private val main = Handler(Looper.getMainLooper())
 
@@ -138,6 +143,7 @@ object PrintAlarm {
             .putExtra(EXTRA_TITLE, title)
             .putExtra(EXTRA_BODY, body)
             .putExtra(EXTRA_STOP, stopLabel)
+            .putExtra(EXTRA_DEADLINE, SystemClock.elapsedRealtime() + ringFor)
         val screen = PendingIntent.getActivity(
             context, id, screenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
@@ -170,7 +176,10 @@ object PrintAlarm {
             return false
         }
         // setTimeoutAfter is a no-op below API 26, and the screen has to close with the sound.
-        val timeout = Runnable { stop(context, id) }
+        // The application context: the test alarm is rung from MainActivity, which this map
+        // must not keep alive.
+        val app = context.applicationContext
+        val timeout = Runnable { stop(app, id) }
         timeouts.put(id, timeout)?.let(main::removeCallbacks)
         main.postDelayed(timeout, ringFor)
         return true
@@ -182,9 +191,22 @@ object PrintAlarm {
         val shown = screen?.get()
         if (shown != null && shown.intent.getIntExtra(EXTRA_ID, -1) == id) shown.finish()
     }
+
+    /**
+     * Every alarm still ringing. The screen's Stop: it shows only the latest of several
+     * printers' alarms, and closing it over one that still rings would leave no screen to
+     * stop that one from.
+     */
+    fun stopAll(context: Context) {
+        for (id in timeouts.keys.toList()) stop(context, id)
+        screen?.get()?.finish()
+    }
 }
 
-/** The notification's Stop button, and its dismissal: both end the alarm. */
+/**
+ * The notification's Stop button. Also its delete intent, for where the system lets the user
+ * swipe an ongoing notification away.
+ */
 class AlarmStopReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         PrintAlarm.stop(context, intent.getIntExtra(PrintAlarm.EXTRA_ID, 0))

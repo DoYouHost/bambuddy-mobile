@@ -4,11 +4,13 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import java.lang.ref.WeakReference
 
@@ -16,11 +18,37 @@ import java.lang.ref.WeakReference
  * The alarm screen over the lock screen: what happened and one Stop button. It deliberately
  * offers no way into the app — it shows while the phone is still locked (see [PrintAlarm]).
  * Back leaves the alarm ringing; only Stop, the notification's Stop or the timeout end it.
+ * Scrolls, so Stop stays reachable in landscape or at a large font.
  */
 class AlarmActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        wakeOverLockScreen()
+        show(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // A later alarm can reach this screen while the display is off again.
+        wakeOverLockScreen()
+        show(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // The timeout's Handler stalls while the CPU sleeps, so a screen the
+        // sound already outlived would otherwise come back on the next wake.
+        val deadline = intent.getLongExtra(PrintAlarm.EXTRA_DEADLINE, Long.MAX_VALUE)
+        if (SystemClock.elapsedRealtime() >= deadline) {
+            // stop, not finish: below API 26 nothing else cancels the sound.
+            PrintAlarm.stop(this, intent.getIntExtra(PrintAlarm.EXTRA_ID, 0))
+            finish()
+        }
+    }
+
+    private fun wakeOverLockScreen() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
@@ -32,13 +60,6 @@ class AlarmActivity : Activity() {
             )
         }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        show(intent)
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        show(intent)
     }
 
     override fun onDestroy() {
@@ -48,9 +69,8 @@ class AlarmActivity : Activity() {
 
     private fun show(intent: Intent) {
         PrintAlarm.screen = WeakReference(this)
-        val id = intent.getIntExtra(PrintAlarm.EXTRA_ID, 0)
         val pad = dp(24)
-        setContentView(
+        val content =
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
@@ -62,7 +82,7 @@ class AlarmActivity : Activity() {
                         text = intent.getStringExtra(PrintAlarm.EXTRA_STOP)
                         setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
                         minHeight = dp(72)
-                        setOnClickListener { PrintAlarm.stop(this@AlarmActivity, id) }
+                        setOnClickListener { PrintAlarm.stopAll(this@AlarmActivity) }
                     },
                     LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
@@ -70,7 +90,7 @@ class AlarmActivity : Activity() {
                     ).apply { topMargin = dp(48) },
                 )
             }
-        )
+        setContentView(ScrollView(this).apply { isFillViewport = true; addView(content) })
     }
 
     private fun text(value: String?, sp: Float) = TextView(this).apply {
