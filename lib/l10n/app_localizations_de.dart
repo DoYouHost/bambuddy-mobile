@@ -2315,6 +2315,111 @@ class AppLocalizationsDe extends AppLocalizations {
       'Fügt der Benachrichtigung über Abschluss oder Fehlschlag das Foto hinzu, das der Server nach dem Druck aufnimmt, sobald es verfügbar ist';
 
   @override
+  String get alarmHeader => 'Wecker';
+
+  @override
+  String get alarmTitle => 'Mit einem Wecker wecken';
+
+  @override
+  String get alarmDesc =>
+      'Klingelt auf dem Sperrbildschirm, bis du ihn stoppst';
+
+  @override
+  String get alarmEvtFinished => 'Druck abgeschlossen';
+
+  @override
+  String get alarmEvtFinishedDesc => 'Ein Druck wurde erfolgreich beendet';
+
+  @override
+  String get alarmEvtBlocked => 'Druck durch Fehler gestoppt';
+
+  @override
+  String get alarmEvtBlockedDesc =>
+      'Ein Fehler hat den Druck pausiert oder gestoppt, oder der Druck ist fehlgeschlagen';
+
+  @override
+  String get alarmEvtDrying => 'Trocknung abgeschlossen';
+
+  @override
+  String get alarmEvtDryingDesc =>
+      'Ein AMS-Trocknungszyklus ist zu Ende gelaufen';
+
+  @override
+  String get alarmWindowTitle => 'Nur zu bestimmten Zeiten';
+
+  @override
+  String get alarmWindowDesc =>
+      'Außerhalb dieser Zeiten bleibt der Wecker still';
+
+  @override
+  String get alarmWindowFrom => 'Von';
+
+  @override
+  String get alarmWindowTo => 'Bis';
+
+  @override
+  String alarmRingFor(int minutes) {
+    return 'Klingelt $minutes min';
+  }
+
+  @override
+  String get alarmRingForDesc => 'Danach verstummt er von selbst';
+
+  @override
+  String alarmMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get alarmStop => 'Stopp';
+
+  @override
+  String get alarmTest => 'Wecker testen';
+
+  @override
+  String get alarmTestBody => 'So klingt der Wecker';
+
+  @override
+  String get alarmTestFailed =>
+      'Der Wecker konnte nicht klingeln. Prüfe, ob Benachrichtigungen aktiviert sind.';
+
+  @override
+  String get alarmFullScreenNeeded =>
+      'Ohne Berechtigung überdeckt der Wecker den Sperrbildschirm nicht';
+
+  @override
+  String get alarmFullScreenAllow => 'Erlauben';
+
+  @override
+  String get alarmHoursHeader => 'Uhrzeiten';
+
+  @override
+  String get alarmLengthHeader => 'Wie lange';
+
+  @override
+  String get alarmSettingsSubtitle =>
+      'Was ihn auslöst, zu welchen Uhrzeiten und wie lange';
+
+  @override
+  String get alarmExcludedLocationsHeader => 'Ausgeschlossene Standorte';
+
+  @override
+  String get alarmExcludedPrintersHeader => 'Ausgeschlossene Drucker';
+
+  @override
+  String get alarmExcludeLocationDesc =>
+      'Kein Drucker hier löst den Wecker aus';
+
+  @override
+  String get alarmExcludePrinterDesc =>
+      'Dieser Drucker löst den Wecker nie aus';
+
+  @override
+  String alarmExcludedWithLocation(String location) {
+    return 'Mit dem Standort $location ausgeschlossen';
+  }
+
+  @override
   String get notifThresholdsHeader => 'Schwellenwerte';
 
   @override

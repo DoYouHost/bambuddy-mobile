@@ -12,6 +12,9 @@ import '../../data/server_settings_repository.dart';
 import '../../features/dashboard/ws_providers.dart' show wsUrlFor;
 import '../../features/notifications/maintenance_monitor.dart';
 import '../../features/notifications/print_monitor.dart';
+import 'alarm_ringer.dart';
+import 'printer_locations.dart';
+import '../../data/printers_repository.dart';
 import 'background_api.dart';
 import 'background_sync.dart';
 import 'finish_alert_memory.dart';
@@ -265,12 +268,22 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _setUpMaintenance(api, notify, prefs, notifPrefs);
     _setUpPauseLead(api);
 
+    // Fetched only when a location is excluded: nothing else needs the list here.
+    final alarm = notifPrefs.alarm;
+    final locations =
+        alarm.enabled && alarm.excludedLocations.isNotEmpty && api != null
+        ? PrinterLocations(PrintersRepository(api.dio).fetchPrinters)
+        : null;
+    if (locations != null) unawaited(locations.load());
+
     _monitor = PrintMonitor(
       notify,
       serverUrl: profile.baseUrl,
       prefs: notifPrefs,
       hmsDescribe: catalog.describe,
       pauseLeadMinutes: () => _pauseLeadMinutes,
+      alarm: const AlarmRinger(),
+      alarmLocationOf: locations?.of,
       // `catchError`, because a throw inside the reminder used to become an
       // uncaught error in this isolate with nothing to show for it: the repo lets
       // auth failures out on purpose and nobody is awaiting this.

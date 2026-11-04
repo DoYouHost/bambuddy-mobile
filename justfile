@@ -128,6 +128,10 @@ test-device avd=avd:
         adb -s "$serial" install -r -g "$apk" >/dev/null
         flutter test "$file" -d "$serial" --flavor mobile || failed=1
     done
+    # The print alarm's native half (PrintAlarm.kt), which no Dart test can see.
+    (cd android && ANDROID_SERIAL="$serial" ./gradlew -q :app:connectedMobileDebugAndroidTest \
+        -Pandroid.testInstrumentationRunnerArguments.class=page.codeberg.morganmlgman.bambuddy_mobile.PrintAlarmTest) \
+        || failed=1
     exit $failed
 
 # core.hooksPath is per-clone local config, so a fresh clone has no hooks until

@@ -2323,6 +2323,112 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ajoute la photo prise par le serveur à la fin d\'une impression à la notification de réussite ou d\'échec, dès sa réception';
 
   @override
+  String get alarmHeader => 'Alarme';
+
+  @override
+  String get alarmTitle => 'Me réveiller avec une alarme';
+
+  @override
+  String get alarmDesc =>
+      'Sonne sur l\'écran de verrouillage jusqu\'à ce que vous l\'arrêtiez';
+
+  @override
+  String get alarmEvtFinished => 'Impression terminée';
+
+  @override
+  String get alarmEvtFinishedDesc =>
+      'Une impression s\'est terminée avec succès';
+
+  @override
+  String get alarmEvtBlocked => 'Impression arrêtée par une erreur';
+
+  @override
+  String get alarmEvtBlockedDesc =>
+      'Une erreur a mis en pause ou arrêté l\'impression, ou l\'impression a échoué';
+
+  @override
+  String get alarmEvtDrying => 'Séchage terminé';
+
+  @override
+  String get alarmEvtDryingDesc =>
+      'Un cycle de séchage de l\'AMS est arrivé à son terme';
+
+  @override
+  String get alarmWindowTitle => 'Seulement aux heures choisies';
+
+  @override
+  String get alarmWindowDesc =>
+      'En dehors de ces heures, l\'alarme ne sonne pas';
+
+  @override
+  String get alarmWindowFrom => 'De';
+
+  @override
+  String get alarmWindowTo => 'À';
+
+  @override
+  String alarmRingFor(int minutes) {
+    return 'Sonne pendant $minutes min';
+  }
+
+  @override
+  String get alarmRingForDesc => 'Elle s\'arrête ensuite d\'elle-même';
+
+  @override
+  String alarmMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get alarmStop => 'Arrêter';
+
+  @override
+  String get alarmTest => 'Tester l\'alarme';
+
+  @override
+  String get alarmTestBody => 'Voici le son de l\'alarme';
+
+  @override
+  String get alarmTestFailed =>
+      'L\'alarme n\'a pas pu sonner. Vérifiez que les notifications sont activées.';
+
+  @override
+  String get alarmFullScreenNeeded =>
+      'Sans autorisation, l\'alarme ne couvrira pas l\'écran de verrouillage';
+
+  @override
+  String get alarmFullScreenAllow => 'Autoriser';
+
+  @override
+  String get alarmHoursHeader => 'Horaires';
+
+  @override
+  String get alarmLengthHeader => 'Durée';
+
+  @override
+  String get alarmSettingsSubtitle =>
+      'Ce qui la déclenche, ses horaires et sa durée';
+
+  @override
+  String get alarmExcludedLocationsHeader => 'Emplacements exclus';
+
+  @override
+  String get alarmExcludedPrintersHeader => 'Imprimantes exclues';
+
+  @override
+  String get alarmExcludeLocationDesc =>
+      'Aucune imprimante d\'ici ne déclenche l\'alarme';
+
+  @override
+  String get alarmExcludePrinterDesc =>
+      'Cette imprimante ne déclenche jamais l\'alarme';
+
+  @override
+  String alarmExcludedWithLocation(String location) {
+    return 'Exclue avec l\'emplacement $location';
+  }
+
+  @override
   String get notifThresholdsHeader => 'Seuils';
 
   @override

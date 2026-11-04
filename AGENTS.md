@@ -164,12 +164,14 @@ do not stay silent because it was not part of the task.
 - [docs/notification-delivery.md](docs/notification-delivery.md) — what happens to an
   alert once it exists: the `NotificationService` contract, the finish photo that
   arrives after it, button taps in a background isolate, and which HMS faults are
-  shown or notified, how to test an alert without printing, and the system 12/24 h
-  setting. **Read it before touching `lib/core/notifications/`.**
+  shown or notified, the native print alarm and why it is not the plugin's, how to
+  test an alert without printing, and the system 12/24 h setting. **Read it before
+  touching `lib/core/notifications/` or `PrintAlarm.kt`.**
 - [docs/notification-rules.md](docs/notification-rules.md) — how
   `PrintMonitor` decides to alert: the baseline frame, which frame describes this
   print, the first-layer window, HMS grace and hold, the humidity band, the
-  ongoing notification. **Read it before changing a rule or adding an event.**
+  ongoing notification, what rings the alarm. **Read it before changing a rule or
+  adding an event.**
 - [docs/ui-primitives.md](docs/ui-primitives.md) — why the shared fields, selects and
   async helpers behave as they do: the 40 dp select arrow, the null any-row,
   "unresolved is off", restoring an optimistically removed row by neighbours.
