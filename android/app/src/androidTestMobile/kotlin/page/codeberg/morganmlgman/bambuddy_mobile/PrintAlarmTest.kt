@@ -11,6 +11,8 @@ import android.os.ParcelFileDescriptor
 import android.os.PowerManager
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
+import androidx.test.runner.lifecycle.Stage
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
@@ -249,7 +251,8 @@ class PrintAlarmTest {
         assertEquals(listOf(1 to "expired", 2 to "expired"), reports.stops(2))
         assertEquals(PrintAlarm.SOUND_PLAYER, reports.calls.first().argument<String>("sound"))
         // The offset is in the ring's age too: it rang 11 minutes as far as the alarm can tell.
-        assertTrue(reports.calls.first().argument<Int>("rang_s")!! >= 660)
+        // A Kotlin Long, which the codec keeps a Long.
+        assertTrue(reports.calls.first().argument<Long>("rang_s")!! >= 660)
     }
 
     @Test
@@ -286,13 +289,18 @@ class PrintAlarmTest {
         context.startActivity(
             Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         )
+        // Resumed in this process, not in dumpsys: the system lists the activity as resumed
+        // before its onCreate has run, and with it the engine's PrintAlarm.serve, which
+        // would then land after listen() and take the reports.
         assertNotNull(
             "the app never came to the front",
             waitFor {
-                if (shell("dumpsys activity activities").lines().any {
-                        "ResumedActivity" in it && "MainActivity" in it
-                    }
-                ) true else null
+                var resumed = false
+                instrumentation.runOnMainSync {
+                    resumed = ActivityLifecycleMonitorRegistry.getInstance()
+                        .getActivitiesInStage(Stage.RESUMED).any { it is MainActivity }
+                }
+                if (resumed) true else null
             },
         )
     }
