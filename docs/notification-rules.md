@@ -243,9 +243,19 @@ Tests: `test/features/notifications/print_alarm_test.dart`.
 - **What rings it:**
   - *Print finished* — the `FINISH` edge, the same one the alert uses.
   - *Print stopped by a fault* — the `FAILED` edge, or an HMS fault of level 1
-    (task stopped) or 2 (task paused) once it has stood the hold, while the printer
-    still has a job (`isPrinting`). A level-1 fault that turns into `FAILED` within
-    the hold rings once, on the `FAILED` edge: by the time the hold ends the print is
+    or 2 that has stood the hold while the printer is paused (`isPaused`). The
+    level alone does not say the print halted: an `hms[]` level 2 is a warning the
+    print often runs on through, and ringing for one of those woke the user for a
+    print that was fine. A pause somebody asked for does not count: `stgCur` 5
+    (M400), 16 (the user) or 30 (a pause G-code in the file), from bambuddy's
+    `STAGE_NAMES`. A printer that reports no stage rings on the pause alone, and
+    so does a requested stage the print already ran under: the server keeps
+    `stg_cur` until the printer sends another, so it may be a leftover. A
+    hold ends once, so a fault that stood while the print ran, or on an idle
+    printer before it started, rings on the edge into the pause instead
+    (`_ringOnPause`). While an alarm for the printer may still sound (its ring
+    length, cut short by a refused ring, a resume or a new print), a fault's
+    notification goes out silent. A level-1 fault that turns into `FAILED` within the hold rings once, on the `FAILED` edge: by the time the hold ends the print is
     over and `_faultStood` leaves it to that edge. Level 3 and 4 only prompt and do
     not ring. The hold also runs when the error alert is off and only the alarm
     wants the fault, on an idle printer too: whether to hold is asked once per code,

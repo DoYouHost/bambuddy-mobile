@@ -3182,6 +3182,7 @@ class _ThrowingNotifications extends RecordingNotifications {
     List<NotificationAction>? actions,
     AlertPicture? picture,
     bool quiet = false,
+    bool silent = false,
   }) async => throw StateError('plugin not initialised');
 }
 

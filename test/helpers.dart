@@ -621,6 +621,7 @@ class RecordingNotifications implements NotificationService {
     List<NotificationAction>? actions,
     AlertPicture? picture,
     bool quiet = false,
+    bool silent = false,
   }) async {
     alerts.add({
       'event': event,
@@ -634,6 +635,7 @@ class RecordingNotifications implements NotificationService {
       'photo': picture?.photoPath,
       'thumb': picture?.thumbnailPath,
       'quiet': quiet,
+      'silent': silent,
     });
     final failure = failWith;
     if (failure != null) throw failure;
