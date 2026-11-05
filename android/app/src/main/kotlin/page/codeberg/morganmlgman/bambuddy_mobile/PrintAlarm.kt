@@ -362,6 +362,16 @@ object PrintAlarm {
         if (ringing.isEmpty()) shown.finish() else shown.refresh()
     }
 
+    /**
+     * The notification's Stop or its delete intent. Android also fires the delete intent when
+     * `setTimeoutAfter` runs out, usually before [ringFor]'s Handler does, so a stop at or past
+     * the deadline is the timeout and not the user.
+     */
+    fun stopFromNotification(context: Context, id: Int) {
+        val expired = ringing[id]?.let { it.deadline <= now() } ?: false
+        stop(context, id, if (expired) "timeout" else "notification")
+    }
+
     /** Every alarm still ringing: the screen's Stop, which lists them all. */
     fun stopAll(context: Context) {
         for (id in (ringing.keys + timeouts.keys).toList()) stop(context, id, "screen")
@@ -403,6 +413,6 @@ object PrintAlarm {
  */
 class AlarmStopReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        PrintAlarm.stop(context, intent.getIntExtra(PrintAlarm.EXTRA_ID, 0), "notification")
+        PrintAlarm.stopFromNotification(context, intent.getIntExtra(PrintAlarm.EXTRA_ID, 0))
     }
 }

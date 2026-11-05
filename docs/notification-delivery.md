@@ -247,8 +247,10 @@ a channel to `PrintAlarm.kt`, served on the foreground service's engine (from
   since the screen lists them all; Stop on the notification, which stops its own
   (`AlarmStopReceiver`, also the delete intent where Android lets an ongoing
   notification be swiped away); and the timeout. The timeout is `setTimeoutAfter`
-  plus a main-looper timer: the first only removes the notification (and is a no-op
-  below API 26), while the player and the screen go with a stop. The timer stalls while
+  plus a main-looper timer, whichever comes first (a no-op below API 26 for the first).
+  Removing the notification fires its delete intent, usually ahead of the timer, so
+  `AlarmStopReceiver` reports a stop at or past the deadline as `timeout`, not as the
+  user's. The timer stalls while
   the CPU sleeps, so each alarm keeps its deadline and the screen stops every one past
   it on its next `onResume` (`stopExpired`, the fourth). A new ring under the same id restarts the
   timeout.
