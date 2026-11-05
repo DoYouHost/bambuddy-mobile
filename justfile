@@ -225,7 +225,8 @@ emu-boot avd=avd cold='':
         just emu-list >&2
         exit 1
     fi
-    flags=()
+    # `auto` falls back to lavapipe (software Vulkan), where qemu segfaults and adb reports `Lost connection`.
+    flags=(-gpu host)
     [ "{{cold}}" = cold ] && flags+=(-no-snapshot-load)
     timeout_s=${EMU_BOOT_TIMEOUT:-180}
     attempts=3
