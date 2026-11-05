@@ -118,10 +118,13 @@ by hardening`), so the alarm asks for the focus first and falls back to the syst
 notification sound when refused.
 
 **From targetSdk 37 the service must also hold while-in-use capabilities**, or the app the
-exact-alarm permission (for `USAGE_ALARM` only). The service gets while-in-use when it
-starts with the app visible, which is how it starts (`autoRunOnBoot: false`), **but not
-when `RestartReceiver` brings it back** in the background. In that case the alarm rings on
-the fallback: audible, but cut by the next noisy notification of another app. Before
+exact-alarm permission (for `USAGE_ALARM` only). The service starts from `onPause`,
+inside the visibility grace period (above), and never at boot (`autoRunOnBoot: false`);
+AOSP's `ActiveServices` grants while-in-use for a start in that grace period, **unverified
+on Android 17** — read `allowWhileInUsePermissionInFgs` in `dumpsys activity services`
+before relying on it. A service that `RestartReceiver` brings back in the background has
+no while-in-use. Without it the alarm rings on the fallback: audible, but cut by the next
+noisy notification of another app. Before
 raising the target, decide whether that is acceptable or whether to add
 `SCHEDULE_EXACT_ALARM` (special access the user grants, denied by default since Android 14;
 `USE_EXACT_ALARM` is reserved for clock and calendar apps on Play). A new permission is a

@@ -216,7 +216,7 @@ a channel to `PrintAlarm.kt`, served on the foreground service's engine (from
   it for the same reason.
 - **The sound is `PrintAlarm`'s own player**, not the notification's: a looping
   `MediaPlayer` on the default alarm tone at `USAGE_ALARM` (plays on a silenced phone
-  at alarm volume), one for every alarm ringing, released with the last. The
+  at alarm volume), one player shared by every alarm ringing, released with the last. The
   notification sits on `print_alarm_player`, which vibrates (`FLAG_INSISTENT` loops it;
   the app has no `VIBRATE` permission of its own) and makes no sound. Why not the
   notification's sound: the system plays one notification sound at a time, and the
@@ -242,9 +242,8 @@ a channel to `PrintAlarm.kt`, served on the foreground service's engine (from
   mutes an app's second noisy post within a second, `Muting recently noisy` in logcat).
   When the alarm does not ring (off, excluded, outside the hours), the notification
   rings as usual.
-- **Three ways it stops:** Stop on the screen, which stops every printer's alarm
-  (the screen shows only the latest, and closing it over another still ringing would
-  leave no screen for that one); Stop on the notification, which stops its own
+- **Three ways it stops:** Stop on the screen, which stops every printer's alarm,
+  since the screen lists them all; Stop on the notification, which stops its own
   (`AlarmStopReceiver`, also the delete intent where Android lets an ongoing
   notification be swiped away); and the timeout. The timeout is `setTimeoutAfter`
   plus a main-looper timer: the first only removes the notification (and is a no-op
@@ -269,7 +268,8 @@ a channel to `PrintAlarm.kt`, served on the foreground service's engine (from
   receiver; `tool/check_wear_apk.py` asserts it.
 - **Device test:** `PrintAlarmTest` (`android/app/src/androidTestMobile/kotlin/…`, phone flavor only, run by
   `just test-device`): the player on the soundless channel and the fallback on the
-  sounding one (`refuseFocusForTest`), one tone while the fallback rings, the player
+  sounding one (`refuseFocusForTest`), a second alarm joining an alarm already on the
+  fallback rather than starting the player, the player
   playing as `USAGE_ALARM` with the ringer on silent and through another app's
   notification (read from `dumpsys audio`), the player released with the last stop and
   past every deadline (`clockOffsetForTest`), the notification's flags, the screen over
