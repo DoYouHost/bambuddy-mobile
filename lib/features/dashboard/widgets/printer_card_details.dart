@@ -1246,10 +1246,12 @@ class _AmsChip extends StatelessWidget {
           minWidth: kMinInteractiveDimension,
           minHeight: kMinInteractiveDimension,
         ),
-        alignment: Alignment.center,
+        // No `alignment:` — it wraps the child in an Align that grows to every
+        // pixel of width the Wrap offers, one chip per line.
         padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: DashIcon.xs, color: color),
             const SizedBox(width: DashSpace.xs),
